@@ -54,7 +54,6 @@ import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -351,36 +350,21 @@ public class TabletMetadata {
       COLUMNS_TO_QUALIFIERS = colsToQualifiers.build();
     }
 
-    private static Stream<ByteSequence> resolveFamiliesAsBytes(ColumnType column) {
-      return COLUMNS_TO_FAMILIES.get(column).stream()
-          .map(family -> new ArrayByteSequence(family.copyBytes()));
-    }
-
-    public static Set<ByteSequence> resolveFamilies(ColumnType column) {
-      return resolveFamiliesAsBytes(column).collect(Collectors.toSet());
-    }
-
     public static Set<ByteSequence> resolveFamilies(Set<ColumnType> columns) {
-      return columns.stream().flatMap(ColumnType::resolveFamiliesAsBytes)
-          .collect(Collectors.toSet());
+      return columns.stream()
+          .flatMap(cf -> COLUMNS_TO_FAMILIES.get(cf).stream()
+              .map(family -> new ArrayByteSequence(family.copyBytes())))
+          .collect(Collectors.toUnmodifiableSet());
     }
 
     public static Set<Text> resolveFamiliesAsText(ColumnType column) {
       return COLUMNS_TO_FAMILIES.get(column);
     }
 
-    public static Set<Text> resolveFamiliesAsText(Set<ColumnType> columns) {
-      return columns.stream().flatMap(column -> resolveFamiliesAsText(column).stream())
-          .collect(Collectors.toSet());
-    }
-
     public static ColumnFQ resolveQualifier(ColumnType columnType) {
       return COLUMNS_TO_QUALIFIERS.get(columnType);
     }
 
-    public static Set<ColumnFQ> resolveQualifiers(Set<ColumnType> columns) {
-      return columns.stream().map(ColumnType::resolveQualifier).collect(Collectors.toSet());
-    }
   }
 
   public static class Location {

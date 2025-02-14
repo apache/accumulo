@@ -21,16 +21,7 @@ package org.apache.accumulo.core.metadata.schema;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -84,9 +75,6 @@ import com.google.common.collect.Iterators;
 public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable {
 
   public static class Builder implements TableRangeOptions, TableOptions, RangeOptions, Options {
-
-    private static final Set<ColumnType> FETCH_QUALIFIERS = Set.of(DIR, FLUSH_ID, AVAILABILITY,
-        HOSTING_REQUESTED, PREV_ROW, TIME, OPID, SELECTED, UNSPLITTABLE, MERGEABILITY);
 
     private final List<Text> families = new ArrayList<>();
     private final List<ColumnFQ> qualifiers = new ArrayList<>();
@@ -317,14 +305,15 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public Options fetch(ColumnType... colsToFetch) {
       Preconditions.checkArgument(colsToFetch.length > 0);
-
-      var columns = Set.of(colsToFetch);
-      fetchedCols.addAll(columns);
-      Map<Boolean,Set<ColumnType>> groups = columns.stream()
-          .collect(Collectors.partitioningBy(FETCH_QUALIFIERS::contains, Collectors.toSet()));
-      qualifiers.addAll(ColumnType.resolveQualifiers(groups.get(true)));
-      families.addAll(ColumnType.resolveFamiliesAsText(groups.get(false)));
-
+      for (var col : fetchedCols) {
+        fetchedCols.add(col);
+        var qualifier = ColumnType.resolveQualifier(col);
+        if (qualifier != null) {
+          qualifiers.add(qualifier);
+        } else {
+          families.addAll(ColumnType.resolveFamiliesAsText(col));
+        }
+      }
       return this;
     }
 

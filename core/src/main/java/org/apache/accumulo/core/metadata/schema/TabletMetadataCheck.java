@@ -71,8 +71,8 @@ public interface TabletMetadataCheck {
       this.families = columns.equals(ALL_COLUMNS) ? Set.of() : ColumnType.resolveFamilies(columns);
     }
 
-    public Set<ColumnType> getColumns() {
-      return columns;
+    public EnumSet<ColumnType> getColumns() {
+      return EnumSet.copyOf(columns);
     }
 
     public Set<ByteSequence> getFamilies() {

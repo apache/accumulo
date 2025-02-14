@@ -27,6 +27,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,7 +51,7 @@ public class TabletMetadataCheckTest {
     assertTrue(TabletMetadataCheck.ALL_RESOLVED_COLUMNS.getFamilies().isEmpty());
 
     // Add some column types and verify resolved families is not empty and is correct
-    var expectedColumnTypes = Set.of(PREV_ROW, SELECTED, FILES, ECOMP, SCANS, DIR);
+    var expectedColumnTypes = EnumSet.of(PREV_ROW, SELECTED, FILES, ECOMP, SCANS, DIR);
     var expectedFamilies = Set
         .of(ServerColumnFamily.NAME, TabletColumnFamily.NAME, DataFileColumnFamily.NAME,
             ScanFileColumnFamily.NAME, ExternalCompactionColumnFamily.NAME)

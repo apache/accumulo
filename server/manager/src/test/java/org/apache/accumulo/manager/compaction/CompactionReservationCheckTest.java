@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -233,7 +234,7 @@ public class CompactionReservationCheckTest {
     var resolved2 = new CompactionReservationCheck(CompactionKind.SYSTEM, Set.of(), null, false,
         SteadyTime.from(Duration.ZERO), 100L).columnsToRead();
     var expectedColumnTypes =
-        Set.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED);
+        EnumSet.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED);
     var expectedFamilies = Set
         .of(ServerColumnFamily.NAME, TabletColumnFamily.NAME, DataFileColumnFamily.NAME,
             ExternalCompactionColumnFamily.NAME, UserCompactionRequestedColumnFamily.NAME)
