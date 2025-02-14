@@ -355,7 +355,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testCloneIntoDiffNamspace() throws Exception {
+  public void testCloneIntoDiffNamespace() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
@@ -365,7 +365,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testCloneIntoDiffNamspaceDoesntExist() throws Exception {
+  public void testCloneIntoDiffNamespaceDoesntExist() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       client.tableOperations().create(tableName);
