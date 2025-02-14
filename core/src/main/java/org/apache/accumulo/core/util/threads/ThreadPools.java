@@ -27,7 +27,6 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHED_FUTURE_CHECKER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_ASSIGNMENT_POOL;
@@ -288,12 +287,6 @@ public class ThreadPools {
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), GENERAL_SERVER_POOL.poolName,
             emitThreadPoolMetrics);
-      case MANAGER_FATE_THREADPOOL_SIZE:
-        builder = getPoolBuilder(MANAGER_FATE_POOL).numCoreThreads(conf.getCount(p));
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         builder = getPoolBuilder(MANAGER_STATUS_POOL);
         int threads = conf.getCount(p);

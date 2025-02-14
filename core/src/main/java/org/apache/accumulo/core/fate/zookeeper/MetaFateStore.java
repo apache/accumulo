@@ -584,6 +584,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
           public Optional<FateReservation> getFateReservation() {
             return nodeSupplier.get().reservation;
           }
+
+          @Override
+          public Optional<Fate.FateOperation> getFateOperation() {
+            var fateOp = (Fate.FateOperation) nodeSupplier.get().txInfo.get(TxInfo.TX_NAME);
+            return Optional.ofNullable(fateOp);
+          }
         };
       });
 
