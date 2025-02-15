@@ -54,7 +54,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * fateKey. If seeded, sets the following data for the fateId in the store.
    *
    * <ul>
-   * <li>Set the tx name</li>
+   * <li>Set the fate op</li>
    * <li>Set the status to SUBMITTED</li>
    * <li>Set the fate key</li>
    * <li>Sets autocleanup only if true</li>
@@ -74,7 +74,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    * unreserved. If seeded, sets the following data for the fateId in the store.
    *
    * <ul>
-   * <li>Set the tx name</li>
+   * <li>Set the fate op</li>
    * <li>Set the status to SUBMITTED</li>
    * <li>Sets autocleanup only if true</li>
    * <li>Sets the creation time</li>

@@ -159,7 +159,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       var mutator = mutatorFactory.get();
       mutator =
-          mutator.putName(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
+          mutator.putFateOp(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
       if (autoCleanUp) {
         mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
       }

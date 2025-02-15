@@ -353,7 +353,7 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
-          // tx name will not be set if the tx is not seeded with work (it is NEW)
+          // fate op will not be set if the tx is not seeded with work (it is NEW)
           Fate.FateOperation fateOp = txStore.getTransactionInfo(Fate.TxInfo.FATE_OP) == null ? null
               : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.FATE_OP));
 

@@ -75,7 +75,7 @@ public interface FateMutator<T> {
    */
   FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation);
 
-  FateMutator<T> putName(byte[] data);
+  FateMutator<T> putFateOp(byte[] data);
 
   FateMutator<T> putAutoClean(byte[] data);
 

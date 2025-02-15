@@ -162,7 +162,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
     switch (txInfo) {
       case FATE_OP:
-        putName(data);
+        putFateOp(data);
         break;
       case AUTO_CLEAN:
         putAutoClean(data);
