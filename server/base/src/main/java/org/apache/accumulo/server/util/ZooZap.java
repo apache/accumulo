@@ -29,8 +29,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -88,16 +86,12 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    try {
-      var siteConf = SiteConfiguration.auto();
-      // Login as the server on secure HDFS
-      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-        SecurityUtil.serverLogin(siteConf);
-      }
-      zap(siteConf, args);
-    } finally {
-      SingletonManager.setMode(Mode.CLOSED);
+    var siteConf = SiteConfiguration.auto();
+    // Login as the server on secure HDFS
+    if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+      SecurityUtil.serverLogin(siteConf);
     }
+    zap(siteConf, args);
   }
 
   public void zap(SiteConfiguration siteConf, String... args) {
