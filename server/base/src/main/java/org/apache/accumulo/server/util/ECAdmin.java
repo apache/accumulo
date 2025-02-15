@@ -18,7 +18,14 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -41,6 +48,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -62,6 +71,10 @@ public class ECAdmin implements KeywordExecutable {
     @Parameter(names = {"-d", "--details"},
         description = "display details about the running compactions")
     boolean details = false;
+
+    @Parameter(names = {"-f", "--format"},
+        description = "output format: plain (default), csv, json")
+    String format = "plain";
   }
 
   @Parameters(commandDescription = "list all compactors in zookeeper")
@@ -116,7 +129,7 @@ public class ECAdmin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("cancel")) {
         cancelCompaction(context, cancelOps.ecid);
       } else if (cl.getParsedCommand().equals("running")) {
-        runningCompactions(context, runningOpts.details);
+        runningCompactions(context, runningOpts.details, runningOpts.format);
       } else {
         log.error("Unknown command {}", cl.getParsedCommand());
         cl.usage();
@@ -153,43 +166,112 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private void runningCompactions(ServerContext context, boolean details) {
+  private void runningCompactions(ServerContext context, boolean details, String format) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
+    Map<String,TExternalCompaction> runningCompactionsMap = new HashMap<>();
+
     try {
       coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      if (running == null) {
+
+      // Fetch running compactions as a list and convert to a map
+      TExternalCompactionList running =
+          coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+
+      if (running == null || running.getCompactions().isEmpty()) {
         System.out.println("No running compactions found.");
         return;
       }
-      var ecidMap = running.getCompactions();
-      if (ecidMap == null) {
-        System.out.println("No running compactions found.");
-        return;
+
+      // Convert the list to a map
+      for (Map.Entry<String,TExternalCompaction> entry : running.getCompactions().entrySet()) {
+        runningCompactionsMap.put(entry.getKey(), entry.getValue());
       }
-      ecidMap.forEach((ecid, ec) -> {
-        if (ec != null) {
-          var runningCompaction = new RunningCompaction(ec);
-          var addr = runningCompaction.getCompactorAddress();
-          var kind = runningCompaction.getJob().kind;
-          var queue = runningCompaction.getQueueName();
-          var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
-          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queue, ke.tableId());
+
+      StringBuilder csvOutput = new StringBuilder();
+      List<Map<String,Object>> jsonOutput = new ArrayList<>();
+
+      if ("csv".equalsIgnoreCase(format)) {
+        csvOutput.append(
+            "ECID,Compactor,Kind,Queue,TableId,Status,LastUpdate,Duration,NumFiles,Progress\n");
+      }
+
+      for (Map.Entry<String,TExternalCompaction> entry : runningCompactionsMap.entrySet()) {
+        TExternalCompaction ec = entry.getValue();
+        if (ec == null) {
+          continue;
+        }
+
+        var runningCompaction = new RunningCompaction(ec);
+        String ecid = runningCompaction.getJob().getExternalCompactionId();
+        var addr = runningCompaction.getCompactorAddress();
+        var kind = runningCompaction.getJob().kind;
+
+        // Ensure getQueueName() exists, else use an alternative like getGroupName()
+        var queueName = runningCompaction.getQueueName(); // If this method does not exist, replace
+                                                          // with getGroupName()
+
+        var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
+        String tableId = ke.tableId().canonical();
+
+        String status = "";
+        long lastUpdate = 0, duration = 0;
+        int numFiles = 0;
+        double progress = 0.0;
+
+        if (details) {
+          var runningCompactionInfo = new RunningCompactionInfo(ec);
+          status = runningCompactionInfo.status;
+          lastUpdate = runningCompactionInfo.lastUpdate;
+          duration = runningCompactionInfo.duration;
+          numFiles = runningCompactionInfo.numFiles;
+          progress = runningCompactionInfo.progress;
+        }
+
+        if ("plain".equalsIgnoreCase(format)) {
+          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
           if (details) {
-            var runningCompactionInfo = new RunningCompactionInfo(ec);
-            var status = runningCompactionInfo.status;
-            var last = runningCompactionInfo.lastUpdate;
-            var duration = runningCompactionInfo.duration;
-            var numFiles = runningCompactionInfo.numFiles;
-            var progress = runningCompactionInfo.progress;
             System.out.format("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n",
-                status, last, duration, numFiles, progress);
+                status, lastUpdate, duration, numFiles, progress);
           }
         }
-      });
+
+        if ("csv".equalsIgnoreCase(format)) {
+          csvOutput.append(String.format("%s,%s,%s,%s,%s,%s,%d,%d,%d,%.2f\n", ecid, addr, kind,
+              queueName, tableId, status, lastUpdate, duration, numFiles, progress));
+        }
+
+        if ("json".equalsIgnoreCase(format)) {
+          Map<String,Object> jsonEntry = new LinkedHashMap<>();
+          jsonEntry.put("ecid", ecid);
+          jsonEntry.put("compactor", addr);
+          jsonEntry.put("kind", kind);
+          jsonEntry.put("queue", queueName);
+          jsonEntry.put("tableId", tableId);
+          if (details) {
+            jsonEntry.put("status", status);
+            jsonEntry.put("lastUpdate", lastUpdate);
+            jsonEntry.put("duration", duration);
+            jsonEntry.put("numFiles", numFiles);
+            jsonEntry.put("progress", progress);
+          }
+          jsonOutput.add(jsonEntry);
+        }
+      }
+
+      if ("csv".equalsIgnoreCase(format)) {
+        System.out.print(csvOutput.toString());
+      }
+
+      if ("json".equalsIgnoreCase(format)) {
+        try {
+          Gson gson = new GsonBuilder().setPrettyPrinting().create();
+          System.out.println(gson.toJson(jsonOutput));
+        } catch (Exception e) {
+          log.error("Error generating JSON output", e);
+        }
+      }
     } catch (Exception e) {
-      throw new RuntimeException("Unable to get running compactions.", e);
+      throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
       ThriftUtil.returnClient(coordinatorClient, context);
     }
