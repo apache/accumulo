@@ -77,10 +77,8 @@ public class CleanWalIT extends AccumuloClusterHarness {
         m.put("cf", "cq", "value");
         bw.addMutation(m);
       }
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      // all 3 tables should do recovery, but the bug doesn't really remove the log file references
 
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().restartGroups(rg->rg.getServerType() == ServerType.TABLET_SERVER);
 
       for (String table : new String[] {AccumuloTable.METADATA.tableName(),
           AccumuloTable.ROOT.tableName()}) {
