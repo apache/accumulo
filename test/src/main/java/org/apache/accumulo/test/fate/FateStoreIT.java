@@ -101,8 +101,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(TStatus.SUBMITTED, txStore.getStatus());
 
     // Set a name to test setTransactionInfo()
-    txStore.setTransactionInfo(TxInfo.TX_NAME, "name");
-    assertEquals("name", txStore.getTransactionInfo(TxInfo.TX_NAME));
+    txStore.setTransactionInfo(TxInfo.FATE_OP, "name");
+    assertEquals("name", txStore.getTransactionInfo(TxInfo.FATE_OP));
 
     // Try setting a second test op to test getStack()
     // when listing or popping TestOperation2 should be first
@@ -652,7 +652,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertTrue(store.tryReserve(fateId).isEmpty());
     assertEquals(TStatus.UNKNOWN, txStore.getStatus());
     assertNull(txStore.top());
-    assertNull(txStore.getTransactionInfo(TxInfo.TX_NAME));
+    assertNull(txStore.getTransactionInfo(TxInfo.FATE_OP));
     assertEquals(0, txStore.timeCreated());
     assertEquals(Optional.empty(), txStore.getKey());
     assertEquals(fateId, txStore.getID());

@@ -227,7 +227,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
       var txStore = store.reserve(fateIds[i]);
       try {
         txStore.push(new FirstOp());
-        txStore.setTransactionInfo(TxInfo.TX_NAME, "TEST_" + i);
+        txStore.setTransactionInfo(TxInfo.FATE_OP, "TEST_" + i);
         txStore.setStatus(SUBMITTED);
       } finally {
         txStore.unreserve(Duration.ZERO);
@@ -359,7 +359,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
       var txStore = store.reserve(fateIds[i]);
       try {
         txStore.push(new FirstNonInterleavingOp());
-        txStore.setTransactionInfo(TxInfo.TX_NAME, "TEST_" + i);
+        txStore.setTransactionInfo(TxInfo.FATE_OP, "TEST_" + i);
         txStore.setStatus(SUBMITTED);
       } finally {
         txStore.unreserve(Duration.ZERO);
