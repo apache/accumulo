@@ -35,7 +35,6 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadataCheck;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.time.SteadyTime;
@@ -50,6 +49,11 @@ import com.google.common.base.Preconditions;
 public class CompactionReservationCheck implements TabletMetadataCheck {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionReservationCheck.class);
+
+  // Cache the ResolvedColumns statically so we do not need to recreate the set of
+  // columns and families for each mutation
+  private static final ResolvedColumns RESOLVED_COLUMNS = new ResolvedColumns(
+      Set.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED));
 
   private CompactionKind kind;
   private List<String> jobFilesStr;
@@ -163,7 +167,7 @@ public class CompactionReservationCheck implements TabletMetadataCheck {
   }
 
   @Override
-  public Set<ColumnType> columnsToRead() {
-    return Set.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED);
+  public ResolvedColumns columnsToRead() {
+    return RESOLVED_COLUMNS;
   }
 }

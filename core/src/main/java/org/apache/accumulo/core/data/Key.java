@@ -552,6 +552,63 @@ public class Key implements WritableComparable<Key>, Cloneable {
         new Text(cv.getExpression()), ts);
   }
 
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column
+   * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
+   * This constructor creates a copy of the fields.
+   * <p>
+   * To avoid copying, use
+   * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
+   * instead.
+   *
+   * @see #builder()
+   * @since 3.1.0
+   */
+  public Key(ByteSequence row, ByteSequence cf, ByteSequence cq, ByteSequence cv, long ts) {
+    byte[] rowBytes, cfBytes, cqBytes, cvBytes;
+    int rowOffset, cfOffset, cqOffset, cvOffset;
+    int rowLen, cfLen, cqLen, cvLen;
+
+    if (row.isBackedByArray()) {
+      rowBytes = row.getBackingArray();
+      rowOffset = row.offset();
+    } else {
+      rowBytes = row.toArray();
+      rowOffset = 0;
+    }
+    rowLen = row.length();
+
+    if (cf.isBackedByArray()) {
+      cfBytes = cf.getBackingArray();
+      cfOffset = cf.offset();
+    } else {
+      cfBytes = cf.toArray();
+      cfOffset = 0;
+    }
+    cfLen = cf.length();
+
+    if (cq.isBackedByArray()) {
+      cqBytes = cq.getBackingArray();
+      cqOffset = cq.offset();
+    } else {
+      cqBytes = cq.toArray();
+      cqOffset = 0;
+    }
+    cqLen = cq.length();
+
+    if (cv.isBackedByArray()) {
+      cvBytes = cv.getBackingArray();
+      cvOffset = cv.offset();
+    } else {
+      cvBytes = cv.toArray();
+      cvOffset = 0;
+    }
+    cvLen = cv.length();
+
+    init(rowBytes, rowOffset, rowLen, cfBytes, cfOffset, cfLen, cqBytes, cqOffset, cqLen, cvBytes,
+        cvOffset, cvLen, ts, false, true);
+  }
+
   private byte[] followingArray(byte[] ba) {
     byte[] fba = new byte[ba.length + 1];
     System.arraycopy(ba, 0, fba, 0, ba.length);

@@ -667,7 +667,7 @@ public class RatioBasedCompactionPlannerTest {
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
-    return new CompactionPlanImpl.BuilderImpl(kind, all, all)
+    return new CompactionPlanImpl.BuilderImpl(kind, all)
         .addJob((short) all.size(), CompactorGroupId.of("small"), files).build().getJobs()
         .iterator().next();
   }
@@ -817,7 +817,7 @@ public class RatioBasedCompactionPlannerTest {
 
       @Override
       public Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, all, candidates);
+        return new CompactionPlanImpl.BuilderImpl(kind, candidates);
       }
     };
   }

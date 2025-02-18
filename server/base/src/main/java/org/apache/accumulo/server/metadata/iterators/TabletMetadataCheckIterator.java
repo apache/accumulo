@@ -23,11 +23,9 @@ import static org.apache.accumulo.server.metadata.iterators.ColumnFamilyTransfor
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.EnumSet;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -98,11 +96,12 @@ public class TabletMetadataCheckIterator implements SortedKeyValueIterator<Key,V
 
     var colsToRead = check.columnsToRead();
 
-    source.seek(new Range(tabletRow), Set.of(), false);
+    source.seek(new Range(tabletRow), colsToRead.getFamilies(),
+        !colsToRead.getFamilies().isEmpty());
 
     if (source.hasTop()) {
       var tabletMetadata = TabletMetadata.convertRow(new IteratorAdapter(source),
-          EnumSet.copyOf(colsToRead), false, false);
+          colsToRead.getColumns(), false, false);
 
       // TODO checking the prev end row here is redundant w/ other checks that ample currently
       // does.. however we could try to make all checks eventually use this class

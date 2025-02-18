@@ -266,21 +266,12 @@ public class ZooCache {
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.
      *
-     * Changes were made in ACCUMULO-4388 so that the run method no longer accepts Zookeeper as an
-     * argument, and instead relies on the ZooRunnable implementation to call
-     * {@link #getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches
-     * are checked has the benefit of limiting ZK connections and blocking as a result of obtaining
-     * these sessions.
-     *
      * @return T the result of the runnable
      */
     abstract T run() throws KeeperException, InterruptedException;
 
     /**
-     * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()}
-     * after checks to cached information are made. This change, per ACCUMULO-4388 ensures that we
-     * don't create a ZooKeeper session when information is cached, and access to ZooKeeper is
-     * unnecessary.
+     * Retry will attempt to call the run method.
      *
      * @return result of the runnable access success ( i.e. no exceptions ).
      */
@@ -358,7 +349,7 @@ public class ZooCache {
    * @return children list, or null if node has no children or does not exist
    */
   public List<String> getChildren(final String zPath) {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     ensureWatched(zPath);
     ZooRunnable<List<String>> zr = new ZooRunnable<>() {
 
@@ -418,7 +409,7 @@ public class ZooCache {
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath, final ZcStat status) {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     ensureWatched(zPath);
     ZooRunnable<byte[]> zr = new ZooRunnable<>() {
 
@@ -483,7 +474,7 @@ public class ZooCache {
    * @param cachedStat cached statistic, that is or will be cached
    */
   protected void copyStats(ZcStat userStat, ZcStat cachedStat) {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     if (userStat != null && cachedStat != null) {
       userStat.set(cachedStat);
     }
@@ -493,13 +484,18 @@ public class ZooCache {
    * Clears this cache.
    */
   protected void clear() {
-    Preconditions.checkState(!closed);
+    if (closed) {
+      return;
+    }
     nodeCache.clear();
     updateCount.incrementAndGet();
     log.trace("{} cleared all from cache", cacheId);
   }
 
   public void close() {
+    if (closed) {
+      return;
+    }
     clear();
     closed = true;
   }
@@ -509,7 +505,7 @@ public class ZooCache {
    * count is the same, then it means cache did not change.
    */
   public long getUpdateCount() {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     return updateCount.get();
   }
 
@@ -543,7 +539,7 @@ public class ZooCache {
    * Removes all paths in the cache match the predicate.
    */
   public void clear(Predicate<String> pathPredicate) {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     Predicate<String> pathPredicateWrapper = path -> {
       boolean testResult = pathPredicate.test(path);
       if (testResult) {
