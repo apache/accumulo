@@ -431,12 +431,9 @@ function control_services() {
       for group in $tserver_groups; do
         G="TSERVER_HOSTS_$group"
         for tserver in ${!G}; do
+          debug "Stopping tservers on $addr via admin command"
           if echo "$tserver" | grep -q "$addr"; then
-            if ! isDebug; then
-              "$accumulo_cmd" admin stop "$addr"
-            else
-              debug "Stopping tservers on $addr via admin command"
-            fi
+            debugOrRun "$accumulo_cmd" admin stop "$addr"
           fi
         done
       done
@@ -473,9 +470,7 @@ function control_services() {
       done
       if [[ $operation == "stop" || $operation == "kill" ]]; then
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        if ! isDebug; then
-          "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -tservers -group "$group"
-        fi
+        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers -group "$group"
       fi
       echo "done"
     done
@@ -528,9 +523,7 @@ function control_services() {
       done
       if [[ $operation == "stop" || $operation == "kill" ]]; then
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        if ! isDebug; then
-          "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -sservers -group "$group"
-        fi
+        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers -group "$group"
       fi
     done
   fi
@@ -552,18 +545,14 @@ function control_services() {
       done
       if [[ $operation == "stop" || $operation == "kill" ]]; then
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        if ! isDebug; then
-          "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -compactors -group "$group"
-        fi
+        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors -group "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
-    if ! isDebug; then
-      echo "Cleaning all server entries in ZooKeeper"
-      "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -manager -tservers -compactors -sservers
-    fi
+    debug "Cleaning all server entries in ZooKeeper"
+    debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers
   fi
 
 }

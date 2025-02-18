@@ -27,7 +27,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -103,7 +102,7 @@ public class ZooZap implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.zapManager && !opts.zapTservers) {
+    if (!opts.zapManager && !opts.zapTservers && !opts.zapCompactors && !opts.zapScanServers) {
       new JCommander(opts).usage();
       return;
     }
@@ -136,21 +135,12 @@ public class ZooZap implements KeywordExecutable {
           try {
             Set<ServiceLockPath> tserverLockPaths =
                 context.getServerPaths().getTabletServer(rgp, AddressSelector.all(), false);
-            for (ServiceLockPath tserverPath : tserverLockPaths) {
-
-              message("Deleting " + tserverPath + " from zookeeper", opts);
-
-              if (opts.zapManager) {
-                zrw.recursiveDelete(tserverPath.toString(), NodeMissingPolicy.SKIP);
-              } else {
-                if (!zrw.getChildren(tserverPath.toString()).isEmpty()) {
-                  try {
-                    ServiceLock.deleteLock(zrw, tserverPath);
-                  } catch (RuntimeException e) {
-                    message("Did not delete " + tserverPath, opts);
-                  }
-                }
-              }
+            Set<String> tserverResourceGroupPaths = new HashSet<>();
+            tserverLockPaths.forEach(p -> tserverResourceGroupPaths
+                .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
+            for (String group : tserverResourceGroupPaths) {
+              message("Deleting tserver " + group + " from zookeeper", opts);
+              zrw.recursiveDelete(group.toString(), NodeMissingPolicy.SKIP);
             }
           } catch (KeeperException | InterruptedException e) {
             log.error("{}", e.getMessage(), e);
@@ -165,7 +155,7 @@ public class ZooZap implements KeywordExecutable {
               .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
           try {
             for (String group : compactorResourceGroupPaths) {
-              message("Deleting " + group + " from zookeeper", opts);
+              message("Deleting compactor " + group + " from zookeeper", opts);
               zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
             }
           } catch (KeeperException | InterruptedException e) {
@@ -175,14 +165,16 @@ public class ZooZap implements KeywordExecutable {
         }
 
         if (opts.zapScanServers) {
+          Set<ServiceLockPath> sserverLockPaths =
+              context.getServerPaths().getScanServer(rgp, AddressSelector.all(), false);
+          Set<String> sserverResourceGroupPaths = new HashSet<>();
+          sserverLockPaths.forEach(p -> sserverResourceGroupPaths
+              .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
+
           try {
-            Set<ServiceLockPath> sserverLockPaths =
-                context.getServerPaths().getScanServer(rgp, AddressSelector.all(), false);
-            for (ServiceLockPath sserverPath : sserverLockPaths) {
-              message("Deleting " + sserverPath + " from zookeeper", opts);
-              if (!zrw.getChildren(sserverPath.toString()).isEmpty()) {
-                ServiceLock.deleteLock(zrw, sserverPath);
-              }
+            for (String group : sserverResourceGroupPaths) {
+              message("Deleting sserver " + group + " from zookeeper", opts);
+              zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
             }
           } catch (KeeperException | InterruptedException e) {
             log.error("{}", e.getMessage(), e);
