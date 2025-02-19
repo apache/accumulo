@@ -27,6 +27,7 @@ import java.util.SortedSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -35,7 +36,6 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
@@ -114,9 +114,21 @@ public class TabletLogger {
     }
   }
 
+  public static void tabletLoadFailed(KeyExtent extent, Exception e) {
+    locLog.warn("Failed to load tablet {}", extent, e);
+  }
+
   private static String getSize(Collection<CompactableFile> files) {
     long sum = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
     return FileUtils.byteCountToDisplaySize(sum);
+  }
+
+  public static void fileReadFailed(String path, TableId tableId, Exception e) {
+    fileLog.error("For table {} failed to read {} ", tableId, path, e);
+  }
+
+  public static void fileReadFailed(String path, KeyExtent tablet, Exception e) {
+    fileLog.error("For tablet {} failed to read {} ", tablet, path, e);
   }
 
   /**
@@ -134,20 +146,18 @@ public class TabletLogger {
         Collections2.transform(inputs, StoredTabletFile::toMinimalString));
   }
 
-  public static void compacting(TabletMetadata tabletMetadata, ExternalCompactionId cid,
+  public static void compacting(KeyExtent extent, FateId selectedFateId, ExternalCompactionId cid,
       String compactorAddress, CompactionJob job) {
     if (fileLog.isDebugEnabled()) {
       if (job.getKind() == CompactionKind.USER) {
-        var fateId = tabletMetadata.getSelectedFiles().getFateId();
         fileLog.debug(
             "Compacting {} driver:{} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
-            tabletMetadata.getExtent(), fateId, cid, job.getGroup(), compactorAddress,
-            job.getPriority(), getSize(job.getFiles()), job.getKind(),
-            asMinimalString(job.getFiles()));
+            extent, selectedFateId, cid, job.getGroup(), compactorAddress, job.getPriority(),
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       } else {
         fileLog.debug(
             "Compacting {} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
-            tabletMetadata.getExtent(), cid, job.getGroup(), compactorAddress, job.getPriority(),
+            extent, cid, job.getGroup(), compactorAddress, job.getPriority(),
             getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       }
     }

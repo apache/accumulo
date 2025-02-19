@@ -22,7 +22,7 @@
         /**
          * Creates participating Tservers initial table, passes the tableID from the template
          */
-        $(document).ready(function () {
+        $(function () {
           initTableServerTable('${tableID}');
         });
       </script>
@@ -46,7 +46,6 @@
                 <th class="duration" title="The amount of time live ingest operations (mutations, batch writes) have been waiting for the tserver to free up memory.">Hold&nbsp;Time&nbsp;</th>
                 <th title="Information about the scans threads. Shows how many threads are running and, in parentheses, how much work is queued for the threads.">Scans&nbsp;</th>
                 <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction is in parentheses.">Minor&nbsp;Compactions&nbsp;</th>
-                <th title="The action of gathering up many small files and rewriting them as one larger file. The number of queued major compactions is in parentheses.">Major&nbsp;Compactions&nbsp;</th>
                 <th class="percent" title="The recent index cache hit rate.">Index Cache<br />Hit Rate&nbsp;</th>
                 <th class="percent" title="The recent data cache hit rate.">Data Cache<br />Hit Rate&nbsp;</th>
                 <th class="big-num" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th>

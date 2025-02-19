@@ -306,7 +306,7 @@ public class TServerUtils {
   private static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    String poolName = ACCUMULO_POOL_PREFIX.poolName + serverName.toLowerCase() + ".client";
+    String poolName = ACCUMULO_POOL_PREFIX.poolName + "." + serverName.toLowerCase() + ".client";
     final ThreadPoolExecutor pool =
         ThreadPools.getServerThreadPools().getPoolBuilder(poolName).numCoreThreads(executorThreads)
             .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();

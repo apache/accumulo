@@ -77,6 +77,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Me
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
@@ -393,6 +394,9 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
             break;
           case UNSPLITTABLE:
             qualifiers.add(SplitColumnFamily.UNSPLITTABLE_COLUMN);
+            break;
+          case MERGEABILITY:
+            qualifiers.add(TabletColumnFamily.MERGEABILITY_COLUMN);
             break;
           default:
             throw new IllegalArgumentException("Unknown col type " + colToFetch);

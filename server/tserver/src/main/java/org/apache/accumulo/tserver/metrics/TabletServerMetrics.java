@@ -20,11 +20,11 @@ package org.apache.accumulo.tserver.metrics;
 
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MINC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_HOLD;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_BYTES;
-import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_MUTATIONS;
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_INGEST_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MEM_ENTRIES;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.TSERVER_MINC_RUNNING;
@@ -72,8 +72,8 @@ public class TabletServerMetrics implements MetricsProducer {
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this,
             TabletServerMetrics::getTotalEntriesWritten)
         .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
-    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
-        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
+    LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MINC_STUCK.getName())
+        .description(COMPACTOR_MINC_STUCK.getDescription()).register(registry);
     CompactionWatcher.setTimer(timer);
 
     Gauge
@@ -119,8 +119,8 @@ public class TabletServerMetrics implements MetricsProducer {
         .description(TSERVER_TABLETS_FILES.getDescription()).register(registry);
     Gauge.builder(TSERVER_HOLD.getName(), util, TabletServerMetricsUtil::getHoldTime)
         .description(TSERVER_HOLD.getDescription()).register(registry);
-    Gauge.builder(TSERVER_INGEST_MUTATIONS.getName(), util, TabletServerMetricsUtil::getIngestCount)
-        .description(TSERVER_INGEST_MUTATIONS.getDescription()).register(registry);
+    Gauge.builder(TSERVER_INGEST_ENTRIES.getName(), util, TabletServerMetricsUtil::getIngestCount)
+        .description(TSERVER_INGEST_ENTRIES.getDescription()).register(registry);
     Gauge.builder(TSERVER_INGEST_BYTES.getName(), util, TabletServerMetricsUtil::getIngestByteCount)
         .description(TSERVER_INGEST_BYTES.getDescription()).register(registry);
   }

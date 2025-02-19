@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -197,8 +198,8 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
 
       assertEquals(opid, testAmple.readTablet(extent).getOperationId());
 
-      var eoRepo = new AllocateDirsAndEnsureOnline(
-          new SplitInfo(extent, new TreeSet<>(List.of(new Text("sp1")))));
+      var eoRepo = new AllocateDirsAndEnsureOnline(new SplitInfo(extent,
+          TabletMergeabilityUtil.systemDefaultSplits(new TreeSet<>(List.of(new Text("sp1"))))));
 
       // The repo should delete the opid and throw an exception
       assertThrows(ThriftTableOperationException.class, () -> eoRepo.call(fateId, manager));

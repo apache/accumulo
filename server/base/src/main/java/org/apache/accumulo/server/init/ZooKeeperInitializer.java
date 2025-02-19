@@ -21,11 +21,13 @@ package org.apache.accumulo.server.init;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
@@ -71,7 +73,7 @@ public class ZooKeeperInitializer {
       zoo.putPersistentData(Constants.ZROOT, new byte[0], ZooUtil.NodeExistsPolicy.SKIP,
           ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
-      String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
+      String zkInstanceRoot = ZooUtil.getRoot(instanceId);
       zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
       var sysPropPath = SystemPropKey.of(instanceId).getPath();
       VersionedProperties vProps = new VersionedProperties();
@@ -95,7 +97,7 @@ public class ZooKeeperInitializer {
       throws KeeperException, InterruptedException {
     // setup basic data in zookeeper
 
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     InstanceId instanceId = context.getInstanceID();
 
     zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
@@ -109,10 +111,13 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
 
     // setup the instance
-    String zkInstanceRoot = Constants.ZROOT + "/" + instanceId;
+    String zkInstanceRoot = context.getZooKeeperRoot();
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES, new byte[0],
+    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES,
+        NamespaceMapping
+            .serialize(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
+                Namespace.ACCUMULO.id().canonical(), Namespace.ACCUMULO.name())),
         ZooUtil.NodeExistsPolicy.FAIL);
 
     TableManager.prepareNewNamespaceState(context, Namespace.DEFAULT.id(), Namespace.DEFAULT.name(),
@@ -131,8 +136,6 @@ public class ZooKeeperInitializer {
     initFateTableState(context);
 
     zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZPROBLEMS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET,
         getInitialRootTabletJson(rootTabletDirName, rootTabletFileUri),

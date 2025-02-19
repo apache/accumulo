@@ -74,6 +74,7 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
@@ -84,7 +85,6 @@ import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -266,7 +266,7 @@ public class NullTserver {
 
     @Override
     public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
-        List<TKeyExtent> tablets, int numStamps) throws TException {
+        List<TKeyExtent> tablets) throws TException {
       return Map.of();
     }
   }
@@ -291,7 +291,7 @@ public class NullTserver {
     int zkTimeOut =
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
-    ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
+    var context = ServerContext.forTesting(siteConfig, opts.iname, opts.keepers, zkTimeOut);
     ClientServiceHandler csh = new ClientServiceHandler(context);
     NullTServerTabletClientHandler tch = new NullTServerTabletClientHandler();
 
@@ -343,11 +343,11 @@ public class NullTserver {
 
     ServiceLock miniLock = null;
     try {
-      ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
+      ZooSession zk = context.getZooSession();
       UUID nullTServerUUID = UUID.randomUUID();
       ServiceLockPath slp = context.getServerPaths().createMiniPath(nullTServerUUID.toString());
       try {
-        context.getZooReaderWriter().mkdirs(slp.toString());
+        zk.asReaderWriter().mkdirs(slp.toString());
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }

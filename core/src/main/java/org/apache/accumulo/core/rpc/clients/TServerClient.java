@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -95,12 +95,12 @@ public interface TServerClient<C extends TServiceClient> {
           context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hp), true));
     } else {
       serverPaths.addAll(
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true));
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false));
       if (type == ThriftClientTypes.CLIENT) {
-        serverPaths
-            .addAll(context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true));
         serverPaths.addAll(
-            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true));
+            context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false));
+        serverPaths.addAll(
+            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false));
       }
       if (serverPaths.isEmpty()) {
         if (warned.compareAndSet(false, true)) {

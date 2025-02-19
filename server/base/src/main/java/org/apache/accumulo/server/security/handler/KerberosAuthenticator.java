@@ -29,7 +29,6 @@ import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.clientImpl.DelegationTokenImpl;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -51,7 +50,6 @@ public class KerberosAuthenticator implements Authenticator {
       Set.of(KerberosToken.class.getName(), SystemToken.class.getName());
 
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
-  private ZooCache zooCache;
   private ServerContext context;
   private String zkUserPath;
   private UserImpersonation impersonation;
@@ -59,7 +57,6 @@ public class KerberosAuthenticator implements Authenticator {
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zooCache = new ZooCache(context.getZooReader(), null);
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context);
     zkUserPath = context.zkUserPath();
@@ -71,35 +68,30 @@ public class KerberosAuthenticator implements Authenticator {
   }
 
   private void createUserNodeInZk(String principal) throws KeeperException, InterruptedException {
-    synchronized (zooCache) {
-      zooCache.clear();
-      ZooReaderWriter zoo = context.getZooReaderWriter();
-      zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
-          NodeExistsPolicy.FAIL);
-    }
+    context.getZooCache().clear(zkUserPath + "/" + principal);
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
+    zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0], NodeExistsPolicy.FAIL);
   }
 
   @Override
   public void initializeSecurity(String principal, byte[] token) {
     try {
       // remove old settings from zookeeper first, if any
-      ZooReaderWriter zoo = context.getZooReaderWriter();
-      synchronized (zooCache) {
-        zooCache.clear();
-        if (zoo.exists(zkUserPath)) {
-          zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed {}/ from zookeeper", zkUserPath);
-        }
-
-        // prep parent node of users with root username
-        // ACCUMULO-4140 The root user needs to be stored un-base64 encoded in the znode's value
-        byte[] principalData = principal.getBytes(UTF_8);
-        zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
-
-        // Create the root user in ZK using base64 encoded name (since the name is included in the
-        // znode)
-        createUserNodeInZk(Base64.getEncoder().encodeToString(principalData));
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
+      context.getZooCache().clear((path) -> path.startsWith(zkUserPath));
+      if (zoo.exists(zkUserPath)) {
+        zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
+        log.info("Removed {}/ from zookeeper", zkUserPath);
       }
+
+      // prep parent node of users with root username
+      // ACCUMULO-4140 The root user needs to be stored un-base64 encoded in the znode's value
+      byte[] principalData = principal.getBytes(UTF_8);
+      zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
+
+      // Create the root user in ZK using base64 encoded name (since the name is included in the
+      // znode)
+      createUserNodeInZk(Base64.getEncoder().encodeToString(principalData));
     } catch (KeeperException | InterruptedException e) {
       log.error("Failed to initialize security", e);
       throw new IllegalStateException(e);

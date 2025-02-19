@@ -51,8 +51,9 @@ public class FateLogger {
 
     private final Function<Repo<T>,String> toLogString;
 
-    private LoggingFateTxStore(FateTxStore<T> wrapped, Function<Repo<T>,String> toLogString) {
-      super(wrapped);
+    private LoggingFateTxStore(FateTxStore<T> wrapped, Function<Repo<T>,String> toLogString,
+        boolean allowForceDel) {
+      super(wrapped, allowForceDel);
       this.toLogString = toLogString;
     }
 
@@ -97,19 +98,21 @@ public class FateLogger {
     }
   }
 
-  public static <T> FateStore<T> wrap(FateStore<T> store, Function<Repo<T>,String> toLogString) {
+  public static <T> FateStore<T> wrap(FateStore<T> store, Function<Repo<T>,String> toLogString,
+      boolean allowForceDel) {
 
     // only logging operations that change the persisted data, not operations that only read data
     return new FateStore<>() {
 
       @Override
       public FateTxStore<T> reserve(FateId fateId) {
-        return new LoggingFateTxStore<>(store.reserve(fateId), toLogString);
+        return new LoggingFateTxStore<>(store.reserve(fateId), toLogString, allowForceDel);
       }
 
       @Override
       public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
-        return store.tryReserve(fateId).map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString));
+        return store.tryReserve(fateId)
+            .map(ftxs -> new LoggingFateTxStore<>(ftxs, toLogString, allowForceDel));
       }
 
       @Override
@@ -147,6 +150,33 @@ public class FateLogger {
       }
 
       @Override
+      public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey,
+          Repo<T> repo, boolean autoCleanUp) {
+        var optional = store.seedTransaction(txName, fateKey, repo, autoCleanUp);
+        if (storeLog.isTraceEnabled()) {
+          optional.ifPresentOrElse(fateId -> {
+            storeLog.trace("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
+                autoCleanUp);
+          }, () -> {
+            storeLog.trace("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
+                autoCleanUp);
+          });
+        }
+        return optional;
+      }
+
+      @Override
+      public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+          boolean autoCleanUp) {
+        boolean seeded = store.seedTransaction(txName, fateId, repo, autoCleanUp);
+        if (storeLog.isTraceEnabled()) {
+          storeLog.trace("{} {} {} {}", fateId, seeded ? "seeded" : "unable to seed",
+              toLogString.apply(repo), autoCleanUp);
+        }
+        return seeded;
+      }
+
+      @Override
       public int getDeferredCount() {
         return store.getDeferredCount();
       }
@@ -159,22 +189,6 @@ public class FateLogger {
       @Override
       public boolean isDeferredOverflow() {
         return store.isDeferredOverflow();
-      }
-
-      @Override
-      public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
-        Optional<FateTxStore<T>> txStore = store.createAndReserve(fateKey);
-        if (storeLog.isTraceEnabled()) {
-          if (txStore.isPresent()) {
-            storeLog.trace("{} created and reserved fate transaction using key : {}",
-                txStore.orElseThrow().getID(), fateKey);
-          } else {
-            storeLog.trace(
-                "fate transaction was not created using key : {}, existing transaction exists",
-                fateKey);
-          }
-        }
-        return txStore;
       }
 
       @Override

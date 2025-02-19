@@ -19,7 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
@@ -48,7 +48,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -194,7 +194,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
           final String metricName = metric.getName();
-          if (!metricName.startsWith("accumulo.compactor.entries")) {
+          if (!metricName.startsWith("accumulo.compaction.entries")) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
@@ -327,7 +327,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
 
-    TExternalCompactionList ecList = getRunningCompactions(ctx, coordinatorHost);
+    TExternalCompactionMap ecList = getRunningCompactions(ctx, coordinatorHost);
     Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
@@ -335,7 +335,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         RunningCompactionInfo rci = new RunningCompactionInfo(ec);
         RunningCompactionInfo previousRci = runningMap.put(ecid, rci);
         log.debug("ECID {} has been running for {} seconds", ecid,
-            NANOSECONDS.toSeconds(rci.duration));
+            MILLISECONDS.toSeconds(rci.duration));
         if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {

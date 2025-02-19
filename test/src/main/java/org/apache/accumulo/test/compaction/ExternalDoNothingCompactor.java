@@ -28,7 +28,6 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.compaction.thrift.CompactorService.Iface;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,7 +44,7 @@ import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ExternalDoNothingCompactor extends Compactor implements Iface {
+public class ExternalDoNothingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExternalDoNothingCompactor.class);
 
@@ -67,7 +66,7 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
 
     // Set this to true so that only 1 external compaction is run
     final AtomicReference<FileCompactor> ref = new AtomicReference<>();
-    this.shutdown = true;
+    gracefulShutdown(getContext().rpcCreds());
 
     return new FileCompactorRunnable() {
 
@@ -93,9 +92,9 @@ public class ExternalDoNothingCompactor extends Compactor implements Iface {
           // Create tmp output file
           final TabletMetadata tm = getContext().getAmple()
               .readTablet(KeyExtent.fromThrift(job.getExtent()), ColumnType.DIR);
-          ReferencedTabletFile newFile =
-              TabletNameGenerator.getNextDataFilenameForMajc(job.isPropagateDeletes(), getContext(),
-                  tm, (dir) -> {}, ExternalCompactionId.from(job.getExternalCompactionId()));
+          ReferencedTabletFile newFile = TabletNameGenerator.getNextDataFilenameForMajc(
+              job.isPropagateDeletes(), getContext(), tm.getExtent(), tm.getDirName(), (dir) -> {},
+              ExternalCompactionId.from(job.getExternalCompactionId()));
           LOG.info("Creating tmp file: {}", newFile.getPath());
           getContext().getVolumeManager().createNewFile(newFile.getPath());
 

@@ -21,10 +21,12 @@ package org.apache.accumulo.manager.tableOps.create;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
@@ -83,7 +85,8 @@ class ChooseDir extends ManagerRepo {
    * to the file system for later use during this FATE operation.
    */
   private void createTableDirectoriesInfo(Manager manager) throws IOException {
-    SortedSet<Text> splits = Utils.getSortedSetFromFile(manager, tableInfo.getSplitPath(), true);
+    SortedMap<Text,TabletMergeability> splits =
+        Utils.getSortedSplitsFromFile(manager, tableInfo.getSplitPath());
     SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(manager, splits.size());
     writeTabletDirectoriesToFileSystem(manager, tabletDirectoryInfo);
   }

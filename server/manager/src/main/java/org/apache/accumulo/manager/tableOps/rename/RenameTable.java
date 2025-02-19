@@ -75,7 +75,7 @@ public class RenameTable extends ManagerRepo {
           "Namespace in new table name does not match the old table name");
     }
 
-    ZooReaderWriter zoo = manager.getContext().getZooReaderWriter();
+    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
 
     Utils.getTableNameLock().lock();
     try {
@@ -85,8 +85,8 @@ public class RenameTable extends ManagerRepo {
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap =
-          manager.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
+      final String tap = manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
+          + Constants.ZTABLE_NAME;
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);

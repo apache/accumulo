@@ -44,6 +44,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
@@ -111,17 +112,20 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     UtilWaitThread.sleep(3000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), migrations,
-        migrationsOut));
+        migrationsOut, DataLevel.USER));
     assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
 
     config.set(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r01.*");
 
-    // Wait to trigger the out of bounds check and the repool check
-    UtilWaitThread.sleep(10000);
+    // calls to balance will clear the lastOOBCheckTimes map
+    // in the HostRegexTableLoadBalancer. For this test we want
+    // to get into the out of bounds checking code, so we need to
+    // populate the map with an older time value
+    this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), migrations,
-        migrationsOut));
+        migrationsOut, DataLevel.USER));
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
       assertTrue(migration.getNewTabletServer().getHost().startsWith("192.168.0.1")

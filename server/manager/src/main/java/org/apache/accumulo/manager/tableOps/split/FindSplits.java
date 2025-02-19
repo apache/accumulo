@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.util.Optional;
 import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,7 +48,7 @@ public class FindSplits extends ManagerRepo {
   private final SplitInfo splitInfo;
 
   public FindSplits(KeyExtent extent) {
-    this.splitInfo = new SplitInfo(extent, new TreeSet<>());
+    this.splitInfo = new SplitInfo(extent, new TreeMap<>());
   }
 
   @Override

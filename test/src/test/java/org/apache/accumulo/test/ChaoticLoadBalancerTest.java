@@ -41,6 +41,7 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -85,7 +86,7 @@ public class ChaoticLoadBalancerTest {
         if (tabletId.getTable().equals(table)) {
           KeyExtent extent =
               new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
-          TabletStats tstats = new TabletStats(extent.toThrift(), null, null, 0L, 0., 0.);
+          TabletStats tstats = new TabletStats(extent.toThrift(), null, 0L, 0., 0.);
           result.add(new TabletStatisticsImpl(tstats));
         }
       }
@@ -162,7 +163,7 @@ public class ChaoticLoadBalancerTest {
       SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
       balancer.balance(new BalanceParamsImpl(current,
           Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
-          migrationsOut));
+          migrationsOut, DataLevel.USER));
     }
   }
 

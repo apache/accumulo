@@ -34,13 +34,15 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
@@ -196,8 +198,8 @@ public class RatioBasedCompactionPlannerTest {
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactorGroupId.of("medium"), job.getGroup());
-    assertEquals(CompactionJobPrioritizer.createPriority(TableId.of("42"), CompactionKind.USER,
-        all.size(), job.getFiles().size()), job.getPriority());
+    assertEquals(CompactionJobPrioritizer.createPriority(Namespace.ACCUMULO.id(), TableId.of("42"),
+        CompactionKind.USER, all.size(), job.getFiles().size(), 1000), job.getPriority());
 
     // should only run one user compaction at a time
     compacting = Set.of(createJob(CompactionKind.USER, all, createCFs("F1", "3M", "F2", "3M")));
@@ -629,7 +631,7 @@ public class RatioBasedCompactionPlannerTest {
     // that a compaction is not planned
     all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
     var job = new CompactionJobImpl((short) 1, CompactorGroupId.of("ee1"), createCFs("F1", "1000"),
-        CompactionKind.SYSTEM, Optional.of(false));
+        CompactionKind.SYSTEM);
     params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
 
@@ -763,6 +765,11 @@ public class RatioBasedCompactionPlannerTest {
       Set<CompactableFile> candidates, Set<CompactionJob> compacting, double ratio,
       CompactionKind kind, Configuration conf) {
     return new CompactionPlanner.PlanningParameters() {
+
+      @Override
+      public NamespaceId getNamespaceId() throws TableNotFoundException {
+        return Namespace.ACCUMULO.id();
+      }
 
       @Override
       public TableId getTableId() {

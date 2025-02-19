@@ -51,6 +51,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 
@@ -262,7 +263,7 @@ public class UpgradeCoordinator {
       throw new IllegalStateException("Error checking properties", e);
     }
     try {
-      CheckCompactionConfig.validate(context.getConfiguration());
+      CheckCompactionConfig.validate(context.getConfiguration(), Level.INFO);
     } catch (RuntimeException | ReflectiveOperationException e) {
       throw new IllegalStateException("Error validating compaction configuration", e);
     }
@@ -318,8 +319,8 @@ public class UpgradeCoordinator {
       // as tablets are not assigned when this is called. The Fate code is not used to read from
       // zookeeper below because the serialization format changed in zookeeper, that is why a direct
       // read is performed.
-      if (!context.getZooReader().getChildren(context.getZooKeeperRoot() + Constants.ZFATE)
-          .isEmpty()) {
+      if (!context.getZooSession().asReader()
+          .getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "

@@ -49,26 +49,26 @@ enum TabletLoadState {
   UNLOAD_ERROR
 }
 
-enum FateOperation {
-  TABLE_CREATE
-  TABLE_CLONE
-  TABLE_DELETE
-  TABLE_RENAME
-  TABLE_ONLINE
-  TABLE_OFFLINE
-  TABLE_MERGE
-  TABLE_DELETE_RANGE
-  OBSOLETE_TABLE_BULK_IMPORT
-  TABLE_COMPACT
-  TABLE_IMPORT
-  TABLE_EXPORT
-  TABLE_CANCEL_COMPACT
-  NAMESPACE_CREATE
-  NAMESPACE_DELETE
-  NAMESPACE_RENAME
-  TABLE_BULK_IMPORT2
-  TABLE_TABLET_AVAILABILITY
-  TABLE_SPLIT
+enum TFateOperation {
+  TABLE_CREATE = 0
+  TABLE_CLONE = 1
+  TABLE_DELETE = 2
+  TABLE_RENAME = 3
+  TABLE_ONLINE = 4
+  TABLE_OFFLINE = 5
+  TABLE_MERGE = 6
+  TABLE_DELETE_RANGE = 7
+  // 8 was bulk v1 that was removed
+  TABLE_COMPACT = 9
+  TABLE_IMPORT = 10
+  TABLE_EXPORT = 11
+  TABLE_CANCEL_COMPACT = 12
+  NAMESPACE_CREATE = 13
+  NAMESPACE_DELETE = 14
+  NAMESPACE_RENAME = 15
+  TABLE_BULK_IMPORT2 = 16
+  TABLE_TABLET_AVAILABILITY = 17
+  TABLE_SPLIT = 18
 }
 
 enum ManagerState {
@@ -175,6 +175,13 @@ struct TFateId {
   2:string txUUIDStr
 }
 
+struct TTabletMergeability {
+  // Use a flag for "never" instead of something like a -1 delay
+  // in case we want to change how we represent never in the future
+  1:bool never
+  2:i64 delay
+}
+
 service FateService {
 
   // register a fate operation by reserving an opid
@@ -192,7 +199,7 @@ service FateService {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateId opid
-    4:FateOperation op
+    4:TFateOperation op
     5:list<binary> arguments
     6:map<string, string> options
     7:bool autoClean
@@ -363,6 +370,15 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
   )
+  
+  void tabletServerStopping(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tabletServer
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
 
   void setSystemProperty(
     1:client.TInfo tinfo
@@ -444,5 +460,22 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftTableOperationException toe
+  )
+
+  list<data.TKeyExtent> updateTabletMergeability(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string tableName
+    4:map<data.TKeyExtent,TTabletMergeability> splits
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftTableOperationException toe
+  )
+
+  i64 getManagerTimeNanos(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+  ) throws (
+    1:client.ThriftSecurityException sec
   )
 }

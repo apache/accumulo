@@ -29,20 +29,15 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
 import org.apache.hadoop.io.Text;
@@ -61,44 +56,17 @@ import com.google.common.base.Preconditions;
  * will be concatenated with a null byte separator.</li>
  * </ul>
  */
-public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
+public class SetEncodingIterator extends ColumnFamilyTransformationIterator {
 
   public static final String CONCAT_VALUE = "concat.value";
   private static final String VALUE_SEPARATOR = "\u0000";
   private static final byte[] VALUE_SEPARATOR_BYTES = VALUE_SEPARATOR.getBytes(UTF_8);
   private static final int VALUE_SEPARATOR_BYTES_LENGTH = VALUE_SEPARATOR_BYTES.length;
 
-  private SortedKeyValueIterator<Key,Value> source;
-
-  private Key startKey = null;
-  private Value topValue = null;
   private boolean concat = false;
 
-  static Text getTabletRow(Range range) {
-    var row = range.getStartKey().getRow();
-    // expecting this range to cover a single metadata row, so validate the range meets expectations
-    MetadataSchema.TabletsSection.validateRow(row);
-    Preconditions.checkArgument(row.equals(range.getEndKey().getRow()));
-    return range.getStartKey().getRow();
-  }
-
   @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-
-    Text tabletRow = getTabletRow(range);
-    Text family = range.getStartKey().getColumnFamily();
-
-    Preconditions.checkArgument(
-        family.getLength() > 0 && range.getStartKey().getColumnQualifier().getLength() == 0);
-
-    startKey = new Key(tabletRow, family);
-    Key endKey = new Key(tabletRow, family).followingKey(PartialKey.ROW_COLFAM);
-
-    Range r = new Range(startKey, true, endKey, false);
-
-    source.seek(r, Set.of(), false);
-
+  protected Value transform(SortedKeyValueIterator<Key,Value> source) throws IOException {
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
         DataOutputStream dos = new DataOutputStream(baos)) {
 
@@ -122,70 +90,20 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
       // The length is written last so that buffering can be avoided in this iterator.
       dos.writeInt(count);
 
-      topValue = new Value(baos.toByteArray());
+      return new Value(baos.toByteArray());
     }
-
-  }
-
-  @Override
-  public Key getTopKey() {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    if (topValue == null) {
-      throw new NoSuchElementException();
-    }
-
-    return startKey;
-  }
-
-  @Override
-  public Value getTopValue() {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    if (topValue == null) {
-      throw new NoSuchElementException();
-    }
-    return topValue;
-  }
-
-  @Override
-  public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
-    throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public boolean isRunningLowOnMemory() {
-    return source.isRunningLowOnMemory();
-  }
-
-  @Override
-  public boolean hasTop() {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    return topValue != null;
   }
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
+    super.init(source, options, env);
     String concat = options.get(CONCAT_VALUE);
     if (concat == null || !(concat.equalsIgnoreCase("true") || concat.equalsIgnoreCase("false"))) {
       throw new IllegalArgumentException(
           CONCAT_VALUE + " option must be supplied with a value of 'true' or 'false'");
     }
-    this.source = source;
     this.concat = Boolean.parseBoolean(concat);
-  }
-
-  @Override
-  public void next() throws IOException {
-    if (startKey == null) {
-      throw new IllegalStateException("never been seeked");
-    }
-    topValue = null;
   }
 
   /**
@@ -231,8 +149,6 @@ public class SetEncodingIterator implements SortedKeyValueIterator<Key,Value> {
     System.arraycopy(val, 0, bytesToWrite, key.length + VALUE_SEPARATOR_BYTES_LENGTH, val.length);
     return bytesToWrite;
   }
-
-  private static final Text EMPTY = new Text();
 
   /*
    * Create a condition that will check the column qualifier values of the rows in the tablets

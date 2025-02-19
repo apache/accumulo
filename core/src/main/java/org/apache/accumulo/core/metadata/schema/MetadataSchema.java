@@ -158,6 +158,10 @@ public class MetadataSchema {
       public static final String REQUESTED_QUAL = "requestToHost";
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
 
+      public static final String MERGEABILITY_QUAL = "mergeability";
+      public static final ColumnFQ MERGEABILITY_COLUMN =
+          new ColumnFQ(NAME, new Text(MERGEABILITY_QUAL));
+
       public static Value encodePrevEndRow(Text per) {
         if (per == null) {
           return new Value(new byte[] {0});
@@ -529,20 +533,4 @@ public class MetadataSchema {
 
   }
 
-  /**
-   * Holds error message processing flags
-   */
-  public static class ProblemSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "err_", true, RESERVED_PREFIX + "err`", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-
-  }
 }

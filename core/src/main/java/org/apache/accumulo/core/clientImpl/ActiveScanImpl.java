@@ -21,11 +21,13 @@ package org.apache.accumulo.core.clientImpl;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.ScanState;
 import org.apache.accumulo.core.client.admin.ScanType;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
@@ -44,20 +46,21 @@ public class ActiveScanImpl extends ActiveScan {
 
   private final long scanId;
   private final String client;
-  private String tableName;
+  private final String tableName;
   private final long age;
   private final long idle;
-  private ScanType type;
-  private ScanState state;
-  private KeyExtent extent;
-  private List<Column> columns;
-  private List<String> ssiList;
-  private Map<String,Map<String,String>> ssio;
+  private final ScanType type;
+  private final ScanState state;
+  private final KeyExtent extent;
+  private final List<Column> columns;
+  private final List<String> ssiList;
+  private final Map<String,Map<String,String>> ssio;
   private final String user;
-  private Authorizations authorizations;
+  private final Authorizations authorizations;
+  private final ServerId server;
 
   ActiveScanImpl(ClientContext context,
-      org.apache.accumulo.core.tabletscan.thrift.ActiveScan activeScan)
+      org.apache.accumulo.core.tabletscan.thrift.ActiveScan activeScan, ServerId server)
       throws TableNotFoundException {
     this.scanId = activeScan.scanId;
     this.client = activeScan.client;
@@ -81,6 +84,7 @@ public class ActiveScanImpl extends ActiveScan {
       this.ssiList.add(ii.iterName + "=" + ii.priority + "," + ii.className);
     }
     this.ssio = activeScan.ssio;
+    this.server = Objects.requireNonNull(server);
   }
 
   @Override
@@ -151,5 +155,10 @@ public class ActiveScanImpl extends ActiveScan {
   @Override
   public long getIdleTime() {
     return idle;
+  }
+
+  @Override
+  public ServerId getServerId() {
+    return server;
   }
 }

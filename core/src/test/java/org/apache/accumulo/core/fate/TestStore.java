@@ -53,8 +53,15 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateTxStore<String>> createAndReserve(FateKey key) {
-    throw new UnsupportedOperationException();
+  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey,
+      Repo<String> repo, boolean autoCleanUp) {
+    return Optional.empty();
+  }
+
+  @Override
+  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<String> repo,
+      boolean autoCleanUp) {
+    return false;
   }
 
   @Override
@@ -197,6 +204,12 @@ public class TestStore implements FateStore<String> {
         throw new IllegalStateException();
       }
       statuses.remove(fateId);
+    }
+
+    @Override
+    public void forceDelete() {
+      throw new UnsupportedOperationException(
+          this.getClass().getSimpleName() + " should not be calling forceDelete()");
     }
 
     @Override
