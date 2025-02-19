@@ -42,6 +42,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -556,6 +558,58 @@ public class TabletMetadata {
     return ServiceLock.getLockData(context.getZooCache(), lockPath, stat)
         .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
         .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
+  }
+
+  public static void validate(TabletMetadata tm) {
+    if (tm == null) {
+      throw new IllegalStateException("TabletMetadata cannot be null");
+    }
+
+    Text prevEndRowText = tm.getPrevEndRow();
+    Text endRowText = tm.getEndRow();
+
+    // Allow validation even if prevEndRow is missing, as long as endRowText exists
+    Key prevEndRowKey = (prevEndRowText != null) ? new Key(prevEndRowText) : null;
+    Key endRowKey = (endRowText != null) ? new Key(endRowText) : null;
+
+    Collection<StoredTabletFile> files = tm.getFiles();
+    if (files == null || files.isEmpty()) {
+      return;
+    }
+
+    for (StoredTabletFile file : files) {
+      if (!isFileRangeValid(file, prevEndRowKey, endRowKey)) {
+        throw new IllegalStateException("File range " + file.getRange()
+            + " is inconsistent with tablet range [" + prevEndRowText + ", " + endRowText + "]");
+      }
+    }
+  }
+
+  private static boolean isFileRangeValid(StoredTabletFile file, Key prevEndRowKey, Key endRowKey) {
+    Range fileRange = file.getRange();
+
+    if (fileRange == null) {
+      return false;
+    }
+
+    Key fileStartKey = fileRange.getStartKey();
+    Key fileEndKey = fileRange.getEndKey();
+
+    // If start key is null, assume it starts at the beginning of the tablet
+    if (fileStartKey == null) {
+      fileStartKey = prevEndRowKey != null ? prevEndRowKey.followingKey(PartialKey.ROW) : null;
+    }
+
+    if (fileEndKey == null) {
+      fileEndKey = endRowKey;
+    }
+
+    if (prevEndRowKey != null
+        && fileStartKey.compareTo(prevEndRowKey.followingKey(PartialKey.ROW)) < 0) {
+      return false; // File starts before the valid range
+    }
+    return endRowKey == null || fileEndKey.compareTo(endRowKey) <= 0; // File extends beyond the
+                                                                      // tablet's end row
   }
 
   static class Builder {
