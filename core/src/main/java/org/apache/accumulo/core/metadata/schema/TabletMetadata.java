@@ -606,10 +606,9 @@ public class TabletMetadata {
 
     if (prevEndRowKey != null
         && fileStartKey.compareTo(prevEndRowKey.followingKey(PartialKey.ROW)) < 0) {
-      return false; // File starts before the valid range
+      return false;
     }
-    return endRowKey == null || fileEndKey.compareTo(endRowKey) <= 0; // File extends beyond the
-                                                                      // tablet's end row
+    return endRowKey == null || fileEndKey.compareTo(endRowKey) <= 0;
   }
 
   static class Builder {
