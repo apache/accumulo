@@ -477,7 +477,7 @@ function control_services() {
           fi
         fi
       done
-      if [[ $operation == "stop" || $operation == "kill" ]]; then
+      if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
         # If the prior commands were executed via ssh, then we need to wait for them
         # to complete before zapping the nodes in ZooKeeper
         ssh_wait
@@ -533,7 +533,7 @@ function control_services() {
           execute_command "$operation" "$sserver" sserver "$group" "-o" "sserver.group=$group"
         fi
       done
-      if [[ $operation == "stop" || $operation == "kill" ]]; then
+      if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
         # If the prior commands were executed via ssh, then we need to wait for them
         # to complete before zapping the nodes in ZooKeeper
         ssh_wait
@@ -558,7 +558,7 @@ function control_services() {
           execute_command "$operation" "$compactor" compactor "$group" "-o" "compactor.group=$group"
         fi
       done
-      if [[ $operation == "stop" || $operation == "kill" ]]; then
+      if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
         # If the prior commands were executed via ssh, then we need to wait for them
         # to complete before zapping the nodes in ZooKeeper
         ssh_wait
