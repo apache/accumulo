@@ -79,6 +79,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
@@ -222,9 +223,9 @@ public class ClientContext implements AccumuloClient {
     this.hadoopConf = info.getHadoopConf();
 
     this.zooSession = memoize(() -> {
-      var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", "")
-          .get();
+      var zk =
+          info.getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")",
+              ZooUtil.getRoot(getInstanceID())).get();
       zooKeeperOpened.set(true);
       return zk;
     });
@@ -1095,7 +1096,7 @@ public class ClientContext implements AccumuloClient {
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
-          Constants.ZROOT + getInstanceID()).get();
+          ZooUtil.getRoot(getInstanceID())).get();
       this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk), Constants.ZTSERVERS);
     }
     return this.zkLockChecker;

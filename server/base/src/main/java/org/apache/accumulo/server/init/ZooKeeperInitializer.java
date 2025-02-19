@@ -79,12 +79,16 @@ public class ZooKeeperInitializer {
       if (zoo.exists(sysPropPath)) {
         return;
       }
-      var created = zoo.putPrivatePersistentData(sysPropPath,
+      var created = zoo.putPrivatePersistentData(zkInstanceRoot + sysPropPath,
           VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       if (!created) {
         throw new IllegalStateException(
             "Failed to create default system props during initialization at: {}" + sysPropPath);
       }
+      // if (!zoo.exists("/yea")) {
+      // throw new IllegalStateException("heres the stuff under root/iid/config: "
+      // + Arrays.toString(zoo.getData(zkInstanceRoot + Constants.ZCONFIG)));
+      // }
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to initialize configuration for prop store", ex);
     }
@@ -93,9 +97,8 @@ public class ZooKeeperInitializer {
   void initialize(final ServerContext context, final String rootTabletDirName,
       final String rootTabletFileUri) throws KeeperException, InterruptedException {
 
-    ZooReaderWriter zrwChroot = context.getZooSession().asReaderWriter();
-
     // setup the instance
+    ZooReaderWriter zrwChroot = context.getZooSession().asReaderWriter();
     zrwChroot.putPersistentData(Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZNAMESPACES,

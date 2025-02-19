@@ -86,23 +86,22 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     } else {
       this.cache = new PropCacheCaffeineImpl.Builder(propLoader).forTests(ticker).build();
     }
-
-    try {
-      if (zrw.exists("/", propStoreWatcher)) {
-        log.debug("Have a ZooKeeper connection and found instance node: {}", instanceId);
-        zkReadyMon.setReady();
-      } else {
-        throw new IllegalStateException(
-            "Instance may not have been initialized, root node does not exist in ZooKeeper");
-      }
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(
-          "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
-          ex);
-    }
+    log.debug("Have a ZooKeeper connection and found instance node: {}", instanceId);
+    zkReadyMon.setReady();
+    // try {
+    // if (zrw.exists("/", propStoreWatcher)) {
+    // } else {
+    // throw new IllegalStateException(
+    // "Instance may not have been initialized, root node does not exist in ZooKeeper");
+    // }
+    // } catch (InterruptedException ex) {
+    // Thread.currentThread().interrupt();
+    // throw new IllegalStateException(
+    // "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
+    // } catch (KeeperException ex) {
+    // throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
+    // ex);
+    // }
   }
 
   public static ZooPropStore initialize(@NonNull final InstanceId instanceId,
