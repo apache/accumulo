@@ -361,10 +361,12 @@ function parse_config() {
 }
 
 function ssh_wait() {
+  #shellcheck disable=SC2009
   count=$(ps -ef | grep ssh | grep -c "accumulo-service")
   while ((count > 0)); do
     echo "waiting on $count ssh commands to complete"
     sleep 2
+    #shellcheck disable=SC2009
     count=$(ps -ef | grep ssh | grep -c "accumulo-service")
   done
 }
