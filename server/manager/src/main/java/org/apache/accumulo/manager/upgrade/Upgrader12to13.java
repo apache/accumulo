@@ -370,7 +370,7 @@ public class Upgrader12to13 implements Upgrader {
               // is no lock here, then the server is likely down (or should be).
               // Remove the entry and move on.
               context.getZooSession().asReaderWriter().recursiveDelete(childPath,
-                  NodeMissingPolicy.FAIL);
+                  NodeMissingPolicy.SKIP);
             } else {
               throw new IllegalStateException("Found server address at " + serverPath + "/" + child
                   + " with content in the directory. Was expecting either a nothing, a resource group name or an empty directory."
