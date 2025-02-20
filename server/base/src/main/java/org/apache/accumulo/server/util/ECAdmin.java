@@ -172,13 +172,13 @@ public class ECAdmin implements KeywordExecutable {
     // Default to "plain" format if null or empty
     if (format == null || format.trim().isEmpty()) {
       format = "plain";
-    }
-
+    } else {
     // Validate format
-    Set<String> validFormats = Set.of("plain", "csv", "json");
-    if (!validFormats.contains(format.toLowerCase())) {
-      throw new IllegalArgumentException(
-          "Invalid format: " + format + ". Expected: plain, csv, or json.");
+      Set<String> validFormats = Set.of("plain", "csv", "json");
+      if (!validFormats.contains(format.toLowerCase())) {
+        throw new IllegalArgumentException(
+            "Invalid format: " + format + ". Expected: plain, csv, or json.");
+      }
     }
 
     try {
