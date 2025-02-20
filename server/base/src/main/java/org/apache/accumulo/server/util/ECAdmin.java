@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -193,12 +195,12 @@ public class ECAdmin implements KeywordExecutable {
         return;
       }
 
-      // Convert the list to a map
       for (Map.Entry<String,TExternalCompaction> entry : running.getCompactions().entrySet()) {
         runningCompactionsMap.put(entry.getKey(), entry.getValue());
       }
 
-      // Print CSV header if format is CSV
+      List<Map<String,Object>> jsonOutput = new ArrayList<>();
+
       if ("csv".equalsIgnoreCase(format)) {
         System.out.println(
             "ECID,Compactor,Kind,Queue,TableId,Status,LastUpdate,Duration,NumFiles,Progress");
@@ -232,7 +234,6 @@ public class ECAdmin implements KeywordExecutable {
           progress = runningCompactionInfo.progress;
         }
 
-        // Output handling
         switch (format.toLowerCase()) {
           case "plain":
             System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
@@ -243,11 +244,10 @@ public class ECAdmin implements KeywordExecutable {
             }
             break;
           case "csv":
-            System.out.println(String.format("%s,%s,%s,%s,%s,%s,%d,%d,%d,%.2f", ecid, addr, kind,
-                queueName, tableId, status, lastUpdate, duration, numFiles, progress));
+            System.out.printf("%s,%s,%s,%s,%s,%s,%d,%d,%d,%.2f\n", ecid, addr, kind, queueName,
+                tableId, status, lastUpdate, duration, numFiles, progress);
             break;
           case "json":
-            // Print JSON entry-by-entry immediately
             Map<String,Object> jsonEntry = new LinkedHashMap<>();
             jsonEntry.put("ecid", ecid);
             jsonEntry.put("compactor", addr);
@@ -261,14 +261,18 @@ public class ECAdmin implements KeywordExecutable {
               jsonEntry.put("numFiles", numFiles);
               jsonEntry.put("progress", progress);
             }
-
-            try {
-              Gson gson = new GsonBuilder().setPrettyPrinting().create();
-              System.out.println(gson.toJson(jsonEntry));
-            } catch (Exception e) {
-              log.error("Error generating JSON output", e);
-            }
+            jsonOutput.add(jsonEntry);
             break;
+        }
+      }
+
+      // ✅ Serialize entire JSON list at the end
+      if ("json".equalsIgnoreCase(format)) {
+        try {
+          Gson gson = new GsonBuilder().setPrettyPrinting().create();
+          System.out.println(gson.toJson(jsonOutput));
+        } catch (Exception e) {
+          log.error("Error generating JSON output", e);
         }
       }
 
