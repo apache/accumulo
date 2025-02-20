@@ -634,7 +634,8 @@ public class MetadataConstraintsTest {
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/invalid"));
+    m.put(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), new Value("/invalid"));
     violations = mc.check(createEnv(), m);
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());

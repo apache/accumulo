@@ -66,7 +66,7 @@ public class CloneIT extends AccumuloClusterHarness {
       Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
       ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
-      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("default_tablet"));
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName)) {
         bw1.addMutation(mut);
@@ -95,7 +95,7 @@ public class CloneIT extends AccumuloClusterHarness {
       Mutation mut = TabletColumnFamily.createPrevRowMutation(ke);
 
       ServerColumnFamily.TIME_COLUMN.put(mut, new Value("M0"));
-      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("/default_tablet"));
+      ServerColumnFamily.DIRECTORY_COLUMN.put(mut, new Value("default_tablet"));
       mut.put(DataFileColumnFamily.NAME.toString(),
           getMetadata(filePrefix + "/default_tablet/0_0.rf", range1),
           new DataFileValue(1, 200).encodeAsString());
@@ -155,17 +155,17 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", null, null, "/default_tablet",
+        bw1.addMutation(createTablet("0", null, null, "default_tablet",
             filePrefix + "/default_tablet/0_0.rf", range));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "m", null, "/default_tablet",
+        bw1.addMutation(createTablet("0", "m", null, "default_tablet",
             filePrefix + "/default_tablet/0_0.rf", range));
         bw1.addMutation(
-            createTablet("0", null, "m", "/t-1", filePrefix + "/default_tablet/0_0.rf", range));
+            createTablet("0", null, "m", "t-1", filePrefix + "/default_tablet/0_0.rf", range));
 
         bw1.flush();
 
@@ -203,17 +203,17 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", null, null, "/default_tablet",
+        bw1.addMutation(createTablet("0", null, null, "default_tablet",
             filePrefix + "/default_tablet/0_0.rf", range));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "m", null, "/default_tablet",
+        bw1.addMutation(createTablet("0", "m", null, "default_tablet",
             filePrefix + "/default_tablet/1_0.rf", range));
         Mutation mut3 =
-            createTablet("0", null, "m", "/t-1", filePrefix + "/default_tablet/1_0.rf", range);
+            createTablet("0", null, "m", "t-1", filePrefix + "/default_tablet/1_0.rf", range);
         mut3.putDelete(DataFileColumnFamily.NAME.toString(),
             getMetadata(filePrefix + "/default_tablet/0_0.rf", range));
         bw1.addMutation(mut3);
@@ -285,17 +285,17 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf", range1));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf", range2));
+        bw1.addMutation(createTablet("0", "m", null, "d1", filePrefix + "/d1/file1.rf", range1));
+        bw1.addMutation(createTablet("0", null, "m", "d2", filePrefix + "/d2/file2.rf", range2));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
-        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3.rf", range3));
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1.rf", range1));
-        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file2.rf", range2));
-        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d2/file2.rf", range2));
+        bw1.addMutation(createTablet("0", "f", null, "d1", filePrefix + "/d1/file3.rf", range3));
+        bw1.addMutation(createTablet("0", "m", "f", "d3", filePrefix + "/d1/file1.rf", range1));
+        bw1.addMutation(createTablet("0", "s", "m", "d2", filePrefix + "/d2/file2.rf", range2));
+        bw1.addMutation(createTablet("0", null, "s", "d4", filePrefix + "/d2/file2.rf", range2));
 
         bw1.flush();
 
@@ -335,8 +335,8 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf", range1));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf", range2));
+        bw1.addMutation(createTablet("0", "m", null, "d1", filePrefix + "/d1/file1.rf", range1));
+        bw1.addMutation(createTablet("0", null, "m", "d2", filePrefix + "/d2/file2.rf", range2));
 
         bw1.flush();
 
@@ -347,10 +347,10 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        bw1.addMutation(createTablet("0", "f", null, "/d1", filePrefix + "/d1/file3.rf", range3));
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file1.rf", range1));
-        bw1.addMutation(createTablet("0", "s", "m", "/d2", filePrefix + "/d2/file3.rf", range3));
-        bw1.addMutation(createTablet("0", null, "s", "/d4", filePrefix + "/d4/file3.rf", range3));
+        bw1.addMutation(createTablet("0", "f", null, "d1", filePrefix + "/d1/file3.rf", range3));
+        bw1.addMutation(createTablet("0", "m", "f", "d3", filePrefix + "/d1/file1.rf", range1));
+        bw1.addMutation(createTablet("0", "s", "m", "d2", filePrefix + "/d2/file3.rf", range3));
+        bw1.addMutation(createTablet("0", null, "s", "d4", filePrefix + "/d4/file3.rf", range3));
 
         bw1.flush();
 
@@ -363,7 +363,7 @@ public class CloneIT extends AccumuloClusterHarness {
 
         bw1.flush();
 
-        bw1.addMutation(createTablet("0", "m", "f", "/d3", filePrefix + "/d1/file3.rf", range3));
+        bw1.addMutation(createTablet("0", "m", "f", "d3", filePrefix + "/d1/file3.rf", range3));
 
         bw1.flush();
 
@@ -405,15 +405,15 @@ public class CloneIT extends AccumuloClusterHarness {
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
           BatchWriter bw2 = client.createBatchWriter(tableName)) {
-        bw1.addMutation(createTablet("0", "m", null, "/d1", filePrefix + "/d1/file1.rf", range1));
-        bw1.addMutation(createTablet("0", null, "m", "/d2", filePrefix + "/d2/file2.rf", range2));
+        bw1.addMutation(createTablet("0", "m", null, "d1", filePrefix + "/d1/file1.rf", range1));
+        bw1.addMutation(createTablet("0", null, "m", "d2", filePrefix + "/d2/file2.rf", range2));
 
         bw1.flush();
 
         MetadataTableUtil.initializeClone(tableName, TableId.of("0"), TableId.of("1"), client, bw2);
 
         bw1.addMutation(deleteTablet("0", "m", null, filePrefix + "/d1/file1.rf", range1));
-        Mutation mut = createTablet("0", null, null, "/d2", filePrefix + "/d2/file2.rf", range2);
+        Mutation mut = createTablet("0", null, null, "d2", filePrefix + "/d2/file2.rf", range2);
         mut.put(DataFileColumnFamily.NAME.toString(),
             getMetadata(filePrefix + "/d1/file1.rf", range1),
             new DataFileValue(10, 200).encodeAsString());
