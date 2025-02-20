@@ -206,7 +206,7 @@ public class MetadataSchema {
       public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL)) {
         @Override
         public void put(Mutation m, Value v) {
-          isValidDirCol(v.toString());
+          validateDirCol(v.toString());
           super.put(m, v);
         }
       };
