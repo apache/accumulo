@@ -18,11 +18,10 @@
  */
 package org.apache.accumulo.server.util;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -170,6 +169,18 @@ public class ECAdmin implements KeywordExecutable {
     CompactionCoordinatorService.Client coordinatorClient = null;
     Map<String,TExternalCompaction> runningCompactionsMap = new HashMap<>();
 
+    // Default to "plain" format if null or empty
+    if (format == null || format.trim().isEmpty()) {
+      format = "plain";
+    }
+
+    // Validate format
+    Set<String> validFormats = Set.of("plain", "csv", "json");
+    if (!validFormats.contains(format.toLowerCase())) {
+      throw new IllegalArgumentException(
+          "Invalid format: " + format + ". Expected: plain, csv, or json.");
+    }
+
     try {
       coordinatorClient = getCoordinatorClient(context);
 
@@ -187,12 +198,10 @@ public class ECAdmin implements KeywordExecutable {
         runningCompactionsMap.put(entry.getKey(), entry.getValue());
       }
 
-      StringBuilder csvOutput = new StringBuilder();
-      List<Map<String,Object>> jsonOutput = new ArrayList<>();
-
+      // Print CSV header if format is CSV
       if ("csv".equalsIgnoreCase(format)) {
-        csvOutput.append(
-            "ECID,Compactor,Kind,Queue,TableId,Status,LastUpdate,Duration,NumFiles,Progress\n");
+        System.out.println(
+            "ECID,Compactor,Kind,Queue,TableId,Status,LastUpdate,Duration,NumFiles,Progress");
       }
 
       for (Map.Entry<String,TExternalCompaction> entry : runningCompactionsMap.entrySet()) {
@@ -205,11 +214,7 @@ public class ECAdmin implements KeywordExecutable {
         String ecid = runningCompaction.getJob().getExternalCompactionId();
         var addr = runningCompaction.getCompactorAddress();
         var kind = runningCompaction.getJob().kind;
-
-        // Ensure getQueueName() exists, else use an alternative like getGroupName()
-        var queueName = runningCompaction.getQueueName(); // If this method does not exist, replace
-                                                          // with getGroupName()
-
+        var queueName = runningCompaction.getQueueName();
         var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
         String tableId = ke.tableId().canonical();
 
@@ -227,49 +232,46 @@ public class ECAdmin implements KeywordExecutable {
           progress = runningCompactionInfo.progress;
         }
 
-        if ("plain".equalsIgnoreCase(format)) {
-          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
-          if (details) {
-            System.out.format("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n",
-                status, lastUpdate, duration, numFiles, progress);
-          }
-        }
+        // Output handling
+        switch (format.toLowerCase()) {
+          case "plain":
+            System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
+            if (details) {
+              System.out.format(
+                  "  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n", status,
+                  lastUpdate, duration, numFiles, progress);
+            }
+            break;
+          case "csv":
+            System.out.println(String.format("%s,%s,%s,%s,%s,%s,%d,%d,%d,%.2f", ecid, addr, kind,
+                queueName, tableId, status, lastUpdate, duration, numFiles, progress));
+            break;
+          case "json":
+            // Print JSON entry-by-entry immediately
+            Map<String,Object> jsonEntry = new LinkedHashMap<>();
+            jsonEntry.put("ecid", ecid);
+            jsonEntry.put("compactor", addr);
+            jsonEntry.put("kind", kind);
+            jsonEntry.put("queue", queueName);
+            jsonEntry.put("tableId", tableId);
+            if (details) {
+              jsonEntry.put("status", status);
+              jsonEntry.put("lastUpdate", lastUpdate);
+              jsonEntry.put("duration", duration);
+              jsonEntry.put("numFiles", numFiles);
+              jsonEntry.put("progress", progress);
+            }
 
-        if ("csv".equalsIgnoreCase(format)) {
-          csvOutput.append(String.format("%s,%s,%s,%s,%s,%s,%d,%d,%d,%.2f\n", ecid, addr, kind,
-              queueName, tableId, status, lastUpdate, duration, numFiles, progress));
-        }
-
-        if ("json".equalsIgnoreCase(format)) {
-          Map<String,Object> jsonEntry = new LinkedHashMap<>();
-          jsonEntry.put("ecid", ecid);
-          jsonEntry.put("compactor", addr);
-          jsonEntry.put("kind", kind);
-          jsonEntry.put("queue", queueName);
-          jsonEntry.put("tableId", tableId);
-          if (details) {
-            jsonEntry.put("status", status);
-            jsonEntry.put("lastUpdate", lastUpdate);
-            jsonEntry.put("duration", duration);
-            jsonEntry.put("numFiles", numFiles);
-            jsonEntry.put("progress", progress);
-          }
-          jsonOutput.add(jsonEntry);
-        }
-      }
-
-      if ("csv".equalsIgnoreCase(format)) {
-        System.out.print(csvOutput.toString());
-      }
-
-      if ("json".equalsIgnoreCase(format)) {
-        try {
-          Gson gson = new GsonBuilder().setPrettyPrinting().create();
-          System.out.println(gson.toJson(jsonOutput));
-        } catch (Exception e) {
-          log.error("Error generating JSON output", e);
+            try {
+              Gson gson = new GsonBuilder().setPrettyPrinting().create();
+              System.out.println(gson.toJson(jsonEntry));
+            } catch (Exception e) {
+              log.error("Error generating JSON output", e);
+            }
+            break;
         }
       }
+
     } catch (Exception e) {
       throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
