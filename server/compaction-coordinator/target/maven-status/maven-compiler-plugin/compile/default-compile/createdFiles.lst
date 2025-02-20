@@ -1,8 +1,0 @@
-org/apache/accumulo/coordinator/CompactionFinalizer.class
-org/apache/accumulo/coordinator/DeadCompactionDetector.class
-org/apache/accumulo/coordinator/QueueSummaries.class
-org/apache/accumulo/coordinator/CompactionCoordinator.class
-org/apache/accumulo/coordinator/QueueAndPriority.class
-META-INF/services/org.apache.accumulo.start.spi.KeywordExecutable
-org/apache/accumulo/coordinator/CoordinatorExecutable.class
-org/apache/accumulo/coordinator/QueueSummaries$PrioTserver.class

@@ -1,6 +1,0 @@
-/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/CompactionCoordinator.java
-/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/QueueAndPriority.java
-/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/QueueSummaries.java
-/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/CompactionFinalizer.java
-/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/CoordinatorExecutable.java
-/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/DeadCompactionDetector.java
