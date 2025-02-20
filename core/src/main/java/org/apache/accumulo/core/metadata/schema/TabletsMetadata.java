@@ -21,7 +21,6 @@ package org.apache.accumulo.core.metadata.schema;
 import static com.google.common.base.Preconditions.checkState;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -305,7 +304,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public Options fetch(ColumnType... colsToFetch) {
       Preconditions.checkArgument(colsToFetch.length > 0);
-      for (var col : fetchedCols) {
+      for (var col : colsToFetch) {
         fetchedCols.add(col);
         var qualifier = ColumnType.resolveQualifier(col);
         if (qualifier != null) {
