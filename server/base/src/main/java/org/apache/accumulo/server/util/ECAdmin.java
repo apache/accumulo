@@ -266,7 +266,6 @@ public class ECAdmin implements KeywordExecutable {
         }
       }
 
-      // ✅ Serialize entire JSON list at the end
       if ("json".equalsIgnoreCase(format)) {
         try {
           Gson gson = new GsonBuilder().setPrettyPrinting().create();
