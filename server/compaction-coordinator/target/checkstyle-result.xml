@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<checkstyle version="10.12.6">
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/CompactionCoordinator.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/CompactionFinalizer.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/CoordinatorExecutable.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/DeadCompactionDetector.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/QueueAndPriority.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/main/java/org/apache/accumulo/coordinator/QueueSummaries.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/test/java/org/apache/accumulo/coordinator/CompactionCoordinatorTest.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/test/java/org/apache/accumulo/coordinator/QueueSummariesTest.java">
+</file>
+<file name="/home/suvrat/IdeaProjects/accumulo/server/compaction-coordinator/src/test/resources/log4j2-test.properties">
+</file>
+</checkstyle>
