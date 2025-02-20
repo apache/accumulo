@@ -63,7 +63,7 @@ public class Upgrader12to13Test {
     expect(zr.getChildren(zkRoot + Constants.ZCOMPACTORS)).andReturn(List.of());
     expect(zr.getChildren(zkRoot + Constants.ZSSERVERS)).andReturn(List.of("localhost:9996"));
     expect(zr.getChildren(zkRoot + Constants.ZSSERVERS + "/localhost:9996")).andReturn(List.of());
-    zrw.recursiveDelete(zkRoot + Constants.ZSSERVERS + "/localhost:9996", NodeMissingPolicy.FAIL);
+    zrw.recursiveDelete(zkRoot + Constants.ZSSERVERS + "/localhost:9996", NodeMissingPolicy.SKIP);
     expect(zr.getChildren(zkRoot + Constants.ZTSERVERS)).andReturn(List.of("localhost:9997"));
     expect(zr.getChildren(zkRoot + Constants.ZTSERVERS + "/localhost:9997"))
         .andReturn(List.of(UUID.randomUUID().toString()));
