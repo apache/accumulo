@@ -60,17 +60,12 @@ public class FateSchema {
     public static final Text NAME = new Text(STR_NAME);
   }
 
-  public static class StatusColumnFamily {
-    public static final String STR_NAME = "status";
+  public static class TxAdminColumnFamily {
+    public static final String STR_NAME = "txadmin";
     public static final Text NAME = new Text(STR_NAME);
 
     public static final String STATUS = "status";
     public static final ColumnFQ STATUS_COLUMN = new ColumnFQ(NAME, new Text(STATUS));
-  }
-
-  public static class ReservationColumnFamily {
-    public static final String STR_NAME = "reservation";
-    public static final Text NAME = new Text(STR_NAME);
 
     public static final String RESERVATION = "reservation";
     public static final ColumnFQ RESERVATION_COLUMN = new ColumnFQ(NAME, new Text(RESERVATION));
