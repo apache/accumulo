@@ -161,9 +161,9 @@ public class FateExecutionOrderIT extends SharedMiniClusterBase {
   public void testExecutionOrder() throws Exception {
 
     // Connect to the ZooKeeper that MAC is using and insert FATE operations
-    final String path = getCluster().getServerContext().getZooKeeperRoot() + Constants.ZFATE;
     final ZooSession zs = getCluster().getServerContext().getZooSession();
-    final ZooStore<Manager> store = new org.apache.accumulo.core.fate.ZooStore<>(path, zs);
+    final ZooStore<Manager> store =
+        new org.apache.accumulo.core.fate.ZooStore<>(Constants.ZFATE, zs);
 
     long txid = store.create();
     store.reserve(txid);

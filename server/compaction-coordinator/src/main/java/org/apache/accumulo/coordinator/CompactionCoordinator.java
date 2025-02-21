@@ -210,7 +210,7 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.info("trying to get coordinator lock");
 
     final String coordinatorClientAddress = ExternalCompactionUtil.getHostPortString(clientAddress);
-    final String lockPath = getContext().getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
+    final String lockPath = Constants.ZCOORDINATOR_LOCK;
     final UUID zooLockUUID = UUID.randomUUID();
 
     coordinatorLock =
@@ -750,7 +750,7 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   private void cleanUpCompactors() {
-    final String compactorQueuesPath = getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS;
+    final String compactorQueuesPath = Constants.ZCOMPACTORS;
 
     var zoorw = getContext().getZooSession().asReaderWriter();
 

@@ -341,11 +341,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     // @formatter:off
     var hardcodedArgs = Stream.of(
-        "-Dapple.awt.UIElement=true",
-        "-Djava.net.preferIPv4Stack=true",
-        "-XX:+PerfDisableSharedMem",
-        "-XX:+AlwaysPreTouch",
-        Main.class.getName(), clazz.getName());
+            "-Dapple.awt.UIElement=true",
+            "-Djava.net.preferIPv4Stack=true",
+            "-XX:+PerfDisableSharedMem",
+            "-XX:+AlwaysPreTouch",
+            Main.class.getName(), clazz.getName());
     // @formatter:on
 
     // concatenate all the args sources into a single list of args
@@ -487,8 +487,6 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
       ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
 
-      String rootPath = ZooUtil.getRoot(instanceIdFromFile);
-
       String instanceName = null;
       try {
         for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
@@ -507,7 +505,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       config.setInstanceName(instanceName);
-      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
+      if (!AccumuloStatus.isAccumuloOffline(zrw, ZooUtil.getRoot(instanceIdFromFile))) {
         throw new IllegalStateException(
             "The Accumulo instance being used is already running. Aborting.");
       }
@@ -682,9 +680,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       try {
         while (tsActualCount < tsExpectedCount) {
           tsActualCount = 0;
-          String tserverPath = rootPath + Constants.ZTSERVERS;
-          for (String child : rdr.getChildren(tserverPath)) {
-            if (rdr.getChildren(tserverPath + "/" + child).isEmpty()) {
+          for (String child : rdr.getChildren(rootPath + Constants.ZTSERVERS)) {
+            if (rdr.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty()) {
               log.info("TServer " + tsActualCount + " not yet present in ZooKeeper");
             } else {
               tsActualCount++;
@@ -810,7 +807,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // the same data, but no Watchers will fire.
     boolean startCalled = true;
     try {
-      getServerContext().getZooKeeperRoot();
+      ZooUtil.getRoot(getServerContext().getInstanceID());
     } catch (IllegalStateException e) {
       if (e.getMessage().startsWith("Accumulo not initialized")) {
         startCalled = false;
@@ -818,7 +815,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     if (startCalled) {
       final ServerContext ctx = getServerContext();
-      final String zRoot = ctx.getZooKeeperRoot();
+      final String zRoot = ZooUtil.getRoot(getServerContext().getInstanceID());
       Predicate<String> pred = path -> false;
       for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
           Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {

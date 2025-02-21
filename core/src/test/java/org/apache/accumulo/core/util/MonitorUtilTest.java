@@ -43,7 +43,6 @@ public class MonitorUtilTest {
   public void beforeEachTest() {
     zr = mock(ZooReader.class);
     context = mock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/root");
   }
 
   @AfterEach
@@ -53,7 +52,7 @@ public class MonitorUtilTest {
 
   @Test
   public void testNodeFound() throws Exception {
-    expect(zr.getData("/root" + Constants.ZMONITOR_HTTP_ADDR))
+    expect(zr.getData(Constants.ZMONITOR_HTTP_ADDR))
         .andReturn("http://example.org/".getBytes(UTF_8));
     replay(zr, context);
     assertEquals("http://example.org/", MonitorUtil.getLocation(zr, context));
@@ -61,7 +60,7 @@ public class MonitorUtilTest {
 
   @Test
   public void testNoNodeFound() throws Exception {
-    expect(zr.getData("/root" + Constants.ZMONITOR_HTTP_ADDR)).andThrow(new NoNodeException());
+    expect(zr.getData(Constants.ZMONITOR_HTTP_ADDR)).andThrow(new NoNodeException());
     replay(zr, context);
     assertNull(MonitorUtil.getLocation(zr, context));
   }
