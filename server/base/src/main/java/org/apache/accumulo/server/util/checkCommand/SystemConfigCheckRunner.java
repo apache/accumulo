@@ -68,9 +68,6 @@ public class SystemConfigCheckRunner implements CheckRunner {
     final ServerProcess[] serverProcesses = ServerProcess.values();
     final String zkRoot = context.getZooKeeperRoot();
     final var zs = context.getZooSession();
-    final var zrw = zs.asReaderWriter();
-    final var compactors = context.instanceOperations().getCompactors();
-    final var sservers = context.instanceOperations().getScanServers();
 
     log.trace("Checking ZooKeeper locks for Accumulo server processes...");
 
@@ -102,28 +99,9 @@ public class SystemConfigCheckRunner implements CheckRunner {
           break;
         case COMPACTOR:
           // nonessential process(es)
+          final var compactors = context.instanceOperations().getCompactors();
           if (compactors.isEmpty()) {
             log.debug("No compactors appear to be running... This may or may not be expected");
-          }
-          for (String compactor : compactors) {
-            // for each running compactor, ensure a zk lock exists for it
-            boolean checkedLock = false;
-            String compactorQueuesPath = zkRoot + Constants.ZCOMPACTORS;
-            var compactorQueues = zrw.getChildren(compactorQueuesPath);
-            // find the queue the compactor is in
-            for (var queue : compactorQueues) {
-              String compactorQueuePath = compactorQueuesPath + "/" + queue;
-              String lockPath = compactorQueuePath + "/" + compactor;
-              if (zrw.exists(lockPath)) {
-                status = checkLock(lockPath, proc, true, zs, status);
-                checkedLock = true;
-                break;
-              }
-            }
-            if (!checkedLock) {
-              log.warn("Did not find a ZooKeeper lock for the compactor {}!", compactor);
-              status = Admin.CheckCommand.CheckStatus.FAILED;
-            }
           }
           break;
         case MONITOR:
@@ -132,12 +110,9 @@ public class SystemConfigCheckRunner implements CheckRunner {
           break;
         case SCAN_SERVER:
           // nonessential process(es)
+          final var sservers = context.instanceOperations().getScanServers();
           if (sservers.isEmpty()) {
             log.debug("No scan servers appear to be running... This may or may not be expected");
-          }
-          for (String sserver : sservers) {
-            status =
-                checkLock(zkRoot + Constants.ZSSERVERS + "/" + sserver, proc, true, zs, status);
           }
           break;
         default:
