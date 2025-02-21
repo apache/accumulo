@@ -327,6 +327,7 @@ class LoadFiles extends ManagerRepo {
 
     TabletsMetadata tm = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
         .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW, LOCATION, LOADED).build();
+    Iterator<TabletMetadata> tmIter = tm.iterator();
 
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
@@ -347,8 +348,9 @@ class LoadFiles extends ManagerRepo {
         tm = TabletsMetadata.builder(manager.getContext()).forTable(tableId)
             .overlapping(loadMapKey.prevEndRow(), null).checkConsistency()
             .fetch(PREV_ROW, LOCATION, LOADED).build();
+        tmIter = tm.iterator();
       }
-      List<TabletMetadata> tablets = findOverlappingTablets(loadMapKey, tm.iterator());
+      List<TabletMetadata> tablets = findOverlappingTablets(loadMapKey, tmIter);
       loader.load(tablets, loadMapEntry.getValue());
       prevLastExtent = tablets.get(tablets.size() - 1).getExtent();
     }
