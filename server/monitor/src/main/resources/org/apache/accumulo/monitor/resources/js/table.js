@@ -19,6 +19,7 @@
 "use strict";
 
 var tableServersTable;
+var tabletsTable;
 
 /**
  * Makes the REST calls, generates the tables with the new information
@@ -34,8 +35,49 @@ function refresh() {
   refreshTable();
 }
 
-function getQueuedAndRunning(data) {
-  return `${data.running}(${data.queued})`;
+/**
+ * Makes the REST call to fetch tablet details and render them.
+ */
+function initTabletsTable(tableID) {
+  var tabletsUrl = '/rest-v2/tables/' + tableID + '/tablets';
+  console.debug('Fetching tablets info from: ' + tabletsUrl);
+
+  tabletsTable = $('#tabletsList').DataTable({
+    "ajax": {
+      "url": tabletsUrl,
+      "dataSrc": ""
+    },
+    "columns": [{
+        "data": "tabletId",
+        "title": "Tablet ID"
+      },
+      {
+        "data": "estimatedSize",
+        "title": "Estimated Size"
+      },
+      {
+        "data": "estimatedEntries",
+        "title": "Estimated Entries"
+      },
+      {
+        "data": "tabletAvailability",
+        "title": "Availability"
+      },
+      {
+        "data": "numFiles",
+        "title": "Files"
+      },
+      {
+        "data": "numWalLogs",
+        "title": "WALs"
+      },
+      {
+        "data": "location",
+        "title": "Location"
+      }
+    ],
+    "stateSave": true
+  });
 }
 
 /**
@@ -44,126 +86,82 @@ function getQueuedAndRunning(data) {
  * @param {String} tableID the accumulo table ID
  */
 function initTableServerTable(tableID) {
-
-  const url = '/rest/tables/' + tableID;
-  console.debug('REST url used to fetch data for table.js DataTable: ' + url);
+  const url = '/rest-v2/tables/' + tableID;
+  console.debug('REST url used to fetch summary data: ' + url);
 
   tableServersTable = $('#participatingTServers').DataTable({
     "ajax": {
       "url": url,
-      "dataSrc": "servers"
+      "dataSrc": function (json) {
+        // Convert the JSON object into an array for DataTables consumption.
+        return [json];
+      }
     },
+    "columns": [{
+        "data": "totalEntries",
+        "title": "Entry Count"
+      },
+      {
+        "data": "totalSizeOnDisk",
+        "title": "Size on disk"
+      },
+      {
+        "data": "totalFiles",
+        "title": "File Count"
+      },
+      {
+        "data": "totalWals",
+        "title": "WAL Count"
+      },
+      {
+        "data": "totalTablets",
+        "title": "Total Tablet Count"
+      },
+      {
+        "data": "availableAlways",
+        "title": "Always Hosted Count"
+      },
+      {
+        "data": "availableOnDemand",
+        "title": "On Demand Count"
+      },
+      {
+        "data": "availableNever",
+        "title": "Never Hosted Count"
+      },
+      {
+        "data": "totalAssignedTablets",
+        "title": "Assigned Count"
+      },
+      {
+        "data": "totalAssignedToDeadServerTablets",
+        "title": "AssignedToDeadServerTablets"
+      },
+      {
+        "data": "totalHostedTablets",
+        "title": "HostedTablets"
+      },
+      {
+        "data": "totalSuspendedTablets",
+        "title": "SuspendedTablets"
+      },
+      {
+        "data": "totalUnassignedTablets",
+        "title": "UnassignedTablets"
+      }
+    ],
     "stateSave": true,
     "columnDefs": [{
-        "targets": "big-num",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = bigNumberForQuantity(data);
-          }
-          return data;
+      "targets": "big-num",
+      "render": function (data, type) {
+        if (type === 'display') {
+          data = bigNumberForQuantity(data);
         }
-      },
-      {
-        "targets": "duration",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = timeDuration(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "percent",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = Math.round(data * 100) + '%';
-          }
-          return data;
-        }
-      },
-      // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
-      // instead of sorting them lexicographically by the string itself.
-      // Specifically: 'targets' column will use the values in the 'orderData' columns
-
-      // scan column will be sorted by number of running, then by number of queued
-      {
-        "targets": [7],
-        "type": "numeric",
-        "orderData": [13, 14]
-      },
-      // minor compaction column will be sorted by number of running, then by number of queued
-      {
-        "targets": [8],
-        "type": "numeric",
-        "orderData": [15, 16]
-      },
-    ],
-    "columns": [{
-        "data": "hostname",
-        "type": "html",
-        "render": function (data, type, row) {
-          if (type === 'display') {
-            data = `<a href="/tservers?s=${row.id}">${data}</a>`;
-          }
-          return data;
-        }
-      },
-      {
-        "data": "tablets"
-      },
-      {
-        "data": "lastContact"
-      },
-      {
-        "data": "entries"
-      },
-      {
-        "data": "ingest"
-      },
-      {
-        "data": "query"
-      },
-      {
-        "data": "holdtime"
-      },
-      {
-        "data": function (row) {
-          return getQueuedAndRunning(row.compactions.scans);
-        }
-      },
-      {
-        "data": function (row) {
-          return getQueuedAndRunning(row.compactions.minor);
-        }
-      },
-      {
-        "data": "indexCacheHitRate"
-      },
-      {
-        "data": "dataCacheHitRate"
-      },
-      {
-        "data": "osload"
-      },
-      {
-        "data": "scansRunning",
-        "visible": false
-      },
-      {
-        "data": "scansQueued",
-        "visible": false
-      },
-      {
-        "data": "minorRunning",
-        "visible": false
-      },
-      {
-        "data": "minorQueued",
-        "visible": false
+        return data;
       }
-    ]
+    }]
   });
 
   refreshTable();
-
+  initTabletsTable(tableID);
 }
