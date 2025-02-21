@@ -175,7 +175,7 @@ public class ECAdmin implements KeywordExecutable {
     if (format == null || format.trim().isEmpty()) {
       format = "plain";
     } else {
-    // Validate format
+      // Validate format
       Set<String> validFormats = Set.of("plain", "csv", "json");
       if (!validFormats.contains(format.toLowerCase())) {
         throw new IllegalArgumentException(
