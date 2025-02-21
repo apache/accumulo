@@ -22,15 +22,12 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.zookeeper.KeeperException;
 
 public class TableLocksCheckRunner implements CheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.TABLE_LOCKS;
@@ -54,8 +51,7 @@ public class TableLocksCheckRunner implements CheckRunner {
   }
 
   private static Admin.CheckCommand.CheckStatus checkTableLocks(ServerContext context,
-      Admin.CheckCommand.CheckStatus status)
-      throws InterruptedException, KeeperException, AccumuloException, AccumuloSecurityException {
+      Admin.CheckCommand.CheckStatus status) throws Exception {
     final AdminUtil<Admin> admin = new AdminUtil<>(true);
     final String zkRoot = context.getZooKeeperRoot();
     final var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);

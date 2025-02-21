@@ -84,6 +84,7 @@ import org.apache.accumulo.server.util.checkCommand.CheckRunner;
 import org.apache.accumulo.server.util.checkCommand.MetadataTableCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootMetadataCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.RootTableCheckRunner;
+import org.apache.accumulo.server.util.checkCommand.ServerConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemConfigCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.SystemFilesCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
@@ -174,6 +175,8 @@ public class Admin implements KeywordExecutable {
       // Caution should be taken when changing or adding any new checks: order is important
       SYSTEM_CONFIG(SystemConfigCheckRunner::new, "Validate the system config stored in ZooKeeper",
           Collections.emptyList()),
+      SERVER_CONFIG(ServerConfigCheckRunner::new, "Validate the server configuration",
+          Collections.singletonList(SYSTEM_CONFIG)),
       TABLE_LOCKS(TableLocksCheckRunner::new,
           "Ensures that table and namespace locks are valid and are associated with a FATE op",
           Collections.singletonList(SYSTEM_CONFIG)),
