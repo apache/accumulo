@@ -353,6 +353,10 @@ public enum Metric {
     return section;
   }
 
+  public String getDisplayName() {
+    return displayName;
+  }
+
   public enum MetricType {
     GAUGE, COUNTER, TIMER, LONG_TASK_TIMER, DISTRIBUTION_SUMMARY, FUNCTION_COUNTER, CACHE
   }
