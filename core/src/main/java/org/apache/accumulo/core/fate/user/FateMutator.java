@@ -23,7 +23,6 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.user.schema.FateSchema;
 
 public interface FateMutator<T> {
 
@@ -74,7 +73,7 @@ public interface FateMutator<T> {
    */
   FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation);
 
-  FateMutator<T> putName(byte[] data);
+  FateMutator<T> putFateOp(byte[] data);
 
   FateMutator<T> putAutoClean(byte[] data);
 

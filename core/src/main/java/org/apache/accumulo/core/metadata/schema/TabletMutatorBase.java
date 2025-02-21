@@ -90,7 +90,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T putDirName(String dirName) {
-    ServerColumnFamily.validateDirCol(dirName);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
     return getThis();

@@ -19,19 +19,26 @@
 package org.apache.accumulo.manager.compaction;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.URI;
 import java.time.Duration;
+import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -41,8 +48,14 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -212,6 +225,27 @@ public class CompactionReservationCheckTest {
         () -> canReserveSystem(null, CompactionKind.SYSTEM, Set.of(file1, file2), false, time));
     assertThrows(NullPointerException.class,
         () -> canReserveUser(null, CompactionKind.USER, Set.of(file1, file2), fateId1, time));
+  }
+
+  @Test
+  public void testResolvedColumns() throws Exception {
+    var resolved1 = new CompactionReservationCheck(CompactionKind.SYSTEM, Set.of(), null, false,
+        SteadyTime.from(Duration.ZERO), 100L).columnsToRead();
+    var resolved2 = new CompactionReservationCheck(CompactionKind.SYSTEM, Set.of(), null, false,
+        SteadyTime.from(Duration.ZERO), 100L).columnsToRead();
+    var expectedColumnTypes =
+        EnumSet.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED);
+    var expectedFamilies = Set
+        .of(ServerColumnFamily.NAME, TabletColumnFamily.NAME, DataFileColumnFamily.NAME,
+            ExternalCompactionColumnFamily.NAME, UserCompactionRequestedColumnFamily.NAME)
+        .stream().map(family -> new ArrayByteSequence(family.copyBytes()))
+        .collect(Collectors.toSet());
+
+    // Verify same object is re-used across instances
+    assertSame(resolved1, resolved2);
+    assertEquals(expectedColumnTypes, resolved1.getColumns());
+    assertEquals(ColumnType.resolveFamilies(expectedColumnTypes), resolved1.getFamilies());
+    assertEquals(expectedFamilies, resolved1.getFamilies());
   }
 
   private boolean canReserveSystem(TabletMetadata tabletMetadata, CompactionKind kind,

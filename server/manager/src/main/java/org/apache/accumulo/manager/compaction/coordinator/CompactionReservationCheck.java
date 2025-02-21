@@ -18,6 +18,13 @@
  */
 package org.apache.accumulo.manager.compaction.coordinator;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -42,6 +49,11 @@ import com.google.common.base.Preconditions;
 public class CompactionReservationCheck implements TabletMetadataCheck {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionReservationCheck.class);
+
+  // Cache the ResolvedColumns statically so we do not need to recreate the set of
+  // columns and families for each mutation
+  private static final ResolvedColumns RESOLVED_COLUMNS = new ResolvedColumns(
+      Set.of(PREV_ROW, OPID, SELECTED, FILES, ECOMP, USER_COMPACTION_REQUESTED));
 
   private CompactionKind kind;
   private List<String> jobFilesStr;
@@ -152,5 +164,10 @@ public class CompactionReservationCheck implements TabletMetadataCheck {
     }
 
     return true;
+  }
+
+  @Override
+  public ResolvedColumns columnsToRead() {
+    return RESOLVED_COLUMNS;
   }
 }

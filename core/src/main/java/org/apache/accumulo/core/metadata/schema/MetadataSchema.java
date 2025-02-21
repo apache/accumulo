@@ -203,7 +203,13 @@ public class MetadataSchema {
        * Holds the location of the tablet in the DFS file system
        */
       public static final String DIRECTORY_QUAL = "dir";
-      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
+      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL)) {
+        @Override
+        public void put(Mutation m, Value v) {
+          validateDirCol(v.toString());
+          super.put(m, v);
+        }
+      };
       /**
        * Initial tablet directory name for the default tablet in all tables
        */

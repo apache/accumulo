@@ -48,7 +48,7 @@ public class ProcessMetrics implements MetricsProducer {
   }
 
   private int lowMemDetected(ProcessMetrics processMetrics) {
-    return context.getLowMemoryDetector().isRunningLowOnMemory() ? 1 : 0;
+    return processMetrics.context.getLowMemoryDetector().isRunningLowOnMemory() ? 1 : 0;
   }
 
   public void setIdleValue(boolean isIdle) {

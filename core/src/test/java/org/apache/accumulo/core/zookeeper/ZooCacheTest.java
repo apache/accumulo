@@ -60,8 +60,8 @@ public class ZooCacheTest {
     }
 
     @Override
-    protected void setupWatchers() {
-      clear();
+    protected boolean setupWatchers() {
+      return false;
     }
 
     public void executeWatcher(WatchedEvent event) {
@@ -95,7 +95,7 @@ public class ZooCacheTest {
   @SuppressWarnings("unchecked")
   public void testOverlappingPaths() throws Exception {
     expect(zk.getConnectionCounter()).andReturn(2L).times(2);
-    zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class));
+    expect(zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class))).andReturn(3L);
     replay(zk);
     assertThrows(IllegalArgumentException.class,
         () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
@@ -121,7 +121,7 @@ public class ZooCacheTest {
   @SuppressWarnings("unchecked")
   public void testUnwatchedPaths() throws Exception {
     expect(zk.getConnectionCounter()).andReturn(2L).anyTimes();
-    zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class));
+    expect(zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class))).andReturn(3L);
     replay(zk);
     ZooCache cache = new ZooCache(zk, Set.of(root));
     assertThrows(IllegalStateException.class, () -> cache.get("/some/unknown/path"));

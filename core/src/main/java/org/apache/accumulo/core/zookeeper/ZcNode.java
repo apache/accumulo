@@ -20,7 +20,6 @@ package org.apache.accumulo.core.zookeeper;
 
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.common.base.Preconditions;
 
@@ -29,36 +28,50 @@ import com.google.common.base.Preconditions;
  * and children are obtained from zookeeper at different times. This class is structured so that
  * data can be obtained first and then children added later or visa veras.
  *
- * <p>
- * Four distinct states can be cached for a zookeeper node.
- * <ul>
- * <li>Can cache that a node does not exist in zookeeper. This state is represented by data, state,
- * and children all being null.</li>
- * <li>Can cache only the data for a zookeeper node. For this state data and stat are non-null while
- * children is null. Calling getChildren on node in this state will throw an exception.</li>
- * <li>Can cache only the children for a zookeeper node. For this state children is non-null while
- * data and stat are null. Calling getData or getStat on node in this state will throw an
- * exception.</li>
- * <li>Can cache the children and data for a zookeeper node. For this state data,stat, and children
- * are non-null.</li>
- * </ul>
- * <p>
- *
  */
 class ZcNode {
+
+  /**
+   * This enum represents what ZooCache has discovered about a given node in zookeeper so far.
+   */
+  enum Discovered {
+    /**
+     * An attempt was made to fetch data or children and ZooKeeper threw a NoNodeException. In this
+     * case ZooCache knows the node did not exist.
+     */
+    NON_EXISTENT,
+    /**
+     * ZooCache knows the node existed and what its children were because a successful call was made
+     * to ZooKeeper to get children. However zoocache has never requested the nodes data and does
+     * not know its data.
+     */
+    CHILDREN_ONLY,
+    /**
+     * ZooCache knows the node exists and what its data was because a successful call was made to
+     * ZooKeeper to get data. However zoocache has never requested the nodes children and does not
+     * know its children.
+     */
+    DATA_ONLY,
+    /**
+     * ZooCache knows the node existed and has made successful calls to ZooKeeper to get the nodes
+     * data and children.
+     */
+    CHILDREN_AND_DATA;
+
+  }
 
   private final byte[] data;
   private final ZcStat stat;
   private final List<String> children;
+  private final Discovered discovered;
 
   static final ZcNode NON_EXISTENT = new ZcNode();
-
-  private final AtomicLong accessCount = new AtomicLong(0);
 
   private ZcNode() {
     this.data = null;
     this.stat = null;
     this.children = null;
+    this.discovered = Discovered.NON_EXISTENT;
   }
 
   /**
@@ -68,11 +81,28 @@ class ZcNode {
   ZcNode(List<String> children, ZcNode existing) {
     Objects.requireNonNull(children);
     if (existing == null) {
+      this.discovered = Discovered.CHILDREN_ONLY;
       this.data = null;
       this.stat = null;
     } else {
-      this.data = existing.data;
-      this.stat = existing.stat;
+      switch (existing.discovered) {
+        case NON_EXISTENT:
+        case CHILDREN_ONLY:
+          Preconditions.checkArgument(existing.data == null && existing.stat == null);
+          this.discovered = Discovered.CHILDREN_ONLY;
+          this.data = null;
+          this.stat = null;
+          break;
+        case DATA_ONLY:
+        case CHILDREN_AND_DATA:
+          this.discovered = Discovered.CHILDREN_AND_DATA;
+          this.data = Objects.requireNonNull(existing.data);
+          this.stat = Objects.requireNonNull(existing.stat);
+          break;
+        default:
+          throw new IllegalStateException("Unknown enum " + existing.discovered);
+      }
+
     }
 
     this.children = List.copyOf(children);
@@ -83,31 +113,48 @@ class ZcNode {
    * stat.
    */
   ZcNode(byte[] data, ZcStat zstat, ZcNode existing) {
+
     this.data = Objects.requireNonNull(data);
     this.stat = Objects.requireNonNull(zstat);
+
     if (existing == null) {
+      this.discovered = Discovered.DATA_ONLY;
       this.children = null;
     } else {
-      this.children = existing.children;
+      switch (existing.discovered) {
+        case NON_EXISTENT:
+        case DATA_ONLY:
+          Preconditions.checkArgument(existing.children == null);
+          this.discovered = Discovered.DATA_ONLY;
+          this.children = null;
+          break;
+        case CHILDREN_ONLY:
+        case CHILDREN_AND_DATA:
+          this.discovered = Discovered.CHILDREN_AND_DATA;
+          this.children = Objects.requireNonNull(existing.children);
+          break;
+        default:
+          throw new IllegalStateException("Unknown enum " + existing.discovered);
+      }
     }
   }
 
   /**
    * @return the data if the node exists and the data was set OR return null when the node does not
    *         exist
-   * @throws IllegalStateException in the case where the node exists and the data was never set
+   * @throws IllegalStateException in the case where the node exists and the data was never set.
+   *         This is thrown when {@link #cachedData()} returns false.
    */
   byte[] getData() {
     Preconditions.checkState(cachedData());
-    ;
-    accessCount.incrementAndGet();
     return data;
   }
 
   /**
    * @return the stat if the node exists and the stat was set OR return null when the node does not
    *         exist
-   * @throws IllegalStateException in the case where the node exists and the data was never set
+   * @throws IllegalStateException in the case where the node exists and the data was never set.
+   *         This is thrown when {@link #cachedData()} returns false.
    */
   ZcStat getStat() {
     Preconditions.checkState(cachedData());
@@ -117,11 +164,11 @@ class ZcNode {
   /**
    * @return the children if the node exists and the children were set OR return null when the node
    *         does not exist exists
-   * @throws IllegalStateException in the case where the node exists and the children were never set
+   * @throws IllegalStateException in the case where the node exists and the children were never
+   *         set. This is thrown when {@link #cachedChildren()} returns false.
    */
   List<String> getChildren() {
     Preconditions.checkState(cachedChildren());
-    accessCount.incrementAndGet();
     return children;
   }
 
@@ -129,24 +176,13 @@ class ZcNode {
    * @return true if the node does not exists or it exists and children are cached.
    */
   boolean cachedChildren() {
-    return children != null || notExists();
+    return discovered != Discovered.DATA_ONLY;
   }
 
   /**
    * @return true if the node does not exists or it exists and data and stat cached.
    */
   boolean cachedData() {
-    return data != null || notExists();
-  }
-
-  /**
-   * @return true if the node does not exists in zookeeper
-   */
-  boolean notExists() {
-    return stat == null && data == null && children == null;
-  }
-
-  public long getAccessCount() {
-    return accessCount.get();
+    return discovered != Discovered.CHILDREN_ONLY;
   }
 }

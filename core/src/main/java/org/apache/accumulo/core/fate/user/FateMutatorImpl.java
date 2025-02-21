@@ -133,8 +133,8 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
-  public FateMutator<T> putName(byte[] data) {
-    TxInfoColumnFamily.TX_NAME_COLUMN.put(mutation, new Value(data));
+  public FateMutator<T> putFateOp(byte[] data) {
+    TxInfoColumnFamily.FATE_OP_COLUMN.put(mutation, new Value(data));
     return this;
   }
 
@@ -165,8 +165,8 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   @Override
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
     switch (txInfo) {
-      case TX_NAME:
-        putName(data);
+      case FATE_OP:
+        putFateOp(data);
         break;
       case AUTO_CLEAN:
         putAutoClean(data);

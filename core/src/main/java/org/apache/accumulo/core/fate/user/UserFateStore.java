@@ -80,8 +80,9 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
    *
    * @param context the {@link ClientContext}
    * @param tableName the name of the table which will store the Fate data
-   * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
-   *        null if this store will be used as read-only (will not be used to reserve transactions)
+   * @param lockID the {@link org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID} held by the
+   *        process creating this store. Should be null if this store will be used as read-only
+   *        (will not be used to reserve transactions)
    * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
    *        time of invocation. If the store is used for a {@link Fate} which runs a dead
    *        reservation cleaner, this should be non-null, otherwise null is fine
@@ -133,12 +134,12 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
+  public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
         .putKey(fateKey).putCreateTime(System.currentTimeMillis());
-    if (seedTransaction(mutatorFactory, fateKey + " " + fateId, txName, repo, autoCleanUp)) {
+    if (seedTransaction(mutatorFactory, fateKey + " " + fateId, fateOp, repo, autoCleanUp)) {
       return Optional.of(fateId);
     } else {
       return Optional.empty();
@@ -146,20 +147,20 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp) {
     Supplier<FateMutator<T>> mutatorFactory =
         () -> newMutator(fateId).requireStatus(TStatus.NEW).requireUnreserved().requireAbsentKey();
-    return seedTransaction(mutatorFactory, fateId.canonical(), txName, repo, autoCleanUp);
+    return seedTransaction(mutatorFactory, fateId.canonical(), fateOp, repo, autoCleanUp);
   }
 
   private boolean seedTransaction(Supplier<FateMutator<T>> mutatorFactory, String logId,
-      Fate.FateOperation txName, Repo<T> repo, boolean autoCleanUp) {
+      Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp) {
     int maxAttempts = 5;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       var mutator = mutatorFactory.get();
       mutator =
-          mutator.putName(serializeTxInfo(txName)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
+          mutator.putFateOp(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
       if (autoCleanUp) {
         mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
       }
@@ -420,8 +421,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
         final ColumnFQ cq;
         switch (txInfo) {
-          case TX_NAME:
-            cq = TxInfoColumnFamily.TX_NAME_COLUMN;
+          case FATE_OP:
+            cq = TxInfoColumnFamily.FATE_OP_COLUMN;
             break;
           case AUTO_CLEAN:
             cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
