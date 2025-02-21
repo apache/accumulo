@@ -33,12 +33,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
@@ -46,12 +40,10 @@ import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.slf4j.event.Level;
 
 import com.google.common.base.Preconditions;
 
@@ -172,8 +164,6 @@ public class UpgradeCoordinator {
       }
 
       if (currentVersion < AccumuloDataVersion.get()) {
-        abortIfFateTransactions(context);
-
         for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
           log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
               AccumuloDataVersion.get());
@@ -227,9 +217,6 @@ public class UpgradeCoordinator {
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 
-              log.info("Validating configuration properties.");
-              validateProperties(context);
-
               log.info("Updating persistent data version.");
               updateAccumuloVersion(context.getServerDirs(), context.getVolumeManager(),
                   currentVersion);
@@ -242,30 +229,6 @@ public class UpgradeCoordinator {
           });
     } else {
       return CompletableFuture.completedFuture(null);
-    }
-  }
-
-  private void validateProperties(ServerContext context) {
-    ConfigCheckUtil.validate(context.getSiteConfiguration(), "site configuration");
-    ConfigCheckUtil.validate(context.getConfiguration(), "system configuration");
-    try {
-      for (String ns : context.namespaceOperations().list()) {
-        ConfigCheckUtil.validate(
-            context.namespaceOperations().getNamespaceProperties(ns).entrySet(),
-            ns + " namespace configuration");
-      }
-      for (String table : context.tableOperations().list()) {
-        ConfigCheckUtil.validate(context.tableOperations().getTableProperties(table).entrySet(),
-            table + " table configuration");
-      }
-    } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
-        | TableNotFoundException e) {
-      throw new IllegalStateException("Error checking properties", e);
-    }
-    try {
-      CheckCompactionConfig.validate(context.getConfiguration(), Level.INFO);
-    } catch (RuntimeException | ReflectiveOperationException e) {
-      throw new IllegalStateException("Error validating compaction configuration", e);
     }
   }
 
@@ -294,43 +257,5 @@ public class UpgradeCoordinator {
 
   public UpgradeStatus getStatus() {
     return status;
-  }
-
-  /**
-   * Exit loudly if there are outstanding Fate operations. Since Fate serializes class names, we
-   * need to make sure there are no queued transactions from a previous version before continuing an
-   * upgrade. The status of the operations is irrelevant; those in SUCCESSFUL status cause the same
-   * problem as those just queued.
-   * <p>
-   * Note that the Manager should not allow write access to Fate until after all upgrade steps are
-   * complete.
-   * <p>
-   * Should be called as a guard before performing any upgrade steps, after determining that an
-   * upgrade is needed.
-   * <p>
-   * see ACCUMULO-2519
-   */
-  @SuppressFBWarnings(value = "DM_EXIT",
-      justification = "Want to immediately stop all manager threads on upgrade error")
-  private void abortIfFateTransactions(ServerContext context) {
-    try {
-      // The current version of the code creates the new accumulo.fate table on upgrade, so no
-      // attempt is made to read it here. Attempting to read it this point would likely cause a hang
-      // as tablets are not assigned when this is called. The Fate code is not used to read from
-      // zookeeper below because the serialization format changed in zookeeper, that is why a direct
-      // read is performed.
-      if (!context.getZooSession().asReader()
-          .getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
-        throw new AccumuloException("Aborting upgrade because there are"
-            + " outstanding FATE transactions from a previous Accumulo version."
-            + " You can start the tservers and then use the shell to delete completed "
-            + " transactions. If there are incomplete transactions, you will need to roll"
-            + " back and fix those issues. Please see the following page for more information: "
-            + " https://accumulo.apache.org/docs/2.x/troubleshooting/advanced#upgrade-issues");
-      }
-    } catch (Exception exception) {
-      log.error("Problem verifying Fate readiness", exception);
-      System.exit(1);
-    }
   }
 }
