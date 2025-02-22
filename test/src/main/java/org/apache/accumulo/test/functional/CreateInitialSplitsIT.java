@@ -41,33 +41,35 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class CreateInitialSplitsIT extends AccumuloClusterHarness {
+public class CreateInitialSplitsIT extends SharedMiniClusterBase {
 
   private AccumuloClient client;
   private String tableName;
 
-  @Override
-  protected Duration defaultTimeout() {
-    return Duration.ofMinutes(2);
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
+
+      // use raw local file system
+      coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    });
   }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
-
-    // use raw local file system
-    conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @BeforeEach
@@ -129,8 +131,9 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
     assertEquals(splits.keySet(), new TreeSet<>(createdSplits));
 
-    var tableId = getServerContext().getTableId(tableName);
-    try (var tablets = getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+    var tableId = getCluster().getServerContext().getTableId(tableName);
+    try (var tablets =
+        getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
       // default tablet (null end row) should have a default TabletMergeability of never for user
       // created tablets
       assertTrue(tablets.stream()
