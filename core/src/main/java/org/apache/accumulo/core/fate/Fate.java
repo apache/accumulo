@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.fate;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus.FAILED;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.util.ShutdownUtil;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.thrift.TApplicationException;
@@ -88,7 +90,7 @@ public class Fate<T> {
           } else {
             Repo<T> prevOp = null;
             try {
-              deferTime = op.isReady(tid, environment);
+              deferTime = executeIsReady(tid, op);
 
               // Here, deferTime is only used to determine success (zero) or failure (non-zero),
               // proceeding on success and returning to the while loop on failure.
@@ -98,7 +100,7 @@ public class Fate<T> {
                 if (status == SUBMITTED) {
                   store.setStatus(tid, IN_PROGRESS);
                 }
-                op = op.call(tid, environment);
+                op = executeCall(tid, op);
               } else {
                 continue;
               }
@@ -219,11 +221,24 @@ public class Fate<T> {
   }
 
   protected long executeIsReady(Long tid, Repo<T> op) throws Exception {
-    return op.isReady(tid, environment);
+    var startTime = Timer.startNew();
+    var deferTime = op.isReady(tid, environment);
+    if (log.isTraceEnabled()) {
+      log.trace("Running {}.isReady() {} took {} ms and returned {}", op.getName(),
+          FateTxId.formatTid(tid), startTime.elapsed(MILLISECONDS), deferTime);
+    }
+    return deferTime;
   }
 
   protected Repo<T> executeCall(Long tid, Repo<T> op) throws Exception {
-    return op.call(tid, environment);
+    var startTime = Timer.startNew();
+    var next = op.call(tid, environment);
+    if (log.isTraceEnabled()) {
+      log.trace("Running {}.call() {} took {} ms and returned {}", op.getName(),
+          FateTxId.formatTid(tid), startTime.elapsed(MILLISECONDS),
+          next == null ? "null" : next.getName());
+    }
+    return next;
   }
 
   /**
