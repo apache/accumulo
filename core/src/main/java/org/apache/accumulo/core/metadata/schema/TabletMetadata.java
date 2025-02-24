@@ -565,6 +565,11 @@ public class TabletMetadata {
       throw new IllegalStateException("TabletMetadata cannot be null");
     }
 
+    Collection<StoredTabletFile> files = tm.getFiles();
+    if (files == null || files.isEmpty()) {
+      return;
+    }
+
     Text prevEndRowText = tm.getPrevEndRow();
     Text endRowText = tm.getEndRow();
 
@@ -572,15 +577,10 @@ public class TabletMetadata {
     Key prevEndRowKey = (prevEndRowText != null) ? new Key(prevEndRowText) : null;
     Key endRowKey = (endRowText != null) ? new Key(endRowText) : null;
 
-    Collection<StoredTabletFile> files = tm.getFiles();
-    if (files == null || files.isEmpty()) {
-      return;
-    }
-
     for (StoredTabletFile file : files) {
       if (!isFileRangeValid(file, prevEndRowKey, endRowKey)) {
         throw new IllegalStateException("File range " + file.getRange()
-            + " is inconsistent with tablet range [" + prevEndRowText + ", " + endRowText + "]");
+            + " does not overlap with tablet range [" + prevEndRowText + ", " + endRowText + "]");
       }
     }
   }
@@ -588,8 +588,8 @@ public class TabletMetadata {
   private static boolean isFileRangeValid(StoredTabletFile file, Key prevEndRowKey, Key endRowKey) {
     Range fileRange = file.getRange();
 
-    if (fileRange == null) {
-      return false;
+    if (file.hasRange()) {
+      return true;
     }
 
     Key fileStartKey = fileRange.getStartKey();
