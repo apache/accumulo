@@ -57,6 +57,11 @@ public class CreateInitialSplitsIT extends SharedMiniClusterBase {
   private AccumuloClient client;
   private String tableName;
 
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(2);
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
