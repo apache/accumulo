@@ -23,6 +23,7 @@ import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 
 public interface FateMutator<T> {
 
