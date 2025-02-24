@@ -62,15 +62,27 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class CloneTestIT extends AccumuloClusterHarness {
+public class CloneTestIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -161,7 +173,7 @@ public class CloneTestIT extends AccumuloClusterHarness {
 
         if (cf.equals(DataFileColumnFamily.NAME)) {
           Path p = StoredTabletFile.of(cq).getPath();
-          FileSystem fs = cluster.getFileSystem();
+          FileSystem fs = getCluster().getFileSystem();
           assertTrue(fs.exists(p), "File does not exist: " + p);
         } else if (cf.equals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily())) {
           assertEquals(ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), cq,
