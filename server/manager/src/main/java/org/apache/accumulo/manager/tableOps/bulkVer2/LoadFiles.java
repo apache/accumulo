@@ -328,6 +328,9 @@ class LoadFiles extends ManagerRepo {
 
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
+    String fmtTid = FateTxId.formatTid(tid);
+    log.trace("{}: Starting bulk load at row: {}", fmtTid, startRow);
+
     Loader loader;
     if (bulkInfo.tableState == TableState.ONLINE) {
       loader = new OnlineLoader();
@@ -344,16 +347,21 @@ class LoadFiles extends ManagerRepo {
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
         List<TabletMetadata> tablets =
-            findOverlappingTablets(loadMapEntry.getKey(), tabletsMetadata.iterator());
+            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletsMetadata.iterator());
         loader.load(tablets, loadMapEntry.getValue());
       }
     }
 
+    log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
+
     long sleepTime = loader.finish();
     if (sleepTime > 0) {
-      long scanTime = Math.min(System.currentTimeMillis() - t1, 30000);
+      log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
+      long scanTime = Math.min(System.currentTimeMillis() - t1, 30_000);
+      log.trace("{}: Scan time is {}", fmtTid, scanTime);
       sleepTime = Math.max(sleepTime, scanTime * 2);
     }
+    log.trace("{}: Sleeping for {}ms", fmtTid, sleepTime);
     return sleepTime;
   }
 
@@ -363,7 +371,7 @@ class LoadFiles extends ManagerRepo {
   /**
    * Find all the tablets within the provided bulk load mapping range.
    */
-  private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
+  private List<TabletMetadata> findOverlappingTablets(String fmtTid, KeyExtent loadRange,
       Iterator<TabletMetadata> tabletIter) {
 
     TabletMetadata currTablet = null;
@@ -372,11 +380,13 @@ class LoadFiles extends ManagerRepo {
 
       List<TabletMetadata> tablets = new ArrayList<>();
       currTablet = tabletIter.next();
+      log.trace("{}: Finding Overlapping Tablets for row: {}", fmtTid, currTablet.getExtent());
 
       int cmp;
 
       // skip tablets until we find the prevEndRow of loadRange
       while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.prevEndRow())) < 0) {
+        log.trace("{}: Skipping tablet: {}", fmtTid, currTablet.getExtent());
         currTablet = tabletIter.next();
       }
 
@@ -392,6 +402,7 @@ class LoadFiles extends ManagerRepo {
       // adding tablets to the list until the endRow matches the loadRange
       while ((cmp = END_COMP.compare(currTablet.getEndRow(), loadRange.endRow())) < 0) {
         currTablet = tabletIter.next();
+        log.trace("{}: Adding tablet: {} to overlapping list", fmtTid, currTablet.getExtent());
         tablets.add(currTablet);
       }
 
