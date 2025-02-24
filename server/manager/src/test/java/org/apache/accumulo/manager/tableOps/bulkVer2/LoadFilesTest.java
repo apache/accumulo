@@ -34,6 +34,7 @@ import org.apache.accumulo.core.clientImpl.bulk.Bulk.Files;
 import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
@@ -104,21 +105,23 @@ public class LoadFilesTest {
     }
     tm.add(TabletMetadata.create(tid.canonical(), "z", null));
 
-    List<TabletMetadata> tablets =
-        LoadFiles.findOverlappingTablets(new KeyExtent(tid, new Text("c"), null), tm.iterator());
+    String fmtTid = FateTxId.formatTid(1234L);
+    List<TabletMetadata> tablets = LoadFiles.findOverlappingTablets(fmtTid,
+        new KeyExtent(tid, new Text("c"), null), tm.iterator());
     assertEquals(3, tablets.size());
     assertEquals(tm.get(0), tablets.get(0));
     assertEquals(tm.get(1), tablets.get(1));
     assertEquals(tm.get(2), tablets.get(2));
 
-    tablets =
-        LoadFiles.findOverlappingTablets(new KeyExtent(tid, null, new Text("x")), tm.iterator());
+    tablets = LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, new Text("x")),
+        tm.iterator());
     assertEquals(3, tablets.size());
     assertEquals(tm.get(tm.size() - 3), tablets.get(tablets.size() - 3));
     assertEquals(tm.get(tm.size() - 2), tablets.get(tablets.size() - 2));
     assertEquals(tm.get(tm.size() - 1), tablets.get(tablets.size() - 1));
 
-    tablets = LoadFiles.findOverlappingTablets(new KeyExtent(tid, null, null), tm.iterator());
+    tablets =
+        LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, null), tm.iterator());
     assertEquals(tm, tablets);
 
   }
