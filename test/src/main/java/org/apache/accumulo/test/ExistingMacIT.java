@@ -116,7 +116,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
     }
 
     ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
-    while (!AccumuloStatus.isAccumuloOffline(zrw, "/")) {
+    while (!AccumuloStatus.isAccumuloOffline(getCluster().getServerContext())) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
     }

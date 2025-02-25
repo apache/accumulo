@@ -85,10 +85,6 @@ public class ZooKeeperInitializer {
         throw new IllegalStateException(
             "Failed to create default system props during initialization at: {}" + sysPropPath);
       }
-      // if (!zoo.exists("/yea")) {
-      // throw new IllegalStateException("heres the stuff under root/iid/config: "
-      // + Arrays.toString(zoo.getData(zkInstanceRoot + Constants.ZCONFIG)));
-      // }
     } catch (IOException | KeeperException | InterruptedException ex) {
       throw new IllegalStateException("Failed to initialize configuration for prop store", ex);
     }

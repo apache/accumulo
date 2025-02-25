@@ -391,7 +391,7 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getCompactorHosts(zooReader, Constants.ZCOMPACTORS);
+    StatusSummary status = cmd.getCompactorHosts(zooReader);
     LOG.info("compactor group counts: {}", status);
     assertEquals(2, status.getResourceGroups().size());
   }

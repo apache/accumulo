@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
 public class AccumuloStatus {
@@ -32,20 +33,21 @@ public class AccumuloStatus {
    *         false
    * @throws IOException if there are issues connecting to ZooKeeper to determine service status
    */
-  public static boolean isAccumuloOffline(ZooReader reader, String rootPath) throws IOException {
+  public static boolean isAccumuloOffline(ServerContext context) throws IOException {
     try {
-      for (String child : reader.getChildren(rootPath + Constants.ZTSERVERS)) {
-        if (!reader.getChildren(rootPath + Constants.ZTSERVERS + "/" + child).isEmpty()) {
+      ZooReader reader = context.getZooSession().asReaderWriter();
+      for (String child : reader.getChildren(Constants.ZTSERVERS)) {
+        if (!reader.getChildren(Constants.ZTSERVERS + "/" + child).isEmpty()) {
           return false;
         }
       }
-      if (!reader.getChildren(rootPath + Constants.ZMANAGER_LOCK).isEmpty()) {
+      if (!reader.getChildren(Constants.ZMANAGER_LOCK).isEmpty()) {
         return false;
       }
-      if (!reader.getChildren(rootPath + Constants.ZMONITOR_LOCK).isEmpty()) {
+      if (!reader.getChildren(Constants.ZMONITOR_LOCK).isEmpty()) {
         return false;
       }
-      if (!reader.getChildren(rootPath + Constants.ZGC_LOCK).isEmpty()) {
+      if (!reader.getChildren(Constants.ZGC_LOCK).isEmpty()) {
         return false;
       }
     } catch (KeeperException | InterruptedException e) {

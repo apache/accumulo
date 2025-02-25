@@ -543,8 +543,14 @@ public class Initialize implements KeywordExecutable {
           success = doInit(zk.asReaderWriter(), opts, fs, initConfig);
         }
       }
-    } catch (IOException | InterruptedException | KeeperException e) {
+    } catch (IOException e) {
       log.error("Problem trying to get Volume configuration", e);
+      success = false;
+    } catch (InterruptedException e) {
+      log.error("Thread was interrupted when trying to get Volume configuration", e);
+      success = false;
+    } catch (KeeperException e) {
+      log.error("ZooKeeper error when trying to get Volume configuration", e);
       success = false;
     } finally {
       SingletonManager.setMode(Mode.CLOSED);

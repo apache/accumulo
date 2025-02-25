@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -59,7 +60,7 @@ public class ServiceStatusCmd {
 
     ZooReader zooReader = context.getZooSession().asReader();
 
-    LOG.trace("zooRoot: {}", "");
+    LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
@@ -74,7 +75,7 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.COORDINATOR, getStatusSummary(
         ServiceStatusReport.ReportKey.COORDINATOR, zooReader, Constants.ZCOORDINATOR_LOCK));
     services.put(ServiceStatusReport.ReportKey.COMPACTOR,
-        getCompactorHosts(zooReader, Constants.ZCOMPACTORS));
+        getCompactorHosts(zooReader));
     services.put(ServiceStatusReport.ReportKey.GC,
         getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, Constants.ZGC_LOCK));
 
@@ -139,7 +140,12 @@ public class ServiceStatusCmd {
   @VisibleForTesting
   StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames, ZooReader zooReader,
       String lockPath) {
-    var result = readAllNodesData(zooReader, lockPath);
+//    var result;
+//    switch (displayNames) {
+//      case MANAGER:
+//        result = readAllNodesData(zooReader, Constants.ZMANAGER_LOCK);
+//        case
+//    }
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
@@ -155,18 +161,18 @@ public class ServiceStatusCmd {
    * Pull host:port from path {@code /accumulo/IID/compactors/[QUEUE][host:port]}
    */
   @VisibleForTesting
-  StatusSummary getCompactorHosts(final ZooReader zooReader, final String zRootPath) {
+  StatusSummary getCompactorHosts(final ZooReader zooReader) {
     final AtomicInteger errors = new AtomicInteger(0);
 
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
     // get group names
-    Result<Set<String>> queueNodes = readNodeNames(zooReader, zRootPath);
+    Result<Set<String>> queueNodes = readNodeNames(zooReader, Constants.ZCOMPACTORS);
     errors.addAndGet(queueNodes.getErrorCount());
     Set<String> queues = new TreeSet<>(queueNodes.getData());
 
     queues.forEach(group -> {
-      var hostNames = readNodeNames(zooReader, zRootPath + "/" + group);
+      var hostNames = readNodeNames(zooReader, Constants.ZCOMPACTORS + "/" + group);
       errors.addAndGet(hostNames.getErrorCount());
       Collection<String> hosts = hostNames.getData();
       hosts.forEach(host -> {

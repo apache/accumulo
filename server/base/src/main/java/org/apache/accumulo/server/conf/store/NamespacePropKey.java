@@ -27,19 +27,12 @@ import org.apache.accumulo.server.ServerContext;
 
 public class NamespacePropKey extends PropStoreKey<NamespaceId> {
 
-  private NamespacePropKey(final InstanceId instanceId, final String path, final NamespaceId id) {
-    super(instanceId, path, id);
+  private NamespacePropKey(final NamespaceId id) {
+    super(ZNAMESPACES + "/" + id.canonical() + ZCONFIG, id);
   }
 
-  public static NamespacePropKey of(final ServerContext context, final NamespaceId id) {
-    return of(context.getInstanceID(), id);
+  public static NamespacePropKey of(final NamespaceId id) {
+    return new NamespacePropKey(id);
   }
 
-  public static NamespacePropKey of(final InstanceId instanceId, final NamespaceId id) {
-    return new NamespacePropKey(instanceId, buildNodePath(id), id);
-  }
-
-  private static String buildNodePath(final NamespaceId id) {
-    return ZNAMESPACES + "/" + id.canonical() + ZCONFIG;
-  }
 }

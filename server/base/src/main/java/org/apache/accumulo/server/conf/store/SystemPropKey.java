@@ -25,16 +25,12 @@ import org.apache.accumulo.server.ServerContext;
 
 public class SystemPropKey extends PropStoreKey<InstanceId> {
 
-  private SystemPropKey(final InstanceId instanceId, final String path) {
-    super(instanceId, path, instanceId);
+  private SystemPropKey(final String path) {
+    super(path, null);
   }
 
-  public static SystemPropKey of(final ServerContext context) {
-    return of(context.getInstanceID());
-  }
-
-  public static SystemPropKey of(final InstanceId instanceId) {
-    return new SystemPropKey(instanceId, ZCONFIG);
+  public static SystemPropKey of() {
+    return new SystemPropKey(ZCONFIG);
   }
 
 }

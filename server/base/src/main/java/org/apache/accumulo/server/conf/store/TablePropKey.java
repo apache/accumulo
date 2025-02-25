@@ -27,15 +27,11 @@ import org.apache.accumulo.server.ServerContext;
 
 public class TablePropKey extends PropStoreKey<TableId> {
 
-  public static TablePropKey of(final ServerContext context, final TableId tableId) {
-    return of(context.getInstanceID(), tableId);
+  private TablePropKey(final TableId tableId) {
+    super(ZTABLES + "/" + tableId.canonical() + ZCONFIG, tableId);
   }
 
-  public static TablePropKey of(final InstanceId instanceId, final TableId tableId) {
-    return new TablePropKey(instanceId, ZTABLES + "/" + tableId.canonical() + ZCONFIG, tableId);
-  }
-
-  private TablePropKey(final InstanceId instanceId, final String path, final TableId tableId) {
-    super(instanceId, path, tableId);
+  public static TablePropKey of(final TableId tableId) {
+    return new TablePropKey(tableId);
   }
 }
