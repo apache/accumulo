@@ -38,6 +38,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.ImportTimingStats;
 import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.TabletsMetadataFactory;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -113,8 +114,8 @@ public class LoadFilesTest {
 
     String fmtTid = FateTxId.formatTid(1234L);
     var iter = tm.iterator();
-    List<TabletMetadata> tablets =
-        LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, new Text("c"), null), iter);
+    List<TabletMetadata> tablets = LoadFiles.findOverlappingTablets(fmtTid,
+        new KeyExtent(tid, new Text("c"), null), iter, new ImportTimingStats());
     assertEquals(tm.get(3), iter.next());
     assertEquals(3, tablets.size());
     assertEquals(tm.get(0), tablets.get(0));
@@ -123,7 +124,7 @@ public class LoadFilesTest {
 
     iter = tm.iterator();
     tablets = LoadFiles.findOverlappingTablets(fmtTid,
-        new KeyExtent(tid, new Text("o"), new Text("j")), iter);
+        new KeyExtent(tid, new Text("o"), new Text("j")), iter, new ImportTimingStats());
     assertEquals(tm.get(tm.size() - 12), iter.next());
     assertEquals(5, tablets.size());
     assertEquals(tm.get(tm.size() - 17), tablets.get(tablets.size() - 5));
@@ -133,16 +134,16 @@ public class LoadFilesTest {
     assertEquals(tm.get(tm.size() - 13), tablets.get(tablets.size() - 1));
 
     iter = tm.iterator();
-    tablets =
-        LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, new Text("x")), iter);
+    tablets = LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, new Text("x")),
+        iter, new ImportTimingStats());
     assertEquals(3, tablets.size());
     assertEquals(tm.get(tm.size() - 3), tablets.get(tablets.size() - 3));
     assertEquals(tm.get(tm.size() - 2), tablets.get(tablets.size() - 2));
     assertEquals(tm.get(tm.size() - 1), tablets.get(tablets.size() - 1));
     assertTrue(!iter.hasNext());
 
-    tablets =
-        LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, null), tm.iterator());
+    tablets = LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, null),
+        tm.iterator(), new ImportTimingStats());
     assertEquals(tm, tablets);
 
   }
