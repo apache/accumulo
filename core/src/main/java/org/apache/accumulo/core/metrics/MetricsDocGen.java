@@ -33,7 +33,8 @@ import java.util.TreeSet;
 public class MetricsDocGen {
   private final PrintStream doc;
   private final TreeSet<Metric> sortedMetrics =
-      new TreeSet<>(Comparator.comparing(Metric::getName));
+      new TreeSet<>(Comparator.comparing(Metric::getDisplayName)); // Sort by displayName instead of
+                                                                   // name
 
   void generate() {
     pageHeader();
@@ -54,7 +55,7 @@ public class MetricsDocGen {
         + " that is copied from Accumulo build (from core/target/generated-docs) -->\n");
     doc.println(
         "Below are the metrics used to monitor various components of Accumulo. Metrics emitted by Accumulo should"
-            + " contain the folowing tags: 'instance.name', 'resource.group', 'process.name', 'host' and 'port'. Metrics"
+            + " contain the following tags: 'instance.name', 'resource.group', 'process.name', 'host' and 'port'. Metrics"
             + " emitted by Accumulo may contain additional tags where we think it makes sense to capture per-object metrics,"
             + " for example on a table or tablet basis in the ScanServer and TabletServer, or on a per-queue basis in the"
             + " CompactionCoordinator.\n");
@@ -96,14 +97,16 @@ public class MetricsDocGen {
   }
 
   /**
-   * Generates a subsection for a metric. This includes the metric name, type, and description.
+   * Generates a subsection for a metric. This includes the metric displayName, actual name, type,
+   * and description.
    */
   void generateMetricSubsection(Metric metric) {
     // Open the div block with markdown enabled
     doc.println("<div markdown=\"1\" class=\"metric-section\">");
 
     // Metric details
-    doc.println("### " + metric.getName());
+    doc.println("### " + metric.getDisplayName()); // Use displayName as the section header
+    doc.println("**Metric Name:** `" + metric.getName() + "`  "); // Include original metric name
     doc.println("**Type:** " + metric.getType().name() + "  "); // Ensuring a line break in Markdown
     doc.println("**Description:** " + metric.getDescription());
 
