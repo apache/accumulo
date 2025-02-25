@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -48,6 +47,7 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 
 public class FindMergeableRangeTask implements Runnable {
@@ -125,11 +125,11 @@ public class FindMergeableRangeTask implements Runnable {
     TableId tableId = table.getKey();
     String tableName = table.getValue();
 
-    range.startRow = Optional.ofNullable(range.startRow).map(Text::new).orElse(new Text(""));
-    range.endRow = Optional.ofNullable(range.endRow).map(Text::new).orElse(new Text(""));
+    final Text startRow = range.startRow != null ? range.startRow : new Text("");
+    final Text endRow = range.endRow != null ? range.endRow : new Text("");
 
-    String startRowStr = StringUtils.defaultIfBlank(range.startRow.toString(), "-inf");
-    String endRowStr = StringUtils.defaultIfBlank(range.endRow.toString(), "+inf");
+    String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
+    String endRowStr = StringUtils.defaultIfBlank(endRow.toString(), "+inf");
     log.debug("FindMergeableRangeTask: Creating merge op: {} from startRow: {} to endRow: {}",
         tableId, startRowStr, endRowStr);
     var fateId = manager.fate(type).startTransaction();
@@ -137,8 +137,8 @@ public class FindMergeableRangeTask implements Runnable {
         + ") splits from " + startRowStr + " to " + endRowStr;
 
     manager.fate(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateId,
-        new TraceRepo<>(new TableRangeOp(Operation.SYSTEM_MERGE, namespaceId, tableId,
-            range.startRow, range.endRow)),
+        new TraceRepo<>(
+            new TableRangeOp(Operation.SYSTEM_MERGE, namespaceId, tableId, startRow, endRow)),
         true, goalMessage);
   }
 
@@ -176,6 +176,9 @@ public class FindMergeableRangeTask implements Runnable {
 
     private boolean validate(TabletMetadata tm) {
       if (tabletCount > 0) {
+        // This is at least the second tablet seen so there should not be a null prevEndRow
+        Preconditions.checkState(tm.getPrevEndRow() != null,
+            "Unexpected null prevEndRow found for %s", tm.getExtent());
         // If this is not the first tablet, then verify its prevEndRow matches
         // the last endRow tracked, the server filter will skip tablets marked as never
         if (!tm.getPrevEndRow().equals(endRow)) {
