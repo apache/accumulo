@@ -28,8 +28,6 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import javax.print.DocFlavor.STRING;
-
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
@@ -912,7 +910,7 @@ public enum Property {
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
       "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
   TABLE_MAX_MERGEABILITY_THRESHOLD("table.mergeability.threshold", ".25", PropertyType.FRACTION,
-      "A tablet is mergeable until it reaches this percentage of the split threshold.", "1.3.5"),
+      "A tablet is mergeable until it reaches this percentage of the split threshold.", "4.0.0"),
 
   // Crypto-related properties
   @Experimental
