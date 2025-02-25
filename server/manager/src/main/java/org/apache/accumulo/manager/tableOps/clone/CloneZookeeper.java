@@ -60,7 +60,7 @@ class CloneZookeeper extends ManagerRepo {
       // write tableName & tableId to zookeeper
 
       Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.tableName,
-          cloneInfo.tableId, TableOperation.CLONE);
+          cloneInfo.namespaceId, cloneInfo.tableId, TableOperation.CLONE);
 
       environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,

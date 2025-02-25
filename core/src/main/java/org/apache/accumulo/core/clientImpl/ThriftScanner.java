@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -211,6 +212,8 @@ public class ThriftScanner {
     ScanServerAttemptsImpl scanAttempts;
 
     Duration busyTimeout;
+
+    volatile boolean closeInitiated = false;
 
     TabletLocation getErrorLocation() {
       return prevLoc;
@@ -508,8 +511,13 @@ public class ThriftScanner {
           TraceUtil.setException(child2, e, false);
           sleepMillis = pause(sleepMillis, maxSleepTime, scanState.runOnScanServer);
         } catch (TException e) {
-          TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
-              loc.tablet_location);
+          boolean wasInterruptedAfterClose =
+              e.getCause() != null && e.getCause().getClass().equals(InterruptedIOException.class)
+                  && scanState.closeInitiated;
+          if (!wasInterruptedAfterClose) {
+            TabletLocator.getLocator(context, scanState.tableId).invalidateCache(context,
+                loc.tablet_location);
+          }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
               + " " + scanState.getErrorLocation();
           if (!error.equals(lastError)) {
