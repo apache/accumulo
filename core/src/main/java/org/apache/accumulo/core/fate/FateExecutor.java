@@ -33,10 +33,12 @@ import static org.apache.accumulo.core.util.ShutdownUtil.isIOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.LinkedTransferQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
@@ -95,12 +97,93 @@ public class FateExecutor<T> {
     this.workFinder.start();
   }
 
-  protected String getPoolName() {
-    return poolName;
-  }
+  /**
+   * resize the pool to match the config as necessary and submit new TransactionRunners if the pool
+   * grew, stop TransactionRunners if the pool shrunk, and potentially suggest resizing the pool if
+   * the load is consistently high.
+   */
+  protected void resizeFateExecutor(Map<Set<Fate.FateOperation>,Integer> poolConfigs,
+      long idleCheckIntervalMillis) {
+    final var pool = transactionExecutor;
+    final var runningTxRunners = getRunningTxRunners();
+    final int configured = poolConfigs.get(fateOps);
+    ThreadPools.resizePool(pool, () -> configured, poolName);
+    final int needed = configured - runningTxRunners.size();
+    if (needed > 0) {
+      // If the pool grew, then ensure that there is a TransactionRunner for each thread
+      for (int i = 0; i < needed; i++) {
+        try {
+          pool.execute(new TransactionRunner());
+        } catch (RejectedExecutionException e) {
+          // RejectedExecutionException could be shutting down
+          if (pool.isShutdown()) {
+            // The exception is expected in this case, no need to spam the logs.
+            log.trace("Expected error adding transaction runner to FaTE executor pool. "
+                + "The pool is shutdown.", e);
+          } else {
+            // This is bad, FaTE may no longer work!
+            log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
+          }
+          break;
+        }
+      }
+      idleCountHistory.clear();
+    } else if (needed < 0) {
+      // If we need the pool to shrink, then ensure excess TransactionRunners are safely
+      // stopped.
+      // Flag the necessary number of TransactionRunners to safely stop when they are done
+      // work on a transaction.
+      int numFlagged = (int) runningTxRunners.stream()
+          .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
+      int numToStop = -1 * (numFlagged + needed);
+      for (var runner : runningTxRunners) {
+        if (numToStop <= 0) {
+          break;
+        }
+        if (runner.flagStop()) {
+          log.trace("Flagging a TransactionRunner to stop...");
+          numToStop--;
+        }
+      }
+    } else {
+      // The pool size did not change, but should it based on idle Fate threads? Maintain
+      // count of the last X minutes of idle Fate threads. If zero 95% of the time, then
+      // suggest that the pool size be increased or the fate ops assigned to that pool be
+      // split into separate pools.
+      final long interval = Math.min(60, TimeUnit.MILLISECONDS.toMinutes(idleCheckIntervalMillis));
+      var fateConfigProp = fate.getFateConfigProp();
 
-  protected ThreadPoolExecutor getTransactionExecutor() {
-    return transactionExecutor;
+      if (interval == 0) {
+        idleCountHistory.clear();
+      } else {
+        if (idleCountHistory.size() >= interval * 2) { // this task runs every 30s
+          int zeroFateThreadsIdleCount = 0;
+          for (Integer idleConsumerCount : idleCountHistory) {
+            if (idleConsumerCount == 0) {
+              zeroFateThreadsIdleCount++;
+            }
+          }
+          boolean needMoreThreads =
+              (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
+          if (needMoreThreads) {
+            fate.getNeedMoreThreadsWarnCount().incrementAndGet();
+            log.warn(
+                "All {} Fate threads working on the fate ops {} appear to be busy for "
+                    + "the last {} minutes. Consider increasing the value for the "
+                    + "entry in the property {} or splitting the fate ops across "
+                    + "multiple entries/pools.",
+                fate.getStore().type(), fateOps, interval, fateConfigProp.getKey());
+            // Clear the history so that we don't log for interval minutes.
+            idleCountHistory.clear();
+          } else {
+            while (idleCountHistory.size() >= interval * 2) {
+              idleCountHistory.remove();
+            }
+          }
+        }
+        idleCountHistory.add(workQueue.getWaitingConsumerCount());
+      }
+    }
   }
 
   /**
@@ -183,10 +266,6 @@ public class FateExecutor<T> {
 
   protected ConcurrentLinkedQueue<Integer> getIdleCountHistory() {
     return idleCountHistory;
-  }
-
-  protected TransferQueue<FateId> getWorkQueue() {
-    return workQueue;
   }
 
   /**

@@ -343,13 +343,158 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
         fate.seedTransaction(FateTestUtil.TEST_FATE_OP, fate.startTransaction(),
             new PoolResizeTestRepo(), true, "testing");
       }
-      Wait.waitFor(() -> fate.getNeedMoreThreadsWarnCount() >= 1, 60_000, 1_000);
+      Wait.waitFor(() -> fate.getNeedMoreThreadsWarnCount().get() >= 1, 60_000, 1_000);
       // can finish work now
       env.isReadyLatch.countDown();
       Wait.waitFor(() -> env.numWorkers.get() == 0);
       allAssertsOccurred = true;
     } catch (Exception e) {
       System.out.println("Failure: " + e);
+    } finally {
+      fate.shutdown(30, TimeUnit.SECONDS);
+      assertTrue(allAssertsOccurred);
+      assertEquals(0, fate.getTotalTxRunnersActive());
+    }
+  }
+
+  @Test
+  public void testFatePoolsPartitioning() throws Exception {
+    executeTest(this::testFatePoolsPartitioning);
+  }
+
+  protected void testFatePoolsPartitioning(FateStore<PoolResizeTestEnv> store, ServerContext sctx)
+      throws Exception {
+    // Ensures FATE ops are correctly partitioned between the pools. Configures 4 FateExecutors:
+    // FateExecutor1 with 2 threads operating on 1/4 of FATE ops
+    // FateExecutor2 with 3 threads operating on 1/4 of FATE ops
+    // FateExecutor3 with 4 threads operating on 1/4 of FATE ops
+    // FateExecutor4 with 5 threads operating on 1/4 of FATE ops
+    // Seeds:
+    // 5 transactions on FateExecutor1
+    // 6 transactions on FateExecutor2
+    // 1 transactions on FateExecutor3
+    // 4 transactions on FateExecutor4
+    // Ensures that we only see min(configured threads, transactions seeded) ever running
+    // Also ensures that FateExecutors do not pick up any work that they shouldn't
+    final int numThreadsPool1 = 2;
+    final int numThreadsPool2 = 3;
+    final int numThreadsPool3 = 4;
+    final int numThreadsPool4 = 5;
+    final int numSeedPool1 = 5;
+    final int numSeedPool2 = 6;
+    final int numSeedPool3 = 1;
+    final int numSeedPool4 = 4;
+
+    final int numUserOpsPerPool = ALL_USER_FATE_OPS.size() / 4;
+    final int numMetaOpsPerPool = ALL_META_FATE_OPS.size() / 4;
+
+    final Set<Fate.FateOperation> userPool1 =
+        ALL_USER_FATE_OPS.stream().limit(numUserOpsPerPool).collect(Collectors.toSet());
+    final Set<Fate.FateOperation> userPool2 = ALL_USER_FATE_OPS.stream().skip(numUserOpsPerPool)
+        .limit(numUserOpsPerPool).collect(Collectors.toSet());
+    final Set<Fate.FateOperation> userPool3 = ALL_USER_FATE_OPS.stream().skip(numUserOpsPerPool * 2)
+        .limit(numUserOpsPerPool).collect(Collectors.toSet());
+    // no limit for pool 4 in case total num ops is odd
+    final Set<Fate.FateOperation> userPool4 =
+        ALL_USER_FATE_OPS.stream().skip(numUserOpsPerPool * 3).collect(Collectors.toSet());
+
+    final Set<Fate.FateOperation> metaPool1 =
+        ALL_META_FATE_OPS.stream().limit(numMetaOpsPerPool).collect(Collectors.toSet());
+    final Set<Fate.FateOperation> metaPool2 = ALL_META_FATE_OPS.stream().skip(numMetaOpsPerPool)
+        .limit(numMetaOpsPerPool).collect(Collectors.toSet());
+    final Set<Fate.FateOperation> metaPool3 = ALL_META_FATE_OPS.stream().skip(numMetaOpsPerPool * 2)
+        .limit(numMetaOpsPerPool).collect(Collectors.toSet());
+    // no limit for pool 4 in case total num ops is odd
+    final Set<Fate.FateOperation> metaPool4 =
+        ALL_META_FATE_OPS.stream().skip(numMetaOpsPerPool * 3).collect(Collectors.toSet());
+
+    final ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_USER_CONFIG,
+        String.format("{\"%s\": %s, \"%s\": %s, \"%s\": %s, \"%s\": %s}",
+            userPool1.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool1,
+            userPool2.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool2,
+            userPool3.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool3,
+            userPool4.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool4));
+    config.set(Property.MANAGER_FATE_META_CONFIG,
+        String.format("{\"%s\": %s, \"%s\": %s, \"%s\": %s, \"%s\": %s}",
+            metaPool1.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool1,
+            metaPool2.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool2,
+            metaPool3.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool3,
+            metaPool4.stream().map(Enum::name).collect(Collectors.joining(",")), numThreadsPool4));
+    config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
+
+    final boolean isUserStore = store.type() == FateInstanceType.USER;
+
+    final Fate.FateOperation fateOpFromPool1 =
+        isUserStore ? userPool1.iterator().next() : metaPool1.iterator().next();
+    final Fate.FateOperation fateOpFromPool2 =
+        isUserStore ? userPool2.iterator().next() : metaPool2.iterator().next();
+    final Fate.FateOperation fateOpFromPool3 =
+        isUserStore ? userPool3.iterator().next() : metaPool3.iterator().next();
+    final Fate.FateOperation fateOpFromPool4 =
+        isUserStore ? userPool4.iterator().next() : metaPool4.iterator().next();
+
+    final Set<Fate.FateOperation> pool1 = isUserStore ? userPool1 : metaPool1;
+    final Set<Fate.FateOperation> pool2 = isUserStore ? userPool2 : metaPool2;
+    final Set<Fate.FateOperation> pool3 = isUserStore ? userPool3 : metaPool3;
+    final Set<Fate.FateOperation> pool4 = isUserStore ? userPool4 : metaPool4;
+
+    boolean allAssertsOccurred = false;
+    final var env = new PoolResizeTestEnv();
+    final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
+
+    try {
+      // seeding pool1/FateExecutor1
+      for (int i = 0; i < numSeedPool1; i++) {
+        fate.seedTransaction(fateOpFromPool1, fate.startTransaction(), new PoolResizeTestRepo(),
+            true, "testing");
+      }
+      // seeding pool2/FateExecutor2
+      for (int i = 0; i < numSeedPool2; i++) {
+        fate.seedTransaction(fateOpFromPool2, fate.startTransaction(), new PoolResizeTestRepo(),
+            true, "testing");
+      }
+      // seeding pool3/FateExecutor3
+      for (int i = 0; i < numSeedPool3; i++) {
+        fate.seedTransaction(fateOpFromPool3, fate.startTransaction(), new PoolResizeTestRepo(),
+            true, "testing");
+      }
+      // seeding pool4/FateExecutor4
+      for (int i = 0; i < numSeedPool4; i++) {
+        fate.seedTransaction(fateOpFromPool4, fate.startTransaction(), new PoolResizeTestRepo(),
+            true, "testing");
+      }
+
+      Wait.waitFor(() -> env.numWorkers.get()
+          == Math.min(numThreadsPool1, numSeedPool1) + Math.min(numThreadsPool2, numSeedPool2)
+              + Math.min(numThreadsPool3, numSeedPool3) + Math.min(numThreadsPool4, numSeedPool4));
+      // wait for all transaction runners to be active
+      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
+          == numThreadsPool1 + numThreadsPool2 + numThreadsPool3 + numThreadsPool4);
+      assertEquals(numThreadsPool1, fate.getTxRunnersActive(pool1));
+      assertEquals(numThreadsPool2, fate.getTxRunnersActive(pool2));
+      assertEquals(numThreadsPool3, fate.getTxRunnersActive(pool3));
+      assertEquals(numThreadsPool4, fate.getTxRunnersActive(pool4));
+
+      // wait a bit longer to ensure another iteration of the pool watcher check doesn't change
+      // anything
+      Thread.sleep(fate.getPoolWatcherDelay().toMillis() + 1_000);
+
+      assertEquals(env.numWorkers.get(),
+          Math.min(numThreadsPool1, numSeedPool1) + Math.min(numThreadsPool2, numSeedPool2)
+              + Math.min(numThreadsPool3, numSeedPool3) + Math.min(numThreadsPool4, numSeedPool4));
+      assertEquals(fate.getTotalTxRunnersActive(),
+          numThreadsPool1 + numThreadsPool2 + numThreadsPool3 + numThreadsPool4);
+      assertEquals(numThreadsPool1, fate.getTxRunnersActive(pool1));
+      assertEquals(numThreadsPool2, fate.getTxRunnersActive(pool2));
+      assertEquals(numThreadsPool3, fate.getTxRunnersActive(pool3));
+      assertEquals(numThreadsPool4, fate.getTxRunnersActive(pool4));
+
+      // can finish work now
+      env.isReadyLatch.countDown();
+      Wait.waitFor(() -> env.numWorkers.get() == 0);
+      allAssertsOccurred = true;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
       assertTrue(allAssertsOccurred);

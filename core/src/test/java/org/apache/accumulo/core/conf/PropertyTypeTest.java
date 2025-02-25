@@ -228,12 +228,8 @@ public class PropertyTypeTest extends WithTestNames {
         allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
     var validPool2Ops =
         allUserFateOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
-    var invalidPool1Ops =
-        allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
-    var invalidPool2Ops = allUserFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
-        .collect(Collectors.joining(","));
     // should be valid: one pool for all ops, order should not matter, all ops split across
-    // multiple pools
+    // multiple pools (note validated in the same order as described here)
     valid(
         "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
             + "\": 10}",
@@ -241,7 +237,11 @@ public class PropertyTypeTest extends WithTestNames {
         "{\"" + validPool1Ops + "\": 2, \"" + validPool2Ops + "\": 3}");
     // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
     // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
-    // FateOperation
+    // FateOperation (note validated in the same order as described here)
+    var invalidPool1Ops =
+        allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops = allUserFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
+        .collect(Collectors.joining(","));
     invalid("", null, "{\"" + invalidPool1Ops + "\": 2, \"" + invalidPool2Ops + "\": 3}",
         "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 0}",
         "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
@@ -265,20 +265,21 @@ public class PropertyTypeTest extends WithTestNames {
         allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
     var validPool2Ops =
         allMetaFateOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
-    var invalidPool1Ops =
-        allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
-    var invalidPool2Ops = allMetaFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
-        .collect(Collectors.joining(","));
     // should be valid: one pool for all ops, order should not matter, all ops split across
-    // multiple pools
+    // multiple pools (note validated in the same order as described here)
     valid(
         "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
             + "\": 10}",
         "{\"" + validPool2Ops + "," + validPool1Ops + "\": 10}",
         "{\"" + validPool1Ops + "\": 2, \"" + validPool2Ops + "\": 3}");
+
+    var invalidPool1Ops =
+        allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops = allMetaFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
+        .collect(Collectors.joining(","));
     // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
     // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
-    // FateOperation
+    // FateOperation (note validated in the same order as described here)
     invalid("", null, "{\"" + invalidPool1Ops + "\": 2, \"" + invalidPool2Ops + "\": 3}",
         "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 0}",
         "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))

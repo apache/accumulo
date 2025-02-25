@@ -436,24 +436,28 @@ public enum Property {
           + " This is no longer used in 4.0+. MANAGER_FATE_USER_CONFIG and"
           + " MANAGER_FATE_META_CONFIG are the replacement and must be set instead.",
       "1.4.3"),
-  MANAGER_FATE_USER_CONFIG("manager.fate.user.config", "{"
-      + "\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER\": 1,"
-      + "\"TABLE_BULK_IMPORT2\": 2,"
-      + "\"TABLE_COMPACT,TABLE_CANCEL_COMPACT,COMMIT_COMPACTION\": 4,"
-      + "\"TABLE_MERGE,TABLE_DELETE_RANGE,TABLE_SPLIT,SYSTEM_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT\": 2"
-      + "}", PropertyType.FATE_USER_CONFIG,
-      "The number of threads used to run user-initiated fault-tolerant "
-          + "executions (FATE). These are primarily table operations like merge. Each key/value "
+  MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
+      "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+          + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
+          + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT\": 4,"
+          + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
+      PropertyType.FATE_USER_CONFIG,
+      "The number of threads used to run fault-tolerant executions (FATE) on user"
+          + "tables. These are primarily table operations like merge. Each key/value "
           + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
           + "more FATE operations and each value is the number of threads that will be assigned "
           + "to the pool.",
       "4.0.0"),
   MANAGER_FATE_META_CONFIG("manager.fate.meta.config",
-      "{\"TABLE_COMPACT,TABLE_CANCEL_COMPACT,COMMIT_COMPACTION\": 4,"
-          + "\"TABLE_MERGE,TABLE_DELETE_RANGE,TABLE_SPLIT,SYSTEM_SPLIT\": 2}",
+      "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+          + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
+          + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT\": 4,"
+          + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
       PropertyType.FATE_META_CONFIG,
-      "The number of threads used to run system-initiated fault-tolerant "
-          + "executions (FATE). These are primarily table operations like merge. Each key/value "
+      "The number of threads used to run fault-tolerant executions (FATE) on Accumulo"
+          + "system tables. These are primarily table operations like merge. Each key/value "
           + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
           + "more FATE operations and each value is the number of threads that will be assigned "
           + "to the pool.",
