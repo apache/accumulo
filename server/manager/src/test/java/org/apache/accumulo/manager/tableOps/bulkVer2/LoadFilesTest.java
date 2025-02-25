@@ -42,6 +42,7 @@ import org.apache.accumulo.manager.tableOps.bulkVer2.LoadFiles.TabletsMetadataFa
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class LoadFilesTest {
@@ -94,31 +95,51 @@ public class LoadFilesTest {
 
   }
 
-  @Test
-  public void testFindOverlappingFiles() {
+  private TableId tid = TableId.of("1");
+  private List<TabletMetadata> tm = new ArrayList<>();
 
-    TableId tid = TableId.of("1a");
-    List<TabletMetadata> tm = new ArrayList<>();
+  @BeforeEach
+  public void setup() {
+    tm.clear();
     tm.add(TabletMetadata.create(tid.canonical(), null, "a"));
-    for (int i = 97; i < 122; i++) {
+    for (int i = 'a'; i < 'z'; i++) {
       tm.add(TabletMetadata.create(tid.canonical(), "" + (char) (i), "" + (char) (i + 1)));
     }
     tm.add(TabletMetadata.create(tid.canonical(), "z", null));
+  }
+
+  @Test
+  public void testFindOverlappingFiles() {
 
     String fmtTid = FateTxId.formatTid(1234L);
-    List<TabletMetadata> tablets = LoadFiles.findOverlappingTablets(fmtTid,
-        new KeyExtent(tid, new Text("c"), null), tm.iterator());
+    var iter = tm.iterator();
+    List<TabletMetadata> tablets =
+        LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, new Text("c"), null), iter);
+    assertEquals(tm.get(3), iter.next());
     assertEquals(3, tablets.size());
     assertEquals(tm.get(0), tablets.get(0));
     assertEquals(tm.get(1), tablets.get(1));
     assertEquals(tm.get(2), tablets.get(2));
 
-    tablets = LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, new Text("x")),
-        tm.iterator());
+    iter = tm.iterator();
+    tablets = LoadFiles.findOverlappingTablets(fmtTid,
+        new KeyExtent(tid, new Text("o"), new Text("j")), iter);
+    assertEquals(tm.get(tm.size() - 12), iter.next());
+    assertEquals(5, tablets.size());
+    assertEquals(tm.get(tm.size() - 17), tablets.get(tablets.size() - 5));
+    assertEquals(tm.get(tm.size() - 16), tablets.get(tablets.size() - 4));
+    assertEquals(tm.get(tm.size() - 15), tablets.get(tablets.size() - 3));
+    assertEquals(tm.get(tm.size() - 14), tablets.get(tablets.size() - 2));
+    assertEquals(tm.get(tm.size() - 13), tablets.get(tablets.size() - 1));
+
+    iter = tm.iterator();
+    tablets =
+        LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, new Text("x")), iter);
     assertEquals(3, tablets.size());
     assertEquals(tm.get(tm.size() - 3), tablets.get(tablets.size() - 3));
     assertEquals(tm.get(tm.size() - 2), tablets.get(tablets.size() - 2));
     assertEquals(tm.get(tm.size() - 1), tablets.get(tablets.size() - 1));
+    assertTrue(!iter.hasNext());
 
     tablets =
         LoadFiles.findOverlappingTablets(fmtTid, new KeyExtent(tid, null, null), tm.iterator());
@@ -126,44 +147,14 @@ public class LoadFilesTest {
 
   }
 
-  @Test
-  public void testLoadFiles() throws Exception {
-
-    TableId tid = TableId.of("1");
-    List<TabletMetadata> tm = new ArrayList<>();
-    tm.add(TabletMetadata.create(tid.canonical(), null, "a"));
-    for (int i = 97; i < 122; i++) {
-      tm.add(TabletMetadata.create(tid.canonical(), "" + (char) (i), "" + (char) (i + 1)));
-    }
-    tm.add(TabletMetadata.create(tid.canonical(), "z", null));
+  private Map<String,HashSet<KeyExtent>> runLoadFilesLoad(Map<KeyExtent,String> loadRanges)
+      throws Exception {
 
     TabletsMetadata tabletMeta = new TestTabletsMetadata(null, tm);
-
-    Map<KeyExtent,String> loadRanges = new HashMap<>();
-    loadRanges.put(nke(null, "c"), "f1 f2");
-    loadRanges.put(nke("c", "g"), "f2 f3");
-    loadRanges.put(nke("g", "l"), "f2 f4");
-    loadRanges.put(nke("l", "n"), "f1 f2 f4 f5");
-    loadRanges.put(nke("n", "r"), "f2 f4");
-    loadRanges.put(nke("r", "w"), "f2 f5");
-    loadRanges.put(nke("w", null), "f2 f6");
     LoadMappingIterator lmi = PrepBulkImportTest.createLoadMappingIter(loadRanges);
-
     CaptureLoader cl = new CaptureLoader();
     BulkInfo info = new BulkInfo();
-    TabletsMetadataFactory tmf = new TabletsMetadataFactory() {
-
-      @Override
-      public TabletsMetadata newTabletsMetadata(Text startRow) {
-        return tabletMeta;
-      }
-
-      @Override
-      public void close() {
-        tabletMeta.close();
-      }
-
-    };
+    TabletsMetadataFactory tmf = (startRow) -> tabletMeta;
     long txid = 1234L;
 
     Manager manager = EasyMock.createMock(Manager.class);
@@ -172,7 +163,6 @@ public class LoadFilesTest {
 
     LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, manager, txid);
     EasyMock.verify(manager, bulkDir);
-
     List<CaptureLoader.LoadResult> results = cl.getLoadResults();
     assertEquals(loadRanges.size(), results.size());
 
@@ -184,6 +174,78 @@ public class LoadFilesTest {
         result.getTablets().forEach(m -> extents.add(m.getExtent()));
       }
     }
+    return loadFileToExtentMap;
+  }
+
+  @Test
+  public void testLoadFilesPartialTable() throws Exception {
+    Map<KeyExtent,String> loadRanges = new HashMap<>();
+    loadRanges.put(nke("c", "g"), "f2 f3");
+    loadRanges.put(nke("l", "n"), "f1 f2 f4 f5");
+    loadRanges.put(nke("r", "w"), "f2 f5");
+
+    Map<String,HashSet<KeyExtent>> loadFileToExtentMap = runLoadFilesLoad(loadRanges);
+    assertEquals(5, loadFileToExtentMap.size());
+
+    HashSet<KeyExtent> extents = loadFileToExtentMap.get("f1");
+    assertNotNull(extents);
+    assertEquals(2, extents.size());
+    assertTrue(extents.contains(nke("l", "m")));
+    assertTrue(extents.contains(nke("m", "n")));
+
+    extents = loadFileToExtentMap.get("f2");
+    assertEquals(11, extents.size());
+    assertTrue(extents.contains(nke("c", "d")));
+    assertTrue(extents.contains(nke("d", "e")));
+    assertTrue(extents.contains(nke("e", "f")));
+    assertTrue(extents.contains(nke("f", "g")));
+    assertTrue(extents.contains(nke("l", "m")));
+    assertTrue(extents.contains(nke("m", "n")));
+    assertTrue(extents.contains(nke("r", "s")));
+    assertTrue(extents.contains(nke("s", "t")));
+    assertTrue(extents.contains(nke("t", "u")));
+    assertTrue(extents.contains(nke("u", "v")));
+    assertTrue(extents.contains(nke("v", "w")));
+
+    extents = loadFileToExtentMap.get("f3");
+    assertEquals(4, extents.size());
+    assertTrue(extents.contains(nke("c", "d")));
+    assertTrue(extents.contains(nke("d", "e")));
+    assertTrue(extents.contains(nke("e", "f")));
+    assertTrue(extents.contains(nke("f", "g")));
+
+    extents = loadFileToExtentMap.get("f4");
+    assertEquals(2, extents.size());
+    assertTrue(extents.contains(nke("l", "m")));
+    assertTrue(extents.contains(nke("m", "n")));
+
+    extents = loadFileToExtentMap.get("f5");
+    assertEquals(7, extents.size());
+    assertTrue(extents.contains(nke("l", "m")));
+    assertTrue(extents.contains(nke("m", "n")));
+    assertTrue(extents.contains(nke("r", "s")));
+    assertTrue(extents.contains(nke("s", "t")));
+    assertTrue(extents.contains(nke("t", "u")));
+    assertTrue(extents.contains(nke("u", "v")));
+    assertTrue(extents.contains(nke("v", "w")));
+
+  }
+
+  @Test
+  public void testLoadFilesEntireTable() throws Exception {
+
+    Map<KeyExtent,String> loadRanges = new HashMap<>();
+    loadRanges.put(nke(null, "c"), "f1 f2");
+    loadRanges.put(nke("c", "g"), "f2 f3");
+    loadRanges.put(nke("g", "l"), "f2 f4");
+    loadRanges.put(nke("l", "n"), "f1 f2 f4 f5");
+    loadRanges.put(nke("n", "r"), "f2 f4");
+    loadRanges.put(nke("r", "w"), "f2 f5");
+    loadRanges.put(nke("w", null), "f2 f6");
+
+    Map<String,HashSet<KeyExtent>> loadFileToExtentMap = runLoadFilesLoad(loadRanges);
+    assertEquals(6, loadFileToExtentMap.size());
+
     HashSet<KeyExtent> extents = loadFileToExtentMap.get("f1");
     assertNotNull(extents);
     assertEquals(5, extents.size());

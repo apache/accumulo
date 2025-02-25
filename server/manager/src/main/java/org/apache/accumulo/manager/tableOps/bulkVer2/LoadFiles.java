@@ -84,7 +84,6 @@ class LoadFiles extends ManagerRepo {
 
     TabletsMetadata newTabletsMetadata(Text startRow);
 
-    void close();
   }
 
   private static final long serialVersionUID = 1L;
@@ -117,24 +116,9 @@ class LoadFiles extends ManagerRepo {
         loader = new OfflineLoader();
       }
 
-      TabletsMetadataFactory tmf = new TabletsMetadataFactory() {
-        TabletsMetadata tm = null;
-
-        @Override
-        public TabletsMetadata newTabletsMetadata(Text startRow) {
-          tm = TabletsMetadata.builder(manager.getContext()).forTable(bulkInfo.tableId)
-              .overlapping(startRow, null).checkConsistency().fetch(PREV_ROW, LOCATION, LOADED)
-              .build();
-          return tm;
-        }
-
-        @Override
-        public void close() {
-          if (tm != null) {
-            tm.close();
-          }
-        }
-      };
+      TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(manager.getContext())
+          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
+          .fetch(PREV_ROW, LOCATION, LOADED).build();
 
       return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, tid);
     }
