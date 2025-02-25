@@ -44,6 +44,7 @@ import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.EventCoordinator;
+import org.apache.accumulo.manager.upgrade.UpgradeProgressTracker.ComponentVersions;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -173,13 +174,22 @@ public class UpgradeCoordinator {
       if (currentVersion < AccumuloDataVersion.get()) {
         abortIfFateTransactions(context);
 
+        final ComponentVersions tracker = UpgradeProgressTracker.get(context);
+
         for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
+          if (tracker.getZooKeeperVersion() >= currentVersion) {
+            log.info(
+                "ZooKeeper has already been upgraded to version {}, moving on to next upgrader",
+                currentVersion);
+            continue;
+          }
           log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
               AccumuloDataVersion.get());
           var upgrader = upgraders.get(v);
           Objects.requireNonNull(upgrader,
               "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
           upgrader.upgradeZookeeper(context);
+          tracker.updateZooKeeperVersion(context, v);
         }
       }
 
@@ -205,17 +215,31 @@ public class UpgradeCoordinator {
           .numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {
+              ComponentVersions tracker = UpgradeProgressTracker.get(context);
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
+                if (tracker.getRootVersion() >= currentVersion) {
+                  log.info(
+                      "Root table has already been upgraded to version {}, moving on to next upgrader",
+                      currentVersion);
+                  continue;
+                }
                 log.info("Upgrading Root - current version {} as step towards target version {}", v,
                     AccumuloDataVersion.get());
                 var upgrader = upgraders.get(v);
                 Objects.requireNonNull(upgrader,
                     "upgrade root: failed to find root upgrader for version " + currentVersion);
                 upgraders.get(v).upgradeRoot(context);
+                tracker.updateRootVersion(context, v);
               }
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
               for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
+                if (tracker.getMetadataVersion() >= currentVersion) {
+                  log.info(
+                      "Metadata table has already been upgraded to version {}, moving on to next upgrader",
+                      currentVersion);
+                  continue;
+                }
                 log.info(
                     "Upgrading Metadata - current version {} as step towards target version {}", v,
                     AccumuloDataVersion.get());
@@ -223,6 +247,7 @@ public class UpgradeCoordinator {
                 Objects.requireNonNull(upgrader,
                     "upgrade metadata: failed to find upgrader for version " + currentVersion);
                 upgraders.get(v).upgradeMetadata(context);
+                tracker.updateMetadataVersion(context, v);
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 
@@ -234,6 +259,7 @@ public class UpgradeCoordinator {
                   currentVersion);
               log.info("Upgrade complete");
               setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
+              UpgradeProgressTracker.upgradeComplete(context);
             } catch (Exception e) {
               handleFailure(e);
             }
