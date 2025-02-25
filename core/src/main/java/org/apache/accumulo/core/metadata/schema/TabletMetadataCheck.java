@@ -20,7 +20,11 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.Objects;
 import java.util.Set;
+
+import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 
 /**
  * This interface facilitates atomic checks of tablet metadata prior to updating tablet metadata.
@@ -43,15 +47,37 @@ import java.util.Set;
 public interface TabletMetadataCheck {
 
   Set<TabletMetadata.ColumnType> ALL_COLUMNS =
-      Collections.unmodifiableSet(EnumSet.noneOf(TabletMetadata.ColumnType.class));
+      Collections.unmodifiableSet(EnumSet.allOf(TabletMetadata.ColumnType.class));
+
+  ResolvedColumns ALL_RESOLVED_COLUMNS = new ResolvedColumns(ALL_COLUMNS);
 
   boolean canUpdate(TabletMetadata tabletMetadata);
 
   /**
-   * Determines what tablet metadata columns are read on the server side. Return the empty set to
-   * read all tablet metadata columns.
+   * Determines what tablet metadata columns/families are read on the server side. Return
+   * {@link #ALL_RESOLVED_COLUMNS} to read all of a tablets metadata. If all columns are included,
+   * the families set will be empty which means read all families.
    */
-  default Set<TabletMetadata.ColumnType> columnsToRead() {
-    return ALL_COLUMNS;
+  default ResolvedColumns columnsToRead() {
+    return ALL_RESOLVED_COLUMNS;
   }
+
+  class ResolvedColumns {
+    private final Set<TabletMetadata.ColumnType> columns;
+    private final Set<ByteSequence> families;
+
+    public ResolvedColumns(Set<ColumnType> columns) {
+      this.columns = Objects.requireNonNull(columns);
+      this.families = columns.equals(ALL_COLUMNS) ? Set.of() : ColumnType.resolveFamilies(columns);
+    }
+
+    public EnumSet<ColumnType> getColumns() {
+      return EnumSet.copyOf(columns);
+    }
+
+    public Set<ByteSequence> getFamilies() {
+      return families;
+    }
+  }
+
 }

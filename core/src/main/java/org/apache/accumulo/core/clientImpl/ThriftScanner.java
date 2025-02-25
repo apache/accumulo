@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -254,6 +255,8 @@ public class ThriftScanner {
     int tabletsScanned;
 
     KeyExtent prevExtent = null;
+
+    volatile boolean closeInitiated = false;
 
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
@@ -768,8 +771,13 @@ public class ThriftScanner {
           if (addr.serverType == ServerType.TSERVER) {
             // only tsever locations are in cache, invalidating a scan server would not find
             // anything the cache
-            ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
-                addr.serverAddress);
+            boolean wasInterruptedAfterClose =
+                e.getCause() != null && e.getCause().getClass().equals(InterruptedIOException.class)
+                    && scanState.closeInitiated;
+            if (!wasInterruptedAfterClose) {
+              ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
+                  addr.serverAddress);
+            }
           }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
               + " " + addr.serverAddress;

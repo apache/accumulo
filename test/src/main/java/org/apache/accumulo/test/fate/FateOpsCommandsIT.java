@@ -466,7 +466,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       // Validate transaction name and transaction step from summary command
 
       for (FateTxnDetails d : report.getFateDetails()) {
-        assertEquals("TABLE_COMPACT", d.getTxName());
+        assertEquals("TABLE_COMPACT", d.getFateOp());
         assertEquals("CompactionDriver", d.getStep());
         fateIdsStarted.add(d.getFateId());
       }
@@ -743,7 +743,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
             ReadOnlyFateStore.TStatus.NEW));
     // None of them should have a name since none of them were seeded with work
-    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTxName)
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateOp)
         .collect(Collectors.toList()), Arrays.asList(null, null, null));
     // None of them should have a Repo since none of them were seeded with work
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
@@ -837,7 +837,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertTrue(fateIdsStarted.contains(d.getFateId()));
       assertEquals("NEW", d.getStatus());
       assertEquals("?", d.getStep());
-      assertEquals("?", d.getTxName());
+      assertEquals("?", d.getFateOp());
       assertNotEquals(0, d.getRunning());
       assertEquals("[]", d.getLocksHeld().toString());
       assertEquals("[]", d.getLocksWaiting().toString());

@@ -19,6 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.metrics.Metric.SERVER_IDLE;
+import static org.apache.accumulo.core.metrics.MetricsInfo.PROCESS_NAME_TAG_KEY;
+import static org.apache.accumulo.core.metrics.MetricsInfo.RESOURCE_GROUP_TAG_KEY;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
@@ -40,6 +42,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.security.Authorizations;
@@ -152,16 +155,17 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       List<String> statsDMetrics = sink.getLines();
       statsDMetrics.stream().filter(line -> line.startsWith(SERVER_IDLE.getName())).peek(log::info)
           .map(TestStatsDSink::parseStatsDMetric)
-          .filter(a -> a.getTags().get("resource.group").equals(IDLE_RESOURCE_GROUP)).forEach(a -> {
-            String processName = a.getTags().get("process.name");
+          .filter(a -> a.getTags().get(RESOURCE_GROUP_TAG_KEY).equals(IDLE_RESOURCE_GROUP))
+          .forEach(a -> {
+            String processName = a.getTags().get(PROCESS_NAME_TAG_KEY);
             int value = Integer.parseInt(a.getValue());
             assertTrue(value == 0 || value == 1 || value == -1, "Unexpected value " + value);
             // check that the idle metric was emitted for each
-            if ("tserver".equals(processName) && value == 1) {
+            if (ServerId.Type.TABLET_SERVER.name().equals(processName) && value == 1) {
               sawTServer.set(true);
-            } else if ("sserver".equals(processName) && value == 1) {
+            } else if (ServerId.Type.SCAN_SERVER.name().equals(processName) && value == 1) {
               sawSServer.set(true);
-            } else if ("compactor".equals(processName) && value == 1) {
+            } else if (ServerId.Type.COMPACTOR.name().equals(processName) && value == 1) {
               sawCompactor.set(true);
             }
 
@@ -185,7 +189,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
       Thread.sleep(idleProcessInterval.toMillis());
 
-      final String processName = "compactor";
+      final String processName = ServerId.Type.COMPACTOR.name();
 
       log.info("Waiting for compactor to go idle");
       waitForIdleMetricValueToBe(1, processName);
@@ -227,7 +231,7 @@ public class IdleProcessMetricsIT extends SharedMiniClusterBase {
       // should emit the idle metric after the configured duration of GENERAL_IDLE_PROCESS_INTERVAL
       Thread.sleep(idleProcessInterval.toMillis());
 
-      final String processName = "sserver";
+      final String processName = ServerId.Type.SCAN_SERVER.name();
 
       log.info("Waiting for sserver to go idle");
       waitForIdleMetricValueToBe(1, processName);

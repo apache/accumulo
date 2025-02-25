@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -363,8 +364,18 @@ public class Upgrader12to13 implements Upgrader {
         List<String> children = zr.getChildren(zkRoot + serverPath);
         for (String child : children) {
           if (child.contains(":")) {
-            throw new IllegalStateException("Found server address at " + serverPath + "/" + child
-                + ". Was expecting either a resource group name or nothing. Stop any referenced servers.");
+            String childPath = zkRoot + serverPath + "/" + child;
+            if (zr.getChildren(childPath).isEmpty()) {
+              // child is likely host:port and is an empty directory. Since there
+              // is no lock here, then the server is likely down (or should be).
+              // Remove the entry and move on.
+              context.getZooSession().asReaderWriter().recursiveDelete(childPath,
+                  NodeMissingPolicy.SKIP);
+            } else {
+              throw new IllegalStateException("Found server address at " + serverPath + "/" + child
+                  + " with content in the directory. Was expecting either a nothing, a resource group name or an empty directory."
+                  + " Stop any referenced servers.");
+            }
           }
         }
       } catch (InterruptedException | KeeperException e) {

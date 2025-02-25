@@ -85,7 +85,7 @@ public class Fate<T> {
   private final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
 
   public enum TxInfo {
-    TX_NAME, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
+    FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
   }
 
   public enum FateOperation {
@@ -364,17 +364,17 @@ public class Fate<T> {
     return store.create();
   }
 
-  public void seedTransaction(FateOperation txName, FateKey fateKey, Repo<T> repo,
+  public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
-    store.seedTransaction(txName, fateKey, repo, autoCleanUp);
+    store.seedTransaction(fateOp, fateKey, repo, autoCleanUp);
   }
 
   // start work in the transaction.. it is safe to call this
   // multiple times for a transaction... but it will only seed once
-  public void seedTransaction(FateOperation txName, FateId fateId, Repo<T> repo,
+  public void seedTransaction(FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp, String goalMessage) {
     log.info("Seeding {} {}", fateId, goalMessage);
-    store.seedTransaction(txName, fateId, repo, autoCleanUp);
+    store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
   }
 
   // check on the transaction

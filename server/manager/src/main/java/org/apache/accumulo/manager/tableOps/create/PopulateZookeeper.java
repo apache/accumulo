@@ -55,7 +55,7 @@ class PopulateZookeeper extends ManagerRepo {
     try {
       // write tableName & tableId to zookeeper
       Utils.checkTableNameDoesNotExist(manager.getContext(), tableInfo.getTableName(),
-          tableInfo.getTableId(), TableOperation.CREATE);
+          tableInfo.getNamespaceId(), tableInfo.getTableId(), TableOperation.CREATE);
 
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());

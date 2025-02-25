@@ -530,7 +530,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     assertDoesNotThrow(() -> txStore.push(repo));
     assertDoesNotThrow(() -> txStore.setStatus(ReadOnlyFateStore.TStatus.SUCCESSFUL));
     assertDoesNotThrow(txStore::pop);
-    assertDoesNotThrow(() -> txStore.setTransactionInfo(Fate.TxInfo.TX_NAME, TEST_FATE_OP));
+    assertDoesNotThrow(() -> txStore.setTransactionInfo(Fate.TxInfo.FATE_OP, TEST_FATE_OP));
     assertDoesNotThrow(txStore::delete);
 
     // test that all write ops result in an exception since the tx has been deleted
@@ -538,7 +538,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     assertThrows(Exception.class, () -> txStore.setStatus(ReadOnlyFateStore.TStatus.SUCCESSFUL));
     assertThrows(Exception.class, txStore::pop);
     assertThrows(Exception.class,
-        () -> txStore.setTransactionInfo(Fate.TxInfo.TX_NAME, TEST_FATE_OP));
+        () -> txStore.setTransactionInfo(Fate.TxInfo.FATE_OP, TEST_FATE_OP));
     assertThrows(Exception.class, txStore::delete);
   }
 
