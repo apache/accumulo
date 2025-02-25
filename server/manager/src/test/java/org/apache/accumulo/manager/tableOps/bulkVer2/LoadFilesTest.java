@@ -142,7 +142,9 @@ public class LoadFilesTest {
     Map<KeyExtent,String> loadRanges = new HashMap<>();
     loadRanges.put(nke(null, "c"), "f1 f2");
     loadRanges.put(nke("c", "g"), "f2 f3");
-    loadRanges.put(nke("g", "r"), "f2 f4");
+    loadRanges.put(nke("g", "l"), "f2 f4");
+    loadRanges.put(nke("l", "n"), "f1 f2 f4 f5");
+    loadRanges.put(nke("n", "r"), "f2 f4");
     loadRanges.put(nke("r", "w"), "f2 f5");
     loadRanges.put(nke("w", null), "f2 f6");
     LoadMappingIterator lmi = PrepBulkImportTest.createLoadMappingIter(loadRanges);
@@ -184,10 +186,12 @@ public class LoadFilesTest {
     }
     HashSet<KeyExtent> extents = loadFileToExtentMap.get("f1");
     assertNotNull(extents);
-    assertEquals(3, extents.size());
+    assertEquals(5, extents.size());
     assertTrue(extents.contains(nke(null, "a")));
     assertTrue(extents.contains(nke("a", "b")));
     assertTrue(extents.contains(nke("b", "c")));
+    assertTrue(extents.contains(nke("l", "m")));
+    assertTrue(extents.contains(nke("m", "n")));
 
     extents = loadFileToExtentMap.get("f2");
     assertEquals(tm.size(), extents.size());
@@ -217,7 +221,9 @@ public class LoadFilesTest {
     assertTrue(extents.contains(nke("q", "r")));
 
     extents = loadFileToExtentMap.get("f5");
-    assertEquals(5, extents.size());
+    assertEquals(7, extents.size());
+    assertTrue(extents.contains(nke("l", "m")));
+    assertTrue(extents.contains(nke("m", "n")));
     assertTrue(extents.contains(nke("r", "s")));
     assertTrue(extents.contains(nke("s", "t")));
     assertTrue(extents.contains(nke("t", "u")));
