@@ -40,6 +40,12 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * Many Accumulo plugins are given table IDs as this is what Accumulo uses internally to identify
    * tables. This provides a mapping of table names to table IDs for the purposes of translating
    * and/or enumerating the existing tables.
+   *
+   * <P>
+   * This returns all tables that exists in the system. Each request to balance should limit itself
+   * to {@link TabletBalancer.BalanceParameters#getTablesToBalance()} and not balance everything
+   * returned by this.
+   * </P>
    */
   Map<String,TableId> getTableIdMap();
 

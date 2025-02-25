@@ -1028,6 +1028,23 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       return tserverStatusForLevel;
     }
 
+    private Map<String,TableId> getTablesForLevel(DataLevel dataLevel) {
+      switch (dataLevel) {
+        case ROOT:
+          return Map.of(RootTable.NAME, RootTable.ID);
+        case METADATA:
+          return Map.of(MetadataTable.NAME, MetadataTable.ID);
+        case USER: {
+          Map<String,TableId> userTables = new HashMap<>(getContext().getTableNameToIdMap());
+          userTables.remove(RootTable.NAME);
+          userTables.remove(MetadataTable.NAME);
+          return Collections.unmodifiableMap(userTables);
+        }
+        default:
+          throw new IllegalArgumentException("Unknown data level " + dataLevel);
+      }
+    }
+
     private long balanceTablets() {
 
       final int tabletsNotHosted = notHosted();
@@ -1077,7 +1094,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           }
 
           params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
-              partitionedMigrations.get(dl), dl);
+              partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
           wait = Math.max(tabletBalancer.balance(params), wait);
           migrationsOutForLevel = 0;
           for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
