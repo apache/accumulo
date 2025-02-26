@@ -1063,7 +1063,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
             tserverStatusForBalancerLevel;
         params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
-            migrations.snapshot(dl), dl, getTablesForLevel(dl));
+            migrations.snapshot(dl), dl.name(), getTablesForLevel(dl));
         wait = Math.max(tabletBalancer.balance(params), wait);
         long migrationsOutForLevel = 0;
         for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),

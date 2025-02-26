@@ -42,7 +42,6 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
 import org.apache.accumulo.core.master.thrift.TableInfo;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -179,6 +178,7 @@ public class SimpleLoadBalancerTest {
 
   @Test
   public void testUnevenAssignment() {
+
     for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
       String cString = Character.toString(c);
       TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, cString);
@@ -204,7 +204,7 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER, Map.of()));
+          "USER", Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -247,7 +247,7 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER, Map.of()));
+          "USER", Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }

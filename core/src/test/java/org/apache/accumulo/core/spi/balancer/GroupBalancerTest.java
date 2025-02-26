@@ -40,7 +40,6 @@ import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -108,10 +107,10 @@ public class GroupBalancerTest {
         }
       };
 
-      balance(balancer, maxMigrations, tid, Map.of("1", tid));
+      balance(balancer, maxMigrations, Map.of("1", tid));
     }
 
-    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid,
+    public void balance(TabletBalancer balancer, int maxMigrations,
         Map<String,TableId> tablesToBalance) {
 
       while (true) {
@@ -124,8 +123,8 @@ public class GroupBalancerTest {
               new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
         }
 
-        balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut,
-            DataLevel.of(tid), tablesToBalance));
+        balancer.balance(
+            new BalanceParamsImpl(current, migrations, migrationsOut, "USER", tablesToBalance));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());
