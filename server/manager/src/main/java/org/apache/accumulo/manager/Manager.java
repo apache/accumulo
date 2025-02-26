@@ -1061,6 +1061,18 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
               tabletsNotHosted);
           continue;
         }
+
+        if ((dl == DataLevel.METADATA || dl == DataLevel.USER)
+            && !partitionedMigrations.get(DataLevel.ROOT).isEmpty()) {
+          log.debug("Not balancing {} because {} has migrations", dl, DataLevel.ROOT);
+          continue;
+        }
+
+        if (dl == DataLevel.USER && !partitionedMigrations.get(DataLevel.METADATA).isEmpty()) {
+          log.debug("Not balancing {} because {} has migrations", dl, DataLevel.METADATA);
+          continue;
+        }
+
         // Create a view of the tserver status such that it only contains the tables
         // for this level in the tableMap.
         SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
@@ -1071,44 +1083,26 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
             .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
 
+        log.debug("Balancing for tables at level {}", dl);
+
+        SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
+            tserverStatusForBalancerLevel;
+        params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
+            partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
+        wait = Math.max(tabletBalancer.balance(params), wait);
         long migrationsOutForLevel = 0;
-        int attemptNum = 0;
-        do {
-          log.debug("Balancing for tables at level {}, times-in-loop: {}", dl, ++attemptNum);
-
-          SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
-              tserverStatusForBalancerLevel;
-          if (attemptNum > 1 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA)) {
-            // If we are still migrating then perform a re-check on the tablet
-            // servers to make sure non of them have failed.
-            Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-            tserverStatus = gatherTableInformation(currentServers);
-            // Create a view of the tserver status such that it only contains the tables
-            // for this level in the tableMap.
-            tserverStatusForLevel = createTServerStatusView(dl, tserverStatus);
-            final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel2 =
-                new TreeMap<>();
-            tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel2
-                .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
-            statusForBalancerLevel = tserverStatusForBalancerLevel2;
+        for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
+            params.migrationsOut(), dl)) {
+          final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
+          if (partitionedMigrations.get(dl).contains(ke)) {
+            log.warn("balancer requested migration more than once, skipping {}", m);
+            continue;
           }
+          migrationsOutForLevel++;
+          migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
+          log.debug("migration {}", m);
+        }
 
-          params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
-              partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
-          wait = Math.max(tabletBalancer.balance(params), wait);
-          migrationsOutForLevel = 0;
-          for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
-              params.migrationsOut(), dl)) {
-            final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
-            if (migrations.containsKey(ke)) {
-              log.warn("balancer requested migration more than once, skipping {}", m);
-              continue;
-            }
-            migrationsOutForLevel++;
-            migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
-            log.debug("migration {}", m);
-          }
-        } while (migrationsOutForLevel > 0 && (dl == DataLevel.ROOT || dl == DataLevel.METADATA));
         totalMigrationsOut += migrationsOutForLevel;
 
         // increment this at end of loop to signal complete run w/o any continue
@@ -1134,7 +1128,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         if (m.getTablet() == null) {
           log.error("Balancer gave back a null tablet {}", m);
         } else if (DataLevel.of(m.getTablet().getTable()) != level) {
-          log.trace(
+          log.warn(
               "Balancer wants to move a tablet ({}) outside of the current processing level ({}), "
                   + "ignoring and should be processed at the correct level ({})",
               m.getTablet(), level, DataLevel.of(m.getTablet().getTable()));
