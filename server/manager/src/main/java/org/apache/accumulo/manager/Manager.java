@@ -118,6 +118,7 @@ import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
+import org.apache.accumulo.manager.upgrade.UpgradeProgressTracker;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
@@ -1230,6 +1231,23 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   public void run() {
     final ServerContext context = getContext();
     final String zroot = context.getZooKeeperRoot();
+
+    // The following check will fail if an upgrade is in progress
+    // but the target version is not the current version of the
+    // software.
+    try {
+      if (UpgradeProgressTracker.upgradeInProgress(context)) {
+        try {
+          UpgradeProgressTracker.get(context);
+        } catch (IllegalStateException e) {
+          throw new IllegalStateException(
+              "Unable to start the Manager, upgrade in progress with a different version of software",
+              e);
+        }
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Error checking for an existing upgrade", e);
+    }
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
