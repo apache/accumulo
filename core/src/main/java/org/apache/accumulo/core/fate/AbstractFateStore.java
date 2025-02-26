@@ -165,7 +165,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       EnumSet.of(TStatus.SUBMITTED, TStatus.FAILED_IN_PROGRESS);
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
 
     AtomicLong seen = new AtomicLong(0);
 
@@ -192,7 +192,7 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
               return fateIdStatus.getFateReservation().isEmpty();
             }).forEach(fateIdStatus -> {
               seen.incrementAndGet();
-              idConsumer.accept(fateIdStatus.getFateId());
+              idConsumer.accept(fateIdStatus);
             });
       }
 
