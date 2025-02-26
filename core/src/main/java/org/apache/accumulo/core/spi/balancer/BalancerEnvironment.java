@@ -41,11 +41,10 @@ public interface BalancerEnvironment extends ServiceEnvironment {
    * tables. This provides a mapping of table names to table IDs for the purposes of translating
    * and/or enumerating the existing tables.
    *
-   * <P>
+   * <p>
    * This returns all tables that exists in the system. Each request to balance should limit itself
    * to {@link TabletBalancer.BalanceParameters#getTablesToBalance()} and not balance everything
    * returned by this.
-   * </P>
    */
   Map<String,TableId> getTableIdMap();
 
