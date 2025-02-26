@@ -256,9 +256,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
-      PropUtil.replaceProperties(manager.getContext(),
-          TablePropKey.of(tableId), properties.getVersion(),
-          properties.getProperties());
+      PropUtil.replaceProperties(manager.getContext(), TablePropKey.of(tableId),
+          properties.getVersion(), properties.getProperties());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying table properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());
@@ -480,9 +479,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
-      PropUtil.replaceProperties(manager.getContext(),
-          NamespacePropKey.of(namespaceId), properties.getVersion(),
-          properties.getProperties());
+      PropUtil.replaceProperties(manager.getContext(), NamespacePropKey.of(namespaceId),
+          properties.getVersion(), properties.getProperties());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying namespace properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());
@@ -519,11 +517,11 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (value == null) {
-        PropUtil.removeProperties(manager.getContext(),
-            NamespacePropKey.of(namespaceId), List.of(property));
+        PropUtil.removeProperties(manager.getContext(), NamespacePropKey.of(namespaceId),
+            List.of(property));
       } else {
-        PropUtil.setProperties(manager.getContext(),
-            NamespacePropKey.of(namespaceId), Map.of(property, value));
+        PropUtil.setProperties(manager.getContext(), NamespacePropKey.of(namespaceId),
+            Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
@@ -548,8 +546,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (op == TableOperation.REMOVE_PROPERTY) {
-        PropUtil.removeProperties(manager.getContext(),
-            TablePropKey.of(tableId), List.of(property));
+        PropUtil.removeProperties(manager.getContext(), TablePropKey.of(tableId),
+            List.of(property));
       } else if (op == TableOperation.SET_PROPERTY) {
         if (value == null || value.isEmpty()) {
           value = "";

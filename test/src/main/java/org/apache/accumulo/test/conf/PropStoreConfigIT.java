@@ -257,8 +257,8 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       for (Map.Entry<String,String> nsEntry : client.namespaceOperations().namespaceIdMap()
           .entrySet()) {
         log.debug("Check acl on namespace name: {}, id: {}", nsEntry.getKey(), nsEntry.getValue());
-        var namespaceAcl = zrw.getACL(
-            NamespacePropKey.of(NamespaceId.of(nsEntry.getValue())).getPath());
+        var namespaceAcl =
+            zrw.getACL(NamespacePropKey.of(NamespaceId.of(nsEntry.getValue())).getPath());
         log.debug("namespace permissions: {}", namespaceAcl);
         assertEquals(1, namespaceAcl.size());
         assertFalse(namespaceAcl.get(0).toString().contains("world"));
@@ -266,8 +266,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
         log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
-        var tableAcl =
-            zrw.getACL(TablePropKey.of(TableId.of(tEntry.getValue())).getPath());
+        var tableAcl = zrw.getACL(TablePropKey.of(TableId.of(tEntry.getValue())).getPath());
         log.debug("Received ACLs of: {}", tableAcl);
         assertEquals(1, tableAcl.size());
         assertFalse(tableAcl.get(0).toString().contains("world"));

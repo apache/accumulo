@@ -107,7 +107,8 @@ public class ZKPermHandler implements PermissionHandler {
 
   @Override
   public boolean hasCachedTablePermission(String user, String table, TablePermission permission) {
-    byte[] serializedPerms = zooCache.get(Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table);
+    byte[] serializedPerms =
+        zooCache.get(Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table);
     if (serializedPerms != null) {
       return ZKSecurityTool.convertTablePermissions(serializedPerms).contains(permission);
     }
@@ -198,7 +199,8 @@ public class ZKPermHandler implements PermissionHandler {
   public void grantTablePermission(String user, String table, TablePermission permission)
       throws AccumuloSecurityException {
     Set<TablePermission> tablePerms;
-    byte[] serializedPerms = zooCache.get(Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table);
+    byte[] serializedPerms =
+        zooCache.get(Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table);
     if (serializedPerms != null) {
       tablePerms = ZKSecurityTool.convertTablePermissions(serializedPerms);
     } else {
@@ -238,7 +240,8 @@ public class ZKPermHandler implements PermissionHandler {
       if (namespacePerms.add(permission)) {
         synchronized (zooCache) {
           zooCache.clear(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace);
-          zoo.putPersistentData(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
+          zoo.putPersistentData(
+              Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               ZKSecurityTool.convertNamespacePermissions(namespacePerms),
               NodeExistsPolicy.OVERWRITE);
         }
@@ -284,7 +287,8 @@ public class ZKPermHandler implements PermissionHandler {
   @Override
   public void revokeTablePermission(String user, String table, TablePermission permission)
       throws AccumuloSecurityException {
-    byte[] serializedPerms = zooCache.get(Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table);
+    byte[] serializedPerms =
+        zooCache.get(Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table);
 
     // User had no table permission, nothing to revoke.
     if (serializedPerms == null) {
@@ -329,10 +333,12 @@ public class ZKPermHandler implements PermissionHandler {
       if (namespacePerms.remove(permission)) {
         zooCache.clear();
         if (namespacePerms.isEmpty()) {
-          zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
+          zoo.recursiveDelete(
+              Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               NodeMissingPolicy.SKIP);
         } else {
-          zoo.putPersistentData(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
+          zoo.putPersistentData(
+              Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               ZKSecurityTool.convertNamespacePermissions(namespacePerms),
               NodeExistsPolicy.OVERWRITE);
         }
@@ -371,7 +377,8 @@ public class ZKPermHandler implements PermissionHandler {
       synchronized (zooCache) {
         zooCache.clear();
         for (String user : zooCache.getChildren(Constants.ZUSERS)) {
-          zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
+          zoo.recursiveDelete(
+              Constants.ZUSERS + "/" + user + ZKUserNamespacePerms + "/" + namespace,
               NodeMissingPolicy.SKIP);
         }
       }
@@ -474,8 +481,10 @@ public class ZKPermHandler implements PermissionHandler {
     try {
       synchronized (zooCache) {
         zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserSysPerms, NodeMissingPolicy.SKIP);
-        zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserTablePerms, NodeMissingPolicy.SKIP);
-        zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms, NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserTablePerms,
+            NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserNamespacePerms,
+            NodeMissingPolicy.SKIP);
         zooCache.clear(Constants.ZUSERS + "/" + user);
       }
     } catch (InterruptedException e) {

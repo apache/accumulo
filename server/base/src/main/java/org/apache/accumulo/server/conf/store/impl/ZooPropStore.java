@@ -61,7 +61,6 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * ReadyMonitor and a PropStore watcher allowing them to be mocked. If the optional components are
    * passed as null an internal instance is created.
    *
-   * @param instanceId the instance id
    * @param zk a ZooKeeper client
    * @param monitor a ready monitor. Optional, if null, one is created.
    * @param watcher a watcher. Optional, if null, one is created.
