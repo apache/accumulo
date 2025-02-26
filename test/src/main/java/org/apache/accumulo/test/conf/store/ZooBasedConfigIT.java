@@ -45,8 +45,8 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
@@ -156,7 +156,9 @@ public class ZooBasedConfigIT {
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    ZKUtil.deleteRecursive(zk, "/");
+    zrw.recursiveDelete(Constants.ZCONFIG, NodeMissingPolicy.SKIP);
+    zrw.recursiveDelete(Constants.ZTABLES, NodeMissingPolicy.SKIP);
+    zrw.recursiveDelete(Constants.ZNAMESPACES, NodeMissingPolicy.SKIP);
     verify(context);
   }
 
