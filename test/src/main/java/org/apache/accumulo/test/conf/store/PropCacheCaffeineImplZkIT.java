@@ -30,10 +30,8 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -63,7 +61,6 @@ import org.slf4j.LoggerFactory;
 public class PropCacheCaffeineImplZkIT {
 
   private static final Logger log = LoggerFactory.getLogger(PropCacheCaffeineImplZkIT.class);
-  private static final InstanceId INSTANCE_ID = InstanceId.of(UUID.randomUUID());
 
   private static ZooKeeperTestingServer testZk = null;
   private static ZooReaderWriter zrw;

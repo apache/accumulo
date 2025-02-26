@@ -57,11 +57,9 @@ public class TransactionWatcher {
 
   public static class ZooArbitrator implements Arbitrator {
 
-    private final ServerContext context;
     private final ZooReader rdr;
 
     public ZooArbitrator(ServerContext context) {
-      this.context = context;
       rdr = context.getZooSession().asReader();
     }
 

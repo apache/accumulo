@@ -32,9 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
@@ -45,12 +43,10 @@ import org.junit.jupiter.api.Test;
 
 class PropSnapshotTest {
 
-  private InstanceId instanceId;
   private PropStore propStore;
 
   @BeforeEach
   public void init() {
-    instanceId = InstanceId.of(UUID.randomUUID());
     propStore = createMock(ZooPropStore.class);
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();

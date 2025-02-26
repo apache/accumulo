@@ -73,7 +73,6 @@ public class TableManager {
       String namespace, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
     final PropStore propStore = context.getPropStore();
-    final InstanceId instanceId = context.getInstanceID();
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     context.getZooSession().asReaderWriter()
         .putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId, new byte[0], existsPolicy);

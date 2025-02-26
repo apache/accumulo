@@ -205,7 +205,6 @@ public class ZooPropEditor implements KeywordExecutable {
   }
 
   private PropStoreKey getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
-    var iid = context.getInstanceID();
 
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {

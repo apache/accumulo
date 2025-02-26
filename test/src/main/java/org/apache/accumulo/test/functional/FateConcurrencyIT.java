@@ -41,7 +41,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ZooStore;
@@ -244,8 +243,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       try {
 
-        InstanceId instanceId = context.getInstanceID();
-
         var zk = context.getZooSession();
         ZooStore<String> zs = new ZooStore<>(Constants.ZFATE, zk);
         var lockPath = ServiceLock.path(Constants.ZTABLE_LOCKS + "/" + tableId);
@@ -334,7 +331,6 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      InstanceId instanceId = context.getInstanceID();
       var zk = context.getZooSession();
       ZooStore<String> zs = new ZooStore<>(Constants.ZFATE, zk);
       var lockPath = ServiceLock.path(Constants.ZTABLE_LOCKS + "/" + tableId);

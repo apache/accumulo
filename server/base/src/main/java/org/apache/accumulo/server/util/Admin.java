@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.fate.FateTxId.parseTidFromUserInput;
 
 import java.io.BufferedWriter;

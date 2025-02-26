@@ -74,7 +74,7 @@ public class RootTabletStateStoreTest {
     @Override
     public TabletMutator mutateTablet(KeyExtent extent) {
       Preconditions.checkArgument(extent.equals(RootTable.EXTENT));
-      return new TabletMutatorBase(null, extent) {
+      return new TabletMutatorBase(extent) {
 
         @Override
         public void mutate() {

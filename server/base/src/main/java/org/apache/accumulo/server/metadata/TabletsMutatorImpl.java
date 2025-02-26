@@ -69,7 +69,7 @@ public class TabletsMutatorImpl implements TabletsMutator {
     if (extent.isRootTablet()) {
       return new RootTabletMutatorImpl(context);
     } else {
-      return new TabletMutatorImpl(context, extent, getWriter(extent.tableId()));
+      return new TabletMutatorImpl(extent, getWriter(extent.tableId()));
     }
   }
 

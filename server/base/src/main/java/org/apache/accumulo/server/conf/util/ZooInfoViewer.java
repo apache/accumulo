@@ -344,7 +344,6 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private Map<String,VersionedProperties> fetchTableProps(final ServerContext context,
       final List<String> tables) {
-    var iid = context.getInstanceID();
     var zooReader = context.getZooSession().asReader();
 
     Set<String> cmdOptTables = new TreeSet<>(tables);

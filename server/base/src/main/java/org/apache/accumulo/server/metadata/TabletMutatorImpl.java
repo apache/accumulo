@@ -21,14 +21,13 @@ package org.apache.accumulo.server.metadata;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.server.ServerContext;
 
 class TabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator {
 
   private final BatchWriter writer;
 
-  TabletMutatorImpl(ServerContext context, KeyExtent extent, BatchWriter batchWriter) {
-    super(context, extent);
+  TabletMutatorImpl(KeyExtent extent, BatchWriter batchWriter) {
+    super(extent);
     this.writer = batchWriter;
   }
 

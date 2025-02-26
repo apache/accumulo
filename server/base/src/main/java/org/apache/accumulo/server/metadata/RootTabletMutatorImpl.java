@@ -71,7 +71,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
   }
 
   RootTabletMutatorImpl(ServerContext context) {
-    super(context, RootTable.EXTENT);
+    super(RootTable.EXTENT);
     this.context = context;
   }
 
