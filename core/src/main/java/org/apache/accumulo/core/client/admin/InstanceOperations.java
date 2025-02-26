@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -357,4 +358,12 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   InstanceId getInstanceId();
+
+  /**
+   * Return the current manager time
+   *
+   * @return current time
+   * @since 4.0.0
+   */
+  Duration getManagerTime() throws AccumuloException, AccumuloSecurityException;
 }

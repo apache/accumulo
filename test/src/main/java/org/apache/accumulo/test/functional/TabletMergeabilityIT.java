@@ -1,0 +1,219 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+package org.apache.accumulo.test.functional;
+
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.countTablets;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.TestIngest;
+import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+
+public class TabletMergeabilityIT extends SharedMiniClusterBase {
+
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(5);
+  }
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(new Callback());
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  private static class Callback implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      // Configure a short period of time to run the auto merge thread for testing
+      cfg.setProperty(Property.MANAGER_TABLET_MERGEABILITY_INTERVAL, "3s");
+    }
+  }
+
+  @Test
+  public void testMergeabilityAll() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(tableName);
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(String.format("%09d", 333)));
+      splits.add(new Text(String.format("%09d", 666)));
+      splits.add(new Text(String.format("%09d", 999)));
+
+      // create splits with mergeabilty disabled so the task does not merge them away
+      // The default tablet is always mergeable, but it is currently the only one that is mergeable,
+      // so nothing will merge
+      c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.userDefaultSplits(splits));
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true) == 4,
+          5000, 200);
+
+      // update to always mergeable so the task can now merge tablets
+      c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.systemDefaultSplits(splits));
+
+      // Wait for merge, we should have one tablet
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+
+    }
+  }
+
+  @Test
+  public void testMergeabilityMultipleRanges() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(tableName);
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+      splits.put(new Text(String.format("%09d", 333)), TabletMergeability.never());
+      splits.put(new Text(String.format("%09d", 555)), TabletMergeability.never());
+      splits.put(new Text(String.format("%09d", 666)), TabletMergeability.never());
+      splits.put(new Text(String.format("%09d", 999)), TabletMergeability.never());
+
+      c.tableOperations().putSplits(tableName, splits);
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true) == 5,
+          5000, 500);
+
+      splits.put(new Text(String.format("%09d", 333)), TabletMergeability.always());
+      splits.put(new Text(String.format("%09d", 555)), TabletMergeability.always());
+      // Keep tablet 666 as never, this should cause two fate jobs for merging
+      splits.put(new Text(String.format("%09d", 999)), TabletMergeability.always());
+      c.tableOperations().putSplits(tableName, splits);
+
+      // Wait for merge, we should have 3 tablets
+      // 333 and 555 should be merged into 555
+      // 666
+      // 999 and default merged into default
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, new Text(String.format("%09d", 555)), null),
+              new KeyExtent(tableId, new Text(String.format("%09d", 666)),
+                  new Text(String.format("%09d", 555))),
+              new KeyExtent(tableId, null, new Text(String.format("%09d", 666))))),
+          10000, 200);
+
+    }
+  }
+
+  @Test
+  public void testSplitAndMergeAll() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "32K");
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      // Ingest data so tablet will split
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 50_000);
+      TestIngest.ingest(c, params);
+      VerifyIngest.verifyIngest(c, params);
+
+      // Wait for table to split, should be more than 10 tablets
+      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() > 10, 10000, 200);
+
+      // Delete all the data
+      c.tableOperations().deleteRows(tableName, null, null);
+
+      // Wait for merge back to default tablet
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+    }
+  }
+
+  @Test
+  public void testMergeAfter() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.tableOperations().create(tableName);
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      TreeSet<Text> splits = new TreeSet<>();
+      splits.add(new Text(String.format("%09d", 333)));
+      splits.add(new Text(String.format("%09d", 666)));
+      splits.add(new Text(String.format("%09d", 999)));
+
+      var delay = Duration.ofSeconds(5);
+      var startTime = c.instanceOperations().getManagerTime();
+      c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.splitsWithDefault(splits,
+          TabletMergeability.after(Duration.ofSeconds(5))));
+
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true) == 4,
+          5000, 200);
+
+      // Wait for merge back to default tablet
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+
+      var elapsed = c.instanceOperations().getManagerTime().minus(startTime);
+      assertTrue(elapsed.compareTo(delay) > 0);
+    }
+  }
+
+  private static boolean hasExactTablets(ServerContext ctx, TableId tableId,
+      Set<KeyExtent> expected) {
+    try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
+      // check for exact tablets by counting tablets that match the expected rows and also
+      // making sure the number seen equals exactly expected
+      final var expectedTablets = new HashSet<>(expected);
+      for (TabletMetadata tm : tabletsMetadata) {
+        // make sure every tablet seen is contained in the expected set
+        if (!expectedTablets.remove(tm.getExtent())) {
+          return false;
+        }
+      }
+      // Verify all tablets seen
+      return expectedTablets.isEmpty();
+    }
+  }
+}

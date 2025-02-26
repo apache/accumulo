@@ -57,8 +57,7 @@ public class TableRangeOp extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
 
-    if (AccumuloTable.ROOT.tableId().equals(data.tableId)
-        && MergeInfo.Operation.MERGE.equals(data.op)) {
+    if (AccumuloTable.ROOT.tableId().equals(data.tableId) && data.op.isMergeOp()) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
           AccumuloTable.ROOT.tableName());
     }
