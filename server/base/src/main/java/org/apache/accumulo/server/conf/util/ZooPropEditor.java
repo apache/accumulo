@@ -38,6 +38,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.IdBasedPropStoreKey;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
@@ -88,7 +89,7 @@ public class ZooPropEditor implements KeywordExecutable {
         var context = new ServerContext(siteConfig)) {
       var zrw = zk.asReaderWriter();
 
-      PropStoreKey<?> propKey = getPropKey(context, opts);
+      var propKey = getPropKey(context, opts);
       switch (opts.getCmdMode()) {
         case SET:
           setProperty(context, propKey, opts);
@@ -106,7 +107,7 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private void setProperty(final ServerContext context, final PropStoreKey<?> propKey,
+  private void setProperty(final ServerContext context, final PropStoreKey propKey,
       final Opts opts) {
     LOG.trace("set {}", propKey);
 
@@ -133,11 +134,11 @@ public class ZooPropEditor implements KeywordExecutable {
       }
     } catch (Exception ex) {
       throw new IllegalStateException(
-          "Failed to set property for " + targetName + " (id: " + propKey.getId() + ")", ex);
+          "Failed to set property for " + targetName + " (path: " + propKey.getPath() + ")", ex);
     }
   }
 
-  private void deleteProperty(final ServerContext context, final PropStoreKey<?> propKey,
+  private void deleteProperty(final ServerContext context, final PropStoreKey propKey,
       VersionedProperties versionedProperties, final Opts opts) {
     LOG.trace("delete {} - {}", propKey, opts.deleteOpt);
     String p = opts.deleteOpt.trim();
@@ -155,7 +156,7 @@ public class ZooPropEditor implements KeywordExecutable {
     LOG.info("{}: deleted {}", targetName, p);
   }
 
-  private void printProperties(final ServerContext context, final PropStoreKey<?> propKey,
+  private void printProperties(final ServerContext context, final PropStoreKey propKey,
       final VersionedProperties props) {
     LOG.trace("print {}", propKey);
 
@@ -180,7 +181,8 @@ public class ZooPropEditor implements KeywordExecutable {
       writer.printf(": Property scope: %s\n", scope);
       writer.printf(": ZooKeeper path: %s\n", propKey.getPath());
       writer.printf(": Name: %s\n", getDisplayName(propKey, context));
-      writer.printf(": Id: %s\n", propKey.getId());
+      writer.printf(": Id: %s\n", propKey instanceof IdBasedPropStoreKey
+          ? ((IdBasedPropStoreKey<?>) propKey).getId() : "N/A");
       writer.printf(": Data version: %d\n", props.getDataVersion());
       writer.printf(": Timestamp: %s\n", props.getTimestampISO());
 
@@ -194,8 +196,7 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private VersionedProperties readPropNode(final PropStoreKey<?> propKey,
-      final ZooReader zooReader) {
+  private VersionedProperties readPropNode(final PropStoreKey propKey, final ZooReader zooReader) {
     try {
       return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
     } catch (IOException | KeeperException | InterruptedException ex) {
@@ -203,7 +204,7 @@ public class ZooPropEditor implements KeywordExecutable {
     }
   }
 
-  private PropStoreKey<?> getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
+  private PropStoreKey getPropKey(final ServerContext context, final ZooPropEditor.Opts opts) {
     var iid = context.getInstanceID();
 
     // either tid or table name option provided, get the table id
@@ -242,13 +243,15 @@ public class ZooPropEditor implements KeywordExecutable {
             () -> new IllegalArgumentException("Could not find namespace " + opts.namespaceOpt));
   }
 
-  private String getDisplayName(final PropStoreKey<?> propStoreKey, final ServerContext context) {
+  private String getDisplayName(final PropStoreKey propStoreKey, final ServerContext context) {
 
     if (propStoreKey instanceof TablePropKey) {
-      return context.getTableIdToNameMap().getOrDefault(propStoreKey.getId(), "unknown");
+      return context.getTableIdToNameMap().getOrDefault(((TablePropKey) propStoreKey).getId(),
+          "unknown");
     }
     if (propStoreKey instanceof NamespacePropKey) {
-      return context.getNamespaceIdToNameMap().getOrDefault(propStoreKey.getId(), "unknown");
+      return context.getNamespaceIdToNameMap()
+          .getOrDefault(((NamespacePropKey) propStoreKey).getId(), "unknown");
     }
     if (propStoreKey instanceof SystemPropKey) {
       return "system";

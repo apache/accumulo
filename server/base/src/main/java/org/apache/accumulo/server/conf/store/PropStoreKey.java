@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.Constants.ZTABLES;
 import java.util.Comparator;
 import java.util.Objects;
 
-import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.checkerframework.checker.nullness.qual.NonNull;
@@ -34,15 +33,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Provides a strongly-typed id for storing properties in ZooKeeper. The path in ZooKeeper is
- * determined by the instance id and the type (system, namespace and table), with different root
- * paths.
+ * Provides a strongly-typed id for storing properties in ZooKeeper. The provided path is the
+ * canonical String version of this key, because the path is the location in ZooKeeper where this
+ * prop store is stored, so the path is the essential characteristic of the key.
+ *
  * <p>
  * Provides utility methods from constructing different id based on type and methods to parse a
  * ZooKeeper path and return a prop cache id.
  */
-public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
-    implements Comparable<PropStoreKey<ID_TYPE>> {
+public abstract class PropStoreKey implements Comparable<PropStoreKey> {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreKey.class);
 
@@ -58,21 +57,14 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   // expected token length for sys config
   public static final int EXPECTED_SYS_CONFIG_LEN = 2;
 
-  protected final ID_TYPE id;
-
   private final String path;
 
-  protected PropStoreKey(final String path, final ID_TYPE id) {
+  protected PropStoreKey(final String path) {
     this.path = Objects.requireNonNull(path);
-    this.id = id;
   }
 
   public @NonNull String getPath() {
     return path;
-  }
-
-  public @NonNull ID_TYPE getId() {
-    return id;
   }
 
   /**
@@ -81,7 +73,7 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
    * @param path the path
    * @return the prop cache id
    */
-  public static @Nullable PropStoreKey<?> fromPath(final String path) {
+  public static @Nullable PropStoreKey fromPath(final String path) {
     String[] tokens = path.split("/");
 
     if (tokens.length != EXPECTED_CONFIG_LEN && tokens.length != EXPECTED_SYS_CONFIG_LEN) {
@@ -109,8 +101,8 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
   }
 
   @Override
-  public int compareTo(@NonNull PropStoreKey<ID_TYPE> other) {
-    return Comparator.comparing(PropStoreKey<ID_TYPE>::getPath).compare(this, other);
+  public int compareTo(@NonNull PropStoreKey other) {
+    return Comparator.comparing(PropStoreKey::getPath).compare(this, other);
   }
 
   @Override
@@ -121,11 +113,7 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
     if (o == null || getClass() != o.getClass()) {
       return false;
     }
-    PropStoreKey<?> that = (PropStoreKey<?>) o;
-    if (getId().getClass() != that.getId().getClass()) {
-      return false;
-    }
-    return path.equals(that.path);
+    return path.equals(((PropStoreKey) o).path);
   }
 
   @Override
@@ -135,7 +123,6 @@ public abstract class PropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
 
   @Override
   public String toString() {
-    return this.getClass().getSimpleName() + "{" + getId().getClass().getSimpleName() + "="
-        + getId().canonical() + "}";
+    return this.getClass().getSimpleName() + "{path=" + getPath() + "}";
   }
 }

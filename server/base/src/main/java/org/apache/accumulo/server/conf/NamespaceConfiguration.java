@@ -45,7 +45,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
 
     String key = property.getKey();
 
-    var namespaceId = getPropStoreKey().getId();
+    var namespaceId = ((NamespacePropKey) getPropStoreKey()).getId();
     if (namespaceId != null && namespaceId.equals(Namespace.ACCUMULO.id())
         && isIteratorOrConstraint(key)) {
       // ignore iterators from parent if system namespace
@@ -82,7 +82,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
   }
 
   protected NamespaceId getNamespaceId() {
-    NamespaceId id = (NamespaceId) getPropStoreKey().getId();
+    var id = ((NamespacePropKey) getPropStoreKey()).getId();
     if (id == null) {
       throw new IllegalArgumentException(
           "Invalid request for namespace id on " + getPropStoreKey());

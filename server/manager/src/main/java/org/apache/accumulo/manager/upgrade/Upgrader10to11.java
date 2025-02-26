@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -235,7 +234,7 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
-    PropStoreKey<TableId> metaKey = TablePropKey.of(AccumuloTable.METADATA.tableId());
+    var metaKey = TablePropKey.of(AccumuloTable.METADATA.tableId());
     var p = propStore.get(metaKey);
     var props = p.asMap();
     List<String> filtered = filterReplConfigKeys(props.keySet());

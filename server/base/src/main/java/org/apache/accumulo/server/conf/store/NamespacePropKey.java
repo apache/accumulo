@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 
 import org.apache.accumulo.core.data.NamespaceId;
 
-public class NamespacePropKey extends PropStoreKey<NamespaceId> {
+public class NamespacePropKey extends IdBasedPropStoreKey<NamespaceId> {
 
   private NamespacePropKey(final NamespaceId id) {
     super(ZNAMESPACES + "/" + id.canonical() + ZCONFIG, id);

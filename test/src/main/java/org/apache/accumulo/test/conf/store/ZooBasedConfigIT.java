@@ -179,8 +179,7 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    propStore.create(SystemPropKey.of(),
-        Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+    propStore.create(SystemPropKey.of(), Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
     var sysPropKey = SystemPropKey.of();
 
@@ -240,8 +239,7 @@ public class ZooBasedConfigIT {
     // expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
     replay(context);
 
-    propStore.create(SystemPropKey.of(),
-        Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+    propStore.create(SystemPropKey.of(), Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
     var sysPropKey = SystemPropKey.of();
 
@@ -315,19 +313,19 @@ public class ZooBasedConfigIT {
     }
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       log.debug("Received zkChangeEvent for {}", propStoreKey);
       zkChangeCount.incrementAndGet();
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       log.debug("Received cacheChangeEvent for {}", propStoreKey);
       cacheChangeCount.incrementAndGet();
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       log.debug("Received deleteEvent for: {}", propStoreKey);
       deleteCount.incrementAndGet();
     }

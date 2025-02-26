@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import org.apache.accumulo.core.data.TableId;
 
-public class TablePropKey extends PropStoreKey<TableId> {
+public class TablePropKey extends IdBasedPropStoreKey<TableId> {
 
   private TablePropKey(final TableId tableId) {
     super(ZTABLES + "/" + tableId.canonical() + ZCONFIG, tableId);

@@ -109,7 +109,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public boolean exists(final PropStoreKey<?> propStoreKey) {
+  public boolean exists(final PropStoreKey propStoreKey) {
     try {
       if (zrw.exists(propStoreKey.getPath())) {
         return true;
@@ -124,7 +124,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void create(PropStoreKey<?> propStoreKey, Map<String,String> props) {
+  public void create(PropStoreKey propStoreKey, Map<String,String> props) {
 
     try {
       VersionedProperties vProps = new VersionedProperties(props);
@@ -145,7 +145,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @throws IllegalStateException if the updates fails because of an underlying store exception
    */
   @Override
-  public @NonNull VersionedProperties get(final PropStoreKey<?> propStoreKey) {
+  public @NonNull VersionedProperties get(final PropStoreKey propStoreKey) {
     checkZkConnection(); // if ZK not connected, block, do not just return a cached value.
     propStoreWatcher.registerListener(propStoreKey, this);
 
@@ -171,7 +171,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @throws KeeperException if a ZooKeeper exception occurs
    * @throws InterruptedException if the ZooKeeper read was interrupted.
    */
-  public static @Nullable VersionedProperties readFromZk(final PropStoreKey<?> propStoreKey,
+  public static @Nullable VersionedProperties readFromZk(final PropStoreKey propStoreKey,
       final PropStoreWatcher watcher, final ZooReader zooReader)
       throws IOException, KeeperException, InterruptedException {
     try {
@@ -205,7 +205,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    *         exception occurs.
    */
   @Override
-  public void putAll(@NonNull PropStoreKey<?> propStoreKey, @NonNull Map<String,String> props) {
+  public void putAll(@NonNull PropStoreKey propStoreKey, @NonNull Map<String,String> props) {
     if (props.isEmpty()) {
       return; // no props - noop
     }
@@ -213,13 +213,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void replaceAll(@NonNull PropStoreKey<?> propStoreKey, long version,
+  public void replaceAll(@NonNull PropStoreKey propStoreKey, long version,
       @NonNull Map<String,String> props) {
     mutateVersionedProps(propStoreKey, VersionedProperties::replaceAll, version, props);
   }
 
   @Override
-  public void removeProperties(@NonNull PropStoreKey<?> propStoreKey,
+  public void removeProperties(@NonNull PropStoreKey propStoreKey,
       @NonNull Collection<String> keys) {
     if (keys.isEmpty()) {
       return; // no keys - noop.
@@ -228,7 +228,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void delete(@NonNull PropStoreKey<?> propStoreKey) {
+  public void delete(@NonNull PropStoreKey propStoreKey) {
     Objects.requireNonNull(propStoreKey, "prop store delete() - Must provide propCacheId");
     try {
       log.trace("called delete() for: {}", propStoreKey);
@@ -241,7 +241,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
   }
 
-  private <T> void mutateVersionedProps(PropStoreKey<?> propStoreKey,
+  private <T> void mutateVersionedProps(PropStoreKey propStoreKey,
       BiFunction<VersionedProperties,T,VersionedProperties> action, T changes) {
 
     log.trace("mutateVersionedProps called for: {}", propStoreKey);
@@ -279,7 +279,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
   }
 
-  private <T> void mutateVersionedProps(PropStoreKey<?> propStoreKey,
+  private <T> void mutateVersionedProps(PropStoreKey propStoreKey,
       BiFunction<VersionedProperties,T,VersionedProperties> action, long existingVersion,
       T changes) {
 
@@ -328,7 +328,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void registerAsListener(PropStoreKey<?> propStoreKey, PropChangeListener listener) {
+  public void registerAsListener(PropStoreKey propStoreKey, PropChangeListener listener) {
     propStoreWatcher.registerListener(propStoreKey, listener);
   }
 
@@ -345,7 +345,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+  public void zkChangeEvent(PropStoreKey propStoreKey) {
     log.trace("Received change event from ZooKeeper for: {} removed from cache", propStoreKey);
     cache.remove(propStoreKey);
   }
@@ -358,12 +358,12 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param propStoreKey the prop cache id.
    */
   @Override
-  public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+  public void cacheChangeEvent(PropStoreKey propStoreKey) {
     log.trace("zkChangeEvent: {}", propStoreKey);
   }
 
   @Override
-  public void deleteEvent(PropStoreKey<?> propStoreKey) {
+  public void deleteEvent(PropStoreKey propStoreKey) {
     log.trace("deleteEvent: {}", propStoreKey);
     cache.remove(propStoreKey);
   }
@@ -385,7 +385,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @throws IllegalStateException if an interrupt occurs. The interrupt status is reasserted and
    *         usually best to not otherwise try to handle the exception.
    */
-  private VersionedProperties readPropsFromZk(PropStoreKey<?> propStoreKey)
+  private VersionedProperties readPropsFromZk(PropStoreKey propStoreKey)
       throws KeeperException, IOException {
     try {
       Stat stat = new Stat();
@@ -406,12 +406,12 @@ public class ZooPropStore implements PropStore, PropChangeListener {
   }
 
   @Override
-  public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {
+  public @Nullable VersionedProperties getIfCached(PropStoreKey propStoreKey) {
     return cache.getIfCached(propStoreKey);
   }
 
   @Override
-  public boolean validateDataVersion(PropStoreKey<?> storeKey, long expectedVersion) {
+  public boolean validateDataVersion(PropStoreKey storeKey, long expectedVersion) {
     try {
       Stat stat = zrw.getStatus(storeKey.getPath());
       log.trace("data version sync: stat returned: {} for {}", stat, storeKey);

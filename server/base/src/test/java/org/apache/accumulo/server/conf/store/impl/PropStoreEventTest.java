@@ -281,17 +281,17 @@ public class PropStoreEventTest {
     private int connectionEventCount = 0;
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       zkChangeEventCount++;
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       cacheChangeEventCount++;
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       deleteEventCount++;
     }
 

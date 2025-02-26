@@ -146,21 +146,21 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private class ChangeWatcher implements PropChangeListener {
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       clearLocalOnEvent(propStoreKey);
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       clearLocalOnEvent(propStoreKey);
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       clearLocalOnEvent(propStoreKey);
     }
 
-    private void clearLocalOnEvent(PropStoreKey<?> propStoreKey) {
+    private void clearLocalOnEvent(PropStoreKey propStoreKey) {
       // clearing the local secondary cache stored in this class forces a re-read from the prop
       // store
       // to guarantee that the updated vales(s) are re-read on a ZooKeeper change.
@@ -228,7 +228,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.asMap()
           .entrySet()) {
         keyCount++;
-        PropStoreKey<?> propKey = NamespacePropKey.of(entry.getKey());
+        PropStoreKey propKey = NamespacePropKey.of(entry.getKey());
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
           keyChangedCount++;
           namespaceConfigs.invalidate(entry.getKey());
@@ -240,7 +240,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.asMap().entrySet()) {
         keyCount++;
         TableId tid = entry.getKey();
-        PropStoreKey<?> propKey = TablePropKey.of(tid);
+        PropStoreKey propKey = TablePropKey.of(tid);
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
           keyChangedCount++;
           tableConfigs.invalidate(tid);

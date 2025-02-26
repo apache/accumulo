@@ -27,7 +27,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -95,18 +95,16 @@ public class PropStoreKeyTest {
   @Test
   public void fromPathTest() {
     var t1 = PropStoreKey.fromPath(ZTABLES + "/t1" + ZCONFIG);
-    assertNotNull(t1);
-    assertEquals(TableId.of("t1"), t1.getId());
+    assertTrue(t1 instanceof TablePropKey);
+    assertEquals(TableId.of("t1"), ((TablePropKey) t1).getId());
 
     var n1 = PropStoreKey.fromPath(ZNAMESPACES + "/n1" + ZCONFIG);
-    assertNotNull(n1);
-    assertEquals(NamespaceId.of("n1"), n1.getId());
-    assertNotNull(n1.getId());
+    assertTrue(n1 instanceof NamespacePropKey);
+    assertEquals(NamespaceId.of("n1"), ((NamespacePropKey) n1).getId());
 
     var s1 = PropStoreKey.fromPath(ZCONFIG);
-    assertNotNull(s1);
-    // system config returns instance id as id placeholder
-    assertEquals(instanceId, s1.getId());
+    assertFalse(s1 instanceof IdBasedPropStoreKey);
+    assertTrue(s1 instanceof SystemPropKey);
   }
 
   @Test

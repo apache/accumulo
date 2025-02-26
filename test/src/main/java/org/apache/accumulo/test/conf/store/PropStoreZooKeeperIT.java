@@ -129,7 +129,7 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void createNoProps() throws InterruptedException, KeeperException {
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
 
     // read from ZK, after delete no node and node not created.
     assertNull(zk.exists(propKey.getPath(), null));
@@ -368,21 +368,21 @@ public class PropStoreZooKeeperIT {
 
   private static class TestChangeListener implements PropChangeListener {
 
-    private final Map<PropStoreKey<?>,Integer> changeCounts = new ConcurrentHashMap<>();
-    private final Map<PropStoreKey<?>,Integer> deleteCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey,Integer> changeCounts = new ConcurrentHashMap<>();
+    private final Map<PropStoreKey,Integer> deleteCounts = new ConcurrentHashMap<>();
 
     @Override
-    public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void zkChangeEvent(PropStoreKey propStoreKey) {
       changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {
+    public void cacheChangeEvent(PropStoreKey propStoreKey) {
       changeCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
     @Override
-    public void deleteEvent(PropStoreKey<?> propStoreKey) {
+    public void deleteEvent(PropStoreKey propStoreKey) {
       deleteCounts.merge(propStoreKey, 1, Integer::sum);
     }
 
@@ -391,11 +391,11 @@ public class PropStoreZooKeeperIT {
 
     }
 
-    public Map<PropStoreKey<?>,Integer> getChangeCounts() {
+    public Map<PropStoreKey,Integer> getChangeCounts() {
       return changeCounts;
     }
 
-    public Map<PropStoreKey<?>,Integer> getDeleteCounts() {
+    public Map<PropStoreKey,Integer> getDeleteCounts() {
       return deleteCounts;
     }
   }

@@ -20,12 +20,10 @@ package org.apache.accumulo.server.conf.store;
 
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 
-import org.apache.accumulo.core.data.InstanceId;
-
-public class SystemPropKey extends PropStoreKey<InstanceId> {
+public class SystemPropKey extends PropStoreKey {
 
   private SystemPropKey(final String path) {
-    super(path, null);
+    super(path);
   }
 
   public static SystemPropKey of() {
