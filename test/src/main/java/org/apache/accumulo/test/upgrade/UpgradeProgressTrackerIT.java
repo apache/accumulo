@@ -41,7 +41,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.upgrade.UpgradeProgressTracker;
-import org.apache.accumulo.manager.upgrade.UpgradeProgressTracker.ComponentVersions;
+import org.apache.accumulo.manager.upgrade.UpgradeProgressTracker.UpgradeProgress;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
@@ -105,19 +105,20 @@ public class UpgradeProgressTrackerIT {
   @AfterEach
   public void afterTest() throws KeeperException, InterruptedException {
     verify(ctx, sd, vm);
-    zk.asReaderWriter().recursiveDelete(zRoot + Constants.ZUPGRADE_STATUS, NodeMissingPolicy.SKIP);
+    zk.asReaderWriter().recursiveDelete(zRoot + Constants.ZUPGRADE_PROGRESS,
+        NodeMissingPolicy.SKIP);
   }
 
   @Test
   public void testGetInitial() throws KeeperException, InterruptedException {
     expect(sd.getAccumuloPersistentVersion(volume)).andReturn(AccumuloDataVersion.get()).anyTimes();
     replay(ctx, sd, vm);
-    ComponentVersions cv = UpgradeProgressTracker.get(ctx);
+    UpgradeProgress cv = UpgradeProgressTracker.get(ctx);
     assertNotNull(cv);
     assertEquals(AccumuloDataVersion.get(), cv.getZooKeeperVersion());
     assertEquals(AccumuloDataVersion.get(), cv.getRootVersion());
     assertEquals(AccumuloDataVersion.get(), cv.getMetadataVersion());
-    byte[] serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    byte[] serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv).getBytes(UTF_8), serialized);
   }
 
@@ -126,12 +127,12 @@ public class UpgradeProgressTrackerIT {
     expect(sd.getAccumuloPersistentVersion(volume)).andReturn(AccumuloDataVersion.get() - 1)
         .anyTimes();
     replay(ctx, sd, vm);
-    final ComponentVersions cv = UpgradeProgressTracker.get(ctx);
+    final UpgradeProgress cv = UpgradeProgressTracker.get(ctx);
     assertNotNull(cv);
     assertEquals(AccumuloDataVersion.get() - 1, cv.getZooKeeperVersion());
     assertEquals(AccumuloDataVersion.get() - 1, cv.getRootVersion());
     assertEquals(AccumuloDataVersion.get() - 1, cv.getMetadataVersion());
-    byte[] serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    byte[] serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv).getBytes(UTF_8), serialized);
 
     // Test updating out of order
@@ -139,16 +140,16 @@ public class UpgradeProgressTrackerIT {
         () -> cv.updateMetadataVersion(ctx, AccumuloDataVersion.get()));
     assertThrows(IllegalArgumentException.class,
         () -> cv.updateRootVersion(ctx, AccumuloDataVersion.get()));
-    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv).getBytes(UTF_8), serialized);
 
     cv.updateZooKeeperVersion(ctx, AccumuloDataVersion.get());
-    ComponentVersions cv2 = UpgradeProgressTracker.get(ctx);
+    UpgradeProgress cv2 = UpgradeProgressTracker.get(ctx);
     assertNotNull(cv2);
     assertEquals(AccumuloDataVersion.get(), cv2.getZooKeeperVersion());
     assertEquals(AccumuloDataVersion.get() - 1, cv2.getRootVersion());
     assertEquals(AccumuloDataVersion.get() - 1, cv2.getMetadataVersion());
-    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv2).getBytes(UTF_8), serialized);
 
     cv2.updateRootVersion(ctx, AccumuloDataVersion.get());
@@ -157,7 +158,7 @@ public class UpgradeProgressTrackerIT {
     assertEquals(AccumuloDataVersion.get(), cv2.getZooKeeperVersion());
     assertEquals(AccumuloDataVersion.get(), cv2.getRootVersion());
     assertEquals(AccumuloDataVersion.get() - 1, cv2.getMetadataVersion());
-    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv2).getBytes(UTF_8), serialized);
 
     cv2.updateMetadataVersion(ctx, AccumuloDataVersion.get());
@@ -166,7 +167,7 @@ public class UpgradeProgressTrackerIT {
     assertEquals(AccumuloDataVersion.get(), cv2.getZooKeeperVersion());
     assertEquals(AccumuloDataVersion.get(), cv2.getRootVersion());
     assertEquals(AccumuloDataVersion.get(), cv2.getMetadataVersion());
-    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv2).getBytes(UTF_8), serialized);
 
   }
@@ -175,16 +176,16 @@ public class UpgradeProgressTrackerIT {
   public void testCompleteUpgrade() throws KeeperException, InterruptedException {
     expect(sd.getAccumuloPersistentVersion(volume)).andReturn(AccumuloDataVersion.get()).anyTimes();
     replay(ctx, sd, vm);
-    final ComponentVersions cv = UpgradeProgressTracker.get(ctx);
+    final UpgradeProgress cv = UpgradeProgressTracker.get(ctx);
     assertNotNull(cv);
     assertEquals(AccumuloDataVersion.get(), cv.getZooKeeperVersion());
     assertEquals(AccumuloDataVersion.get(), cv.getRootVersion());
     assertEquals(AccumuloDataVersion.get(), cv.getMetadataVersion());
-    byte[] serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_STATUS);
+    byte[] serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(cv).getBytes(UTF_8), serialized);
 
     UpgradeProgressTracker.upgradeComplete(ctx);
-    assertFalse(zk.asReader().exists(zRoot + Constants.ZUPGRADE_STATUS));
+    assertFalse(zk.asReader().exists(zRoot + Constants.ZUPGRADE_PROGRESS));
   }
 
 }
