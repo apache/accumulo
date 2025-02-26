@@ -56,7 +56,7 @@ import com.google.common.collect.Sets;
 
 public class PrepBulkImportTest {
 
-  KeyExtent nke(String prev, String end) {
+  static KeyExtent nke(String prev, String end) {
     Text per = prev == null ? null : new Text(prev);
     Text er = end == null ? null : new Text(end);
 
@@ -135,7 +135,7 @@ public class PrepBulkImportTest {
     }
   }
 
-  private LoadMappingIterator createLoadMappingIter(Map<KeyExtent,String> loadRanges)
+  static LoadMappingIterator createLoadMappingIter(Map<KeyExtent,String> loadRanges)
       throws IOException {
     SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
 
