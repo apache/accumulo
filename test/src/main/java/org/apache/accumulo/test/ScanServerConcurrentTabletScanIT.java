@@ -85,9 +85,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
   private void startScanServer(String cacheExpiration, String cacheRefresh)
       throws IOException, KeeperException, InterruptedException {
 
-    String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
     ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
     SharedMiniClusterBase.getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
 
@@ -96,7 +94,7 @@ public class ScanServerConcurrentTabletScanIT extends SharedMiniClusterBase {
     overrides.put(Property.SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT.getKey(), cacheRefresh);
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER, overrides,
         1);
-    while (zrw.getChildren(scanServerRoot).size() == 0) {
+    while (zrw.getChildren(Constants.ZSSERVERS).size() == 0) {
       Thread.sleep(500);
     }
 

@@ -46,7 +46,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -246,7 +245,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       ZooReaderWriter zrw = serverContext.getZooSession().asReaderWriter();
 
       // validate that a world-readable node has expected perms to validate test method
-      var noAcl = zrw.getACL(ZooUtil.getRoot(serverContext.getInstanceID()));
+      var noAcl = zrw.getACL("/");
       assertTrue(noAcl.size() > 1);
       assertTrue(
           noAcl.get(0).toString().contains("world") || noAcl.get(1).toString().contains("world"));

@@ -31,40 +31,20 @@ import java.util.Collections;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.junit.jupiter.api.Test;
 
 public class AdminTest {
 
   @Test
-  public void testZooKeeperTserverPath() {
-    ClientContext context = createMock(ClientContext.class);
-    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
-
-    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceId));
-
-    replay(context);
-
-    assertEquals(ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS,
-        Admin.getTServersZkPath(context));
-
-    verify(context);
-  }
-
-  @Test
   public void testQualifySessionId() {
     ZooCache zc = createMock(ZooCache.class);
-    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    String root = ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS;
     String server = "localhost:12345";
     final long session = 123456789L;
 
-    String serverPath = root + "/" + server;
+    String serverPath = Constants.ZTSERVERS + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
     expect(zc.getChildren(serverPath))
         .andReturn(Collections.singletonList(validZLockEphemeralNode));
@@ -78,7 +58,7 @@ public class AdminTest {
     replay(zc);
 
     assertEquals(server + "[" + Long.toHexString(session) + "]",
-        Admin.qualifyWithZooKeeperSessionId(root, zc, server));
+        Admin.qualifyWithZooKeeperSessionId(Constants.ZTSERVERS, zc, server));
 
     verify(zc);
   }
@@ -86,18 +66,16 @@ public class AdminTest {
   @Test
   public void testCannotQualifySessionId() {
     ZooCache zc = createMock(ZooCache.class);
-    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    String root = ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS;
     String server = "localhost:12345";
 
-    String serverPath = root + "/" + server;
+    String serverPath = Constants.ZTSERVERS + "/" + server;
     expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
 
     replay(zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original
-    assertEquals(server, Admin.qualifyWithZooKeeperSessionId(root, zc, server));
+    assertEquals(server, Admin.qualifyWithZooKeeperSessionId(Constants.ZTSERVERS, zc, server));
 
     verify(zc);
   }

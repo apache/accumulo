@@ -76,7 +76,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     this.zkReadyMon = requireNonNullElseGet(monitor,
         () -> new ReadyMonitor("prop-store", Math.round(zk.getSessionTimeout() * 1.75)));
 
-    this.propStoreWatcher = requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon));
+    this.propStoreWatcher =
+        requireNonNullElseGet(watcher, () -> new PropStoreWatcher(zkReadyMon, instanceId));
 
     ZooPropLoader propLoader = new ZooPropLoader(zk, codec, this.propStoreWatcher);
 
@@ -85,15 +86,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     } else {
       this.cache = new PropCacheCaffeineImpl.Builder(propLoader).forTests(ticker).build();
     }
-
     try {
-      var path = ZooUtil.getRoot(instanceId);
-      if (zrw.exists(path, propStoreWatcher)) {
+      if (zrw.exists("/", propStoreWatcher)) {
         log.debug("Have a ZooKeeper connection and found instance node: {}", instanceId);
         zkReadyMon.setReady();
       } else {
-        throw new IllegalStateException("Instance may not have been initialized, root node: " + path
-            + " does not exist in ZooKeeper");
+        throw new IllegalStateException(
+            "Instance may not have been initialized, provided root node path does not exist in ZooKeeper");
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();

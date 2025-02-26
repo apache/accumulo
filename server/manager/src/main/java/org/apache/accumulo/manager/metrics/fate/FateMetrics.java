@@ -58,7 +58,6 @@ public class FateMetrics implements MetricsProducer {
 
   private final ServerContext context;
   private final ReadOnlyTStore<FateMetrics> zooStore;
-  private final String fateRootPath;
   private final long refreshDelay;
 
   private final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
@@ -69,11 +68,10 @@ public class FateMetrics implements MetricsProducer {
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
 
     this.context = context;
-    this.fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
 
     try {
-      this.zooStore = new ZooStore<>(fateRootPath, context.getZooSession());
+      this.zooStore = new ZooStore<>(Constants.ZFATE, context.getZooSession());
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -92,7 +90,7 @@ public class FateMetrics implements MetricsProducer {
   private void update() {
 
     FateMetricValues metricValues =
-        FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
+        FateMetricValues.getFromZooKeeper(context, Constants.ZFATE, zooStore);
 
     totalCurrentOpsCount.set(metricValues.getCurrentFateOps());
     totalOpsCount.set(metricValues.getZkFateChildOpsTotal());

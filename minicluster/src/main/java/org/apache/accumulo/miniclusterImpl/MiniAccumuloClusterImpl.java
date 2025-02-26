@@ -102,6 +102,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.apache.hadoop.hdfs.MiniDFSCluster;
+import org.apache.logging.log4j.util.Strings;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -485,29 +486,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       InstanceId instanceIdFromFile =
           VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
-
-      String rootPath = ZooUtil.getRoot(instanceIdFromFile);
-
-      String instanceName = null;
-      try {
-        for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-          String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-          byte[] bytes = zrw.getData(instanceNamePath);
-          InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
-          if (iid.equals(instanceIdFromFile)) {
-            instanceName = name;
-          }
-        }
-      } catch (KeeperException e) {
-        throw new IllegalStateException("Unable to read instance name from zookeeper.", e);
-      }
-      if (instanceName == null) {
+      String instanceName = getServerContext().getInstanceName();
+      if (instanceName == null || instanceName.isBlank()) {
         throw new IllegalStateException("Unable to read instance name from zookeeper.");
       }
 
       config.setInstanceName(instanceName);
-      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
+      if (!AccumuloStatus.isAccumuloOffline(getServerContext())) {
         throw new IllegalStateException(
             "The Accumulo instance being used is already running. Aborting.");
       }
@@ -810,7 +795,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // the same data, but no Watchers will fire.
     boolean startCalled = true;
     try {
-      getServerContext().getZooKeeperRoot();
+      ZooUtil.getRoot(getServerContext().getInstanceID());
     } catch (IllegalStateException e) {
       if (e.getMessage().startsWith("Accumulo not initialized")) {
         startCalled = false;
@@ -818,7 +803,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
     if (startCalled) {
       final ServerContext ctx = getServerContext();
-      final String zRoot = ctx.getZooKeeperRoot();
+      final String zRoot = ZooUtil.getRoot(getServerContext().getInstanceID());
       Predicate<String> pred = path -> false;
       for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
           Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {

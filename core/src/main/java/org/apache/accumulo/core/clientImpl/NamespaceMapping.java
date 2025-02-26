@@ -146,10 +146,9 @@ public class NamespaceMapping {
 
   private synchronized void update() {
     final ZooCache zc = context.getZooCache();
-    final String zPath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;
     final ZooCache.ZcStat stat = new ZooCache.ZcStat();
 
-    byte[] data = zc.get(zPath, stat);
+    byte[] data = zc.get(Constants.ZNAMESPACES, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
         throw new IllegalStateException("namespaces node should not be null");

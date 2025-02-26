@@ -46,7 +46,6 @@ import com.google.common.annotations.VisibleForTesting;
 public class ManagerTime {
   private static final Logger log = LoggerFactory.getLogger(ManagerTime.class);
 
-  private final String zPath;
   private final ZooReaderWriter zk;
   private final Manager manager;
 
@@ -89,12 +88,11 @@ public class ManagerTime {
   private final AtomicReference<Duration> skewAmount;
 
   public ManagerTime(Manager manager, AccumuloConfiguration conf) throws IOException {
-    this.zPath = manager.getContext().getZooKeeperRoot() + Constants.ZMANAGER_TICK;
     this.zk = manager.getContext().getZooSession().asReaderWriter();
     this.manager = manager;
 
     try {
-      zk.putPersistentData(zPath, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
+      zk.putPersistentData(Constants.ZMANAGER_TICK, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
       skewAmount = new AtomicReference<>(updateSkew(getZkTime()));
     } catch (Exception ex) {
       throw new IOException("Error updating manager time", ex);
@@ -136,7 +134,7 @@ public class ManagerTime {
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         try {
-          zk.putPersistentData(zPath, serialize(fromSkew(skewAmount.get())),
+          zk.putPersistentData(Constants.ZMANAGER_TICK, serialize(fromSkew(skewAmount.get())),
               NodeExistsPolicy.OVERWRITE);
         } catch (Exception ex) {
           if (log.isDebugEnabled()) {
@@ -147,7 +145,7 @@ public class ManagerTime {
   }
 
   private SteadyTime getZkTime() throws InterruptedException, KeeperException {
-    return deserialize(zk.getData(zPath));
+    return deserialize(zk.getData(Constants.ZMANAGER_TICK));
   }
 
   /**

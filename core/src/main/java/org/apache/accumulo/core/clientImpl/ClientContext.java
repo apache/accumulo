@@ -223,9 +223,9 @@ public class ClientContext implements AccumuloClient {
     this.hadoopConf = info.getHadoopConf();
 
     this.zooSession = memoize(() -> {
-      var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", "")
-          .get();
+      var zk =
+          info.getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")",
+              ZooUtil.getRoot(getInstanceID())).get();
       zooKeeperOpened.set(true);
       return zk;
     });
@@ -406,11 +406,10 @@ public class ClientContext implements AccumuloClient {
   public Map<String,Pair<UUID,String>> getScanServers() {
     ensureOpen();
     Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
-    String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
-    var addrs = this.getZooCache().getChildren(root);
+    var addrs = this.getZooCache().getChildren(Constants.ZSSERVERS);
     for (String addr : addrs) {
       try {
-        final var zLockPath = ServiceLock.path(root + "/" + addr);
+        final var zLockPath = ServiceLock.path(Constants.ZSSERVERS + "/" + addr);
         ZcStat stat = new ZcStat();
         Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
         if (sld.isPresent()) {
@@ -514,7 +513,7 @@ public class ClientContext implements AccumuloClient {
    */
   public List<String> getManagerLocations() {
     ensureOpen();
-    var zLockManagerPath = ServiceLock.path(getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
+    var zLockManagerPath = ServiceLock.path(Constants.ZMANAGER_LOCK);
 
     Timer timer = null;
 
@@ -551,11 +550,6 @@ public class ClientContext implements AccumuloClient {
   public InstanceId getInstanceID() {
     ensureOpen();
     return info.getInstanceId();
-  }
-
-  public String getZooKeeperRoot() {
-    ensureOpen();
-    return ZooUtil.getRoot(getInstanceID());
   }
 
   /**
@@ -1101,9 +1095,9 @@ public class ClientContext implements AccumuloClient {
       // so, it can't rely on being able to continue to use the same client's ZooCache,
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), "").get();
-      this.zkLockChecker =
-          new ZookeeperLockChecker(new ZooCache(zk), getZooKeeperRoot() + Constants.ZTSERVERS);
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
+          ZooUtil.getRoot(getInstanceID())).get();
+      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk), Constants.ZTSERVERS);
     }
     return this.zkLockChecker;
   }

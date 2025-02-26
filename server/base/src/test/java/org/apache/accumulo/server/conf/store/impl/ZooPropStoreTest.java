@@ -45,7 +45,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
@@ -80,7 +79,7 @@ public class ZooPropStoreTest {
     expect(zk.getSessionTimeout()).andReturn(2_000).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
-    expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
+    expect(zrw.exists(eq("/"), anyObject())).andReturn(true).anyTimes();
   }
 
   @AfterEach
@@ -379,9 +378,9 @@ public class ZooPropStoreTest {
     }
   }
 
-  private static class TestWatcher extends PropStoreWatcher {
+  private class TestWatcher extends PropStoreWatcher {
     public TestWatcher(ReadyMonitor zkReadyMonitor) {
-      super(zkReadyMonitor);
+      super(zkReadyMonitor, instanceId);
     }
   }
 

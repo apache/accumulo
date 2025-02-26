@@ -167,8 +167,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putZooLock(ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ServerColumnFamily.LOCK_COLUMN.put(mutation,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
+    ServerColumnFamily.LOCK_COLUMN.put(mutation, new Value(zooLock.getLockID().serialize("/")));
     return this;
   }
 

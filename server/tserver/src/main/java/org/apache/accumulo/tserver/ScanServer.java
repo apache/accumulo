@@ -329,8 +329,7 @@ public class ScanServer extends AbstractServer
     ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
-      var zLockPath = ServiceLock.path(
-          getContext().getZooKeeperRoot() + Constants.ZSSERVERS + "/" + getClientAddressString());
+      var zLockPath = ServiceLock.path(Constants.ZSSERVERS + "/" + getClientAddressString());
 
       try {
         // Old zk nodes can be cleaned up by ZooZap

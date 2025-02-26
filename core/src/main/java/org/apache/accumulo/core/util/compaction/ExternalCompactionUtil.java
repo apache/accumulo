@@ -104,8 +104,8 @@ public class ExternalCompactionUtil {
    * @return Optional HostAndPort of Coordinator node if found
    */
   public static Optional<HostAndPort> findCompactionCoordinator(ClientContext context) {
-    final String lockPath = context.getZooKeeperRoot() + Constants.ZCOORDINATOR_LOCK;
-    return ServiceLock.getLockData(context.getZooCache(), ServiceLock.path(lockPath), new ZcStat())
+    return ServiceLock.getLockData(context.getZooCache(),
+        ServiceLock.path(Constants.ZCOORDINATOR_LOCK), new ZcStat())
         .map(sld -> sld.getAddress(ThriftService.COORDINATOR));
   }
 
@@ -115,18 +115,17 @@ public class ExternalCompactionUtil {
   public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     try {
       final Map<String,Set<HostAndPort>> queuesAndAddresses = new HashMap<>();
-      final String compactorQueuesPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
       ZooReader zooReader = context.getZooSession().asReader();
-      List<String> queues = zooReader.getChildren(compactorQueuesPath);
+      List<String> queues = zooReader.getChildren(Constants.ZCOMPACTORS);
       for (String queue : queues) {
         queuesAndAddresses.putIfAbsent(queue, new HashSet<>());
         try {
-          List<String> compactors = zooReader.getChildren(compactorQueuesPath + "/" + queue);
+          List<String> compactors = zooReader.getChildren(Constants.ZCOMPACTORS + "/" + queue);
           for (String compactor : compactors) {
             // compactor is the address, we are checking to see if there is a child node which
             // represents the compactor's lock as a check that it's alive.
             List<String> children =
-                zooReader.getChildren(compactorQueuesPath + "/" + queue + "/" + compactor);
+                zooReader.getChildren(Constants.ZCOMPACTORS + "/" + queue + "/" + compactor);
             if (!children.isEmpty()) {
               LOG.trace("Found live compactor {} ", compactor);
               queuesAndAddresses.get(queue).add(HostAndPort.fromString(compactor));
@@ -279,7 +278,7 @@ public class ExternalCompactionUtil {
 
   public static int countCompactors(String queueName, ClientContext context) {
     long start = System.nanoTime();
-    String queueRoot = context.getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + queueName;
+    String queueRoot = Constants.ZCOMPACTORS + "/" + queueName;
     List<String> children = context.getZooCache().getChildren(queueRoot);
     if (children == null) {
       return 0;

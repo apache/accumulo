@@ -97,11 +97,10 @@ public class WalStateManager {
   }
 
   private String root() throws WalMarkerException {
-    String root = context.getZooKeeperRoot() + ZWALS;
 
     try {
-      if (!checkedExistance && !zoo.exists(root)) {
-        zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
+      if (!checkedExistance && !zoo.exists(ZWALS)) {
+        zoo.putPersistentData(ZWALS, new byte[0], NodeExistsPolicy.SKIP);
       }
 
       checkedExistance = true;
@@ -109,7 +108,7 @@ public class WalStateManager {
       throw new WalMarkerException(e);
     }
 
-    return root;
+    return ZWALS;
   }
 
   // Tablet server exists

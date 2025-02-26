@@ -36,7 +36,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -132,8 +131,7 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.MONITOR);
 
       ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
+      var zLockPath = ServiceLock.path(Constants.ZMANAGER_LOCK);
       Optional<ServiceLockData> managerLockData;
       do {
         managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
@@ -183,11 +181,10 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.MANAGER);
 
       ZooCache zcache = cluster.getServerContext().getZooCache();
-      var zLockPath = ServiceLock
-          .path(ZooUtil.getRoot(c.instanceOperations().getInstanceId()) + Constants.ZMANAGER_LOCK);
       Optional<ServiceLockData> managerLockData;
       do {
-        managerLockData = ServiceLock.getLockData(zcache, zLockPath, null);
+        managerLockData =
+            ServiceLock.getLockData(zcache, ServiceLock.path(Constants.ZMANAGER_LOCK), null);
         if (managerLockData.isPresent()) {
           log.info("Manager lock is still held");
           Thread.sleep(1000);

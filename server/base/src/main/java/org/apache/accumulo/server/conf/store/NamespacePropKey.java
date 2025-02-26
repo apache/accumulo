@@ -23,24 +23,16 @@ import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 
 public class NamespacePropKey extends PropStoreKey<NamespaceId> {
 
-  private NamespacePropKey(final InstanceId instanceId, final String path, final NamespaceId id) {
-    super(instanceId, path, id);
+  private NamespacePropKey(final NamespaceId id) {
+    super(ZNAMESPACES + "/" + id.canonical() + ZCONFIG, id);
   }
 
-  public static NamespacePropKey of(final ServerContext context, final NamespaceId id) {
-    return of(context.getInstanceID(), id);
+  public static NamespacePropKey of(final NamespaceId id) {
+    return new NamespacePropKey(id);
   }
 
-  public static NamespacePropKey of(final InstanceId instanceId, final NamespaceId id) {
-    return new NamespacePropKey(instanceId, buildNodePath(instanceId, id), id);
-  }
-
-  private static String buildNodePath(final InstanceId instanceId, final NamespaceId id) {
-    return ZooUtil.getRoot(instanceId) + ZNAMESPACES + "/" + id.canonical() + ZCONFIG;
-  }
 }
