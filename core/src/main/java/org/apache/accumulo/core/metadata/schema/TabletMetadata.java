@@ -520,7 +520,7 @@ public class TabletMetadata {
   }
 
   @VisibleForTesting
-  static TabletMetadata create(String id, String prevEndRow, String endRow) {
+  public static TabletMetadata create(String id, String prevEndRow, String endRow) {
     TabletMetadata te = new TabletMetadata();
     te.tableId = TableId.of(id);
     te.sawPrevEndRow = true;
