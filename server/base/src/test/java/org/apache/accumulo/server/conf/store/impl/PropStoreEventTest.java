@@ -34,13 +34,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.time.Instant;
 import java.util.Map;
-import java.util.UUID;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
@@ -57,24 +54,17 @@ import org.junit.jupiter.api.Test;
 
 public class PropStoreEventTest {
   private final VersionedPropCodec propCodec = VersionedPropCodec.getDefault();
-  private InstanceId instanceId;
 
   // mocks
-  private ServerContext context;
   private ZooSession zk;
   private ZooReaderWriter zrw;
   private ReadyMonitor readyMonitor;
 
   @BeforeEach
   public void initCommonMocks() throws Exception {
-    instanceId = InstanceId.of(UUID.randomUUID());
-    context = createMock(ServerContext.class);
     zk = createMock(ZooSession.class);
     zrw = createMock(ZooReaderWriter.class);
     expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooSession()).andReturn(zk).anyTimes();
-    expect(context.getZooKeepersSessionTimeOut()).andReturn(500).anyTimes();
-    expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
 
     expect(zrw.exists(eq("/"), anyObject())).andReturn(true).anyTimes();
 
@@ -83,7 +73,7 @@ public class PropStoreEventTest {
 
   @AfterEach
   public void verifyMocks() {
-    verify(context, zk, zrw, readyMonitor);
+    verify(zk, zrw, readyMonitor);
   }
 
   @Test
@@ -99,9 +89,9 @@ public class PropStoreEventTest {
     readyMonitor.setReady();
     expectLastCall().once();
 
-    replay(context, zk, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zk, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
     StoreTestListener listener = new StoreTestListener();
 
     propStore.registerAsListener(tablePropKey, listener);
@@ -129,9 +119,9 @@ public class PropStoreEventTest {
     readyMonitor.setReady();
     expectLastCall().once();
 
-    replay(context, zk, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zk, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -161,9 +151,9 @@ public class PropStoreEventTest {
     readyMonitor.clearReady();
     expectLastCall();
 
-    replay(context, zk, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zk, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -195,9 +185,9 @@ public class PropStoreEventTest {
     readyMonitor.setClosed();
     expectLastCall();
 
-    replay(context, zk, zrw, readyMonitor, zkEvent);
+    replay(zk, zrw, readyMonitor, zkEvent);
 
-    PropStore propStore = new ZooPropStore(instanceId, zk, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -219,9 +209,9 @@ public class PropStoreEventTest {
     readyMonitor.setReady();
     expectLastCall().once();
 
-    replay(context, zk, zrw, readyMonitor);
+    replay(zk, zrw, readyMonitor);
 
-    PropStore propStore = new ZooPropStore(instanceId, zk, readyMonitor, watcher, null);
+    PropStore propStore = new ZooPropStore(zk, readyMonitor, watcher, null);
 
     StoreTestListener listener = new StoreTestListener();
 
@@ -256,7 +246,7 @@ public class PropStoreEventTest {
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
-    replay(context, zk, zrw, readyMonitor);
+    replay(zk, zrw, readyMonitor);
 
     ZooPropLoader loader = new ZooPropLoader(zk, propCodec, watcher);
 

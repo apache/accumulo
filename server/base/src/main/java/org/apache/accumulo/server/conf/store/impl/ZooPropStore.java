@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -68,8 +67,8 @@ public class ZooPropStore implements PropStore, PropChangeListener {
    * @param watcher a watcher. Optional, if null, one is created.
    * @param ticker a synthetic clock used for testing. Optional, if null, one is created.
    */
-  ZooPropStore(final InstanceId instanceId, final ZooSession zk, final ReadyMonitor monitor,
-      final PropStoreWatcher watcher, final Ticker ticker) {
+  ZooPropStore(final ZooSession zk, final ReadyMonitor monitor, final PropStoreWatcher watcher,
+      final Ticker ticker) {
 
     this.zrw = zk.asReaderWriter();
 
@@ -87,7 +86,7 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     }
     try {
       if (zrw.exists("/", propStoreWatcher)) {
-        log.debug("Have a ZooKeeper connection and found instance node: {}", instanceId);
+        log.debug("Have a ZooKeeper connection and found instance node: {}");
         zkReadyMon.setReady();
       } else {
         throw new IllegalStateException(
@@ -95,17 +94,14 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException(
-          "Interrupted trying to read root node " + instanceId + " from ZooKeeper", ex);
+      throw new IllegalStateException("Interrupted trying to read root node from ZooKeeper", ex);
     } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read root node " + instanceId + " from ZooKeeper",
-          ex);
+      throw new IllegalStateException("Failed to read root node from ZooKeeper", ex);
     }
   }
 
-  public static ZooPropStore initialize(@NonNull final InstanceId instanceId,
-      @NonNull final ZooSession zk) {
-    return new ZooPropStore(instanceId, zk, null, null, null);
+  public static ZooPropStore initialize(@NonNull final ZooSession zk) {
+    return new ZooPropStore(zk, null, null, null);
   }
 
   @Override

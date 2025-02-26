@@ -114,7 +114,7 @@ public class ServerContext extends ClientContext {
 
     // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
     @SuppressWarnings("resource")
-    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooSession()));
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getZooSession()));
     propStore = tmpPropStore;
 
     tableManager = memoize(() -> new TableManager(this));

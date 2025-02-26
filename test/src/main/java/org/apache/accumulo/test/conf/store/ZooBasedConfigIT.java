@@ -45,8 +45,9 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.NamespaceConfiguration;
 import org.apache.accumulo.server.conf.SystemConfiguration;
@@ -99,7 +100,13 @@ public class ZooBasedConfigIT {
   @BeforeAll
   public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
-    zk = testZk.newClient();
+    // prop store uses a chrooted ZK, so it is relocatable, but create a convenient empty node to
+    // work in for the test, so we can easily clean it up after each test
+    try (var zkInit = testZk.newClient()) {
+      zkInit.create("/instanceRoot", null, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+    }
+    // create a chrooted client for the tests to use
+    zk = testZk.newClient("/instanceRoot");
     zrw = zk.asReaderWriter();
   }
 
@@ -116,7 +123,6 @@ public class ZooBasedConfigIT {
   public void initPaths() throws Exception {
     context = createMock(ServerContext.class);
     expect(context.getZooSession()).andReturn(zk);
-    zrw.mkdirs("/");
 
     zk.create(Constants.ZTABLES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
@@ -139,7 +145,7 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    propStore = ZooPropStore.initialize(context.getInstanceID(), zk);
+    propStore = ZooPropStore.initialize(zk);
 
     reset(context);
 
@@ -156,9 +162,9 @@ public class ZooBasedConfigIT {
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    zrw.recursiveDelete(Constants.ZCONFIG, NodeMissingPolicy.SKIP);
-    zrw.recursiveDelete(Constants.ZTABLES, NodeMissingPolicy.SKIP);
-    zrw.recursiveDelete(Constants.ZNAMESPACES, NodeMissingPolicy.SKIP);
+    for (var child : zk.getChildren("/", null)) {
+      ZKUtil.deleteRecursive(zk, "/" + child);
+    }
     verify(context);
   }
 
