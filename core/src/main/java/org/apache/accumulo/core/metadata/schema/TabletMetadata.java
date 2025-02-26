@@ -561,14 +561,11 @@ public class TabletMetadata {
   }
 
   public static void validate(TabletMetadata tm) {
-    if (tm == null) {
-      throw new IllegalStateException("TabletMetadata cannot be null");
+    if (!tm.fetchedCols.contains(ColumnType.FILES) || !tm.sawPrevEndRow) {
+      return;
     }
 
     Collection<StoredTabletFile> files = tm.getFiles();
-    if (files == null || files.isEmpty()) {
-      return;
-    }
 
     Text prevEndRowText = tm.getPrevEndRow();
     Text endRowText = tm.getEndRow();
@@ -588,7 +585,7 @@ public class TabletMetadata {
   private static boolean isFileRangeValid(StoredTabletFile file, Key prevEndRowKey, Key endRowKey) {
     Range fileRange = file.getRange();
 
-    if (file.hasRange()) {
+    if (!file.hasRange()) {
       return true;
     }
 
@@ -735,7 +732,9 @@ public class TabletMetadata {
 
     TabletMetadata build(EnumSet<ColumnType> fetchedCols) {
       this.fetchedCols = fetchedCols;
-      return new TabletMetadata(this);
+      TabletMetadata tm = new TabletMetadata(this);
+      validate(tm);
+      return tm;
     }
   }
 }
