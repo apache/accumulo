@@ -98,7 +98,8 @@ public class TableLoadBalancer implements TabletBalancer {
       }
 
       if (balancer == null) {
-        log.info("Using balancer {} for table {}", SimpleLoadBalancer.class.getName(), tableId);
+        log.info("Creating balancer {} limited to balancing table {}",
+            SimpleLoadBalancer.class.getName(), tableId);
         balancer = new SimpleLoadBalancer(tableId);
       }
       perTableBalancers.put(tableId, balancer);
@@ -124,13 +125,14 @@ public class TableLoadBalancer implements TabletBalancer {
   @Override
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
-    // Iterate over the tables and balance each of them
     final DataLevel currentDataLevel = DataLevel.valueOf(params.currentLevel());
-    for (TableId tableId : environment.getTableIdMap().values()) {
+    for (Entry<String,TableId> entry : params.getTablesToBalance().entrySet()) {
+      String tableName = entry.getKey();
+      TableId tableId = entry.getValue();
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime =
-          getBalancerForTable(tableId).balance(new BalanceParamsImpl(params.currentStatus(),
-              params.currentMigrations(), newMigrations, currentDataLevel));
+      long tableBalanceTime = getBalancerForTable(tableId)
+          .balance(new BalanceParamsImpl(params.currentStatus(), params.currentMigrations(),
+              newMigrations, currentDataLevel, Map.of(tableName, tableId)));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

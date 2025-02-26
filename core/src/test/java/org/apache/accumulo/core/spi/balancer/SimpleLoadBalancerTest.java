@@ -204,7 +204,7 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER));
+          DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -247,7 +247,7 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER));
+          DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }
