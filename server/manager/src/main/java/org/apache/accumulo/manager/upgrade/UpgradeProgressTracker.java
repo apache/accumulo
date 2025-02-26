@@ -49,14 +49,16 @@ public class UpgradeProgressTracker {
     private int zooKeeperVersion;
     private int rootVersion;
     private int metadataVersion;
+    private int upgradeTargetVersion;
     private volatile transient int znodeVersion;
 
     public UpgradeProgress() {}
 
-    public UpgradeProgress(int currentVersion) {
+    public UpgradeProgress(int currentVersion, int targetVersion) {
       zooKeeperVersion = currentVersion;
       rootVersion = currentVersion;
       metadataVersion = currentVersion;
+      upgradeTargetVersion = targetVersion;
     }
 
     public int getZooKeeperVersion() {
@@ -132,6 +134,14 @@ public class UpgradeProgressTracker {
     return context.getZooKeeperRoot() + Constants.ZUPGRADE_PROGRESS;
   }
 
+  public static boolean upgradeInProgress(ServerContext context)
+      throws KeeperException, InterruptedException {
+    requireNonNull(context, "ServerContext must be supplied");
+    final String zpath = getZPath(context);
+    final ZooSession zs = context.getZooSession();
+    return zs.exists(zpath, null) != null;
+  }
+
   private static void put(ServerContext context, UpgradeProgress cv)
       throws KeeperException, InterruptedException {
     requireNonNull(context, "ServerContext must be supplied");
@@ -163,7 +173,7 @@ public class UpgradeProgressTracker {
     final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
     if (!zrw.exists(zpath)) {
       try {
-        UpgradeProgress cv = new UpgradeProgress(currentVersion);
+        UpgradeProgress cv = new UpgradeProgress(currentVersion, AccumuloDataVersion.get());
         put(context, cv);
         return cv;
       } catch (IllegalStateException ise) {
@@ -181,6 +191,9 @@ public class UpgradeProgressTracker {
     UpgradeProgress progress =
         GSON.get().fromJson(new String(jsonData, UTF_8), UpgradeProgress.class);
     progress.znodeVersion = stat.getVersion();
+    checkState(AccumuloDataVersion.get() == progress.upgradeTargetVersion,
+        "Upgrade was already started with a different version of software (%s), expecting %s",
+        progress.upgradeTargetVersion, AccumuloDataVersion.get());
     return progress;
   }
 
