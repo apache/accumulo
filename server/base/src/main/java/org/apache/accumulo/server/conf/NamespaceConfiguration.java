@@ -37,7 +37,7 @@ public class NamespaceConfiguration extends ZooBasedConfiguration {
 
   public NamespaceConfiguration(ServerContext context, NamespaceId namespaceId,
       AccumuloConfiguration parent) {
-    super(log, context, NamespacePropKey.of(context, namespaceId), parent);
+    super(log, context, NamespacePropKey.of(namespaceId), parent);
   }
 
   @Override

@@ -21,9 +21,7 @@ package org.apache.accumulo.server.conf.store;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
 import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.server.ServerContext;
 
 public class NamespacePropKey extends PropStoreKey<NamespaceId> {
 

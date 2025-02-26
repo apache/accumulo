@@ -42,7 +42,6 @@ public class ZKAuthorizor implements Authorizor {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthorizor.class);
 
   private static final String ZKUserAuths = "/Authorizations";
-  private final String ZKUsers = Constants.ZUSERS;
 
   private ServerContext context;
   private ZooCache zooCache;

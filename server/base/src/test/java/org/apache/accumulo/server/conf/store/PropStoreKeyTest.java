@@ -48,7 +48,7 @@ public class PropStoreKeyTest {
 
   @Test
   public void systemType() {
-    var propKey = SystemPropKey.of(instanceId);
+    var propKey = SystemPropKey.of();
     log.info("name: {}", propKey);
     assertTrue(propKey.getPath().endsWith(ZCONFIG));
   }
@@ -59,7 +59,7 @@ public class PropStoreKeyTest {
     expect(context.getInstanceID()).andReturn(instanceId).once();
     replay(context);
 
-    var propKey = SystemPropKey.of(context);
+    var propKey = SystemPropKey.of();
     log.info("propKey: {}", propKey);
     assertTrue(propKey.getPath().endsWith(ZCONFIG));
     verify(context);
@@ -67,7 +67,7 @@ public class PropStoreKeyTest {
 
   @Test
   public void namespaceType() {
-    var propKey = NamespacePropKey.of(instanceId, NamespaceId.of("a"));
+    var propKey = NamespacePropKey.of(NamespaceId.of("a"));
     log.info("propKey: {}", propKey);
     assertTrue(propKey.getPath().endsWith(ZCONFIG) && propKey.getPath().contains(ZNAMESPACES));
     log.info("propKey: {}", propKey);
@@ -79,14 +79,14 @@ public class PropStoreKeyTest {
     expect(context.getInstanceID()).andReturn(instanceId).once();
     replay(context);
 
-    var propKey = NamespacePropKey.of(context, NamespaceId.of("a"));
+    var propKey = NamespacePropKey.of(NamespaceId.of("a"));
     assertTrue(propKey.getPath().endsWith(ZCONFIG) && propKey.getPath().contains(ZNAMESPACES));
     verify(context);
   }
 
   @Test
   public void tableType() {
-    var propKey = TablePropKey.of(instanceId, TableId.of("a"));
+    var propKey = TablePropKey.of(TableId.of("a"));
     log.info("propKey: {}", propKey);
     assertTrue(propKey.getPath().endsWith(ZCONFIG) && propKey.getPath().contains(ZTABLES));
     log.info("propKey: {}", propKey);
@@ -94,16 +94,16 @@ public class PropStoreKeyTest {
 
   @Test
   public void fromPathTest() {
-    var t1 = PropStoreKey.fromPath(ZTABLES + "/t1" + ZCONFIG, instanceId);
+    var t1 = PropStoreKey.fromPath(ZTABLES + "/t1" + ZCONFIG);
     assertNotNull(t1);
     assertEquals(TableId.of("t1"), t1.getId());
 
-    var n1 = PropStoreKey.fromPath(ZNAMESPACES + "/n1" + ZCONFIG, instanceId);
+    var n1 = PropStoreKey.fromPath(ZNAMESPACES + "/n1" + ZCONFIG);
     assertNotNull(n1);
     assertEquals(NamespaceId.of("n1"), n1.getId());
     assertNotNull(n1.getId());
 
-    var s1 = PropStoreKey.fromPath(ZCONFIG, instanceId);
+    var s1 = PropStoreKey.fromPath(ZCONFIG);
     assertNotNull(s1);
     // system config returns instance id as id placeholder
     assertEquals(instanceId, s1.getId());
@@ -112,29 +112,28 @@ public class PropStoreKeyTest {
   @Test
   public void invalidKeysTest() {
     // too short
-    assertNull(PropStoreKey.fromPath(ZROOT, instanceId));
+    assertNull(PropStoreKey.fromPath(ZROOT));
 
     // not a system config
-    assertTrue(PropStoreKey.fromPath(ZCONFIG, instanceId) instanceof SystemPropKey);
-    assertNull(PropStoreKey.fromPath("/foo", instanceId));
-    assertNull(PropStoreKey.fromPath(ZCONFIG + "/foo", instanceId));
+    assertTrue(PropStoreKey.fromPath(ZCONFIG) instanceof SystemPropKey);
+    assertNull(PropStoreKey.fromPath("/foo"));
+    assertNull(PropStoreKey.fromPath(ZCONFIG + "/foo"));
 
-    assertTrue(PropStoreKey.fromPath(ZTABLES + "/a" + ZCONFIG, instanceId) instanceof TablePropKey);
-    assertNull(PropStoreKey.fromPath(ZTABLES + ZCONFIG, instanceId));
-    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG, instanceId));
-    assertNull(PropStoreKey.fromPath(ZTABLES + "/a" + ZCONFIG + "/foo", instanceId));
+    assertTrue(PropStoreKey.fromPath(ZTABLES + "/a" + ZCONFIG) instanceof TablePropKey);
+    assertNull(PropStoreKey.fromPath(ZTABLES + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG));
+    assertNull(PropStoreKey.fromPath(ZTABLES + "/a" + ZCONFIG + "/foo"));
 
-    assertTrue(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG,
-        instanceId) instanceof NamespacePropKey);
-    assertNull(PropStoreKey.fromPath(ZNAMESPACES + ZCONFIG, instanceId));
-    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG, instanceId));
-    assertNull(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG + "/foo", instanceId));
+    assertTrue(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG) instanceof NamespacePropKey);
+    assertNull(PropStoreKey.fromPath(ZNAMESPACES + ZCONFIG));
+    assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG));
+    assertNull(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZCONFIG + "/foo"));
   }
 
   @Test
   public void getBasePathTest() {
-    assertTrue(SystemPropKey.of(instanceId).getPath().endsWith("/config"));
-    assertTrue(NamespacePropKey.of(instanceId, NamespaceId.of("123")).getPath().endsWith(ZCONFIG));
-    assertTrue(TablePropKey.of(instanceId, TableId.of("456")).getPath().endsWith(ZCONFIG));
+    assertTrue(SystemPropKey.of().getPath().endsWith("/config"));
+    assertTrue(NamespacePropKey.of(NamespaceId.of("123")).getPath().endsWith(ZCONFIG));
+    assertTrue(TablePropKey.of(TableId.of("456")).getPath().endsWith(ZCONFIG));
   }
 }

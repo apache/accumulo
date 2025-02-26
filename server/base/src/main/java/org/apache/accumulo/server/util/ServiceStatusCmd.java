@@ -74,8 +74,7 @@ public class ServiceStatusCmd {
         Constants.ZSSERVERS, ServiceStatusReport.ReportKey.S_SERVER, TABLET_SCAN));
     services.put(ServiceStatusReport.ReportKey.COORDINATOR, getStatusSummary(
         ServiceStatusReport.ReportKey.COORDINATOR, zooReader, Constants.ZCOORDINATOR_LOCK));
-    services.put(ServiceStatusReport.ReportKey.COMPACTOR,
-        getCompactorHosts(zooReader));
+    services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorHosts(zooReader));
     services.put(ServiceStatusReport.ReportKey.GC,
         getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, Constants.ZGC_LOCK));
 
@@ -140,12 +139,7 @@ public class ServiceStatusCmd {
   @VisibleForTesting
   StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames, ZooReader zooReader,
       String lockPath) {
-//    var result;
-//    switch (displayNames) {
-//      case MANAGER:
-//        result = readAllNodesData(zooReader, Constants.ZMANAGER_LOCK);
-//        case
-//    }
+    var result = readAllNodesData(zooReader, lockPath);
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);

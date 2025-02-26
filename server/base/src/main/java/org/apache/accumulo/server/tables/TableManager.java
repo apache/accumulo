@@ -77,7 +77,7 @@ public class TableManager {
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     context.getZooSession().asReaderWriter()
         .putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId, new byte[0], existsPolicy);
-    var propKey = NamespacePropKey.of(instanceId, namespaceId);
+    var propKey = NamespacePropKey.of(namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }
@@ -103,7 +103,7 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
-    var propKey = TablePropKey.of(instanceId, tableId);
+    var propKey = TablePropKey.of(tableId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }
@@ -219,8 +219,8 @@ public class TableManager {
     String newTablePath = Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    PropUtil.setProperties(context, TablePropKey.of(context, tableId), propertiesToSet);
-    PropUtil.removeProperties(context, TablePropKey.of(context, tableId), propertiesToExclude);
+    PropUtil.setProperties(context, TablePropKey.of(tableId), propertiesToSet);
+    PropUtil.removeProperties(context, TablePropKey.of(tableId), propertiesToExclude);
 
     updateTableStateCache(tableId);
   }

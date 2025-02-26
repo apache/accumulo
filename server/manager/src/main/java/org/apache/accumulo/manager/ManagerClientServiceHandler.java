@@ -257,7 +257,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       PropUtil.replaceProperties(manager.getContext(),
-          TablePropKey.of(manager.getContext(), tableId), properties.getVersion(),
+          TablePropKey.of(tableId), properties.getVersion(),
           properties.getProperties());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying table properties, properties have changed", cme);
@@ -481,7 +481,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       PropUtil.replaceProperties(manager.getContext(),
-          NamespacePropKey.of(manager.getContext(), namespaceId), properties.getVersion(),
+          NamespacePropKey.of(namespaceId), properties.getVersion(),
           properties.getProperties());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying namespace properties, properties have changed", cme);
@@ -520,10 +520,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     try {
       if (value == null) {
         PropUtil.removeProperties(manager.getContext(),
-            NamespacePropKey.of(manager.getContext(), namespaceId), List.of(property));
+            NamespacePropKey.of(namespaceId), List.of(property));
       } else {
         PropUtil.setProperties(manager.getContext(),
-            NamespacePropKey.of(manager.getContext(), namespaceId), Map.of(property, value));
+            NamespacePropKey.of(namespaceId), Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       // race condition on delete... namespace no longer exists? An undelying ZooKeeper.NoNode
@@ -549,12 +549,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     try {
       if (op == TableOperation.REMOVE_PROPERTY) {
         PropUtil.removeProperties(manager.getContext(),
-            TablePropKey.of(manager.getContext(), tableId), List.of(property));
+            TablePropKey.of(tableId), List.of(property));
       } else if (op == TableOperation.SET_PROPERTY) {
         if (value == null || value.isEmpty()) {
           value = "";
         }
-        PropUtil.setProperties(manager.getContext(), TablePropKey.of(manager.getContext(), tableId),
+        PropUtil.setProperties(manager.getContext(), TablePropKey.of(tableId),
             Map.of(property, value));
       }
     } catch (IllegalStateException ex) {

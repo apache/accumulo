@@ -138,7 +138,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void failOnDuplicate() throws InterruptedException, KeeperException {
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
 
     assertNull(zk.exists(propKey.getPath(), null)); // check node does not exist in ZK
 
@@ -153,7 +153,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void createWithProps() throws InterruptedException, KeeperException, IOException {
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     propStore.create(propKey, initialProps);
@@ -173,7 +173,7 @@ public class PropStoreZooKeeperIT {
   public void update() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    var propKey = TablePropKey.of(instanceId, tIdA);
+    var propKey = TablePropKey.of(tIdA);
     propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
@@ -243,8 +243,8 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void deleteTest() {
-    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA);
+    var tableBPropKey = TablePropKey.of(tIdB);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -269,8 +269,8 @@ public class PropStoreZooKeeperIT {
   public void deleteThroughWatcher() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA);
+    var tableBPropKey = TablePropKey.of(tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -314,8 +314,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    var tableAPropKey = TablePropKey.of(instanceId, tIdA);
-    var tableBPropKey = TablePropKey.of(instanceId, tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA);
+    var tableBPropKey = TablePropKey.of(tIdB);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);

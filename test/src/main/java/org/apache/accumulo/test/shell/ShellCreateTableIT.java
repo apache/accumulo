@@ -722,7 +722,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       TableId destId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(destTable));
 
       // the Zk node should have all effective properties copied from configuration
-      var vp1 = propStore.get(TablePropKey.of(getCluster().getServerContext(), destId));
+      var vp1 = propStore.get(TablePropKey.of(destId));
       assertEquals(sysPropValue1, vp1.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp1.asMap().get(nsPropName));
 
@@ -738,13 +738,13 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
       // source will still inherit from sys and namespace (no prop values)
       var vp2 = propStore
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(srcTable))));
+          .get(TablePropKey.of(TableId.of(tids.get(srcTable))));
       assertNull(vp2.asMap().get(sysPropName));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
       var vp3 = propStore
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+          .get(TablePropKey.of(TableId.of(tids.get(destTable))));
       assertEquals(sysPropValue1, vp3.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
 
@@ -791,7 +791,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
       // only table unique values should be stored in Zk node for the table.
       var vp1 = getCluster().getServerContext().getPropStore()
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+          .get(TablePropKey.of(TableId.of(tids.get(destTable))));
       assertNull(vp1.asMap().get(sysPropName));
       assertNull(vp1.asMap().get(nsPropName));
 
@@ -807,13 +807,13 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
       // source will still inherit from sys and namespace (no prop values)
       var vp2 = getCluster().getServerContext().getPropStore()
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(srcTable))));
+          .get(TablePropKey.of(TableId.of(tids.get(srcTable))));
       assertNull(vp2.asMap().get(sysPropName));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
       var vp3 = getCluster().getServerContext().getPropStore()
-          .get(TablePropKey.of(getCluster().getServerContext(), TableId.of(tids.get(destTable))));
+          .get(TablePropKey.of(TableId.of(tids.get(destTable))));
       assertNull(vp3.asMap().get(sysPropName));
       assertNull(vp3.asMap().get(nsPropName));
 

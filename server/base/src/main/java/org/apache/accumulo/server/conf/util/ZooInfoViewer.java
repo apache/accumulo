@@ -327,7 +327,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     filteredIds.forEach((nid, name) -> {
       try {
-        var key = NamespacePropKey.of(iid, nid);
+        var key = NamespacePropKey.of(nid);
         log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
@@ -365,7 +365,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     filteredIds.forEach((tid, name) -> {
       try {
-        var key = TablePropKey.of(iid, tid);
+        var key = TablePropKey.of(tid);
         log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
@@ -403,7 +403,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private VersionedProperties fetchSystemProp(final InstanceId iid, final ZooReader zooReader)
       throws Exception {
-    SystemPropKey propKey = SystemPropKey.of(iid);
+    SystemPropKey propKey = SystemPropKey.of();
     return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
   }
 
@@ -481,7 +481,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private static class NullWatcher extends PropStoreWatcher {
     public NullWatcher(ReadyMonitor zkReadyMonitor) {
-      super(zkReadyMonitor, null);
+      super(zkReadyMonitor);
     }
   }
 }

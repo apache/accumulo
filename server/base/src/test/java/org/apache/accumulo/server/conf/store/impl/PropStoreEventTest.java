@@ -89,9 +89,9 @@ public class PropStoreEventTest {
   @Test
   public void zkChangeEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
@@ -118,9 +118,9 @@ public class PropStoreEventTest {
   @Test
   public void deleteEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getPath()).andReturn(tablePropKey.getPath()).once();
@@ -148,9 +148,9 @@ public class PropStoreEventTest {
   @Test
   public void disconnectEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.None);
@@ -180,9 +180,9 @@ public class PropStoreEventTest {
   @Test
   public void closedEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     WatchedEvent zkEvent = createMock(WatchedEvent.class);
     expect(zkEvent.getType()).andReturn(Watcher.Event.EventType.None);
@@ -213,9 +213,9 @@ public class PropStoreEventTest {
   @Test
   public void cacheChangeEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
     readyMonitor.setReady();
     expectLastCall().once();
 
@@ -235,7 +235,7 @@ public class PropStoreEventTest {
 
   @Test
   public void validateWatcherSetTest() throws Exception {
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"));
 
     Map<String,String> props1 =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
@@ -254,7 +254,7 @@ public class PropStoreEventTest {
       return propCodec.toBytes(vProps);
     }).once();
 
-    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor, instanceId);
+    PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
     replay(context, zk, zrw, readyMonitor);
 

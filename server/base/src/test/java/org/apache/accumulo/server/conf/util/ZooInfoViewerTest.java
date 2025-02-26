@@ -236,8 +236,9 @@ public class ZooInfoViewerTest {
     var sysPropBytes = propCodec
         .toBytes(new VersionedProperties(123, Instant.now(), Map.of("s1", "sv1", "s2", "sv2")));
     Capture<Stat> sStat = newCapture();
-    expect(zk.getData(eq(SystemPropKey.of(iid).getPath()), isA(PropStoreWatcher.class),
-        capture(sStat))).andAnswer(() -> {
+    expect(
+        zk.getData(eq(SystemPropKey.of().getPath()), isA(PropStoreWatcher.class), capture(sStat)))
+        .andAnswer(() -> {
           Stat s = sStat.getValue();
           s.setCtime(System.currentTimeMillis());
           s.setMtime(System.currentTimeMillis());
@@ -254,7 +255,7 @@ public class ZooInfoViewerTest {
         propCodec.toBytes(new VersionedProperties(123, Instant.now(), Map.of("n1", "nv1")));
     NamespaceId nsId = NamespaceId.of("a");
     Capture<Stat> nsStat = newCapture();
-    expect(zk.getData(eq(NamespacePropKey.of(iid, nsId).getPath()), isA(PropStoreWatcher.class),
+    expect(zk.getData(eq(NamespacePropKey.of(nsId).getPath()), isA(PropStoreWatcher.class),
         capture(nsStat))).andAnswer(() -> {
           Stat s = nsStat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -272,8 +273,9 @@ public class ZooInfoViewerTest {
     var tPropBytes = propCodec.toBytes(tProps);
     TableId tid = TableId.of("t");
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(TablePropKey.of(iid, tid).getPath()), isA(PropStoreWatcher.class),
-        capture(stat))).andAnswer(() -> {
+    expect(
+        zk.getData(eq(TablePropKey.of(tid).getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
           s.setMtime(System.currentTimeMillis());
@@ -291,7 +293,7 @@ public class ZooInfoViewerTest {
 
     replay(context, zk);
 
-    NamespacePropKey nsKey = NamespacePropKey.of(iid, nsId);
+    NamespacePropKey nsKey = NamespacePropKey.of(nsId);
     log.trace("namespace base path: {}", nsKey.getPath());
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";

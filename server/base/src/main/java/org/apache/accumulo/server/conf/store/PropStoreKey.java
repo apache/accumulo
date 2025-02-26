@@ -26,7 +26,6 @@ import java.util.Comparator;
 import java.util.Objects;
 
 import org.apache.accumulo.core.data.AbstractId;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.checkerframework.checker.nullness.qual.NonNull;

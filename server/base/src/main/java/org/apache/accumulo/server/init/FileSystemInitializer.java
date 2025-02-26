@@ -195,7 +195,7 @@ public class FileSystemInitializer {
   private void setTableProperties(final ServerContext context, TableId tableId,
       HashMap<String,String> props) {
     var propStore = context.getPropStore();
-    TablePropKey tablePropKey = TablePropKey.of(context, tableId);
+    TablePropKey tablePropKey = TablePropKey.of(tableId);
     if (propStore.exists(tablePropKey)) {
       propStore.putAll(tablePropKey, props);
     } else {

@@ -209,17 +209,17 @@ public class ZooPropEditor implements KeywordExecutable {
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
       TableId tid = getTableId(context, opts);
-      return TablePropKey.of(iid, tid);
+      return TablePropKey.of(tid);
     }
 
     // either nid of namespace name provided, get the namespace id.
     if (!opts.namespaceOpt.isEmpty() || !opts.namespaceIdOpt.isEmpty()) {
       NamespaceId nid = getNamespaceId(context, opts);
-      return NamespacePropKey.of(iid, nid);
+      return NamespacePropKey.of(nid);
     }
 
     // no table or namespace, assume system.
-    return SystemPropKey.of(iid);
+    return SystemPropKey.of();
   }
 
   private TableId getTableId(final ServerContext context, final ZooPropEditor.Opts opts) {
@@ -306,7 +306,7 @@ public class ZooPropEditor implements KeywordExecutable {
 
   private static class NullWatcher extends PropStoreWatcher {
     public NullWatcher(ReadyMonitor zkReadyMonitor) {
-      super(zkReadyMonitor, null);
+      super(zkReadyMonitor);
     }
   }
 }

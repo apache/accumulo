@@ -538,7 +538,8 @@ public class TabletMetadata {
     for (String child : context.getZooCache().getChildren(Constants.ZTSERVERS)) {
       checkServer(context, Constants.ZTSERVERS, child).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS);
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(),
+        ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS);
 
     return liveServers;
   }

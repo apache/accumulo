@@ -169,7 +169,7 @@ public class ZooBasedConfigIT {
     replay(context);
     // force create empty sys config node.
     zk.create(Constants.ZCONFIG, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    var propKey = SystemPropKey.of(INSTANCE_ID);
+    var propKey = SystemPropKey.of();
     ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
     assertNotNull(zbc);
   }
@@ -179,10 +179,10 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    propStore.create(SystemPropKey.of(context),
+    propStore.create(SystemPropKey.of(),
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
 
@@ -196,18 +196,18 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     propStore.create(sysPropKey, Map.of());
     assertThrows(IllegalStateException.class, () -> propStore.create(sysPropKey, Map.of()));
 
-    propStore.create(NamespacePropKey.of(context, nsId), Map.of());
+    propStore.create(NamespacePropKey.of(nsId), Map.of());
     assertThrows(IllegalStateException.class,
-        () -> propStore.create(NamespacePropKey.of(context, nsId), Map.of()));
+        () -> propStore.create(NamespacePropKey.of(nsId), Map.of()));
 
-    propStore.create(TablePropKey.of(context, tidA), Map.of());
+    propStore.create(TablePropKey.of(tidA), Map.of());
     assertThrows(IllegalStateException.class,
-        () -> propStore.create(TablePropKey.of(context, tidA), Map.of()));
+        () -> propStore.create(TablePropKey.of(tidA), Map.of()));
   }
 
   @Test
@@ -215,11 +215,11 @@ public class ZooBasedConfigIT {
 
     replay(context);
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     propStore.create(sysPropKey, Map.of());
 
-    propStore.create(NamespacePropKey.of(context, nsId), Map.of());
+    propStore.create(NamespacePropKey.of(nsId), Map.of());
 
     ZooBasedConfiguration zbc = new NamespaceConfiguration(context, nsId, parent);
 
@@ -240,10 +240,10 @@ public class ZooBasedConfigIT {
     // expect(parent.getUpdateCount()).andReturn(123L).anyTimes();
     replay(context);
 
-    propStore.create(SystemPropKey.of(context),
+    propStore.create(SystemPropKey.of(),
         Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
-    var sysPropKey = SystemPropKey.of(INSTANCE_ID);
+    var sysPropKey = SystemPropKey.of();
 
     TestListener testListener = new TestListener();
     propStore.registerAsListener(sysPropKey, testListener);
@@ -258,7 +258,7 @@ public class ZooBasedConfigIT {
     // advance well past unload period.
     ticker.advance(2, TimeUnit.HOURS);
 
-    var tableBPropKey = TablePropKey.of(INSTANCE_ID, tidB);
+    var tableBPropKey = TablePropKey.of(tidB);
     propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);
 

@@ -122,7 +122,7 @@ public class PropCacheCaffeineImplZkIT {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    var propStoreKey = TablePropKey.of(INSTANCE_ID, tIdA);
+    var propStoreKey = TablePropKey.of(tIdA);
     var created = zrw.putPersistentData(propStoreKey.getPath(),
         VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 
@@ -130,7 +130,7 @@ public class PropCacheCaffeineImplZkIT {
 
     ReadyMonitor readyMonitor = new ReadyMonitor("test", zk.getSessionTimeout());
 
-    PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor, INSTANCE_ID);
+    PropStoreWatcher propStoreWatcher = new PropStoreWatcher(readyMonitor);
 
     var propLoader = new ZooPropLoader(zk, VersionedPropCodec.getDefault(), propStoreWatcher);
     PropCacheCaffeineImpl cache = new PropCacheCaffeineImpl.Builder(propLoader).build();

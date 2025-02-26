@@ -42,7 +42,6 @@ import org.slf4j.LoggerFactory;
 // Utility class for adding all authentication info into ZK
 public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticator.class);
-  private final String ZKUsers = Constants.ZUSERS;
 
   private ServerContext context;
   private ZooCache zooCache;
@@ -60,13 +59,13 @@ public final class ZKAuthenticator implements Authenticator {
       ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
-        if (zoo.exists(ZKUsers)) {
-          zoo.recursiveDelete(ZKUsers, NodeMissingPolicy.SKIP);
-          log.info("Removed {}/ from zookeeper", ZKUsers);
+        if (zoo.exists(Constants.ZUSERS)) {
+          zoo.recursiveDelete(Constants.ZUSERS, NodeMissingPolicy.SKIP);
+          log.info("Removed {}/ from zookeeper", Constants.ZUSERS);
         }
 
         // prep parent node of users with root username
-        zoo.putPersistentData(ZKUsers, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(Constants.ZUSERS, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
         constructUser(principal, ZKSecurityTool.createPass(token));
       }
@@ -85,13 +84,13 @@ public final class ZKAuthenticator implements Authenticator {
     synchronized (zooCache) {
       zooCache.clear();
       ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-      zoo.putPrivatePersistentData(ZKUsers + "/" + user, pass, NodeExistsPolicy.FAIL);
+      zoo.putPrivatePersistentData(Constants.ZUSERS + "/" + user, pass, NodeExistsPolicy.FAIL);
     }
   }
 
   @Override
   public Set<String> listUsers() {
-    return new TreeSet<>(zooCache.getChildren(ZKUsers));
+    return new TreeSet<>(zooCache.getChildren(Constants.ZUSERS));
   }
 
   @Override
@@ -122,7 +121,7 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       synchronized (zooCache) {
         zooCache.clear();
-        context.getZooSession().asReaderWriter().recursiveDelete(ZKUsers + "/" + user,
+        context.getZooSession().asReaderWriter().recursiveDelete(Constants.ZUSERS + "/" + user,
             NodeMissingPolicy.FAIL);
       }
     } catch (InterruptedException e) {
@@ -147,9 +146,9 @@ public final class ZKAuthenticator implements Authenticator {
     if (userExists(principal)) {
       try {
         synchronized (zooCache) {
-          zooCache.clear(ZKUsers + "/" + principal);
+          zooCache.clear(Constants.ZUSERS + "/" + principal);
           context.getZooSession().asReaderWriter().putPrivatePersistentData(
-              ZKUsers + "/" + principal, ZKSecurityTool.createPass(pt.getPassword()),
+              Constants.ZUSERS + "/" + principal, ZKSecurityTool.createPass(pt.getPassword()),
               NodeExistsPolicy.OVERWRITE);
         }
       } catch (KeeperException e) {
@@ -170,7 +169,7 @@ public final class ZKAuthenticator implements Authenticator {
 
   @Override
   public boolean userExists(String user) {
-    return zooCache.get(ZKUsers + "/" + user) != null;
+    return zooCache.get(Constants.ZUSERS + "/" + user) != null;
   }
 
   @Override
@@ -186,7 +185,7 @@ public final class ZKAuthenticator implements Authenticator {
     }
     PasswordToken pt = (PasswordToken) token;
     byte[] zkData;
-    String zpath = ZKUsers + "/" + principal;
+    String zpath = Constants.ZUSERS + "/" + principal;
     zkData = zooCache.get(zpath);
     boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {

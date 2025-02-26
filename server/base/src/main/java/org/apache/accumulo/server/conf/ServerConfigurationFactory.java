@@ -77,8 +77,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    this.systemConfig = memoize(() -> new SystemConfiguration(context,
-        SystemPropKey.of(context.getInstanceID()), siteConfig));
+    this.systemConfig =
+        memoize(() -> new SystemConfiguration(context, SystemPropKey.of(), siteConfig));
     tableParentConfigs =
         Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
     tableConfigs =
@@ -112,7 +112,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public TableConfiguration getTableConfiguration(TableId tableId) {
     return tableConfigs.get(tableId, key -> {
       if (context.tableNodeExists(tableId)) {
-        context.getPropStore().registerAsListener(TablePropKey.of(context, tableId), changeWatcher);
+        context.getPropStore().registerAsListener(TablePropKey.of(tableId), changeWatcher);
         var conf =
             new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
         ConfigCheckUtil.validate(conf, "table id: " + tableId.toString());
@@ -136,8 +136,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   @Override
   public NamespaceConfiguration getNamespaceConfiguration(NamespaceId namespaceId) {
     return namespaceConfigs.get(namespaceId, key -> {
-      context.getPropStore().registerAsListener(NamespacePropKey.of(context, namespaceId),
-          changeWatcher);
+      context.getPropStore().registerAsListener(NamespacePropKey.of(namespaceId), changeWatcher);
       var conf = new NamespaceConfiguration(context, namespaceId, getSystemConfiguration());
       ConfigCheckUtil.validate(conf, "namespace id: " + namespaceId.toString());
       return conf;
@@ -221,7 +220,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       keyCount++;
 
       // rely on store to propagate change event if different
-      propStore.validateDataVersion(SystemPropKey.of(context),
+      propStore.validateDataVersion(SystemPropKey.of(),
           ((ZooBasedConfiguration) getSystemConfiguration()).getDataVersion());
       // small yield - spread out ZooKeeper calls
       jitterDelay();
@@ -229,7 +228,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       for (Map.Entry<NamespaceId,NamespaceConfiguration> entry : namespaceConfigs.asMap()
           .entrySet()) {
         keyCount++;
-        PropStoreKey<?> propKey = NamespacePropKey.of(context, entry.getKey());
+        PropStoreKey<?> propKey = NamespacePropKey.of(entry.getKey());
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
           keyChangedCount++;
           namespaceConfigs.invalidate(entry.getKey());
@@ -241,7 +240,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.asMap().entrySet()) {
         keyCount++;
         TableId tid = entry.getKey();
-        PropStoreKey<?> propKey = TablePropKey.of(context, tid);
+        PropStoreKey<?> propKey = TablePropKey.of(tid);
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
           keyChangedCount++;
           tableConfigs.invalidate(tid);

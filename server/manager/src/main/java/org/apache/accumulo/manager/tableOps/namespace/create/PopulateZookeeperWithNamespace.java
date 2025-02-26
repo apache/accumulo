@@ -58,7 +58,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
       TableManager.prepareNewNamespaceState(context, namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      PropUtil.setProperties(context, NamespacePropKey.of(context, namespaceInfo.namespaceId),
+      PropUtil.setProperties(context, NamespacePropKey.of(namespaceInfo.namespaceId),
           namespaceInfo.props);
 
       context.clearTableListCache();

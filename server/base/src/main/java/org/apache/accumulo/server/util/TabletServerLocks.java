@@ -41,7 +41,8 @@ public class TabletServerLocks {
     if (delete == null) {
       List<String> tabletServers = zoo.getChildren(Constants.ZTSERVERS);
       if (tabletServers.isEmpty()) {
-        System.err.println("No tservers found in ZK at " + ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS);
+        System.err.println("No tservers found in ZK at " + ZooUtil.getRoot(context.getInstanceID())
+            + Constants.ZTSERVERS);
       }
 
       for (String tabletServer : tabletServers) {
