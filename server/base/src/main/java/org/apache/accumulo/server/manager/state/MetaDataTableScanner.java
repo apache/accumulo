@@ -96,6 +96,7 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
+      // TODO this scan is for a level, only get the migrations for the level
       TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot());
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
       TabletStateChangeIterator.setShuttingDown(tabletChange, state.shutdownServers());
