@@ -21,11 +21,13 @@ package org.apache.accumulo.core.spi.balancer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -144,7 +146,8 @@ public class SimpleLoadBalancerTest {
 
     // Nothing should happen, we are balanced
     ArrayList<TabletMigration> out = new ArrayList<>();
-    balancer.getMigrations(current, out);
+    balancer.getMigrations(new BalanceParamsImpl(current, Set.of(), out, DataLevel.USER,
+        Map.of("t1", TableId.of("t1"), "t2", TableId.of("t2"), "t3", TableId.of("t3"))));
     assertEquals(out.size(), 0);
 
     // Take down a tabletServer
@@ -204,7 +207,7 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER, Map.of()));
+          DataLevel.USER, Map.of("newTable", TableId.of("newTable"))));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -226,42 +229,71 @@ public class SimpleLoadBalancerTest {
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsid, fakeTServer);
     }
+    String table1 = "LongTable";
+    String table2 = "ShortTable";
+
+    // Generate Table Ids
+    TableId t1Id = TableId.of(table1);
+    TableId t2Id = TableId.of(table2);
+
     // put 60 tablets on 25 of them
     List<Entry<TabletServerId,FakeTServer>> shortList = new ArrayList<>(servers.entrySet());
     Entry<TabletServerId,FakeTServer> shortServer = shortList.remove(0);
-    int c = 0;
     for (int i = 0; i < 60; i++) {
       for (Entry<TabletServerId,FakeTServer> entry : shortList) {
-        entry.getValue().tablets.add(makeTablet("t" + c, null, null));
+        entry.getValue().tablets.add(makeTablet(table1, null, null));
       }
     }
     // put 10 on the that short server:
     for (int i = 0; i < 10; i++) {
-      shortServer.getValue().tablets.add(makeTablet("s" + i, null, null));
+      shortServer.getValue().tablets.add(makeTablet(table2, null, null));
     }
+    Set<TableId> migratedTables;
+    // average is 58, with 2 at 59: we need 48 more moved to the short server
+    migratedTables = balanceTables(Map.of(table1, t1Id, table2, t2Id), 48);
+    assertEquals(1, migratedTables.size());
+    assertTrue(migratedTables.contains(t1Id));
 
+    // ShortTable tablets are only on the short server: 9 should be migrated off
+    migratedTables = balanceTables(Map.of(table2, t2Id), 9);
+    assertEquals(1, migratedTables.size());
+    assertTrue(migratedTables.contains(t2Id));
+
+    // ShortServer now has 9 less LongTable tablets: 9 LongTable tablets should migrate back
+    migratedTables = balanceTables(Map.of(table1, t1Id), 9);
+    assertEquals(1, migratedTables.size());
+    assertTrue(migratedTables.contains(t1Id));
+
+    // Servers are now fully balanced. Attempt to balance both tables again
+    migratedTables = balanceTables(Map.of(table1, t1Id, table2, t2Id), 0);
+    assertEquals(0, migratedTables.size());
+  }
+
+  private Set<TableId> balanceTables(Map<String,TableId> tablesToBalance, int expectedMigrations) {
     TestSimpleLoadBalancer balancer = new TestSimpleLoadBalancer();
+    Set<TableId> migratedTables = new HashSet<>();
     Set<TabletId> migrations = Collections.emptySet();
     int moved = 0;
     // balance until we can't balance no more!
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER, Map.of()));
+          DataLevel.USER, tablesToBalance));
       if (migrationsOut.isEmpty()) {
         break;
       }
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.getOldTabletServer()).tablets.remove(migration.getTablet())) {
           moved++;
+          migratedTables.add(migration.getTablet().getTable());
         }
         last.remove(migration.getTablet());
         servers.get(migration.getNewTabletServer()).tablets.add(migration.getTablet());
         last.put(migration.getTablet(), migration.getNewTabletServer());
       }
     }
-    // average is 58, with 2 at 59: we need 48 more moved to the short server
-    assertEquals(48, moved);
+    assertEquals(expectedMigrations, moved);
+    return migratedTables;
   }
 
   private void checkBalance(List<TabletId> metadataTable, Map<TabletServerId,FakeTServer> servers,

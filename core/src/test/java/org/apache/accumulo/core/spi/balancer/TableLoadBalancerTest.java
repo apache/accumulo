@@ -101,10 +101,6 @@ public class TableLoadBalancerTest {
 
   public static class TestSimpleLoadBalancer extends SimpleLoadBalancer {
 
-    public TestSimpleLoadBalancer(TableId table) {
-      super(table);
-    }
-
     @Override
     public void init(BalancerEnvironment balancerEnvironment) {}
 

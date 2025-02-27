@@ -72,14 +72,8 @@ public class SimpleLoadBalancer implements TabletBalancer {
   protected BalancerEnvironment environment;
 
   Iterator<TabletServerId> assignments;
-  // if tableToBalance is set, then only balance the given table
-  TableId tableToBalance = null;
 
   public SimpleLoadBalancer() {}
-
-  public SimpleLoadBalancer(TableId table) {
-    tableToBalance = table;
-  }
 
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {
@@ -156,12 +150,12 @@ public class SimpleLoadBalancer implements TabletBalancer {
     }
   }
 
-  public boolean getMigrations(Map<TabletServerId,TServerStatus> current,
-      List<TabletMigration> result) {
+  public boolean getMigrations(BalanceParameters params) {
+    List<TabletMigration> resultingMigrations = new ArrayList<>();
     boolean moreBalancingNeeded = false;
     try {
       // no moves possible
-      if (current.size() < 2) {
+      if (params.currentStatus().size() < 2) {
         return false;
       }
       final Map<TableId,Map<TabletId,TabletStatistics>> donerTabletStats = new HashMap<>();
@@ -169,7 +163,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
       // Sort by total number of online tablets, per server
       int total = 0;
       ArrayList<ServerCounts> totals = new ArrayList<>();
-      for (Entry<TabletServerId,TServerStatus> entry : current.entrySet()) {
+      for (Entry<TabletServerId,TServerStatus> entry : params.currentStatus().entrySet()) {
         int serverTotal = 0;
         if (entry.getValue() != null && entry.getValue().getTableMap() != null) {
           for (Entry<String,TableStatistics> e : entry.getValue().getTableMap().entrySet()) {
@@ -177,8 +171,10 @@ public class SimpleLoadBalancer implements TabletBalancer {
              * The check below was on entry.getKey(), but that resolves to a tabletserver not a
              * tablename. Believe it should be e.getKey() which is a tablename
              */
-            if (tableToBalance == null || tableToBalance.canonical().equals(e.getKey())) {
-              serverTotal += e.getValue().getOnlineTabletCount();
+            for (TableId tableId : params.getTablesToBalance().values()) {
+              if (tableId.canonical().equals(e.getKey())) {
+                serverTotal += e.getValue().getOnlineTabletCount();
+              }
             }
           }
         }
@@ -213,11 +209,11 @@ public class SimpleLoadBalancer implements TabletBalancer {
           break;
         }
         if (needToUnload >= needToLoad) {
-          result.addAll(move(tooMany, tooLittle, needToLoad, donerTabletStats));
+          resultingMigrations.addAll(move(tooMany, tooLittle, needToLoad, donerTabletStats));
           end--;
           movedAlready = 0;
         } else {
-          result.addAll(move(tooMany, tooLittle, needToUnload, donerTabletStats));
+          resultingMigrations.addAll(move(tooMany, tooLittle, needToUnload, donerTabletStats));
           movedAlready += needToUnload;
         }
         if (needToUnload > needToLoad) {
@@ -229,7 +225,8 @@ public class SimpleLoadBalancer implements TabletBalancer {
       }
 
     } finally {
-      log.trace("balance ended with {} migrations", result.size());
+      log.trace("balance ended with {} migrations", resultingMigrations.size());
+      params.migrationsOut().addAll(resultingMigrations);
     }
     return moreBalancingNeeded;
   }
@@ -293,10 +290,6 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   private TableId getTableToMigrate(ServerCounts tooMuch, Map<TableId,Integer> tooMuchMap,
       Map<TableId,Integer> tooLittleMap) {
-
-    if (tableToBalance != null) {
-      return tableToBalance;
-    }
 
     // find a table to migrate
     // look for an uneven table count
@@ -381,7 +374,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
       // Don't migrate if we have migrations in progress
       if (params.currentMigrations().isEmpty()) {
         problemReporter.clearProblemReportTimes();
-        if (getMigrations(params.currentStatus(), params.migrationsOut())) {
+        if (getMigrations(params)) {
           return SECONDS.toMillis(1);
         }
       } else {
