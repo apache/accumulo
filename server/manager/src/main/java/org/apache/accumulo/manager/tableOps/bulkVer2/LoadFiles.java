@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -115,7 +116,7 @@ class LoadFiles extends ManagerRepo {
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
 
-      Loader loader = new Loader();
+      Loader loader = new Loader(manager, bulkInfo.tableId);
 
       List<ColumnType> fetchCols = new ArrayList<>(List.of(PREV_ROW, LOCATION, LOADED, TIME));
       if (loader.pauseLimit > 0) {
@@ -137,27 +138,32 @@ class LoadFiles extends ManagerRepo {
 
   // visible for testing
   public static class Loader {
-    protected Path bulkDir;
-    protected Manager manager;
-    protected FateId fateId;
-    protected boolean setTime;
+    private final Manager manager;
+    private final long pauseLimit;
+
+    private Path bulkDir;
+    private FateId fateId;
+    private boolean setTime;
     Ample.ConditionalTabletsMutator conditionalMutator;
     private Map<KeyExtent,List<TabletFile>> loadingFiles;
-
     private long skipped = 0;
-    private long pauseLimit;
+
+    public Loader(Manager manager, TableId tableId) {
+      Objects.requireNonNull(manager, "Manager must be supplied");
+      Objects.requireNonNull(tableId, "Table ID must be supplied");
+      this.manager = manager;
+      this.pauseLimit =
+          manager.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
+    }
 
     void start(Path bulkDir, Manager manager, TableId tableId, FateId fateId, boolean setTime)
         throws Exception {
       this.bulkDir = bulkDir;
-      this.manager = manager;
       this.fateId = fateId;
       this.setTime = setTime;
       conditionalMutator = manager.getContext().getAmple().conditionallyMutateTablets();
       this.skipped = 0;
       this.loadingFiles = new HashMap<>();
-      this.pauseLimit =
-          manager.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
     }
 
     void load(List<TabletMetadata> tablets, Files files) {
