@@ -1881,8 +1881,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   @Override
-  public Set<KeyExtent> migrationsSnapshot() {
-    return migrations.snapshotAll();
+  public Set<KeyExtent> migrationsSnapshot(DataLevel dataLevel) {
+    return migrations.snapshot(dataLevel);
   }
 
   @Override
