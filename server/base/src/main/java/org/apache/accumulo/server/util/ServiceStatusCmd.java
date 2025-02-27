@@ -64,19 +64,19 @@ public class ServiceStatusCmd {
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
-    services.put(ServiceStatusReport.ReportKey.MANAGER, getStatusSummary(
-        ServiceStatusReport.ReportKey.MANAGER, zooReader, Constants.ZMANAGER_LOCK));
-    services.put(ServiceStatusReport.ReportKey.MONITOR, getStatusSummary(
-        ServiceStatusReport.ReportKey.MONITOR, zooReader, Constants.ZMONITOR_LOCK));
-    services.put(ServiceStatusReport.ReportKey.T_SERVER, getServerHostStatus(zooReader,
-        Constants.ZTSERVERS, ServiceStatusReport.ReportKey.T_SERVER, TSERV));
-    services.put(ServiceStatusReport.ReportKey.S_SERVER, getServerHostStatus(zooReader,
-        Constants.ZSSERVERS, ServiceStatusReport.ReportKey.S_SERVER, TABLET_SCAN));
-    services.put(ServiceStatusReport.ReportKey.COORDINATOR, getStatusSummary(
-        ServiceStatusReport.ReportKey.COORDINATOR, zooReader, Constants.ZCOORDINATOR_LOCK));
+    services.put(ServiceStatusReport.ReportKey.MANAGER,
+        getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader));
+    services.put(ServiceStatusReport.ReportKey.MONITOR,
+        getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader));
+    services.put(ServiceStatusReport.ReportKey.T_SERVER,
+        getServerHostStatus(zooReader, ServiceStatusReport.ReportKey.T_SERVER, TSERV));
+    services.put(ServiceStatusReport.ReportKey.S_SERVER,
+        getServerHostStatus(zooReader, ServiceStatusReport.ReportKey.S_SERVER, TABLET_SCAN));
+    services.put(ServiceStatusReport.ReportKey.COORDINATOR,
+        getStatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, zooReader));
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorHosts(zooReader));
     services.put(ServiceStatusReport.ReportKey.GC,
-        getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, Constants.ZGC_LOCK));
+        getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader));
 
     ServiceStatusReport report = new ServiceStatusReport(services, noHosts);
 
@@ -94,7 +94,7 @@ public class ServiceStatusCmd {
    * {@code /accumulo/IID/[tservers | sservers]/HOST:PORT/[LOCK]}
    */
   @VisibleForTesting
-  StatusSummary getServerHostStatus(final ZooReader zooReader, String basePath,
+  StatusSummary getServerHostStatus(final ZooReader zooReader,
       ServiceStatusReport.ReportKey displayNames, ServiceLockData.ThriftService serviceType) {
     AtomicInteger errorSum = new AtomicInteger(0);
 
@@ -102,6 +102,17 @@ public class ServiceStatusCmd {
     Set<String> groupNames = new TreeSet<>();
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
+    String basePath;
+    switch (displayNames) {
+      case T_SERVER:
+        basePath = Constants.ZTSERVERS;
+        break;
+      case S_SERVER:
+        basePath = Constants.ZSSERVERS;
+        break;
+      default:
+        throw new IllegalStateException("Unexpected display names");
+    }
     var nodeNames = readNodeNames(zooReader, basePath);
 
     nodeNames.getData().forEach(host -> {
@@ -137,9 +148,24 @@ public class ServiceStatusCmd {
    * @return service status
    */
   @VisibleForTesting
-  StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames, ZooReader zooReader,
-      String lockPath) {
-    var result = readAllNodesData(zooReader, lockPath);
+  StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames, ZooReader zooReader) {
+    Result<Set<String>> result;
+    switch (displayNames) {
+      case MANAGER:
+        result = readAllNodesData(zooReader, Constants.ZMANAGER_LOCK);
+        break;
+      case MONITOR:
+        result = readAllNodesData(zooReader, Constants.ZMONITOR_LOCK);
+        break;
+      case COORDINATOR:
+        result = readAllNodesData(zooReader, Constants.ZCOORDINATOR_LOCK);
+        break;
+      case GC:
+        result = readAllNodesData(zooReader, Constants.ZGC_LOCK);
+        break;
+      default:
+        throw new IllegalStateException("Unexpected display names");
+    }
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);

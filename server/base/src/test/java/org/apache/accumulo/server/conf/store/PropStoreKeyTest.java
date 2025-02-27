@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZROOT;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -56,7 +55,6 @@ public class PropStoreKeyTest {
   @Test
   public void systemTypeFromContext() {
     ServerContext context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).once();
     replay(context);
 
     var propKey = SystemPropKey.of();
@@ -76,7 +74,6 @@ public class PropStoreKeyTest {
   @Test
   public void namespaceTypeFromContext() {
     ServerContext context = createMock(ServerContext.class);
-    expect(context.getInstanceID()).andReturn(instanceId).once();
     replay(context);
 
     var propKey = NamespacePropKey.of(NamespaceId.of("a"));

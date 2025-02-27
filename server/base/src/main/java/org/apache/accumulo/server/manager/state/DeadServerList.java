@@ -25,7 +25,6 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
@@ -46,8 +45,7 @@ public class DeadServerList {
     try {
       zoo.mkdirs(Constants.ZDEADTSERVERS);
     } catch (Exception ex) {
-      log.error("Unable to make parent directories of " + ZooUtil.getRoot(context.getInstanceID())
-          + Constants.ZDEADTSERVERS, ex);
+      log.error("Unable to make parent directories of " + Constants.ZDEADTSERVERS, ex);
     }
   }
 

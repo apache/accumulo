@@ -75,7 +75,13 @@ public class PropCacheCaffeineImplZkIT {
   @BeforeAll
   public static void setupZk() throws Exception {
     testZk = new ZooKeeperTestingServer(tempDir);
-    zk = testZk.newClient();
+    // prop store uses a chrooted ZK, so it is relocatable, but create a convenient empty node to
+    // work in for the test, so we can easily clean it up after each test
+    try (var zkInit = testZk.newClient()) {
+      zkInit.create("/instanceRoot", null, ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+    }
+    // create a chrooted client for the tests to use
+    zk = testZk.newClient("/instanceRoot");
     zrw = zk.asReaderWriter();
   }
 
@@ -105,7 +111,9 @@ public class PropCacheCaffeineImplZkIT {
 
   @AfterEach
   public void cleanupZnodes() throws Exception {
-    ZKUtil.deleteRecursive(zk, "/");
+    for (var child : zk.getChildren("/", null)) {
+      ZKUtil.deleteRecursive(zk, "/" + child);
+    }
   }
 
   @Test

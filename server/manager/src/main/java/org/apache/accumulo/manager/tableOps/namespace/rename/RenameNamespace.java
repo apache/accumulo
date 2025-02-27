@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.rename;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -56,7 +55,7 @@ public class RenameNamespace extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      NamespaceMapping.rename(zoo, Constants.ZNAMESPACES, namespaceId, oldName, newName);
+      NamespaceMapping.rename(zoo, namespaceId, oldName, newName);
 
       manager.getContext().clearTableListCache();
     } finally {

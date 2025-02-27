@@ -23,7 +23,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
 import org.apache.accumulo.manager.EventCoordinator;
@@ -88,7 +87,7 @@ public class PreUpgradeValidation {
                 + "for instructions on how to fix.");
       }
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Upgrade Failed! Error validating nodes under " + Constants.ZROOT,
+      throw new RuntimeException("Upgrade Failed! Error validating nodes under current root node.",
           e);
     }
     log.info("Successfully completed validation on ZooKeeper ACLs");

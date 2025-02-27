@@ -46,7 +46,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -538,8 +537,7 @@ public class TabletMetadata {
     for (String child : context.getZooCache().getChildren(Constants.ZTSERVERS)) {
       checkServer(context, Constants.ZTSERVERS, child).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(),
-        ZooUtil.getRoot(context.getInstanceID()) + Constants.ZTSERVERS);
+    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), Constants.ZTSERVERS);
 
     return liveServers;
   }

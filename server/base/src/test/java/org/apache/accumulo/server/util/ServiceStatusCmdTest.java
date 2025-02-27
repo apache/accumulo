@@ -91,8 +91,7 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader,
-        Constants.ZMANAGER_LOCK);
+    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader);
     LOG.info("manager status data: {}", status);
 
     assertEquals(3, status.getServiceCount());
@@ -134,8 +133,7 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader,
-        Constants.ZMONITOR_LOCK);
+    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader);
     LOG.info("monitor status data: {}", status);
 
     assertEquals(2, status.getServiceCount());
@@ -221,8 +219,8 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getServerHostStatus(zooReader, Constants.ZTSERVERS,
-        ServiceStatusReport.ReportKey.T_SERVER, TSERV);
+    StatusSummary status =
+        cmd.getServerHostStatus(zooReader, ServiceStatusReport.ReportKey.T_SERVER, TSERV);
     LOG.info("tserver status data: {}", status);
 
     assertEquals(3, status.getServiceCount());
@@ -308,8 +306,8 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getServerHostStatus(zooReader, Constants.ZSSERVERS,
-        ServiceStatusReport.ReportKey.S_SERVER, TABLET_SCAN);
+    StatusSummary status =
+        cmd.getServerHostStatus(zooReader, ServiceStatusReport.ReportKey.S_SERVER, TABLET_SCAN);
     assertEquals(4, status.getServiceCount());
 
     Map<String,Set<String>> hostByGroup = new TreeMap<>();
@@ -355,8 +353,8 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.COORDINATOR,
-        zooReader, Constants.ZCOORDINATOR_LOCK);
+    StatusSummary status =
+        cmd.getStatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, zooReader);
     LOG.info("tserver status data: {}", status);
 
     assertEquals(3, status.getServiceCount());
@@ -423,8 +421,7 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status =
-        cmd.getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, Constants.ZGC_LOCK);
+    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader);
     LOG.info("gc server counts: {}", status);
     assertEquals(2, status.getResourceGroups().size());
     assertEquals(2, status.getServiceCount());
@@ -469,8 +466,7 @@ public class ServiceStatusCmdTest {
     replay(zk);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
-    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader,
-        Constants.ZMANAGER_LOCK);
+    StatusSummary status = cmd.getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader);
     LOG.info("manager status data: {}", status);
 
     assertEquals(2, status.getServiceByGroups().size());
