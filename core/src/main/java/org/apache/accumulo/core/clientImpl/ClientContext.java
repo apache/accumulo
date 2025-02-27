@@ -46,6 +46,7 @@ import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -73,6 +74,7 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
@@ -1038,7 +1040,21 @@ public class ClientContext implements AccumuloClient {
   public synchronized ThriftTransportPool getTransportPool() {
     ensureOpen();
     if (thriftTransportPool == null) {
-      thriftTransportPool = ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis);
+      LongSupplier maxAgeSupplier = () -> {
+        try {
+          return getTransportPoolMaxAgeMillis();
+        } catch (IllegalStateException e) {
+          if (closed.get()) {
+            // The transport pool has a background thread that may call this supplier in the middle
+            // of closing. This is here to avoid spurious exceptions from race conditions that
+            // happen when closing a client.
+            return ConfigurationTypeHelper
+                .getTimeInMillis(ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getDefaultValue());
+          }
+          throw e;
+        }
+      };
+      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier);
     }
     return thriftTransportPool;
   }

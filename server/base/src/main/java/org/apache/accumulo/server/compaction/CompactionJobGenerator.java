@@ -296,7 +296,7 @@ public class CompactionJobGenerator {
 
       @Override
       public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
+        return new CompactionPlanImpl.BuilderImpl(kind, candidates);
       }
     };
     return planCompactions(planner, params, serviceId);

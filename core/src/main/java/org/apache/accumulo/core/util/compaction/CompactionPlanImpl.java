@@ -55,14 +55,11 @@ public class CompactionPlanImpl implements CompactionPlan {
 
     private final CompactionKind kind;
     private final ArrayList<CompactionJob> jobs = new ArrayList<>();
-    private final Set<CompactableFile> allFiles;
     private final Set<CompactableFile> seenFiles = new HashSet<>();
     private final Set<CompactableFile> candidates;
 
-    public BuilderImpl(CompactionKind kind, Set<CompactableFile> allFiles,
-        Set<CompactableFile> candidates) {
+    public BuilderImpl(CompactionKind kind, Set<CompactableFile> candidates) {
       this.kind = kind;
-      this.allFiles = allFiles;
       this.candidates = candidates;
     }
 

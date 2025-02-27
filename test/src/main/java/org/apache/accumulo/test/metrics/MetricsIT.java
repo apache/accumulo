@@ -60,6 +60,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -179,7 +180,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             } else if (flakyMetrics.contains(metric)) {
               // ignore any flaky metric names seen
               // these aren't always expected, but we shouldn't be surprised if we see them
-            } else if (metric.getName().startsWith("accumulo.compactor.")) {
+            } else if (metric.getName().startsWith("accumulo.compaction.")) {
               // Compactor queue metrics are not guaranteed to be emitted
               // during the call to doWorkToGenerateMetrics above. This will
               // flip a bit in the BitSet when each metric is seen. The top-level
@@ -289,13 +290,13 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.info("METRICS, received from statsd - name: '{}' num tags: {}, tags: {} = {}",
                 a.getName(), t.size(), t, a.getValue());
             // check hostname is always set and is valid
-            assertNotEquals("0.0.0.0", a.getTags().get("host"));
-            assertNotNull(a.getTags().get("instance.name"));
+            assertNotEquals("0.0.0.0", a.getTags().get(MetricsInfo.HOST_TAG_KEY));
+            assertNotNull(a.getTags().get(MetricsInfo.INSTANCE_NAME_TAG_KEY));
 
-            assertNotNull(a.getTags().get("process.name"));
+            assertNotNull(a.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY));
 
             // check resource.group tag exists
-            assertNotNull(a.getTags().get("resource.group"));
+            assertNotNull(a.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY));
 
             // check that the user tags are present
             assertEquals("value1", a.getTags().get("tag1"));

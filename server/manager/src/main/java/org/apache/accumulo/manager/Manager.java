@@ -1148,7 +1148,6 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
     clientService = sa.server;
-    setHostname(sa.address);
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
@@ -1158,6 +1157,11 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+
+    // Set the HostName **after** initially creating the lock. The lock data is
+    // updated below with the correct address. This prevents clients from accessing
+    // the Manager until all of the internal processes are started.
+    setHostname(sa.address);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
@@ -1314,12 +1318,12 @@ public class Manager extends AbstractServer
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    String address = sa.address.toString();
     UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
         ThriftService.FATE}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, address, this.getResourceGroup()));
+      descriptors
+          .addService(new ServiceDescriptor(uuid, svc, getHostname(), this.getResourceGroup()));
     }
 
     sld = new ServiceLockData(descriptors);
