@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.slf4j.LoggerFactory;
 
 public class VolumeConfiguration {
 
@@ -39,7 +40,23 @@ public class VolumeConfiguration {
   }
 
   public static Set<String> getVolumeUris(AccumuloConfiguration conf) {
-    String volumes = conf.get(Property.INSTANCE_VOLUMES);
+    return getVolumeUris(conf.get(Property.INSTANCE_VOLUMES));
+  }
+
+  public static boolean isValidVolumeUris(String volumes) {
+    try {
+      if (volumes == null || volumes.isBlank()) {
+        return false;
+      }
+      getVolumeUris(volumes);
+      return true;
+    } catch (IllegalArgumentException e) {
+      LoggerFactory.getLogger(VolumeConfiguration.class).warn(e.getMessage());
+      return false;
+    }
+  }
+
+  private static Set<String> getVolumeUris(String volumes) {
     if (volumes == null || volumes.isBlank()) {
       throw new IllegalArgumentException(
           "Missing required property " + Property.INSTANCE_VOLUMES.getKey());

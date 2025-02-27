@@ -31,6 +31,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -148,7 +149,9 @@ public enum PropertyType {
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
-          + "Currently, only " + RFile.EXTENSION + " is supported.");
+          + "Currently, only " + RFile.EXTENSION + " is supported."),
+
+  VOLUMES("volumes", VolumeConfiguration::isValidVolumeUris, "See instance.volumes documentation");
 
   private final String shortname;
   private final String format;
@@ -395,5 +398,4 @@ public enum PropertyType {
     }
 
   }
-
 }
