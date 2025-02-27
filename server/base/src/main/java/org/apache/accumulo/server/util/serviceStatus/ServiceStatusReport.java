@@ -27,6 +27,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -184,22 +185,26 @@ public class ServiceStatusReport {
   }
 
   public enum ReportKey {
-    COMPACTOR("Compactors"),
-    COORDINATOR("Coordinators"),
-    GC("Garbage Collectors"),
-    MANAGER("Managers"),
-    MONITOR("Monitors"),
-    S_SERVER("Scan Servers"),
-    T_SERVER("Tablet Servers");
+    COMPACTOR("Compactors", Constants.ZCOMPACTORS),
+    COORDINATOR("Coordinators", Constants.ZCOORDINATOR_LOCK),
+    GC("Garbage Collectors", Constants.ZGC_LOCK),
+    MANAGER("Managers", Constants.ZMANAGER_LOCK),
+    MONITOR("Monitors", Constants.ZMONITOR_LOCK),
+    S_SERVER("Scan Servers", Constants.ZSSERVERS),
+    T_SERVER("Tablet Servers", Constants.ZTSERVERS);
 
     private final String displayName;
+    private final String zkPath;
 
-    ReportKey(final String name) {
+    ReportKey(final String name, final String zkPath) {
       this.displayName = name;
+      this.zkPath = zkPath;
     }
 
     public String getDisplayName() {
       return displayName;
     }
+
+    public String getZkPath() { return zkPath; }
   }
 }

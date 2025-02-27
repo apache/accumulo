@@ -102,23 +102,13 @@ public class ServiceStatusCmd {
     Set<String> groupNames = new TreeSet<>();
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
-    String basePath;
-    switch (displayNames) {
-      case T_SERVER:
-        basePath = Constants.ZTSERVERS;
-        break;
-      case S_SERVER:
-        basePath = Constants.ZSSERVERS;
-        break;
-      default:
-        throw new IllegalStateException("Unexpected display names");
-    }
-    var nodeNames = readNodeNames(zooReader, basePath);
+    var zkPath = displayNames.getZkPath();
+    var nodeNames = readNodeNames(zooReader, zkPath);
 
     nodeNames.getData().forEach(host -> {
-      var lock = readNodeNames(zooReader, basePath + "/" + host);
+      var lock = readNodeNames(zooReader, zkPath + "/" + host);
       lock.getData().forEach(l -> {
-        var nodeData = readNodeData(zooReader, basePath + "/" + host + "/" + l);
+        var nodeData = readNodeData(zooReader, zkPath + "/" + host + "/" + l);
         int err = nodeData.getErrorCount();
         if (err > 0) {
           errorSum.addAndGet(nodeData.getErrorCount());
@@ -149,23 +139,7 @@ public class ServiceStatusCmd {
    */
   @VisibleForTesting
   StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames, ZooReader zooReader) {
-    Result<Set<String>> result;
-    switch (displayNames) {
-      case MANAGER:
-        result = readAllNodesData(zooReader, Constants.ZMANAGER_LOCK);
-        break;
-      case MONITOR:
-        result = readAllNodesData(zooReader, Constants.ZMONITOR_LOCK);
-        break;
-      case COORDINATOR:
-        result = readAllNodesData(zooReader, Constants.ZCOORDINATOR_LOCK);
-        break;
-      case GC:
-        result = readAllNodesData(zooReader, Constants.ZGC_LOCK);
-        break;
-      default:
-        throw new IllegalStateException("Unexpected display names");
-    }
+    var result = readAllNodesData(zooReader, displayNames.getZkPath());
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
