@@ -366,16 +366,24 @@ class LoadFiles extends ManagerRepo {
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
-    try (TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow)) {
+    KeyExtent prevLastExtent = null; // KeyExtent of last tablet from prior loadMapEntry
 
-      Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
-      while (lmi.hasNext()) {
-        loadMapEntry = lmi.next();
-        List<TabletMetadata> tablets =
-            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
-        loader.load(tablets, loadMapEntry.getValue());
+    TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
+    Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
+    while (lmi.hasNext()) {
+      loadMapEntry = lmi.next();
+      KeyExtent loadMapKey = loadMapEntry.getKey();
+      if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
+        tabletsMetadata.close();
+        tabletsMetadata = factory.newTabletsMetadata(startRow);
+        tabletIter = tabletsMetadata.iterator();
       }
+      List<TabletMetadata> tablets =
+          findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
+      loader.load(tablets, loadMapEntry.getValue());
+      prevLastExtent = tablets.get(tablets.size() - 1).getExtent();
     }
+    tabletsMetadata.close();
     Duration totalProcessingTime = timer.elapsed();
 
     log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
