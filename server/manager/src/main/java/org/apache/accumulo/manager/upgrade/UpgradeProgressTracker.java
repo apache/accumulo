@@ -20,9 +20,7 @@ package org.apache.accumulo.manager.upgrade;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -40,172 +38,137 @@ import org.apache.zookeeper.data.Stat;
  */
 public class UpgradeProgressTracker {
 
-  /**
-   * Track upgrade progress for each component. The version stored is the most recent version for
-   * which an upgrade has been completed.
-   */
-  public static class UpgradeProgress {
+  private final ServerContext context;
 
-    private int zooKeeperVersion;
-    private int rootVersion;
-    private int metadataVersion;
-    private int upgradeTargetVersion;
-    private volatile transient int znodeVersion;
+  private volatile UpgradeProgress progress;
+  private volatile int znodeVersion = 0;
 
-    public UpgradeProgress() {}
-
-    public UpgradeProgress(int currentVersion, int targetVersion) {
-      zooKeeperVersion = currentVersion;
-      rootVersion = currentVersion;
-      metadataVersion = currentVersion;
-      upgradeTargetVersion = targetVersion;
-    }
-
-    public int getZooKeeperVersion() {
-      return zooKeeperVersion;
-    }
-
-    public synchronized void updateZooKeeperVersion(ServerContext context, int newVersion)
-        throws KeeperException, InterruptedException {
-      requireNonNull(context, "ServerContext must be supplied");
-      checkArgument(newVersion <= AccumuloDataVersion.get(),
-          "New version (%s) cannot be larger than current data version (%s)", newVersion,
-          AccumuloDataVersion.get());
-      checkArgument(newVersion > zooKeeperVersion,
-          "New ZooKeeper version (%s) must be greater than current version (%s)", newVersion,
-          zooKeeperVersion);
-      checkArgument(newVersion > rootVersion,
-          "New ZooKeeper version (%s) expected to be greater than the root version (%s)",
-          newVersion, rootVersion);
-      checkArgument(metadataVersion == rootVersion,
-          "Root (%s) and Metadata (%s) versions expected to be equal when upgrading ZooKeeper",
-          rootVersion, metadataVersion);
-      zooKeeperVersion = newVersion;
-      put(context, this);
-    }
-
-    public int getRootVersion() {
-      return rootVersion;
-    }
-
-    public synchronized void updateRootVersion(ServerContext context, int newVersion)
-        throws KeeperException, InterruptedException {
-      requireNonNull(context, "ServerContext must be supplied");
-      checkArgument(newVersion <= AccumuloDataVersion.get(),
-          "New version (%s) cannot be larger than current data version (%s)", newVersion,
-          AccumuloDataVersion.get());
-      checkArgument(newVersion > rootVersion,
-          "New Root version (%s) must be greater than current Root version (%s)", newVersion,
-          rootVersion);
-      checkArgument(newVersion <= zooKeeperVersion,
-          "New Root version (%s) expected to be <= ZooKeeper version (%s)", newVersion,
-          zooKeeperVersion);
-      checkArgument(newVersion > metadataVersion,
-          "New Root version (%s) must be greater than current Metadata version (%s)", newVersion,
-          metadataVersion);
-      rootVersion = newVersion;
-      put(context, this);
-    }
-
-    public int getMetadataVersion() {
-      return metadataVersion;
-    }
-
-    public synchronized void updateMetadataVersion(ServerContext context, int newVersion)
-        throws KeeperException, InterruptedException {
-      requireNonNull(context, "ServerContext must be supplied");
-      checkArgument(newVersion <= AccumuloDataVersion.get(),
-          "New version (%s) cannot be larger than current data version (%s)", newVersion,
-          AccumuloDataVersion.get());
-      checkArgument(newVersion > metadataVersion,
-          "New Metadata version (%s) must be greater than current version (%s)", newVersion,
-          metadataVersion);
-      checkArgument(newVersion <= zooKeeperVersion,
-          "New Metadata version (%s) expected to be <= ZooKeeper version (%s)", newVersion,
-          zooKeeperVersion);
-      checkArgument(newVersion <= rootVersion,
-          "New Metadata version (%s) expected to be <= Root version (%s)", newVersion, rootVersion);
-      metadataVersion = newVersion;
-      put(context, this);
-    }
+  public UpgradeProgressTracker(ServerContext context) {
+    this.context = requireNonNull(context, "ServerContext must be supplied");
   }
 
-  private static String getZPath(ServerContext context) {
+  private String getZPath() {
     return context.getZooKeeperRoot() + Constants.ZUPGRADE_PROGRESS;
   }
 
-  public static boolean upgradeInProgress(ServerContext context)
-      throws KeeperException, InterruptedException {
-    requireNonNull(context, "ServerContext must be supplied");
-    final String zpath = getZPath(context);
-    final ZooSession zs = context.getZooSession();
-    return zs.exists(zpath, null) != null;
-  }
-
-  private static void put(ServerContext context, UpgradeProgress cv)
-      throws KeeperException, InterruptedException {
-    requireNonNull(context, "ServerContext must be supplied");
-    requireNonNull(cv, "ComponentVersions object  must be supplied");
-    final String zpath = getZPath(context);
-    final ZooSession zs = context.getZooSession();
-    Stat stat = zs.exists(zpath, null);
-    if (stat == null) {
-      zs.create(zpath, GSON.get().toJson(cv).getBytes(UTF_8), ZooUtil.PUBLIC,
-          CreateMode.PERSISTENT);
-      cv.znodeVersion = zs.exists(zpath, null).getVersion();
-    } else {
+  public synchronized void startOrContinueUpgrade() {
+    var zk = context.getZooSession();
+    try {
       try {
-        zs.setData(zpath, GSON.get().toJson(cv).getBytes(UTF_8), cv.znodeVersion);
-      } catch (KeeperException e) {
-        if (e.code() == KeeperException.Code.BADVERSION) {
-          throw new IllegalStateException(
-              "Upgrade progress information was updated by another process or thread.");
-        }
-        throw e;
+        // normally, no upgrade is in progress
+        var newProgress = new UpgradeProgress(AccumuloDataVersion.getCurrentVersion(context),
+            AccumuloDataVersion.get());
+        zk.create(getZPath(), newProgress.toJsonBytes(), ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+        progress = newProgress;
+        znodeVersion = 0;
+      } catch (KeeperException.NodeExistsException e) {
+        // existing upgrade must already be in progress
+        var stat = new Stat();
+        var oldProgressBytes = zk.getData(getZPath(), null, stat);
+        var oldProgress = UpgradeProgress.fromJsonBytes(oldProgressBytes);
+        checkState(AccumuloDataVersion.get() == oldProgress.upgradeTargetVersion,
+            "Upgrade was already started with a different version of software (%s), expecting %s",
+            oldProgress.upgradeTargetVersion, AccumuloDataVersion.get());
+        progress = oldProgress;
+        znodeVersion = stat.getVersion();
       }
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Error initializing upgrade progress", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Error initializing upgrade progress", e);
     }
   }
 
-  public static UpgradeProgress get(ServerContext context)
-      throws KeeperException, InterruptedException {
-    final String zpath = getZPath(context);
-    final int currentVersion = AccumuloDataVersion.getCurrentVersion(context);
-    final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
-    if (!zrw.exists(zpath)) {
-      try {
-        UpgradeProgress cv = new UpgradeProgress(currentVersion, AccumuloDataVersion.get());
-        put(context, cv);
-        return cv;
-      } catch (IllegalStateException ise) {
-        if (ise.getMessage()
-            .equals("Upgrade progress information was updated by another process or thread.")) {
-          // there was a race condition, let this fall through and return the stored information
-          // instead
-        } else {
-          throw ise;
-        }
-      }
-    }
-    Stat stat = new Stat();
-    byte[] jsonData = zrw.getData(zpath, stat);
-    UpgradeProgress progress =
-        GSON.get().fromJson(new String(jsonData, UTF_8), UpgradeProgress.class);
-    progress.znodeVersion = stat.getVersion();
-    checkState(AccumuloDataVersion.get() == progress.upgradeTargetVersion,
-        "Upgrade was already started with a different version of software (%s), expecting %s",
-        progress.upgradeTargetVersion, AccumuloDataVersion.get());
-    return progress;
+  public synchronized void updateZooKeeperVersion(int newVersion) {
+    checkArgument(newVersion <= AccumuloDataVersion.get(),
+        "New version (%s) cannot be larger than current data version (%s)", newVersion,
+        AccumuloDataVersion.get());
+    checkArgument(newVersion > progress.getZooKeeperVersion(),
+        "New ZooKeeper version (%s) must be greater than current version (%s)", newVersion,
+        progress.getZooKeeperVersion());
+    checkArgument(newVersion > progress.getRootVersion(),
+        "New ZooKeeper version (%s) expected to be greater than the root version (%s)", newVersion,
+        progress.getRootVersion());
+    checkArgument(progress.getMetadataVersion() == progress.getRootVersion(),
+        "Root (%s) and Metadata (%s) versions expected to be equal when upgrading ZooKeeper",
+        progress.getRootVersion(), progress.getMetadataVersion());
+    progress.zooKeeperVersion = newVersion;
+    storeProgress();
   }
 
-  public static synchronized void upgradeComplete(ServerContext context)
-      throws KeeperException, InterruptedException {
+  public synchronized void updateRootVersion(int newVersion) {
+    checkArgument(newVersion <= AccumuloDataVersion.get(),
+        "New version (%s) cannot be larger than current data version (%s)", newVersion,
+        AccumuloDataVersion.get());
+    checkArgument(newVersion > progress.getRootVersion(),
+        "New Root version (%s) must be greater than current Root version (%s)", newVersion,
+        progress.getRootVersion());
+    checkArgument(newVersion <= progress.getZooKeeperVersion(),
+        "New Root version (%s) expected to be <= ZooKeeper version (%s)", newVersion,
+        progress.getZooKeeperVersion());
+    checkArgument(newVersion > progress.getMetadataVersion(),
+        "New Root version (%s) must be greater than current Metadata version (%s)", newVersion,
+        progress.getMetadataVersion());
+    progress.rootVersion = newVersion;
+    storeProgress();
+  }
+
+  public synchronized void updateMetadataVersion(int newVersion) {
+    checkArgument(newVersion <= AccumuloDataVersion.get(),
+        "New version (%s) cannot be larger than current data version (%s)", newVersion,
+        AccumuloDataVersion.get());
+    checkArgument(newVersion > progress.getMetadataVersion(),
+        "New Metadata version (%s) must be greater than current version (%s)", newVersion,
+        progress.getMetadataVersion());
+    checkArgument(newVersion <= progress.getZooKeeperVersion(),
+        "New Metadata version (%s) expected to be <= ZooKeeper version (%s)", newVersion,
+        progress.getZooKeeperVersion());
+    checkArgument(newVersion <= progress.getRootVersion(),
+        "New Metadata version (%s) expected to be <= Root version (%s)", newVersion,
+        progress.getRootVersion());
+    progress.metadataVersion = newVersion;
+    storeProgress();
+  }
+
+  private synchronized void storeProgress() {
+    try {
+      final String zpath = getZPath();
+      final ZooSession zs = context.getZooSession();
+      try {
+        var stat = zs.setData(zpath, progress.toJsonBytes(), znodeVersion);
+        znodeVersion = stat.getVersion();
+      } catch (KeeperException.BadVersionException e) {
+        throw new IllegalStateException(
+            "Upgrade progress information was updated by another process or thread", e);
+      }
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Error storing the upgrade progress", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Error storing the upgrade progress", e);
+    }
+  }
+
+  public synchronized UpgradeProgress getProgress() {
+    return requireNonNull(progress,
+        "Must call startOrContinueUpgrade() before checking the progress");
+  }
+
+  public synchronized void upgradeComplete() {
     // This should be updated prior to deleting the tracking data in zookeeper.
     checkState(AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get(),
         "Upgrade completed, but current version (%s) is not equal to the software version (%s)",
         AccumuloDataVersion.getCurrentVersion(context), AccumuloDataVersion.get());
-    final String zpath = getZPath(context);
     final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
-    zrw.recursiveDelete(zpath, NodeMissingPolicy.SKIP);
+    try {
+      zrw.recursiveDelete(getZPath(), NodeMissingPolicy.SKIP);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Error clearing the upgrade progress", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Error clearing the upgrade progress", e);
+    }
   }
 
 }
