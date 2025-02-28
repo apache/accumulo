@@ -66,9 +66,9 @@ public class UpgradeProgressTracker {
         var stat = new Stat();
         var oldProgressBytes = zk.getData(getZPath(), null, stat);
         var oldProgress = UpgradeProgress.fromJsonBytes(oldProgressBytes);
-        checkState(AccumuloDataVersion.get() == oldProgress.upgradeTargetVersion,
+        checkState(AccumuloDataVersion.get() == oldProgress.getUpgradeTargetVersion(),
             "Upgrade was already started with a different version of software (%s), expecting %s",
-            oldProgress.upgradeTargetVersion, AccumuloDataVersion.get());
+            oldProgress.getUpgradeTargetVersion(), AccumuloDataVersion.get());
         progress = oldProgress;
         znodeVersion = stat.getVersion();
       }
@@ -93,7 +93,7 @@ public class UpgradeProgressTracker {
     checkArgument(progress.getMetadataVersion() == progress.getRootVersion(),
         "Root (%s) and Metadata (%s) versions expected to be equal when upgrading ZooKeeper",
         progress.getRootVersion(), progress.getMetadataVersion());
-    progress.zooKeeperVersion = newVersion;
+    progress.setZooKeeperVersion(newVersion);
     storeProgress();
   }
 
@@ -110,7 +110,7 @@ public class UpgradeProgressTracker {
     checkArgument(newVersion > progress.getMetadataVersion(),
         "New Root version (%s) must be greater than current Metadata version (%s)", newVersion,
         progress.getMetadataVersion());
-    progress.rootVersion = newVersion;
+    progress.setRootVersion(newVersion);
     storeProgress();
   }
 
@@ -127,7 +127,7 @@ public class UpgradeProgressTracker {
     checkArgument(newVersion <= progress.getRootVersion(),
         "New Metadata version (%s) expected to be <= Root version (%s)", newVersion,
         progress.getRootVersion());
-    progress.metadataVersion = newVersion;
+    progress.setMetadataVersion(newVersion);
     storeProgress();
   }
 

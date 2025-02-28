@@ -40,11 +40,9 @@ class UpgradeProgressTest {
 
   @Test
   void testToFromJson() {
-    var progress = new UpgradeProgress();
-    progress.zooKeeperVersion = 5001;
-    progress.rootVersion = 5002;
-    progress.metadataVersion = 5003;
-    progress.upgradeTargetVersion = 5004;
+    var progress = new UpgradeProgress(5001, 5004);
+    progress.setRootVersion(5002);
+    progress.setMetadataVersion(5003);
 
     // serialize and deserialize
     byte[] jsonBytes = progress.toJsonBytes();

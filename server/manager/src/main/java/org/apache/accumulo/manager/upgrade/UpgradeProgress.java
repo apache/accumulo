@@ -27,10 +27,10 @@ import static org.apache.accumulo.core.util.LazySingletons.GSON;
  */
 public class UpgradeProgress {
 
-  int zooKeeperVersion;
-  int rootVersion;
-  int metadataVersion;
-  int upgradeTargetVersion;
+  private int zooKeeperVersion;
+  private int rootVersion;
+  private int metadataVersion;
+  private int upgradeTargetVersion;
 
   public UpgradeProgress() {}
 
@@ -41,12 +41,24 @@ public class UpgradeProgress {
     upgradeTargetVersion = targetVersion;
   }
 
+  public void setZooKeeperVersion(int version) {
+    zooKeeperVersion = version;
+  }
+
   public int getZooKeeperVersion() {
     return zooKeeperVersion;
   }
 
+  public void setRootVersion(int version) {
+    rootVersion = version;
+  }
+
   public int getRootVersion() {
     return rootVersion;
+  }
+
+  public void setMetadataVersion(int version) {
+    metadataVersion = version;
   }
 
   public int getMetadataVersion() {
