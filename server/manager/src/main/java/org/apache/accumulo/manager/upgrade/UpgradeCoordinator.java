@@ -204,7 +204,7 @@ public class UpgradeCoordinator {
               upgradeVersion, AccumuloDataVersion.get());
           var upgrader = upgraders.get(upgradeVersion);
           Objects.requireNonNull(upgrader,
-              "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
+              "upgrade ZooKeeper: failed to find upgrader for version " + upgradeVersion);
           upgrader.upgradeZookeeper(context);
           progressTracker.updateZooKeeperVersion(upgradeVersion);
         }
@@ -244,7 +244,7 @@ public class UpgradeCoordinator {
                     upgradeVersion, AccumuloDataVersion.get());
                 var upgrader = upgraders.get(upgradeVersion);
                 Objects.requireNonNull(upgrader,
-                    "upgrade root: failed to find root upgrader for version " + currentVersion);
+                    "upgrade root: failed to find root upgrader for version " + upgradeVersion);
                 upgraders.get(upgradeVersion).upgradeRoot(context);
                 progressTracker.updateRootVersion(upgradeVersion);
               }
@@ -263,7 +263,7 @@ public class UpgradeCoordinator {
                     upgradeVersion, AccumuloDataVersion.get());
                 var upgrader = upgraders.get(upgradeVersion);
                 Objects.requireNonNull(upgrader,
-                    "upgrade metadata: failed to find upgrader for version " + currentVersion);
+                    "upgrade metadata: failed to find upgrader for version " + upgradeVersion);
                 upgraders.get(upgradeVersion).upgradeMetadata(context);
                 progressTracker.updateMetadataVersion(upgradeVersion);
               }
