@@ -61,12 +61,8 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
     public void close() {
       runningSupplier = () -> 0;
       queuedSupplier = () -> 0;
-      if (running != null) {
-        running.set(0);
-      }
-      if (queued != null) {
-        queued.set(0);
-      }
+      running.set(0);
+      queued.set(0);
     }
   }
 
@@ -135,34 +131,22 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
             return m;
           });
 
-          if (exm.queued != null) {
-            exm.queued.set(ecm.queued);
-          }
-          if (exm.running != null) {
-            exm.running.set(ecm.running);
-          }
+          exm.queued.set(ecm.queued);
+          exm.running.set(ecm.running);
 
         });
 
         Sets.difference(exCeMetricsMap.keySet(), seenIds).forEach(unusedId -> {
           ExMetrics exm = exCeMetricsMap.get(unusedId);
-          if (exm.queued != null) {
-            exm.queued.set(0);
-          }
-          if (exm.running != null) {
-            exm.running.set(0);
-          }
+          exm.queued.set(0);
+          exm.running.set(0);
         });
 
       }
     }
     ceMetricsList.forEach(cem -> {
-      if (cem.running != null) {
-        cem.running.set(cem.runningSupplier.getAsInt());
-      }
-      if (cem.queued != null) {
-        cem.queued.set(cem.queuedSupplier.getAsInt());
-      }
+      cem.running.set(cem.runningSupplier.getAsInt());
+      cem.queued.set(cem.queuedSupplier.getAsInt());
     });
   }
 
