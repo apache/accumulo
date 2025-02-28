@@ -128,7 +128,6 @@ import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
-import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -334,13 +333,14 @@ public class Manager extends AbstractServer
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
-          new PreUpgradeValidation().validate(getContext(), nextEvent);
-          upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
+          upgradeCoordinator.preUpgradeValidation();
+          upgradeCoordinator.startOrContinueUpgrade();
+          upgradeCoordinator.upgradeZookeeper(nextEvent);
         }
         break;
       case NORMAL:
         if (isUpgrading()) {
-          upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+          upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(nextEvent);
         }
         break;
       default:
@@ -348,7 +348,7 @@ public class Manager extends AbstractServer
     }
   }
 
-  private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
+  private final UpgradeCoordinator upgradeCoordinator;
 
   private Future<Void> upgradeMetadataFuture;
 
@@ -462,6 +462,7 @@ public class Manager extends AbstractServer
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
+    upgradeCoordinator = new UpgradeCoordinator(context);
     balancerEnvironment = new BalancerEnvironmentImpl(context);
 
     AccumuloConfiguration aconf = context.getConfiguration();
@@ -1170,6 +1171,9 @@ public class Manager extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+    // Setting the Manager state to HAVE_LOCK has the side-effect of
+    // starting the upgrade process if necessary.
+    setManagerState(ManagerState.HAVE_LOCK);
 
     // Set the HostName **after** initially creating the lock. The lock data is
     // updated below with the correct address. This prevents clients from accessing
@@ -1564,7 +1568,6 @@ public class Manager extends AbstractServer
     }
 
     this.getContext().setServiceLock(getManagerLock());
-    setManagerState(ManagerState.HAVE_LOCK);
     return sld;
   }
 
