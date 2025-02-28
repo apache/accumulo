@@ -1264,6 +1264,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+    // Setting the Manager state to HAVE_LOCK has the side-effect of
+    // starting the upgrade process if necessary.
+    setManagerState(ManagerState.HAVE_LOCK);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
@@ -1619,7 +1622,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
-    setManagerState(ManagerState.HAVE_LOCK);
     return sld;
   }
 
