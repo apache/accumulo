@@ -199,7 +199,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
 
       BlockCacheConfiguration cacheConf = BlockCacheConfiguration.forCompactor(getConfiguration());
       cacheManager.start(cacheConf);
-
       _dCache = cacheManager.getBlockCache(CacheType.DATA);
 
       final long dCacheSize = _dCache.getMaxHeapSize();
@@ -587,7 +586,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         final ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, getResourceGroup());
         compactor.set(new FileCompactor(getContext(), extent, files, outputFile,
             job.isPropagateDeletes(), cenv, iters, aConfig, tConfig.getCryptoService(),
-            pausedMetrics, Optional.of(_dCache)));
+            pausedMetrics, Optional.ofNullable(_dCache)));
 
       }
 

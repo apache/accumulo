@@ -459,14 +459,29 @@ public class CachableBlockFile {
               this.blockPrefetchThreads.execute(() -> {
                 int blockIndex = startBlock + iiter.previousIndex();
                 String name = this.cacheId + "O" + blockIndex;
-                dataBlockCache.getBlock(name, new OffsetBlockLoader(blockIndex, false));
+                try {
+                  log.debug("Prefetching data block: {}", name);
+                  if (null
+                      == dataBlockCache.getBlock(name, new OffsetBlockLoader(blockIndex, false))) {
+                    log.debug("Prefetching data block {} did not work", name);
+                  }
+                } catch (Exception e) {
+                  if (e instanceof IOException) {
+                    // It's possible that the underlying file could be closed while
+                    // we are trying to prefetch the next block.
+                    log.info("IOException thrown while trying to prefetch data block, msg: {}",
+                        e.getMessage());
+                    log.debug("IOException details", e);
+                  }
+                }
+
               });
               fetched++;
             }
           }
           // rewind the index iterator
           for (int j = 0; j < fetched; j++) {
-            iiter.previousIndex();
+            iiter.previous();
           }
         }
         return getDataBlock(thisBlockIndex);
@@ -480,15 +495,28 @@ public class CachableBlockFile {
               this.blockPrefetchThreads.execute(() -> {
                 final long offset = next.getOffset();
                 String name = this.cacheId + "R" + offset;
-                dataBlockCache.getBlock(name,
-                    new RawBlockLoader(offset, next.getCompressedSize(), next.getRawSize(), false));
+                try {
+                  log.debug("Prefetching data block: {}", name);
+                  if (null == dataBlockCache.getBlock(name, new RawBlockLoader(offset,
+                      next.getCompressedSize(), next.getRawSize(), false))) {
+                    log.debug("Prefetching data block {} did not work", name);
+                  }
+                } catch (Exception e) {
+                  if (e instanceof IOException) {
+                    // It's possible that the underlying file could be closed while
+                    // we are trying to prefetch the next block.
+                    log.info("IOException thrown while trying to prefetch data block, msg: {}",
+                        e.getMessage());
+                    log.debug("IOException details", e);
+                  }
+                }
               });
               fetched++;
             }
           }
           // rewind the index iterator
           for (int j = 0; j < fetched; j++) {
-            iiter.previousIndex();
+            iiter.previous();
           }
         }
         return getDataBlock(indexEntry.getOffset(), indexEntry.getCompressedSize(),
