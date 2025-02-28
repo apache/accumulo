@@ -36,15 +36,27 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
+public class ZooKeeperPropertiesIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Test
   public void testNoFiles() {
@@ -59,7 +71,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
   @Timeout(30)
   public void testTablePropUtils() throws AccumuloException, TableExistsException,
       AccumuloSecurityException, TableNotFoundException {
-    ServerContext context = getServerContext();
+    ServerContext context = getCluster().getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -111,7 +123,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
   @Timeout(30)
   public void testNamespacePropUtils() throws AccumuloException, AccumuloSecurityException,
       NamespaceExistsException, NamespaceNotFoundException {
-    ServerContext context = getServerContext();
+    ServerContext context = getCluster().getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
