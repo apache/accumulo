@@ -31,6 +31,9 @@ import io.opentelemetry.context.Scope;
 
 public class TraceRepo<T> implements Repo<T> {
 
+  private static final String ID_ATTR = "accumulo.fate.id";
+  private static final String DELAY_ATTR = "accumulo.fate.delay";
+
   private static final long serialVersionUID = 1L;
 
   final TInfo tinfo;
@@ -41,11 +44,22 @@ public class TraceRepo<T> implements Repo<T> {
     tinfo = TraceUtil.traceInfo();
   }
 
+  private static void setAttributes(FateId fateId, Span span) {
+    if (span.isRecording()) {
+      span.setAttribute(ID_ATTR, fateId.canonical());
+    }
+  }
+
   @Override
   public long isReady(FateId fateId, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), "isReady", tinfo);
     try (Scope scope = span.makeCurrent()) {
-      return repo.isReady(fateId, environment);
+      setAttributes(fateId, span);
+      var delay = repo.isReady(fateId, environment);
+      if (span.isRecording()) {
+        span.setAttribute(DELAY_ATTR, delay + "ms");
+      }
+      return delay;
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;
@@ -56,8 +70,9 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public Repo<T> call(FateId fateId, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), "call", tinfo);
     try (Scope scope = span.makeCurrent()) {
+      setAttributes(fateId, span);
       Repo<T> result = repo.call(fateId, environment);
       if (result == null) {
         return null;
@@ -73,8 +88,9 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public void undo(FateId fateId, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), repo.getName(), tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), "undo", tinfo);
     try (Scope scope = span.makeCurrent()) {
+      setAttributes(fateId, span);
       repo.undo(fateId, environment);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
