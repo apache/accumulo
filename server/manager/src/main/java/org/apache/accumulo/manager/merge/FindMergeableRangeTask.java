@@ -28,12 +28,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
@@ -132,14 +133,12 @@ public class FindMergeableRangeTask implements Runnable {
     String endRowStr = StringUtils.defaultIfBlank(endRow.toString(), "+inf");
     log.debug("FindMergeableRangeTask: Creating merge op: {} from startRow: {} to endRow: {}",
         tableId, startRowStr, endRowStr);
-    var fateId = manager.fate(type).startTransaction();
-    String goalMessage = TableOperation.MERGE + " Merge table " + tableName + "(" + tableId
-        + ") splits from " + startRowStr + " to " + endRowStr;
+    var fateKey = FateKey.forMerge(new KeyExtent(tableId, range.endRow, range.startRow));
 
-    manager.fate(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateId,
+    manager.fate(type).seedTransaction(FateOperation.SYSTEM_MERGE, fateKey,
         new TraceRepo<>(
             new TableRangeOp(Operation.SYSTEM_MERGE, namespaceId, tableId, startRow, endRow)),
-        true, goalMessage);
+        true);
   }
 
   static class MergeableRange {

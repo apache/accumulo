@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -155,7 +156,8 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       Map<String,String> props = new HashMap<>();
       props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "16K");
       props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
-      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED));
       var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       // Ingest data so tablet will split
