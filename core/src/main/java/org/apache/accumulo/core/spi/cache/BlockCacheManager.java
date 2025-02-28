@@ -112,8 +112,10 @@ public abstract class BlockCacheManager {
    */
   public void start(Configuration conf) {
     for (CacheType type : CacheType.values()) {
-      BlockCache cache = this.createCache(conf, type);
-      this.caches.put(type, cache);
+      if (conf.getMaxSize(type) > 0) {
+        BlockCache cache = this.createCache(conf, type);
+        this.caches.put(type, cache);
+      }
     }
   }
 
