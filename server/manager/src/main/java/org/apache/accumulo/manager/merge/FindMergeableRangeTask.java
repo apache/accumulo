@@ -93,7 +93,7 @@ public class FindMergeableRangeTask implements Runnable {
             .fetch(PREV_ROW, FILES, MERGEABILITY).filter(FILTER).build()) {
 
           final MergeableRange current =
-              new MergeableRange(manager.getSteadyTime(), maxFileCount, maxTotalSize);
+              new MergeableRange(manager.getSteadyTime(), tableId, maxFileCount, maxTotalSize);
 
           for (var tm : tablets) {
             log.trace("Checking tablet {}, {}", tm.getExtent(), tm.getTabletMergeability());
@@ -144,6 +144,7 @@ public class FindMergeableRangeTask implements Runnable {
 
   static class MergeableRange {
     final SteadyTime currentTime;
+    final TableId tableId;
     final long maxFileCount;
     final long maxTotalSize;
 
@@ -153,8 +154,9 @@ public class FindMergeableRangeTask implements Runnable {
     long totalFileCount;
     long totalFileSize;
 
-    MergeableRange(SteadyTime currentTime, long maxFileCount, long maxTotalSize) {
+    MergeableRange(SteadyTime currentTime, TableId tableId, long maxFileCount, long maxTotalSize) {
       this.currentTime = currentTime;
+      this.tableId = tableId;
       this.maxFileCount = maxFileCount;
       this.maxTotalSize = maxTotalSize;
     }
@@ -175,6 +177,9 @@ public class FindMergeableRangeTask implements Runnable {
     }
 
     private boolean validate(TabletMetadata tm) {
+      Preconditions.checkArgument(tableId.equals(tm.getTableId()), "Unexpected tableId seen %s",
+          tm.getTableId());
+
       if (tabletCount > 0) {
         // This is at least the second tablet seen so there should not be a null prevEndRow
         Preconditions.checkState(tm.getPrevEndRow() != null,

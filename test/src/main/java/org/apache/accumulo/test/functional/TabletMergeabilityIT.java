@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.SortedMap;
@@ -32,13 +33,16 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -149,25 +153,31 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> props = new HashMap<>();
-      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "32K");
+      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "16K");
       props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
       c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
       var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       // Ingest data so tablet will split
-      VerifyParams params = new VerifyParams(getClientProps(), tableName, 50_000);
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 5_000);
       TestIngest.ingest(c, params);
+      c.tableOperations().flush(tableName);
       VerifyIngest.verifyIngest(c, params);
 
       // Wait for table to split, should be more than 10 tablets
-      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() > 10, 10000, 200);
+      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() > 10, 30000, 200);
 
-      // Delete all the data
-      c.tableOperations().deleteRows(tableName, null, null);
+      // Delete all the data - We can't use deleteRows() as that would merge empty tablets
+      // Instead, we want the mergeability thread to merge so use a batch deleter and
+      // compact away the deleted data
+      var bd = c.createBatchDeleter(tableName, Authorizations.EMPTY, 1);
+      bd.setRanges(List.of(new Range()));
+      bd.delete();
+      c.tableOperations().compact(tableName, new CompactionConfig().setFlush(true));
 
       // Wait for merge back to default tablet
       Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
-          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+          Set.of(new KeyExtent(tableId, null, null))), 30000, 200);
     }
   }
 

@@ -360,7 +360,9 @@ public interface InstanceOperations {
   InstanceId getInstanceId();
 
   /**
-   * Return the current manager time
+   * Return the current manager time. This duration represents the amount of time an accumulo
+   * manager process has been running. The duration is persisted and should only increase over the
+   * lifetime of an Accumulo instance.
    *
    * @return current time
    * @since 4.0.0
