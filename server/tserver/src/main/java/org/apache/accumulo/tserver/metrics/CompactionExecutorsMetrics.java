@@ -50,12 +50,25 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   private MeterRegistry registry = null;
 
   // public so it can be closed by outside callers
-  public static class CeMetrics implements AutoCloseable {
-    private AtomicInteger queued;
-    private AtomicInteger running;
+  public class CeMetrics implements AutoCloseable {
+    private final AtomicInteger queued;
+    private final AtomicInteger running;
 
     private IntSupplier runningSupplier;
     private IntSupplier queuedSupplier;
+
+    private CeMetrics(CompactionExecutorId ceid) {
+      if (registry != null) {
+        this.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ceid.canonical()),
+            new AtomicInteger(0));
+        this.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ceid.canonical()),
+            new AtomicInteger(0));
+      } else {
+        // these vars have no effect on metrics in this case - just avoids NPEs
+        this.queued = new AtomicInteger(0);
+        this.running = new AtomicInteger(0);
+      }
+    }
 
     @Override
     public void close() {
@@ -66,9 +79,22 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
     }
   }
 
-  private static class ExMetrics {
-    AtomicInteger queued;
-    AtomicInteger running;
+  private class ExMetrics {
+    private final AtomicInteger queued;
+    private final AtomicInteger running;
+
+    private ExMetrics(CompactionExecutorId ceid) {
+      if (registry != null) {
+        this.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ceid.canonical()),
+            new AtomicInteger(0));
+        this.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ceid.canonical()),
+            new AtomicInteger(0));
+      } else {
+        // these vars have no effect on metrics in this case - just avoids NPEs
+        this.queued = new AtomicInteger(0);
+        this.running = new AtomicInteger(0);
+      }
+    }
   }
 
   public CompactionExecutorsMetrics() {
@@ -89,16 +115,7 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
 
     synchronized (ceMetricsMap) {
 
-      CeMetrics cem = ceMetricsMap.computeIfAbsent(ceid, id -> {
-        CeMetrics m = new CeMetrics();
-        if (registry != null) {
-          m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ceid.canonical()),
-              new AtomicInteger(0));
-          m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ceid.canonical()),
-              new AtomicInteger(0));
-        }
-        return m;
-      });
+      CeMetrics cem = ceMetricsMap.computeIfAbsent(ceid, id -> new CeMetrics(ceid));
 
       cem.runningSupplier = runningSupplier;
       cem.queuedSupplier = queuedSupplier;
@@ -120,16 +137,7 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
         externalMetricsSupplier.get().forEach(ecm -> {
           seenIds.add(ecm.ceid);
 
-          ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.ceid, id -> {
-            ExMetrics m = new ExMetrics();
-            if (registry != null) {
-              m.queued = registry.gauge(METRICS_MAJC_QUEUED, Tags.of("id", ecm.ceid.canonical()),
-                  new AtomicInteger(0));
-              m.running = registry.gauge(METRICS_MAJC_RUNNING, Tags.of("id", ecm.ceid.canonical()),
-                  new AtomicInteger(0));
-            }
-            return m;
-          });
+          ExMetrics exm = exCeMetricsMap.computeIfAbsent(ecm.ceid, id -> new ExMetrics(ecm.ceid));
 
           exm.queued.set(ecm.queued);
           exm.running.set(ecm.running);
