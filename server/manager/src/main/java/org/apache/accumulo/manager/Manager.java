@@ -116,7 +116,6 @@ import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
-import org.apache.accumulo.manager.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
@@ -305,13 +304,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
-          new PreUpgradeValidation().validate(getContext(), nextEvent);
-          upgradeCoordinator.upgradeZookeeper(getContext(), nextEvent);
+          upgradeCoordinator.preUpgradeValidation();
+          upgradeCoordinator.startOrContinueUpgrade();
+          upgradeCoordinator.upgradeZookeeper(nextEvent);
         }
         break;
       case NORMAL:
         if (isUpgrading()) {
-          upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(getContext(), nextEvent);
+          upgradeMetadataFuture = upgradeCoordinator.upgradeMetadata(nextEvent);
         }
         break;
       default:
@@ -319,7 +319,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  private final UpgradeCoordinator upgradeCoordinator = new UpgradeCoordinator();
+  private final UpgradeCoordinator upgradeCoordinator;
 
   private Future<Void> upgradeMetadataFuture;
 
@@ -424,6 +424,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   protected Manager(ConfigOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
     ServerContext context = super.getContext();
+    upgradeCoordinator = new UpgradeCoordinator(context);
     balancerEnvironment = new BalancerEnvironmentImpl(context);
 
     AccumuloConfiguration aconf = context.getConfiguration();
@@ -1277,6 +1278,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
+    // Setting the Manager state to HAVE_LOCK has the side-effect of
+    // starting the upgrade process if necessary.
+    setManagerState(ManagerState.HAVE_LOCK);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
@@ -1632,7 +1636,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
-    setManagerState(ManagerState.HAVE_LOCK);
     return sld;
   }
 
