@@ -157,7 +157,7 @@ public class CachableBlockFile {
     private final IoeSupplier<FSDataInputStream> inputSupplier;
     private final IoeSupplier<Long> lengthSupplier;
     private final int numPrefetchBlocks;
-    private final ThreadPoolExecutor blockPrefetchThreads;
+    private final ThreadPoolExecutor prefetchBlockThreadPool;
     private final AtomicReference<BCFile.Reader> bcfr = new AtomicReference<>();
 
     private static final String ROOT_BLOCK_NAME = "!RootData";
@@ -389,11 +389,11 @@ public class CachableBlockFile {
       this.conf = b.hadoopConf;
       this.cryptoService = Objects.requireNonNull(b.cryptoService);
       if (this.numPrefetchBlocks > 0) {
-        this.blockPrefetchThreads =
+        this.prefetchBlockThreadPool =
             ThreadPools.getServerThreadPools().getPoolBuilder(ThreadPoolNames.BLOCK_READ_AHEAD_POOL)
                 .numCoreThreads(this.numPrefetchBlocks).build();
       } else {
-        this.blockPrefetchThreads = null;
+        this.prefetchBlockThreadPool = null;
       }
     }
 
@@ -456,7 +456,7 @@ public class CachableBlockFile {
           for (int i = 0; i < numPrefetchBlocks; i++) {
             if (iiter.hasNext()) {
               iiter.next();
-              this.blockPrefetchThreads.execute(() -> {
+              this.prefetchBlockThreadPool.execute(() -> {
                 int blockIndex = startBlock + iiter.previousIndex();
                 String name = this.cacheId + "O" + blockIndex;
                 try {
@@ -472,6 +472,9 @@ public class CachableBlockFile {
                     log.info("IOException thrown while trying to prefetch data block, msg: {}",
                         e.getMessage());
                     log.debug("IOException details", e);
+                  } else if (e instanceof InterruptedException && closed) {
+                    // The reader was closed causing the thread pool to be
+                    // shutdown, ignore these.
                   }
                 }
 
@@ -492,7 +495,7 @@ public class CachableBlockFile {
           for (int i = 0; i < numPrefetchBlocks; i++) {
             if (iiter.hasNext()) {
               final IndexEntry next = iiter.next();
-              this.blockPrefetchThreads.execute(() -> {
+              this.prefetchBlockThreadPool.execute(() -> {
                 final long offset = next.getOffset();
                 String name = this.cacheId + "R" + offset;
                 try {
@@ -508,6 +511,9 @@ public class CachableBlockFile {
                     log.info("IOException thrown while trying to prefetch data block, msg: {}",
                         e.getMessage());
                     log.debug("IOException details", e);
+                  } else if (e instanceof InterruptedException && closed) {
+                    // The reader was closed causing the thread pool to be
+                    // shutdown, ignore these.
                   }
                 }
               });
@@ -570,6 +576,10 @@ public class CachableBlockFile {
       }
 
       closed = true;
+
+      if (prefetchBlockThreadPool != null) {
+        prefetchBlockThreadPool.shutdownNow();
+      }
 
       BCFile.Reader reader = bcfr.getAndSet(null);
       if (reader != null) {
