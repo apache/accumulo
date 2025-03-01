@@ -24,6 +24,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -151,6 +152,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
   }
 
   public boolean getMigrations(BalanceParameters params) {
+    Set<TableId> tableIdsToBalance = new HashSet<>(params.getTablesToBalance().values());
     List<TabletMigration> resultingMigrations = new ArrayList<>();
     boolean moreBalancingNeeded = false;
     try {
@@ -171,10 +173,8 @@ public class SimpleLoadBalancer implements TabletBalancer {
              * The check below was on entry.getKey(), but that resolves to a tabletserver not a
              * tablename. Believe it should be e.getKey() which is a tablename
              */
-            for (TableId tableId : params.getTablesToBalance().values()) {
-              if (tableId.canonical().equals(e.getKey())) {
-                serverTotal += e.getValue().getOnlineTabletCount();
-              }
+            if (tableIdsToBalance.contains(TableId.of(e.getKey()))) {
+              serverTotal += e.getValue().getOnlineTabletCount();
             }
           }
         }
@@ -209,11 +209,13 @@ public class SimpleLoadBalancer implements TabletBalancer {
           break;
         }
         if (needToUnload >= needToLoad) {
-          resultingMigrations.addAll(move(tooMany, tooLittle, needToLoad, donerTabletStats));
+          resultingMigrations
+              .addAll(move(tooMany, tooLittle, needToLoad, donerTabletStats, tableIdsToBalance));
           end--;
           movedAlready = 0;
         } else {
-          resultingMigrations.addAll(move(tooMany, tooLittle, needToUnload, donerTabletStats));
+          resultingMigrations
+              .addAll(move(tooMany, tooLittle, needToUnload, donerTabletStats, tableIdsToBalance));
           movedAlready += needToUnload;
         }
         if (needToUnload > needToLoad) {
@@ -236,7 +238,8 @@ public class SimpleLoadBalancer implements TabletBalancer {
    * busiest table
    */
   List<TabletMigration> move(ServerCounts tooMuch, ServerCounts tooLittle, int count,
-      Map<TableId,Map<TabletId,TabletStatistics>> donerTabletStats) {
+      Map<TableId,Map<TabletId,TabletStatistics>> donerTabletStats,
+      Set<TableId> tableIdsToBalance) {
 
     if (count == 0) {
       return Collections.emptyList();
@@ -244,8 +247,8 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
     List<TabletMigration> result = new ArrayList<>();
     // Copy counts so we can update them as we propose migrations
-    Map<TableId,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status);
-    Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status);
+    Map<TableId,Integer> tooMuchMap = tabletCountsPerTable(tooMuch.status, tableIdsToBalance);
+    Map<TableId,Integer> tooLittleMap = tabletCountsPerTable(tooLittle.status, tableIdsToBalance);
 
     for (int i = 0; i < count; i++) {
       TableId table = getTableToMigrate(tooMuch, tooMuchMap, tooLittleMap);
@@ -291,6 +294,10 @@ public class SimpleLoadBalancer implements TabletBalancer {
   private TableId getTableToMigrate(ServerCounts tooMuch, Map<TableId,Integer> tooMuchMap,
       Map<TableId,Integer> tooLittleMap) {
 
+    if (tooMuchMap.size() == 1) {
+      return tooMuchMap.keySet().iterator().next();
+    }
+
     // find a table to migrate
     // look for an uneven table count
     Entry<TableId,Integer> biggestEntry = tooMuchMap.entrySet().stream().map(entry -> {
@@ -312,12 +319,16 @@ public class SimpleLoadBalancer implements TabletBalancer {
     return environment.listOnlineTabletsForTable(tabletServerId, tableId);
   }
 
-  static Map<TableId,Integer> tabletCountsPerTable(TServerStatus status) {
+  static Map<TableId,Integer> tabletCountsPerTable(TServerStatus status,
+      Set<TableId> tableIdsToBalance) {
     Map<TableId,Integer> result = new HashMap<>();
     if (status != null && status.getTableMap() != null) {
       Map<String,TableStatistics> tableMap = status.getTableMap();
       for (Entry<String,TableStatistics> entry : tableMap.entrySet()) {
-        result.put(TableId.of(entry.getKey()), entry.getValue().getOnlineTabletCount());
+        var tableId = TableId.of(entry.getKey());
+        if (tableIdsToBalance.contains(tableId)) {
+          result.put(tableId, entry.getValue().getOnlineTabletCount());
+        }
       }
     }
     return result;
