@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -184,6 +185,7 @@ class LoadFiles extends ManagerRepo {
 
     private void sendQueued(int threshhold) {
       if (queuedDataSize > threshhold || threshhold == 0) {
+        var sendTimer = Timer.startNew();
         loadQueue.forEach((server, tabletFiles) -> {
 
           if (log.isTraceEnabled()) {
@@ -195,8 +197,18 @@ class LoadFiles extends ManagerRepo {
           try {
             client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
                 manager.getContext(), timeInMillis);
-            client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
-                bulkDir.toString(), tabletFiles, setTime);
+            // Send a message per tablet. On the tablet server side for each tablet it must write to
+            // the metadata tablet which requires waiting on the walog. Sending a message per tablet
+            // allows these per tablet metadata table writes to run in parallel. This avoids
+            // serially waiting on the metadata table write for each tablet.
+            for (var entry : tabletFiles.entrySet()) {
+              TKeyExtent tExtent = entry.getKey();
+              Map<String,MapFileInfo> files = entry.getValue();
+
+              client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
+                  bulkDir.toString(), Map.of(tExtent, files), setTime);
+              client.getOutputProtocol().getTransport().flush();
+            }
           } catch (TException ex) {
             log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
           } finally {
@@ -204,8 +216,22 @@ class LoadFiles extends ManagerRepo {
           }
         });
 
+        if (log.isDebugEnabled()) {
+          var elapsed = sendTimer.elapsed(TimeUnit.MILLISECONDS);
+          int count = 0;
+          for (var tableFiles : loadQueue.values()) {
+            for (var files : tableFiles.values()) {
+              count += files.size();
+            }
+          }
+
+          log.debug("{} sent {} messages to {} tablet servers in {} ms", fmtTid, count,
+              loadQueue.size(), elapsed);
+        }
+
         loadQueue.clear();
         queuedDataSize = 0;
+
       }
     }
 
@@ -267,9 +293,11 @@ class LoadFiles extends ManagerRepo {
 
       long sleepTime = 0;
       if (loadMsgs.size() > 0) {
-        // find which tablet server had the most load messages sent to it and sleep 13ms for each
-        // load message
-        sleepTime = loadMsgs.max() * 13;
+        // Find which tablet server had the most load messages sent to it and sleep 13ms for each
+        // load message. Assuming it takes 13ms to process a single message. The tablet server will
+        // process these message in parallel, so assume it can process 16 in parallel. Must return a
+        // non-zero value when messages were sent or the calling code will think everything is done.
+        sleepTime = Math.max(1, (loadMsgs.max() * 13) / 16);
       }
 
       if (locationLess > 0) {
