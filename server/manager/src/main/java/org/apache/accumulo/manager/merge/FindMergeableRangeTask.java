@@ -21,10 +21,15 @@ package org.apache.accumulo.manager.merge;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason.MAX_FILE_COUNT;
+import static org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason.MAX_TOTAL_SIZE;
+import static org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason.NOT_CONTIGUOUS;
+import static org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason.TABLET_MERGEABILITY;
 
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
@@ -94,14 +99,14 @@ public class FindMergeableRangeTask implements Runnable {
             .fetch(PREV_ROW, FILES, MERGEABILITY).filter(FILTER).build()) {
 
           final MergeableRange current =
-              new MergeableRange(manager.getSteadyTime(), tableId, maxFileCount, maxTotalSize);
+              new MergeableRange(tableId, manager.getSteadyTime(), maxFileCount, maxTotalSize);
 
           for (var tm : tablets) {
             log.trace("Checking tablet {}, {}", tm.getExtent(), tm.getTabletMergeability());
-            if (!current.add(tm)) {
+            current.add(tm).ifPresent(e -> {
               submit(current, type, table, namespaceId);
               current.resetAndAdd(tm);
-            }
+            });
           }
 
           submit(current, type, table, namespaceId);
@@ -120,17 +125,17 @@ public class FindMergeableRangeTask implements Runnable {
       return;
     }
 
-    log.debug("Table {} found {} tablets that can be merged for table", table.getValue(),
-        range.tabletCount);
-
     TableId tableId = table.getKey();
     String tableName = table.getValue();
+
+    log.debug("Table {} found {} tablets that can be merged for table", tableName,
+        range.tabletCount);
 
     final Text startRow = range.startRow != null ? range.startRow : new Text("");
     final Text endRow = range.endRow != null ? range.endRow : new Text("");
 
-    String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
-    String endRowStr = StringUtils.defaultIfBlank(endRow.toString(), "+inf");
+    final String startRowStr = StringUtils.defaultIfBlank(startRow.toString(), "-inf");
+    final String endRowStr = StringUtils.defaultIfBlank(endRow.toString(), "+inf");
     log.debug("FindMergeableRangeTask: Creating merge op: {} from startRow: {} to endRow: {}",
         tableId, startRowStr, endRowStr);
     var fateKey = FateKey.forMerge(new KeyExtent(tableId, range.endRow, range.startRow));
@@ -141,7 +146,36 @@ public class FindMergeableRangeTask implements Runnable {
         true);
   }
 
-  static class MergeableRange {
+  public enum UnmergeableReason {
+    NOT_CONTIGUOUS, MAX_FILE_COUNT, MAX_TOTAL_SIZE, TABLET_MERGEABILITY;
+
+    // Cache the Optional() reason objects as we will re-use these over and over
+    private static final Optional<UnmergeableReason> NOT_CONTIGUOUS_OPT =
+        Optional.of(NOT_CONTIGUOUS);
+    private static final Optional<UnmergeableReason> MAX_FILE_COUNT_OPT =
+        Optional.of(MAX_FILE_COUNT);
+    private static final Optional<UnmergeableReason> MAX_TOTAL_SIZE_OPT =
+        Optional.of(MAX_TOTAL_SIZE);
+    private static final Optional<UnmergeableReason> TABLET_MERGEABILITY_OPT =
+        Optional.of(TABLET_MERGEABILITY);
+
+    public Optional<UnmergeableReason> optional() {
+      switch (this) {
+        case NOT_CONTIGUOUS:
+          return NOT_CONTIGUOUS_OPT;
+        case MAX_FILE_COUNT:
+          return MAX_FILE_COUNT_OPT;
+        case MAX_TOTAL_SIZE:
+          return MAX_TOTAL_SIZE_OPT;
+        case TABLET_MERGEABILITY:
+          return TABLET_MERGEABILITY_OPT;
+        default:
+          throw new IllegalArgumentException("Unexpected enum type");
+      }
+    }
+  }
+
+  public static class MergeableRange {
     final SteadyTime currentTime;
     final TableId tableId;
     final long maxFileCount;
@@ -153,15 +187,17 @@ public class FindMergeableRangeTask implements Runnable {
     long totalFileCount;
     long totalFileSize;
 
-    MergeableRange(SteadyTime currentTime, TableId tableId, long maxFileCount, long maxTotalSize) {
-      this.currentTime = currentTime;
+    public MergeableRange(TableId tableId, SteadyTime currentTime, long maxFileCount,
+        long maxTotalSize) {
       this.tableId = tableId;
+      this.currentTime = currentTime;
       this.maxFileCount = maxFileCount;
       this.maxTotalSize = maxTotalSize;
     }
 
-    boolean add(TabletMetadata tm) {
-      if (validate(tm)) {
+    public Optional<UnmergeableReason> add(TabletMetadata tm) {
+      var failure = validate(tm);
+      if (failure.isEmpty()) {
         tabletCount++;
         log.trace("Adding tablet {} to MergeableRange", tm.getExtent());
         if (tabletCount == 1) {
@@ -170,12 +206,11 @@ public class FindMergeableRangeTask implements Runnable {
         endRow = tm.getEndRow();
         totalFileCount += tm.getFiles().size();
         totalFileSize += tm.getFileSize();
-        return true;
       }
-      return false;
+      return failure;
     }
 
-    private boolean validate(TabletMetadata tm) {
+    private Optional<UnmergeableReason> validate(TabletMetadata tm) {
       Preconditions.checkArgument(tableId.equals(tm.getTableId()), "Unexpected tableId seen %s",
           tm.getTableId());
 
@@ -186,19 +221,23 @@ public class FindMergeableRangeTask implements Runnable {
         // If this is not the first tablet, then verify its prevEndRow matches
         // the last endRow tracked, the server filter will skip tablets marked as never
         if (!tm.getPrevEndRow().equals(endRow)) {
-          return false;
+          return NOT_CONTIGUOUS.optional();
         }
       }
 
       if (!tm.getTabletMergeability().isMergeable(currentTime)) {
-        return false;
+        return TABLET_MERGEABILITY.optional();
       }
 
       if (totalFileCount + tm.getFiles().size() > maxFileCount) {
-        return false;
+        return MAX_FILE_COUNT.optional();
       }
 
-      return totalFileSize + tm.getFileSize() <= maxTotalSize;
+      if (totalFileSize + tm.getFileSize() > maxTotalSize) {
+        return MAX_TOTAL_SIZE.optional();
+      }
+
+      return Optional.empty();
     }
 
     void resetAndAdd(TabletMetadata tm) {

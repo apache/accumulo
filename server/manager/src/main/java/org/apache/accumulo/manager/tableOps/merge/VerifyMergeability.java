@@ -25,9 +25,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.merge.FindMergeableRangeTask.MergeableRange;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation;
-import org.apache.accumulo.manager.tableOps.merge.UnreserveAndError.Reason;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,39 +56,21 @@ public class VerifyMergeability extends ManagerRepo {
 
     // max percentage of split threshold
     long maxTotalSize = (long) (splitThreshold * maxMergeabilityThreshold);
-
-    long maxFiles = env.getContext().getTableConfiguration(data.getOriginalExtent().tableId())
+    long maxFileCount = env.getContext().getTableConfiguration(data.getOriginalExtent().tableId())
         .getCount(Property.TABLE_MERGE_FILE_MAX);
 
     log.debug("Validating system merge for {} with range {}", fateId, range);
 
+    final var mr = new MergeableRange(data.tableId, currentTime, maxFileCount, maxTotalSize);
     try (var tablets = env.getContext().getAmple().readTablets().forTable(data.tableId)
         .overlapping(range.prevEndRow(), range.endRow()).fetch(FILES, MERGEABILITY)
         .checkConsistency().build()) {
 
-      long totalSize = 0;
-      long totalFiles = 0;
-      int totalUnMergeable = 0;
-
       for (var tabletMetadata : tablets) {
-        if (!tabletMetadata.getTabletMergeability().isMergeable(currentTime)) {
-          totalUnMergeable++;
+        var error = mr.add(tabletMetadata);
+        if (error.isPresent()) {
+          return new UnreserveSystemMerge(data, error.orElseThrow(), maxFileCount, maxTotalSize);
         }
-
-        totalFiles += tabletMetadata.getFiles().size();
-        totalSize += tabletMetadata.getFileSize();
-      }
-
-      if (totalFiles > maxFiles) {
-        return new UnreserveAndError(data, Reason.MAX_FILES, totalFiles, maxFiles);
-      }
-
-      if (totalSize > maxTotalSize) {
-        return new UnreserveAndError(data, Reason.MAX_SIZE, totalSize, maxTotalSize);
-      }
-
-      if (totalUnMergeable > 0) {
-        return new UnreserveAndError(data, totalUnMergeable);
       }
     }
 

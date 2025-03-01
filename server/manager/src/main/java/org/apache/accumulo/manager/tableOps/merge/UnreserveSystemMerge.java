@@ -24,31 +24,57 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnreserveAndError extends ManagerRepo {
-  private static final long serialVersionUID = 1L;
-  private static final Logger log = LoggerFactory.getLogger(UnreserveAndError.class);
-  private final MergeInfo mergeInfo;
-  private final long totalFiles;
-  private final long maxFiles;
+public class UnreserveSystemMerge extends ManagerRepo {
 
-  public UnreserveAndError(MergeInfo mergeInfo, long totalFiles, long maxFiles) {
+  private static final long serialVersionUID = 1L;
+  private static final Logger log = LoggerFactory.getLogger(UnreserveSystemMerge.class);
+  private final MergeInfo mergeInfo;
+  private final long maxFileCount;
+  private final long maxTotalSize;
+  private final UnmergeableReason reason;
+
+  public UnreserveSystemMerge(MergeInfo mergeInfo, UnmergeableReason reason, long maxFileCount,
+      long maxTotalSize) {
     this.mergeInfo = mergeInfo;
-    this.totalFiles = totalFiles;
-    this.maxFiles = maxFiles;
+    this.reason = reason;
+    this.maxFileCount = maxFileCount;
+    this.maxTotalSize = maxTotalSize;
   }
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     FinishTableRangeOp.removeOperationIds(log, mergeInfo, fateId, environment);
     throw new AcceptableThriftTableOperationException(mergeInfo.tableId.toString(), null,
-        mergeInfo.op == MergeInfo.Operation.MERGE ? TableOperation.MERGE
-            : TableOperation.DELETE_RANGE,
-        TableOperationExceptionType.OTHER,
-        "Aborted merge because it would produce a tablets with more files than the configured limit of "
-            + maxFiles + ". Observed " + totalFiles + " files in the merge range.");
+        mergeInfo.op.isMergeOp() ? TableOperation.MERGE : TableOperation.DELETE_RANGE,
+        TableOperationExceptionType.OTHER, formatReason());
+  }
+
+  public UnmergeableReason getReason() {
+    return reason;
+  }
+
+  private String formatReason() {
+    switch (reason) {
+      case MAX_FILE_COUNT:
+        return "Aborted merge because it would produce a tablet with more files than the configured limit of "
+            + maxFileCount;
+      case MAX_TOTAL_SIZE:
+        return "Aborted merge because it would produce a tablet with a file size larger than the configured limit of "
+            + maxTotalSize;
+      // This state should not happen as VerifyMergeability repo checks consistency but adding it
+      // just in case
+      case TABLET_MERGEABILITY:
+        return "Aborted merge because one ore more tablets in the merge range are unmergeable.";
+      case NOT_CONTIGUOUS:
+        return "Aborted merge because the tablets in a range do not form a linked list.";
+      default:
+        throw new IllegalArgumentException("Unknown Reason");
+    }
+
   }
 }

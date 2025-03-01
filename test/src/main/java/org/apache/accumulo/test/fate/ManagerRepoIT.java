@@ -76,6 +76,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.compact.CompactionDriver;
 import org.apache.accumulo.manager.tableOps.merge.DeleteRows;
@@ -83,8 +84,7 @@ import org.apache.accumulo.manager.tableOps.merge.MergeInfo;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation;
 import org.apache.accumulo.manager.tableOps.merge.MergeTablets;
 import org.apache.accumulo.manager.tableOps.merge.ReserveTablets;
-import org.apache.accumulo.manager.tableOps.merge.UnreserveAndError;
-import org.apache.accumulo.manager.tableOps.merge.UnreserveAndError.Reason;
+import org.apache.accumulo.manager.tableOps.merge.UnreserveSystemMerge;
 import org.apache.accumulo.manager.tableOps.merge.VerifyMergeability;
 import org.apache.accumulo.manager.tableOps.split.AllocateDirsAndEnsureOnline;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
@@ -210,8 +210,9 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
       MergeInfo mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
           null, new Text("c").getBytes(), Operation.SYSTEM_MERGE);
       var repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
-      assertInstanceOf(UnreserveAndError.class, repo);
-      assertEquals(Reason.UNMERGEABLE, ((UnreserveAndError) repo).getReason());
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.TABLET_MERGEABILITY,
+          ((UnreserveSystemMerge) repo).getReason());
 
       // Tablets a and b are always merge
       mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId), null,
@@ -226,15 +227,16 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
 
       // Data written to the first two tablets totals 2700 bytes and is too large
       repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
-      assertInstanceOf(UnreserveAndError.class, repo);
-      assertEquals(Reason.MAX_SIZE, ((UnreserveAndError) repo).getReason());
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.MAX_TOTAL_SIZE, ((UnreserveSystemMerge) repo).getReason());
 
       // Not enough time has passed for Tablet, should be able to merge d and e
       mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
           new Text("c").getBytes(), new Text("e").getBytes(), Operation.SYSTEM_MERGE);
       repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
-      assertInstanceOf(UnreserveAndError.class, repo);
-      assertEquals(Reason.UNMERGEABLE, ((UnreserveAndError) repo).getReason());
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.TABLET_MERGEABILITY,
+          ((UnreserveSystemMerge) repo).getReason());
 
       // update time to 3 days so enough time has passed
       manager = mockWithAmple(getCluster().getServerContext(), testAmple, Duration.ofDays(3));
@@ -249,8 +251,8 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
       // last 3 tablets should total 12 files which is > max of 10
       addFileMetadata(context, tableId, new Text("c"), null, 4, 10);
       repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
-      assertInstanceOf(UnreserveAndError.class, repo);
-      assertEquals(Reason.MAX_FILES, ((UnreserveAndError) repo).getReason());
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.MAX_FILE_COUNT, ((UnreserveSystemMerge) repo).getReason());
     }
   }
 
