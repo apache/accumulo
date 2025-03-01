@@ -80,12 +80,19 @@ public class FindMergeableRangeTask implements Runnable {
       TableId tableId = table.getKey();
       String tableName = table.getValue();
 
-      long maxFileCount =
-          context.getTableConfiguration(tableId).getCount(Property.TABLE_MERGE_FILE_MAX);
       long threshold =
           context.getTableConfiguration(tableId).getAsBytes(Property.TABLE_SPLIT_THRESHOLD);
       double mergeabilityThreshold = context.getTableConfiguration(tableId)
           .getFraction(Property.TABLE_MAX_MERGEABILITY_THRESHOLD);
+      if (mergeabilityThreshold <= 0) {
+        log.trace(
+            "Skipping FindMergeableRangeTask for table {}, TABLE_MAX_MERGEABILITY_THRESHOLD is set to {}",
+            tableName, mergeabilityThreshold);
+        continue;
+      }
+
+      long maxFileCount =
+          context.getTableConfiguration(tableId).getCount(Property.TABLE_MERGE_FILE_MAX);
       long maxTotalSize = (long) (threshold * mergeabilityThreshold);
 
       log.debug("Checking {} for tablets that can be merged", tableName);
@@ -103,12 +110,16 @@ public class FindMergeableRangeTask implements Runnable {
 
           for (var tm : tablets) {
             log.trace("Checking tablet {}, {}", tm.getExtent(), tm.getTabletMergeability());
+            // If there was an error adding the next tablet to the range then
+            // the existing range is complete as we can't add more tablets so
+            // submit a merge fate op and reset to find more merge ranges
             current.add(tm).ifPresent(e -> {
               submit(current, type, table, namespaceId);
               current.resetAndAdd(tm);
             });
           }
 
+          // Try and submit an outstanding mergeable tablets
           submit(current, type, table, namespaceId);
         }
 
