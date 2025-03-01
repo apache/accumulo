@@ -107,7 +107,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // getOnlineTabletsForTable
     UtilWaitThread.sleep(3000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
-        migrations, migrationsOut, "USER", tables));
+        migrations, migrationsOut, DataLevel.USER.name(), tables));
     assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
 
