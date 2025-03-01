@@ -136,8 +136,9 @@ public enum PropertyType {
           + " interpreted based on the context of the property to which it applies."),
 
   JSON("json", new ValidJson(),
-      "An arbitrary string that is represents a valid, parsable generic json object."
-          + "The validity of the json object in the context of the property usage is not checked by this type."),
+      "An arbitrary string that is represents a valid, parsable generic json object. The validity "
+          + "of the json object in the context of the property usage is not checked by this type."),
+
   BOOLEAN("boolean", in(false, null, "true", "false"),
       "Has a value of either 'true' or 'false' (case-insensitive)"),
 
@@ -145,7 +146,9 @@ public enum PropertyType {
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
-          + "Currently, only " + RFile.EXTENSION + " is supported.");
+          + "Currently, only " + RFile.EXTENSION + " is supported."),
+
+  VOLUMES("volumes", new ValidVolumes(), "See instance.volumes documentation");
 
   private final String shortname;
   private final String format;
@@ -212,13 +215,32 @@ public enum PropertyType {
     public boolean test(String value) {
       try {
         if (value.length() > ONE_MILLION) {
-          log.info("provided json string length {} is greater than limit of {} for parsing",
+          log.error("provided json string length {} is greater than limit of {} for parsing",
               value.length(), ONE_MILLION);
           return false;
         }
         jsonMapper.readTree(value);
         return true;
-      } catch (IOException ex) {
+      } catch (IOException e) {
+        log.error("provided json string resulted in an error", e);
+        return false;
+      }
+    }
+  }
+
+  private static class ValidVolumes implements Predicate<String> {
+    private static final Logger log = LoggerFactory.getLogger(ValidVolumes.class);
+
+    @Override
+    public boolean test(String volumes) {
+      if (volumes == null) {
+        return false;
+      }
+      try {
+        ConfigurationTypeHelper.getVolumeUris(volumes);
+        return true;
+      } catch (IllegalArgumentException e) {
+        log.error("provided volume string is not valid", e);
         return false;
       }
     }
@@ -392,5 +414,4 @@ public enum PropertyType {
     }
 
   }
-
 }

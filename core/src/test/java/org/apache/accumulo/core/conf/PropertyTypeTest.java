@@ -219,4 +219,15 @@ public class PropertyTypeTest extends WithTestNames {
     invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
   }
 
+  @Test
+  public void testTypeVOLUMES() {
+    // more comprehensive parsing tests are in ConfigurationTypeHelperTest.testGetVolumeUris()
+    valid("", "hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,", "hdfs:/volA,file:/volB",
+        ",hdfs:/volA,file:/volB", "hdfs:/volA,,file:/volB", "hdfs:/volA,file:/volB,   ,");
+    invalid(null, "   ", ",", ",,,", " ,,,", ",,, ", ", ,,", "hdfs:/volA,hdfs:/volB,volA",
+        ",volA,hdfs:/volA,hdfs:/volB", "hdfs:/volA,,volA,hdfs:/volB",
+        "hdfs:/volA,volA,hdfs:/volB,   ,", "hdfs:/volA,hdfs:/volB,hdfs:/volA",
+        "hdfs:/volA,hdfs :/::/volB");
+  }
+
 }
