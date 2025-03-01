@@ -119,8 +119,12 @@ public class FateKey {
     return new FateKey(FateKeyType.COMPACTION_COMMIT, compactionId);
   }
 
+  public static FateKey forMerge(KeyExtent extent) {
+    return new FateKey(FateKeyType.MERGE, extent);
+  }
+
   public enum FateKeyType {
-    SPLIT, COMPACTION_COMMIT
+    SPLIT, COMPACTION_COMMIT, MERGE
   }
 
   private static byte[] serialize(FateKeyType type, KeyExtent ke) {
@@ -151,6 +155,7 @@ public class FateKey {
       throws IOException {
     switch (type) {
       case SPLIT:
+      case MERGE:
         return Optional.of(KeyExtent.readFrom(buffer));
       case COMPACTION_COMMIT:
         return Optional.empty();
@@ -163,6 +168,7 @@ public class FateKey {
       DataInputBuffer buffer) throws IOException {
     switch (type) {
       case SPLIT:
+      case MERGE:
         return Optional.empty();
       case COMPACTION_COMMIT:
         return Optional.of(ExternalCompactionId.of(buffer.readUTF()));

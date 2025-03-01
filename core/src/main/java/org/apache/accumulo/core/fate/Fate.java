@@ -106,6 +106,7 @@ public class Fate<T> {
     NAMESPACE_RENAME(TFateOperation.NAMESPACE_RENAME),
     SHUTDOWN_TSERVER(null),
     SYSTEM_SPLIT(null),
+    SYSTEM_MERGE(null),
     TABLE_BULK_IMPORT2(TFateOperation.TABLE_BULK_IMPORT2),
     TABLE_CANCEL_COMPACT(TFateOperation.TABLE_CANCEL_COMPACT),
     TABLE_CLONE(TFateOperation.TABLE_CLONE),
@@ -124,7 +125,7 @@ public class Fate<T> {
 
     private final TFateOperation top;
     private static final EnumSet<FateOperation> nonThriftOps =
-        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT);
+        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT, SYSTEM_MERGE);
 
     FateOperation(TFateOperation top) {
       this.top = top;

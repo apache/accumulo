@@ -128,6 +128,14 @@ public class ReserveTablets extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
-    return new CountFiles(data);
+    switch (data.op) {
+      case SYSTEM_MERGE:
+        return new VerifyMergeability(data);
+      case MERGE:
+      case DELETE:
+        return new CountFiles(data);
+      default:
+        throw new IllegalStateException("Unknown op " + data.op);
+    }
   }
 }
