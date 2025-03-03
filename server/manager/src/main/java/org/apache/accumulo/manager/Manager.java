@@ -416,7 +416,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   protected Manager(ServerOpts opts, String[] args) throws IOException {
     super("manager", opts, args);
-
     ServerContext context = super.getContext();
     balancerEnvironment = new BalancerEnvironmentImpl(context);
 
@@ -1027,7 +1026,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       BalanceParamsImpl params = null;
       long wait = 0;
       long totalMigrationsOut = 0;
-
       int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {

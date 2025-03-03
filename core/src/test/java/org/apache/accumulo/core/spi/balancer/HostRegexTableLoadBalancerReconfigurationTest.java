@@ -43,6 +43,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TabletStatisticsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
@@ -117,9 +118,9 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // in the HostRegexTableLoadBalancer. For this test we want
     // to get into the out of bounds checking code, so we need to
     // populate the map with an older time value
-    this.lastOOBCheckTimes.put("USER", System.currentTimeMillis() / 2);
+    this.lastOOBCheckTimes.put(DataLevel.USER.name(), System.currentTimeMillis() / 2);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
-        migrations, migrationsOut, "USER", tables));
+        migrations, migrationsOut, DataLevel.USER.name(), tables));
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
       assertTrue(migration.getNewTabletServer().getHost().startsWith("192.168.0.1")
