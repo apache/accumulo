@@ -27,6 +27,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -133,7 +135,28 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
+  public Seeder<T> beginSeeding() {
+    // TODO: For now can handle seeding 1 transaction at a time so just process
+    // everything in attemptToSeedTransaction
+    // Part 2 of the changes in #5160 will allow multiple seeding attempts to be combined
+    // into one conditional mutation and we will need to track the pending operations
+    // and futures in a map
+    return new Seeder<T>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+        return CompletableFuture
+            .completedFuture(seedTransaction(fateOp, fateKey, repo, autoCleanUp));
+      }
+
+      @Override
+      public void close() {
+        // TODO: This will be used in Part 2 of #5160
+      }
+    };
+  }
+
+  private Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
     Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
