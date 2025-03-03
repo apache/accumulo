@@ -19,6 +19,7 @@
 package org.apache.accumulo.monitor.view;
 
 import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_BLANK_OK;
+import static org.apache.accumulo.monitor.util.ParameterValidator.ALPHA_NUM_REGEX_TABLE_ID;
 import static org.apache.accumulo.monitor.util.ParameterValidator.HOSTNAME_PORT_REGEX;
 
 import java.io.IOException;
@@ -42,6 +43,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.monitor.Monitor;
 import org.glassfish.jersey.server.mvc.Template;
 import org.slf4j.Logger;
@@ -277,24 +279,24 @@ public class WebViews {
   /**
    * Returns participating tservers template
    *
-   * @param tableID Table ID for participating tservers
+   * @param tableId Table ID for participating tservers
    * @return Participating tservers model
    */
   @GET
-  @Path("tables/{tableID}")
+  @Path("tables/{tableId}")
   @Template(name = "/default.ftl")
-  public Map<String,Object> getTables(@PathParam("tableID") @NotNull String tableID)
+  public Map<String,Object> getTables(
+      @PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableId)
       throws TableNotFoundException {
-    // TODO: switched to use tablename as param. switch back to tableID
-    // String tableName = monitor.getContext().getTableName(TableId.of(tableID));
+    String tableName = monitor.getContext().getTableName(TableId.of(tableId));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
 
     model.put("template", "table.ftl");
     model.put("js", "table.js");
-    model.put("tableID", tableID);
-    model.put("table", tableID);
+    model.put("tableId", tableId);
+    model.put("table", tableName);
 
     return model;
   }

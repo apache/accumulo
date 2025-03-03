@@ -38,8 +38,8 @@ function refresh() {
 /**
  * Makes the REST call to fetch tablet details and render them.
  */
-function initTabletsTable(tableID) {
-  var tabletsUrl = '/rest-v2/tables/' + tableID + '/tablets';
+function initTabletsTable(tableId) {
+  var tabletsUrl = '/rest-v2/tables/' + tableId + '/tablets';
   console.debug('Fetching tablets info from: ' + tabletsUrl);
 
   tabletsTable = $('#tabletsList').DataTable({
@@ -83,10 +83,10 @@ function initTabletsTable(tableID) {
 /**
  * Initialize the table
  * 
- * @param {String} tableID the accumulo table ID
+ * @param {String} tableId the accumulo table ID
  */
-function initTableServerTable(tableID) {
-  const url = '/rest-v2/tables/' + tableID;
+function initTableServerTable(tableId) {
+  const url = '/rest-v2/tables/' + tableId;
   console.debug('REST url used to fetch summary data: ' + url);
 
   tableServersTable = $('#participatingTServers').DataTable({
@@ -163,5 +163,5 @@ function initTableServerTable(tableID) {
   });
 
   refreshTable();
-  initTabletsTable(tableID);
+  initTabletsTable(tableId);
 }

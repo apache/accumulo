@@ -20,10 +20,10 @@
 -->
       <script>
         /**
-         * Creates participating Tservers initial table, passes the tableID from the template
+         * Creates participating Tservers initial table, passes the tableId from the template
          */
         $(function () {
-          initTableServerTable('${table}');
+          initTableServerTable('${tableId}');
         });
       </script>
       <div class="row">
@@ -60,8 +60,8 @@
       <!-- Section for tablets details DataTable -->
       <div class="row">
         <div class="col-xs-12">
-          <caption><span class="table-caption">Tablet Details</span></caption>
           <table id="tabletsList" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Tablet Details</span></caption>
             <thead>
               <tr>
                 <th>Tablet ID</th>
