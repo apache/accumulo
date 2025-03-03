@@ -640,6 +640,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().delete(tableName);
       c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
 
+      // TODO this is a hack, want to wait for all tablets to be loaded as this is attempting to
+      // performance test bulk code. So want to avoid waiting on tablet loads also.
+      Thread.sleep(5_000);
+
       var lpBuilder = LoadPlan.builder();
       lpBuilder.loadFileTo("f1.rf", RangeType.TABLE, null, row(1));
       IntStream.range(2, 200)

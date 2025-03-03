@@ -101,7 +101,6 @@ import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionInfo;
@@ -245,8 +244,8 @@ public class TabletClientHandler implements TabletClientService.Iface {
             server.removeBulkImportState(files);
           }
         }
-        UtilWaitThread.sleep(100);
-        log.debug("Finished bulk import  for {} ", KeyExtent.fromThrift(tke));
+        // UtilWaitThread.sleep(100);
+        log.debug("Finished bulk import  for {} ", KeyExtent.fromThrift(tke), new Exception());
       });
     });
 

@@ -188,6 +188,10 @@ class LoadFiles extends ManagerRepo {
     private void sendQueued(int threshhold) {
       if (queuedDataSize > threshhold || threshhold == 0) {
         var sendTimer = Timer.startNew();
+
+        List<TabletClientService.Client> clients = new ArrayList<>();
+
+        // Send load messages to tablet servers spinning up work, but do not wait on results.
         loadQueue.forEach((server, tabletFiles) -> {
 
           if (log.isTraceEnabled()) {
@@ -195,51 +199,59 @@ class LoadFiles extends ManagerRepo {
                 tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
           }
 
+          // On the server side tablets are processed serially with a write to the metadata table
+          // done for each tablet. Chunk the work up for a tablet server up so that it can be sent
+          // over
+          // multiple connections allowing it to run in parallel on the server side. This allows
+          // multiple threads on a single tserver to do metadata writes for this bulk import.
           int neededConnections = Math.min(MAX_CONNECTIONS_PER_TSERVER, tabletFiles.size());
+          List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks = new ArrayList<>(neededConnections);
+          for (int i = 0; i < neededConnections; i++) {
+            chunks.add(new HashMap<>());
+          }
 
-          var clients = new TabletClientService.Client[neededConnections];
-          try {
-            for (int i = 0; i < clients.length; i++) {
-              clients[i] = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
+          int nextConnection = 0;
+          for (var entry : tabletFiles.entrySet()) {
+            chunks.get(nextConnection++ % chunks.size()).put(entry.getKey(), entry.getValue());
+          }
+
+          for (var chunk : chunks) {
+            try {
+              var client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
                   manager.getContext(), timeInMillis);
-            }
-
-            int nextConnection = 0;
-
-            // Send a message per tablet. On the tablet server side for each tablet it must write to
-            // the metadata tablet which requires waiting on the walog. Sending a message per tablet
-            // allows these per tablet metadata table writes to run in parallel. This avoids
-            // serially waiting on the metadata table write for each tablet.
-            for (var entry : tabletFiles.entrySet()) {
-              TKeyExtent tExtent = entry.getKey();
-              Map<String,MapFileInfo> files = entry.getValue();
-
-              // Round robin over the connections, each connection will start processing data in
-              // parallel on the tserver side.
-              var client = clients[nextConnection++ % clients.length];
-              client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
-                  bulkDir.toString(), Map.of(tExtent, files), setTime);
-            }
-          } catch (TException ex) {
-            log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
-          } finally {
-            for (var client : clients) {
-              ThriftUtil.returnClient(client, manager.getContext());
+              client.send_loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
+                  bulkDir.toString(), chunk, setTime);
+              clients.add(client);
+            } catch (TException ex) {
+              log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
+              // TODO return client
             }
           }
         });
 
-        if (log.isDebugEnabled()) {
-          var elapsed = sendTimer.elapsed(TimeUnit.MILLISECONDS);
-          int count = 0;
-          for (var tableFiles : loadQueue.values()) {
-            for (var files : tableFiles.values()) {
-              count += files.size();
-            }
-          }
+        long sendTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
+        sendTimer.restart();
 
-          log.debug("{} sent {} messages to {} tablet servers in {} ms", fmtTid, count,
-              loadQueue.size(), elapsed);
+        // wait for all the tservers to complete processing
+        for (var client : clients) {
+          try {
+            client.recv_loadFiles();
+          } catch (TException ex) {
+            // TODO need to keep the server
+            String server = "???";
+            log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
+          } finally {
+            // TODO this finally needs to be structured better, needs to cover entire send and
+            // receive code. Clients can fall throught the cracks w/ this.
+            ThriftUtil.returnClient(client, manager.getContext());
+          }
+        }
+
+        if (log.isDebugEnabled()) {
+          var recvTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
+
+          log.debug("{} sent {} messages to {} tablet servers, send time:{}ms recv time:{}ms",
+              fmtTid, clients.size(), loadQueue.size(), sendTime, recvTime);
         }
 
         loadQueue.clear();
@@ -311,6 +323,10 @@ class LoadFiles extends ManagerRepo {
         // process these message in parallel, so assume it can process 16 in parallel. Must return a
         // non-zero value when messages were sent or the calling code will think everything is done.
         sleepTime = Math.max(1, (loadMsgs.max() * 13) / 16);
+
+        // TODO since a result from the tablet is being waited on now, could have the tserver report
+        // back success or not. If everything was a success, then could be done and avoid a
+        // subsequent metadata scan.
       }
 
       if (locationLess > 0) {
