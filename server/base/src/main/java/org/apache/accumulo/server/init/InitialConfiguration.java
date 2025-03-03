@@ -88,8 +88,8 @@ public class InitialConfiguration {
 
     initialFateTableConf.putAll(commonConfig);
     initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
-    // Create a locality group that contains status and reservation so its fast to scan. When fate
-    // looks for work is scans this family.
+    // Create a locality group that contains tx admin columns so its fast to scan. When fate
+    // looks for work it scans this family.
     initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "txAdmin",
         FateSchema.TxAdminColumnFamily.STR_NAME);
     initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "txAdmin");
