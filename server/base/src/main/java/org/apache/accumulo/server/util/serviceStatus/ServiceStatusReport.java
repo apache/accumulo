@@ -205,6 +205,8 @@ public class ServiceStatusReport {
       return displayName;
     }
 
-    public String getZkPath() { return zkPath; }
+    public String getZkPath() {
+      return zkPath;
+    }
   }
 }

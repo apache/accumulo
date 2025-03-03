@@ -30,9 +30,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.UUID;
-
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.server.ServerContext;
@@ -42,8 +39,6 @@ import org.slf4j.LoggerFactory;
 
 public class PropStoreKeyTest {
   private static final Logger log = LoggerFactory.getLogger(PropStoreKeyTest.class);
-
-  private final InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
   @Test
   public void systemType() {
