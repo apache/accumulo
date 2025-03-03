@@ -163,7 +163,7 @@ public class ChaoticLoadBalancerTest {
       SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
       balancer.balance(new BalanceParamsImpl(current,
           Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
-          migrationsOut, DataLevel.USER));
+          migrationsOut, DataLevel.USER, Map.of()));
     }
   }
 

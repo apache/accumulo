@@ -18,19 +18,28 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.fate.FlakyFateManager;
-import org.apache.hadoop.conf.Configuration;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
  * Run all of the merge test using a flaky Fate impl that will run merge fate steps multiple times
  * to ensure idempotent.
  */
-public class MergeFlakyFateIT extends MergeIT {
+public class MergeTabletsFlakyFateIT extends MergeTabletsBaseIT {
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
+    });
+
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 }

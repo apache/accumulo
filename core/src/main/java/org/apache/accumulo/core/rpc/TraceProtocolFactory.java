@@ -35,25 +35,32 @@ import io.opentelemetry.context.Scope;
 public class TraceProtocolFactory extends TCompactProtocol.Factory {
   private static final long serialVersionUID = 1L;
 
+  private static class TraceProtocol extends TCompactProtocol {
+
+    private Span span = null;
+    private Scope scope = null;
+
+    public TraceProtocol(TTransport transport) {
+      super(transport);
+    }
+
+    @Override
+    public void writeMessageBegin(TMessage message) throws TException {
+      span = TraceUtil.startClientRpcSpan(this.getClass(), message.name);
+      scope = span.makeCurrent();
+      super.writeMessageBegin(message);
+    }
+
+    @Override
+    public void writeMessageEnd() throws TException {
+      super.writeMessageEnd();
+      scope.close();
+      span.end();
+    }
+  }
+
   @Override
   public TProtocol getProtocol(TTransport trans) {
-    return new TCompactProtocol(trans) {
-      private Span span = null;
-      private Scope scope = null;
-
-      @Override
-      public void writeMessageBegin(TMessage message) throws TException {
-        span = TraceUtil.startClientRpcSpan(this.getClass(), message.name);
-        scope = span.makeCurrent();
-        super.writeMessageBegin(message);
-      }
-
-      @Override
-      public void writeMessageEnd() throws TException {
-        super.writeMessageEnd();
-        scope.close();
-        span.end();
-      }
-    };
+    return new TraceProtocol(trans);
   }
 }
