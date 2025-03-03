@@ -42,7 +42,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -566,46 +565,18 @@ public class TabletMetadata {
     }
 
     Collection<StoredTabletFile> files = tm.getFiles();
-
-    Text prevEndRowText = tm.getPrevEndRow();
-    Text endRowText = tm.getEndRow();
-
-    // Allow validation even if prevEndRow is missing, as long as endRowText exists
-    Key prevEndRowKey = (prevEndRowText != null) ? new Key(prevEndRowText) : null;
-    Key endRowKey = (endRowText != null) ? new Key(endRowText) : null;
+    Range tabletRange = tm.getExtent().toDataRange();
 
     for (StoredTabletFile file : files) {
-      if (!isFileRangeValid(file, prevEndRowKey, endRowKey)) {
-        throw new IllegalStateException("File range " + file.getRange()
-            + " does not overlap with tablet range [" + prevEndRowText + ", " + endRowText + "]");
+      if (!isFileRangeValid(file, tabletRange)) {
+        throw new IllegalStateException(
+            "File range " + file.getRange() + " does not overlap with tablet range " + tabletRange);
       }
     }
   }
 
-  private static boolean isFileRangeValid(StoredTabletFile file, Key prevEndRowKey, Key endRowKey) {
-    Range fileRange = file.getRange();
-
-    if (!file.hasRange()) {
-      return true;
-    }
-
-    Key fileStartKey = fileRange.getStartKey();
-    Key fileEndKey = fileRange.getEndKey();
-
-    // If start key is null, assume it starts at the beginning of the tablet
-    if (fileStartKey == null) {
-      fileStartKey = prevEndRowKey != null ? prevEndRowKey.followingKey(PartialKey.ROW) : null;
-    }
-
-    if (fileEndKey == null) {
-      fileEndKey = endRowKey;
-    }
-
-    if (prevEndRowKey != null
-        && fileStartKey.compareTo(prevEndRowKey.followingKey(PartialKey.ROW)) < 0) {
-      return false;
-    }
-    return endRowKey == null || fileEndKey.compareTo(endRowKey) <= 0;
+  private static boolean isFileRangeValid(StoredTabletFile file, Range tabletRange) {
+    return !file.hasRange() || tabletRange.clip(file.getRange(), true) != null;
   }
 
   static class Builder {
