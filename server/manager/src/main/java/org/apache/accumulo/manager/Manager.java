@@ -129,6 +129,7 @@ import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
+import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
@@ -1180,47 +1181,21 @@ public class Manager extends AbstractServer
     // the Manager until all of the internal processes are started.
     setHostname(sa.address);
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
-    var producers = managerMetrics.getProducers(getConfiguration(), this);
-    producers.add(balancerMetrics);
-
-    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        sa.getAddress(), getResourceGroup()));
-
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
     context.getTableManager().addObserver(this);
 
-    tableInformationStatusPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
-
-    tabletRefreshThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
-        .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
-        .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
-        .build();
-
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
-
     tserverSet.startListeningForTabletServerChanges();
-
-    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
-
     try {
       blockForTservers();
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
     }
 
-    // Don't call start the CompactionCoordinator until we have tservers.
-    compactionCoordinator.start();
-
     ZooReaderWriter zReaderWriter = context.getZooSession().asReaderWriter();
-
     try {
       zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
         @Override
@@ -1238,18 +1213,22 @@ public class Manager extends AbstractServer
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
-    this.splitter = new Splitter(context);
-    this.splitter.start();
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
+    var producers = managerMetrics.getProducers(getConfiguration(), this);
+    producers.add(balancerMetrics);
 
-    watchers.add(new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
-      @Override
-      boolean canSuspendTablets() {
-        // Always allow user data tablets to enter suspended state.
-        return true;
-      }
-    });
+    final TabletGroupWatcher userTableTGW =
+        new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
+          @Override
+          boolean canSuspendTablets() {
+            // Always allow user data tablets to enter suspended state.
+            return true;
+          }
+        };
+    watchers.add(userTableTGW);
 
-    watchers.add(
+    final TabletGroupWatcher metadataTableTGW =
         new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), managerMetrics) {
           @Override
           boolean canSuspendTablets() {
@@ -1259,18 +1238,65 @@ public class Manager extends AbstractServer
             // setting.
             return getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE);
           }
-        });
+        };
+    watchers.add(metadataTableTGW);
 
-    watchers
-        .add(new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), managerMetrics) {
+    final TabletGroupWatcher rootTableTGW =
+        new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), managerMetrics) {
           @Override
           boolean canSuspendTablets() {
             // Never allow root tablet to enter suspended state.
             return false;
           }
-        });
-    for (TabletGroupWatcher watcher : watchers) {
-      watcher.start();
+        };
+    watchers.add(rootTableTGW);
+
+    boolean rootTGWStarted = false;
+    boolean metaTGWStarted = false;
+    boolean userTGWStarted = false;
+
+    while (isUpgrading()) {
+      UpgradeStatus currentStatus = upgradeCoordinator.getStatus();
+      if (currentStatus == UpgradeStatus.FAILED || currentStatus == UpgradeStatus.COMPLETE) {
+        break;
+      }
+      switch (currentStatus) {
+        case UPGRADED_METADATA:
+          // Start processing user tables
+          userTableTGW.start();
+          userTGWStarted = true;
+          break;
+        case UPGRADED_ROOT:
+          // Start processing the metadata table
+          metadataTableTGW.start();
+          metaTGWStarted = true;
+          break;
+        case UPGRADED_ZOOKEEPER:
+          // Start processing the root table
+          rootTableTGW.start();
+          rootTGWStarted = true;
+          break;
+        case FAILED:
+        case COMPLETE:
+        case INITIAL:
+        default:
+          break;
+      }
+    }
+
+    // In the case where an upgrade is not needed, then we may not
+    // have stepped through all of the steps in the previous code
+    // block. Make sure all TGWs are started.
+    if (upgradeCoordinator.getStatus() != UpgradeStatus.FAILED) {
+      if (!rootTGWStarted) {
+        rootTableTGW.start();
+      }
+      if (!metaTGWStarted) {
+        metadataTableTGW.start();
+      }
+      if (!userTGWStarted) {
+        userTableTGW.start();
+      }
     }
 
     // Once we are sure the upgrade is complete, we can safely allow fate use.
@@ -1284,9 +1310,33 @@ public class Manager extends AbstractServer
     }
 
     // Everything should be fully upgraded by this point, but check before starting fate
+    // and other processes that depend on the metadata table being available and any
+    // other tables that may have been created during the upgrade to exist.
     if (isUpgrading()) {
       throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
     }
+
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        sa.getAddress(), getResourceGroup()));
+
+    tableInformationStatusPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
+
+    tabletRefreshThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
+        .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
+        .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
+        .build();
+
+    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
+
+    // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
+    compactionCoordinator.start();
+
+    this.splitter = new Splitter(context);
+    this.splitter.start();
+
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
