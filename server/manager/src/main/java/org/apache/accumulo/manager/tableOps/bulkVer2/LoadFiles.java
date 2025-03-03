@@ -183,6 +183,8 @@ class LoadFiles extends ManagerRepo {
       loadQueue = new HashMap<>();
     }
 
+    private static final int MAX_CONNECTIONS_PER_TSERVER = 8;
+
     private void sendQueued(int threshhold) {
       if (queuedDataSize > threshhold || threshhold == 0) {
         var sendTimer = Timer.startNew();
@@ -193,10 +195,17 @@ class LoadFiles extends ManagerRepo {
                 tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
           }
 
-          TabletClientService.Client client = null;
+          int neededConnections = Math.min(MAX_CONNECTIONS_PER_TSERVER, tabletFiles.size());
+
+          var clients = new TabletClientService.Client[neededConnections];
           try {
-            client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
-                manager.getContext(), timeInMillis);
+            for (int i = 0; i < clients.length; i++) {
+              clients[i] = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
+                  manager.getContext(), timeInMillis);
+            }
+
+            int nextConnection = 0;
+
             // Send a message per tablet. On the tablet server side for each tablet it must write to
             // the metadata tablet which requires waiting on the walog. Sending a message per tablet
             // allows these per tablet metadata table writes to run in parallel. This avoids
@@ -205,13 +214,18 @@ class LoadFiles extends ManagerRepo {
               TKeyExtent tExtent = entry.getKey();
               Map<String,MapFileInfo> files = entry.getValue();
 
+              // Round robin over the connections, each connection will start processing data in
+              // parallel on the tserver side.
+              var client = clients[nextConnection++ % clients.length];
               client.loadFiles(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
                   bulkDir.toString(), Map.of(tExtent, files), setTime);
             }
           } catch (TException ex) {
             log.debug("rpc failed server: " + server + ", " + fmtTid + " " + ex.getMessage(), ex);
           } finally {
-            ThriftUtil.returnClient(client, manager.getContext());
+            for (var client : clients) {
+              ThriftUtil.returnClient(client, manager.getContext());
+            }
           }
         });
 
