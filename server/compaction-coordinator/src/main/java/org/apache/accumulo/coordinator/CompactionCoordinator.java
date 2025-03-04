@@ -101,6 +101,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Sets;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.micrometer.core.instrument.Tag;
 
 public class CompactionCoordinator extends AbstractServer implements
@@ -265,6 +266,7 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   @Override
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
 
     ServerAddress coordinatorAddress = null;
@@ -279,6 +281,13 @@ public class CompactionCoordinator extends AbstractServer implements
       getCoordinatorLock(clientAddress);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting Coordinator lock", e);
+    }
+
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();

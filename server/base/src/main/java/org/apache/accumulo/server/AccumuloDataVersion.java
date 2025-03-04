@@ -78,4 +78,18 @@ public class AccumuloDataVersion {
 
   public static final Set<Integer> CAN_RUN =
       Set.of(SHORTEN_RFILE_KEYS, CRYPTO_CHANGES, CURRENT_VERSION);
+
+  /**
+   * Get the stored, current working version.
+   *
+   * @param context the server context
+   * @return the stored data version
+   */
+  public static int getCurrentVersion(ServerContext context) {
+    int cv =
+        context.getServerDirs().getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
+    ServerContext.ensureDataVersionCompatible(cv);
+    return cv;
+  }
+
 }
