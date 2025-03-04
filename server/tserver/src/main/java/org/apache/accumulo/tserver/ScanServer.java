@@ -378,12 +378,21 @@ public class ScanServer extends AbstractServer
   public void run() {
     SecurityUtil.serverLogin(getConfiguration());
 
+    // Wait before getting the lock as clients using ScanServers
+    // use the lock to find them.
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     ServerAddress address = null;
     try {
       address = startScanServerClientService();
       clientAddress = address.getAddress();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the compactor client service", e1);
+      throw new RuntimeException("Failed to start the scan server client service", e1);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();

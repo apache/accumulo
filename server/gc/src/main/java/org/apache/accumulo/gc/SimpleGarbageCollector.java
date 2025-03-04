@@ -167,6 +167,13 @@ public class SimpleGarbageCollector extends AbstractServer
       System.exit(1);
     }
 
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
     metricsInfo.addMetricsProducers(new GcMetrics(this));

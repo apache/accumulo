@@ -281,6 +281,13 @@ public class CompactionCoordinator extends AbstractServer implements
       throw new IllegalStateException("Exception getting Coordinator lock", e);
     }
 
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
     metricsInfo.init(getServiceTags(clientAddress));
 
