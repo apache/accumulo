@@ -42,6 +42,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -558,6 +559,26 @@ public class TabletMetadata {
         .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
   }
 
+  public static void validate(TabletMetadata tm) {
+    if (!tm.fetchedCols.contains(ColumnType.FILES) || !tm.sawPrevEndRow) {
+      return;
+    }
+
+    Collection<StoredTabletFile> files = tm.getFiles();
+    Range tabletRange = tm.getExtent().toDataRange();
+
+    for (StoredTabletFile file : files) {
+      if (!isFileRangeValid(file, tabletRange)) {
+        throw new IllegalStateException(
+            "File range " + file.getRange() + " does not overlap with tablet range " + tabletRange);
+      }
+    }
+  }
+
+  private static boolean isFileRangeValid(StoredTabletFile file, Range tabletRange) {
+    return !file.hasRange() || tabletRange.clip(file.getRange(), true) != null;
+  }
+
   static class Builder {
     private TableId tableId;
     private Text prevEndRow;
@@ -682,7 +703,9 @@ public class TabletMetadata {
 
     TabletMetadata build(EnumSet<ColumnType> fetchedCols) {
       this.fetchedCols = fetchedCols;
-      return new TabletMetadata(this);
+      TabletMetadata tm = new TabletMetadata(this);
+      validate(tm);
+      return tm;
     }
   }
 }
