@@ -119,6 +119,7 @@ public class CustomNonBlockingServer extends THsHaServer {
       super(trans, selectionKey, selectThread);
       // Store the clientAddress in the buffer so it can be referenced for logging during read/write
       this.clientAddress = getClientAddress();
+      log.debug("created custom frame buffer ", new Exception());
     }
 
     @Override
