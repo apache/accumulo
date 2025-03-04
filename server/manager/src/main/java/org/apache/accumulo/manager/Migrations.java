@@ -46,8 +46,9 @@ public class Migrations {
     }
   }
 
-  private void removeIf(Predicate<Map.Entry<KeyExtent,TServerInstance>> removalTest) {
-    for (var dataLevel : DataLevel.values()) {
+  private void removeIf(Predicate<Map.Entry<KeyExtent,TServerInstance>> removalTest,
+      DataLevel... levels) {
+    for (var dataLevel : levels) {
       var mmap = migrations.get(dataLevel);
       mmap.entrySet().removeIf(entry -> {
         if (removalTest.test(entry)) {
@@ -60,7 +61,7 @@ public class Migrations {
   }
 
   public void removeTable(TableId tableId) {
-    removeIf(entry -> entry.getKey().tableId().equals(tableId));
+    removeIf(entry -> entry.getKey().tableId().equals(tableId), DataLevel.of(tableId));
   }
 
   public void removeExtents(Set<KeyExtent> extents) {
@@ -76,7 +77,7 @@ public class Migrations {
   }
 
   public void removeServers(Set<TServerInstance> servers) {
-    removeIf(entry -> servers.contains(entry.getValue()));
+    removeIf(entry -> servers.contains(entry.getValue()), DataLevel.values());
   }
 
   public void put(KeyExtent extent, TServerInstance tServerInstance) {
