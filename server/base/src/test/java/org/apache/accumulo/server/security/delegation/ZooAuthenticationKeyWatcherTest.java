@@ -42,7 +42,6 @@ import javax.crypto.KeyGenerator;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.WatchedEvent;
@@ -70,7 +69,6 @@ public class ZooAuthenticationKeyWatcherTest {
 
   private ZooSession zk;
   private InstanceId instanceId;
-  private String baseNode;
   private long tokenLifetime = DAYS.toMillis(7);
   private AuthenticationTokenSecretManager secretManager;
   private ZooAuthenticationKeyWatcher keyWatcher;
@@ -79,12 +77,12 @@ public class ZooAuthenticationKeyWatcherTest {
   public void setupMocks() {
     zk = createMock(ZooSession.class);
     instanceId = InstanceId.of(UUID.randomUUID());
-    baseNode = ZooUtil.getRoot(instanceId) + Constants.ZDELEGATION_TOKEN_KEYS;
     secretManager = new AuthenticationTokenSecretManager(instanceId, tokenLifetime);
 
     expect(zk.asReader()).andReturn(new ZooReader(zk)).once();
     replay(zk);
-    keyWatcher = new ZooAuthenticationKeyWatcher(secretManager, zk, baseNode);
+    keyWatcher =
+        new ZooAuthenticationKeyWatcher(secretManager, zk, Constants.ZDELEGATION_TOKEN_KEYS);
     reset(zk);
   }
 
@@ -95,9 +93,11 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testBaseNodeCreated() throws Exception {
-    WatchedEvent event = new WatchedEvent(EventType.NodeCreated, null, baseNode);
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeCreated, null, Constants.ZDELEGATION_TOKEN_KEYS);
 
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(Collections.emptyList());
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher))
+        .andReturn(Collections.emptyList());
     replay(zk);
 
     keyWatcher.process(event);
@@ -107,15 +107,18 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testBaseNodeCreatedWithChildren() throws Exception {
-    WatchedEvent event = new WatchedEvent(EventType.NodeCreated, null, baseNode);
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeCreated, null, Constants.ZDELEGATION_TOKEN_KEYS);
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     byte[] serializedKey1 = serialize(key1), serializedKey2 = serialize(key2);
     List<String> children = Arrays.asList("1", "2");
 
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/1", keyWatcher, null)).andReturn(serializedKey1);
-    expect(zk.getData(baseNode + "/2", keyWatcher, null)).andReturn(serializedKey2);
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/1", keyWatcher, null))
+        .andReturn(serializedKey1);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/2", keyWatcher, null))
+        .andReturn(serializedKey2);
     replay(zk);
 
     keyWatcher.process(event);
@@ -127,15 +130,18 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testBaseNodeChildrenChanged() throws Exception {
-    WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null, baseNode);
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeChildrenChanged, null, Constants.ZDELEGATION_TOKEN_KEYS);
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     byte[] serializedKey1 = serialize(key1), serializedKey2 = serialize(key2);
     List<String> children = Arrays.asList("1", "2");
 
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/1", keyWatcher, null)).andReturn(serializedKey1);
-    expect(zk.getData(baseNode + "/2", keyWatcher, null)).andReturn(serializedKey2);
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/1", keyWatcher, null))
+        .andReturn(serializedKey1);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/2", keyWatcher, null))
+        .andReturn(serializedKey2);
     replay(zk);
 
     keyWatcher.process(event);
@@ -147,7 +153,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testBaseNodeDeleted() {
-    WatchedEvent event = new WatchedEvent(EventType.NodeDeleted, null, baseNode);
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeDeleted, null, Constants.ZDELEGATION_TOKEN_KEYS);
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
@@ -165,7 +172,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testBaseNodeDataChanged() {
-    WatchedEvent event = new WatchedEvent(EventType.NodeDataChanged, null, baseNode);
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeDataChanged, null, Constants.ZDELEGATION_TOKEN_KEYS);
 
     replay(zk);
 
@@ -177,7 +185,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testChildChanged() throws Exception {
-    WatchedEvent event = new WatchedEvent(EventType.NodeCreated, null, baseNode + "/2");
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeCreated, null, Constants.ZDELEGATION_TOKEN_KEYS + "/2");
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
@@ -197,7 +206,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testChildDeleted() {
-    WatchedEvent event = new WatchedEvent(EventType.NodeDeleted, null, baseNode + "/1");
+    WatchedEvent event =
+        new WatchedEvent(EventType.NodeDeleted, null, Constants.ZDELEGATION_TOKEN_KEYS + "/1");
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
@@ -215,7 +225,8 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testChildChildrenChanged() {
-    WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null, baseNode + "/2");
+    WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null,
+        Constants.ZDELEGATION_TOKEN_KEYS + "/2");
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
@@ -235,7 +246,7 @@ public class ZooAuthenticationKeyWatcherTest {
 
   @Test
   public void testInitialUpdateNoNode() throws Exception {
-    expect(zk.exists(baseNode, keyWatcher)).andReturn(null);
+    expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(null);
 
     replay(zk);
 
@@ -251,11 +262,11 @@ public class ZooAuthenticationKeyWatcherTest {
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
-    expect(zk.exists(baseNode, keyWatcher)).andReturn(new Stat());
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
+    expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(new Stat());
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key1.getKeyId(), keyWatcher, null))
         .andReturn(serialize(key1));
-    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher, null))
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key2.getKeyId(), keyWatcher, null))
         .andReturn(serialize(key2));
 
     replay(zk);
@@ -286,11 +297,11 @@ public class ZooAuthenticationKeyWatcherTest {
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
         key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
-    expect(zk.exists(baseNode, keyWatcher)).andReturn(new Stat());
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
+    expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(new Stat());
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key1.getKeyId(), keyWatcher, null))
         .andReturn(serialize(key1));
-    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher, null))
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key2.getKeyId(), keyWatcher, null))
         .andReturn(serialize(key2));
 
     replay(zk);
@@ -306,11 +317,11 @@ public class ZooAuthenticationKeyWatcherTest {
 
     reset(zk);
 
-    expect(zk.exists(baseNode, keyWatcher)).andReturn(new Stat());
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
+    expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(new Stat());
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key1.getKeyId(), keyWatcher, null))
         .andReturn(serialize(key1));
-    expect(zk.getData(baseNode + "/" + key2.getKeyId(), keyWatcher, null))
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key2.getKeyId(), keyWatcher, null))
         .andReturn(serialize(key2));
 
     replay(zk);
@@ -329,11 +340,11 @@ public class ZooAuthenticationKeyWatcherTest {
     List<String> children = Arrays.asList("1");
     AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
 
-    expect(zk.exists(baseNode, keyWatcher)).andReturn(new Stat());
+    expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(new Stat());
     // We saw key1
-    expect(zk.getChildren(baseNode, keyWatcher)).andReturn(children);
+    expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
     // but it was gone when we tried to access it (manager deleted it)
-    expect(zk.getData(baseNode + "/" + key1.getKeyId(), keyWatcher, null))
+    expect(zk.getData(Constants.ZDELEGATION_TOKEN_KEYS + "/" + key1.getKeyId(), keyWatcher, null))
         .andThrow(new NoNodeException());
 
     replay(zk);

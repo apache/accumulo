@@ -66,7 +66,7 @@ public class PropUtilTest {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     InstanceId iid = createMock(InstanceId.class);
     TableId tid = createMock(TableId.class);
-    TablePropKey tkey = TablePropKey.of(iid, tid);
+    TablePropKey tkey = TablePropKey.of(tid);
 
     expect(ctx.getConfiguration()).andReturn(conf).once();
     expect(conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY))
@@ -87,7 +87,7 @@ public class PropUtilTest {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     InstanceId iid = createMock(InstanceId.class);
     TableId tid = createMock(TableId.class);
-    TablePropKey tkey = TablePropKey.of(iid, tid);
+    TablePropKey tkey = TablePropKey.of(tid);
 
     expect(ctx.getConfiguration()).andReturn(conf).once();
     expect(conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY))

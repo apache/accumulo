@@ -89,8 +89,7 @@ public class RootTabletLocator extends TabletLocator {
   @Override
   public void invalidateCache(ClientContext context, String server) {
     ZooCache zooCache = context.getZooCache();
-    String root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    zooCache.clear(root + "/" + server);
+    zooCache.clear(Constants.ZTSERVERS + "/" + server);
   }
 
   @Override

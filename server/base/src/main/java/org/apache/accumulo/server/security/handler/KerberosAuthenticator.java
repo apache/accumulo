@@ -24,6 +24,7 @@ import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -53,7 +54,6 @@ public class KerberosAuthenticator implements Authenticator {
   private final ZKAuthenticator zkAuthenticator = new ZKAuthenticator();
   private ZooCache zooCache;
   private ServerContext context;
-  private String zkUserPath;
   private UserImpersonation impersonation;
 
   @Override
@@ -62,7 +62,6 @@ public class KerberosAuthenticator implements Authenticator {
     zooCache = new ZooCache(context.getZooSession());
     impersonation = new UserImpersonation(context.getConfiguration());
     zkAuthenticator.initialize(context);
-    zkUserPath = context.zkUserPath();
   }
 
   @Override
@@ -74,7 +73,7 @@ public class KerberosAuthenticator implements Authenticator {
     synchronized (zooCache) {
       zooCache.clear();
       ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-      zoo.putPrivatePersistentData(zkUserPath + "/" + principal, new byte[0],
+      zoo.putPrivatePersistentData(Constants.ZUSERS + "/" + principal, new byte[0],
           NodeExistsPolicy.FAIL);
     }
   }
@@ -86,15 +85,15 @@ public class KerberosAuthenticator implements Authenticator {
       ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       synchronized (zooCache) {
         zooCache.clear();
-        if (zoo.exists(zkUserPath)) {
-          zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
-          log.info("Removed {}/ from zookeeper", zkUserPath);
+        if (zoo.exists(Constants.ZUSERS)) {
+          zoo.recursiveDelete(Constants.ZUSERS, NodeMissingPolicy.SKIP);
+          log.info("Removed {}/ from zookeeper", Constants.ZUSERS);
         }
 
         // prep parent node of users with root username
         // ACCUMULO-4140 The root user needs to be stored un-base64 encoded in the znode's value
         byte[] principalData = principal.getBytes(UTF_8);
-        zoo.putPersistentData(zkUserPath, principalData, NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(Constants.ZUSERS, principalData, NodeExistsPolicy.FAIL);
 
         // Create the root user in ZK using base64 encoded name (since the name is included in the
         // znode)

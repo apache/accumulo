@@ -358,7 +358,7 @@ public class UpgradeCoordinator {
   private void abortIfFateTransactions() {
     try {
       final ReadOnlyTStore<UpgradeCoordinator> fate =
-          new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession());
+          new ZooStore<>(Constants.ZFATE, context.getZooSession());
       if (!fate.list().isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."

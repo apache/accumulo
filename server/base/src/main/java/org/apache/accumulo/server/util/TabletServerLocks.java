@@ -33,19 +33,18 @@ public class TabletServerLocks {
 
   public static void execute(final ServerContext context, final String lock, final String delete)
       throws Exception {
-    String tserverPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
 
     ZooCache cache = context.getZooCache();
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
 
     if (delete == null) {
-      List<String> tabletServers = zoo.getChildren(tserverPath);
+      List<String> tabletServers = zoo.getChildren(Constants.ZTSERVERS);
       if (tabletServers.isEmpty()) {
-        System.err.println("No tservers found in ZK at " + tserverPath);
+        System.err.println("No tservers found in ZK at " + Constants.ZTSERVERS);
       }
 
       for (String tabletServer : tabletServers) {
-        var zLockPath = ServiceLock.path(tserverPath + "/" + tabletServer);
+        var zLockPath = ServiceLock.path(Constants.ZTSERVERS + "/" + tabletServer);
         Optional<ServiceLockData> lockData = ServiceLock.getLockData(cache, zLockPath, null);
         final String holder;
         if (lockData.isPresent()) {
@@ -60,7 +59,7 @@ public class TabletServerLocks {
       if (lock == null) {
         printUsage();
       } else {
-        ServiceLock.ServiceLockPath path = ServiceLock.path(tserverPath + "/" + lock);
+        ServiceLock.ServiceLockPath path = ServiceLock.path(Constants.ZTSERVERS + "/" + lock);
         ServiceLock.deleteLock(zoo, path);
         System.out.printf("Deleted %s", path);
       }
