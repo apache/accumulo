@@ -37,19 +37,19 @@
             <caption><span class="table-caption">${table}</span></caption>
             <thead>
               <tr>
-                <th>Entry Count</th>
-                <th>Size on disk</th>
-                <th>File Count</th>
-                <th>WAL Count</th>
-                <th>Total Tablet Count</th>
-                <th>Always Hosted Count</th>
-                <th>On Demand Count</th>
-                <th>Never Hosted Count</th>
-                <th>Assigned Count</th>
-                <th>Assigned To Dead Server Tablets</th>
-                <th>Hosted Tablets</th>
-                <th>Suspended Tablets</th>
-                <th>Unassigned Tablets</th>
+                <th class="big-num">Entry Count</th>
+                <th class="big-size">Size on disk</th>
+                <th class="big-num">File Count</th>
+                <th class="big-num">WAL Count</th>
+                <th class="big-num">Total Tablet Count</th>
+                <th class="big-num">Always Hosted Count</th>
+                <th class="big-num">On Demand Count</th>
+                <th class="big-num">Never Hosted Count</th>
+                <th class="big-num">Assigned Count</th>
+                <th class="big-num">Assigned To Dead Server Tablets</th>
+                <th class="big-num">Hosted Tablets</th>
+                <th class="big-num">Suspended Tablets</th>
+                <th class="big-num">Unassigned Tablets</th>
               </tr>
             </thead>
             <tbody></tbody>
@@ -65,11 +65,11 @@
             <thead>
               <tr>
                 <th>Tablet ID</th>
-                <th>Estimated Size</th>
-                <th>Estimated Entries</th>
+                <th class="big-size">Estimated Size</th>
+                <th class="big-num">Estimated Entries</th>
                 <th>Availability</th>
-                <th>Files</th>
-                <th>WALs</th>
+                <th class="big-num">Files</th>
+                <th class="big-num">WALs</th>
                 <th>Location</th>
               </tr>
             </thead>

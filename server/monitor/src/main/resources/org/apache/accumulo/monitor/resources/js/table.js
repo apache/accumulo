@@ -47,6 +47,26 @@ function initTabletsTable(tableId) {
       "url": tabletsUrl,
       "dataSrc": ""
     },
+    "stateSave": true,
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "big-size",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForSize(data);
+          }
+          return data;
+        }
+      }
+    ],
     "columns": [{
         "data": "tabletId",
         "title": "Tablet ID"
@@ -75,8 +95,7 @@ function initTabletsTable(tableId) {
         "data": "location",
         "title": "Location"
       }
-    ],
-    "stateSave": true
+    ]
   });
 }
 
@@ -97,6 +116,29 @@ function initTableServerTable(tableId) {
         return [json];
       }
     },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForQuantity(data);
+          }
+          return data;
+        }
+      },
+      {
+        "targets": "big-size",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForSize(data);
+          }
+          return data;
+        }
+      }
+    ],
     "columns": [{
         "data": "totalEntries",
         "title": "Entry Count"
@@ -149,17 +191,7 @@ function initTableServerTable(tableId) {
         "data": "totalUnassignedTablets",
         "title": "UnassignedTablets"
       }
-    ],
-    "stateSave": true,
-    "columnDefs": [{
-      "targets": "big-num",
-      "render": function (data, type) {
-        if (type === 'display') {
-          data = bigNumberForQuantity(data);
-        }
-        return data;
-      }
-    }]
+    ]
   });
 
   refreshTable();
