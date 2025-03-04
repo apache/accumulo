@@ -47,7 +47,7 @@ public class CompactionExecutorsMetrics implements MetricsProducer {
   private volatile List<CeMetrics> ceMetricsList = List.of();
   private final Map<CompactionExecutorId,CeMetrics> ceMetricsMap = new HashMap<>();
   private final Map<CompactionExecutorId,ExMetrics> exCeMetricsMap = new HashMap<>();
-  private MeterRegistry registry = null;
+  private volatile MeterRegistry registry = null;
 
   // public so it can be closed by outside callers
   public class CeMetrics implements AutoCloseable {
