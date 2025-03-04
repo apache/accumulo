@@ -268,7 +268,6 @@ public abstract class AbstractServer
       LOG.info("Waiting for upgrade to complete.");
       Thread.sleep(1000);
     }
-
   }
 
 }

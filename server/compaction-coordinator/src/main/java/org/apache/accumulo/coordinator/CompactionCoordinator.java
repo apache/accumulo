@@ -101,6 +101,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.google.common.collect.Sets;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.micrometer.core.instrument.Tag;
 
 public class CompactionCoordinator extends AbstractServer implements
@@ -265,6 +266,7 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   @Override
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
 
     ServerAddress coordinatorAddress = null;
