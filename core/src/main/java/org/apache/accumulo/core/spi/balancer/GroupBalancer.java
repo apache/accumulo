@@ -36,7 +36,6 @@ import java.util.function.Function;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -70,7 +69,7 @@ public abstract class GroupBalancer implements TabletBalancer {
   protected BalancerEnvironment environment;
   private final TableId tableId;
 
-  protected final Map<DataLevel,Long> lastRunTimes = new HashMap<>(DataLevel.values().length);
+  protected final Map<String,Long> lastRunTimes = new HashMap<>();
 
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {
@@ -213,9 +212,8 @@ public abstract class GroupBalancer implements TabletBalancer {
       return 5000;
     }
 
-    final DataLevel currentLevel = DataLevel.valueOf(params.currentLevel());
-
-    if (System.currentTimeMillis() - lastRunTimes.getOrDefault(currentLevel, 0L) < getWaitTime()) {
+    if (System.currentTimeMillis() - lastRunTimes.getOrDefault(params.partitionName(), 0L)
+        < getWaitTime()) {
       return 5000;
     }
 
@@ -279,7 +277,7 @@ public abstract class GroupBalancer implements TabletBalancer {
 
     populateMigrations(tservers.keySet(), params.migrationsOut(), moves);
 
-    lastRunTimes.put(currentLevel, System.currentTimeMillis());
+    lastRunTimes.put(params.partitionName(), System.currentTimeMillis());
 
     return 5000;
   }

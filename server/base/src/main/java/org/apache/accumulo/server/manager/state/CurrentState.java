@@ -25,6 +25,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 
 public interface CurrentState {
 
@@ -40,7 +41,7 @@ public interface CurrentState {
    * Provide an immutable snapshot view of migrating tablets. Objects contained in the set may still
    * be mutable.
    */
-  Set<KeyExtent> migrationsSnapshot();
+  Set<KeyExtent> migrationsSnapshot(DataLevel dataLevel);
 
   ManagerState getManagerState();
 }
