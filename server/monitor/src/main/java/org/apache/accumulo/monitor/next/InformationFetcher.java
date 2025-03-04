@@ -43,6 +43,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -139,27 +140,28 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
 
   private class TableInformationFetcher implements Runnable {
     private final ServerContext ctx;
-    private final String table;
+    private final TableId tableId;
     private final SystemInformation summary;
 
-    private TableInformationFetcher(ServerContext ctx, String tableName,
-        SystemInformation summary) {
+    private TableInformationFetcher(ServerContext ctx, TableId tableId, SystemInformation summary) {
       this.ctx = ctx;
-      this.table = tableName;
+      this.tableId = tableId;
       this.summary = summary;
     }
 
     @Override
     public void run() {
-      try (Stream<TabletInformation> tablets =
-          this.ctx.tableOperations().getTabletInformation(table, new Range())) {
-        tablets.forEach(t -> summary.processTabletInformation(table, t));
+      try {
+        final String tableName = ctx.getTableName(tableId);
+        try (Stream<TabletInformation> tablets =
+            this.ctx.tableOperations().getTabletInformation(tableName, new Range())) {
+          tablets.forEach(t -> summary.processTabletInformation(tableId, tableName, t));
+        }
       } catch (TableNotFoundException e) {
-        LOG.warn(
-            "TableNotFoundException thrown while trying to gather information for table: " + table,
-            e);
+        LOG.warn("TableNotFoundException thrown while trying to gather information for TableId: {}",
+            tableId, e);
       } catch (Exception e) {
-        LOG.warn("Interrupted while trying to gather information for table: {}", table, e);
+        LOG.warn("Interrupted while trying to gather information for TableId: {}", tableId, e);
       }
     }
   }
@@ -292,8 +294,8 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       futures.add(this.pool.submit(new CompactionListFetcher(summary)));
 
       // Fetch Tablet / Tablet information from the metadata table
-      for (String tName : this.ctx.tableOperations().list()) {
-        futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tName, summary)));
+      for (TableId tableId : this.ctx.getTableNameToIdMap().values()) {
+        futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
       }
 
       long monitorFetchTimeout =

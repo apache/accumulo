@@ -44,6 +44,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metrics.flatbuffers.FMetric;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.monitor.Monitor;
@@ -313,31 +314,33 @@ public class Endpoints {
   @GET
   @Path("tables")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns a map of table name to table details")
-  public Map<String,TableSummary> getTables() {
+  @Description("Returns a map of TableId to table details")
+  public Map<TableId,TableSummary> getTables() {
     return monitor.getInformationFetcher().getSummary().getTables();
   }
 
   @GET
-  @Path("tables/{name}")
+  @Path("tables/{tableId}")
   @Produces(MediaType.APPLICATION_JSON)
-  @Description("Returns table details for the supplied table name")
-  public TableSummary getTable(@PathParam("name") String tableName) {
-    TableSummary ts = monitor.getInformationFetcher().getSummary().getTables().get(tableName);
+  @Description("Returns table details for the supplied TableId")
+  public TableSummary getTable(@PathParam("tableId") String tableId) {
+    TableSummary ts =
+        monitor.getInformationFetcher().getSummary().getTables().get(TableId.of(tableId));
     if (ts == null) {
-      throw new NotFoundException(tableName + " not found");
+      throw new NotFoundException(tableId + " not found");
     }
     return ts;
   }
 
   @GET
-  @Path("tables/{name}/tablets")
+  @Path("tables/{tableId}/tablets")
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns tablet details for the supplied table name")
-  public List<TabletInformation> getTablets(@PathParam("name") String tableName) {
-    List<TabletInformation> ti = monitor.getInformationFetcher().getSummary().getTablets(tableName);
+  public List<TabletInformation> getTablets(@PathParam("tableId") String tableId) {
+    List<TabletInformation> ti =
+        monitor.getInformationFetcher().getSummary().getTablets(TableId.of(tableId));
     if (ti == null) {
-      throw new NotFoundException(tableName + " not found");
+      throw new NotFoundException(tableId + " not found");
     }
     return ti;
   }
