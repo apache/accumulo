@@ -262,11 +262,9 @@ public class SplitIT extends AccumuloClusterHarness {
           }
           if (TabletColumnFamily.MERGEABILITY_COLUMN.getColumnQualifier()
               .equals(entry.getKey().getColumnQualifier())) {
-            // Default tablet should be set to NEVER, all newly generated system splits should be
+            // Default tablet should be set to ALWAYS, all newly generated system splits should be
             // set to ALWAYS
-            var mergeability =
-                extent.endRow() == null ? TabletMergeability.never() : TabletMergeability.always();
-            assertEquals(mergeability,
+            assertEquals(TabletMergeability.always(),
                 TabletMergeabilityMetadata.fromValue(entry.getValue()).getTabletMergeability());
           }
           count++;

@@ -258,7 +258,8 @@ class FateServiceHandler implements FateService.Iface {
         manager.fate(type).seedTransaction(op, fateId,
             new TraceRepo<>(new CreateTable(c.getPrincipal(), tableName, timeType, options,
                 splitsPath, splitCount, splitsDirsPath, initialTableState,
-                initialTabletAvailability, namespaceId, TabletMergeability.never())),
+                // Set the default tablet to be auto-mergeable with other tablets if it is split
+                initialTabletAvailability, namespaceId, TabletMergeability.always())),
             autoCleanup, goalMessage);
 
         break;
