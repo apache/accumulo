@@ -351,23 +351,18 @@ public class CachableBlockFile {
             }
           }
 
-          BlockReader _currBlock = getBlockReader(maxSize, reader);
-          if (_currBlock == null) {
-            return null;
-          }
+          try (BlockReader _currBlock = getBlockReader(maxSize, reader)) {
+            if (_currBlock == null) {
+              return null;
+            }
 
-          byte[] b = null;
-          try {
-            b = new byte[(int) _currBlock.getRawSize()];
+            byte[] b = new byte[(int) _currBlock.getRawSize()];
             _currBlock.readFully(b);
+            return b;
           } catch (IOException e) {
             log.debug("Error full blockRead for file " + cacheId + " for block " + getBlockId(), e);
             throw new UncheckedIOException(e);
-          } finally {
-            _currBlock.close();
           }
-
-          return b;
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }
