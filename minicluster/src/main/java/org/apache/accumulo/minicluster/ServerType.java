@@ -26,6 +26,7 @@ public enum ServerType {
   ZOOKEEPER("ZooKeeper"),
   TABLET_SERVER("TServer"),
   GARBAGE_COLLECTOR("GC"),
+  // TODO deprecate
   COMPACTION_COORDINATOR("CompactionCoordinator"),
   COMPACTOR("Compactor"),
   MONITOR("Monitor"),
