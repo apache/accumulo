@@ -32,6 +32,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.apache.accumulo.test.fate.FateStoreUtil.seedTransaction;
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
 import static org.apache.accumulo.test.util.FileMetadataUtil.splitFilesIntoRanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -381,7 +382,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
     Repo<Manager> repo = new FakeRepo();
-    var fateId = fateStore.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
+    var fateId = seedTransaction(fateStore, Fate.FateOperation.COMMIT_COMPACTION,
         FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 
     // Read the tablet metadata

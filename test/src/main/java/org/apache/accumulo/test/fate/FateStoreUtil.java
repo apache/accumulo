@@ -22,7 +22,9 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -31,6 +33,10 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -70,6 +76,22 @@ public class FateStoreUtil {
 
     // ensure that create did not set any other props
     assertEquals(fateTableProps, testFateTableProps);
+  }
+
+  // For now just process one at a time as the current impl completes
+  // each seed transaction individually. In future versions we can test
+  // batching multiple seeding atempts together.
+  public static <T> Optional<FateId> seedTransaction(FateStore<T> store, Fate.FateOperation fateOp,
+      FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+    CompletableFuture<Optional<FateId>> fateIdFuture;
+    try (var seeder = store.beginSeeding()) {
+      fateIdFuture = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+    }
+    try {
+      return fateIdFuture.get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   /**
