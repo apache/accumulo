@@ -173,23 +173,23 @@ function initTableServerTable(tableId) {
       },
       {
         "data": "totalAssignedTablets",
-        "title": "Assigned Count"
+        "title": "Assigned Tablet Count"
       },
       {
         "data": "totalAssignedToDeadServerTablets",
-        "title": "AssignedToDeadServerTablets"
+        "title": "Tablets Assigned to Dead Servers Count"
       },
       {
         "data": "totalHostedTablets",
-        "title": "HostedTablets"
+        "title": "Hosted Tablet Count"
       },
       {
         "data": "totalSuspendedTablets",
-        "title": "SuspendedTablets"
+        "title": "Suspended Tablet Count"
       },
       {
         "data": "totalUnassignedTablets",
-        "title": "UnassignedTablets"
+        "title": "Unassigned Tablet Count"
       }
     ]
   });
