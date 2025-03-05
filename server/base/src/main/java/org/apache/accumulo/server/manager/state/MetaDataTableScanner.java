@@ -41,7 +41,6 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
@@ -69,20 +68,17 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
   private final Iterator<Entry<Key,Value>> iter;
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  MetaDataTableScanner(ClientContext context, Range range, CurrentState state, String tableName) {
+  MetaDataTableScanner(ClientContext context, Range range, CurrentState state, DataLevel level) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
+    String tableName = level.metaTable();
     try {
       mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, 8);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
     cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
-    DataLevel currentDataLevel = DataLevel.USER;
-    if (tableName.equals(RootTable.NAME)) {
-      currentDataLevel = DataLevel.METADATA;
-    }
-    configureScanner(mdScanner, state, currentDataLevel);
+    configureScanner(mdScanner, state, level);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();
   }
@@ -110,8 +106,8 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     scanner.addScanIterator(tabletChange);
   }
 
-  public MetaDataTableScanner(ClientContext context, Range range, String tableName) {
-    this(context, range, null, tableName);
+  public MetaDataTableScanner(ClientContext context, Range range, DataLevel level) {
+    this(context, range, null, level);
   }
 
   @Override
