@@ -43,9 +43,9 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -70,7 +70,7 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       // wait for the table to be online
       TabletLocationState newTablet;
       do {
@@ -251,9 +251,9 @@ public class ManagerAssignmentIT extends AccumuloClusterHarness {
     }
   }
 
-  private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
+  private TabletLocationState getTabletLocationState(AccumuloClient c, TableId tableId) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)), MetadataTable.NAME)) {
+        new Range(TabletsSection.encodeRow(tableId, null)), DataLevel.of(tableId))) {
       return s.next();
     }
   }
