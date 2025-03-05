@@ -28,13 +28,13 @@
       </script>
       <div class="row">
         <div class="col-xs-12">
-          <h3>${title}</h3>
+          <h3>Table Details: ${title} <small class="text-muted">(ID: ${tableId})</small></h3>
         </div>
       </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="participatingTServers" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">${table}</span></caption>
+            <caption><span class="table-caption">Table Summary for: ${table} <small>(ID: ${tableId})</small></span></caption>
             <thead>
               <tr>
                 <th class="big-num">Entry Count</th>
@@ -61,7 +61,7 @@
       <div class="row">
         <div class="col-xs-12">
           <table id="tabletsList" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">Tablet Details</span></caption>
+            <caption><span class="table-caption">Tablet Details for: ${table} <small>(ID: ${tableId})</small></span></caption>
             <thead>
               <tr>
                 <th>Tablet ID</th>
