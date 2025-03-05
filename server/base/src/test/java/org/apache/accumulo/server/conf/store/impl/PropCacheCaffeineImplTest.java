@@ -66,8 +66,7 @@ public class PropCacheCaffeineImplTest {
     ticker = new TestTicker();
     instanceId = InstanceId.of(UUID.randomUUID());
 
-    tablePropKey =
-        TablePropKey.of(instanceId, TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));
+    tablePropKey = TablePropKey.of(TableId.of("t" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
@@ -105,8 +104,8 @@ public class PropCacheCaffeineImplTest {
       justification = "random used for testing with variable names")
   @Test
   public void getNoCacheTest() {
-    var table2PropKey = TablePropKey.of(instanceId,
-        TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
+    var table2PropKey =
+        TablePropKey.of(TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();
 
@@ -131,8 +130,8 @@ public class PropCacheCaffeineImplTest {
       justification = "random used for testing with variable names")
   @Test
   public void removeAllTest() {
-    var table2PropKey = TablePropKey.of(instanceId,
-        TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
+    var table2PropKey =
+        TablePropKey.of(TableId.of("t2" + ThreadLocalRandom.current().nextInt(1, 1000)));
 
     expect(zooPropLoader.load(eq(tablePropKey))).andReturn(vProps).once();
     expect(zooPropLoader.load(eq(table2PropKey))).andReturn(vProps).once();

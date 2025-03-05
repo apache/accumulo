@@ -47,20 +47,17 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
 public abstract class TabletMutatorBase implements Ample.TabletMutator {
 
-  private final ServerContext context;
   private final Mutation mutation;
   protected AutoCloseable closeAfterMutate;
   private boolean updatesEnabled = true;
 
-  protected TabletMutatorBase(ServerContext context, KeyExtent extent) {
-    this.context = context;
+  protected TabletMutatorBase(KeyExtent extent) {
     mutation = new Mutation(extent.toMetaRow());
   }
 
@@ -167,8 +164,7 @@ public abstract class TabletMutatorBase implements Ample.TabletMutator {
   @Override
   public Ample.TabletMutator putZooLock(ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ServerColumnFamily.LOCK_COLUMN.put(mutation,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
+    ServerColumnFamily.LOCK_COLUMN.put(mutation, new Value(zooLock.getLockID().serialize("/")));
     return this;
   }
 

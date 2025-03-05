@@ -48,9 +48,9 @@ public class PropCacheCaffeineImpl implements PropCache {
       ThreadPools.getServerThreadPools().getPoolBuilder("caffeine.prop.cache.tasks")
           .numCoreThreads(1).numMaxThreads(20).withTimeOut(60L, SECONDS).build();
 
-  private final LoadingCache<PropStoreKey<?>,VersionedProperties> cache;
+  private final LoadingCache<PropStoreKey,VersionedProperties> cache;
 
-  private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey<?>,VersionedProperties> cacheLoader,
+  private PropCacheCaffeineImpl(final CacheLoader<PropStoreKey,VersionedProperties> cacheLoader,
       final Ticker ticker, boolean runTasksInline) {
     var builder = Caffeine.newBuilder().expireAfterAccess(EXPIRE_MIN, BASE_TIME_UNITS)
         .evictionListener(this::evictionNotifier);
@@ -65,13 +65,12 @@ public class PropCacheCaffeineImpl implements PropCache {
     cache = builder.build(cacheLoader);
   }
 
-  void evictionNotifier(PropStoreKey<?> propStoreKey, VersionedProperties value,
-      RemovalCause cause) {
+  void evictionNotifier(PropStoreKey propStoreKey, VersionedProperties value, RemovalCause cause) {
     log.trace("Evicted: ID: {} was evicted from cache. Reason: {}", propStoreKey, cause);
   }
 
   @Override
-  public @Nullable VersionedProperties get(PropStoreKey<?> propStoreKey) {
+  public @Nullable VersionedProperties get(PropStoreKey propStoreKey) {
     log.trace("Called get() for {}", propStoreKey);
     try {
       return cache.get(propStoreKey);
@@ -82,7 +81,7 @@ public class PropCacheCaffeineImpl implements PropCache {
   }
 
   @Override
-  public void remove(PropStoreKey<?> propStoreKey) {
+  public void remove(PropStoreKey propStoreKey) {
     log.trace("clear {} from cache", propStoreKey);
     cache.invalidate(propStoreKey);
   }
@@ -102,7 +101,7 @@ public class PropCacheCaffeineImpl implements PropCache {
    * @param propStoreKey the property id
    * @return the version properties if cached, otherwise return null.
    */
-  public @Nullable VersionedProperties getIfCached(PropStoreKey<?> propStoreKey) {
+  public @Nullable VersionedProperties getIfCached(PropStoreKey propStoreKey) {
     return cache.getIfPresent(propStoreKey);
   }
 

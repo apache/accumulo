@@ -116,7 +116,7 @@ public class ZooUtil {
   }
 
   public static String getRoot(final InstanceId instanceId) {
-    return Constants.ZROOT + "/" + instanceId;
+    return Constants.ZROOT + "/" + instanceId.canonical();
   }
 
   /**

@@ -73,7 +73,6 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -86,8 +85,6 @@ import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
@@ -472,42 +469,13 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     if (config.useExistingInstance()) {
-      AccumuloConfiguration acuConf = config.getAccumuloConfiguration();
-      Configuration hadoopConf = config.getHadoopConfiguration();
-      ServerDirs serverDirs = new ServerDirs(acuConf, hadoopConf);
-
-      Path instanceIdPath;
-      try (var fs = getServerContext().getVolumeManager()) {
-        instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-
-      InstanceId instanceIdFromFile =
-          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
-
-      String rootPath = ZooUtil.getRoot(instanceIdFromFile);
-
-      String instanceName = null;
-      try {
-        for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-          String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-          byte[] bytes = zrw.getData(instanceNamePath);
-          InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
-          if (iid.equals(instanceIdFromFile)) {
-            instanceName = name;
-          }
-        }
-      } catch (KeeperException e) {
-        throw new IllegalStateException("Unable to read instance name from zookeeper.", e);
-      }
-      if (instanceName == null) {
+      String instanceName = getServerContext().getInstanceName();
+      if (instanceName == null || instanceName.isBlank()) {
         throw new IllegalStateException("Unable to read instance name from zookeeper.");
       }
 
       config.setInstanceName(instanceName);
-      if (!AccumuloStatus.isAccumuloOffline(zrw, rootPath)) {
+      if (!AccumuloStatus.isAccumuloOffline(getServerContext())) {
         throw new IllegalStateException(
             "The Accumulo instance being used is already running. Aborting.");
       }
@@ -796,10 +764,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext().getSiteConfiguration(), "-manager",
-          "-compaction-coordinators", "-tservers", "-compactors", "-sservers");
+      new ZooZap().zap(getServerContext(), "-manager", "-compaction-coordinators", "-tservers",
+          "-compactors", "-sservers");
     } catch (RuntimeException e) {
-      log.error("Error zapping zookeeper locks", e);
+      if (!e.getMessage().startsWith("Accumulo not initialized")) {
+        log.error("Error zapping zookeeper locks", e);
+      }
     }
     control.stop(ServerType.ZOOKEEPER, null);
 
@@ -808,23 +778,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // the local ZooKeeper watcher did not fire. If MAC is
     // restarted, then ZooKeeper will start on the same port with
     // the same data, but no Watchers will fire.
-    boolean startCalled = true;
-    try {
-      getServerContext().getZooKeeperRoot();
-    } catch (IllegalStateException e) {
-      if (e.getMessage().startsWith("Accumulo not initialized")) {
-        startCalled = false;
-      }
+    Predicate<String> pred = path -> false;
+    for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
+        Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {
+      pred = pred.or(path -> path.startsWith(lockPath));
     }
-    if (startCalled) {
-      final ServerContext ctx = getServerContext();
-      final String zRoot = ctx.getZooKeeperRoot();
-      Predicate<String> pred = path -> false;
-      for (String lockPath : Set.of(Constants.ZMANAGER_LOCK, Constants.ZGC_LOCK,
-          Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {
-        pred = pred.or(path -> path.startsWith(zRoot + lockPath));
+
+    try {
+      getServerContext().getZooCache().clear(pred);
+    } catch (RuntimeException e) {
+      if (!e.getMessage().startsWith("Accumulo not initialized")) {
+        log.error("Error clearing ZooCache", e);
       }
-      ctx.getZooCache().clear(pred);
     }
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs

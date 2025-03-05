@@ -38,29 +38,27 @@ public class DeadServerList {
 
   private static final Logger log = LoggerFactory.getLogger(DeadServerList.class);
 
-  private final String path;
   private final ZooReaderWriter zoo;
 
   public DeadServerList(ServerContext context) {
-    this.path = context.getZooKeeperRoot() + Constants.ZDEADTSERVERS;
     zoo = context.getZooSession().asReaderWriter();
     try {
-      zoo.mkdirs(path);
+      zoo.mkdirs(Constants.ZDEADTSERVERS);
     } catch (Exception ex) {
-      log.error("Unable to make parent directories of " + path, ex);
+      log.error("Unable to make parent directories of " + Constants.ZDEADTSERVERS, ex);
     }
   }
 
   public List<DeadServer> getList() {
     List<DeadServer> result = new ArrayList<>();
     try {
-      List<String> children = zoo.getChildren(path);
+      List<String> children = zoo.getChildren(Constants.ZDEADTSERVERS);
       if (children != null) {
         for (String child : children) {
           Stat stat = new Stat();
           byte[] data;
           try {
-            data = zoo.getData(path + "/" + child, stat);
+            data = zoo.getData(Constants.ZDEADTSERVERS + "/" + child, stat);
           } catch (NoNodeException nne) {
             // Another thread or process can delete child while this loop is running.
             // We ignore this error since it's harmless if we miss the deleted server
@@ -79,7 +77,7 @@ public class DeadServerList {
 
   public void delete(String server) {
     try {
-      zoo.recursiveDelete(path + "/" + server, NodeMissingPolicy.SKIP);
+      zoo.recursiveDelete(Constants.ZDEADTSERVERS + "/" + server, NodeMissingPolicy.SKIP);
     } catch (Exception ex) {
       log.error("delete failed with exception", ex);
     }
@@ -87,7 +85,8 @@ public class DeadServerList {
 
   public void post(String server, String cause) {
     try {
-      zoo.putPersistentData(path + "/" + server, cause.getBytes(UTF_8), NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(Constants.ZDEADTSERVERS + "/" + server, cause.getBytes(UTF_8),
+          NodeExistsPolicy.SKIP);
     } catch (Exception ex) {
       log.error("post failed with exception", ex);
     }

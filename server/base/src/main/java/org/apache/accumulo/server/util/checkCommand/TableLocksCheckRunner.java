@@ -57,11 +57,9 @@ public class TableLocksCheckRunner implements CheckRunner {
       Admin.CheckCommand.CheckStatus status)
       throws InterruptedException, KeeperException, AccumuloException, AccumuloSecurityException {
     final AdminUtil<Admin> admin = new AdminUtil<>(true);
-    final String zkRoot = context.getZooKeeperRoot();
-    final var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
-    final String fateZkPath = zkRoot + Constants.ZFATE;
+    final var zTableLocksPath = ServiceLock.path(Constants.ZTABLE_LOCKS);
     final var zk = context.getZooSession();
-    final ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
+    final ZooStore<Admin> zs = new ZooStore<>(Constants.ZFATE, zk);
 
     log.trace("Ensuring table and namespace locks are valid...");
 

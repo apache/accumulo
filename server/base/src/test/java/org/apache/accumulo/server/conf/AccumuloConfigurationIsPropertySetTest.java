@@ -86,7 +86,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
       LoggerFactory.getLogger(AccumuloConfigurationIsPropertySetTest.class);
   private static final InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-  private final SystemPropKey sysPropKey = SystemPropKey.of(instanceId);
+  private final SystemPropKey sysPropKey = SystemPropKey.of();
   private final ArrayList<Object> mocks = new ArrayList<>();
 
   private ZooPropStore propStore;
@@ -162,7 +162,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   @Test
   public void testNamespaceConfiguration() {
     var namespaceId = NamespaceId.of("namespace");
-    var nsPropKey = NamespacePropKey.of(instanceId, namespaceId);
+    var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var setOnParent = Set.of(TABLE_BLOOM_SIZE);
     var parent = new ConfigurationCopy(setToMap(setOnParent));
@@ -256,10 +256,10 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
   @Test
   public void testTableConfiguration() {
     var namespaceId = NamespaceId.of("namespace");
-    var nsPropKey = NamespacePropKey.of(instanceId, namespaceId);
+    var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var tableId = TableId.of("3");
-    var tablePropKey = TablePropKey.of(instanceId, tableId);
+    var tablePropKey = TablePropKey.of(tableId);
 
     var setOnNamespace = Set.of(TABLE_FILE_MAX);
     var nsProps = new VersionedProperties(2, Instant.now(), setToMap(setOnNamespace));

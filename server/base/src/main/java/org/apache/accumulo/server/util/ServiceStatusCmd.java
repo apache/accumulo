@@ -31,6 +31,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
@@ -59,19 +60,23 @@ public class ServiceStatusCmd {
 
     ZooReader zooReader = context.getZooSession().asReader();
 
-    final String zooRoot = context.getZooKeeperRoot();
-    LOG.trace("zooRoot: {}", zooRoot);
+    LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
 
-    services.put(ServiceStatusReport.ReportKey.MANAGER, getManagerStatus(zooReader, zooRoot));
-    services.put(ServiceStatusReport.ReportKey.MONITOR, getMonitorStatus(zooReader, zooRoot));
-    services.put(ServiceStatusReport.ReportKey.T_SERVER, getTServerStatus(zooReader, zooRoot));
-    services.put(ServiceStatusReport.ReportKey.S_SERVER, getScanServerStatus(zooReader, zooRoot));
+    services.put(ServiceStatusReport.ReportKey.MANAGER,
+        getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader));
+    services.put(ServiceStatusReport.ReportKey.MONITOR,
+        getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader));
+    services.put(ServiceStatusReport.ReportKey.T_SERVER,
+        getServerHostStatus(zooReader, ServiceStatusReport.ReportKey.T_SERVER, TSERV));
+    services.put(ServiceStatusReport.ReportKey.S_SERVER,
+        getServerHostStatus(zooReader, ServiceStatusReport.ReportKey.S_SERVER, TABLET_SCAN));
     services.put(ServiceStatusReport.ReportKey.COORDINATOR,
-        getCoordinatorStatus(zooReader, zooRoot));
-    services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(zooReader, zooRoot));
-    services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(zooReader, zooRoot));
+        getStatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, zooReader));
+    services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorHosts(zooReader));
+    services.put(ServiceStatusReport.ReportKey.GC,
+        getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader));
 
     ServiceStatusReport report = new ServiceStatusReport(services, noHosts);
 
@@ -85,51 +90,11 @@ public class ServiceStatusCmd {
   }
 
   /**
-   * The manager paths in ZooKeeper are: {@code /accumulo/[IID]/managers/lock/zlock#[NUM]} with the
-   * lock data providing a service descriptor with host and port.
-   */
-  @VisibleForTesting
-  StatusSummary getManagerStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZMANAGER_LOCK;
-    return getStatusSummary(ServiceStatusReport.ReportKey.MANAGER, zooReader, lockPath);
-  }
-
-  /**
-   * The monitor paths in ZooKeeper are: {@code /accumulo/[IID]/monitor/lock/zlock#[NUM]} with the
-   * lock data providing a service descriptor with host and port.
-   */
-  @VisibleForTesting
-  StatusSummary getMonitorStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZMONITOR_LOCK;
-    return getStatusSummary(ServiceStatusReport.ReportKey.MONITOR, zooReader, lockPath);
-  }
-
-  /**
-   * The tserver paths in ZooKeeper are: {@code /accumulo/[IID]/tservers/[host:port]/zlock#[NUM]}
-   * with the lock data providing TSERV_CLIENT=host:port.
-   */
-  @VisibleForTesting
-  StatusSummary getTServerStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZTSERVERS;
-    return getServerHostStatus(zooReader, lockPath, ServiceStatusReport.ReportKey.T_SERVER, TSERV);
-  }
-
-  /**
-   * The sserver paths in ZooKeeper are: {@code /accumulo/[IID]/sservers/[host:port]/zlock#[NUM]}
-   * with the lock data providing [UUID],[GROUP]
-   */
-  @VisibleForTesting
-  StatusSummary getScanServerStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZSSERVERS;
-    return getServerHostStatus(zooReader, lockPath, ServiceStatusReport.ReportKey.S_SERVER,
-        TABLET_SCAN);
-  }
-
-  /**
    * handles paths for tservers and servers with the lock stored beneath the host: port like:
    * {@code /accumulo/IID/[tservers | sservers]/HOST:PORT/[LOCK]}
    */
-  private StatusSummary getServerHostStatus(final ZooReader zooReader, String basePath,
+  @VisibleForTesting
+  StatusSummary getServerHostStatus(final ZooReader zooReader,
       ServiceStatusReport.ReportKey displayNames, ServiceLockData.ThriftService serviceType) {
     AtomicInteger errorSum = new AtomicInteger(0);
 
@@ -137,12 +102,13 @@ public class ServiceStatusCmd {
     Set<String> groupNames = new TreeSet<>();
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
-    var nodeNames = readNodeNames(zooReader, basePath);
+    var zkPath = displayNames.getZkPath();
+    var nodeNames = readNodeNames(zooReader, zkPath);
 
     nodeNames.getData().forEach(host -> {
-      var lock = readNodeNames(zooReader, basePath + "/" + host);
+      var lock = readNodeNames(zooReader, zkPath + "/" + host);
       lock.getData().forEach(l -> {
-        var nodeData = readNodeData(zooReader, basePath + "/" + host + "/" + l);
+        var nodeData = readNodeData(zooReader, zkPath + "/" + host + "/" + l);
         int err = nodeData.getErrorCount();
         if (err > 0) {
           errorSum.addAndGet(nodeData.getErrorCount());
@@ -166,45 +132,14 @@ public class ServiceStatusCmd {
   }
 
   /**
-   * The gc paths in ZooKeeper are: {@code /accumulo/[IID]/gc/lock/zlock#[NUM]} with the lock data
-   * providing GC_CLIENT=host:port
-   */
-  @VisibleForTesting
-  StatusSummary getGcStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZGC_LOCK;
-    return getStatusSummary(ServiceStatusReport.ReportKey.GC, zooReader, lockPath);
-  }
-
-  /**
-   * The coordinator paths in ZooKeeper are: {@code /accumulo/[IID]/coordinators/lock/zlock#[NUM]}
-   * with the lock data providing host:port
-   */
-  @VisibleForTesting
-  StatusSummary getCoordinatorStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZCOORDINATOR_LOCK;
-    return getStatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, zooReader, lockPath);
-  }
-
-  /**
-   * The compactor paths in ZooKeeper are:
-   * {@code /accumulo/[IID]/compactors/[QUEUE_NAME]/host:port/zlock#[NUM]} with the host:port pulled
-   * from the path
-   */
-  @VisibleForTesting
-  StatusSummary getCompactorStatus(final ZooReader zooReader, String zRootPath) {
-    String lockPath = zRootPath + Constants.ZCOMPACTORS;
-    return getCompactorHosts(zooReader, lockPath);
-  }
-
-  /**
    * Used to return status information when path is {@code /accumulo/IID/SERVICE_NAME/lock} like
    * manager, monitor and others
    *
    * @return service status
    */
-  private StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames,
-      ZooReader zooReader, String lockPath) {
-    var result = readAllNodesData(zooReader, lockPath);
+  @VisibleForTesting
+  StatusSummary getStatusSummary(ServiceStatusReport.ReportKey displayNames, ZooReader zooReader) {
+    var result = readAllNodesData(zooReader, displayNames.getZkPath());
     Map<String,Set<String>> byGroup = new TreeMap<>();
     result.getData().forEach(data -> {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
@@ -219,18 +154,19 @@ public class ServiceStatusCmd {
   /**
    * Pull host:port from path {@code /accumulo/IID/compactors/[QUEUE][host:port]}
    */
-  private StatusSummary getCompactorHosts(final ZooReader zooReader, final String zRootPath) {
+  @VisibleForTesting
+  StatusSummary getCompactorHosts(final ZooReader zooReader) {
     final AtomicInteger errors = new AtomicInteger(0);
 
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
     // get group names
-    Result<Set<String>> queueNodes = readNodeNames(zooReader, zRootPath);
+    Result<Set<String>> queueNodes = readNodeNames(zooReader, Constants.ZCOMPACTORS);
     errors.addAndGet(queueNodes.getErrorCount());
     Set<String> queues = new TreeSet<>(queueNodes.getData());
 
     queues.forEach(group -> {
-      var hostNames = readNodeNames(zooReader, zRootPath + "/" + group);
+      var hostNames = readNodeNames(zooReader, Constants.ZCOMPACTORS + "/" + group);
       errors.addAndGet(hostNames.getErrorCount());
       Collection<String> hosts = hostNames.getData();
       hosts.forEach(host -> {

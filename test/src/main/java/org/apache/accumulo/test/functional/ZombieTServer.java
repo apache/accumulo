@@ -133,8 +133,7 @@ public class ZombieTServer {
 
     String addressString = serverPort.address.toString();
 
-    var zLockPath =
-        ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTSERVERS + "/" + addressString);
+    var zLockPath = ServiceLock.path(Constants.ZTSERVERS + "/" + addressString);
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
