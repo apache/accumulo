@@ -1185,6 +1185,14 @@ public class Manager extends AbstractServer
 
     context.getTableManager().addObserver(this);
 
+    tableInformationStatusPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
+
+    tabletRefreshThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
+        .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
+        .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
+        .build();
+
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
 
@@ -1319,14 +1327,6 @@ public class Manager extends AbstractServer
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         sa.getAddress(), getResourceGroup()));
-
-    tableInformationStatusPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
-
-    tabletRefreshThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
-        .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
-        .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
-        .build();
 
     Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
     Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
