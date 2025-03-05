@@ -767,7 +767,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       new ZooZap().zap(getServerContext(), "-manager", "-compaction-coordinators", "-tservers",
           "-compactors", "-sservers");
     } catch (RuntimeException e) {
-      log.error("Error zapping zookeeper locks", e);
+      if (!e.getMessage().startsWith("Accumulo not initialized")) {
+        log.error("Error zapping zookeeper locks", e);
+      }
     }
     control.stop(ServerType.ZOOKEEPER, null);
 
@@ -781,7 +783,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS)) {
       pred = pred.or(path -> path.startsWith(lockPath));
     }
-    getServerContext().getZooCache().clear(pred);
+
+    try {
+      getServerContext().getZooCache().clear(pred);
+    } catch (RuntimeException e) {
+      if (!e.getMessage().startsWith("Accumulo not initialized")) {
+        log.error("Error clearing ZooCache", e);
+      }
+    }
 
     // ACCUMULO-2985 stop the ExecutorService after we finished using it to stop accumulo procs
     if (executor != null) {
