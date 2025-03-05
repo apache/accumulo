@@ -455,4 +455,61 @@ public class CompactionCoordinatorTest {
     EasyMock.verify(context, creds, security, manager, ext1, ext2, ext3);
 
   }
+
+  @Test
+  public void testCleanUpMultipleDeadCompactions() throws Exception {
+
+    ServerContext context = EasyMock.createNiceMock(ServerContext.class);
+    expect(context.getCaches()).andReturn(Caches.getInstance()).anyTimes();
+    expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
+
+    TCredentials creds = EasyMock.createNiceMock(TCredentials.class);
+    AuditedSecurityOperation security = EasyMock.createNiceMock(AuditedSecurityOperation.class);
+    Manager manager = EasyMock.createNiceMock(Manager.class);
+    expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
+        .anyTimes();
+
+    ExternalCompactionId ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionId ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionId ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
+
+    TExternalCompaction deadCompaction1 = EasyMock.createMock(TExternalCompaction.class);
+    expect(deadCompaction1.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(deadCompaction1.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(deadCompaction1.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
+        .anyTimes();
+
+    TExternalCompaction deadCompaction2 = EasyMock.createMock(TExternalCompaction.class);
+    expect(deadCompaction2.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(deadCompaction2.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(deadCompaction2.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
+        .anyTimes();
+
+    TExternalCompaction deadCompaction3 = EasyMock.createMock(TExternalCompaction.class);
+    expect(deadCompaction3.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(deadCompaction3.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(deadCompaction3.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
+        .anyTimes();
+
+    EasyMock.replay(context, creds, security, manager, deadCompaction1, deadCompaction2,
+        deadCompaction3);
+
+    TestCoordinator coordinator =
+        new TestCoordinator(context, security, new ArrayList<>(), manager);
+
+    coordinator.getRunning().put(ecid1, new RunningCompaction(deadCompaction1));
+    coordinator.getRunning().put(ecid2, new RunningCompaction(deadCompaction2));
+    coordinator.getRunning().put(ecid3, new RunningCompaction(deadCompaction3));
+
+    assertEquals(Set.of(ecid1, ecid2, ecid3), coordinator.getRunning().keySet());
+
+    coordinator.setMetadataCompactionIds(Set.of(ecid1));
+    coordinator.cleanUpInternalState();
+
+    assertEquals(Set.of(ecid1), coordinator.getRunning().keySet());
+
+    EasyMock.verify(context, creds, security, manager, deadCompaction1, deadCompaction2,
+        deadCompaction3);
+  }
+
 }
