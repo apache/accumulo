@@ -269,6 +269,13 @@ public class CompactionCoordinator extends AbstractServer implements
   @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
 
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     ServerAddress coordinatorAddress = null;
     try {
       coordinatorAddress = startCoordinatorClientService();
@@ -281,13 +288,6 @@ public class CompactionCoordinator extends AbstractServer implements
       getCoordinatorLock(clientAddress);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting Coordinator lock", e);
-    }
-
-    try {
-      waitForUpgrade();
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
-      System.exit(1);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();

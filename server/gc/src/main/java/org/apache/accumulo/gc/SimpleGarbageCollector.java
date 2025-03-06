@@ -152,6 +152,14 @@ public class SimpleGarbageCollector extends AbstractServer
   @Override
   @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
+
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     final VolumeManager fs = getContext().getVolumeManager();
 
     // Sleep for an initial period, giving the manager time to start up and
@@ -164,13 +172,6 @@ public class SimpleGarbageCollector extends AbstractServer
       getZooLock(address);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
-      System.exit(1);
-    }
-
-    try {
-      waitForUpgrade();
-    } catch (InterruptedException e) {
-      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
 

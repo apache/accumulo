@@ -379,16 +379,15 @@ public class ScanServer extends AbstractServer
   @Override
   @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
-    SecurityUtil.serverLogin(getConfiguration());
 
-    // Wait before getting the lock as clients using ScanServers
-    // use the lock to find them.
     try {
       waitForUpgrade();
     } catch (InterruptedException e) {
       LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
+
+    SecurityUtil.serverLogin(getConfiguration());
 
     ServerAddress address = null;
     try {
