@@ -49,6 +49,8 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This is a wrapper class for BCFile that includes a cache for independent caches for datablocks
  * and metadatablocks
@@ -342,6 +344,8 @@ public class CachableBlockFile {
         return Collections.emptyMap();
       }
 
+      @SuppressFBWarnings(value = {"NP_LOAD_OF_KNOWN_NULL_VALUE"},
+          justification = "Spotbugs false positive, see spotbugs issue 2836.")
       @Override
       public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
 
@@ -356,23 +360,18 @@ public class CachableBlockFile {
             }
           }
 
-          BlockReader _currBlock = getBlockReader(maxSize, reader);
-          if (_currBlock == null) {
-            return null;
-          }
+          try (BlockReader _currBlock = getBlockReader(maxSize, reader)) {
+            if (_currBlock == null) {
+              return null;
+            }
 
-          byte[] b = null;
-          try {
-            b = new byte[(int) _currBlock.getRawSize()];
+            byte[] b = new byte[(int) _currBlock.getRawSize()];
             _currBlock.readFully(b);
+            return b;
           } catch (IOException e) {
             log.debug("Error full blockRead for file " + cacheId + " for block " + getBlockId(), e);
             throw new UncheckedIOException(e);
-          } finally {
-            _currBlock.close();
           }
-
-          return b;
         } catch (IOException e) {
           throw new UncheckedIOException(e);
         }
