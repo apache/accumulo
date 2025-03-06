@@ -1276,7 +1276,7 @@
         <skipITs>true</skipITs>
         <skipTests>true</skipTests>
         <sort.skip>true</sort.skip>
-        <spotbugs.skip>false</spotbugs.skip>
+        <spotbugs.skip>true</spotbugs.skip>
         <warbucks.skip>true</warbucks.skip>
       </properties>
     </profile>
