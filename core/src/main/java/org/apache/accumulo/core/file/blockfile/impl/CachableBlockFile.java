@@ -30,6 +30,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.accumulo.core.file.rfile.BlockIndex;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile.Reader.BlockReader;
@@ -337,6 +338,8 @@ public class CachableBlockFile {
         return Collections.emptyMap();
       }
 
+      @SuppressFBWarnings(value = {"NP_LOAD_OF_KNOWN_NULL_VALUE"},
+              justification = "Spotbugs false positive, see spotbugs issue 2836.")
       @Override
       public byte[] load(int maxSize, Map<String,byte[]> dependencies) {
 
