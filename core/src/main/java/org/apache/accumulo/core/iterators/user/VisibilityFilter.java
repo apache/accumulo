@@ -78,7 +78,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
     VisibilityFilter result = (VisibilityFilter) super.deepCopy(env);
     result.filterInvalid = this.filterInvalid;
     result.accessEvaluator = this.accessEvaluator;
-    result.cache = new LRUMap<>(1000);
+    result.cache = this.cache;
     return result;
   }
 
