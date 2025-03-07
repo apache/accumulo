@@ -51,8 +51,7 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
   public Set<ColumnFQ> requiredColFQs() {
     return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
         MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.LOCK_COLUMN);
+        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
   }
 
   @Override
