@@ -25,7 +25,7 @@
 // Suffixes for quantity
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
-var SIZE_SUFFIX = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
+var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 
 /**
  * Initializes Auto Refresh to false if it is not set,
@@ -103,14 +103,14 @@ function bigNumber(big, suffixes, base) {
 }
 
 /**
- * Converts a number to a size with suffix
+ * Converts a size in bytes to a human-readable string with appropriate units.
  *
- * @param {number} size Number to convert
- * @return {string} Number with suffix added
+ * @param {number} size - The size in bytes to be converted.
+ * @returns {string} The human-readable string representation of the size.
  */
 function bigNumberForSize(size) {
-  if (size === null) {
-    size = 0;
+  if (size === 0) {
+    return '0B';
   }
   return bigNumber(size, SIZE_SUFFIX, 1024);
 }
