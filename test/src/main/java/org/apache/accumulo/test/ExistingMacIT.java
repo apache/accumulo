@@ -41,7 +41,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
@@ -115,9 +114,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
       }
     }
 
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
-    final String zInstanceRoot = getCluster().getServerContext().getZooKeeperRoot();
-    while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
+    while (!AccumuloStatus.isAccumuloOffline(getCluster().getServerContext())) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
     }

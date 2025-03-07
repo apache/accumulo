@@ -24,9 +24,9 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 public interface PropCache {
 
   @Nullable
-  VersionedProperties get(final PropStoreKey<?> propStoreKey);
+  VersionedProperties get(final PropStoreKey propStoreKey);
 
-  void remove(final PropStoreKey<?> propStoreKey);
+  void remove(final PropStoreKey propStoreKey);
 
   void removeAll();
 

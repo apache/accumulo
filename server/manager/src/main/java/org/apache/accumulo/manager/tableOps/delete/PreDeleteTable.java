@@ -26,7 +26,6 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -37,8 +36,7 @@ import org.apache.zookeeper.KeeperException;
 public class PreDeleteTable extends ManagerRepo {
 
   public static String createDeleteMarkerPath(InstanceId instanceId, TableId tableId) {
-    return ZooUtil.getRoot(instanceId) + Constants.ZTABLES + "/" + tableId.canonical()
-        + Constants.ZTABLE_DELETE_MARKER;
+    return Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_DELETE_MARKER;
   }
 
   private static final long serialVersionUID = 1L;

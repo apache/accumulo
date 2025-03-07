@@ -1020,8 +1020,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
 
     if (lock != null) {
-      ZooUtil.LockID lid =
-          new ZooUtil.LockID(context.getZooKeeperRoot() + Constants.ZMANAGER_LOCK, lock);
+      ZooUtil.LockID lid = new ZooUtil.LockID(Constants.ZMANAGER_LOCK, lock);
 
       try {
         if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {

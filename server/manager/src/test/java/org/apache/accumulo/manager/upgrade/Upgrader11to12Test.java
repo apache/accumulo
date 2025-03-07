@@ -354,18 +354,16 @@ public class Upgrader11to12Test {
     ServerContext context = createMock(ServerContext.class);
     ZooSession zk = createStrictMock(ZooSession.class);
     ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
-    final var zkRoot = ZooUtil.getRoot(iid);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooSession()).andReturn(zk).anyTimes();
     expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
 
-    zrw.recursiveDelete(zkRoot + "/tracers", ZooUtil.NodeMissingPolicy.SKIP);
+    zrw.recursiveDelete("/tracers", ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
 
     Capture<Stat> statCapture = newCapture();
-    expect(zrw.getData(eq(zkRoot + "/root_tablet"), capture(statCapture))).andAnswer(() -> {
+    expect(zrw.getData(eq("/root_tablet"), capture(statCapture))).andAnswer(() -> {
       Stat stat = statCapture.getValue();
       stat.setCtime(System.currentTimeMillis());
       stat.setMtime(System.currentTimeMillis());
@@ -376,26 +374,26 @@ public class Upgrader11to12Test {
     }).once();
 
     Capture<byte[]> byteCapture = newCapture();
-    expect(zrw.overwritePersistentData(eq(zkRoot + "/root_tablet"), capture(byteCapture), eq(123)))
+    expect(zrw.overwritePersistentData(eq("/root_tablet"), capture(byteCapture), eq(123)))
         .andReturn(true).once();
 
-    expect(zrw.getData(eq(zkRoot + Constants.ZNAMESPACES))).andReturn(new byte[0]).once();
+    expect(zrw.getData(eq(Constants.ZNAMESPACES))).andReturn(new byte[0]).once();
     Map<String,String> mockNamespaces = Map.of("ns1", "ns1name", "ns2", "ns2name");
-    expect(zrw.getChildren(eq(zkRoot + Constants.ZNAMESPACES)))
+    expect(zrw.getChildren(eq(Constants.ZNAMESPACES)))
         .andReturn(List.copyOf(mockNamespaces.keySet())).once();
     for (String ns : mockNamespaces.keySet()) {
-      expect(zrw.getData(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME))
+      expect(zrw.getData(Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME))
           .andReturn(mockNamespaces.get(ns).getBytes(UTF_8)).once();
     }
     byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
-    expect(zrw.putPersistentData(eq(zkRoot + Constants.ZNAMESPACES), aryEq(mapping),
+    expect(zrw.putPersistentData(eq(Constants.ZNAMESPACES), aryEq(mapping),
         eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
     for (String ns : mockNamespaces.keySet()) {
-      zrw.delete(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
+      zrw.delete(Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       expectLastCall().once();
     }
 
-    expect(zrw.exists(zkRoot + "/problems")).andReturn(false).once();
+    expect(zrw.exists("/problems")).andReturn(false).once();
 
     replay(context, zk, zrw);
 

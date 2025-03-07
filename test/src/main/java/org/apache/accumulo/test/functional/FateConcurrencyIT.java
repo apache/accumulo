@@ -41,11 +41,9 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -245,12 +243,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       try {
 
-        InstanceId instanceId = context.getInstanceID();
-
         var zk = context.getZooSession();
-        ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
-        var lockPath =
-            ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
+        ZooStore<String> zs = new ZooStore<>(Constants.ZFATE, zk);
+        var lockPath = ServiceLock.path(Constants.ZTABLE_LOCKS + "/" + tableId);
 
         withLocks = admin.getStatus(zs, zk, lockPath, null, null);
 
@@ -336,11 +331,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      InstanceId instanceId = context.getInstanceID();
       var zk = context.getZooSession();
-      ZooStore<String> zs = new ZooStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk);
-      var lockPath =
-          ServiceLock.path(ZooUtil.getRoot(instanceId) + Constants.ZTABLE_LOCKS + "/" + tableId);
+      ZooStore<String> zs = new ZooStore<>(Constants.ZFATE, zk);
+      var lockPath = ServiceLock.path(Constants.ZTABLE_LOCKS + "/" + tableId);
       AdminUtil.FateStatus fateStatus = admin.getStatus(zs, zk, lockPath, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());

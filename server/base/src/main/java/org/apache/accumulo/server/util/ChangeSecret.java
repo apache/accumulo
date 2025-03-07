@@ -106,9 +106,8 @@ public class ChangeSecret {
         new ZooSession(ChangeSecret.class.getSimpleName() + ".verifyAccumuloIsDown(oldPassword)",
             conf.get(Property.INSTANCE_ZK_HOST),
             (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPassword)) {
-      String root = context.getZooKeeperRoot();
       final List<String> ephemerals = new ArrayList<>();
-      recurse(oldZk.asReaderWriter(), root, (zoo, path) -> {
+      recurse(oldZk.asReaderWriter(), "", (zoo, path) -> {
         Stat stat = zoo.getStatus(path);
         if (stat.getEphemeralOwner() != 0) {
           ephemerals.add(path);
@@ -139,8 +138,7 @@ public class ChangeSecret {
 
       final var orig = oldZk.asReaderWriter();
       final var new_ = newZk.asReaderWriter();
-      String root = context.getZooKeeperRoot();
-      recurse(orig, root, (zoo, path) -> {
+      recurse(orig, "", (zoo, path) -> {
         String newPath =
             path.replace(context.getInstanceID().canonical(), newInstanceId.canonical());
         byte[] data = zoo.getData(path);
@@ -226,7 +224,7 @@ public class ChangeSecret {
         (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT), oldPass)) {
 
       var orig = oldZk.asReaderWriter();
-      orig.recursiveDelete(context.getZooKeeperRoot(), NodeMissingPolicy.SKIP);
+      orig.recursiveDelete("", NodeMissingPolicy.SKIP);
     }
   }
 }
