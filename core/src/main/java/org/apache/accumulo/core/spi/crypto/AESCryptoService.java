@@ -426,20 +426,21 @@ public class AESCryptoService implements CryptoService {
     }
 
     public class AESGCMFileDecrypter implements FileDecrypter {
-      private final Cipher cipher;
       private final Key fek;
 
       AESGCMFileDecrypter(Key fek) {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = fek;
       }
 
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
+        Cipher cipher;
+        try {
+          cipher = Cipher.getInstance(transformation);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
+        }
+
         byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
         try {
           IOUtils.readFully(inputStream, initVector);
@@ -531,20 +532,21 @@ public class AESCryptoService implements CryptoService {
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
     public class AESCBCFileDecrypter implements FileDecrypter {
-      private final Cipher cipher;
       private final Key fek;
 
       AESCBCFileDecrypter(Key fek) {
-        try {
-          cipher = Cipher.getInstance(transformation);
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
-          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
-        }
         this.fek = fek;
       }
 
       @Override
       public InputStream decryptStream(InputStream inputStream) throws CryptoException {
+        Cipher cipher;
+        try {
+          cipher = Cipher.getInstance(transformation);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException e) {
+          throw new CryptoException("Error obtaining cipher for transform " + transformation, e);
+        }
+
         byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
         try {
           IOUtils.readFully(inputStream, initVector);
