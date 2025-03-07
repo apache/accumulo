@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.countTablets;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -180,6 +181,48 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       // Wait for merge back to default tablet
       Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
           Set.of(new KeyExtent(tableId, null, null))), 30000, 200);
+    }
+  }
+
+  @Test
+  public void testMergeabilityThreshold() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "16K");
+      props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K");
+      // Set a low threshold to 1% of the split threshold
+      props.put(Property.TABLE_MAX_MERGEABILITY_THRESHOLD.getKey(), ".01");
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED));
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      // Ingest data so tablet will split
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 5_000);
+      TestIngest.ingest(c, params);
+      c.tableOperations().flush(tableName);
+      VerifyIngest.verifyIngest(c, params);
+
+      // Wait for table to split, should be more than 10 tablets
+      Wait.waitFor(() -> c.tableOperations().listSplits(tableName).size() > 10, 10000, 200);
+
+      // Set the split threshold back to the default of 5 MB. There's not a lot of data so normally
+      // we could merge back to 1 tablet, but the threshold is too low at 1% so it should not merge
+      // yet.
+      c.tableOperations().setProperty(tableName, Property.TABLE_SPLIT_THRESHOLD.getKey(), "5m");
+
+      // Should not merge so make sure it throws IllegalStateException
+      assertThrows(IllegalStateException.class,
+          () -> Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+              Set.of(new KeyExtent(tableId, null, null))), 5000, 500));
+
+      // With a 10% threshold we should be able to merge
+      c.tableOperations().setProperty(tableName, Property.TABLE_MAX_MERGEABILITY_THRESHOLD.getKey(),
+          ".1");
+
+      // Wait for merge back to default tablet
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
     }
   }
 
