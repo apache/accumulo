@@ -32,8 +32,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -59,7 +59,7 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
         getCluster().createAccumuloClient("root", new PasswordToken(ROOT_PASSWORD))) {
       String tableName = super.getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
-      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       // wait for the table to be online
       TabletLocationState newTablet;
       do {
@@ -102,9 +102,9 @@ public class AssignLocationModeIT extends ConfigurableMacBase {
     }
   }
 
-  private TabletLocationState getTabletLocationState(AccumuloClient c, String tableId) {
+  private TabletLocationState getTabletLocationState(AccumuloClient c, TableId tableId) {
     try (MetaDataTableScanner s = new MetaDataTableScanner((ClientContext) c,
-        new Range(TabletsSection.encodeRow(TableId.of(tableId), null)), MetadataTable.NAME)) {
+        new Range(TabletsSection.encodeRow(tableId, null)), DataLevel.of(tableId))) {
       return s.next();
     }
   }
