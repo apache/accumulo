@@ -132,22 +132,32 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
+  // TODO make configurable
+  private static boolean useConcurrentLocator = true;
+
+  private static TabletLocator newTabletLocator(ClientContext context, TableId tableId,
+      TabletLocator parent) {
+    MetadataLocationObtainer mlo = new MetadataLocationObtainer();
+    if (useConcurrentLocator) {
+      return new ConcurrentTabletLocator(tableId, parent, mlo, context.getTServerLockChecker());
+    } else {
+      return new TabletLocatorImpl(tableId, parent, mlo, context.getTServerLockChecker());
+    }
+
+  }
+
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
-      MetadataLocationObtainer mlo = new MetadataLocationObtainer();
-
       if (RootTable.ID.equals(tableId)) {
         tl = new RootTabletLocator(context.getTServerLockChecker());
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-            context.getTServerLockChecker());
+        tl = newTabletLocator(context, tableId, getLocator(context, RootTable.ID));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-            context.getTServerLockChecker());
+        tl = newTabletLocator(context, tableId, getLocator(context, MetadataTable.ID));
       }
       locators.put(key, tl);
     }
