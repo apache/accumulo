@@ -133,10 +133,28 @@ public class UpgradeCoordinator {
           Map.of(ROOT_TABLET_META_CHANGES, new Upgrader10to11(), REMOVE_DEPRECATIONS_FOR_VERSION_3,
               new Upgrader11to12(), METADATA_FILE_JSON_ENCODING, new Upgrader12to13())));
 
+  private final ServerContext context;
+  private final UpgradeProgressTracker progressTracker;
+  private final PreUpgradeValidation preUpgradeValidator;
+
   private volatile UpgradeStatus status;
 
-  public UpgradeCoordinator() {
+  public UpgradeCoordinator(ServerContext context) {
+    this.context = context;
+    progressTracker = new UpgradeProgressTracker(context);
+    preUpgradeValidator = new PreUpgradeValidation();
     status = UpgradeStatus.INITIAL;
+  }
+
+  public void preUpgradeValidation() {
+    preUpgradeValidator.validate(context);
+  }
+
+  public void startOrContinueUpgrade() {
+    // The following check will fail if an upgrade is in progress
+    // but the target version is not the current version of the
+    // software.
+    progressTracker.startOrContinueUpgrade();
   }
 
   private void setStatus(UpgradeStatus status, EventCoordinator eventCoordinator) {
@@ -156,8 +174,7 @@ public class UpgradeCoordinator {
     System.exit(1);
   }
 
-  public synchronized void upgradeZookeeper(ServerContext context,
-      EventCoordinator eventCoordinator) {
+  public synchronized void upgradeZookeeper(EventCoordinator eventCoordinator) {
 
     Preconditions.checkState(status == UpgradeStatus.INITIAL,
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
@@ -172,15 +189,25 @@ public class UpgradeCoordinator {
       }
 
       if (currentVersion < AccumuloDataVersion.get()) {
-        abortIfFateTransactions(context);
+        abortIfFateTransactions();
 
-        for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-          log.info("Upgrading Zookeeper - current version {} as step towards target version {}", v,
-              AccumuloDataVersion.get());
-          var upgrader = upgraders.get(v);
+        final UpgradeProgress progress = progressTracker.getProgress();
+
+        for (int upgradeVersion = currentVersion; upgradeVersion < AccumuloDataVersion.get();
+            upgradeVersion++) {
+          if (progress.getZooKeeperVersion() >= upgradeVersion) {
+            log.info(
+                "ZooKeeper has already been upgraded to version {}, moving on to next upgrader",
+                upgradeVersion);
+            continue;
+          }
+          log.info("Upgrading Zookeeper - current version {} as step towards target version {}",
+              upgradeVersion, AccumuloDataVersion.get());
+          var upgrader = upgraders.get(upgradeVersion);
           Objects.requireNonNull(upgrader,
-              "upgrade ZooKeeper: failed to find upgrader for version " + currentVersion);
+              "upgrade ZooKeeper: failed to find upgrader for version " + upgradeVersion);
           upgrader.upgradeZookeeper(context);
+          progressTracker.updateZooKeeperVersion(upgradeVersion);
         }
       }
 
@@ -191,8 +218,7 @@ public class UpgradeCoordinator {
 
   }
 
-  public synchronized Future<Void> upgradeMetadata(ServerContext context,
-      EventCoordinator eventCoordinator) {
+  public synchronized Future<Void> upgradeMetadata(EventCoordinator eventCoordinator) {
     if (status == UpgradeStatus.COMPLETE) {
       return CompletableFuture.completedFuture(null);
     }
@@ -206,35 +232,53 @@ public class UpgradeCoordinator {
           .numMaxThreads(Integer.MAX_VALUE).withTimeOut(60L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build().submit(() -> {
             try {
-              for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
-                log.info("Upgrading Root - current version {} as step towards target version {}", v,
-                    AccumuloDataVersion.get());
-                var upgrader = upgraders.get(v);
+              UpgradeProgress progress = progressTracker.getProgress();
+              for (int upgradeVersion = currentVersion; upgradeVersion < AccumuloDataVersion.get();
+                  upgradeVersion++) {
+                if (progress.getRootVersion() >= upgradeVersion) {
+                  log.info(
+                      "Root table has already been upgraded to version {}, moving on to next upgrader",
+                      upgradeVersion);
+                  continue;
+                }
+                log.info("Upgrading Root - current version {} as step towards target version {}",
+                    upgradeVersion, AccumuloDataVersion.get());
+                var upgrader = upgraders.get(upgradeVersion);
                 Objects.requireNonNull(upgrader,
-                    "upgrade root: failed to find root upgrader for version " + currentVersion);
-                upgraders.get(v).upgradeRoot(context);
+                    "upgrade root: failed to find root upgrader for version " + upgradeVersion);
+                upgraders.get(upgradeVersion).upgradeRoot(context);
+                progressTracker.updateRootVersion(upgradeVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
-              for (int v = currentVersion; v < AccumuloDataVersion.get(); v++) {
+              for (int upgradeVersion = currentVersion; upgradeVersion < AccumuloDataVersion.get();
+                  upgradeVersion++) {
+                if (progress.getMetadataVersion() >= upgradeVersion) {
+                  log.info(
+                      "Metadata table has already been upgraded to version {}, moving on to next upgrader",
+                      upgradeVersion);
+                  continue;
+                }
                 log.info(
-                    "Upgrading Metadata - current version {} as step towards target version {}", v,
-                    AccumuloDataVersion.get());
-                var upgrader = upgraders.get(v);
+                    "Upgrading Metadata - current version {} as step towards target version {}",
+                    upgradeVersion, AccumuloDataVersion.get());
+                var upgrader = upgraders.get(upgradeVersion);
                 Objects.requireNonNull(upgrader,
-                    "upgrade metadata: failed to find upgrader for version " + currentVersion);
-                upgraders.get(v).upgradeMetadata(context);
+                    "upgrade metadata: failed to find upgrader for version " + upgradeVersion);
+                upgraders.get(upgradeVersion).upgradeMetadata(context);
+                progressTracker.updateMetadataVersion(upgradeVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 
               log.info("Validating configuration properties.");
-              validateProperties(context);
+              validateProperties();
 
               log.info("Updating persistent data version.");
               updateAccumuloVersion(context.getServerDirs(), context.getVolumeManager(),
                   currentVersion);
               log.info("Upgrade complete");
               setStatus(UpgradeStatus.COMPLETE, eventCoordinator);
+              progressTracker.upgradeComplete();
             } catch (Exception e) {
               handleFailure(e);
             }
@@ -245,7 +289,7 @@ public class UpgradeCoordinator {
     }
   }
 
-  private void validateProperties(ServerContext context) {
+  private void validateProperties() {
     ConfigCheckUtil.validate(context.getSiteConfiguration(), "site configuration");
     ConfigCheckUtil.validate(context.getConfiguration(), "system configuration");
     try {
@@ -312,7 +356,7 @@ public class UpgradeCoordinator {
    */
   @SuppressFBWarnings(value = "DM_EXIT",
       justification = "Want to immediately stop all manager threads on upgrade error")
-  private void abortIfFateTransactions(ServerContext context) {
+  private void abortIfFateTransactions() {
     try {
       // The current version of the code creates the new accumulo.fate table on upgrade, so no
       // attempt is made to read it here. Attempting to read it this point would likely cause a hang

@@ -146,7 +146,7 @@ public enum Property {
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
           + " admin changeSecret`.",
       "1.3.5"),
-  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
+  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.VOLUMES,
       "A comma separated list of dfs uris to use. Files will be stored across"
           + " these filesystems. In some situations, the first volume in this list"
           + " may be treated differently, such as being preferred for writing out"
