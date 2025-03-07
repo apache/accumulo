@@ -40,6 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
@@ -48,6 +49,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -181,16 +183,26 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp) {
-    return createAndReserve(fateKey).map(txStore -> {
-      try {
-        seedTransaction(fateOp, repo, autoCleanUp, txStore);
-        return txStore.getID();
-      } finally {
-        txStore.unreserve(Duration.ZERO);
+  public Seeder<T> beginSeeding() {
+    return new Seeder<T>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+        return CompletableFuture.completedFuture(createAndReserve(fateKey).map(txStore -> {
+          try {
+            seedTransaction(fateOp, repo, autoCleanUp, txStore);
+            return txStore.getID();
+          } finally {
+            txStore.unreserve(Duration.ZERO);
+          }
+        }));
       }
-    });
+
+      @Override
+      public void close() {
+        // Nothing to do for Meta fate store
+      }
+    };
   }
 
   @Override
