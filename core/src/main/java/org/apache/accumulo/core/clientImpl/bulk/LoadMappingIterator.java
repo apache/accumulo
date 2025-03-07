@@ -29,6 +29,7 @@ import java.io.UncheckedIOException;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -45,6 +46,7 @@ public class LoadMappingIterator
   private JsonReader reader;
   private Gson gson = createGson();
   private Map<String,String> renameMap;
+  private KeyExtent lastKeyExtent = null;
 
   LoadMappingIterator(TableId tableId, InputStream loadMapFile) throws IOException {
     this.tableId = tableId;
@@ -72,7 +74,23 @@ public class LoadMappingIterator
 
   @Override
   public Map.Entry<KeyExtent,Bulk.Files> next() {
+    if (!hasNext()) {
+      throw new NoSuchElementException();
+    }
+
     Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
+    KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
+
+    // Validate sorted order
+    if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
+      throw new IllegalStateException(
+          String.format("KeyExtents are not in sorted order: %s comes after %s", lastKeyExtent,
+              currentKeyExtent));
+    }
+
+    // Update lasKeyExtent for next iteration
+    lastKeyExtent = currentKeyExtent;
+
     if (renameMap != null) {
       return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
           bm.getFiles().mapNames(renameMap));
