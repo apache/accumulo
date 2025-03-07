@@ -144,7 +144,8 @@ public class SimpleLoadBalancerTest {
 
     // Nothing should happen, we are balanced
     ArrayList<TabletMigration> out = new ArrayList<>();
-    balancer.getMigrations(current, out);
+    balancer.getMigrations(new BalanceParamsImpl(current, Set.of(), out, DataLevel.USER,
+        Map.of("t1", TableId.of("t1"), "t2", TableId.of("t2"), "t3", TableId.of("t3"))));
     assertEquals(out.size(), 0);
 
     // Take down a tabletServer
@@ -204,7 +205,7 @@ public class SimpleLoadBalancerTest {
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER, Map.of()));
+          DataLevel.USER, Map.of("newTable", TableId.of("newTable"))));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -226,42 +227,130 @@ public class SimpleLoadBalancerTest {
       FakeTServer fakeTServer = new FakeTServer();
       servers.put(tsid, fakeTServer);
     }
+    String table1 = "LongTable";
+    String table2 = "ShortTable";
+
+    // Generate Table Ids
+    TableId t1Id = TableId.of(table1);
+    TableId t2Id = TableId.of(table2);
+
     // put 60 tablets on 25 of them
     List<Entry<TabletServerId,FakeTServer>> shortList = new ArrayList<>(servers.entrySet());
     Entry<TabletServerId,FakeTServer> shortServer = shortList.remove(0);
-    int c = 0;
     for (int i = 0; i < 60; i++) {
       for (Entry<TabletServerId,FakeTServer> entry : shortList) {
-        entry.getValue().tablets.add(makeTablet("t" + c, null, null));
+        entry.getValue().tablets.add(makeTablet(table1, null, null));
       }
     }
     // put 10 on the that short server:
     for (int i = 0; i < 10; i++) {
-      shortServer.getValue().tablets.add(makeTablet("s" + i, null, null));
+      shortServer.getValue().tablets.add(makeTablet(table2, null, null));
+    }
+    Map<TableId,Integer> migratedTables;
+    // average is 58, with 2 at 59: we need 48 more moved to the short server
+    migratedTables = balanceTables(Map.of(table1, t1Id, table2, t2Id));
+    assertEquals(48, migratedTables.get(t1Id));
+
+    // ShortTable tablets are only on the short server: 9 should be migrated off
+    migratedTables = balanceTables(Map.of(table2, t2Id));
+    assertEquals(1, migratedTables.size());
+    assertEquals(9, migratedTables.get(t2Id));
+
+    // ShortServer now has 9 less LongTable tablets: 9 LongTable tablets should migrate back
+    migratedTables = balanceTables(Map.of(table1, t1Id));
+    assertEquals(1, migratedTables.size());
+    assertEquals(9, migratedTables.get(t1Id));
+
+    // Servers are now fully balanced. Attempt to balance both tables again
+    migratedTables = balanceTables(Map.of(table1, t1Id, table2, t2Id));
+    assertEquals(0, migratedTables.size(), "Migrated Tables: " + migratedTables);
+
+  }
+
+  @Test
+  public void testBalanceSubset() {
+    // make 26 servers
+    for (char c : "abcdefghijklmnopqrstuvwxyz".toCharArray()) {
+      TabletServerId tsid = new TabletServerIdImpl("127.0.0.1", c, Character.toString(c));
+      FakeTServer fakeTServer = new FakeTServer();
+      servers.put(tsid, fakeTServer);
+    }
+    String table1 = "Long";
+    String table2 = "Short";
+    String table3 = "neverMigrate";
+
+    // Generate Table Ids
+    TableId t1Id = TableId.of(table1);
+    TableId t2Id = TableId.of(table2);
+    TableId t3Id = TableId.of(table3);
+
+    // put 10 tablets on 8 of the servers that should never migrate
+    int randServer = 0;
+    for (Entry<TabletServerId,FakeTServer> entry : servers.entrySet()) {
+      randServer++;
+      if (randServer % 3 == 0) {
+        for (int i = 0; i < 10; i++) {
+          entry.getValue().tablets.add(makeTablet(table3, null, null));
+        }
+      }
     }
 
+    // put 60 tablets on 25 of them
+    List<Entry<TabletServerId,FakeTServer>> shortList = new ArrayList<>(servers.entrySet());
+    Entry<TabletServerId,FakeTServer> shortServer = shortList.remove(0);
+    for (int i = 0; i < 60; i++) {
+      for (Entry<TabletServerId,FakeTServer> entry : shortList) {
+        entry.getValue().tablets.add(makeTablet(table1, null, null));
+      }
+    }
+    // put 10 on the that short server:
+    for (int i = 0; i < 10; i++) {
+      shortServer.getValue().tablets.add(makeTablet(table2, null, null));
+    }
+
+    Map<TableId,Integer> migratedTables;
+    // average is 58, with 2 at 59: we need 48 more moved to the short server
+    migratedTables = balanceTables(Map.of(table1, t1Id, table2, t2Id));
+    assertEquals(1, migratedTables.size());
+    assertEquals(48, migratedTables.get(t1Id));
+
+    // Servers are now fully balanced. Attempt to balance both tables again
+    migratedTables = balanceTables(Map.of(table1, t1Id, table2, t2Id));
+    assertEquals(0, migratedTables.size());
+
+    // Only balance the neverMigrate table
+    migratedTables = balanceTables(Map.of(table3, t3Id));
+    assertEquals(1, migratedTables.size(), "Too many tables migrated: " + migratedTables);
+    assertEquals(54, migratedTables.get(t3Id));
+  }
+
+  private Map<TableId,Integer> balanceTables(Map<String,TableId> tablesToBalance) {
     TestSimpleLoadBalancer balancer = new TestSimpleLoadBalancer();
+    Map<TableId,Integer> migratedTables = new HashMap<>();
     Set<TabletId> migrations = Collections.emptySet();
-    int moved = 0;
     // balance until we can't balance no more!
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER, Map.of()));
+          DataLevel.USER, tablesToBalance));
       if (migrationsOut.isEmpty()) {
         break;
       }
       for (TabletMigration migration : migrationsOut) {
         if (servers.get(migration.getOldTabletServer()).tablets.remove(migration.getTablet())) {
-          moved++;
+          TableId tableId = migration.getTablet().getTable();
+          Integer value = 0;
+          if (migratedTables.containsKey(tableId)) {
+            value = migratedTables.get(tableId);
+          }
+          migratedTables.put(tableId, value + 1);
         }
         last.remove(migration.getTablet());
         servers.get(migration.getNewTabletServer()).tablets.add(migration.getTablet());
         last.put(migration.getTablet(), migration.getNewTabletServer());
       }
     }
-    // average is 58, with 2 at 59: we need 48 more moved to the short server
-    assertEquals(48, moved);
+    return migratedTables;
   }
 
   private void checkBalance(List<TabletId> metadataTable, Map<TabletServerId,FakeTServer> servers,

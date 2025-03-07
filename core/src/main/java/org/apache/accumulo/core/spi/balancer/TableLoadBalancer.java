@@ -56,8 +56,8 @@ public class TableLoadBalancer implements TabletBalancer {
     String context = environment.tableContext(tableId);
     Class<? extends TabletBalancer> clazz =
         ClassLoaderUtil.loadClass(context, clazzName, TabletBalancer.class);
-    Constructor<? extends TabletBalancer> constructor = clazz.getConstructor(TableId.class);
-    return constructor.newInstance(tableId);
+    Constructor<? extends TabletBalancer> constructor = clazz.getConstructor();
+    return constructor.newInstance();
   }
 
   protected String getLoadBalancerClassNameForTable(TableId table) {
@@ -98,9 +98,8 @@ public class TableLoadBalancer implements TabletBalancer {
       }
 
       if (balancer == null) {
-        log.info("Creating balancer {} limited to balancing table {}",
-            SimpleLoadBalancer.class.getName(), tableId);
-        balancer = new SimpleLoadBalancer(tableId);
+        log.info("Creating balancer {} for table {}", SimpleLoadBalancer.class.getName(), tableId);
+        balancer = new SimpleLoadBalancer();
       }
       perTableBalancers.put(tableId, balancer);
       balancer.init(environment);
