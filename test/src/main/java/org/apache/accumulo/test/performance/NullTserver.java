@@ -130,6 +130,10 @@ public class NullTserver {
         Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
 
     @Override
+    public void loadFilesV2(TInfo tinfo, TCredentials credentials, long tid, String dir,
+        Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
+
+    @Override
     public void closeMultiScan(TInfo tinfo, long scanID) {}
 
     @Override
