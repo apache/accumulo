@@ -20,6 +20,9 @@ package org.apache.accumulo.test.ample;
 
 import static org.apache.accumulo.test.ample.metadata.TestAmple.testAmpleServerContext;
 
+import java.time.Duration;
+
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
@@ -31,6 +34,16 @@ public class TestAmpleUtil {
     Manager manager = EasyMock.mock(Manager.class);
     EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
         .atLeastOnce();
+    EasyMock.replay(manager);
+    return manager;
+  }
+
+  public static Manager mockWithAmple(ServerContext context, TestServerAmpleImpl ample,
+      Duration currentTime) {
+    Manager manager = EasyMock.mock(Manager.class);
+    EasyMock.expect(manager.getContext()).andReturn(testAmpleServerContext(context, ample))
+        .atLeastOnce();
+    EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(currentTime)).anyTimes();
     EasyMock.replay(manager);
     return manager;
   }

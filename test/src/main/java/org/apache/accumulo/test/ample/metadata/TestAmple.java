@@ -187,12 +187,13 @@ public class TestAmple {
                 WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
             Text row = decodedRow.firstKey().getRow();
             Mutation m = new Mutation(row);
-
             decodedRow.entrySet().stream().filter(e -> includeColumn.test(e.getKey(), e.getValue()))
                 .forEach(e -> m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(),
                     e.getKey().getColumnVisibilityParsed(), e.getKey().getTimestamp(),
                     e.getValue()));
-            bw.addMutation(m);
+            if (!m.getUpdates().isEmpty()) {
+              bw.addMutation(m);
+            }
           }
         }
       }
