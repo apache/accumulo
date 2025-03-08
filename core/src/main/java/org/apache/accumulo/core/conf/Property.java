@@ -374,6 +374,11 @@ public enum Property {
       "2.1.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
+  MANAGER_BULK_MAX_CONNECTIONS("manager.bulk.connections.max", "8", PropertyType.COUNT,
+      "The maximum number of connections the manager can make to a single tablet server for bulkv2 "
+          + "load request.  For the case where a single tablet server has a lot of tablets for a bulk import "
+          + "increasing this may help lower the time it takes to load those tablets.",
+      "2.1.4"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest.",
       "2.1.0"),

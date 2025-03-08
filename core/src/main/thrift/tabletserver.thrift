@@ -377,9 +377,16 @@ service TabletClientService {
     1:client.ThriftSecurityException sec
   )
 
-  // TODO removing oneway probably has a significant impact on the bulk v1
-  // code.  It also may have thrift compatibility implications.
-  void loadFiles(
+  oneway void loadFiles(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:i64 tid
+    4:string dir
+    5:map<data.TKeyExtent, map<string, data.MapFileInfo>> files
+    6:bool setTime
+  )
+
+  void loadFilesV2(
     1:trace.TInfo tinfo
     2:security.TCredentials credentials
     3:i64 tid
