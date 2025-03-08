@@ -219,7 +219,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     watcher.runQuietly(Constants.BULK_ARBITRATOR_TYPE, tid, () -> {
       tabletImports.forEach((tke, fileMap) -> {
-        log.debug("Starting bulk import  for {} ", KeyExtent.fromThrift(tke));
         Map<TabletFile,MapFileInfo> newFileMap = new HashMap<>();
 
         for (Entry<String,MapFileInfo> mapping : fileMap.entrySet()) {
@@ -244,8 +243,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
             server.removeBulkImportState(files);
           }
         }
-        // UtilWaitThread.sleep(100);
-        log.debug("Finished bulk import  for {} ", KeyExtent.fromThrift(tke), new Exception());
       });
     });
 
