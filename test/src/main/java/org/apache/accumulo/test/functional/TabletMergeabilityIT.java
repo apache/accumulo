@@ -18,7 +18,10 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.test.TestIngest.generateRow;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.countTablets;
+import static org.junit.Assert.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,14 +37,17 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -53,6 +59,7 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -151,6 +158,70 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testMergeabilityThresholdMultipleRanges() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> props = new HashMap<>();
+      props.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "32K");
+      props.put(Property.TABLE_MAX_MERGEABILITY_THRESHOLD.getKey(), ".5");
+      c.tableOperations().create(tableName, new NewTableConfiguration()
+          .withInitialTabletAvailability(TabletAvailability.HOSTED).setProperties(props));
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+      // Create new tablets that won't merge automatically
+      for (int i = 10000; i <= 90000; i += 10000) {
+        splits.put(row(i), TabletMergeability.never());
+      }
+
+      c.tableOperations().putSplits(tableName, splits);
+      // Verify we now have 10 tablets
+      // [row_0000010000, row_0000020000, row_0000030000, row_0000040000, row_0000050000,
+      // row_0000060000, row_0000070000, row_0000080000, row_0000090000, default]
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true) == 10,
+          5000, 500);
+
+      // Insert rows into each tablet with different numbers of rows
+      // Tablets with end rows row_0000020000 - row_0000040000, row_0000060000 - row_0000080000,
+      // default will have 1000 rows
+      // Tablets with end rows row_0000010000, row_0000050000, row_0000090000 will have 5000 rows
+      try (BatchWriter bw = c.createBatchWriter(tableName)) {
+        final var value = StringUtils.repeat("a", 1024);
+        for (int i = 0; i < 100000; i += 10000) {
+          var rows = 1000;
+          if (i % 40000 == 0) {
+            rows = 5000;
+          }
+          for (int j = 0; j < rows; j++) {
+            Mutation m = new Mutation(row(i + j));
+            m.put(new Text("cf1"), new Text("cq1"), new Value(value));
+            bw.addMutation(m);
+          }
+        }
+      }
+      c.tableOperations().flush(tableName, null, null, true);
+
+      // Set all 10 tablets to be auto-mergeable
+      for (int i = 10000; i <= 90000; i += 10000) {
+        splits.put(row(i), TabletMergeability.always());
+      }
+      c.tableOperations().putSplits(tableName, splits);
+
+      // With the mergeability threshold set to 50% of 32KB we should be able to merge together
+      // the tablets with 1000 rows, but not 5000 rows. This should produce the following
+      // 6 tablets after merger.
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, row(10000), null),
+              new KeyExtent(tableId, row(40000), row(10000)),
+              new KeyExtent(tableId, row(50000), row(40000)),
+              new KeyExtent(tableId, row(80000), row(50000)),
+              new KeyExtent(tableId, row(90000), row(80000)),
+              new KeyExtent(tableId, null, row(90000)))),
+          10000, 200);
+    }
+  }
+
+  @Test
   public void testSplitAndMergeAll() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -215,6 +286,9 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       assertThrows(IllegalStateException.class,
           () -> Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
               Set.of(new KeyExtent(tableId, null, null))), 5000, 500));
+      // Make sure we failed because of exact tablets and not a different IllegalStateException
+      assertFalse(hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, null, null))));
 
       // With a 10% threshold we should be able to merge
       c.tableOperations().setProperty(tableName, Property.TABLE_MAX_MERGEABILITY_THRESHOLD.getKey(),
@@ -255,6 +329,60 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testMergeabilityMaxFiles() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> props = new HashMap<>();
+      // disable compactions and set a low merge file max
+      props.put(Property.TABLE_MAJC_RATIO.getKey(), "9999");
+      props.put(Property.TABLE_MERGE_FILE_MAX.getKey(), "3");
+      c.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED));
+      var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+      // Create new tablets that won't merge automatically
+      SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+      for (int i = 500; i < 5000; i += 500) {
+        splits.put(row(i), TabletMergeability.never());
+      }
+      c.tableOperations().putSplits(tableName, splits);
+
+      // Verify we now have 10 tablets
+      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true) == 10,
+          5000, 500);
+
+      // Ingest data so tablet will split, each tablet will have several files because
+      // of the flush setting
+      VerifyParams params = new VerifyParams(getClientProps(), tableName, 5_000);
+      params.startRow = 0;
+      params.flushAfterRows = 100;
+      TestIngest.ingest(c, params);
+      VerifyIngest.verifyIngest(c, params);
+
+      // Mark all tablets as mergeable
+      for (int i = 500; i < 5000; i += 500) {
+        splits.put(row(i), TabletMergeability.always());
+      }
+      c.tableOperations().putSplits(tableName, splits);
+
+      // Should not merge as we set max file count to only 3 and there are more files than that
+      // per tablet, so make sure it throws IllegalStateException
+      assertThrows(IllegalStateException.class,
+          () -> Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+              Set.of(new KeyExtent(tableId, null, null))), 5000, 500));
+      // Make sure tablets is still 10, not merged
+      assertEquals(10, countTablets(getCluster().getServerContext(), tableName, tm -> true));
+
+      // Set max merge file count back to default of 10k
+      c.tableOperations().setProperty(tableName, Property.TABLE_MERGE_FILE_MAX.getKey(), "10000");
+
+      // Should merge back to 1 tablet
+      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
+          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+    }
+  }
+
   private static boolean hasExactTablets(ServerContext ctx, TableId tableId,
       Set<KeyExtent> expected) {
     try (var tabletsMetadata = ctx.getAmple().readTablets().forTable(tableId).build()) {
@@ -270,5 +398,9 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       // Verify all tablets seen
       return expectedTablets.isEmpty();
     }
+  }
+
+  private static Text row(int row) {
+    return generateRow(row, 0);
   }
 }
