@@ -55,6 +55,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.FateStore.Seeder;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
@@ -536,6 +537,10 @@ public class Fate<T> {
   // get a transaction id back to the requester before doing any work
   public FateId startTransaction() {
     return store.create();
+  }
+
+  public Seeder<T> beginSeeding() {
+    return store.beginSeeding();
   }
 
   public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,

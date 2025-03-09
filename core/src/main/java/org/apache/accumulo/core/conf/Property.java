@@ -461,6 +461,7 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0.",
       "1.10.0"),
+  @Deprecated(since = "4.0.0")
   MANAGER_SPLIT_WORKER_THREADS("manager.split.seed.threadpool.size", "8", PropertyType.COUNT,
       "The number of threads used to seed fate split task, the actual split work is done by fate"
           + " threads.",
