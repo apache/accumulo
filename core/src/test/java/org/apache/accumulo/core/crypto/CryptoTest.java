@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -45,7 +46,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import javax.crypto.Cipher;
 import javax.crypto.NoSuchPaddingException;
@@ -495,6 +499,67 @@ public class CryptoTest {
     assertEquals(NoCryptoService.class, cs.getClass());
 
     assertEquals(2, factory.getCount());
+  }
+
+  @Test
+  public void testMultipleThreads() throws Exception {
+    testMultipleThreads(WAL);
+    testMultipleThreads(TABLE);
+  }
+
+  private void testMultipleThreads(Scope scope) throws Exception {
+
+    byte[] plainText = new byte[1024 * 1024];
+    for (int i = 0; i < plainText.length; i++) {
+      plainText[i] = (byte) (i % 128);
+    }
+
+    AESCryptoService cs = new AESCryptoService();
+    cs.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON));
+    CryptoEnvironment encEnv = new CryptoEnvironmentImpl(scope, null, null);
+    FileEncrypter encrypter = cs.getFileEncrypter(encEnv);
+    byte[] params = encrypter.getDecryptionParameters();
+
+    assertNotNull(params);
+
+    ByteArrayOutputStream out = new ByteArrayOutputStream();
+    DataOutputStream dataOut = new DataOutputStream(out);
+    OutputStream encrypted = encrypter.encryptStream(dataOut);
+
+    assertNotNull(encrypted);
+    DataOutputStream cipherOut = new DataOutputStream(encrypted);
+
+    cipherOut.write(plainText);
+
+    cipherOut.close();
+    dataOut.close();
+    encrypted.close();
+    out.close();
+    byte[] cipherText = out.toByteArray();
+
+    var executor = Executors.newCachedThreadPool();
+
+    List<Future<Boolean>> verifyFutures = new ArrayList<>();
+
+    FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
+
+    // verify that each input stream returned by decrypter.decryptStream() is independent when used
+    // by multiple threads
+    for (int i = 0; i < 32; i++) {
+      var future = executor.submit(() -> {
+        try (ByteArrayInputStream in = new ByteArrayInputStream(cipherText);
+            DataInputStream decrypted = new DataInputStream(decrypter.decryptStream(in))) {
+          byte[] dataRead = new byte[plainText.length];
+          decrypted.readFully(dataRead);
+          return Arrays.equals(plainText, dataRead);
+        }
+      });
+      verifyFutures.add(future);
+    }
+
+    for (var future : verifyFutures) {
+      assertTrue(future.get());
+    }
   }
 
   private ArrayList<Key> testData() {

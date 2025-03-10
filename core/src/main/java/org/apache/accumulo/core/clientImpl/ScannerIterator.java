@@ -124,6 +124,8 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
   }
 
   void close() {
+    // setting this so that some errors can be ignored
+    scanState.closeInitiated = true;
     // run actual close operation in the background so this does not block.
     context.executeCleanupTask(() -> {
       synchronized (scanState) {
