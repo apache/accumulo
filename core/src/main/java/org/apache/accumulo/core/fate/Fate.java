@@ -540,7 +540,9 @@ public class Fate<T> {
 
   public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
-    store.seedTransaction(fateOp, fateKey, repo, autoCleanUp);
+    try (var seeder = store.beginSeeding()) {
+      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+    }
   }
 
   // start work in the transaction.. it is safe to call this
