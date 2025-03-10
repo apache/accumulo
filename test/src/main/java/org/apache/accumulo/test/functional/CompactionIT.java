@@ -997,9 +997,9 @@ public class CompactionIT extends CompactionBaseIT {
         Wait.waitFor(() -> {
           var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
           var externalCompactions = tabletMeta.getExternalCompactions();
-          assertTrue(externalCompactions.values().stream()
-              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM));
-          return externalCompactions.size() == 1;
+          boolean allECAreSystem = externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM);
+          return allECAreSystem && externalCompactions.size() == 1;
         }, Wait.MAX_WAIT_MILLIS, 10);
 
         // Wait for the user compaction to now run after the system finishes
