@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.upgrade;
+package org.apache.accumulo.server.util.upgrade;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -51,27 +51,35 @@ public class UpgradeProgressTracker {
     return context.getZooKeeperRoot() + Constants.ZUPGRADE_PROGRESS;
   }
 
-  public synchronized void startOrContinueUpgrade() {
+  public synchronized void initialize() {
     var zk = context.getZooSession();
     try {
-      try {
-        // normally, no upgrade is in progress
-        var newProgress = new UpgradeProgress(AccumuloDataVersion.getCurrentVersion(context),
-            AccumuloDataVersion.get());
-        zk.create(getZPath(), newProgress.toJsonBytes(), ZooUtil.PUBLIC, CreateMode.PERSISTENT);
-        progress = newProgress;
-        znodeVersion = 0;
-      } catch (KeeperException.NodeExistsException e) {
-        // existing upgrade must already be in progress
-        var stat = new Stat();
-        var oldProgressBytes = zk.getData(getZPath(), null, stat);
-        var oldProgress = UpgradeProgress.fromJsonBytes(oldProgressBytes);
-        checkState(AccumuloDataVersion.get() == oldProgress.getUpgradeTargetVersion(),
-            "Upgrade was already started with a different version of software (%s), expecting %s",
-            oldProgress.getUpgradeTargetVersion(), AccumuloDataVersion.get());
-        progress = oldProgress;
-        znodeVersion = stat.getVersion();
-      }
+      // normally, no upgrade is in progress
+      var newProgress = new UpgradeProgress(AccumuloDataVersion.getCurrentVersion(context),
+          AccumuloDataVersion.get());
+      zk.create(getZPath(), newProgress.toJsonBytes(), ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+    } catch (KeeperException.NodeExistsException e) {
+      throw new IllegalStateException("Error progress tracker node already exists", e);
+    } catch (KeeperException e) {
+      throw new IllegalStateException("Error initializing upgrade progress", e);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Error initializing upgrade progress", e);
+    }
+  }
+
+  public synchronized void continueUpgrade() {
+    var zk = context.getZooSession();
+    try {
+      // existing upgrade must already be in progress
+      var stat = new Stat();
+      var oldProgressBytes = zk.getData(getZPath(), null, stat);
+      var oldProgress = UpgradeProgress.fromJsonBytes(oldProgressBytes);
+      checkState(AccumuloDataVersion.get() == oldProgress.getUpgradeTargetVersion(),
+          "Upgrade was already started with a different version of software (%s), expecting %s",
+          oldProgress.getUpgradeTargetVersion(), AccumuloDataVersion.get());
+      progress = oldProgress;
+      znodeVersion = stat.getVersion();
     } catch (KeeperException e) {
       throw new IllegalStateException("Error initializing upgrade progress", e);
     } catch (InterruptedException e) {
@@ -81,6 +89,7 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateZooKeeperVersion(int newVersion) {
+    checkArgument(progress != null, "continueUpgrade must be called first");
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -98,6 +107,7 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateRootVersion(int newVersion) {
+    checkArgument(progress != null, "continueUpgrade must be called first");
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -115,6 +125,7 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateMetadataVersion(int newVersion) {
+    checkArgument(progress != null, "continueUpgrade must be called first");
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -151,8 +162,7 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized UpgradeProgress getProgress() {
-    return requireNonNull(progress,
-        "Must call startOrContinueUpgrade() before checking the progress");
+    return requireNonNull(progress, "Must call continueUpgrade() before checking the progress");
   }
 
   public synchronized void upgradeComplete() {

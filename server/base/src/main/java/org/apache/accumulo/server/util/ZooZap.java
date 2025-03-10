@@ -25,8 +25,12 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.singletons.SingletonManager;
@@ -63,7 +67,7 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Utility for zapping Zookeeper locks";
+    return "Utility for removing Zookeeper locks and other data";
   }
 
   static class Opts extends Help {
@@ -80,6 +84,10 @@ public class ZooZap implements KeywordExecutable {
     boolean zapScanServers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
+    @Parameter(names = "-prepare-for-upgrade", description = "prepare ZooKeeper for an upgrade")
+    boolean upgrade = false;
+    @Parameter(names = "-force", description = "allow prepare-for-upgrade to run again")
+    boolean forceUpgradePrep = false;
   }
 
   public static void main(String[] args) throws Exception {
@@ -115,13 +123,77 @@ public class ZooZap implements KeywordExecutable {
         SecurityUtil.serverLogin(siteConf);
       }
 
-      String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
-      Path instanceDir = new Path(volDir, "instance_id");
-      InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
-      var zrw = zk.asReaderWriter();
+      final String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
+      final Path instanceDir = new Path(volDir, "instance_id");
+      final InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
+      final String zkRoot = ZooUtil.getRoot(iid);
+      final var zrw = zk.asReaderWriter();
+      final String upgradePath = zkRoot + Constants.ZPREPARE_FOR_UPGRADE;
+
+      if (opts.upgrade) {
+
+        try {
+          if (zrw.exists(upgradePath)) {
+            if (!opts.forceUpgradePrep) {
+              throw new IllegalStateException(
+                  "'ZooZap -prepare-for-upgrade' must have already been run."
+                      + " To run again use the 'ZooZap -prepare-for-upgrade -force'");
+            } else {
+              zrw.delete(upgradePath);
+            }
+          }
+        } catch (KeeperException | InterruptedException e) {
+          throw new IllegalStateException("Error creating or checking for " + upgradePath
+              + " node in zookeeper: " + e.getMessage(), e);
+        }
+
+        log.info("Upgrade specified, validating that Manager is stopped");
+        AdminUtil<Admin> admin = new AdminUtil<>(false);
+        if (!admin.checkGlobalLock(zk, ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK))) {
+          throw new IllegalStateException(
+              "Manager is running, shut it down and retry this operation");
+        }
+
+        log.info("Checking for existing fate transactions");
+        try {
+          final String fatePath = zkRoot + Constants.ZFATE;
+          // Adapted from UpgradeCoordinator.abortIfFateTransactions
+          final ReadOnlyTStore<ZooZap> fate = new ZooStore<>(fatePath, zk);
+          if (!fate.list().isEmpty()) {
+            throw new IllegalStateException("Cannot complete upgrade preparation"
+                + " because FATE transactions exist. You can start a tserver, but"
+                + " not the Manager, then use the shell to delete completed"
+                + " transactions and fail pending or in-progress transactions."
+                + " Once all of the FATE transactions have been removed you can"
+                + " retry this operation.");
+          }
+        } catch (KeeperException | InterruptedException e) {
+          throw new IllegalStateException("Error checking for existing FATE transactions", e);
+        }
+
+        log.info("Creating {} node in zookeeper, servers will be prevented from"
+            + " starting while this node exists", upgradePath);
+        try {
+          zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
+        } catch (KeeperException | InterruptedException e) {
+          throw new IllegalStateException("Error creating " + upgradePath
+              + " node in zookeeper. Check for any issues and retry.", e);
+        }
+        log.info("Instance {} prepared for upgrade. Server processes will not start while"
+            + " in this state. To undo this state and abort upgrade preparations delete"
+            + " the zookeeper node: {}", iid.canonical(), upgradePath);
+
+        log.info("Forcing removal of all server locks");
+        // modify the options to remove all locks
+        opts.zapCompactors = true;
+        opts.zapCoordinators = true;
+        opts.zapManager = true;
+        opts.zapScanServers = true;
+        opts.zapTservers = true;
+      }
 
       if (opts.zapManager) {
-        String managerLockPath = ZooUtil.getRoot(iid) + Constants.ZMANAGER_LOCK;
+        String managerLockPath = zkRoot + Constants.ZMANAGER_LOCK;
 
         try {
           zapDirectory(zrw, managerLockPath, opts);
@@ -131,7 +203,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapTservers) {
-        String tserversPath = ZooUtil.getRoot(iid) + Constants.ZTSERVERS;
+        String tserversPath = zkRoot + Constants.ZTSERVERS;
         try {
           List<String> children = zrw.getChildren(tserversPath);
           for (String child : children) {
@@ -156,7 +228,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapCoordinators) {
-        final String coordinatorPath = ZooUtil.getRoot(iid) + Constants.ZCOORDINATOR_LOCK;
+        final String coordinatorPath = zkRoot + Constants.ZCOORDINATOR_LOCK;
         try {
           if (zrw.exists(coordinatorPath)) {
             zapDirectory(zrw, coordinatorPath, opts);
@@ -167,7 +239,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapCompactors) {
-        String compactorsBasepath = ZooUtil.getRoot(iid) + Constants.ZCOMPACTORS;
+        String compactorsBasepath = zkRoot + Constants.ZCOMPACTORS;
         try {
           if (zrw.exists(compactorsBasepath)) {
             List<String> queues = zrw.getChildren(compactorsBasepath);
@@ -183,7 +255,7 @@ public class ZooZap implements KeywordExecutable {
       }
 
       if (opts.zapScanServers) {
-        String sserversPath = ZooUtil.getRoot(iid) + Constants.ZSSERVERS;
+        String sserversPath = zkRoot + Constants.ZSSERVERS;
         try {
           if (zrw.exists(sserversPath)) {
             List<String> children = zrw.getChildren(sserversPath);
@@ -197,10 +269,9 @@ public class ZooZap implements KeywordExecutable {
             }
           }
         } catch (KeeperException | InterruptedException e) {
-          log.error("{}", e.getMessage(), e);
+          log.error("Error deleting scan servers from zookeeper, {}", e.getMessage(), e);
         }
       }
-
     }
   }
 
