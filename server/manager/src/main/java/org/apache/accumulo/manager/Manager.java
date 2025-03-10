@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.lang.Thread.State.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
@@ -1259,10 +1260,6 @@ public class Manager extends AbstractServer
         };
     watchers.add(rootTableTGW);
 
-    boolean rootTGWStarted = false;
-    boolean metaTGWStarted = false;
-    boolean userTGWStarted = false;
-
     while (isUpgrading()) {
       UpgradeStatus currentStatus = upgradeCoordinator.getStatus();
       if (currentStatus == UpgradeStatus.FAILED || currentStatus == UpgradeStatus.COMPLETE) {
@@ -1270,19 +1267,29 @@ public class Manager extends AbstractServer
       }
       switch (currentStatus) {
         case UPGRADED_METADATA:
-          // Start processing user tables
-          userTableTGW.start();
-          userTGWStarted = true;
+          if (rootTableTGW.getState() == NEW) {
+            rootTableTGW.start();
+          }
+          if (metadataTableTGW.getState() == NEW) {
+            metadataTableTGW.start();
+          }
+          if (userTableTGW.getState() == NEW) {
+            userTableTGW.start();
+          }
           break;
         case UPGRADED_ROOT:
-          // Start processing the metadata table
-          metadataTableTGW.start();
-          metaTGWStarted = true;
+          if (rootTableTGW.getState() == NEW) {
+            rootTableTGW.start();
+          }
+          if (metadataTableTGW.getState() == NEW) {
+            metadataTableTGW.start();
+          }
           break;
         case UPGRADED_ZOOKEEPER:
           // Start processing the root table
-          rootTableTGW.start();
-          rootTGWStarted = true;
+          if (rootTableTGW.getState() == NEW) {
+            rootTableTGW.start();
+          }
           break;
         case FAILED:
         case COMPLETE:
@@ -1296,13 +1303,13 @@ public class Manager extends AbstractServer
     // have stepped through all of the steps in the previous code
     // block. Make sure all TGWs are started.
     if (upgradeCoordinator.getStatus() != UpgradeStatus.FAILED) {
-      if (!rootTGWStarted) {
+      if (rootTableTGW.getState() == NEW) {
         rootTableTGW.start();
       }
-      if (!metaTGWStarted) {
+      if (metadataTableTGW.getState() == NEW) {
         metadataTableTGW.start();
       }
-      if (!userTGWStarted) {
+      if (userTableTGW.getState() == NEW) {
         userTableTGW.start();
       }
     }
