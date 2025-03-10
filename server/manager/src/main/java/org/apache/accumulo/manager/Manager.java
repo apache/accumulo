@@ -1298,8 +1298,8 @@ public class Manager extends AbstractServer
           break;
       }
       try {
-        Thread.sleep(1000);
         log.debug("Manager main thread is waiting for upgrade to complete");
+        Thread.sleep(1000);
       } catch (InterruptedException e) {
         throw new IllegalStateException("Interrupted while waiting for upgrade to complete", e);
       }
