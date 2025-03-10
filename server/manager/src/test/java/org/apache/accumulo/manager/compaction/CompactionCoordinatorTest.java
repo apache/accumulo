@@ -220,6 +220,15 @@ public class CompactionCoordinatorTest {
 
   }
 
+  private TExternalCompaction createMockCompaction() {
+    TExternalCompaction mockCompaction = EasyMock.createMock(TExternalCompaction.class);
+    expect(mockCompaction.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
+    expect(mockCompaction.getCompactor()).andReturn("localhost:9133").anyTimes();
+    expect(mockCompaction.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
+        .anyTimes();
+    return mockCompaction;
+  }
+
   @Test
   public void testCoordinatorColdStart() throws Exception {
 
@@ -416,18 +425,9 @@ public class CompactionCoordinatorTest {
     expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100000, TimeUnit.NANOSECONDS))
         .anyTimes();
 
-    TExternalCompaction ext1 = EasyMock.createMock(TExternalCompaction.class);
-    expect(ext1.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
-    expect(ext1.getCompactor()).andReturn("localhost:9133").anyTimes();
-    expect(ext1.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).anyTimes();
-    TExternalCompaction ext2 = EasyMock.createMock(TExternalCompaction.class);
-    expect(ext2.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
-    expect(ext2.getCompactor()).andReturn("localhost:9133").anyTimes();
-    expect(ext2.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).anyTimes();
-    TExternalCompaction ext3 = EasyMock.createMock(TExternalCompaction.class);
-    expect(ext3.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
-    expect(ext3.getCompactor()).andReturn("localhost:9133").anyTimes();
-    expect(ext3.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME).anyTimes();
+    TExternalCompaction ext1 = createMockCompaction();
+    TExternalCompaction ext2 = createMockCompaction();
+    TExternalCompaction ext3 = createMockCompaction();
 
     EasyMock.replay(context, creds, security, manager, ext1, ext2, ext3);
 
@@ -473,23 +473,9 @@ public class CompactionCoordinatorTest {
     ExternalCompactionId ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
     ExternalCompactionId ecid3 = ExternalCompactionId.generate(UUID.randomUUID());
 
-    TExternalCompaction deadCompaction1 = EasyMock.createMock(TExternalCompaction.class);
-    expect(deadCompaction1.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
-    expect(deadCompaction1.getCompactor()).andReturn("localhost:9133").anyTimes();
-    expect(deadCompaction1.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
-        .anyTimes();
-
-    TExternalCompaction deadCompaction2 = EasyMock.createMock(TExternalCompaction.class);
-    expect(deadCompaction2.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
-    expect(deadCompaction2.getCompactor()).andReturn("localhost:9133").anyTimes();
-    expect(deadCompaction2.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
-        .anyTimes();
-
-    TExternalCompaction deadCompaction3 = EasyMock.createMock(TExternalCompaction.class);
-    expect(deadCompaction3.getJob()).andReturn(new TExternalCompactionJob()).anyTimes();
-    expect(deadCompaction3.getCompactor()).andReturn("localhost:9133").anyTimes();
-    expect(deadCompaction3.getGroupName()).andReturn(Constants.DEFAULT_RESOURCE_GROUP_NAME)
-        .anyTimes();
+    TExternalCompaction deadCompaction1 = createMockCompaction();
+    TExternalCompaction deadCompaction2 = createMockCompaction();
+    TExternalCompaction deadCompaction3 = createMockCompaction();
 
     EasyMock.replay(context, creds, security, manager, deadCompaction1, deadCompaction2,
         deadCompaction3);
