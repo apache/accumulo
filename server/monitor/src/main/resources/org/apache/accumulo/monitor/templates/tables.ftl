@@ -32,7 +32,7 @@
               "url": "/rest-v2/tables",
               "dataSrc": function (json) {
                 return Object.keys(json).map(function (key) {
-                  json[key].tablename = key;
+                  json[key].tableId = key;
                   return json[key];
                 });
               }
@@ -40,22 +40,31 @@
             "stateSave": true,
             "columnDefs": [
               {
-                "type": "num",
                 "targets": "big-num",
-                "render": function (data, type, row) {
-                  if (type === 'display')
+                "render": function (data, type) {
+                  if (type === 'display') {
                     data = bigNumberForQuantity(data);
+                  }
+                  return data;
+                }
+              },
+              {
+                "targets": "big-size",
+                "render": function (data, type) {
+                  if (type === 'display') {
+                    data = bigNumberForSize(data);
+                  }
                   return data;
                 }
               }
             ],
             "columns": [
               {
-                "data": "tablename",
+                "data": "tableName",
                 "type": "html",
                 "render": function (data, type, row, meta) {
                   if (type === 'display') {
-                    data = '<a href="/tables/' + row.tablename + '">' + row.tablename + '</a>';
+                    data = '<a href="/tables/' + row.tableId + '">' + row.tableName + '</a>';
                   }
                   return data;
                 }
@@ -101,7 +110,7 @@
               <th title="Table Name">Table&nbsp;Name</th>
               <th title="Tables are broken down into ranges of rows called tablets." class="big-num">Tablets</th>
               <th title="Key/value pairs over each instance, table or tablet." class="big-num">Entries</th>
-              <th title="Total size on disk." class="big-num">Size on Disk</th>
+              <th title="Total size on disk." class="big-size">Size on Disk</th>
               <th title="Total number of files." class="big-num">Files</th>
               <th title="Total number of WALs." class="big-num">WALs</th>
               <th title="Number of tablets that are always hosted." class="big-num">Always Available</th>

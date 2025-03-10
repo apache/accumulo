@@ -371,4 +371,11 @@ public abstract class AbstractServer
   @Override
   public void close() {}
 
+  protected void waitForUpgrade() throws InterruptedException {
+    while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {
+      log.info("Waiting for upgrade to complete.");
+      Thread.sleep(1000);
+    }
+  }
+
 }

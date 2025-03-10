@@ -112,7 +112,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     UtilWaitThread.sleep(3000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), migrations,
-        migrationsOut, DataLevel.USER));
+        migrationsOut, DataLevel.USER, tables));
     assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
 
@@ -125,7 +125,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
         Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), migrations,
-        migrationsOut, DataLevel.USER));
+        migrationsOut, DataLevel.USER, tables));
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
       assertTrue(migration.getNewTabletServer().getHost().startsWith("192.168.0.1")

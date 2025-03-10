@@ -27,7 +27,9 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.hadoop.io.DataInputBuffer;
@@ -49,25 +51,42 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
    */
   FateId create();
 
-  /**
-   * Seeds a transaction with the given repo if it does not exist. A fateId will be derived from the
-   * fateKey. If seeded, sets the following data for the fateId in the store.
-   *
-   * <ul>
-   * <li>Set the fate op</li>
-   * <li>Set the status to SUBMITTED</li>
-   * <li>Set the fate key</li>
-   * <li>Sets autocleanup only if true</li>
-   * <li>Sets the creation time</li>
-   * </ul>
-   *
-   * @return The return type is only intended for testing it may not be correct in the face of
-   *         failures. When there are no failures returns optional w/ the fate id set if seeded and
-   *         empty optional otherwise. If there was a failure this could return an empty optional
-   *         when it actually succeeded.
-   */
-  Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp);
+  interface Seeder<T> extends AutoCloseable {
+
+    /**
+     * Attempts to seed a transaction with the given repo if it does not exist. A fateId will be
+     * derived from the fateKey. If seeded, sets the following data for the fateId in the store.
+     *
+     * TODO: Support completing futures later in close method The current version will always return
+     * with a CompleteableFuture that is already completed. Future version will process will
+     * complete in the close() method for the User store.
+     *
+     * <ul>
+     * <li>Set the fate op</li>
+     * <li>Set the status to SUBMITTED</li>
+     * <li>Set the fate key</li>
+     * <li>Sets autocleanup only if true</li>
+     * <li>Sets the creation time</li>
+     * </ul>
+     *
+     * @return The return type is only intended for testing it may not be correct in the face of
+     *         failures. When there are no failures returns optional w/ the fate id set if seeded
+     *         and empty optional otherwise. If there was a failure this could return an empty
+     *         optional when it actually succeeded.
+     */
+    CompletableFuture<Optional<FateId>> attemptToSeedTransaction(Fate.FateOperation fateOp,
+        FateKey fateKey, Repo<T> repo, boolean autoCleanUp);
+
+    // TODO: Right now all implementations do nothing
+    // Eventually this would check the status of all added conditional mutations,
+    // retry unknown, and then close the conditional writer.
+    @Override
+    void close();
+  }
+
+  // Creates a conditional writer for the user fate store. For Zookeeper all this code will probably
+  // do the same thing its currently doing as zookeeper does not support multi-node operations.
+  Seeder<T> beginSeeding();
 
   /**
    * Seeds a transaction with the given repo if its current status is NEW and it is currently

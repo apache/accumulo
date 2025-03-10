@@ -107,10 +107,11 @@ public class GroupBalancerTest {
         }
       };
 
-      balance(balancer, maxMigrations, tid);
+      balance(balancer, maxMigrations, tid, Map.of("1", tid));
     }
 
-    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid) {
+    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid,
+        Map<String,TableId> tablesToBalance) {
 
       while (true) {
         Set<TabletId> migrations = new HashSet<>();
@@ -124,7 +125,7 @@ public class GroupBalancerTest {
 
         balancer.balance(new BalanceParamsImpl(current,
             Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
-            migrationsOut, DataLevel.of(tid)));
+            migrationsOut, DataLevel.of(tid), tablesToBalance));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());
