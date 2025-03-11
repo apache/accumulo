@@ -58,6 +58,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -203,7 +204,11 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     int results = 0;
     List<Key> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      MetaDataTableScanner.configureScanner(scanner, state);
+      DataLevel currentDataLevel = DataLevel.USER;
+      if (table.equals(AccumuloTable.ROOT.tableName())) {
+        currentDataLevel = DataLevel.METADATA;
+      }
+      MetaDataTableScanner.configureScanner(scanner, state, currentDataLevel);
       log.debug("Current state = {}", state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
@@ -331,7 +336,7 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
     }
 
     @Override
-    public Set<KeyExtent> migrationsSnapshot() {
+    public Set<KeyExtent> migrationsSnapshot(DataLevel dataLevel) {
       return Collections.emptySet();
     }
 

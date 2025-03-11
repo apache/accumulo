@@ -23,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -40,21 +39,17 @@ class MetaDataStateStore implements TabletStateStore {
 
   protected final ClientContext context;
   protected final CurrentState state;
-  private final String targetTableName;
   private final Ample ample;
   private final DataLevel level;
+  private final String name;
 
   protected MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state,
-      String targetTableName) {
+      String name) {
     this.level = level;
     this.context = context;
     this.state = state;
     this.ample = context.getAmple();
-    this.targetTableName = targetTableName;
-  }
-
-  MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    this(level, context, state, AccumuloTable.METADATA.tableName());
+    this.name = name;
   }
 
   @Override
@@ -64,7 +59,7 @@ class MetaDataStateStore implements TabletStateStore {
 
   @Override
   public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
+    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, level);
   }
 
   @Override
@@ -161,7 +156,7 @@ class MetaDataStateStore implements TabletStateStore {
 
   @Override
   public String name() {
-    return "Normal Tablets";
+    return name;
   }
 
 }

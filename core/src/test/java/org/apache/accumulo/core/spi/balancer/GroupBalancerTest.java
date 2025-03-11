@@ -106,10 +106,10 @@ public class GroupBalancerTest {
         }
       };
 
-      balance(balancer, maxMigrations, tid, Map.of("1", tid));
+      balance(balancer, maxMigrations, Map.of("1", tid));
     }
 
-    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid,
+    public void balance(TabletBalancer balancer, int maxMigrations,
         Map<String,TableId> tablesToBalance) {
 
       while (true) {
@@ -123,7 +123,7 @@ public class GroupBalancerTest {
         }
 
         balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut,
-            DataLevel.of(tid), tablesToBalance));
+            DataLevel.USER.name(), tablesToBalance));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());

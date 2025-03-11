@@ -108,7 +108,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // getOnlineTabletsForTable
     UtilWaitThread.sleep(3000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
-        migrations, migrationsOut, DataLevel.USER, tables));
+        migrations, migrationsOut, DataLevel.USER.name(), tables));
     assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
 
@@ -118,9 +118,9 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // in the HostRegexTableLoadBalancer. For this test we want
     // to get into the out of bounds checking code, so we need to
     // populate the map with an older time value
-    this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
+    this.lastOOBCheckTimes.put(DataLevel.USER.name(), System.currentTimeMillis() / 2);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
-        migrations, migrationsOut, DataLevel.USER, tables));
+        migrations, migrationsOut, DataLevel.USER.name(), tables));
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
       assertTrue(migration.getNewTabletServer().getHost().startsWith("192.168.0.1")
