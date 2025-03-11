@@ -84,7 +84,7 @@ public class ZooZap implements KeywordExecutable {
     boolean zapScanServers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
-    @Parameter(names = "-prepare-for-upgrade", description = "prepare Accumulo for an upgrade to the next non bug fix release")
+    @Parameter(names = "-prepare-for-upgrade", description = "prepare Accumulo for an upgrade to the next non-bugfix release")
     boolean upgrade = false;
     @Parameter(names = "-force", description = "allow prepare-for-upgrade to run again")
     boolean forceUpgradePrep = false;
