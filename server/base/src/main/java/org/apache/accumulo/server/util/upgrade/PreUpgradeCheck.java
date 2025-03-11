@@ -71,8 +71,8 @@ public class PreUpgradeCheck implements KeywordExecutable {
 
     if (!zs.asReader().exists(prepUpgradePath)) {
       LOG.info("{} node not found in ZooKeeper, 'ZooZap -prepare-for-upgrade' was likely"
-          + " not run when after shutting down instance for upgrade. Removing"
-          + " server locks and checking for fate transactions.");
+          + " not run after shutting down instance for upgrade. Removing"
+          + " server locks and checking for fate transactions.",  prepUpgradePath);
 
       try {
         final String fatePath = zkRoot + Constants.ZFATE;
