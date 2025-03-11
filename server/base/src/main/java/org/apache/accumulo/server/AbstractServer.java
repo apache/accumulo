@@ -84,8 +84,7 @@ public abstract class AbstractServer
       }
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(
-          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper",
-          e);
+          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper", e);
     }
 
     log = LoggerFactory.getLogger(getClass());
