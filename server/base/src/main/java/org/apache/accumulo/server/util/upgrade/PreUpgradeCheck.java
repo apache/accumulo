@@ -101,7 +101,7 @@ public class PreUpgradeCheck implements KeywordExecutable {
         try {
           List<String> children = zs.asReader().getChildren(slp);
           for (String child : children) {
-            LOG.debug("Performing recursive delete on node: " + child);
+            LOG.debug("Performing recursive delete on node:  {}", child);
             ZooUtil.recursiveDelete(zs, slp + "/" + child, NodeMissingPolicy.SKIP);
           }
         } catch (KeeperException.NoNodeException e) {
