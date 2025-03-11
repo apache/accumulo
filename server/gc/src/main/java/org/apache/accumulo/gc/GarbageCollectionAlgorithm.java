@@ -414,7 +414,7 @@ public class GarbageCollectionAlgorithm {
 
     long origSize = currentBatch.size();
     gce.incrementCandidatesStat(origSize);
-    log.debug("Batch {} total deletion candidates: {}", batchCount, origSize);
+    log.info("Batch {} total deletion candidates: {}", batchCount, origSize);
 
     SortedMap<String,GcCandidate> candidateMap = makeRelative(currentBatch);
 

@@ -302,12 +302,11 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
 
-    log.debug("Batch {} attempting to delete {} gcCandidate files", batchCount.get(),
+    log.info("Batch {} attempting to delete {} gcCandidate files", batchCount.get(),
         confirmedDeletes.size());
-    int deleteCounter = 0;
+    AtomicInteger deleteCounter = new AtomicInteger(0);
     Timer timer = Timer.startNew();
     for (final GcCandidate delete : confirmedDeletes.values()) {
-      deleteCounter++;
       Runnable deleteTask = () -> {
         boolean removeFlag = false;
 
@@ -331,6 +330,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
+            deleteCounter.incrementAndGet();
             log.debug("Batch {} {} Deleting {}", batchCount.get(), fileActionPrefix, pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
@@ -379,17 +379,17 @@ public class GCRun implements GarbageCollectionEnvironment {
       };
 
       deleteThreadPool.execute(deleteTask);
-      if (timer.hasElapsed(Duration.ofMinutes(1))) {
-        log.info("Batch {} deleting file {} of {}", batchCount.get(), deleteCounter,
-            confirmedDeletes.size());
-        timer.restart();
-      }
     }
 
     deleteThreadPool.shutdown();
 
     try {
-      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+        if (timer.hasElapsed(Duration.ofMinutes(1))) {
+          log.info("Batch {} deleting file {} of {}", batchCount.get(), deleteCounter,
+              confirmedDeletes.size());
+          timer.restart();
+        }
       }
     } catch (InterruptedException e1) {
       log.error("{}", e1.getMessage(), e1);
@@ -469,6 +469,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     Path lastDirAbs = null;
     Timer progressTimer = Timer.startNew();
     int progressCount = 0;
+    int totalDeletes = confirmedDeletes.size();
     while (cdIter.hasNext()) {
       progressCount++;
       Map.Entry<String,GcCandidate> entry = cdIter.next();
@@ -510,10 +511,10 @@ public class GCRun implements GarbageCollectionEnvironment {
           lastDirAbs = null;
         }
       }
-    }
-    if (progressTimer.hasElapsed(Duration.ofMinutes(1))) {
-      logger.debug("Minimizing delete {} of {}", progressCount, confirmedDeletes.size());
-      progressTimer.restart();
+      if (progressTimer.hasElapsed(Duration.ofMinutes(1))) {
+        logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
+        progressTimer.restart();
+      }
     }
   }
 
