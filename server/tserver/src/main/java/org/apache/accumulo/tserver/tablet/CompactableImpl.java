@@ -1337,6 +1337,7 @@ public class CompactableImpl implements Compactable {
       }
     }
 
+    @Override
     public void close() throws InterruptedException {
       synchronized (this) {
         Preconditions.checkState(thread == Thread.currentThread());
