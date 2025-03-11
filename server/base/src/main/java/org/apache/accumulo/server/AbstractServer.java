@@ -84,7 +84,7 @@ public abstract class AbstractServer
       }
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(
-          "Error checking for upgrade prepararation node (" + upgradePrepNode + ") in zookeeper",
+          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper",
           e);
     }
 
