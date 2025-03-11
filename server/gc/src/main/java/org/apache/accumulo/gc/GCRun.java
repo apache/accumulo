@@ -37,7 +37,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -297,14 +297,13 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
 
-    ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+    ThreadPoolExecutor deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS);
 
     final List<Pair<Path,Path>> replacements = context.getVolumeReplacements();
 
     log.info("Batch {} attempting to delete {} gcCandidate files", batchCount.get(),
         confirmedDeletes.size());
-    AtomicInteger deleteCounter = new AtomicInteger(0);
     Timer timer = Timer.startNew();
     for (final GcCandidate delete : confirmedDeletes.values()) {
       Runnable deleteTask = () -> {
@@ -330,7 +329,6 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-            deleteCounter.incrementAndGet();
             log.debug("Batch {} {} Deleting {}", batchCount.get(), fileActionPrefix, pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
@@ -386,8 +384,8 @@ public class GCRun implements GarbageCollectionEnvironment {
     try {
       while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
         if (timer.hasElapsed(Duration.ofMinutes(1))) {
-          log.info("Batch {} deleting file {} of {}", batchCount.get(), deleteCounter,
-              confirmedDeletes.size());
+          log.info("Batch {} deleting file {} of {}", batchCount.get(),
+              deleteThreadPool.getCompletedTaskCount(), confirmedDeletes.size());
           timer.restart();
         }
       }
