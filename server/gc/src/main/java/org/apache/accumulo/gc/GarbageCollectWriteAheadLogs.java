@@ -28,11 +28,15 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
@@ -46,6 +50,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.ReplicationSectio
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -266,37 +271,62 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  private long removeFile(Path path) {
-    try {
-      if (!useTrash || !fs.moveToTrash(path)) {
-        fs.deleteRecursively(path);
+  private void removeFile(ExecutorService deleteThreadPool, Path path, AtomicLong counter,
+      String msg) {
+    deleteThreadPool.execute(() -> {
+      try {
+        log.debug(msg);
+        if (!useTrash || !fs.moveToTrash(path)) {
+          fs.deleteRecursively(path);
+        }
+        counter.incrementAndGet();
+      } catch (FileNotFoundException ex) {
+        // ignored
+      } catch (IOException ex) {
+        log.error("Unable to delete wal {}", path, ex);
       }
-      return 1;
-    } catch (FileNotFoundException ex) {
-      // ignored
-    } catch (IOException ex) {
-      log.error("Unable to delete wal {}", path, ex);
-    }
-
-    return 0;
+    });
   }
 
   private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
+
+    final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_THREADS);
+    final AtomicLong counter = new AtomicLong();
+
     for (Pair<WalState,Path> stateFile : collection) {
       Path path = stateFile.getSecond();
-      log.debug("Removing {} WAL {}", stateFile.getFirst(), path);
-      status.currentLog.deleted += removeFile(path);
+      removeFile(deleteThreadPool, path, counter,
+          "Removing " + stateFile.getFirst() + " WAL " + path);
     }
-    return status.currentLog.deleted;
+
+    deleteThreadPool.shutdown();
+    try {
+      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+      }
+    } catch (InterruptedException e1) {
+      log.error("{}", e1.getMessage(), e1);
+    }
+    return counter.get();
   }
 
   private long removeFiles(Collection<Path> values) {
-    long count = 0;
+    final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_THREADS);
+    final AtomicLong counter = new AtomicLong();
+
     for (Path path : values) {
-      log.debug("Removing recovery log {}", path);
-      count += removeFile(path);
+      removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path);
     }
-    return count;
+
+    deleteThreadPool.shutdown();
+    try {
+      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+      }
+    } catch (InterruptedException e1) {
+      log.error("{}", e1.getMessage(), e1);
+    }
+    return counter.get();
   }
 
   private UUID path2uuid(Path path) {
