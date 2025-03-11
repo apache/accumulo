@@ -96,13 +96,15 @@ public interface TabletBalancer {
     List<TabletMigration> migrationsOut();
 
     /**
-     * Return the DataLevel name for which the Manager is currently balancing. Balancers should
-     * return migrations for tables within the current DataLevel.
+     * Accumulo may partition tables in different ways and pass subsets of tables to the balancer
+     * via {@link #getTablesToBalance()}. Each partition is given a unique name that is always the
+     * same for a given partition. Balancer can use this to determine if they are being called for
+     * the same or a different partition if tracking state between balance calls.
      *
-     * @return name of current balancing iteration data level
+     * @return name of current partition of tables to balance.
      * @since 2.1.4
      */
-    String currentLevel();
+    String partitionName();
 
     /**
      * This is the set of tables the balancer should consider. Balancing any tables outside of this
