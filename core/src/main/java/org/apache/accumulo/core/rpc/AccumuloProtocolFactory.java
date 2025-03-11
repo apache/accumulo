@@ -51,7 +51,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     @Override
     public void writeMessageBegin(TMessage message) throws TException {
-      if (isClient) {
+      if (this.isClient) {
         span = TraceUtil.startClientRpcSpan(this.getClass(), message.name);
         scope = span.makeCurrent();
 
@@ -81,7 +81,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     @Override
     public TMessage readMessageBegin() throws TException {
-      if (!isClient) {
+      if (!this.isClient) {
         this.validateHeader();
       }
 
@@ -103,7 +103,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     private void validateHeader() throws TException {
       final int magic = super.readI32();
       if (magic != MAGIC_NUMBER) {
-        throw new TException("Invalid Accumulo protocol: magic number mismatch. " + "Expected: 0x"
+        throw new TException("Invalid Accumulo protocol: magic number mismatch. Expected: 0x"
             + Integer.toHexString(MAGIC_NUMBER) + ", got: 0x" + Integer.toHexString(magic));
       }
 
