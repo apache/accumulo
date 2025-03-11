@@ -40,6 +40,7 @@ import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -92,7 +93,7 @@ class CleanUp extends ManagerRepo {
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     Scanner scanner = manager.getContext().createScanner(AccumuloTable.METADATA.tableName(),
         Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, manager);
+    MetaDataTableScanner.configureScanner(scanner, manager, DataLevel.of(tableId));
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {

@@ -44,6 +44,7 @@ import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
@@ -144,12 +145,10 @@ public class TablesResource {
     if (AccumuloTable.ROOT.tableId().equals(tableId)) {
       locs.add(rootTabletLocation);
     } else {
-      String systemTableName = AccumuloTable.METADATA.tableId().equals(tableId)
-          ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName();
       MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
           new Range(TabletsSection.encodeRow(tableId, new Text()),
               TabletsSection.encodeRow(tableId, null)),
-          systemTableName);
+          DataLevel.of(tableId));
 
       while (scanner.hasNext()) {
         TabletLocationState state = scanner.next();

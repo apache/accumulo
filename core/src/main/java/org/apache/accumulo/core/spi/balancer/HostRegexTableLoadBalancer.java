@@ -51,7 +51,6 @@ import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TableStatisticsImpl;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -180,7 +179,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   }
 
   private static final Set<TabletId> EMPTY_MIGRATIONS = Collections.emptySet();
-  protected final Map<DataLevel,Long> lastOOBCheckTimes = new HashMap<>(DataLevel.values().length);
+  protected final Map<String,Long> lastOOBCheckTimes = new HashMap<>();
   private Map<String,SortedMap<TabletServerId,TServerStatus>> pools = new HashMap<>();
   private final Map<TabletId,TabletMigration> migrationsFromLastPass = new HashMap<>();
   private final Map<TableId,Long> tableToTimeSinceNoMigrations = new HashMap<>();
@@ -388,9 +387,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
 
     Map<String,SortedMap<TabletServerId,TServerStatus>> currentGrouped =
         splitCurrentByRegex(params.currentStatus());
-    final DataLevel currentLevel = DataLevel.valueOf(params.currentLevel());
 
-    if ((now - this.lastOOBCheckTimes.getOrDefault(currentLevel, System.currentTimeMillis()))
+    if ((now
+        - this.lastOOBCheckTimes.getOrDefault(params.partitionName(), System.currentTimeMillis()))
         > myConf.oobCheckMillis) {
       try {
         // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
@@ -451,7 +450,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         }
       } finally {
         // this could have taken a while...get a new time
-        this.lastOOBCheckTimes.put(currentLevel, System.currentTimeMillis());
+        this.lastOOBCheckTimes.put(params.partitionName(), System.currentTimeMillis());
       }
     }
 
@@ -505,7 +504,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       getBalancerForTable(tableId).balance(new BalanceParamsImpl(currentView, migrations,
-          newMigrations, DataLevel.of(tableId), Map.of(tableName, tableId)));
+          newMigrations, params.partitionName() + ":" + tableId, Map.of(tableName, tableId)));
 
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);
