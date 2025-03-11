@@ -45,6 +45,7 @@ import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
@@ -67,21 +68,23 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
   private final Iterator<Entry<Key,Value>> iter;
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
-  MetaDataTableScanner(ClientContext context, Range range, CurrentState state, String tableName) {
+  MetaDataTableScanner(ClientContext context, Range range, CurrentState state, DataLevel level) {
     // scan over metadata table, looking for tablets in the wrong state based on the live servers
     // and online tables
+    String tableName = level.metaTable();
     try {
       mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, 8);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
     cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
-    configureScanner(mdScanner, state);
+    configureScanner(mdScanner, state, level);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();
   }
 
-  public static void configureScanner(ScannerBase scanner, CurrentState state) {
+  public static void configureScanner(ScannerBase scanner, CurrentState state,
+      DataLevel dataLevel) {
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
@@ -96,15 +99,15 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
-      TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot());
+      TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot(dataLevel));
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
       TabletStateChangeIterator.setShuttingDown(tabletChange, state.shutdownServers());
     }
     scanner.addScanIterator(tabletChange);
   }
 
-  public MetaDataTableScanner(ClientContext context, Range range, String tableName) {
-    this(context, range, null, tableName);
+  public MetaDataTableScanner(ClientContext context, Range range, DataLevel level) {
+    this(context, range, null, level);
   }
 
   @Override

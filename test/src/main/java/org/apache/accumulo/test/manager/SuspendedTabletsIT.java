@@ -32,7 +32,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -52,11 +51,12 @@ import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.balancer.HostRegexTableLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -126,11 +126,11 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
       // Wait for the balancer to assign all metadata tablets to the chosen server.
       ClientContext ctx = (ClientContext) client;
-      TabletLocations tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
+      TabletLocations tl = TabletLocations.retrieve(ctx, MetadataTable.NAME);
       while (tl.hosted.keySet().size() != 1 || !tl.hosted.containsKey(metadataServer)) {
         log.info("Metadata tablets are not hosted on the correct server. Waiting for balancer...");
         Thread.sleep(1000L);
-        tl = TabletLocations.retrieve(ctx, MetadataTable.NAME, RootTable.NAME);
+        tl = TabletLocations.retrieve(ctx, MetadataTable.NAME);
       }
       log.info("Metadata tablets are now hosted on {}", metadataServer);
     }
@@ -454,11 +454,6 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
 
     public static TabletLocations retrieve(final ClientContext ctx, final String tableName)
         throws Exception {
-      return retrieve(ctx, tableName, MetadataTable.NAME);
-    }
-
-    public static TabletLocations retrieve(final ClientContext ctx, final String tableName,
-        final String metaName) throws Exception {
       int sleepTime = 200;
       int remainingAttempts = 30;
 
@@ -466,7 +461,7 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
         try {
           FutureTask<TabletLocations> tlsFuture = new FutureTask<>(() -> {
             TabletLocations answer = new TabletLocations();
-            answer.scan(ctx, tableName, metaName);
+            answer.scan(ctx, tableName);
             return answer;
           });
           THREAD_POOL.execute(tlsFuture);
@@ -485,14 +480,14 @@ public class SuspendedTabletsIT extends ConfigurableMacBase {
       }
     }
 
-    private void scan(ClientContext ctx, String tableName, String metaName) {
+    private void scan(ClientContext ctx, String tableName) {
       Map<String,String> idMap = ctx.tableOperations().tableIdMap();
-      String tableId = Objects.requireNonNull(idMap.get(tableName));
-      try (var scanner = new MetaDataTableScanner(ctx, new Range(), metaName)) {
+      TableId tableId = TableId.of(idMap.get(tableName));
+      try (var scanner = new MetaDataTableScanner(ctx, new Range(), DataLevel.of(tableId))) {
         while (scanner.hasNext()) {
           TabletLocationState tls = scanner.next();
 
-          if (!tls.extent.tableId().canonical().equals(tableId)) {
+          if (!tls.extent.tableId().equals(tableId)) {
             continue;
           }
           locationStates.put(tls.extent, tls);
