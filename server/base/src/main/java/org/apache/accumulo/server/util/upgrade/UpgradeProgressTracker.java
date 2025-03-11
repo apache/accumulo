@@ -80,6 +80,9 @@ public class UpgradeProgressTracker {
           oldProgress.getUpgradeTargetVersion(), AccumuloDataVersion.get());
       progress = oldProgress;
       znodeVersion = stat.getVersion();
+    } catch (KeeperException.NoNodeException e) {
+      throw new IllegalStateException(
+          "initialize not called, " + getZPath() + " node does not exist");
     } catch (KeeperException e) {
       throw new IllegalStateException("Error initializing upgrade progress", e);
     } catch (InterruptedException e) {

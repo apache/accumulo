@@ -143,8 +143,16 @@ public class UpgradeProgressTrackerIT {
     assertTrue(ise.getMessage()
         .startsWith("Upgrade was already started with a different version of software"));
     var npe = assertThrows(NullPointerException.class, () -> progressTracker.getProgress());
-    assertEquals("Must call startOrContinueUpgrade() before checking the progress",
-        npe.getMessage());
+    assertEquals("Must call continueUpgrade() before checking the progress", npe.getMessage());
+  }
+
+  @Test
+  public void testInitializationNotDone() throws KeeperException, InterruptedException {
+    expectVersion(AccumuloDataVersion.get());
+    assertFalse(upgradeNodeExists());
+    IllegalStateException ise =
+        assertThrows(IllegalStateException.class, () -> progressTracker.continueUpgrade());
+    assertTrue(ise.getMessage().startsWith("initialize not called,"));
   }
 
   @Test
@@ -153,8 +161,9 @@ public class UpgradeProgressTrackerIT {
     assertFalse(upgradeNodeExists());
     assertThrows(NullPointerException.class, () -> progressTracker.getProgress());
     assertFalse(upgradeNodeExists());
-    progressTracker.continueUpgrade();
+    progressTracker.initialize();
     assertTrue(upgradeNodeExists());
+    progressTracker.continueUpgrade();
     final var progress = progressTracker.getProgress();
     assertNotNull(progress);
     assertEquals(AccumuloDataVersion.get(), progress.getZooKeeperVersion());
@@ -168,8 +177,9 @@ public class UpgradeProgressTrackerIT {
   public void testUpdates() throws KeeperException, InterruptedException {
     expectVersion(AccumuloDataVersion.get() - 1);
     assertFalse(upgradeNodeExists());
-    progressTracker.continueUpgrade();
+    progressTracker.initialize();
     assertTrue(upgradeNodeExists());
+    progressTracker.continueUpgrade();
     final var progress = progressTracker.getProgress();
     assertNotNull(progress);
     assertEquals(AccumuloDataVersion.get() - 1, progress.getZooKeeperVersion());
@@ -224,8 +234,9 @@ public class UpgradeProgressTrackerIT {
   public void testCompleteUpgrade() throws KeeperException, InterruptedException {
     expectVersion(AccumuloDataVersion.get());
     assertFalse(upgradeNodeExists());
-    progressTracker.continueUpgrade();
+    progressTracker.initialize();
     assertTrue(upgradeNodeExists());
+    progressTracker.continueUpgrade();
     final var progress = progressTracker.getProgress();
     assertNotNull(progress);
     assertEquals(AccumuloDataVersion.get(), progress.getZooKeeperVersion());
