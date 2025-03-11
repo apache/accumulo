@@ -105,7 +105,7 @@ public class PreUpgradeCheck implements KeywordExecutable {
             ZooUtil.recursiveDelete(zs, slp + "/" + child, NodeMissingPolicy.SKIP);
           }
         } catch (KeeperException.NoNodeException e) {
-          LOG.warn(slp + " path does not exist in zookeeper");
+          LOG.warn("{} path does not exist in zookeeper", slp);
         } catch (InterruptedException e) {
           throw new IllegalStateException("Interrupted while trying to find"
               + " and delete children of zookeeper node: " + slp);
