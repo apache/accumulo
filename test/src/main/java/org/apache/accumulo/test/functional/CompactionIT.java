@@ -807,51 +807,70 @@ public class CompactionIT extends AccumuloClusterHarness {
   @Test
   public void testMigrationCancelCompaction() throws Exception {
 
-    // This test creates 20 tablets w/ slow iterator, causes 20 compactions to start, and then
+    // This test creates 40 tablets w/ slow iterator, causes 40 compactions to start, and then
     // starts a new tablet server. Some of the tablets should migrate to the new tserver and cancel
     // their compaction. Because the test uses a slow iterator, if close blocks on compaction then
-    // the test should timeout.
+    // the test should timeout. Two tables are used to have different iterator settings inorder to
+    // test the two different way compactions can be canceled. Compactions can be canceled by thread
+    // interrupt or by a check that is done after a compaction iterator returns a key value.
 
-    final String table1 = this.getUniqueNames(1)[0];
+    final String[] tables = this.getUniqueNames(2);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-
-      // TODO use newer property
-      client.instanceOperations().setProperty(Property.TSERV_MAJC_MAXCONCURRENT.getKey(), "20");
-
-      IteratorSetting setting = new IteratorSetting(50, "sleepy", SlowIterator.class);
-      setting.addOption("sleepTime", "3000");
-      setting.addOption("seekSleepTime", "3000");
+      client.instanceOperations().setProperty(
+          Property.TSERV_COMPACTION_SERVICE_DEFAULT_EXECUTORS.getKey(),
+          "[{'name':'any','numThreads':20}]".replaceAll("'", "\""));
 
       SortedSet<Text> splits = IntStream.range(1, 20).mapToObj(i -> String.format("%06d", i * 1000))
           .map(Text::new).collect(Collectors.toCollection(TreeSet::new));
-      client.tableOperations().create(table1, new NewTableConfiguration().withSplits(splits)
-          .attachIterator(setting, EnumSet.of(IteratorScope.majc)));
+
+      // This iterator is intended to cover the case of a compaction being canceled by thread
+      // interrupt.
+      IteratorSetting setting1 = new IteratorSetting(50, "sleepy", SlowIterator.class);
+      setting1.addOption("sleepTime", "300000");
+      setting1.addOption("seekSleepTime", "3000");
+      SlowIterator.sleepUninterruptibly(setting1, false);
+
+      client.tableOperations().create(tables[0], new NewTableConfiguration().withSplits(splits)
+          .attachIterator(setting1, EnumSet.of(IteratorScope.majc)));
+
+      // This iterator is intended to cover the case of compaction being canceled by the check after
+      // a key value is returned. The iterator is configured to ignore interrupts.
+      IteratorSetting setting2 = new IteratorSetting(50, "sleepy", SlowIterator.class);
+      setting2.addOption("sleepTime", "2000");
+      setting2.addOption("seekSleepTime", "2000");
+      SlowIterator.sleepUninterruptibly(setting2, true);
+
+      client.tableOperations().create(tables[1], new NewTableConfiguration().withSplits(splits)
+          .attachIterator(setting2, EnumSet.of(IteratorScope.majc)));
 
       // write files to each tablet, should cause compactions to start
-      for (int round = 0; round < 5; round++) {
-        try (var writer = client.createBatchWriter(table1)) {
-          for (int i = 0; i < 20_000; i++) {
-            Mutation m = new Mutation(String.format("%06d", i));
-            m.put("f", "q", "v");
-            writer.addMutation(m);
+      for (var table : tables) {
+        for (int round = 0; round < 5; round++) {
+          try (var writer = client.createBatchWriter(table)) {
+            for (int i = 0; i < 20_000; i++) {
+              Mutation m = new Mutation(String.format("%06d", i));
+              m.put("f", "q", "v");
+              writer.addMutation(m);
+            }
           }
+          client.tableOperations().flush(table, null, null, true);
         }
-        client.tableOperations().flush(table1, null, null, true);
       }
 
       assertEquals(2, client.instanceOperations().getTabletServers().size());
 
       var ctx = (ClientContext) client;
-      var tableId = ctx.getTableId(table1);
+      var tableId1 = ctx.getTableId(tables[0]);
+      var tableId2 = ctx.getTableId(tables[1]);
 
       Wait.waitFor(() -> {
         var runningCompactions = client.instanceOperations().getActiveCompactions().stream()
-            .filter(ac -> ac.getTablet().getTable().equals(tableId)).count();
+            .map(ac -> ac.getTablet().getTable())
+            .filter(tid -> tid.equals(tableId1) || tid.equals(tableId2)).count();
         log.debug("Running compactions {}", runningCompactions);
-        return runningCompactions == 20;
+        return runningCompactions == 40;
       });
 
-      // TODO is there a better w/ to do this w/o the cast?
       ((MiniAccumuloClusterImpl) getCluster()).getConfig().setNumTservers(3);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER, "localhost");
 
@@ -862,12 +881,17 @@ public class CompactionIT extends AccumuloClusterHarness {
       });
 
       Wait.waitFor(() -> {
-        try (var tablets = ctx.getAmple().readTablets().forTable(tableId)
+        try (var tablets = ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
             .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
           Map<String,Long> counts = new HashMap<>();
           for (var tablet : tablets) {
-            if (tablet.getLocation() != null) {
-              counts.merge(tablet.getLocation().getHostPort().toString(), 1L, Long::sum);
+            if (!tablet.getTableId().equals(tableId1) && !tablet.getTableId().equals(tableId2)) {
+              continue;
+            }
+
+            if (tablet.getLocation() != null
+                && tablet.getLocation().getType() == TabletMetadata.LocationType.CURRENT) {
+              counts.merge(tablet.getLocation().getHostPort(), 1L, Long::sum);
             }
           }
 
@@ -876,12 +900,9 @@ public class CompactionIT extends AccumuloClusterHarness {
           var max = counts.values().stream().mapToLong(l -> l).max().orElse(100);
           var serversSeen = counts.keySet();
           log.debug("total:{} min:{} max:{} serversSeen:{}", total, min, max, serversSeen);
-          return total == 20 && min == 6 && max == 7 && serversSeen.size() == 3;
+          return total == 40 && min == 12 && max == 14 && serversSeen.size() == 3;
         }
       });
-
-      // TODO is there any way to check that a compaction was actually canceled? Looking in the
-      // tserver logs can see it happened.
     }
   }
 
