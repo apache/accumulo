@@ -86,9 +86,6 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
   @Override
   public void mutate() {
 
-    if (putServerLock) {
-      this.putZooLock(this.context.getZooKeeperRoot(), lock);
-    }
     Mutation mutation = getMutation();
 
     MetadataConstraints metaConstraint = new MetadataConstraints();
@@ -100,13 +97,12 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
     }
 
     try {
-      String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
 
-      context.getZooCache().clear(zpath);
+      context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
       // TODO for efficiency this should maybe call mutateExisting
-      context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
+      context.getZooSession().asReaderWriter().mutateOrCreate(RootTable.ZROOT_TABLET, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);
         rtm.update(mutation);
@@ -116,7 +112,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
       });
 
       // TODO this is racy...
-      context.getZooCache().clear(zpath);
+      context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
       if (closeAfterMutate != null) {
         closeAfterMutate.close();

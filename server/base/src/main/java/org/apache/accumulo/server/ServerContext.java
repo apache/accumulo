@@ -95,7 +95,6 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
-  private final Supplier<String> zkUserPath;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -120,9 +119,8 @@ public class ServerContext extends ClientContext {
 
     // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
     @SuppressWarnings("resource")
-    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooSession()));
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getZooSession()));
     propStore = tmpPropStore;
-    zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
@@ -312,15 +310,8 @@ public class ServerContext extends ClientContext {
 
   public void waitForZookeeperAndHdfs() {
     log.info("Attempting to talk to zookeeper");
-    while (true) {
-      try {
-        getZooSession().asReaderWriter().getChildren(Constants.ZROOT);
-        break;
-      } catch (InterruptedException | KeeperException ex) {
-        log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, SECONDS);
-      }
-    }
+    // Next line blocks until connection is established
+    getZooSession();
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
@@ -451,10 +442,6 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
-  }
-
-  public String zkUserPath() {
-    return zkUserPath.get();
   }
 
   public LowMemoryDetector getLowMemoryDetector() {

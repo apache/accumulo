@@ -260,7 +260,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         InstanceId instanceId = context.getInstanceID();
         var zk = context.getZooSession();
         MetaFateStore<String> readOnlyMFS =
-            new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk, null, null);
+            new MetaFateStore<>(Constants.ZFATE, zk, null, null);
         UserFateStore<String> readOnlyUFS =
             new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
         var lockPath = context.getServerPaths().createTableLocksPath(tableId.toString());
@@ -351,10 +351,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      InstanceId instanceId = context.getInstanceID();
       var zk = context.getZooSession();
       MetaFateStore<String> readOnlyMFS =
-          new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk, null, null);
+          new MetaFateStore<>(Constants.ZFATE, zk, null, null);
       var lockPath = context.getServerPaths().createTableLocksPath(tableId.toString());
       AdminUtil.FateStatus fateStatus =
           admin.getStatus(readOnlyMFS, zk, lockPath, null, null, null);

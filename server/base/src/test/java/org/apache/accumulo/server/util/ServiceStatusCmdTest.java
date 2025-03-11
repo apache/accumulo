@@ -66,14 +66,12 @@ public class ServiceStatusCmdTest {
 
   @BeforeEach
   public void populateContext() {
-    zRoot = ZooUtil.getRoot(InstanceId.of(UUID.randomUUID()));
     context = createMock(ServerContext.class);
     zooReader = createMock(ZooSession.class);
     zooCache = createMock(ZooCache.class);
     expect(zooReader.asReader()).andReturn(new ZooReader(zooReader)).anyTimes();
     expect(context.getZooCache()).andReturn(zooCache).anyTimes();
     expect(context.getZooSession()).andReturn(zooReader).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn(zRoot).anyTimes();
     expect(context.getServerPaths()).andReturn(new ServiceLockPaths(zRoot, zooCache)).anyTimes();
     replay(context);
   }

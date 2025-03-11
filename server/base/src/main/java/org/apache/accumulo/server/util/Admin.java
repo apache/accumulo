@@ -19,7 +19,11 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+<<<<<<< HEAD
 import static java.util.Objects.requireNonNull;
+=======
+import static org.apache.accumulo.core.fate.FateTxId.parseTidFromUserInput;
+>>>>>>> zkchroot-postzkclean
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -716,23 +720,17 @@ public class Admin implements KeywordExecutable {
       }
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
+<<<<<<< HEAD
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
+=======
+        final String finalServer =
+            qualifyWithZooKeeperSessionId(Constants.ZTSERVERS, zc, address.toString());
+>>>>>>> zkchroot-postzkclean
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context, client -> client
             .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }
-  }
-
-  /**
-   * Get the parent ZNode for tservers for the given instance
-   *
-   * @param context ClientContext
-   * @return The tservers znode for the instance
-   */
-  static String getTServersZkPath(ClientContext context) {
-    requireNonNull(context);
-    return context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   /**
@@ -972,6 +970,7 @@ public class Admin implements KeywordExecutable {
 
     validateFateUserInput(fateOpsCommand);
 
+<<<<<<< HEAD
     AdminUtil<Admin> admin = new AdminUtil<>();
     final String zkRoot = context.getZooKeeperRoot();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
@@ -980,6 +979,13 @@ public class Admin implements KeywordExecutable {
     ServiceLock adminLock = null;
     Map<FateInstanceType,FateStore<Admin>> fateStores;
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores = null;
+=======
+    AdminUtil<Admin> admin = new AdminUtil<>(true);
+    var zLockManagerPath = ServiceLock.path(Constants.ZMANAGER_LOCK);
+    var zTableLocksPath = ServiceLock.path(Constants.ZTABLE_LOCKS);
+    var zk = context.getZooSession();
+    ZooStore<Admin> zs = new ZooStore<>(Constants.ZFATE, zk);
+>>>>>>> zkchroot-postzkclean
 
     try {
       if (fateOpsCommand.cancel) {

@@ -231,13 +231,11 @@ public class ZooInfoViewer implements KeywordExecutable {
     var conf = opts.getSiteConfiguration();
     try (var zk = new ZooSession(getClass().getSimpleName(), conf)) {
 
-      String instanceRoot = ZooUtil.getRoot(iid);
-
       final Stat stat = new Stat();
 
       recursiveAclRead(zk, ZROOT + ZINSTANCES, stat, aclMap);
 
-      recursiveAclRead(zk, instanceRoot, stat, aclMap);
+      recursiveAclRead(zk, "/", stat, aclMap);
 
       // print formatting
       aclMap.forEach((path, acl) -> {
@@ -329,7 +327,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     filteredIds.forEach((nid, name) -> {
       try {
-        var key = NamespacePropKey.of(iid, nid);
+        var key = NamespacePropKey.of(nid);
         log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
@@ -346,7 +344,6 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private Map<String,VersionedProperties> fetchTableProps(final ServerContext context,
       final List<String> tables) {
-    var iid = context.getInstanceID();
     var zooReader = context.getZooSession().asReader();
 
     Set<String> cmdOptTables = new TreeSet<>(tables);
@@ -367,7 +364,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     filteredIds.forEach((tid, name) -> {
       try {
-        var key = TablePropKey.of(iid, tid);
+        var key = TablePropKey.of(tid);
         log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
@@ -405,7 +402,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
   private VersionedProperties fetchSystemProp(final InstanceId iid, final ZooReader zooReader)
       throws Exception {
-    SystemPropKey propKey = SystemPropKey.of(iid);
+    SystemPropKey propKey = SystemPropKey.of();
     return ZooPropStore.readFromZk(propKey, nullWatcher, zooReader);
   }
 

@@ -53,18 +53,17 @@ public class NamespaceMapping {
     this.context = context;
   }
 
-  public static void put(final ZooReaderWriter zoo, final String zPath,
+  public static void put(final ZooReaderWriter zoo,
       final NamespaceId namespaceId, final String namespaceName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     requireNonNull(zoo);
-    requireNonNull(zPath);
     requireNonNull(namespaceId);
     requireNonNull(namespaceName);
     if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
       throw new AssertionError(
           "Putting built-in namespaces in map should not be possible after init");
     }
-    zoo.mutateExisting(zPath, data -> {
+    zoo.mutateExisting(Constants.ZNAMESPACES, data -> {
       var namespaces = deserialize(data);
       final String currentName = namespaces.get(namespaceId.canonical());
       if (namespaceName.equals(currentName)) {
@@ -106,18 +105,17 @@ public class NamespaceMapping {
     });
   }
 
-  public static void rename(final ZooReaderWriter zoo, final String zPath,
+  public static void rename(final ZooReaderWriter zoo,
       final NamespaceId namespaceId, final String oldName, final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     requireNonNull(zoo);
-    requireNonNull(zPath);
     requireNonNull(namespaceId);
     requireNonNull(oldName);
     requireNonNull(newName);
     if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
       throw new AssertionError("Renaming built-in namespaces in map should not be possible");
     }
-    zoo.mutateExisting(zPath, current -> {
+    zoo.mutateExisting(Constants.ZNAMESPACES, current -> {
       var namespaces = deserialize(current);
       final String currentName = namespaces.get(namespaceId.canonical());
       if (newName.equals(currentName)) {
@@ -147,10 +145,9 @@ public class NamespaceMapping {
 
   private synchronized void update() {
     final ZooCache zc = context.getZooCache();
-    final String zPath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;
     final ZcStat stat = new ZcStat();
 
-    byte[] data = zc.get(zPath, stat);
+    byte[] data = zc.get(Constants.ZNAMESPACES, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
         throw new IllegalStateException("namespaces node should not be null");

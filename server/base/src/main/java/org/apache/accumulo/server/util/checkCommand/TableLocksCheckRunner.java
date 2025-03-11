@@ -60,11 +60,9 @@ public class TableLocksCheckRunner implements CheckRunner {
       Admin.CheckCommand.CheckStatus status)
       throws InterruptedException, KeeperException, AccumuloException, AccumuloSecurityException {
     final AdminUtil<Admin> admin = new AdminUtil<>();
-    final String zkRoot = context.getZooKeeperRoot();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
-    final String fateZkPath = zkRoot + Constants.ZFATE;
     final var zk = context.getZooSession();
-    final MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, null, null);
+    final MetaFateStore<Admin> mfs = new MetaFateStore<>(Constants.ZFATE, zk, null, null);
     final UserFateStore<Admin> ufs =
         new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
 

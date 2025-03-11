@@ -23,6 +23,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -39,20 +40,18 @@ import org.slf4j.LoggerFactory;
 public class ZKAuthorizor implements Authorizor {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthorizor.class);
 
-  private final String ZKUserAuths = "/Authorizations";
+  private static final String ZKUserAuths = "/Authorizations";
 
   private ServerContext context;
-  private String zkUserPath;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zkUserPath = context.zkUserPath();
   }
 
   @Override
   public Authorizations getCachedUserAuthorizations(String user) {
-    byte[] authsBytes = context.getZooCache().get(zkUserPath + "/" + user + ZKUserAuths);
+    byte[] authsBytes = context.getZooCache().get(Constants.ZUSERS + "/" + user + ZKUserAuths);
     if (authsBytes != null) {
       return ZKSecurityTool.convertAuthorizations(authsBytes);
     }
@@ -72,12 +71,12 @@ public class ZKAuthorizor implements Authorizor {
     // create the root user with no record-level authorizations
     try {
       // prep parent node of users with root username
-      if (!zoo.exists(zkUserPath)) {
-        zoo.putPersistentData(zkUserPath, rootuser.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+      if (!zoo.exists(Constants.ZUSERS)) {
+        zoo.putPersistentData(Constants.ZUSERS, rootuser.getBytes(UTF_8), NodeExistsPolicy.FAIL);
       }
 
       initUser(rootuser);
-      zoo.putPersistentData(zkUserPath + "/" + rootuser + ZKUserAuths,
+      zoo.putPersistentData(Constants.ZUSERS + "/" + rootuser + ZKUserAuths,
           ZKSecurityTool.convertAuthorizations(Authorizations.EMPTY), NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       log.error("{}", e.getMessage(), e);
@@ -89,7 +88,7 @@ public class ZKAuthorizor implements Authorizor {
   public void initUser(String user) throws AccumuloSecurityException {
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     try {
-      zoo.putPersistentData(zkUserPath + "/" + user, new byte[0], NodeExistsPolicy.SKIP);
+      zoo.putPersistentData(Constants.ZUSERS + "/" + user, new byte[0], NodeExistsPolicy.SKIP);
     } catch (KeeperException e) {
       log.error("{}", e.getMessage(), e);
       throw new AccumuloSecurityException(user, SecurityErrorCode.CONNECTION_ERROR, e);
@@ -103,8 +102,8 @@ public class ZKAuthorizor implements Authorizor {
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
       context.getZooSession().asReaderWriter()
-          .recursiveDelete(zkUserPath + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
-      context.getZooCache().clear((path) -> path.startsWith(zkUserPath + "/" + user));
+          .recursiveDelete(Constants.ZUSERS + "/" + user + ZKUserAuths, NodeMissingPolicy.SKIP);
+      context.getZooCache().clear((path) -> path.startsWith(Constants.ZUSERS + "/" + user));
     } catch (InterruptedException e) {
       log.error("{}", e.getMessage(), e);
       throw new IllegalStateException(e);
@@ -122,7 +121,7 @@ public class ZKAuthorizor implements Authorizor {
   public void changeAuthorizations(String user, Authorizations authorizations)
       throws AccumuloSecurityException {
     try {
-      String userAuths = zkUserPath + "/" + user + ZKUserAuths;
+      String userAuths = Constants.ZUSERS + "/" + user + ZKUserAuths;
       context.getZooCache().clear(userAuths);
       context.getZooSession().asReaderWriter().putPersistentData(userAuths,
           ZKSecurityTool.convertAuthorizations(authorizations), NodeExistsPolicy.OVERWRITE);

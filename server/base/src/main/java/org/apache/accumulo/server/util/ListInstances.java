@@ -170,7 +170,7 @@ public class ListInstances {
 
     try {
       var zLockManagerPath = ServiceLockPaths.parse(Optional.of(Constants.ZMANAGER_LOCK),
-          ZooUtil.getRoot(iid) + Constants.ZMANAGER_LOCK);
+          Constants.ZMANAGER_LOCK);
       Optional<ServiceLockData> sld = ServiceLock.getLockData(zs, zLockManagerPath);
       if (sld.isEmpty()) {
         return null;

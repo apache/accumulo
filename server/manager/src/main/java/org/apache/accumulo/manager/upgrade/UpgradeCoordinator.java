@@ -364,7 +364,7 @@ public class UpgradeCoordinator {
       // zookeeper below because the serialization format changed in zookeeper, that is why a direct
       // read is performed.
       if (!context.getZooSession().asReader()
-          .getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
+          .getChildren(Constants.ZFATE).isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "
