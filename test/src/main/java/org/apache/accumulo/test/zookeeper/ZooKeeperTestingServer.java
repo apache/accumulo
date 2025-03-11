@@ -38,7 +38,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
   private static final Logger log = LoggerFactory.getLogger(ZooKeeperTestingServer.class);
   public static final String SECRET = "secret";
 
-  private TestingServer zkServer;
+  protected TestingServer zkServer;
 
   /**
    * Instantiate a running zookeeper server - this call will block until the server is ready for
