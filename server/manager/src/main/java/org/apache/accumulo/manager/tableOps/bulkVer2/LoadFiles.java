@@ -242,7 +242,7 @@ class LoadFiles extends ManagerRepo {
                 client.send_loadFilesV2(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
                     bulkDir.toString(), chunk, setTime);
               } catch (TException ex) {
-                log.debug("rpc failed server: {}, {}", server, fmtTid, ex);
+                log.debug("rpc send failed server: {}, {}", server, fmtTid, ex);
               }
             }
           });
