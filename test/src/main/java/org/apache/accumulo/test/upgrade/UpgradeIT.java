@@ -23,16 +23,37 @@ import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.server.AbstractServer;
 import org.junit.jupiter.api.Test;
 
 public class UpgradeIT extends AccumuloClusterHarness {
+
+  private class ServerThatWontStart extends AbstractServer {
+
+    protected ServerThatWontStart(String[] args) {
+      super("failedServer", new ConfigOpts(), args);
+    }
+
+    @Override
+    public void run() {}
+
+    @Override
+    public ServiceLock getLock() {
+      return null;
+    }
+
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -66,6 +87,16 @@ public class UpgradeIT extends AccumuloClusterHarness {
     assertTrue(zr.getChildren(zkRoot + Constants.ZMANAGER_LOCK).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZSSERVERS).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZTSERVERS).isEmpty());
+
+    // Validate the exception from the servers
+    List<String> args = new ArrayList<>();
+    args.add("--props");
+    args.add(getCluster().getAccumuloPropertiesPath());
+    IllegalStateException ise = assertThrows(IllegalStateException.class,
+        () -> new ServerThatWontStart(args.toArray(new String[0])));
+    assertTrue(ise.getMessage()
+        .startsWith("Instance has been prepared for upgrade, no servers can be started."));
+
   }
 
 }
