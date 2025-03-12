@@ -103,7 +103,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
     EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
-    EasyMock.expect(conf.getCount(Property.GC_DELETE_THREADS)).andReturn(8).anyTimes();
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -142,7 +142,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
     EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
-    EasyMock.expect(conf.getCount(Property.GC_DELETE_THREADS)).andReturn(8).anyTimes();
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -180,7 +180,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
     EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
-    EasyMock.expect(conf.getCount(Property.GC_DELETE_THREADS)).andReturn(8).anyTimes();
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -231,7 +231,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
     EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
-    EasyMock.expect(conf.getCount(Property.GC_DELETE_THREADS)).andReturn(8).anyTimes();
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -282,7 +282,7 @@ public class GarbageCollectWriteAheadLogsTest {
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
     EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
-    EasyMock.expect(conf.getCount(Property.GC_DELETE_THREADS)).andReturn(8).anyTimes();
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));

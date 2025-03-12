@@ -23,12 +23,15 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -271,9 +274,9 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  private void removeFile(ExecutorService deleteThreadPool, Path path, AtomicLong counter,
+  private Future<?> removeFile(ExecutorService deleteThreadPool, Path path, AtomicLong counter,
       String msg) {
-    deleteThreadPool.execute(() -> {
+    return deleteThreadPool.submit(() -> {
       try {
         log.debug(msg);
         if (!useTrash || !fs.moveToTrash(path)) {
@@ -283,7 +286,7 @@ public class GarbageCollectWriteAheadLogs {
       } catch (FileNotFoundException ex) {
         // ignored
       } catch (IOException ex) {
-        log.error("Unable to delete wal {}", path, ex);
+        log.error("Unable to delete {}", path, ex);
       }
     });
   }
@@ -291,15 +294,31 @@ public class GarbageCollectWriteAheadLogs {
   private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
 
     final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_THREADS);
+        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
+
+    final Map<Path,Future<?>> futures = new HashMap<>(collection.size());
     final AtomicLong counter = new AtomicLong();
 
     for (Pair<WalState,Path> stateFile : collection) {
       Path path = stateFile.getSecond();
-      removeFile(deleteThreadPool, path, counter,
-          "Removing " + stateFile.getFirst() + " WAL " + path);
+      futures.put(path, removeFile(deleteThreadPool, path, counter,
+          "Removing " + stateFile.getFirst() + " WAL " + path));
     }
 
+    while (!futures.isEmpty()) {
+      Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+      while (iter.hasNext()) {
+        Entry<Path,Future<?>> f = iter.next();
+        if (f.getValue().isDone()) {
+          try {
+            iter.remove();
+            f.getValue().get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Uncaught exception deleting wal file" + f.getKey(), e);
+          }
+        }
+      }
+    }
     deleteThreadPool.shutdown();
     try {
       while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
@@ -307,18 +326,37 @@ public class GarbageCollectWriteAheadLogs {
     } catch (InterruptedException e1) {
       log.error("{}", e1.getMessage(), e1);
     }
+    status.currentLog.deleted += counter.get();
     return counter.get();
   }
 
   private long removeFiles(Collection<Path> values) {
+
     final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
-        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_THREADS);
+        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
+    final Map<Path,Future<?>> futures = new HashMap<>(values.size());
     final AtomicLong counter = new AtomicLong();
 
     for (Path path : values) {
-      removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path);
+      futures.put(path,
+          removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path));
     }
 
+    while (!futures.isEmpty()) {
+      Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+      while (iter.hasNext()) {
+        Entry<Path,Future<?>> f = iter.next();
+        if (f.getValue().isDone()) {
+          try {
+            iter.remove();
+            f.getValue().get();
+          } catch (InterruptedException | ExecutionException e) {
+            throw new RuntimeException("Uncaught exception deleting recovery log file" + f.getKey(),
+                e);
+          }
+        }
+      }
+    }
     deleteThreadPool.shutdown();
     try {
       while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
