@@ -215,8 +215,9 @@ class LoadFiles extends ManagerRepo {
                   tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
             }
 
-            // Tablet servers process tablets serially and perform a single metadata table write for each tablet. 
-            // Break the work into per-tablet chunks so it can be sent over multiple connections 
+            // Tablet servers process tablets serially and perform a single metadata table write for
+            // each tablet.
+            // Break the work into per-tablet chunks so it can be sent over multiple connections
             // to the tserver, allowing each chunk to be run in parallel on the server side.
             // This allows multiple threads on a single tserver to do metadata writes for this bulk
             // import.
@@ -259,20 +260,20 @@ class LoadFiles extends ManagerRepo {
             } catch (TException ex) {
               String additionalInfo = "";
               if (ex instanceof TApplicationException && ((TApplicationException) ex).getType()
-                   == TApplicationException.UNKNOWN_METHOD) {
-                  // A new RPC method was added in 2.1.4, a tserver running 2.1.3 or earlier will
-                  // not have this RPC. This should not kill the fate operation, it can wait until
-                  // all tablet servers are upgraded.
-                  outdatedTservers++;
-                  additionalInfo = " (tserver may be running older version)";
-                }
+                  == TApplicationException.UNKNOWN_METHOD) {
+                // A new RPC method was added in 2.1.4, a tserver running 2.1.3 or earlier will
+                // not have this RPC. This should not kill the fate operation, it can wait until
+                // all tablet servers are upgraded.
+                outdatedTservers++;
+                additionalInfo = " (tserver may be running older version)";
               }
-              log.debug("rpc recv failed server{}: {}, {}", additionalInfo, client.server, fmtTid, ex);
+              log.debug("rpc recv failed server{}: {}, {}", additionalInfo, client.server, fmtTid,
+                  ex);
             }
           }
 
           if (outdatedTservers > 0) {
-            log.info(
+            log.warn(
                 "{} can not proceed with bulk import because {} tablet servers are likely running "
                     + "an older version. Please update tablet servers to same patch level as manager.",
                 fmtTid, outdatedTservers);
