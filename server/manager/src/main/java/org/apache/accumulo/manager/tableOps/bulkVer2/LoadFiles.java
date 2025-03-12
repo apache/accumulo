@@ -267,7 +267,7 @@ class LoadFiles extends ManagerRepo {
                   additionalInfo = " (tserver may be running older version)";
                 }
               }
-              log.debug("rpc failed server{}: {}, {}", additionalInfo, client.server, fmtTid, ex);
+              log.debug("rpc recv failed server{}: {}, {}", additionalInfo, client.server, fmtTid, ex);
             }
           }
 
