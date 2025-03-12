@@ -216,11 +216,10 @@ class LoadFiles extends ManagerRepo {
             }
 
             // Tablet servers process tablets serially and perform a single metadata table write for
-            // each tablet.
-            // Break the work into per-tablet chunks so it can be sent over multiple connections
-            // to the tserver, allowing each chunk to be run in parallel on the server side.
-            // This allows multiple threads on a single tserver to do metadata writes for this bulk
-            // import.
+            // each tablet. Break the work into per-tablet chunks so it can be sent over multiple
+            // connections to the tserver, allowing each chunk to be run in parallel on the server
+            // side. This allows multiple threads on a single tserver to do metadata writes for this
+            // bulk import.
             int neededConnections = Math.min(maxConnections, tabletFiles.size());
             List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks =
                 new ArrayList<>(neededConnections);
