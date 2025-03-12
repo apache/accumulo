@@ -19,11 +19,7 @@
 package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-<<<<<<< HEAD
 import static java.util.Objects.requireNonNull;
-=======
-import static org.apache.accumulo.core.fate.FateTxId.parseTidFromUserInput;
->>>>>>> zkchroot-postzkclean
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -720,12 +716,7 @@ public class Admin implements KeywordExecutable {
       }
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
-<<<<<<< HEAD
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
-=======
-        final String finalServer =
-            qualifyWithZooKeeperSessionId(Constants.ZTSERVERS, zc, address.toString());
->>>>>>> zkchroot-postzkclean
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context, client -> client
             .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
@@ -970,29 +961,19 @@ public class Admin implements KeywordExecutable {
 
     validateFateUserInput(fateOpsCommand);
 
-<<<<<<< HEAD
     AdminUtil<Admin> admin = new AdminUtil<>();
-    final String zkRoot = context.getZooKeeperRoot();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
-    String fateZkPath = zkRoot + Constants.ZFATE;
     var zk = context.getZooSession();
     ServiceLock adminLock = null;
     Map<FateInstanceType,FateStore<Admin>> fateStores;
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores = null;
-=======
-    AdminUtil<Admin> admin = new AdminUtil<>(true);
-    var zLockManagerPath = ServiceLock.path(Constants.ZMANAGER_LOCK);
-    var zTableLocksPath = ServiceLock.path(Constants.ZTABLE_LOCKS);
-    var zk = context.getZooSession();
-    ZooStore<Admin> zs = new ZooStore<>(Constants.ZFATE, zk);
->>>>>>> zkchroot-postzkclean
 
     try {
       if (fateOpsCommand.cancel) {
         cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
       } else if (fateOpsCommand.fail) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, fateZkPath, adminLock);
+        fateStores = createFateStores(context, zk, Constants.ZFATE, adminLock);
         for (String fateIdStr : fateOpsCommand.fateIdList) {
           if (!admin.prepFail(fateStores, fateIdStr)) {
             throw new AccumuloException("Could not fail transaction: " + fateIdStr);
@@ -1000,7 +981,7 @@ public class Admin implements KeywordExecutable {
         }
       } else if (fateOpsCommand.delete) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, fateZkPath, adminLock);
+        fateStores = createFateStores(context, zk, Constants.ZFATE, adminLock);
         for (String fateIdStr : fateOpsCommand.fateIdList) {
           if (!admin.prepDelete(fateStores, fateIdStr)) {
             throw new AccumuloException("Could not delete transaction: " + fateIdStr);
@@ -1016,7 +997,7 @@ public class Admin implements KeywordExecutable {
             getCmdLineStatusFilters(fateOpsCommand.states);
         EnumSet<FateInstanceType> typesFilter =
             getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
-        readOnlyFateStores = createReadOnlyFateStores(context, zk, fateZkPath);
+        readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
         admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
             fateIdFilter, statusFilter, typesFilter);
         // print line break at the end
@@ -1025,7 +1006,7 @@ public class Admin implements KeywordExecutable {
 
       if (fateOpsCommand.summarize) {
         if (readOnlyFateStores == null) {
-          readOnlyFateStores = createReadOnlyFateStores(context, zk, fateZkPath);
+          readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
         }
         summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
       }
