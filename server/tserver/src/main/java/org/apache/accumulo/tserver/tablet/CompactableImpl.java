@@ -1313,56 +1313,6 @@ public class CompactableImpl implements Compactable {
     selectFiles();
   }
 
-  private final Set<CompactionInterrupter> compactionInterrupters = ConcurrentHashMap.newKeySet();
-
-  private class CompactionInterrupter implements AutoCloseable {
-    private Thread thread;
-
-    CompactionInterrupter() throws InterruptedException {
-
-      this.thread = Thread.currentThread();
-
-      if (Thread.currentThread().isInterrupted() || closed) {
-        throw new InterruptedException();
-      }
-
-      compactionInterrupters.add(this);
-      log.trace("Registered compaction interrupter for {} {}", thread.getId(), getExtent());
-    }
-
-    public synchronized void interrupt() {
-      if (thread != null) {
-        log.debug("Interrupting compaction thread {} for {}", thread.getId(), getExtent());
-        thread.interrupt();
-      }
-    }
-
-    @Override
-    public void close() throws InterruptedException {
-      synchronized (this) {
-        Preconditions.checkState(thread == Thread.currentThread());
-
-        // The goal of this class is not to interrupt the compaction thread after this close()
-        // method returns. Two things help achieve this goal, first we set the thread instance var
-        // null here. Second this code block and the interrupt() method are synchronized.
-        thread = null;
-      }
-
-      // call this outside of synchronized block to avoid deadlock with the locks inside the
-      // concurrent hash set
-      compactionInterrupters.remove(this);
-
-      log.trace("Unregistered compaction interrupter for {} {}", Thread.currentThread().getId(),
-          getExtent());
-
-      // Its possible the threads interrupt status was set but nothing ever checked it. For example
-      // interrupt() could have been called immediately before this method was called.
-      if (Thread.interrupted()) {
-        throw new InterruptedException();
-      }
-    }
-  }
-
   @Override
   public void compact(CompactionServiceId service, CompactionJob job, BooleanSupplier keepRunning,
       RateLimiter readLimiter, RateLimiter writeLimiter, long queuedTime) {
@@ -1382,7 +1332,6 @@ public class CompactableImpl implements Compactable {
     boolean successful = false;
     try {
       TabletLogger.compacting(getExtent(), job, cInfo.localCompactionCfg);
-
       tablet.incrementStatusMajor();
       var check = new CompactionCheck(service, kind, keepRunning, cInfo.checkCompactionId);
       TabletFile tmpFileName = tablet.getNextMapFilenameForMajc(cInfo.propagateDeletes);
@@ -1391,11 +1340,8 @@ public class CompactableImpl implements Compactable {
       SortedMap<StoredTabletFile,DataFileValue> allFiles = tablet.getDatafiles();
       HashMap<StoredTabletFile,DataFileValue> compactFiles = new HashMap<>();
       cInfo.jobFiles.forEach(file -> compactFiles.put(file, allFiles.get(file)));
-      // Limit interrupting compactions to the part that reads and writes files and avoid
-      // interrupting the metadata table updates.
-      try (var ignored = new CompactionInterrupter()) {
-        stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
-      }
+
+      stats = CompactableUtils.compact(tablet, job, cInfo, compactEnv, compactFiles, tmpFileName);
 
       newFile = CompactableUtils.bringOnline(tablet.getDatafileManager(), cInfo, stats,
           compactFiles, allFiles, kind, tmpFileName);
@@ -1652,8 +1598,6 @@ public class CompactableImpl implements Compactable {
       }
 
       closed = true;
-
-      compactionInterrupters.forEach(CompactionInterrupter::interrupt);
 
       // Wait while internal jobs are running or external compactions are committing. When
       // chopStatus is MARKING or selectStatus is SELECTING, there may be metadata table writes so
