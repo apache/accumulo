@@ -258,9 +258,8 @@ class LoadFiles extends ManagerRepo {
               client.service.recv_loadFilesV2();
             } catch (TException ex) {
               String additionalInfo = "";
-              if (ex instanceof TApplicationException) {
-                if (((TApplicationException) ex).getType()
-                    == TApplicationException.UNKNOWN_METHOD) {
+              if (ex instanceof TApplicationException && ((TApplicationException) ex).getType()
+                   == TApplicationException.UNKNOWN_METHOD) {
                   // A new RPC method was added in 2.1.4, a tserver running 2.1.3 or earlier will
                   // not have this RPC. This should not kill the fate operation, it can wait until
                   // all tablet servers are upgraded.
