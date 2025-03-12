@@ -215,10 +215,10 @@ class LoadFiles extends ManagerRepo {
                   tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
             }
 
-            // On the server side tablets are processed serially with a write to the metadata table
-            // done for each tablet. Chunk the work up for a tablet server up so that it can be sent
-            // over multiple connections allowing it to run in parallel on the server side. This
-            // allows multiple threads on a single tserver to do metadata writes for this bulk
+            // Tablet servers process tablets serially and perform a single metadata table write for each tablet. 
+            // Break the work into per-tablet chunks so it can be sent over multiple connections 
+            // to the tserver, allowing each chunk to be run in parallel on the server side.
+            // This allows multiple threads on a single tserver to do metadata writes for this bulk
             // import.
             int neededConnections = Math.min(maxConnections, tabletFiles.size());
             List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks =
