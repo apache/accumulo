@@ -98,6 +98,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
+  private final Duration loggingInterval = Duration.ofMinutes(1);
   private long candidates = 0;
   private long inUse = 0;
   private long deleted = 0;
@@ -295,7 +296,7 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     List<GcCandidate> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
-    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
+    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log, loggingInterval);
 
     ThreadPoolExecutor deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS);
@@ -383,7 +384,7 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     try {
       while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
-        if (timer.hasElapsed(Duration.ofMinutes(1))) {
+        if (timer.hasElapsed(loggingInterval)) {
           log.info("Batch {} deleting file {} of {}", batchCount.get(),
               deleteThreadPool.getCompletedTaskCount(), confirmedDeletes.size());
           timer.restart();
@@ -455,7 +456,8 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @VisibleForTesting
   static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
-      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger) {
+      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
+      Duration loggingInterval) {
     Set<Path> seenVolumes = new HashSet<>();
 
     // when deleting a dir and all files in that dir, only need to delete the dir.
@@ -509,7 +511,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           lastDirAbs = null;
         }
       }
-      if (progressTimer.hasElapsed(Duration.ofMinutes(1))) {
+      if (progressTimer.hasElapsed(loggingInterval)) {
         logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
         progressTimer.restart();
       }

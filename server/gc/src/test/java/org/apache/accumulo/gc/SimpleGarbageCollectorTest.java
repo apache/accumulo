@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.FileNotFoundException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -192,7 +193,7 @@ public class SimpleGarbageCollectorTest {
 
     List<GcCandidate> processedDeletes = new ArrayList<>();
 
-    GCRun.minimizeDeletes(confirmed, processedDeletes, volMgr2, log);
+    GCRun.minimizeDeletes(confirmed, processedDeletes, volMgr2, log, Duration.ofMinutes(1));
 
     TreeMap<String,GcCandidate> expected = new TreeMap<>();
     expected.put("5a/t-0001", new GcCandidate("hdfs://nn1/accumulo/tables/5a/t-0001", 0L));
