@@ -489,7 +489,8 @@ public class Manager extends AbstractServer
       log.info("SASL is enabled, creating delegation token key manager and distributor");
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
-      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooSession(), Constants.ZDELEGATION_TOKEN_KEYS);
+      keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooSession(),
+          Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
       delegationTokensAvailable = true;
@@ -517,8 +518,8 @@ public class Manager extends AbstractServer
   ManagerGoalState getManagerGoalState() {
     while (true) {
       try {
-        byte[] data = getContext().getZooSession().asReaderWriter()
-            .getData(Constants.ZMANAGER_GOAL_STATE);
+        byte[] data =
+            getContext().getZooSession().asReaderWriter().getData(Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -1287,9 +1288,8 @@ public class Manager extends AbstractServer
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      var metaInstance = initializeFateInstance(context,
-          new MetaFateStore<>(Constants.ZFATE, context.getZooSession(),
-              managerLock.getLockID(), isLockHeld));
+      var metaInstance = initializeFateInstance(context, new MetaFateStore<>(Constants.ZFATE,
+          context.getZooSession(), managerLock.getLockID(), isLockHeld));
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
           AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 

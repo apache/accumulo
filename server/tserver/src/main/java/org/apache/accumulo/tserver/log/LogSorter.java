@@ -301,8 +301,7 @@ public class LogSorter {
    * @return The time in millis when the next check can be done.
    */
   public long sortLogsIfNeeded() throws KeeperException, InterruptedException {
-    DistributedWorkQueue dwq = new DistributedWorkQueue(
-        Constants.ZRECOVERY, sortedLogConf, server);
+    DistributedWorkQueue dwq = new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf, server);
     dwq.processExistingWork(new LogProcessor(), MoreExecutors.newDirectExecutorService(), 1, false);
     return System.currentTimeMillis() + dwq.getCheckInterval();
   }
@@ -318,8 +317,8 @@ public class LogSorter {
     ThreadPoolExecutor threadPool =
         ThreadPools.getServerThreadPools().getPoolBuilder(TSERVER_WAL_SORT_CONCURRENT_POOL)
             .numCoreThreads(threadPoolSize).enableThreadPoolMetrics().build();
-    new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf,
-        server).processExistingAndFuture(new LogProcessor(), threadPool);
+    new DistributedWorkQueue(Constants.ZRECOVERY, sortedLogConf, server)
+        .processExistingAndFuture(new LogProcessor(), threadPool);
   }
 
   public List<RecoveryStatus> getLogSorts() {

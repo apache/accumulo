@@ -79,7 +79,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
@@ -104,8 +104,6 @@ import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
@@ -970,8 +968,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext(), "-manager", "-tservers",
-          "-compactors", "-sservers");
+      new ZooZap().zap(getServerContext(), "-manager", "-tservers", "-compactors", "-sservers");
     } catch (RuntimeException e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
@@ -981,7 +978,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // Clear the location of the servers in ZooCache.
     boolean macStarted = false;
     try {
-      getServerContext().getZooKeeperRoot();
+      ZooUtil.getRoot(getServerContext().getInstanceID());
       macStarted = true;
     } catch (IllegalStateException e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {

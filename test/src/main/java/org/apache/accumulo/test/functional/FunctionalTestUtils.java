@@ -232,8 +232,7 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
       var zk = context.getZooSession();
-      MetaFateStore<String> readOnlyMFS =
-          new MetaFateStore<>(Constants.ZFATE, zk, null, null);
+      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(Constants.ZFATE, zk, null, null);
       UserFateStore<String> readOnlyUFS =
           new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
       Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =

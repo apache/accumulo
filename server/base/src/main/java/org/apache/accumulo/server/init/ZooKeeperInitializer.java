@@ -92,12 +92,11 @@ public class ZooKeeperInitializer {
     }
   }
 
-  void initialize(final ServerContext context, final boolean clearInstanceName,
-      final String instanceNamePath, final String rootTabletDirName, final String rootTabletFileUri)
-      throws KeeperException, InterruptedException {
+  void initialize(final ServerContext context, final String rootTabletDirName,
+      final String rootTabletFileUri) throws KeeperException, InterruptedException {
     ZooReaderWriter zrwChroot = context.getZooSession().asReaderWriter();
     zrwChroot.putPersistentData(Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
-            ZooUtil.NodeExistsPolicy.FAIL);
+        ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZNAMESPACES,
         NamespaceMapping
             .serialize(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
@@ -132,8 +131,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZMANAGER_GOAL_STATE,
         ManagerGoalState.NORMAL.toString().getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
-    zrwChroot.putPersistentData(Constants.ZGC, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZGC, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZTABLE_LOCKS, EMPTY_BYTE_ARRAY,
@@ -204,19 +202,19 @@ public class ZooKeeperInitializer {
   }
 
   public void initInstanceNameAndId(ZooReaderWriter zoo, InstanceId instanceId,
-                                    final boolean clearInstanceName, final String instanceNamePath)
-          throws InterruptedException, KeeperException {
+      final boolean clearInstanceName, final String instanceNamePath)
+      throws InterruptedException, KeeperException {
 
     // setup basic data in zookeeper
     zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+        ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
 
     // setup instance name
     if (clearInstanceName) {
       zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
     }
     zoo.putPersistentData(instanceNamePath, instanceId.canonical().getBytes(UTF_8),
-            ZooUtil.NodeExistsPolicy.FAIL);
+        ZooUtil.NodeExistsPolicy.FAIL);
   }
 
 }

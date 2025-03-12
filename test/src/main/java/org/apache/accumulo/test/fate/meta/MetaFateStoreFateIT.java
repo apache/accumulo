@@ -70,7 +70,6 @@ public class MetaFateStoreFateIT extends FateStoreIT {
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(FateStoreUtil.MetaFateZKSetup.getZkRoot()).anyTimes();
     expect(sctx.getZooSession()).andReturn(FateStoreUtil.MetaFateZKSetup.getZk()).anyTimes();
     replay(sctx);
     MetaFateStore<TestEnv> store = new MetaFateStore<>(

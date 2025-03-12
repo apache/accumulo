@@ -36,7 +36,6 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -73,16 +72,16 @@ public class TableManager {
       throws KeeperException, InterruptedException {
     final PropStore propStore = context.getPropStore();
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
-    context.getZooSession().asReaderWriter().putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId, new byte[0],
-        existsPolicy);
+    context.getZooSession().asReaderWriter()
+        .putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId, new byte[0], existsPolicy);
     var propKey = NamespacePropKey.of(namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }
   }
 
-  public static void prepareNewTableState(ZooReaderWriter zoo, PropStore propStore, TableId tableId, NamespaceId namespaceId, String tableName,
-      TableState state, NodeExistsPolicy existsPolicy)
+  public static void prepareNewTableState(ZooReaderWriter zoo, PropStore propStore, TableId tableId,
+      NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
@@ -107,7 +106,8 @@ public class TableManager {
   public static void prepareNewTableState(final ServerContext context, TableId tableId,
       NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
       throws KeeperException, InterruptedException {
-    prepareNewTableState(context.getZooSession().asReaderWriter(), context.getPropStore(), tableId, namespaceId, tableName, state, existsPolicy);
+    prepareNewTableState(context.getZooSession().asReaderWriter(), context.getPropStore(), tableId,
+        namespaceId, tableName, state, existsPolicy);
   }
 
   public TableManager(ServerContext context) {
@@ -173,8 +173,8 @@ public class TableManager {
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
       for (String tableId : context.getZooCache().getChildren(Constants.ZTABLES)) {
-        if (context.getZooCache()
-            .get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null) {
+        if (context.getZooCache().get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
+            != null) {
           updateTableStateCache(TableId.of(tableId));
         }
       }
@@ -184,8 +184,8 @@ public class TableManager {
   public TableState updateTableStateCache(TableId tableId) {
     synchronized (tableStateCache) {
       TableState tState = TableState.UNKNOWN;
-      byte[] data = context.getZooCache()
-          .get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+      byte[] data =
+          context.getZooCache().get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
       if (data != null) {
         String sState = new String(data, UTF_8);
         try {

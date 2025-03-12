@@ -704,8 +704,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
           .withConstructor(String.class, ZooSession.class, ZooUtil.LockID.class, Predicate.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession(), null, null)
-          .addMockedMethod(listMethod).createMock();
+          .withArgs(Constants.ZFATE, sctx.getZooSession(), null, null).addMockedMethod(listMethod)
+          .createMock();
     }
 
     // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that

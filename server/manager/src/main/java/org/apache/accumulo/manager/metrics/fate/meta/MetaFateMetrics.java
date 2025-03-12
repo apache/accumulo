@@ -35,13 +35,11 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
-  private final String fateRootPath;
   private final AtomicLong totalOpsGauge = new AtomicLong(0);
   private final AtomicLong fateErrorsGauge = new AtomicLong(0);
 
   public MetaFateMetrics(ServerContext context, long minimumRefreshDelay) {
     super(context, minimumRefreshDelay);
-    this.fateRootPath = getFateRootPath(context);
   }
 
   @Override
@@ -64,7 +62,7 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>>
       buildReadOnlyStore(ServerContext context) {
     try {
-      return new MetaFateStore<>(getFateRootPath(context), context.getZooSession(), null, null);
+      return new MetaFateStore<>(Constants.ZFATE, context.getZooSession(), null, null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -77,10 +75,6 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
   @Override
   protected MetaFateMetricValues getMetricValues() {
-    return MetaFateMetricValues.getMetaStoreMetrics(context, fateRootPath, readOnlyFateStore);
-  }
-
-  private static String getFateRootPath(ServerContext context) {
-    return context.getZooKeeperRoot() + Constants.ZFATE;
+    return MetaFateMetricValues.getMetaStoreMetrics(context, Constants.ZFATE, readOnlyFateStore);
   }
 }

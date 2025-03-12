@@ -69,7 +69,8 @@ public class KerberosAuthenticator implements Authenticator {
   private void createUserNodeInZk(String principal) throws KeeperException, InterruptedException {
     context.getZooCache().clear(Constants.ZUSERS + "/" + principal);
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-    zoo.putPrivatePersistentData(Constants.ZUSERS + "/" + principal, new byte[0], NodeExistsPolicy.FAIL);
+    zoo.putPrivatePersistentData(Constants.ZUSERS + "/" + principal, new byte[0],
+        NodeExistsPolicy.FAIL);
   }
 
   @Override

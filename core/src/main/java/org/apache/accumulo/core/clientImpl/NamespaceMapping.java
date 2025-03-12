@@ -53,8 +53,8 @@ public class NamespaceMapping {
     this.context = context;
   }
 
-  public static void put(final ZooReaderWriter zoo,
-      final NamespaceId namespaceId, final String namespaceName)
+  public static void put(final ZooReaderWriter zoo, final NamespaceId namespaceId,
+      final String namespaceName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     requireNonNull(zoo);
     requireNonNull(namespaceId);
@@ -105,8 +105,8 @@ public class NamespaceMapping {
     });
   }
 
-  public static void rename(final ZooReaderWriter zoo,
-      final NamespaceId namespaceId, final String oldName, final String newName)
+  public static void rename(final ZooReaderWriter zoo, final NamespaceId namespaceId,
+      final String oldName, final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     requireNonNull(zoo);
     requireNonNull(namespaceId);

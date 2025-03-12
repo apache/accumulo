@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
@@ -128,10 +129,9 @@ public class RootClientTabletCache extends ClientTabletCache {
       timer = Timer.startNew();
     }
 
-    var zpath = RootTabletMetadata.zooPath(context);
     var zooCache = context.getZooCache();
-    Location loc = new RootTabletMetadata(new String(zooCache.get(zpath), UTF_8)).toTabletMetadata()
-        .getLocation();
+    Location loc = new RootTabletMetadata(new String(zooCache.get(Constants.ZFATE), UTF_8))
+        .toTabletMetadata().getLocation();
 
     if (timer != null) {
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,

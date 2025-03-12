@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
@@ -89,15 +90,13 @@ public class RootConditionalWriter implements ConditionalWriter {
 
     ServerConditionalMutation scm = new ServerConditionalMutation(tcm);
 
-    String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-
-    context.getZooCache().clear(zpath);
+    context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
     List<ServerConditionalMutation> okMutations = new ArrayList<>();
     List<TCMResult> results = new ArrayList<>();
 
     try {
-      context.getZooSession().asReaderWriter().mutateExisting(zpath, currVal -> {
+      context.getZooSession().asReaderWriter().mutateExisting(RootTable.ZROOT_TABLET, currVal -> {
         String currJson = new String(currVal, UTF_8);
 
         var rtm = new RootTabletMetadata(currJson);
@@ -133,7 +132,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     }
 
     // TODO this is racy...
-    context.getZooCache().clear(zpath);
+    context.getZooCache().clear(Constants.ZFATE);
 
     return getResult(okMutations, results, mutation);
   }

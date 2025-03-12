@@ -234,16 +234,15 @@ public class ClientContext implements AccumuloClient {
     this.hadoopConf = info.getHadoopConf();
 
     this.zooSession = memoize(() -> {
-      var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", ZooUtil.getRoot(getInstanceID()))
-          .get();
+      var zk =
+          info.getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")",
+              ZooUtil.getRoot(getInstanceID())).get();
       zooKeeperOpened.set(true);
       return zk;
     });
 
     this.zooCache = memoize(() -> {
-      var zc = new ZooCache(getZooSession(),
-          createPersistentWatcherPaths());
+      var zc = new ZooCache(getZooSession(), createPersistentWatcherPaths());
       zooCacheCreated.set(true);
       return zc;
     });
@@ -258,8 +257,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.serverPaths =
-        Suppliers.memoize(() -> new ServiceLockPaths("/", this.getZooCache()));
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths("/", this.getZooCache()));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -502,10 +500,6 @@ public class ClientContext implements AccumuloClient {
    */
   public InstanceId getInstanceID() {
     return info.getInstanceId();
-  }
-
-  public String getZooKeeperRoot() {
-    return ZooUtil.getRoot(getInstanceID());
   }
 
   /**
@@ -1090,7 +1084,8 @@ public class ClientContext implements AccumuloClient {
       // so, it can't rely on being able to continue to use the same client's ZooCache,
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), ZooUtil.getRoot(getInstanceID())).get();
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
+          ZooUtil.getRoot(getInstanceID())).get();
       this.zkLockChecker =
           new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)), "/");
     }

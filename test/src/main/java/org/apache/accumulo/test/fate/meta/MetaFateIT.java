@@ -63,7 +63,6 @@ public class MetaFateIT extends FateIT {
     var zk = FateStoreUtil.MetaFateZKSetup.getZk();
     String fatePath = FateStoreUtil.MetaFateZKSetup.getZkFatePath();
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
 

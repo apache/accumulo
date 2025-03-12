@@ -66,6 +66,7 @@ public class ServiceStatusCmdTest {
 
   @BeforeEach
   public void populateContext() {
+    zRoot = ZooUtil.getRoot(InstanceId.of(UUID.randomUUID()));
     context = createMock(ServerContext.class);
     zooReader = createMock(ZooSession.class);
     zooCache = createMock(ZooCache.class);

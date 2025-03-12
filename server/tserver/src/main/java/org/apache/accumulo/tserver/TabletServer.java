@@ -510,8 +510,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          lockID = tabletServerLock.getLockID()
-              .serialize(Constants.ZTSERVERS + "/");
+          lockID = tabletServerLock.getLockID().serialize(Constants.ZTSERVERS + "/");
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());

@@ -37,8 +37,6 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
-import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -144,11 +142,9 @@ public class ZKAuthenticatorTest {
     ServerContext context = MockServerContext.getWithMockZK(zk);
     ZooCache zc = createMock(ZooCache.class);
     expect(zk.getChildren(anyObject(), anyObject())).andReturn(Arrays.asList(principal)).anyTimes();
-    expect(zk.exists(Constants.ZUSERS + "/" + principal, null))
-        .andReturn(new Stat()).anyTimes();
+    expect(zk.exists(Constants.ZUSERS + "/" + principal, null)).andReturn(new Stat()).anyTimes();
     expect(context.getZooCache()).andReturn(zc).anyTimes();
-    expect(zc.get(Constants.ZUSERS + "/" + principal))
-        .andReturn(newHash);
+    expect(zc.get(Constants.ZUSERS + "/" + principal)).andReturn(newHash);
     replay(context, zk, zc);
 
     // creating authenticator

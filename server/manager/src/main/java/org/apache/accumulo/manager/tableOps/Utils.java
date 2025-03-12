@@ -73,8 +73,7 @@ public class Utils {
     var newTableName = TableNameUtil.qualify(tableName).getSecond();
 
     try {
-      for (String tid : context.getZooSession().asReader()
-          .getChildren(Constants.ZTABLES)) {
+      for (String tid : context.getZooSession().asReader().getChildren(Constants.ZTABLES)) {
 
         final String zTablePath = Constants.ZTABLES + "/" + tid;
         try {
@@ -159,8 +158,7 @@ public class Utils {
     if (getLock(env.getContext(), namespaceId, fateId, lockType).tryLock()) {
       if (mustExist) {
         ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
-        if (!zk.exists(
-            Constants.ZNAMESPACES + "/" + namespaceId)) {
+        if (!zk.exists(Constants.ZNAMESPACES + "/" + namespaceId)) {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
         }
@@ -178,7 +176,7 @@ public class Utils {
     ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
 
     if (ZooReservation.attempt(zk, Constants.ZHDFS_RESERVATIONS + "/"
-            + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId, "")) {
+        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId, "")) {
       return 0;
     } else {
       return 50;
@@ -187,13 +185,16 @@ public class Utils {
 
   public static void unreserveHdfsDirectory(Manager env, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
-    ZooReservation.release(env.getContext().getZooSession().asReaderWriter(), Constants.ZHDFS_RESERVATIONS + "/"
-            + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId);
+    ZooReservation.release(env.getContext().getZooSession().asReaderWriter(),
+        Constants.ZHDFS_RESERVATIONS + "/"
+            + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)),
+        fateId);
   }
 
   private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       LockType lockType) {
-    FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(), FateLock.path(Constants.ZTABLE_LOCKS + "/" + id.canonical()));
+    FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(),
+        FateLock.path(Constants.ZTABLE_LOCKS + "/" + id.canonical()));
     DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, fateId);
     if (lock != null) {
 

@@ -363,8 +363,7 @@ public class UpgradeCoordinator {
       // as tablets are not assigned when this is called. The Fate code is not used to read from
       // zookeeper below because the serialization format changed in zookeeper, that is why a direct
       // read is performed.
-      if (!context.getZooSession().asReader()
-          .getChildren(Constants.ZFATE).isEmpty()) {
+      if (!context.getZooSession().asReader().getChildren(Constants.ZFATE).isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "

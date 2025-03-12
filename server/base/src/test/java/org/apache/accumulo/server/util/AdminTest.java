@@ -86,8 +86,8 @@ public class AdminTest {
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
-    expect(zc.getChildren(type))
-        .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME)).anyTimes();
+    expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME))
+        .anyTimes();
     expect(zc.getChildren(group)).andReturn(List.of(server)).anyTimes();
     expect(zc.getChildren(serverPath)).andReturn(Collections.singletonList(validZLockEphemeralNode))
         .anyTimes();
@@ -120,8 +120,7 @@ public class AdminTest {
     String server = "localhost:12345";
 
     String serverPath = group + "/" + server;
-    expect(zc.getChildren(type))
-        .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
     expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
     expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(root, zc)).anyTimes();
     replay(ctx, zc);
