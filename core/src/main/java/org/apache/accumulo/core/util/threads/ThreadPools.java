@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_WAL_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_SIMPLETIMER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_BULK_IMPORT_POOL;
@@ -375,6 +376,8 @@ public class ThreadPools {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
+      case GC_DELETE_WAL_THREADS:
+        return getPoolBuilder(GC_WAL_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
       case GC_DELETE_THREADS:
         return getPoolBuilder(GC_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
       case REPLICATION_WORKER_THREADS:
