@@ -22,7 +22,6 @@ import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
@@ -40,9 +39,8 @@ public class MetaFateExecutionOrderIT extends FateExecutionOrderIT {
   public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = getCluster().getServerContext();
-    String path = ZK_ROOT + Constants.ZFATE;
     var zk = sctx.getZooSession();
     zk.asReaderWriter().mkdirs(ZK_ROOT);
-    testMethod.execute(new MetaFateStore<>(path, zk, createDummyLockID(), null), sctx);
+    testMethod.execute(new MetaFateStore<>(zk, createDummyLockID(), null), sctx);
   }
 }

@@ -56,7 +56,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -253,7 +252,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore =
-        new MetaFateStore<>(Constants.ZFATE, ctx.getZooSession(), testLock.getLockID(), null);
+        new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
@@ -272,7 +271,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
     FateStore<Manager> metaFateStore =
-        new MetaFateStore<>(Constants.ZFATE, ctx.getZooSession(), testLock.getLockID(), null);
+        new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
@@ -321,7 +320,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       UserFateStore<Manager> userFateStore =
           new UserFateStore<>(ctx, AccumuloTable.FATE.tableName(), testLock.getLockID(), null);
       FateStore<Manager> metaFateStore =
-          new MetaFateStore<>(Constants.ZFATE, ctx.getZooSession(), testLock.getLockID(), null);
+          new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));

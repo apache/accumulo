@@ -46,8 +46,7 @@ public class MetaFateStatusEnforcementIT extends FateStatusEnforcementIT {
 
   @BeforeEach
   public void beforeEachSetup() throws Exception {
-    store = new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZkFatePath(),
-        FateStoreUtil.MetaFateZKSetup.getZk(), createDummyLockID(), null);
+    store = new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZk(), createDummyLockID(), null);
     fateId = store.create();
     txStore = store.reserve(fateId);
   }

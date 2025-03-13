@@ -20,7 +20,6 @@ package org.apache.accumulo.test.fate.meta;
 
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
@@ -43,7 +42,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
     ServerContext context = getCluster().getServerContext();
     var zk = context.getZooSession();
     // test should not be reserving txns or checking reservations, so null lockID and isLockHeld
-    testMethod.execute(new MetaFateStore<>(Constants.ZFATE, zk, null, null), context);
+    testMethod.execute(new MetaFateStore<>(zk, null, null), context);
   }
 
   /**
@@ -63,7 +62,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
       ZooUtil.LockID lockID = testLock.getLockID();
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      testMethod.execute(new MetaFateStore<>(Constants.ZFATE, zk, lockID, isLockHeld), context);
+      testMethod.execute(new MetaFateStore<>(zk, lockID, isLockHeld), context);
     } finally {
       if (testLock != null) {
         testLock.unlock();

@@ -34,6 +34,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -72,8 +73,7 @@ public class MetaFateStoreFateIT extends FateStoreIT {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooSession()).andReturn(FateStoreUtil.MetaFateZKSetup.getZk()).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store = new MetaFateStore<>(
-        FateStoreUtil.MetaFateZKSetup.getZkFatePath(), FateStoreUtil.MetaFateZKSetup.getZk(),
+    MetaFateStore<TestEnv> store = new MetaFateStore<>(FateStoreUtil.MetaFateZKSetup.getZk(),
         createDummyLockID(), null, maxDeferred, fateIdGenerator);
 
     // Check that the store has no transactions before and after each test
@@ -111,8 +111,7 @@ public class MetaFateStoreFateIT extends FateStoreIT {
 
       // Gather the existing fields, create a new FateData object with those existing fields
       // (excluding the FateKey in the new object), and replace the zk node with this new FateData
-      String txPath =
-          FateStoreUtil.MetaFateZKSetup.getZkFatePath() + "/tx_" + fateId.getTxUUIDStr();
+      String txPath = Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
       Object currentNode = serializedCons.newInstance(
           new Object[] {FateStoreUtil.MetaFateZKSetup.getZk().asReader().getData(txPath)});
       TStatus currentStatus = (TStatus) status.get(currentNode);

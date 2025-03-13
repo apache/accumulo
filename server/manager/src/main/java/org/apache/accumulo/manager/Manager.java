@@ -1288,8 +1288,8 @@ public class Manager extends AbstractServer
     try {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      var metaInstance = initializeFateInstance(context, new MetaFateStore<>(Constants.ZFATE,
-          context.getZooSession(), managerLock.getLockID(), isLockHeld));
+      var metaInstance = initializeFateInstance(context,
+          new MetaFateStore<>(context.getZooSession(), managerLock.getLockID(), isLockHeld));
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
           AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 

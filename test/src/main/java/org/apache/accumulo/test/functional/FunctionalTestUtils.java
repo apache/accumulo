@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -232,7 +231,7 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
       var zk = context.getZooSession();
-      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(Constants.ZFATE, zk, null, null);
+      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
       UserFateStore<String> readOnlyUFS =
           new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
       Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =

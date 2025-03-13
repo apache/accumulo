@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util.checkCommand;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.fate.AdminUtil;
@@ -62,7 +61,7 @@ public class TableLocksCheckRunner implements CheckRunner {
     final AdminUtil<Admin> admin = new AdminUtil<>();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final var zk = context.getZooSession();
-    final MetaFateStore<Admin> mfs = new MetaFateStore<>(Constants.ZFATE, zk, null, null);
+    final MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, null, null);
     final UserFateStore<Admin> ufs =
         new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
 
