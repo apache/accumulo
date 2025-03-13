@@ -40,7 +40,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -352,7 +352,7 @@ public class AESCryptoService implements CryptoService {
       private final byte[] initVector = new byte[GCM_IV_LENGTH_IN_BYTES];
       private final Cipher cipher;
       private final byte[] decryptionParameters;
-      private final AtomicInteger openCounter = new AtomicInteger();
+      private final AtomicBoolean openTracker = new AtomicBoolean();
 
       AESGCMFileEncrypter() {
         try {
@@ -373,7 +373,7 @@ public class AESCryptoService implements CryptoService {
           throw new CryptoException(
               "Key/IV reuse is forbidden in AESGCMCryptoModule. Too many RBlocks.");
         }
-        if (!openCounter.compareAndSet(0, 1)) {
+        if (!openTracker.compareAndSet(false, true)) {
           throw new CryptoException("Attempted to obtain new stream without closing previous one.");
         }
 
@@ -403,7 +403,7 @@ public class AESCryptoService implements CryptoService {
         // Without this, when the crypto stream is closed (in order to flush its last bytes)
         // the underlying RFile stream will *also* be closed, and that's undesirable as the
         // cipher stream is closed for every block written.
-        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024, openCounter);
+        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024, openTracker);
       }
 
       /**
@@ -499,7 +499,7 @@ public class AESCryptoService implements CryptoService {
       private final Key fek;
       private final byte[] initVector = new byte[IV_LENGTH_IN_BYTES];
       private final byte[] decryptionParameters;
-      private final AtomicInteger openCounter = new AtomicInteger();
+      private final AtomicBoolean openTracker = new AtomicBoolean();
 
       AESCBCFileEncrypter() {
         try {
@@ -514,7 +514,7 @@ public class AESCryptoService implements CryptoService {
 
       @Override
       public OutputStream encryptStream(OutputStream outputStream) throws CryptoException {
-        if (!openCounter.compareAndSet(0, 1)) {
+        if (!openTracker.compareAndSet(false, true)) {
           throw new CryptoException("Attempted to obtain new stream without closing previous one.");
         }
 
@@ -532,7 +532,7 @@ public class AESCryptoService implements CryptoService {
         }
 
         CipherOutputStream cos = new CipherOutputStream(outputStream, cipher);
-        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024, openCounter);
+        return new BlockedOutputStream(cos, cipher.getBlockSize(), 1024, openTracker);
       }
 
       @Override
