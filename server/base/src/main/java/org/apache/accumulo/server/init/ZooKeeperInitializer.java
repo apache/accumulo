@@ -81,7 +81,7 @@ public class ZooKeeperInitializer {
       if (zoo.exists(sysPropPath)) {
         return;
       }
-      var created = zoo.putPrivatePersistentData(sysPropPath,
+      var created = zoo.putPrivatePersistentData(zkInstanceRoot + sysPropPath,
           VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       if (!created) {
         throw new IllegalStateException(

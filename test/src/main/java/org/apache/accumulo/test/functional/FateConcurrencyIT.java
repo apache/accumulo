@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
@@ -256,12 +255,11 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       try {
 
-        InstanceId instanceId = context.getInstanceID();
         var zk = context.getZooSession();
         MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(Constants.ZFATE, zk, null, null);
         UserFateStore<String> readOnlyUFS =
             new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
-        var lockPath = context.getServerPaths().createTableLocksPath(tableId.toString());
+        var lockPath = context.getServerPaths().createTableLocksPath(tableId);
         Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
             Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
 
@@ -351,7 +349,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       var zk = context.getZooSession();
       MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(Constants.ZFATE, zk, null, null);
-      var lockPath = context.getServerPaths().createTableLocksPath(tableId.toString());
+      var lockPath = context.getServerPaths().createTableLocksPath(tableId);
       AdminUtil.FateStatus fateStatus =
           admin.getStatus(readOnlyMFS, zk, lockPath, null, null, null);
 

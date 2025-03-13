@@ -29,7 +29,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.data.Mutation;
@@ -130,7 +129,7 @@ public class RootClientTabletCache extends ClientTabletCache {
     }
 
     var zooCache = context.getZooCache();
-    Location loc = new RootTabletMetadata(new String(zooCache.get(Constants.ZFATE), UTF_8))
+    Location loc = new RootTabletMetadata(new String(zooCache.get(RootTable.ZROOT_TABLET), UTF_8))
         .toTabletMetadata().getLocation();
 
     if (timer != null) {

@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
@@ -132,7 +131,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     }
 
     // TODO this is racy...
-    context.getZooCache().clear(Constants.ZFATE);
+    context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
     return getResult(okMutations, results, mutation);
   }

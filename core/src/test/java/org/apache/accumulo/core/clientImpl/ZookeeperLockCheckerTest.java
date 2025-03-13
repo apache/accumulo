@@ -53,7 +53,7 @@ public class ZookeeperLockCheckerTest {
 
   @Test
   public void testInvalidateCache() {
-    var zklc = new ZookeeperLockChecker(zc, "/");
+    var zklc = new ZookeeperLockChecker(zc);
 
     verify(zc);
     reset(zc);

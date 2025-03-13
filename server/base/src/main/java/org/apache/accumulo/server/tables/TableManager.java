@@ -32,7 +32,6 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -64,7 +63,6 @@ public class TableManager {
   private static final byte[] ZERO_BYTE = {'0'};
 
   private final ServerContext context;
-  private final InstanceId instanceID;
   private final ZooReaderWriter zoo;
 
   public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
@@ -112,7 +110,6 @@ public class TableManager {
 
   public TableManager(ServerContext context) {
     this.context = context;
-    instanceID = context.getInstanceID();
     zoo = context.getZooSession().asReaderWriter();
     // add our Watcher to the shared ZooCache
     context.getZooCache().addZooCacheWatcher(new TableStateWatcher());

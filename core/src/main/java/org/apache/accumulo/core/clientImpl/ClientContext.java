@@ -257,7 +257,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths("/", this.getZooCache()));
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this.getZooCache()));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -1086,8 +1086,7 @@ public class ClientContext implements AccumuloClient {
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
       var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
           ZooUtil.getRoot(getInstanceID())).get();
-      this.zkLockChecker =
-          new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)), "/");
+      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
     }
     return this.zkLockChecker;
   }
