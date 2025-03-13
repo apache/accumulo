@@ -76,11 +76,12 @@ public class ZooUtil {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
 
-      if (lastSlash == 0) {
-        path = root;
-      } else {
-        path = root + "/" + sa[0].substring(0, lastSlash);
+      var tmpPath = root + "/" + sa[0].substring(0, lastSlash);
+      if (tmpPath.endsWith("/") && tmpPath.length() > 1) {
+        tmpPath = tmpPath.substring(0, tmpPath.length() - 1);
       }
+      path = tmpPath;
+
       node = sa[0].substring(lastSlash + 1);
       eid = Long.parseUnsignedLong(sa[1], 16);
     }
