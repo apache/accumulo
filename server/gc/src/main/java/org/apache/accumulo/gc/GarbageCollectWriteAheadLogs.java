@@ -32,7 +32,6 @@ import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
@@ -295,36 +294,38 @@ public class GarbageCollectWriteAheadLogs {
 
     final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
-
     final Map<Path,Future<?>> futures = new HashMap<>(collection.size());
     final AtomicLong counter = new AtomicLong();
 
-    for (Pair<WalState,Path> stateFile : collection) {
-      Path path = stateFile.getSecond();
-      futures.put(path, removeFile(deleteThreadPool, path, counter,
-          "Removing " + stateFile.getFirst() + " WAL " + path));
-    }
+    try {
+      for (Pair<WalState,Path> stateFile : collection) {
+        Path path = stateFile.getSecond();
+        futures.put(path, removeFile(deleteThreadPool, path, counter,
+            "Removing " + stateFile.getFirst() + " WAL " + path));
+      }
 
-    while (!futures.isEmpty()) {
-      Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
-      while (iter.hasNext()) {
-        Entry<Path,Future<?>> f = iter.next();
-        if (f.getValue().isDone()) {
-          try {
-            iter.remove();
-            f.getValue().get();
-          } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Uncaught exception deleting wal file" + f.getKey(), e);
+      while (!futures.isEmpty()) {
+        Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+        while (iter.hasNext()) {
+          Entry<Path,Future<?>> f = iter.next();
+          if (f.getValue().isDone()) {
+            try {
+              iter.remove();
+              f.getValue().get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new RuntimeException("Uncaught exception deleting wal file" + f.getKey(), e);
+            }
           }
         }
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Interrupted while sleeping", e);
+        }
       }
-    }
-    deleteThreadPool.shutdown();
-    try {
-      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
-      }
-    } catch (InterruptedException e1) {
-      log.error("{}", e1.getMessage(), e1);
+    } finally {
+      deleteThreadPool.shutdownNow();
     }
     status.currentLog.deleted += counter.get();
     return counter.get();
@@ -342,27 +343,30 @@ public class GarbageCollectWriteAheadLogs {
           removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path));
     }
 
-    while (!futures.isEmpty()) {
-      Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
-      while (iter.hasNext()) {
-        Entry<Path,Future<?>> f = iter.next();
-        if (f.getValue().isDone()) {
-          try {
-            iter.remove();
-            f.getValue().get();
-          } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException("Uncaught exception deleting recovery log file" + f.getKey(),
-                e);
+    try {
+      while (!futures.isEmpty()) {
+        Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+        while (iter.hasNext()) {
+          Entry<Path,Future<?>> f = iter.next();
+          if (f.getValue().isDone()) {
+            try {
+              iter.remove();
+              f.getValue().get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new RuntimeException(
+                  "Uncaught exception deleting recovery log file" + f.getKey(), e);
+            }
           }
         }
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Interrupted while sleeping", e);
+        }
       }
-    }
-    deleteThreadPool.shutdown();
-    try {
-      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
-      }
-    } catch (InterruptedException e1) {
-      log.error("{}", e1.getMessage(), e1);
+    } finally {
+      deleteThreadPool.shutdownNow();
     }
     return counter.get();
   }
