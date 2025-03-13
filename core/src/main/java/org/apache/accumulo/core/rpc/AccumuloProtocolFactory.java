@@ -26,6 +26,7 @@ import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
 import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.context.Scope;
 
 /**
@@ -72,6 +73,8 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         } catch (TException e) {
           if (span != null) {
             span.recordException(e);
+            span.setAttribute("error.type", e.getClass().getCanonicalName());
+            span.setStatus(StatusCode.ERROR, e.getMessage());
           }
           if (scope != null) {
             scope.close();
