@@ -55,6 +55,8 @@ public class MiniAccumuloConfig {
    * Calling this method is optional. If not set, it defaults to two.
    *
    * @param numTservers the number of tablet servers that mini accumulo cluster should start
+   * @deprecated use {@link #setServerConfig(MiniAccumuloServerConfig)} (MiniAccumuloServerConfig)}
+   *             instead
    */
   @Deprecated(since = "3.1.0")
   public MiniAccumuloConfig setNumTservers(int numTservers) {
@@ -67,11 +69,23 @@ public class MiniAccumuloConfig {
    *
    * @param numScanServers the number of scan servers that mini accumulo cluster should start
    * @since 2.1.0
+   * @deprecated use {@link #setServerConfig(MiniAccumuloServerConfig)} (MiniAccumuloServerConfig)}
+   *             instead
    */
   @Deprecated(since = "3.1.0")
   public MiniAccumuloConfig setNumScanServers(int numScanServers) {
     impl.setNumScanServers(numScanServers);
     return this;
+  }
+
+  /**
+   * Sets the number of servers to starts for each resource group.
+   *
+   * @since 3.1.0
+   */
+  public MiniAccumuloConfig setServerConfig(MiniAccumuloServerConfig miniAccumuloServerConfig) {
+    // TODO implement
+    throw new UnsupportedOperationException();
   }
 
   /**

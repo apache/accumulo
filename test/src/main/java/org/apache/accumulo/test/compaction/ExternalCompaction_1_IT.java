@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.compaction;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.minicluster.ServerType.COMPACTION_COORDINATOR;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.MAX_DATA;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
@@ -98,6 +99,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.MiniAccumuloServerConfig;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -194,9 +196,16 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       writeData(client, table1);
       writeData(client, table2);
 
-      getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
-      getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE2);
+      // This is an example of using the new ResourceGroups object to start new processes
+      MiniAccumuloServerConfig currentSC = getCluster().getClusterControl().getServerConfiguration();
+      MiniAccumuloServerConfig newSC = MiniAccumuloServerConfig.builder()
+              .put(currentSC) // maintain the current resource group config
+              .putDefaultResourceGroup(COMPACTION_COORDINATOR,1)
+              .putCompactorResourceGroup(QUEUE1, 1)
+              .putCompactorResourceGroup(QUEUE2, 1)
+              .build();
+      // start the compaction coordinator and two new compactors and maintain existing servers
+      getCluster().getClusterControl().setServerConfiguration(newSC);
 
       compact(client, table1, 2, QUEUE1, true);
       verify(client, table1, 2);
@@ -207,7 +216,6 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
       compact(client, table2, 3, QUEUE2, true);
       verify(client, table2, 3);
-
     }
   }
 
