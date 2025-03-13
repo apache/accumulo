@@ -680,7 +680,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         Property.INSTANCE_ZK_TIMEOUT.getKey(), Property.INSTANCE_ZK_TIMEOUT.getDefaultValue()));
     final String secret = properties.get(Property.INSTANCE_SECRET.getKey());
     miniLockZk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".lock",
-        config.getZooKeepers(), timeout, secret);
+        config.getZooKeepers() + ZooUtil.getRoot(iid), timeout, secret);
 
     // It's possible start was called twice...
     if (miniLock == null) {
