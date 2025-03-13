@@ -28,6 +28,12 @@ import org.apache.thrift.transport.TTransport;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
+/**
+ * Factory for creating instances of the AccumuloProtocol.
+ * <p>
+ * This protocol includes a custom header to ensure compatibility between different versions of the
+ * protocol.
+ */
 public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
   private static final long serialVersionUID = 1L;
@@ -49,15 +55,24 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       this.isClient = isClient;
     }
 
+    /**
+     * For client calls, add RPC span and write the validation header
+     */
     @Override
     public void writeMessageBegin(TMessage message) throws TException {
-      if (this.isClient) {
+      if (!this.isClient) {
+        super.writeMessageBegin(message);
+      } else {
         span = TraceUtil.startClientRpcSpan(this.getClass(), message.name);
         scope = span.makeCurrent();
 
         try {
           this.writeHeader();
+          super.writeMessageBegin(message);
         } catch (TException e) {
+          if (span != null) {
+            span.recordException(e);
+          }
           if (scope != null) {
             scope.close();
           }
@@ -67,8 +82,6 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
           throw e;
         }
       }
-
-      super.writeMessageBegin(message);
     }
 
     /**
@@ -80,19 +93,27 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     }
 
     @Override
+    public void writeMessageEnd() throws TException {
+      try {
+        super.writeMessageEnd();
+      } finally {
+        if (scope != null) {
+          scope.close();
+          span.end();
+        }
+      }
+    }
+
+    /**
+     * For server calls, validate the header
+     */
+    @Override
     public TMessage readMessageBegin() throws TException {
       if (!this.isClient) {
         this.validateHeader();
       }
 
       return super.readMessageBegin();
-    }
-
-    /**
-     * Checks if the given version is compatible with the current protocol version
-     */
-    private boolean isCompatibleVersion(byte version) {
-      return version == PROTOCOL_VERSION;
     }
 
     /**
@@ -114,15 +135,13 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       }
     }
 
-    @Override
-    public void writeMessageEnd() throws TException {
-      super.writeMessageEnd();
-
-      if (this.isClient && scope != null) {
-        scope.close();
-        span.end();
-      }
+    /**
+     * Checks if the given version is compatible with the current protocol version
+     */
+    private boolean isCompatibleVersion(byte version) {
+      return version == PROTOCOL_VERSION;
     }
+
   }
 
   @Override
