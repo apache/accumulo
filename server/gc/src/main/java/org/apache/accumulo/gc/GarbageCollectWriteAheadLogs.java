@@ -338,12 +338,12 @@ public class GarbageCollectWriteAheadLogs {
     final Map<Path,Future<?>> futures = new HashMap<>(values.size());
     final AtomicLong counter = new AtomicLong();
 
-    for (Path path : values) {
-      futures.put(path,
-          removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path));
-    }
-
     try {
+      for (Path path : values) {
+        futures.put(path,
+            removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path));
+      }
+
       while (!futures.isEmpty()) {
         Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
         while (iter.hasNext()) {
