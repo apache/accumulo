@@ -595,7 +595,7 @@ public class TServerUtils {
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
       long serverSocketTimeout, int backlog, boolean portSearch, HostAndPort... addresses)
       throws TTransportException {
-    TProtocolFactory protocolFactory = ThriftUtil.protocolFactory();
+    TProtocolFactory protocolFactory = ThriftUtil.serverProtocolFactory();
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it
     // would require changes in how the transports
     // work at the Thrift layer to ensure that both the SSL and SASL handshakes function. SASL's
