@@ -99,7 +99,7 @@ public class UpgradeProgressTracker {
 
   public synchronized void updateRootVersion(int newVersion) {
     checkArgument(progress.getZooKeeperVersion() == AccumuloDataVersion.get(),
-        "ZooKeeper has not been upgraded to version {} yet, currently at {}, cannot upgrade Root yet",
+        "ZooKeeper has not been upgraded to version %s yet, currently at %s, cannot upgrade Root yet",
         AccumuloDataVersion.get(), progress.getZooKeeperVersion());
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
@@ -119,7 +119,7 @@ public class UpgradeProgressTracker {
 
   public synchronized void updateMetadataVersion(int newVersion) {
     checkArgument(progress.getRootVersion() == AccumuloDataVersion.get(),
-        "Root has not been upgraded to version {} yet, currently at {}, cannot upgrade Metadata yet",
+        "Root has not been upgraded to version %s yet, currently at %s, cannot upgrade Metadata yet",
         AccumuloDataVersion.get(), progress.getRootVersion());
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
@@ -163,13 +163,13 @@ public class UpgradeProgressTracker {
 
   public synchronized void upgradeComplete() {
     checkArgument(progress.getZooKeeperVersion() == AccumuloDataVersion.get(),
-        "ZooKeeper upgrade has not completed, expected version {}, currently at {}",
+        "ZooKeeper upgrade has not completed, expected version %s, currently at %s",
         AccumuloDataVersion.get(), progress.getZooKeeperVersion());
     checkArgument(progress.getRootVersion() == AccumuloDataVersion.get(),
-        "Root upgrade has not completed, expected version {}, currently at {}",
+        "Root upgrade has not completed, expected version %s, currently at %s",
         AccumuloDataVersion.get(), progress.getRootVersion());
     checkArgument(progress.getMetadataVersion() == AccumuloDataVersion.get(),
-        "Metadata upgrade has not completed, expected version {}, currently at {}",
+        "Metadata upgrade has not completed, expected version %s, currently at %s",
         AccumuloDataVersion.get(), progress.getMetadataVersion());
     // This should be updated prior to deleting the tracking data in zookeeper.
     checkState(AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get(),
