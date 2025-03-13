@@ -98,6 +98,9 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateRootVersion(int newVersion) {
+    checkArgument(progress.getZooKeeperVersion() == AccumuloDataVersion.get(),
+        "ZooKeeper has not been upgraded to version {} yet, currently at {}, cannot upgrade Root yet",
+        AccumuloDataVersion.get(), progress.getZooKeeperVersion());
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -115,6 +118,9 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateMetadataVersion(int newVersion) {
+    checkArgument(progress.getRootVersion() == AccumuloDataVersion.get(),
+        "Root has not been upgraded to version {} yet, currently at {}, cannot upgrade Metadata yet",
+        AccumuloDataVersion.get(), progress.getRootVersion());
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -156,6 +162,15 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void upgradeComplete() {
+    checkArgument(progress.getZooKeeperVersion() == AccumuloDataVersion.get(),
+        "ZooKeeper upgrade has not completed, expected version {}, currently at {}",
+        AccumuloDataVersion.get(), progress.getZooKeeperVersion());
+    checkArgument(progress.getRootVersion() == AccumuloDataVersion.get(),
+        "Root upgrade has not completed, expected version {}, currently at {}",
+        AccumuloDataVersion.get(), progress.getRootVersion());
+    checkArgument(progress.getMetadataVersion() == AccumuloDataVersion.get(),
+        "Metadata upgrade has not completed, expected version {}, currently at {}",
+        AccumuloDataVersion.get(), progress.getMetadataVersion());
     // This should be updated prior to deleting the tracking data in zookeeper.
     checkState(AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get(),
         "Upgrade completed, but current version (%s) is not equal to the software version (%s)",
