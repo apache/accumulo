@@ -282,8 +282,8 @@ class LoadFiles extends ManagerRepo {
             var recvTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
             var tabletStats = loadQueue.values().stream().mapToInt(Map::size).summaryStatistics();
             log.debug(
-                "{} sent {} messages to {} tablet servers for {} tablets (min:{} max:{} avg:{} " +
-                        "tablets per tserver), send time:{}ms recv time:{}ms {}:{}",
+                "{} sent {} messages to {} tablet servers for {} tablets (min:{} max:{} avg:{} "
+                    + "tablets per tserver), send time:{}ms recv time:{}ms {}:{}",
                 fmtTid, clients.size(), loadQueue.size(), tabletStats.getSum(),
                 tabletStats.getMin(), tabletStats.getMax(), tabletStats.getAverage(), sendTime,
                 recvTime, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), maxConnections);
