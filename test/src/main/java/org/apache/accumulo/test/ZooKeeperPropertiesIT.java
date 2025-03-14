@@ -83,7 +83,7 @@ public class ZooKeeperPropertiesIT extends SharedMiniClusterBase {
       Map<String,String> properties = client.tableOperations().getConfiguration(tableName);
       assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      final TablePropKey tablePropKey = TablePropKey.of(context, TableId.of(tid));
+      final TablePropKey tablePropKey = TablePropKey.of(TableId.of(tid));
       PropUtil.setProperties(context, tablePropKey,
           Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
@@ -136,7 +136,7 @@ public class ZooKeeperPropertiesIT extends SharedMiniClusterBase {
       assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
       final NamespaceId namespaceId = NamespaceId.of(nid);
-      final NamespacePropKey namespacePropKey = NamespacePropKey.of(context, namespaceId);
+      final NamespacePropKey namespacePropKey = NamespacePropKey.of(namespaceId);
       PropUtil.setProperties(context, namespacePropKey,
           Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
 

@@ -48,12 +48,11 @@ public class DeadServerList {
   private static final String RESOURCE_GROUP = "UNKNOWN";
   private final ServerContext ctx;
   private final ZooReaderWriter zoo;
-  private final String path;
+  private static final String path = Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP;
 
   public DeadServerList(ServerContext context) {
     this.ctx = context;
     this.zoo = context.getZooSession().asReaderWriter();
-    this.path = context.getZooKeeperRoot() + Constants.ZDEADTSERVERS + "/" + RESOURCE_GROUP;
     try {
       zoo.mkdirs(path);
     } catch (Exception ex) {

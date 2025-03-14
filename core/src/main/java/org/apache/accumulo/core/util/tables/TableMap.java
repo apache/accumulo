@@ -55,14 +55,14 @@ public class TableMap {
     // important to read this first
     this.updateCount = zooCache.getUpdateCount();
 
-    List<String> tableIds = zooCache.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
+    List<String> tableIds = zooCache.getChildren(Constants.ZTABLES);
     Map<NamespaceId,String> namespaceIdToNameMap = new HashMap<>();
     final var tableNameToIdBuilder = ImmutableMap.<String,TableId>builder();
     final var tableIdToNameBuilder = ImmutableMap.<TableId,String>builder();
 
     // use StringBuilder to construct zPath string efficiently across many tables
     StringBuilder zPathBuilder = new StringBuilder();
-    zPathBuilder.append(context.getZooKeeperRoot()).append(Constants.ZTABLES).append("/");
+    zPathBuilder.append(Constants.ZTABLES).append("/");
     int prefixLength = zPathBuilder.length();
 
     for (String tableIdStr : tableIds) {

@@ -35,13 +35,11 @@ import com.google.common.net.HostAndPort;
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   private final ZooCache zc;
-  private final String root;
   private final ServiceLockPaths lockPaths;
 
-  ZookeeperLockChecker(ZooCache zooCache, String zkRoot) {
+  ZookeeperLockChecker(ZooCache zooCache) {
     this.zc = requireNonNull(zooCache);
-    this.root = requireNonNull(zkRoot);
-    this.lockPaths = new ServiceLockPaths(this.root, this.zc);
+    this.lockPaths = new ServiceLockPaths(this.zc);
   }
 
   public boolean doesTabletServerLockExist(String server) {
@@ -70,6 +68,6 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
   public void invalidateCache(String tserver) {
     // The path for the tserver contains a resource group. The resource group is unknown, so can not
     // construct a prefix. Therefore clear any path that contains the tserver.
-    zc.clear(path -> path.startsWith(root + Constants.ZTSERVERS) && path.contains(tserver));
+    zc.clear(path -> path.startsWith(Constants.ZTSERVERS) && path.contains(tserver));
   }
 }

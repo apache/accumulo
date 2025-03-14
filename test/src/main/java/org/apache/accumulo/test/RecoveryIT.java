@@ -223,8 +223,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
           String filename = walog.getPath();
           String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
 
-          if (ctx.getZooCache().get(ctx.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId)
-              != null
+          if (ctx.getZooCache().get(Constants.ZRECOVERY + "/" + sortId) != null
               || !ctx.getVolumeManager().exists(SortedLogState.getFinishedMarkerPath(dest))) {
             return false;
           }

@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
@@ -42,12 +43,10 @@ public final class ZKAuthenticator implements Authenticator {
   private static final Logger log = LoggerFactory.getLogger(ZKAuthenticator.class);
 
   private ServerContext context;
-  private String zkUserPath;
 
   @Override
   public void initialize(ServerContext context) {
     this.context = context;
-    zkUserPath = context.zkUserPath();
   }
 
   @Override
@@ -55,14 +54,14 @@ public final class ZKAuthenticator implements Authenticator {
     try {
       // remove old settings from zookeeper first, if any
       ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-      context.getZooCache().clear((path) -> path.startsWith(zkUserPath));
-      if (zoo.exists(zkUserPath)) {
-        zoo.recursiveDelete(zkUserPath, NodeMissingPolicy.SKIP);
-        log.info("Removed {}/ from zookeeper", zkUserPath);
+      context.getZooCache().clear((path) -> path.startsWith(Constants.ZUSERS));
+      if (zoo.exists(Constants.ZUSERS)) {
+        zoo.recursiveDelete(Constants.ZUSERS, NodeMissingPolicy.SKIP);
+        log.info("Removed {}/ from zookeeper", Constants.ZUSERS);
       }
 
       // prep parent node of users with root username
-      zoo.putPersistentData(zkUserPath, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(Constants.ZUSERS, principal.getBytes(UTF_8), NodeExistsPolicy.FAIL);
 
       constructUser(principal, ZKSecurityTool.createPass(token));
     } catch (KeeperException | AccumuloException | InterruptedException e) {
@@ -77,7 +76,7 @@ public final class ZKAuthenticator implements Authenticator {
    */
   private void constructUser(String user, byte[] pass)
       throws KeeperException, InterruptedException {
-    String userPath = zkUserPath + "/" + user;
+    String userPath = Constants.ZUSERS + "/" + user;
     context.getZooCache().clear((path) -> path.startsWith(userPath));
     context.getZooSession().asReaderWriter().putPrivatePersistentData(userPath, pass,
         NodeExistsPolicy.FAIL);
@@ -85,7 +84,7 @@ public final class ZKAuthenticator implements Authenticator {
 
   @Override
   public Set<String> listUsers() {
-    return new TreeSet<>(context.getZooCache().getChildren(zkUserPath));
+    return new TreeSet<>(context.getZooCache().getChildren(Constants.ZUSERS));
   }
 
   @Override
@@ -114,7 +113,7 @@ public final class ZKAuthenticator implements Authenticator {
   @Override
   public void dropUser(String user) throws AccumuloSecurityException {
     try {
-      String userPath = zkUserPath + "/" + user;
+      String userPath = Constants.ZUSERS + "/" + user;
       context.getZooCache().clear((path) -> path.startsWith(userPath));
       context.getZooSession().asReaderWriter().recursiveDelete(userPath, NodeMissingPolicy.FAIL);
     } catch (InterruptedException e) {
@@ -138,7 +137,7 @@ public final class ZKAuthenticator implements Authenticator {
     PasswordToken pt = (PasswordToken) token;
     if (userExists(principal)) {
       try {
-        String userPath = zkUserPath + "/" + principal;
+        String userPath = Constants.ZUSERS + "/" + principal;
         context.getZooCache().clear(userPath);
         context.getZooSession().asReaderWriter().putPrivatePersistentData(userPath,
             ZKSecurityTool.createPass(pt.getPassword()), NodeExistsPolicy.OVERWRITE);
@@ -160,7 +159,7 @@ public final class ZKAuthenticator implements Authenticator {
 
   @Override
   public boolean userExists(String user) {
-    return context.getZooCache().get(zkUserPath + "/" + user) != null;
+    return context.getZooCache().get(Constants.ZUSERS + "/" + user) != null;
   }
 
   @Override
@@ -176,7 +175,7 @@ public final class ZKAuthenticator implements Authenticator {
     }
     PasswordToken pt = (PasswordToken) token;
     byte[] zkData;
-    String zpath = zkUserPath + "/" + principal;
+    String zpath = Constants.ZUSERS + "/" + principal;
     zkData = context.getZooCache().get(zpath);
     boolean result = authenticateUser(principal, pt, zkData);
     if (!result) {

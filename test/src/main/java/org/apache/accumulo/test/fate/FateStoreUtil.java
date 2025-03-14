@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.accumulo.core.Constants;
@@ -102,8 +101,6 @@ public class FateStoreUtil {
   public static class MetaFateZKSetup {
     private static ZooKeeperTestingServer szk;
     private static ZooSession zk;
-    private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
-    private static String ZK_FATE_PATH;
 
     /**
      * Sets up the ZooKeeper instance and creates the paths needed for testing MetaFateStore
@@ -111,10 +108,9 @@ public class FateStoreUtil {
     public static void setup(@TempDir File tempDir) throws Exception {
       szk = new ZooKeeperTestingServer(tempDir);
       zk = szk.newClient();
-      ZK_FATE_PATH = ZK_ROOT + Constants.ZFATE;
       var zrw = zk.asReaderWriter();
-      zrw.mkdirs(ZK_FATE_PATH);
-      zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+      zrw.mkdirs(Constants.ZFATE);
+      zrw.mkdirs(Constants.ZTABLE_LOCKS);
     }
 
     /**
@@ -124,16 +120,9 @@ public class FateStoreUtil {
       szk.close();
     }
 
-    public static String getZkRoot() {
-      return ZK_ROOT;
-    }
-
     public static ZooSession getZk() {
       return zk;
     }
 
-    public static String getZkFatePath() {
-      return ZK_FATE_PATH;
-    }
   }
 }

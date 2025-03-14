@@ -86,8 +86,8 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     status = checkRequiredColumns(context, status);
 
     log.trace("********** Looking for invalid columns **********");
-    final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
+    final String json =
+        new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
     status = checkColumns(context, rtm.getKeyValues().iterator(), status);
 
@@ -97,10 +97,9 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
 
   @Override
   public Admin.CheckCommand.CheckStatus checkRequiredColumns(ServerContext context,
-      Admin.CheckCommand.CheckStatus status)
-      throws TableNotFoundException, InterruptedException, KeeperException {
-    final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
+      Admin.CheckCommand.CheckStatus status) throws InterruptedException, KeeperException {
+    final String json =
+        new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
     final Set<Text> rowsSeen = new HashSet<>();
     final Set<ColumnFQ> requiredColFQs = new HashSet<>(requiredColFQs());

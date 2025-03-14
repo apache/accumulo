@@ -389,7 +389,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       mutation.addCondition(c);
     }
     if (putServerLock) {
-      this.putZooLock(context.getZooKeeperRoot(), lock);
+      this.putZooLock(lock);
     }
     getMutation();
     mutationConsumer.accept(mutation);

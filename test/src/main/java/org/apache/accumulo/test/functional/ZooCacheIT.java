@@ -37,8 +37,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.minicluster.ServerType;
@@ -106,8 +104,6 @@ public class ZooCacheIT extends ConfigurableMacBase {
     try (final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
         final ClientContext ctx = ((ClientContext) client)) {
 
-      final InstanceId iid = ctx.getInstanceID();
-      final String zooRoot = ZooUtil.getRoot(iid);
       final String tableName = "test_Table";
 
       final AtomicBoolean tableCreatedEvent = new AtomicBoolean(false);
@@ -127,8 +123,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
           final String eventPath = event.getPath();
 
-          if (event.getType() != EventType.None
-              && !eventPath.startsWith(zooRoot + Constants.ZTABLES)) {
+          if (event.getType() != EventType.None && !eventPath.startsWith(Constants.ZTABLES)) {
             return;
           }
           // LOG.info("received event {}", event);
@@ -143,13 +138,13 @@ public class ZooCacheIT extends ConfigurableMacBase {
             case PersistentWatchRemoved:
               break;
             case NodeCreated:
-              if (eventPath.equals(zooRoot + Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableCreatedEvent");
                 tableCreatedEvent.set(true);
               }
               break;
             case NodeDeleted:
-              if (eventPath.equals(zooRoot + Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableDeletedEvent");
                 tableDeletedEvent.set(true);
               }
@@ -194,7 +189,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       final String tid = ctx.tableOperations().tableIdMap().get(tableName);
       tableId.set(tid);
       // we might miss the table created event, don't check for it
-      final String tableZPath = zooRoot + Constants.ZTABLES + "/" + tid;
+      final String tableZPath = Constants.ZTABLES + "/" + tid;
       assertFalse(cache.childrenCached(tableZPath));
       assertNotNull(cache.getChildren(tableZPath));
       assertTrue(cache.childrenCached(tableZPath));
@@ -213,7 +208,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       Wait.waitFor(() -> connectionClosedEvent.get(), 30_000);
       connectionClosedEvent.set(false);
       // Cache should be cleared
-      assertFalse(cache.childrenCached(zooRoot + Constants.ZTABLES));
+      assertFalse(cache.childrenCached(Constants.ZTABLES));
 
       getCluster().getClusterControl().start(ServerType.ZOOKEEPER);
 
@@ -221,7 +216,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       connectionOpenEvent.set(false);
 
       // Cache should be cleared
-      assertFalse(cache.childrenCached(zooRoot + Constants.ZTABLES));
+      assertFalse(cache.childrenCached(Constants.ZTABLES));
 
       // let's assume that are tableId will be one more than the previous (safe assumption)
       String newTableId = Integer.parseInt(tid) + 1 + "";
@@ -229,7 +224,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       client.tableOperations().create(tableName);
       Wait.waitFor(() -> tableCreatedEvent.get(), 60_000);
 
-      final String newTableZPath = zooRoot + Constants.ZTABLES + "/" + newTableId;
+      final String newTableZPath = Constants.ZTABLES + "/" + newTableId;
       assertFalse(cache.childrenCached(newTableZPath));
       assertNotNull(cache.getChildren(newTableZPath));
       assertTrue(cache.childrenCached(newTableZPath));

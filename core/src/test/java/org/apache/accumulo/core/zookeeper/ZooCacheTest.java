@@ -76,8 +76,7 @@ public class ZooCacheTest {
 
   }
 
-  private static final String root =
-      Constants.ZROOT + "/" + UUID.randomUUID().toString() + Constants.ZTSERVERS;
+  private static final String root = Constants.ZROOT + "/" + UUID.randomUUID().toString();
   private static final String ZPATH = root + "/testPath";
   private static final byte[] DATA = {(byte) 1, (byte) 2, (byte) 3, (byte) 4};
   private static final List<String> CHILDREN = java.util.Arrays.asList("huey", "dewey", "louie");
@@ -94,25 +93,36 @@ public class ZooCacheTest {
   @Test
   @SuppressWarnings("unchecked")
   public void testOverlappingPaths() throws Exception {
-    expect(zk.getConnectionCounter()).andReturn(2L).times(2);
+    expect(zk.getConnectionCounter()).andReturn(2L).times(7);
     expect(zk.addPersistentRecursiveWatchers(isA(Set.class), isA(Watcher.class))).andReturn(3L);
     replay(zk);
-    assertThrows(IllegalArgumentException.class,
-        () -> new ZooCache(zk, Set.of(root, root + "/localhost:9995")));
+    var e = assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, Set.of("/test/localhost:9995", "/test")));
+    assertEquals(
+        "Overlapping paths found in paths to watch. '/test' contains '/test/localhost:9995'",
+        e.getMessage());
+    e = assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, Set.of("/test/localhost:9995", "/test")));
+    assertEquals(
+        "Overlapping paths found in paths to watch. '/test' contains '/test/localhost:9995'",
+        e.getMessage());
+    e = assertThrows(IllegalArgumentException.class, () -> new ZooCache(zk, Set.of("/test", "/")));
+    assertEquals("Overlapping paths found in paths to watch. '/' contains '/test'", e.getMessage());
+    e = assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, Set.of("/test/", "/test")));
+    assertEquals("Watched path must not end with slash: '/test/'", e.getMessage());
+    e = assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, Set.of("/test", "/test/")));
+    assertEquals("Watched path must not end with slash: '/test/'", e.getMessage());
+    e = assertThrows(IllegalArgumentException.class,
+        () -> new ZooCache(zk, Set.of("/test", "test")));
+    assertEquals("Watched path must start with slash: 'test'", e.getMessage());
 
-    Set<String> goodPaths = Set.of("/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/compactors",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/dead/tservers",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/gc/lock",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/managers/lock",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/namespaces",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/recovery",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/root_tablet",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/sservers",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/tables",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/tservers",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/users",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/mini",
-        "/accumulo/8247eee6-a176-4e19-baf7-e3da965fe050/monitor/lock");
+    // "/co" is added because it is a prefix of /compactors, but being a prefix is not enough to
+    // overlap; it needs to actually be a child of the other, not just have a similar name
+    Set<String> goodPaths = Set.of("/co", "/compactors", "/dead/tservers", "/gc/lock",
+        "/managers/lock", "/namespaces", "/recovery", "/root_tablet", "/sservers", "/tables",
+        "/tservers", "/users", "/mini", "/monitor/lock");
     new ZooCache(zk, goodPaths);
     verify(zk);
   }

@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -56,7 +57,7 @@ public class ServiceStatusCmd {
   public void execute(final ServerContext context, final boolean json, final boolean noHosts) {
 
     if (LOG.isTraceEnabled()) {
-      LOG.trace("zooRoot: {}", context.getZooKeeperRoot());
+      LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
     }
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();

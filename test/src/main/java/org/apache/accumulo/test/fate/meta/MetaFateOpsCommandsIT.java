@@ -20,7 +20,6 @@ package org.apache.accumulo.test.fate.meta;
 
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
@@ -41,10 +40,9 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
   public void executeTest(FateTestExecutor<LatchTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext context = getCluster().getServerContext();
-    String path = context.getZooKeeperRoot() + Constants.ZFATE;
     var zk = context.getZooSession();
     // test should not be reserving txns or checking reservations, so null lockID and isLockHeld
-    testMethod.execute(new MetaFateStore<>(path, zk, null, null), context);
+    testMethod.execute(new MetaFateStore<>(zk, null, null), context);
   }
 
   /**
@@ -57,7 +55,6 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
       throws Exception {
     stopManager();
     ServerContext context = getCluster().getServerContext();
-    String path = context.getZooKeeperRoot() + Constants.ZFATE;
     var zk = context.getZooSession();
     ServiceLock testLock = null;
     try {
@@ -65,7 +62,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
       ZooUtil.LockID lockID = testLock.getLockID();
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      testMethod.execute(new MetaFateStore<>(path, zk, lockID, isLockHeld), context);
+      testMethod.execute(new MetaFateStore<>(zk, lockID, isLockHeld), context);
     } finally {
       if (testLock != null) {
         testLock.unlock();

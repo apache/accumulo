@@ -103,24 +103,24 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
-    String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
       // TODO calling create seems unnecessary and is possibly racy and inefficient
-      context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
-        String currJson = new String(currVal, UTF_8);
-        RootGcCandidates rgcc = new RootGcCandidates(currJson);
-        log.debug("Root GC candidates before change : {}", currJson);
-        mutator.accept(rgcc);
-        String newJson = rgcc.toJson();
-        log.debug("Root GC candidates after change  : {}", newJson);
-        if (newJson.length() > 262_144) {
-          log.warn(
-              "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
-                  + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
-              zpath, newJson.length());
-        }
-        return newJson.getBytes(UTF_8);
-      });
+      context.getZooSession().asReaderWriter().mutateOrCreate(ZROOT_TABLET_GC_CANDIDATES,
+          new byte[0], currVal -> {
+            String currJson = new String(currVal, UTF_8);
+            RootGcCandidates rgcc = new RootGcCandidates(currJson);
+            log.debug("Root GC candidates before change : {}", currJson);
+            mutator.accept(rgcc);
+            String newJson = rgcc.toJson();
+            log.debug("Root GC candidates after change  : {}", newJson);
+            if (newJson.length() > 262_144) {
+              log.warn(
+                  "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
+                      + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
+                  ZROOT_TABLET_GC_CANDIDATES, newJson.length());
+            }
+            return newJson.getBytes(UTF_8);
+          });
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
@@ -234,8 +234,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
       var zooReader = context.getZooSession().asReader();
       byte[] jsonBytes;
       try {
-        jsonBytes =
-            zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
+        jsonBytes = zooReader.getData(RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }

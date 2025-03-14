@@ -128,10 +128,9 @@ public class RootClientTabletCache extends ClientTabletCache {
       timer = Timer.startNew();
     }
 
-    var zpath = RootTabletMetadata.zooPath(context);
     var zooCache = context.getZooCache();
-    Location loc = new RootTabletMetadata(new String(zooCache.get(zpath), UTF_8)).toTabletMetadata()
-        .getLocation();
+    Location loc = new RootTabletMetadata(new String(zooCache.get(RootTable.ZROOT_TABLET), UTF_8))
+        .toTabletMetadata().getLocation();
 
     if (timer != null) {
       log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,

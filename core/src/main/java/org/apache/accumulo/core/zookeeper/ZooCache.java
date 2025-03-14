@@ -228,9 +228,16 @@ public class ZooCache {
 
     for (String left : watchedPaths) {
       for (String right : watchedPaths) {
-        if (!left.equals(right) && left.contains(right)) {
+        if (!right.startsWith("/")) {
+          throw new IllegalArgumentException("Watched path must start with slash: '" + right + "'");
+        }
+        if (right.length() > 1 && right.endsWith("/")) {
           throw new IllegalArgumentException(
-              "Overlapping paths found in paths to watch. left: " + left + ", right: " + right);
+              "Watched path must not end with slash: '" + right + "'");
+        }
+        if ((left.equals("/") && right.length() > 1) || right.startsWith(left + "/")) {
+          throw new IllegalArgumentException(
+              "Overlapping paths found in paths to watch. '" + left + "' contains '" + right + "'");
         }
       }
     }
