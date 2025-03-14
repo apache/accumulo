@@ -19,6 +19,7 @@
 package org.apache.accumulo.manager.tableOps.merge;
 
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation.SYSTEM_MERGE;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
@@ -27,6 +28,8 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class CountFiles extends ManagerRepo {
   private static final Logger log = LoggerFactory.getLogger(CountFiles.class);
@@ -39,6 +42,9 @@ public class CountFiles extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+    // SYSTEM_MERGE should be executing VerifyMergeability repo, which already
+    // will count files
+    Preconditions.checkState(data.op != SYSTEM_MERGE, "Unexpected op %s", SYSTEM_MERGE);
 
     var range = data.getReserveExtent();
 
@@ -75,10 +81,13 @@ public class CountFiles extends ManagerRepo {
     if (totalFiles >= maxFiles) {
       return new UnreserveAndError(data, totalFiles, maxFiles);
     } else {
-      if (data.op == MergeInfo.Operation.MERGE) {
-        return new MergeTablets(data);
-      } else {
-        return new DeleteRows(data);
+      switch (data.op) {
+        case MERGE:
+          return new MergeTablets(data);
+        case DELETE:
+          return new DeleteRows(data);
+        default:
+          throw new IllegalStateException("Unknown op " + data.op);
       }
     }
   }

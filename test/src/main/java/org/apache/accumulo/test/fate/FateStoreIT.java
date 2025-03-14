@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateKey.FateKeyType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
@@ -619,7 +621,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
       assertEquals(1, idsSeen);
       assertEquals(1, store.list(FateKey.FateKeyType.SPLIT).count());
-      assertEquals(0, store.list(FateKey.FateKeyType.COMPACTION_COMMIT).count());
+      // All other types should be a count of 0
+      Arrays.stream(FateKeyType.values()).filter(t -> !t.equals(FateKey.FateKeyType.SPLIT))
+          .forEach(t -> assertEquals(0, store.list(t).count()));
 
       for (var future : futures) {
         if (future.get().isPresent()) {
@@ -632,8 +636,9 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         }
       }
 
-      assertEquals(0, store.list(FateKey.FateKeyType.SPLIT).count());
-      assertEquals(0, store.list(FateKey.FateKeyType.COMPACTION_COMMIT).count());
+      // All types should be a count of 0
+      assertTrue(
+          Arrays.stream(FateKeyType.values()).allMatch(t -> store.list(t).findAny().isEmpty()));
 
     } finally {
       executor.shutdown();
@@ -676,6 +681,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     TableId tid1 = TableId.of("test");
     var extent1 = new KeyExtent(tid1, new Text("m"), null);
     var extent2 = new KeyExtent(tid1, null, new Text("m"));
+    var extent3 = new KeyExtent(tid1, new Text("z"), new Text("m"));
     var fateKey1 = FateKey.forSplit(extent1);
     var fateKey2 = FateKey.forSplit(extent2);
 
@@ -687,8 +693,12 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     var fateKey3 = FateKey.forCompactionCommit(cid1);
     var fateKey4 = FateKey.forCompactionCommit(cid2);
 
+    // use one overlapping extent and one different
+    var fateKey5 = FateKey.forMerge(extent1);
+    var fateKey6 = FateKey.forMerge(extent3);
+
     Map<FateKey,FateId> fateKeyIds = new HashMap<>();
-    for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
+    for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4, fateKey5, fateKey6)) {
       var fateId =
           seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
       fateKeyIds.put(fateKey, fateId);
@@ -698,10 +708,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     allIds.addAll(fateKeyIds.values());
     allIds.add(id1);
     assertEquals(allIds, store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
-    assertEquals(5, allIds.size());
+    assertEquals(7, allIds.size());
 
-    assertEquals(4, fateKeyIds.size());
-    assertEquals(4, fateKeyIds.values().stream().distinct().count());
+    assertEquals(6, fateKeyIds.size());
+    assertEquals(6, fateKeyIds.values().stream().distinct().count());
 
     HashSet<KeyExtent> seenExtents = new HashSet<>();
     store.list(FateKey.FateKeyType.SPLIT).forEach(fateKey -> {
@@ -709,9 +719,18 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertNotNull(fateKeyIds.remove(fateKey));
       assertTrue(seenExtents.add(fateKey.getKeyExtent().orElseThrow()));
     });
-
-    assertEquals(2, fateKeyIds.size());
+    assertEquals(4, fateKeyIds.size());
     assertEquals(Set.of(extent1, extent2), seenExtents);
+
+    // clear set as one overlaps
+    seenExtents.clear();
+    store.list(FateKeyType.MERGE).forEach(fateKey -> {
+      assertEquals(FateKey.FateKeyType.MERGE, fateKey.getType());
+      assertNotNull(fateKeyIds.remove(fateKey));
+      assertTrue(seenExtents.add(fateKey.getKeyExtent().orElseThrow()));
+    });
+    assertEquals(2, fateKeyIds.size());
+    assertEquals(Set.of(extent1, extent3), seenExtents);
 
     HashSet<ExternalCompactionId> seenCids = new HashSet<>();
     store.list(FateKey.FateKeyType.COMPACTION_COMMIT).forEach(fateKey -> {
@@ -722,6 +741,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     assertEquals(0, fateKeyIds.size());
     assertEquals(Set.of(cid1, cid2), seenCids);
+
     // Cleanup so we don't interfere with other tests
     store.list()
         .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
