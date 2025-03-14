@@ -1373,7 +1373,6 @@ public class Manager extends AbstractServer
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
 
-    // TODO - create new threadpool?
     var tabletMergeabilityInterval =
         getConfiguration().getDuration(Property.MANAGER_TABLET_MERGEABILITY_INTERVAL);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(

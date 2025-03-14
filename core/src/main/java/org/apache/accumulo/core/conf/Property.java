@@ -912,7 +912,8 @@ public enum Property {
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
       "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
   TABLE_MAX_MERGEABILITY_THRESHOLD("table.mergeability.threshold", ".25", PropertyType.FRACTION,
-      "A tablet is mergeable until it reaches this percentage of the split threshold.", "4.0.0"),
+      "A range of tablets are eligible for automatic merging until the combined size of RFiles reaches this percentage of the split threshold.",
+      "4.0.0"),
 
   // Crypto-related properties
   @Experimental

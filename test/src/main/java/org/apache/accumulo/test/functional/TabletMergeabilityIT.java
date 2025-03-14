@@ -58,6 +58,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
@@ -297,6 +298,9 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       // Wait for merge back to default tablet
       Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
           Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+
+      // re-verify the data after merge
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
@@ -360,6 +364,8 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       TestIngest.ingest(c, params);
       VerifyIngest.verifyIngest(c, params);
 
+      assertTrue(FileMetadataUtil.countFiles(getCluster().getServerContext(), tableName) > 3);
+
       // Mark all tablets as mergeable
       for (int i = 500; i < 5000; i += 500) {
         splits.put(row(i), TabletMergeability.always());
@@ -380,6 +386,9 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       // Should merge back to 1 tablet
       Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
           Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
+
+      // re-verify the data after merge
+      VerifyIngest.verifyIngest(c, params);
     }
   }
 
