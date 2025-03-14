@@ -60,9 +60,9 @@ public class ConfigOptsTest {
   public void testOverrideMultiple() {
     opts.parseArgs(ConfigOptsTest.class.getName(),
         new String[] {"-o", Property.GENERAL_PROCESS_BIND_ADDRESS.getKey() + "=1.2.3.4", "-o",
-            Property.COMPACTOR_QUEUE_NAME.getKey() + "=test"});
+            Property.COMPACTOR_GROUP_NAME.getKey() + "=test"});
     assertEquals("1.2.3.4", opts.getSiteConfiguration().get(Property.GENERAL_PROCESS_BIND_ADDRESS));
-    assertEquals("test", opts.getSiteConfiguration().get(Property.COMPACTOR_QUEUE_NAME));
+    assertEquals("test", opts.getSiteConfiguration().get(Property.COMPACTOR_GROUP_NAME));
   }
 
 }

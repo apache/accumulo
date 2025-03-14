@@ -70,7 +70,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     }
 
   }

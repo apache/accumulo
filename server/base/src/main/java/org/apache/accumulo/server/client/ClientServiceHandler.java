@@ -53,7 +53,6 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -64,23 +63,18 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.SecurityOperation;
-import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
-  protected final TransactionWatcher transactionWatcher;
   protected final ServerContext context;
   protected final SecurityOperation security;
-  private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
-  public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {
+  public ClientServiceHandler(ServerContext context) {
     this.context = context;
-    this.transactionWatcher = transactionWatcher;
     this.security = context.getSecurityOperation();
   }
 
@@ -114,24 +108,9 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public String getInstanceId() {
-    return context.getInstanceID().canonical();
-  }
-
-  @Override
-  public String getRootTabletLocation() {
-    return context.getRootTabletLocation();
-  }
-
-  @Override
-  public String getZooKeepers() {
-    return context.getZooKeepers();
-  }
-
-  @Override
   public void ping(TCredentials credentials) {
     // anybody can call this; no authentication check
-    log.info("Manager reports: I just got pinged!");
+    log.info("I just got pinged!");
   }
 
   @Override
@@ -402,11 +381,6 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean isActive(TInfo tinfo, long tid) {
-    return transactionWatcher.isActive(tid);
-  }
-
-  @Override
   public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
       String interfaceMatch) throws TException {
     security.authenticateUser(credentials, credentials);
@@ -552,9 +526,4 @@ public class ClientServiceHandler implements ClientService.Iface {
           TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
     }
   }
-
-  public List<BulkImportStatus> getBulkLoadStatus() {
-    return bulkImportStatus.getBulkLoadStatus();
-  }
-
 }

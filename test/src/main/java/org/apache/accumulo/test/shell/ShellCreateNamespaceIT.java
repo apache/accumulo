@@ -47,7 +47,7 @@ public class ShellCreateNamespaceIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
       cfg.setSiteConfig(siteConf);

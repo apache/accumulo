@@ -28,7 +28,7 @@ public class BaseRelativeTime implements ProvidesTime {
 
   private long diff = 0;
   private long lastReportedTime = 0;
-  ProvidesTime local;
+  final ProvidesTime local;
 
   BaseRelativeTime(ProvidesTime real, long lastReportedTime) {
     this.local = real;

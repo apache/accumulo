@@ -19,9 +19,15 @@
 package org.apache.accumulo.gc;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
@@ -29,9 +35,12 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
@@ -42,13 +51,17 @@ import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
-import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -68,8 +81,7 @@ import io.opentelemetry.context.Scope;
 // Could/Should implement HighlyAvailableService but the Thrift server is already started before
 // the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
 // using the service before the lock is acquired.
-public class SimpleGarbageCollector extends AbstractServer
-    implements Iface, ServerProcessService.Iface {
+public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -79,8 +91,10 @@ public class SimpleGarbageCollector extends AbstractServer
   private final GcCycleMetrics gcCycleMetrics = new GcCycleMetrics();
   private ServiceLock gcLock;
 
+  private final Timer lastCompactorCheck = Timer.startNew();
+
   SimpleGarbageCollector(ConfigOpts opts, String[] args) {
-    super("gc", opts, args);
+    super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
 
     final AccumuloConfiguration conf = getConfiguration();
 
@@ -144,7 +158,7 @@ public class SimpleGarbageCollector extends AbstractServer
     try {
       waitForUpgrade();
     } catch (InterruptedException e) {
-      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      log.error("Interrupted while waiting for upgrade to complete, exiting...");
       System.exit(1);
     }
 
@@ -162,12 +176,13 @@ public class SimpleGarbageCollector extends AbstractServer
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
     }
+    this.getContext().setServiceLock(gcLock);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
     metricsInfo.addMetricsProducers(this, new GcMetrics(this));
-    metricsInfo.init(
-        MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(), address, ""));
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        address, getResourceGroup()));
     try {
       long delay = getStartDelay();
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
@@ -191,7 +206,7 @@ public class SimpleGarbageCollector extends AbstractServer
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {
-        LOG.info("Server process thread has been interrupted, shutting down");
+        log.info("Server process thread has been interrupted, shutting down");
         break;
       }
       try {
@@ -305,6 +320,25 @@ public class SimpleGarbageCollector extends AbstractServer
 
           gcCycleMetrics.incrementRunCycleCount();
           long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
+
+          if (lastCompactorCheck.hasElapsed(gcDelay * 3, MILLISECONDS)) {
+            Map<String,Set<TableId>> resourceMapping = new HashMap<>();
+            for (TableId tid : AccumuloTable.allTableIds()) {
+              TableConfiguration tconf = getContext().getTableConfiguration(tid);
+              String resourceGroup = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
+              resourceGroup =
+                  resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
+              resourceMapping.getOrDefault(resourceGroup, new HashSet<>()).add(tid);
+            }
+            for (Entry<String,Set<TableId>> e : resourceMapping.entrySet()) {
+              if (ExternalCompactionUtil.countCompactors(e.getKey(), getContext()) == 0) {
+                log.warn("No Compactors exist in resource group {} for system table {}", e.getKey(),
+                    e.getValue());
+              }
+            }
+            lastCompactorCheck.restart();
+          }
+
           log.debug("Sleeping for {} milliseconds", gcDelay);
           Thread.sleep(gcDelay);
         } catch (InterruptedException e) {
@@ -359,16 +393,16 @@ public class SimpleGarbageCollector extends AbstractServer
   }
 
   private void getZooLock(HostAndPort addr) throws KeeperException, InterruptedException {
-    var path = ServiceLock.path(getContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
+    var path = getContext().getServerPaths().createGarbageCollectorPath();
 
     UUID zooLockUUID = UUID.randomUUID();
     gcLock = new ServiceLock(getContext().getZooSession(), path, zooLockUUID);
     HAServiceLockWatcher gcLockWatcher =
-        new HAServiceLockWatcher("gc", () -> getShutdownComplete().get());
+        new HAServiceLockWatcher(Type.GARBAGE_COLLECTOR, () -> getShutdownComplete().get());
 
     while (true) {
-      gcLock.lock(gcLockWatcher,
-          new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC));
+      gcLock.lock(gcLockWatcher, new ServiceLockData(zooLockUUID, addr.toString(), ThriftService.GC,
+          this.getResourceGroup()));
 
       gcLockWatcher.waitForChange();
 
@@ -401,6 +435,7 @@ public class SimpleGarbageCollector extends AbstractServer
         getContext().getServerSslParams(), getContext().getSaslParams(), 0,
         getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
         addresses);
+    setHostname(server.address);
     log.debug("Starting garbage collector listening on " + server.address);
     return server.address;
   }

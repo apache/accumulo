@@ -36,22 +36,22 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
+import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.HasCurrentFilter;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.tservers.TabletServer;
 import org.apache.accumulo.monitor.rest.tservers.TabletServers;
-import org.apache.accumulo.server.manager.state.MetaDataTableScanner;
 import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.hadoop.io.Text;
 
 /**
  * Generates a tables list from the Monitor as a JSON object
@@ -126,7 +126,6 @@ public class TablesResource {
   @GET
   public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
-    String rootTabletLocation = monitor.getContext().getRootTabletLocation();
     TableId tableId = TableId.of(tableIdStr);
     ManagerMonitorInfo mmi = monitor.getMmi();
     // fail fast if unable to get monitor info
@@ -142,27 +141,23 @@ public class TablesResource {
 
     TreeSet<String> locs = new TreeSet<>();
     if (AccumuloTable.ROOT.tableId().equals(tableId)) {
-      locs.add(rootTabletLocation);
+      var rootLoc = monitor.getContext().getAmple().readTablet(RootTable.EXTENT).getLocation();
+      if (rootLoc != null && rootLoc.getType() == TabletMetadata.LocationType.CURRENT) {
+        locs.add(rootLoc.getHostPort());
+      }
     } else {
-      String systemTableName = AccumuloTable.METADATA.tableId().equals(tableId)
-          ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName();
-      MetaDataTableScanner scanner = new MetaDataTableScanner(monitor.getContext(),
-          new Range(TabletsSection.encodeRow(tableId, new Text()),
-              TabletsSection.encodeRow(tableId, null)),
-          systemTableName);
+      var level = Ample.DataLevel.of(tableId);
+      try (TabletsMetadata tablets = monitor.getContext().getAmple().readTablets().forLevel(level)
+          .filter(new HasCurrentFilter()).build()) {
 
-      while (scanner.hasNext()) {
-        TabletLocationState state = scanner.next();
-        if (state.current != null) {
+        for (TabletMetadata tm : tablets) {
           try {
-            locs.add(state.current.getHostPort());
+            locs.add(tm.getLocation().getHostPort());
           } catch (Exception ex) {
-            scanner.close();
             return tabletServers;
           }
         }
       }
-      scanner.close();
     }
 
     List<TabletServerStatus> tservers = new ArrayList<>();

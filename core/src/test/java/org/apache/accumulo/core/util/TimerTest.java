@@ -93,7 +93,27 @@ public class TimerTest {
       assertEquals(0, elapsedSeconds,
           "Elapsed time in seconds should be 0 for 50 milliseconds of sleep.");
     }
-
   }
 
+  @Test
+  public void testStartedAfter() throws Exception {
+    var timer1 = Timer.startNew();
+    Thread.sleep(3);
+    var timer2 = Timer.startNew();
+
+    assertTrue(timer2.startedAfter(timer1));
+    assertFalse(timer1.startedAfter(timer2));
+
+    Thread.sleep(3);
+    timer1.restart();
+
+    assertTrue(timer1.startedAfter(timer2));
+    assertFalse(timer2.startedAfter(timer1));
+
+    Thread.sleep(3);
+    timer2.restart();
+
+    assertTrue(timer2.startedAfter(timer1));
+    assertFalse(timer1.startedAfter(timer2));
+  }
 }

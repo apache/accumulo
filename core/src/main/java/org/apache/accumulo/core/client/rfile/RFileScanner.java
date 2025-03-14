@@ -84,11 +84,11 @@ class RFileScanner extends ScannerOptions implements Scanner {
   private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
   private BlockCache indexCache = null;
-  private final Opts opts;
+  private Opts opts;
   private int batchSize = 1000;
   private long readaheadThreshold = 3;
-  private final AccumuloConfiguration tableConf;
-  private final CryptoService cryptoService;
+  private AccumuloConfiguration tableConf;
+  private CryptoService cryptoService;
 
   static class Opts {
     InputArgs in;
@@ -352,10 +352,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       for (int i = 0; i < sources.length; i++) {
         // TODO may have been a bug with multiple files and caching in older version...
-        FSDataInputStream inputStream = (FSDataInputStream) sources[i].getInputStream();
-        CachableBuilder cb =
-            new CachableBuilder().input(inputStream, "source-" + i).length(sources[i].getLength())
-                .conf(opts.in.getConf()).cacheProvider(cacheProvider).cryptoService(cryptoService);
+        CachableBuilder cb = new CachableBuilder()
+            .input((FSDataInputStream) sources[i].getInputStream(), "source-" + i)
+            .length(sources[i].getLength()).conf(opts.in.getConf()).cacheProvider(cacheProvider)
+            .cryptoService(cryptoService);
         readers.add(RFile.getReader(cb, sources[i].getRange()));
       }
 

@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.util;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
@@ -30,13 +31,10 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
@@ -49,7 +47,6 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.BatchWriterImpl;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.data.Key;
@@ -61,21 +58,15 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -104,206 +95,6 @@ public class MetadataTableUtil {
   public static void putLockID(ServerContext context, ServiceLock zooLock, Mutation m) {
     ServerColumnFamily.LOCK_COLUMN.put(m,
         new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
-  }
-
-  public static void update(ServerContext context, ServiceLock zooLock, Mutation m,
-      KeyExtent extent) {
-
-    if (zooLock != null) {
-      putLockID(context, zooLock, m);
-    }
-
-    String metaTable = Ample.DataLevel.of(extent.tableId()).metaTable();
-    while (true) {
-      try (BatchWriter writer = context.createBatchWriter(metaTable)) {
-        writer.addMutation(m);
-        writer.flush();
-        return;
-      } catch (MutationsRejectedException e) {
-
-        if (!e.getConstraintViolationSummaries().isEmpty()) {
-          // retrying when a CVE occurs is probably futile and can cause problems, see ACCUMULO-3096
-          throw new IllegalArgumentException(e);
-        }
-      } catch (TableNotFoundException e) {
-        logUpdateFailure(m, extent, e);
-      }
-
-      sleepUninterruptibly(1, TimeUnit.SECONDS);
-    }
-  }
-
-  private static void logUpdateFailure(Mutation m, KeyExtent extent, Exception e) {
-    log.error("Failed to write metadata updates for extent {} {}", extent, m.prettyPrint(), e);
-  }
-
-  public static void updateTabletFlushID(KeyExtent extent, long flushID, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putFlushId(flushID);
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-  }
-
-  public static void updateTabletCompactID(KeyExtent extent, long compactID, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putCompactionId(compactID);
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-  }
-
-  public static Map<StoredTabletFile,DataFileValue> updateTabletDataFile(long tid, KeyExtent extent,
-      Map<ReferencedTabletFile,DataFileValue> estSizes, MetadataTime time, ServerContext context,
-      ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putTime(time);
-
-    Map<StoredTabletFile,DataFileValue> newFiles = new HashMap<>(estSizes.size());
-    estSizes.forEach((tf, dfv) -> {
-      tablet.putFile(tf, dfv);
-      tablet.putBulkFile(tf, tid);
-      newFiles.put(tf.insert(), dfv);
-    });
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-    return newFiles;
-  }
-
-  public static void addTablet(KeyExtent extent, String path, ServerContext context,
-      TimeType timeType, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    tablet.putPrevEndRow(extent.prevEndRow());
-    tablet.putDirName(path);
-    tablet.putTime(new MetadataTime(0, timeType));
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-
-  }
-
-  public static void updateTabletVolumes(KeyExtent extent, List<LogEntry> logsToRemove,
-      List<LogEntry> logsToAdd, List<StoredTabletFile> filesToRemove,
-      SortedMap<ReferencedTabletFile,DataFileValue> filesToAdd, ServiceLock zooLock,
-      ServerContext context) {
-
-    TabletMutator tabletMutator = context.getAmple().mutateTablet(extent);
-    logsToRemove.forEach(tabletMutator::deleteWal);
-    logsToAdd.forEach(tabletMutator::putWal);
-
-    filesToRemove.forEach(tabletMutator::deleteFile);
-    filesToAdd.forEach(tabletMutator::putFile);
-
-    tabletMutator.putZooLock(zooLock);
-
-    tabletMutator.mutate();
-  }
-
-  public static void rollBackSplit(Text metadataEntry, Text oldPrevEndRow, ServerContext context,
-      ServiceLock zooLock) {
-    KeyExtent ke = KeyExtent.fromMetaRow(metadataEntry, oldPrevEndRow);
-    Mutation m = TabletColumnFamily.createPrevRowMutation(ke);
-    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
-    update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
-  }
-
-  public static void splitTablet(KeyExtent extent, Text oldPrevEndRow, double splitRatio,
-      ServerContext context, ServiceLock zooLock, Set<ExternalCompactionId> ecids) {
-    Mutation m = TabletColumnFamily.createPrevRowMutation(extent);
-
-    TabletColumnFamily.SPLIT_RATIO_COLUMN.put(m, new Value(Double.toString(splitRatio)));
-
-    TabletColumnFamily.OLD_PREV_ROW_COLUMN.put(m,
-        TabletColumnFamily.encodePrevEndRow(oldPrevEndRow));
-
-    ecids.forEach(ecid -> m.putDelete(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical()));
-
-    update(context, zooLock, m, extent);
-  }
-
-  public static void finishSplit(Text metadataEntry,
-      Map<StoredTabletFile,DataFileValue> datafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove, final ServerContext context,
-      ServiceLock zooLock) {
-    Mutation m = new Mutation(metadataEntry);
-    TabletColumnFamily.SPLIT_RATIO_COLUMN.putDelete(m);
-    TabletColumnFamily.OLD_PREV_ROW_COLUMN.putDelete(m);
-
-    for (Entry<StoredTabletFile,DataFileValue> entry : datafileSizes.entrySet()) {
-      m.put(DataFileColumnFamily.NAME, entry.getKey().getMetadataText(),
-          new Value(entry.getValue().encode()));
-    }
-
-    for (StoredTabletFile pathToRemove : highDatafilesToRemove) {
-      m.putDelete(DataFileColumnFamily.NAME, pathToRemove.getMetadataText());
-    }
-
-    update(context, zooLock, m, KeyExtent.fromMetaRow(metadataEntry));
-  }
-
-  public static void finishSplit(KeyExtent extent,
-      Map<StoredTabletFile,DataFileValue> datafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove, ServerContext context, ServiceLock zooLock) {
-    finishSplit(extent.toMetaRow(), datafileSizes, highDatafilesToRemove, context, zooLock);
-  }
-
-  public static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
-      ServerContext context, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    scanFiles.forEach(tablet::deleteScan);
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-  }
-
-  public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<StoredTabletFile,FileUtil.FileInfo> firstAndLastRows,
-      SortedMap<StoredTabletFile,DataFileValue> datafiles,
-      SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
-      SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
-      List<StoredTabletFile> highDatafilesToRemove) {
-
-    for (Entry<StoredTabletFile,DataFileValue> entry : datafiles.entrySet()) {
-
-      Text firstRow = null;
-      Text lastRow = null;
-
-      boolean rowsKnown = false;
-
-      FileUtil.FileInfo mfi = firstAndLastRows.get(entry.getKey());
-
-      if (mfi != null) {
-        firstRow = mfi.getFirstRow();
-        lastRow = mfi.getLastRow();
-        rowsKnown = true;
-      }
-
-      if (rowsKnown && firstRow.compareTo(midRow) > 0) {
-        // only in high
-        long highSize = entry.getValue().getSize();
-        long highEntries = entry.getValue().getNumEntries();
-        highDatafileSizes.put(entry.getKey(),
-            new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
-      } else if (rowsKnown && lastRow.compareTo(midRow) <= 0) {
-        // only in low
-        long lowSize = entry.getValue().getSize();
-        long lowEntries = entry.getValue().getNumEntries();
-        lowDatafileSizes.put(entry.getKey(),
-            new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
-
-        highDatafilesToRemove.add(entry.getKey());
-      } else {
-        long lowSize = (long) Math.floor((entry.getValue().getSize() * splitRatio));
-        long lowEntries = (long) Math.floor((entry.getValue().getNumEntries() * splitRatio));
-        lowDatafileSizes.put(entry.getKey(),
-            new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
-
-        long highSize = (long) Math.ceil((entry.getValue().getSize() * (1.0 - splitRatio)));
-        long highEntries =
-            (long) Math.ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
-        highDatafileSizes.put(entry.getKey(),
-            new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
-      }
-    }
   }
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
@@ -389,14 +180,6 @@ public class MetadataTableUtil {
     return new Pair<>(result, sizes);
   }
 
-  public static void removeUnusedWALEntries(ServerContext context, KeyExtent extent,
-      final List<LogEntry> entries, ServiceLock zooLock) {
-    TabletMutator tablet = context.getAmple().mutateTablet(extent);
-    entries.forEach(tablet::deleteWal);
-    tablet.putZooLock(zooLock);
-    tablet.mutate();
-  }
-
   private static Mutation createCloneMutation(TableId srcTableId, TableId tableId,
       Iterable<Entry<Key,Value>> tablet) {
 
@@ -422,8 +205,8 @@ public class MetadataTableUtil {
     return m;
   }
 
-  private static Iterable<TabletMetadata> createCloneScanner(String testTableName, TableId tableId,
-      AccumuloClient client) throws TableNotFoundException {
+  private static TabletsMetadata createCloneScanner(String testTableName, TableId tableId,
+      AccumuloClient client) {
 
     String tableName;
     Range range;
@@ -440,22 +223,23 @@ public class MetadataTableUtil {
     }
 
     return TabletsMetadata.builder(client).scanTable(tableName).overRange(range).checkConsistency()
-        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME).build();
+        .saveKeyValues().fetch(FILES, LOCATION, LAST, CLONED, PREV_ROW, TIME, AVAILABILITY).build();
   }
 
   @VisibleForTesting
   public static void initializeClone(String testTableName, TableId srcTableId, TableId tableId,
-      AccumuloClient client, BatchWriter bw)
-      throws TableNotFoundException, MutationsRejectedException {
+      AccumuloClient client, BatchWriter bw) throws MutationsRejectedException {
 
-    Iterator<TabletMetadata> ti = createCloneScanner(testTableName, srcTableId, client).iterator();
+    try (TabletsMetadata cloneScanner = createCloneScanner(testTableName, srcTableId, client)) {
+      Iterator<TabletMetadata> ti = cloneScanner.iterator();
 
-    if (!ti.hasNext()) {
-      throw new IllegalStateException(" table deleted during clone?  srcTableId = " + srcTableId);
-    }
+      if (!ti.hasNext()) {
+        throw new IllegalStateException(" table deleted during clone?  srcTableId = " + srcTableId);
+      }
 
-    while (ti.hasNext()) {
-      bw.addMutation(createCloneMutation(srcTableId, tableId, ti.next().getKeyValues()));
+      while (ti.hasNext()) {
+        bw.addMutation(createCloneMutation(srcTableId, tableId, ti.next().getKeyValues()));
+      }
     }
 
     bw.flush();
@@ -471,90 +255,92 @@ public class MetadataTableUtil {
       AccumuloClient client, BatchWriter bw)
       throws TableNotFoundException, MutationsRejectedException {
 
-    Iterator<TabletMetadata> srcIter =
-        createCloneScanner(testTableName, srcTableId, client).iterator();
-    Iterator<TabletMetadata> cloneIter =
-        createCloneScanner(testTableName, tableId, client).iterator();
-
-    if (!cloneIter.hasNext() || !srcIter.hasNext()) {
-      throw new IllegalStateException(
-          " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
-    }
-
     int rewrites = 0;
 
-    while (cloneIter.hasNext()) {
-      TabletMetadata cloneTablet = cloneIter.next();
-      Text cloneEndRow = cloneTablet.getEndRow();
-      HashSet<StoredTabletFile> cloneFiles = new HashSet<>();
+    try (TabletsMetadata srcTM = createCloneScanner(testTableName, srcTableId, client);
+        TabletsMetadata cloneTM = createCloneScanner(testTableName, tableId, client)) {
+      Iterator<TabletMetadata> srcIter = srcTM.iterator();
+      Iterator<TabletMetadata> cloneIter = cloneTM.iterator();
 
-      boolean cloneSuccessful = cloneTablet.getCloned() != null;
-
-      if (!cloneSuccessful) {
-        cloneFiles.addAll(cloneTablet.getFiles());
+      if (!cloneIter.hasNext() || !srcIter.hasNext()) {
+        throw new IllegalStateException(
+            " table deleted during clone?  srcTableId = " + srcTableId + " tableId=" + tableId);
       }
 
-      List<TabletMetadata> srcTablets = new ArrayList<>();
-      TabletMetadata srcTablet = srcIter.next();
-      srcTablets.add(srcTablet);
+      while (cloneIter.hasNext()) {
+        TabletMetadata cloneTablet = cloneIter.next();
+        Text cloneEndRow = cloneTablet.getEndRow();
+        HashSet<StoredTabletFile> cloneFiles = new HashSet<>();
 
-      Text srcEndRow = srcTablet.getEndRow();
-      int cmp = compareEndRows(cloneEndRow, srcEndRow);
-      if (cmp < 0) {
-        throw new TabletDeletedException(
-            "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
-      }
+        boolean cloneSuccessful = cloneTablet.getCloned() != null;
 
-      HashSet<StoredTabletFile> srcFiles = new HashSet<>();
-      if (!cloneSuccessful) {
-        srcFiles.addAll(srcTablet.getFiles());
-      }
+        if (!cloneSuccessful) {
+          cloneFiles.addAll(cloneTablet.getFiles());
+        }
 
-      while (cmp > 0) {
-        srcTablet = srcIter.next();
+        List<TabletMetadata> srcTablets = new ArrayList<>();
+        TabletMetadata srcTablet = srcIter.next();
         srcTablets.add(srcTablet);
-        srcEndRow = srcTablet.getEndRow();
-        cmp = compareEndRows(cloneEndRow, srcEndRow);
+
+        Text srcEndRow = srcTablet.getEndRow();
+        int cmp = compareEndRows(cloneEndRow, srcEndRow);
         if (cmp < 0) {
           throw new TabletDeletedException(
               "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
         }
 
+        HashSet<StoredTabletFile> srcFiles = new HashSet<>();
         if (!cloneSuccessful) {
           srcFiles.addAll(srcTablet.getFiles());
         }
-      }
 
-      if (cloneSuccessful) {
-        continue;
-      }
+        while (cmp > 0) {
+          srcTablet = srcIter.next();
+          srcTablets.add(srcTablet);
+          srcEndRow = srcTablet.getEndRow();
+          cmp = compareEndRows(cloneEndRow, srcEndRow);
+          if (cmp < 0) {
+            throw new TabletDeletedException(
+                "Tablets deleted from src during clone : " + cloneEndRow + " " + srcEndRow);
+          }
 
-      if (srcFiles.containsAll(cloneFiles)) {
-        // write out marker that this tablet was successfully cloned
-        Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
-        m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
-        bw.addMutation(m);
-      } else {
-        // delete existing cloned tablet entry
-        Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
-
-        for (Entry<Key,Value> entry : cloneTablet.getKeyValues()) {
-          Key k = entry.getKey();
-          m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
+          if (!cloneSuccessful) {
+            srcFiles.addAll(srcTablet.getFiles());
+          }
         }
 
-        bw.addMutation(m);
-
-        for (TabletMetadata st : srcTablets) {
-          bw.addMutation(createCloneMutation(srcTableId, tableId, st.getKeyValues()));
+        if (cloneSuccessful) {
+          continue;
         }
 
-        rewrites++;
+        if (srcFiles.containsAll(cloneFiles)) {
+          // write out marker that this tablet was successfully cloned
+          Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
+          m.put(ClonedColumnFamily.NAME, new Text(""), new Value("OK"));
+          bw.addMutation(m);
+        } else {
+          // delete existing cloned tablet entry
+          Mutation m = new Mutation(cloneTablet.getExtent().toMetaRow());
+
+          for (Entry<Key,Value> entry : cloneTablet.getKeyValues()) {
+            Key k = entry.getKey();
+            m.putDelete(k.getColumnFamily(), k.getColumnQualifier(), k.getTimestamp());
+          }
+
+          bw.addMutation(m);
+
+          for (TabletMetadata st : srcTablets) {
+            bw.addMutation(createCloneMutation(srcTableId, tableId, st.getKeyValues()));
+          }
+
+          rewrites++;
+        }
       }
     }
 
     bw.flush();
     return rewrites;
+
   }
 
   public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId)
@@ -615,5 +401,4 @@ public class MetadataTableUtil {
       }
     }
   }
-
 }

@@ -28,6 +28,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -42,7 +43,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class ServerThatWontStart extends AbstractServer {
 
     protected ServerThatWontStart(String[] args) {
-      super("failedServer", new ConfigOpts(), args);
+      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf) -> getServerContext(), args);
     }
 
     @Override
@@ -82,7 +83,6 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
     final ZooReader zr = zs.asReader();
     assertTrue(zr.getChildren(zkRoot + Constants.ZCOMPACTORS).isEmpty());
-    assertTrue(zr.getChildren(zkRoot + Constants.ZCOORDINATOR_LOCK).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZGC_LOCK).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZMANAGER_LOCK).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZSSERVERS).isEmpty());

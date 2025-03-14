@@ -63,12 +63,12 @@ public class FileManager {
 
   private static final Logger log = LoggerFactory.getLogger(FileManager.class);
 
-  private final int maxOpen;
+  private int maxOpen;
 
   private static class OpenReader implements Comparable<OpenReader> {
-    long releaseTime;
-    FileSKVIterator reader;
-    StoredTabletFile file;
+    final long releaseTime;
+    final FileSKVIterator reader;
+    final StoredTabletFile file;
 
     public OpenReader(StoredTabletFile file, FileSKVIterator reader) {
       this.file = file;
@@ -95,15 +95,15 @@ public class FileManager {
     }
   }
 
-  private final Map<StoredTabletFile,List<OpenReader>> openFiles;
-  private final HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
+  private Map<StoredTabletFile,List<OpenReader>> openFiles;
+  private HashMap<FileSKVIterator,StoredTabletFile> reservedReaders;
 
-  private final Semaphore filePermits;
+  private Semaphore filePermits;
 
-  private final Cache<String,Long> fileLenCache;
+  private Cache<String,Long> fileLenCache;
 
-  private final long maxIdleTime;
-  private final long slowFilePermitMillis;
+  private long maxIdleTime;
+  private long slowFilePermitMillis;
 
   private final ServerContext context;
 

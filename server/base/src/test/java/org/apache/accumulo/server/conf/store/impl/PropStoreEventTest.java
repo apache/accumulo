@@ -80,6 +80,7 @@ public class PropStoreEventTest {
     expect(zrw.exists(eq(ZooUtil.getRoot(instanceId)), anyObject())).andReturn(true).anyTimes();
 
     readyMonitor = createMock(ReadyMonitor.class);
+
   }
 
   @AfterEach

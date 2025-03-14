@@ -199,9 +199,13 @@ public class TestIngest {
   public static TreeSet<Text> getSplitPoints(long start, long end, long numsplits) {
     long splitSize = (end - start) / numsplits;
 
-    long pos = start + splitSize;
-
     TreeSet<Text> splits = new TreeSet<>();
+
+    if (splitSize < 1) {
+      return splits;
+    }
+
+    long pos = start + splitSize;
 
     while (pos < end) {
       splits.add(new Text(String.format("row_%010d", pos)));

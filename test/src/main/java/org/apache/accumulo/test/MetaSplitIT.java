@@ -193,8 +193,8 @@ public class MetaSplitIT extends AccumuloClusterHarness {
             && !e.getKey().equals(AccumuloTable.METADATA.tableName()))
         .map(Map.Entry::getValue).map(TableId::of).map(tid -> new KeyExtent(tid, null, null))
         .collect(Collectors.toSet());
-    // Verify we have 11 tablets for metadata
-    assertEquals(11, expectedExtents.size());
+    // Verify we have 12 tablets for metadata (Includes FateTable and ScanRef table)
+    assertEquals(12, expectedExtents.size());
 
     // Scan each tablet to verify data exists
     var ample = ((ClientContext) client).getAmple();

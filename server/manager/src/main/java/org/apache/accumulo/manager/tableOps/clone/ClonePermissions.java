@@ -23,6 +23,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.Manager;
@@ -40,12 +41,12 @@ class ClonePermissions extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     // give all table permissions to the creator
     for (TablePermission permission : TablePermission.values()) {
       try {
@@ -71,7 +72,7 @@ class ClonePermissions extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, Manager environment) throws Exception {
     environment.getContext().getSecurityOperation().deleteTable(environment.getContext().rpcCreds(),
         cloneInfo.tableId, cloneInfo.namespaceId);
   }

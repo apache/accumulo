@@ -76,9 +76,6 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> siteConfig = new HashMap<>();
   private Map<String,String> configuredSiteConig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
-  private int numTservers = 2;
-  private int numScanServers = 0;
-  private int numCompactors = 1;
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private final EnumMap<ServerType,Class<?>> serverTypeClasses =
       new EnumMap<>(Map.of(MANAGER, Manager.class, GARBAGE_COLLECTOR, SimpleGarbageCollector.class,
@@ -124,6 +121,8 @@ public class MiniAccumuloConfigImpl {
 
   private Consumer<MiniAccumuloConfigImpl> preStartConfigProcessor;
 
+  private final ClusterServerConfiguration serverConfiguration;
+
   /**
    * @param dir An empty or nonexistent directory that Accumulo and Zookeeper can store data in.
    *        Creating the directory is left to the user. Java 7, Guava, and Junit provide methods for
@@ -133,6 +132,7 @@ public class MiniAccumuloConfigImpl {
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
     this.dir = dir;
     this.rootPassword = rootPassword;
+    this.serverConfiguration = new ClusterServerConfiguration();
   }
 
   /**
@@ -140,6 +140,7 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
+  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
@@ -179,15 +180,22 @@ public class MiniAccumuloConfigImpl {
       mergeProp(Property.TSERV_MAXMEM.getKey(), "40M");
       mergeProp(Property.TSERV_WAL_MAX_SIZE.getKey(), "100M");
       mergeProp(Property.TSERV_NATIVEMAP_ENABLED.getKey(), "false");
-      // since there is a small amount of memory, check more frequently for majc... setting may not
-      // be needed in 1.5
-      mergeProp(Property.TSERV_MAJC_DELAY.getKey(), "3");
       mergeProp(Property.GC_CYCLE_DELAY.getKey(), "4s");
       mergeProp(Property.GC_CYCLE_START.getKey(), "0s");
       mergePropWithRandomPort(Property.MANAGER_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.TSERV_CLIENTPORT.getKey());
       mergePropWithRandomPort(Property.MONITOR_PORT.getKey());
       mergePropWithRandomPort(Property.GC_PORT.getKey());
+
+      mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
+
+      mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
+          Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
+      mergeProp(Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
+          Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
+
+      mergeProp(Property.COMPACTION_SERVICE_DEFAULT_GROUPS.getKey(),
+          Property.COMPACTION_SERVICE_DEFAULT_GROUPS.getDefaultValue());
 
       if (isUseCredentialProvider()) {
         updateConfigForCredentialProvider();
@@ -268,32 +276,6 @@ public class MiniAccumuloConfigImpl {
     if (!siteConfig.containsKey(key)) {
       siteConfig.put(key, "0");
     }
-  }
-
-  /**
-   * Calling this method is optional. If not set, it defaults to two.
-   *
-   * @param numTservers the number of tablet servers that mini accumulo cluster should start
-   */
-  public MiniAccumuloConfigImpl setNumTservers(int numTservers) {
-    if (numTservers < 1) {
-      throw new IllegalArgumentException("Must have at least one tablet server");
-    }
-    this.numTservers = numTservers;
-    return this;
-  }
-
-  /**
-   * Calling this method is optional. If not set, it defaults to two.
-   *
-   * @param numScanServers the number of tablet servers that mini accumulo cluster should start
-   */
-  public MiniAccumuloConfigImpl setNumScanServers(int numScanServers) {
-    if (numScanServers < 0) {
-      throw new IllegalArgumentException("Must have zero or more scan servers");
-    }
-    this.numScanServers = numScanServers;
-    return this;
   }
 
   /**
@@ -563,17 +545,10 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * @return the number of tservers configured for this cluster
+   * @return ClusterServerConfiguration
    */
-  public int getNumTservers() {
-    return numTservers;
-  }
-
-  /**
-   * @return the number of scan servers configured for this cluster
-   */
-  public int getNumScanServers() {
-    return numScanServers;
+  public ClusterServerConfiguration getClusterServerConfiguration() {
+    return serverConfiguration;
   }
 
   /**
@@ -820,24 +795,6 @@ public class MiniAccumuloConfigImpl {
    */
   public void setRootUserName(String rootUserName) {
     this.rootUserName = rootUserName;
-  }
-
-  /**
-   * @return number of Compactors
-   * @since 2.1.0
-   */
-  public int getNumCompactors() {
-    return numCompactors;
-  }
-
-  /**
-   * Set number of Compactors
-   *
-   * @param numCompactors number of compactors
-   * @since 2.1.0
-   */
-  public void setNumCompactors(int numCompactors) {
-    this.numCompactors = numCompactors;
   }
 
   /**

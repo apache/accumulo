@@ -71,7 +71,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
@@ -81,6 +80,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 
 import io.opentelemetry.api.trace.Span;
@@ -99,10 +99,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     boolean isCompactionEnabled();
 
     IteratorScope getIteratorScope();
-
-    RateLimiter getReadLimiter();
-
-    RateLimiter getWriteLimiter();
 
     SystemIteratorEnvironment createIteratorEnv(ServerContext context,
         AccumuloConfiguration acuTableConf, TableId tableId);
@@ -146,13 +142,48 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // a unique id to identify a compactor
   private final long compactorID = nextCompactorID.getAndIncrement();
-  protected volatile Thread thread;
+  private volatile Thread thread;
   private final ServerContext context;
 
   private final AtomicBoolean interruptFlag = new AtomicBoolean(false);
 
-  public void interrupt() {
+  public synchronized void interrupt() {
     interruptFlag.set(true);
+
+    if (thread != null) {
+      // Never want to interrupt the thread after clearThread was called as the thread could have
+      // moved on to something completely different than the compaction. This method and clearThread
+      // being synchronized and clearThread setting thread to null prevent this.
+      thread.interrupt();
+    }
+  }
+
+  private class ThreadClearer implements AutoCloseable {
+    @Override
+    public void close() throws InterruptedException {
+      clearThread();
+    }
+  }
+
+  private synchronized ThreadClearer setThread() {
+    thread = Thread.currentThread();
+    return new ThreadClearer();
+  }
+
+  private synchronized void clearThread() throws InterruptedException {
+    Preconditions.checkState(thread == Thread.currentThread());
+    thread = null;
+    // If the thread was interrupted during compaction do not want to allow the thread to continue
+    // w/ the interrupt status set as this could impact code unrelated to the compaction. For
+    // internal compactions the thread will execute metadata update code after the compaction and
+    // would not want the interrupt status set for that.
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
+    }
+  }
+
+  Thread getThread() {
+    return thread;
   }
 
   public long getCompactorID() {
@@ -278,7 +309,8 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   @Override
-  public CompactionStats call() throws IOException, CompactionCanceledException {
+  public CompactionStats call()
+      throws IOException, CompactionCanceledException, InterruptedException {
 
     FileSKVWriter mfw = null;
 
@@ -296,8 +328,9 @@ public class FileCompactor implements Callable<CompactionStats> {
     String newThreadName =
         "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
-    thread = Thread.currentThread();
-    try {
+    // Use try w/ resources for clearing the thread instead of finally because clearing may throw an
+    // exception. Java's handling of exceptions thrown in finally blocks is not good.
+    try (var ignored = setThread()) {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
@@ -311,7 +344,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       WriterBuilder outBuilder =
           fileFactory.newWriterBuilder().forFile(outputFile, ns, ns.getConf(), cryptoService)
-              .withTableConfiguration(acuTableConf).withRateLimiter(env.getWriteLimiter());
+              .withTableConfiguration(acuTableConf);
       if (dropCacheBehindOutput) {
         outBuilder.dropCachesBehind();
       }
@@ -382,7 +415,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     } finally {
       Thread.currentThread().setName(oldThreadName);
       if (remove) {
-        thread = null;
         runningCompactions.remove(this);
       }
 
@@ -431,8 +463,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         reader = fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
-            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
-            .dropCachesBehind().build();
+            .withTableConfiguration(acuTableConf).dropCachesBehind().build();
 
         readers.add(reader);
 

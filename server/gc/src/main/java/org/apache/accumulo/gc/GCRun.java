@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -37,8 +38,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
@@ -63,6 +65,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
@@ -88,16 +91,19 @@ public class GCRun implements GarbageCollectionEnvironment {
   private final Ample.DataLevel level;
   private final ServerContext context;
   private final AccumuloConfiguration config;
+  private final Duration loggingInterval = Duration.ofMinutes(1);
   private long candidates = 0;
   private long inUse = 0;
   private long deleted = 0;
   private long errors = 0;
+  private AtomicInteger batchCount;
 
   public GCRun(Ample.DataLevel level, ServerContext context) {
     this.log = LoggerFactory.getLogger(GCRun.class.getName() + "." + level.name());
     this.level = level;
     this.context = context;
     this.config = context.getConfiguration();
+    this.batchCount = new AtomicInteger(0);
   }
 
   @Override
@@ -125,7 +131,8 @@ public class GCRun implements GarbageCollectionEnvironment {
       return;
     }
 
-    log.info("Attempting to delete gcCandidates of type {} from metadata", type);
+    log.info("Batch {} attempting to delete {} gcCandidates of type {} from metadata",
+        batchCount.get(), gcCandidates.size(), type);
     context.getAmple().deleteGcCandidates(level, gcCandidates, type);
   }
 
@@ -136,6 +143,7 @@ public class GCRun implements GarbageCollectionEnvironment {
     long candidateBatchSize = getCandidateBatchSize() / 2;
 
     List<GcCandidate> candidatesBatch = new ArrayList<>();
+    batchCount.incrementAndGet();
 
     while (candidates.hasNext()) {
       GcCandidate candidate = candidates.next();
@@ -279,15 +287,17 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     List<GcCandidate> processedDeletes = Collections.synchronizedList(new ArrayList<>());
 
-    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log);
+    minimizeDeletes(confirmedDeletes, processedDeletes, fs, log, loggingInterval);
 
-    ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+    ThreadPoolExecutor deleteThreadPool = ThreadPools.getServerThreadPools()
         .createExecutorService(config, Property.GC_DELETE_THREADS);
 
     final Map<Path,Path> replacements = context.getVolumeReplacements();
 
+    log.info("Batch {} attempting to delete {} gcCandidate files", batchCount.get(),
+        confirmedDeletes.size());
+    Timer timer = Timer.startNew();
     for (final GcCandidate delete : confirmedDeletes.values()) {
-
       Runnable deleteTask = () -> {
         boolean removeFlag = false;
 
@@ -311,7 +321,7 @@ public class GCRun implements GarbageCollectionEnvironment {
           }
 
           for (Path pathToDel : GcVolumeUtil.expandAllVolumesUri(fs, fullPath)) {
-            log.debug("{} Deleting {}", fileActionPrefix, pathToDel);
+            log.debug("Batch {} {} Deleting {}", batchCount.get(), fileActionPrefix, pathToDel);
 
             if (moveToTrash(pathToDel) || fs.deleteRecursively(pathToDel)) {
               // delete succeeded, still want to delete
@@ -364,7 +374,12 @@ public class GCRun implements GarbageCollectionEnvironment {
     deleteThreadPool.shutdown();
 
     try {
-      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) { // empty
+      while (!deleteThreadPool.awaitTermination(1000, TimeUnit.MILLISECONDS)) {
+        if (timer.hasElapsed(loggingInterval)) {
+          log.info("Batch {} deleting file {} of {}", batchCount.get(),
+              deleteThreadPool.getCompletedTaskCount(), confirmedDeletes.size());
+          timer.restart();
+        }
       }
     } catch (InterruptedException e1) {
       log.error("{}", e1.getMessage(), e1);
@@ -408,7 +423,8 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @VisibleForTesting
   static void minimizeDeletes(SortedMap<String,GcCandidate> confirmedDeletes,
-      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger) {
+      List<GcCandidate> processedDeletes, VolumeManager fs, Logger logger,
+      Duration loggingInterval) {
     Set<Path> seenVolumes = new HashSet<>();
 
     // when deleting a dir and all files in that dir, only need to delete the dir.
@@ -418,7 +434,11 @@ public class GCRun implements GarbageCollectionEnvironment {
 
     String lastDirRel = null;
     Path lastDirAbs = null;
+    Timer progressTimer = Timer.startNew();
+    int progressCount = 0;
+    int totalDeletes = confirmedDeletes.size();
     while (cdIter.hasNext()) {
+      progressCount++;
       Map.Entry<String,GcCandidate> entry = cdIter.next();
       String relPath = entry.getKey();
       Path absPath = new Path(entry.getValue().getPath());
@@ -457,6 +477,10 @@ public class GCRun implements GarbageCollectionEnvironment {
           lastDirRel = null;
           lastDirAbs = null;
         }
+      }
+      if (progressTimer.hasElapsed(loggingInterval)) {
+        logger.debug("Minimizing delete {} of {}", progressCount, totalDeletes);
+        progressTimer.restart();
       }
     }
   }

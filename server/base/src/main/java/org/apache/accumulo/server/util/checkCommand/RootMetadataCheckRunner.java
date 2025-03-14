@@ -89,7 +89,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
     final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
     final var rtm = new RootTabletMetadata(json);
-    status = checkColumns(context, rtm.toKeyValues().iterator(), status);
+    status = checkColumns(context, rtm.getKeyValues().iterator(), status);
 
     printCompleted(status);
     return status;
@@ -107,7 +107,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     final Set<Text> requiredColFams = new HashSet<>(requiredColFams());
 
     log.trace("Scanning the {} for missing required columns...\n", scanning());
-    rtm.toKeyValues().forEach(e -> {
+    rtm.getKeyValues().forEach(e -> {
       var key = e.getKey();
       rowsSeen.add(key.getRow());
       boolean removed =

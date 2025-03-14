@@ -25,7 +25,6 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
-import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
@@ -49,16 +48,6 @@ public class MinCEnv implements FileCompactor.CompactionEnv {
   @Override
   public IteratorUtil.IteratorScope getIteratorScope() {
     return IteratorUtil.IteratorScope.minc;
-  }
-
-  @Override
-  public RateLimiter getReadLimiter() {
-    return null;
-  }
-
-  @Override
-  public RateLimiter getWriteLimiter() {
-    return null;
   }
 
   @Override

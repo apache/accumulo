@@ -19,9 +19,10 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.lang.Thread.State.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
-import static java.util.concurrent.TimeUnit.HOURS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
@@ -50,33 +51,45 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.AgeOffStore;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.TStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
+import org.apache.accumulo.core.fate.FateCleaner;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
+import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
@@ -92,42 +105,42 @@ import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
-import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
+import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
+import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
+import org.apache.accumulo.server.manager.LiveTServerSet.LiveTServersSnapshot;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
-import org.apache.accumulo.server.manager.state.CurrentState;
 import org.apache.accumulo.server.manager.state.DeadServerList;
-import org.apache.accumulo.server.manager.state.MergeInfo;
-import org.apache.accumulo.server.manager.state.MergeState;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
@@ -143,8 +156,6 @@ import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
@@ -154,12 +165,15 @@ import org.apache.zookeeper.Watcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Comparators;
 import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.Maps;
 import com.google.common.util.concurrent.RateLimiter;
 import com.google.common.util.concurrent.Uninterruptibles;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
@@ -168,8 +182,8 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
-    CurrentState, HighlyAvailableService, ServerProcessService.Iface {
+public class Manager extends AbstractServer
+    implements LiveTServerSet.Listener, TableObserver, HighlyAvailableService {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -193,7 +207,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final SortedMap<KeyExtent,TServerInstance> migrations =
       Collections.synchronizedSortedMap(new TreeMap<>());
   final EventCoordinator nextEvent = new EventCoordinator();
-  private final Object mergeLock = new Object();
   RecoveryManager recoveryManager = null;
   private final ManagerTime timeKeeper;
 
@@ -204,29 +217,47 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private volatile TabletBalancer tabletBalancer;
+  protected volatile TabletBalancer tabletBalancer;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
 
   private ManagerState state = ManagerState.INITIAL;
 
-  // fateReadyLatch and fateRef go together; when this latch is ready, then the fate reference
-  // should already have been set; still need to use atomic reference or volatile for fateRef, so no
-  // thread's cached view shows that fateRef is still null after the latch is ready
+  // fateReadyLatch and fateRefs go together; when this latch is ready, then the fate references
+  // should already have been set; ConcurrentHashMap will guarantee that all threads will see
+  // the initialized fate references after the latch is ready
   private final CountDownLatch fateReadyLatch = new CountDownLatch(1);
-  private final AtomicReference<Fate<Manager>> fateRef = new AtomicReference<>(null);
+  private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateRefs =
+      new AtomicReference<>();
 
   volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
+  volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
+
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
+
   private final long timeToCacheRecoveryWalExistence;
-
   private ExecutorService tableInformationStatusPool = null;
+  private ThreadPoolExecutor tabletRefreshThreadPool;
 
-  @Override
+  private final TabletStateStore rootTabletStore;
+  private final TabletStateStore metadataTabletStore;
+  private final TabletStateStore userTabletStore;
+
   public synchronized ManagerState getManagerState() {
     return state;
+  }
+
+  public Map<FateId,Map<String,String>> getCompactionHints(DataLevel level) {
+    Predicate<TableId> tablePredicate = (tableId) -> DataLevel.of(tableId) == level;
+    Map<FateId,CompactionConfig> allConfig;
+    try {
+      allConfig = CompactionConfigStorage.getAllConfig(getContext(), tablePredicate);
+    } catch (InterruptedException | KeeperException e) {
+      throw new RuntimeException(e);
+    }
+    return Maps.transformValues(allConfig, CompactionConfig::getExecutionHints);
   }
 
   public boolean stillManager() {
@@ -243,7 +274,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
    *
    * @return the Fate object, only after the fate components are running and ready
    */
-  Fate<Manager> fate() {
+  public Fate<Manager> fate(FateInstanceType type) {
     try {
       // block up to 30 seconds until it's ready; if it's still not ready, introduce some logging
       if (!fateReadyLatch.await(30, SECONDS)) {
@@ -264,7 +295,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Thread was interrupted; cannot proceed");
     }
-    return fateRef.get();
+    return getFateRefs().get(type);
   }
 
   static final boolean X = true;
@@ -325,6 +356,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   private FateServiceHandler fateServiceHandler;
   private ManagerClientServiceHandler managerClientHandler;
+  private CompactionCoordinator compactionCoordinator;
 
   private int assignedOrHosted(TableId tableId) {
     int result = 0;
@@ -338,11 +370,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private int totalAssignedOrHosted() {
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
-      for (TableCounts counts : watcher.getStats().values()) {
+      for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
+        var tableId = entry.getKey();
+        var counts = entry.getValue();
         log.debug(
-            "Watcher: {}: Assigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
-            watcher.getName(), counts.assigned(), counts.assignedToDeadServers(),
-            counts.suspended());
+            "Watcher: {}: TableId: {}, Assigned Tablets: {}, Hosted Tablets:{}, "
+                + " Unassigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
+            watcher.getName(), tableId, counts.assigned(), counts.hosted(), counts.unassigned(),
+            counts.assignedToDeadServers(), counts.suspended());
         result += counts.assigned() + counts.hosted();
       }
     }
@@ -415,14 +450,19 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return getContext().getTableManager();
   }
 
+  public ThreadPoolExecutor getTabletRefreshThreadPool() {
+    return tabletRefreshThreadPool;
+  }
+
   public static void main(String[] args) throws Exception {
-    try (Manager manager = new Manager(new ConfigOpts(), args)) {
+    try (Manager manager = new Manager(new ConfigOpts(), ServerContext::new, args)) {
       manager.runServer();
     }
   }
 
-  protected Manager(ConfigOpts opts, String[] args) throws IOException {
-    super("manager", opts, args);
+  protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
+      String[] args) throws IOException {
+    super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balancerEnvironment = new BalancerEnvironmentImpl(context);
@@ -438,6 +478,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     this.security = context.getSecurityOperation();
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
+
+    this.rootTabletStore = TabletStateStore.getStoreForLevel(DataLevel.ROOT, context);
+    this.metadataTabletStore = TabletStateStore.getStoreForLevel(DataLevel.METADATA, context);
+    this.userTabletStore = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
 
     authenticationTokenKeyManager = null;
     keyDistributor = null;
@@ -464,64 +508,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return tserverSet.getConnection(server);
   }
 
-  public MergeInfo getMergeInfo(TableId tableId) {
-    ServerContext context = getContext();
-    synchronized (mergeLock) {
-      try {
-        String path = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-        if (!context.getZooSession().asReaderWriter().exists(path)) {
-          return new MergeInfo();
-        }
-        byte[] data = context.getZooSession().asReaderWriter().getData(path);
-        DataInputBuffer in = new DataInputBuffer();
-        in.reset(data, data.length);
-        MergeInfo info = new MergeInfo();
-        info.readFields(in);
-        return info;
-      } catch (KeeperException.NoNodeException ex) {
-        log.info("Error reading merge state, it probably just finished");
-        return new MergeInfo();
-      } catch (Exception ex) {
-        log.warn("Unexpected error reading merge state", ex);
-        return new MergeInfo();
-      }
-    }
-  }
-
-  public void setMergeState(MergeInfo info, MergeState state)
-      throws KeeperException, InterruptedException {
-    ServerContext context = getContext();
-    synchronized (mergeLock) {
-      String path = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
-          + info.getExtent().tableId() + "/merge";
-      info.setState(state);
-      if (state.equals(MergeState.NONE)) {
-        context.getZooSession().asReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
-      } else {
-        DataOutputBuffer out = new DataOutputBuffer();
-        try {
-          info.write(out);
-        } catch (IOException ex) {
-          throw new AssertionError("Unlikely", ex);
-        }
-        context.getZooSession().asReaderWriter().putPersistentData(path, out.getData(),
-            state.equals(MergeState.STARTED) ? ZooUtil.NodeExistsPolicy.FAIL
-                : ZooUtil.NodeExistsPolicy.OVERWRITE);
-      }
-      mergeLock.notifyAll();
-    }
-    nextEvent.event("Merge state of %s set to %s", info.getExtent(), state);
-  }
-
-  public void clearMergeState(TableId tableId) throws KeeperException, InterruptedException {
-    synchronized (mergeLock) {
-      String path = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId + "/merge";
-      getContext().getZooSession().asReaderWriter().recursiveDelete(path, NodeMissingPolicy.SKIP);
-      mergeLock.notifyAll();
-    }
-    nextEvent.event("Merge state of %s cleared", tableId);
-  }
-
   void setManagerGoalState(ManagerGoalState state) {
     try {
       getContext().getZooSession().asReaderWriter().putPersistentData(
@@ -545,138 +531,38 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  public boolean hasCycled(long time) {
-    for (TabletGroupWatcher watcher : watchers) {
-      if (watcher.stats.lastScanFinished() < time) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
   public void clearMigrations(TableId tableId) {
     synchronized (migrations) {
       migrations.keySet().removeIf(extent -> extent.tableId().equals(tableId));
     }
   }
 
+  private Splitter splitter;
+
+  public Splitter getSplitter() {
+    return splitter;
+  }
+
   public MetricsProducer getBalancerMetrics() {
     return balancerMetrics;
   }
 
-  enum TabletGoalState {
-    HOSTED(TUnloadTabletGoal.UNKNOWN),
-    UNASSIGNED(TUnloadTabletGoal.UNASSIGNED),
-    DELETED(TUnloadTabletGoal.DELETED),
-    SUSPENDED(TUnloadTabletGoal.SUSPENDED);
-
-    private final TUnloadTabletGoal unloadGoal;
-
-    TabletGoalState(TUnloadTabletGoal unloadGoal) {
-      this.unloadGoal = unloadGoal;
-    }
-
-    /** The purpose of unloading this tablet. */
-    public TUnloadTabletGoal howUnload() {
-      return unloadGoal;
-    }
+  public UpgradeCoordinator.UpgradeStatus getUpgradeStatus() {
+    return upgradeCoordinator.getStatus();
   }
 
-  TabletGoalState getSystemGoalState(TabletLocationState tls) {
-    switch (getManagerState()) {
-      case NORMAL:
-        return TabletGoalState.HOSTED;
-      case HAVE_LOCK: // fall-through intended
-      case INITIAL: // fall-through intended
-      case SAFE_MODE:
-        if (tls.extent.isMeta()) {
-          return TabletGoalState.HOSTED;
-        }
-        return TabletGoalState.UNASSIGNED;
-      case UNLOAD_METADATA_TABLETS:
-        if (tls.extent.isRootTablet()) {
-          return TabletGoalState.HOSTED;
-        }
-        return TabletGoalState.UNASSIGNED;
-      case UNLOAD_ROOT_TABLET:
-      case STOP:
-        return TabletGoalState.UNASSIGNED;
-      default:
-        throw new IllegalStateException("Unknown Manager State");
-    }
+  public CompactionCoordinator getCompactionCoordinator() {
+    return compactionCoordinator;
   }
 
-  TabletGoalState getTableGoalState(KeyExtent extent) {
-    TableState tableState = getContext().getTableManager().getTableState(extent.tableId());
-    if (tableState == null) {
-      return TabletGoalState.DELETED;
-    }
-    switch (tableState) {
-      case DELETING:
-        return TabletGoalState.DELETED;
-      case OFFLINE:
-      case NEW:
-        return TabletGoalState.UNASSIGNED;
-      default:
-        return TabletGoalState.HOSTED;
-    }
-  }
+  public void hostOndemand(List<KeyExtent> extents) {
+    extents.forEach(e -> Preconditions.checkArgument(DataLevel.of(e.tableId()) == DataLevel.USER));
 
-  TabletGoalState getGoalState(TabletLocationState tls, MergeInfo mergeInfo) {
-    KeyExtent extent = tls.extent;
-    // Shutting down?
-    TabletGoalState state = getSystemGoalState(tls);
-    if (state == TabletGoalState.HOSTED) {
-      if (!upgradeCoordinator.getStatus().isParentLevelUpgraded(extent)) {
-        // The place where this tablet stores its metadata was not upgraded, so do not assign this
-        // tablet yet.
-        return TabletGoalState.UNASSIGNED;
-      }
-
-      if (tls.current != null && serversToShutdown.contains(tls.current.getServerInstance())) {
-        return TabletGoalState.SUSPENDED;
-      }
-      // Handle merge transitions
-      if (mergeInfo.getExtent() != null) {
-
-        final boolean overlaps = mergeInfo.overlaps(extent);
-
-        if (overlaps) {
-          log.debug("mergeInfo overlaps: {} true", extent);
-          switch (mergeInfo.getState()) {
-            case NONE:
-            case COMPLETE:
-              break;
-            case STARTED:
-              return TabletGoalState.HOSTED;
-            case WAITING_FOR_OFFLINE:
-              // If we have walogs we need to be HOSTED to recover
-              if (!tls.walogs.isEmpty()) {
-                return TabletGoalState.HOSTED;
-              } else {
-                return TabletGoalState.UNASSIGNED;
-              }
-            case MERGING:
-            case MERGED:
-              return TabletGoalState.UNASSIGNED;
-          }
-        } else {
-          log.trace("mergeInfo overlaps: {} false", extent);
-        }
-      }
-
-      // taking table offline?
-      state = getTableGoalState(extent);
-      if (state == TabletGoalState.HOSTED) {
-        // Maybe this tablet needs to be migrated
-        TServerInstance dest = migrations.get(extent);
-        if (dest != null && tls.current != null && !dest.equals(tls.current.getServerInstance())) {
-          return TabletGoalState.UNASSIGNED;
-        }
+    for (var watcher : watchers) {
+      if (watcher.getLevel() == DataLevel.USER) {
+        watcher.hostOndemand(extents);
       }
     }
-    return state;
   }
 
   private class MigrationCleanupThread implements Runnable {
@@ -753,26 +639,25 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     public void run() {
 
       final ZooReaderWriter zrw = getContext().getZooSession().asReaderWriter();
-      final String sserverZNodePath = getContext().getZooKeeperRoot() + Constants.ZSSERVERS;
 
       while (stillManager()) {
         try {
-          for (String sserverClientAddress : zrw.getChildren(sserverZNodePath)) {
+          Set<ServiceLockPath> scanServerPaths =
+              getContext().getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
+          for (ServiceLockPath path : scanServerPaths) {
 
-            final String sServerZPath = sserverZNodePath + "/" + sserverClientAddress;
-            final var zLockPath = ServiceLock.path(sServerZPath);
             ZcStat stat = new ZcStat();
             Optional<ServiceLockData> lockData =
-                ServiceLock.getLockData(getContext().getZooCache(), zLockPath, stat);
+                ServiceLock.getLockData(getContext().getZooCache(), path, stat);
 
             if (lockData.isEmpty()) {
               try {
-                log.debug("Deleting empty ScanServer ZK node {}", sServerZPath);
-                zrw.delete(sServerZPath);
+                log.debug("Deleting empty ScanServer ZK node {}", path);
+                zrw.delete(path.toString());
               } catch (KeeperException.NotEmptyException e) {
                 log.debug(
                     "Failed to delete ScanServer ZK node {} its not empty, likely an expected race condition.",
-                    sServerZPath);
+                    path);
               }
             }
           }
@@ -834,7 +719,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     @Override
     public void run() {
-      EventCoordinator.Listener eventListener = nextEvent.getListener();
+      EventCoordinator.Tracker eventTracker = nextEvent.getTracker();
       while (stillManager()) {
         long wait;
         try {
@@ -851,9 +736,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             case CLEAN_STOP:
               switch (getManagerState()) {
                 case NORMAL:
+                  // USER fate stores its data in a user table and its operations may interact with
+                  // all tables, need to completely shut it down before unloading user tablets
+                  fate(FateInstanceType.USER).shutdown(1, MINUTES);
                   setManagerState(ManagerState.SAFE_MODE);
                   break;
                 case SAFE_MODE: {
+                  // META fate stores its data in Zookeeper and its operations interact with
+                  // metadata and root tablets, need to completely shut it down before unloading
+                  // metadata and root tablets
+                  fate(FateInstanceType.META).shutdown(1, MINUTES);
                   int count = nonMetaDataTabletsAssignedOrHosted();
                   log.debug(
                       String.format("There are %d non-metadata tablets assigned or hosted", count));
@@ -911,7 +803,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         Span span = TraceUtil.startSpan(this.getClass(), "run::updateStatus");
         try (Scope scope = span.makeCurrent()) {
           wait = updateStatus();
-          eventListener.waitForEvents(wait);
+          eventTracker.waitForEvents(wait);
         } catch (Exception t) {
           TraceUtil.setException(span, t, false);
           log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
@@ -924,8 +816,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     private long updateStatus() {
-      Set<TServerInstance> currentServers = tserverSet.getCurrentServers();
-      tserverStatus = gatherTableInformation(currentServers);
+      var tseversSnapshot = tserverSet.getSnapshot();
+      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers());
+      tServerGroupingForBalancer = tseversSnapshot.getTserverGroups();
+
       checkForHeldServer(tserverStatus);
 
       if (!badServers.isEmpty()) {
@@ -937,7 +831,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
       } else {
         for (TabletGroupWatcher tgw : watchers) {
-          if (!tgw.isSameTserversAsLastScan(currentServers)) {
+          if (!tgw.isSameTserversAsLastScan(tseversSnapshot.getTservers())) {
             log.debug("not balancing just yet, as collection of live tservers is in flux");
             return DEFAULT_WAIT_FOR_WATCHER;
           }
@@ -1045,7 +939,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       long wait = 0;
       long totalMigrationsOut = 0;
       final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
-          partitionMigrations(migrationsSnapshot());
+          partitionMigrations(migrationsSnapshot().keySet());
       int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {
@@ -1080,8 +974,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
         SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
             tserverStatusForBalancerLevel;
-        params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
-            partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
+        params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tServerGroupingForBalancer,
+            tserverStatusForLevel, partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
         wait = Math.max(tabletBalancer.balance(params), wait);
         long migrationsOutForLevel = 0;
         for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
@@ -1095,7 +989,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
           log.debug("migration {}", m);
         }
-
         totalMigrationsOut += migrationsOutForLevel;
 
         // increment this at end of loop to signal complete run w/o any continue
@@ -1215,7 +1108,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     final Timer startTime = Timer.startNew();
     // Wait for all tasks to complete
     while (!tasks.isEmpty()) {
-      boolean cancel = (startTime.hasElapsed(timeToWait));
+      boolean cancel = startTime.hasElapsed(timeToWait);
       Iterator<Future<?>> iter = tasks.iterator();
       while (iter.hasNext()) {
         Future<?> f = iter.next();
@@ -1252,14 +1145,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
+    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs, this);
+
     // Start the Manager's Client service
     // Ensure that calls before the manager gets the lock fail
     ManagerClientService.Iface haProxy =
         HighlyAvailableServiceWrapper.service(managerClientHandler, this);
 
     ServerAddress sa;
-    var processor =
-        ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler, haProxy, getContext());
+    var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
+        compactionCoordinator.getThriftService(), haProxy, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1272,9 +1167,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager
-    ServiceLockData sld = null;
+    ServiceLockData sld;
     try {
-      sld = getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      sld = getManagerLock(context.getServerPaths().createManagerPath());
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1282,13 +1177,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // starting the upgrade process if necessary.
     setManagerState(ManagerState.HAVE_LOCK);
 
-    MetricsInfo metricsInfo = getContext().getMetricsInfo();
-
-    var producers = ManagerMetrics.getProducers(getConfiguration(), this);
-    producers.add(balancerMetrics);
-    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        sa.getAddress(), ""));
+    // Set the HostName **after** initially creating the lock. The lock data is
+    // updated below with the correct address. This prevents clients from accessing
+    // the Manager until all of the internal processes are started.
+    setHostname(sa.address);
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1297,15 +1189,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     tableInformationStatusPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
 
+    tabletRefreshThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("Tablet refresh ")
+        .numCoreThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS))
+        .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
+        .build();
+
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
-
     tserverSet.startListeningForTabletServerChanges();
-
-    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
-
     try {
       blockForTservers();
     } catch (InterruptedException ex) {
@@ -1313,7 +1205,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     ZooReaderWriter zReaderWriter = context.getZooSession().asReaderWriter();
-
     try {
       zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
         @Override
@@ -1331,37 +1222,102 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
     }
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.USER, context, this), null) {
-      @Override
-      boolean canSuspendTablets() {
-        // Always allow user data tablets to enter suspended state.
-        return true;
-      }
-    });
+    MetricsInfo metricsInfo = getContext().getMetricsInfo();
+    ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
+    var producers = managerMetrics.getProducers(getConfiguration(), this);
+    producers.add(balancerMetrics);
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.METADATA, context, this), watchers.get(0)) {
-      @Override
-      boolean canSuspendTablets() {
-        // Allow metadata tablets to enter suspended state only if so configured. Generally
-        // we'll want metadata tablets to
-        // be immediately reassigned, even if there's a global table.suspension.duration
-        // setting.
-        return getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE);
-      }
-    });
+    final TabletGroupWatcher userTableTGW =
+        new TabletGroupWatcher(this, this.userTabletStore, null, managerMetrics) {
+          @Override
+          boolean canSuspendTablets() {
+            // Always allow user data tablets to enter suspended state.
+            return true;
+          }
+        };
+    watchers.add(userTableTGW);
 
-    watchers.add(new TabletGroupWatcher(this,
-        TabletStateStore.getStoreForLevel(DataLevel.ROOT, context), watchers.get(1)) {
-      @Override
-      boolean canSuspendTablets() {
-        // Never allow root tablet to enter suspended state.
-        return false;
+    final TabletGroupWatcher metadataTableTGW =
+        new TabletGroupWatcher(this, this.metadataTabletStore, watchers.get(0), managerMetrics) {
+          @Override
+          boolean canSuspendTablets() {
+            // Allow metadata tablets to enter suspended state only if so configured. Generally
+            // we'll want metadata tablets to
+            // be immediately reassigned, even if there's a global table.suspension.duration
+            // setting.
+            return getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE);
+          }
+        };
+    watchers.add(metadataTableTGW);
+
+    final TabletGroupWatcher rootTableTGW =
+        new TabletGroupWatcher(this, this.rootTabletStore, watchers.get(1), managerMetrics) {
+          @Override
+          boolean canSuspendTablets() {
+            // Never allow root tablet to enter suspended state.
+            return false;
+          }
+        };
+    watchers.add(rootTableTGW);
+
+    while (isUpgrading()) {
+      UpgradeStatus currentStatus = upgradeCoordinator.getStatus();
+      if (currentStatus == UpgradeStatus.FAILED || currentStatus == UpgradeStatus.COMPLETE) {
+        break;
       }
-    });
-    for (TabletGroupWatcher watcher : watchers) {
-      watcher.start();
+      switch (currentStatus) {
+        case UPGRADED_METADATA:
+          if (rootTableTGW.getState() == NEW) {
+            rootTableTGW.start();
+          }
+          if (metadataTableTGW.getState() == NEW) {
+            metadataTableTGW.start();
+          }
+          if (userTableTGW.getState() == NEW) {
+            userTableTGW.start();
+          }
+          break;
+        case UPGRADED_ROOT:
+          if (rootTableTGW.getState() == NEW) {
+            rootTableTGW.start();
+          }
+          if (metadataTableTGW.getState() == NEW) {
+            metadataTableTGW.start();
+          }
+          break;
+        case UPGRADED_ZOOKEEPER:
+          // Start processing the root table
+          if (rootTableTGW.getState() == NEW) {
+            rootTableTGW.start();
+          }
+          break;
+        case FAILED:
+        case COMPLETE:
+        case INITIAL:
+        default:
+          break;
+      }
+      try {
+        log.debug("Manager main thread is waiting for upgrade to complete");
+        Thread.sleep(1000);
+      } catch (InterruptedException e) {
+        throw new IllegalStateException("Interrupted while waiting for upgrade to complete", e);
+      }
+    }
+
+    // In the case where an upgrade is not needed, then we may not
+    // have stepped through all of the steps in the previous code
+    // block. Make sure all TGWs are started.
+    if (upgradeCoordinator.getStatus() != UpgradeStatus.FAILED) {
+      if (rootTableTGW.getState() == NEW) {
+        rootTableTGW.start();
+      }
+      if (metadataTableTGW.getState() == NEW) {
+        metadataTableTGW.start();
+      }
+      if (userTableTGW.getState() == NEW) {
+        userTableTGW.start();
+      }
     }
 
     // Once we are sure the upgrade is complete, we can safely allow fate use.
@@ -1375,22 +1331,40 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     // Everything should be fully upgraded by this point, but check before starting fate
+    // and other processes that depend on the metadata table being available and any
+    // other tables that may have been created during the upgrade to exist.
     if (isUpgrading()) {
       throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
     }
+
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        sa.getAddress(), getResourceGroup()));
+
+    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
+
+    // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
+    compactionCoordinator.start();
+
+    this.splitter = new Splitter(context);
+    this.splitter.start();
+
     try {
-      final AgeOffStore<Manager> store =
-          new AgeOffStore<>(
-              new org.apache.accumulo.core.fate.ZooStore<>(
-                  context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession()),
-              HOURS.toMillis(8), System::currentTimeMillis);
+      Predicate<ZooUtil.LockID> isLockHeld =
+          lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
+      var metaInstance = initializeFateInstance(context,
+          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession(),
+              managerLock.getLockID(), isLockHeld));
+      var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
+          AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
-      Fate<Manager> f = initializeFateInstance(store, getConfiguration());
-      fateRef.set(f);
+      if (!fateRefs.compareAndSet(null,
+          Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
+        throw new IllegalStateException(
+            "Unexpected previous fate reference map already initialized");
+      }
       fateReadyLatch.countDown();
-
-      ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
-          .scheduleWithFixedDelay(store::ageOff, 63000, 63000, MILLISECONDS));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
@@ -1424,10 +1398,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    String address = sa.address.toString();
-    sld = new ServiceLockData(sld.getServerUUID(ThriftService.MANAGER), address,
-        ThriftService.MANAGER);
-    log.info("Setting manager lock data to {}", sld.toString());
+    UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
+        ThriftService.FATE}) {
+      descriptors
+          .addService(new ServiceDescriptor(uuid, svc, getHostname(), this.getResourceGroup()));
+    }
+
+    sld = new ServiceLockData(descriptors);
+    log.info("Setting manager lock data to {}", sld);
     try {
       managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
@@ -1443,7 +1423,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     while (!isShutdownRequested() && clientService.isServing()) {
       if (Thread.currentThread().isInterrupted()) {
-        LOG.info("Server process thread has been interrupted, shutting down");
+        log.info("Server process thread has been interrupted, shutting down");
         break;
       }
       try {
@@ -1454,11 +1434,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
     }
 
-    LOG.debug("Stopping Thrift Servers");
-    sa.server.stop();
-
     log.debug("Shutting down fate.");
-    fate().shutdown();
+    getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
+
+    splitter.stop();
+
+    log.debug("Stopping Thrift Servers");
+    sa.server.stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
@@ -1468,6 +1450,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     tableInformationStatusPool.shutdownNow();
+    tabletRefreshThreadPool.shutdownNow();
+
+    compactionCoordinator.shutdown();
 
     // Signal that we want it to stop, and wait for it to do so.
     if (authenticationTokenKeyManager != null) {
@@ -1499,9 +1484,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
   }
 
-  protected Fate<Manager> initializeFateInstance(TStore<Manager> store,
-      AccumuloConfiguration conf) {
-    return new Fate<>(this, store, TraceRepo::toLogString, conf);
+  protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
+
+    final Fate<Manager> fateInstance =
+        new Fate<>(this, store, true, TraceRepo::toLogString, getConfiguration());
+
+    var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
+        .scheduleWithFixedDelay(fateCleaner::ageOff, 10, 4 * 60, MINUTES));
+
+    return fateInstance;
   }
 
   /**
@@ -1609,12 +1601,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
-    ServiceLockData sld =
-        new ServiceLockData(zooLockUUID, managerClientAddress, ThriftService.MANAGER);
 
+    ServiceDescriptors descriptors = new ServiceDescriptors();
+    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
+        managerClientAddress, this.getResourceGroup()));
+    ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
-        new HAServiceLockWatcher("manager", () -> getShutdownComplete().get());
+        new HAServiceLockWatcher(Type.MANAGER, () -> getShutdownComplete().get());
 
     while (true) {
 
@@ -1636,12 +1630,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       sleepUninterruptibly(TIME_TO_WAIT_BETWEEN_LOCK_CHECKS, MILLISECONDS);
     }
 
+    this.getContext().setServiceLock(getManagerLock());
     return sld;
   }
 
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
+
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
       DeadServerList obit = new DeadServerList(getContext());
@@ -1718,7 +1714,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   @Override
   public void stateChanged(TableId tableId, TableState state) {
-    nextEvent.event("Table state in zookeeper changed for %s to %s", tableId, state);
+    nextEvent.event(tableId, "Table state in zookeeper changed for %s to %s", tableId, state);
     if (state == TableState.OFFLINE) {
       clearMigrations(tableId);
     }
@@ -1730,7 +1726,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   @Override
   public void sessionExpired() {}
 
-  @Override
   public Set<TableId> onlineTables() {
     Set<TableId> result = new HashSet<>();
     if (getManagerState() != ManagerState.NORMAL) {
@@ -1754,18 +1749,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return result;
   }
 
-  @Override
   public Set<TServerInstance> onlineTabletServers() {
-    return tserverSet.getCurrentServers();
+    return tserverSet.getSnapshot().getTservers();
   }
 
-  @Override
-  public Collection<MergeInfo> merges() {
-    List<MergeInfo> result = new ArrayList<>();
-    for (TableId tableId : getContext().getTableIdToNameMap().keySet()) {
-      result.add(getMergeInfo(tableId));
-    }
-    return result;
+  public LiveTServersSnapshot tserversSnapshot() {
+    return tserverSet.getSnapshot();
   }
 
   // recovers state from the persistent transaction to shutdown a server
@@ -1849,19 +1838,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return delegationTokensAvailable;
   }
 
-  @Override
-  public Set<KeyExtent> migrationsSnapshot() {
-    Set<KeyExtent> migrationKeys;
+  public Map<KeyExtent,TServerInstance> migrationsSnapshot() {
     synchronized (migrations) {
-      migrationKeys = new HashSet<>(migrations.keySet());
+      return Map.copyOf(migrations);
     }
-    return Collections.unmodifiableSet(migrationKeys);
   }
 
-  @Override
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
-      return new HashSet<>(serversToShutdown);
+      return Set.copyOf(serversToShutdown);
     }
   }
 
@@ -1904,17 +1889,46 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
+      Map<String,Set<TServerInstance>> currentTServerGroups,
       Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
-    AssignmentParamsImpl params = AssignmentParamsImpl.fromThrift(currentStatus,
-        unassigned.entrySet().stream().collect(HashMap::new,
-            (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
-        assignedOut);
+    AssignmentParamsImpl params =
+        AssignmentParamsImpl.fromThrift(currentStatus, currentTServerGroups,
+            unassigned.entrySet().stream().collect(HashMap::new,
+                (m, e) -> m.put(e.getKey(),
+                    e.getValue().getLastLocation() == null ? null
+                        : e.getValue().getLastLocation().getServerInstance()),
+                Map::putAll),
+            assignedOut);
     tabletBalancer.getAssignments(params);
+  }
+
+  public TabletStateStore getTabletStateStore(DataLevel level) {
+    switch (level) {
+      case METADATA:
+        return this.metadataTabletStore;
+      case ROOT:
+        return this.rootTabletStore;
+      case USER:
+        return this.userTabletStore;
+      default:
+        throw new IllegalStateException("Unhandled DataLevel value: " + level);
+    }
+  }
+
+  @Override
+  public void registerMetrics(MeterRegistry registry) {
+    super.registerMetrics(registry);
+    compactionCoordinator.registerMetrics(registry);
+  }
+
+  private Map<FateInstanceType,Fate<Manager>> getFateRefs() {
+    var fateRefs = this.fateRefs.get();
+    Preconditions.checkState(fateRefs != null, "Unexpected null fate references map");
+    return fateRefs;
   }
 
   @Override
   public ServiceLock getLock() {
     return managerLock;
   }
-
 }

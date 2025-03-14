@@ -37,8 +37,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.fs.VolumeUtil;
@@ -53,7 +53,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 public class RecoveryManager {
 
@@ -65,17 +64,16 @@ public class RecoveryManager {
   private final Cache<Path,Boolean> existenceCache;
   private final ScheduledExecutorService executor;
   private final Manager manager;
-  private final ZooCache zooCache;
 
   public RecoveryManager(Manager manager, long timeToCacheExistsInMillis) {
     this.manager = manager;
-    existenceCache =
-        Caffeine.newBuilder().expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
-            .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
+    existenceCache = this.manager.getContext().getCaches()
+        .createNewBuilder(CacheName.RECOVERY_MANAGER_PATH_CACHE, true)
+        .expireAfterWrite(timeToCacheExistsInMillis, TimeUnit.MILLISECONDS)
+        .maximumWeight(10_000_000).weigher((path, exist) -> path.toString().length()).build();
 
     executor =
         ThreadPools.getServerThreadPools().createScheduledExecutorService(4, "Walog sort starter");
-    zooCache = new ZooCache(manager.getContext().getZooSession());
     try {
       List<String> workIDs =
           new DistributedWorkQueue(manager.getContext().getZooKeeperRoot() + Constants.ZRECOVERY,
@@ -181,7 +179,7 @@ public class RecoveryManager {
         sortQueued = sortsQueued.contains(sortId);
       }
 
-      if (sortQueued && zooCache.get(
+      if (sortQueued && this.manager.getContext().getZooCache().get(
           manager.getContext().getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId) == null) {
         synchronized (this) {
           sortsQueued.remove(sortId);

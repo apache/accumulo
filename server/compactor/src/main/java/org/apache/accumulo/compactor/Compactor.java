@@ -19,9 +19,9 @@
 package org.apache.accumulo.compactor;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_IN_PROGRESS;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
@@ -33,7 +33,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
@@ -44,11 +43,12 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -65,10 +65,11 @@ import org.apache.accumulo.core.compaction.thrift.UnknownCompactionIdException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.FileOperations;
@@ -80,7 +81,10 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.lock.ServiceLockSupport;
 import org.apache.accumulo.core.lock.ServiceLockSupport.ServiceLockWatcher;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -89,7 +93,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -105,7 +108,9 @@ import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
@@ -117,7 +122,7 @@ import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher;
+import org.apache.accumulo.tserver.log.LogSorter;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
@@ -130,12 +135,12 @@ import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 
-public class Compactor extends AbstractServer
-    implements MetricsProducer, CompactorService.Iface, ServerProcessService.Iface {
+public class Compactor extends AbstractServer implements MetricsProducer, CompactorService.Iface {
 
   public interface FileCompactorRunnable extends Runnable {
     /**
@@ -156,7 +161,6 @@ public class Compactor extends AbstractServer
   protected static final CompactionJobHolder JOB_HOLDER = new CompactionJobHolder();
 
   private final UUID compactorId = UUID.randomUUID();
-  private final String queueName;
   protected final AtomicReference<ExternalCompactionId> currentCompactionId =
       new AtomicReference<>();
 
@@ -167,9 +171,12 @@ public class Compactor extends AbstractServer
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
 
   protected Compactor(ConfigOpts opts, String[] args) {
-    super("compactor", opts, args);
-    queueName = super.getConfiguration().get(Property.COMPACTOR_QUEUE_NAME);
-    ClusterConfigParser.validateGroupNames(Set.of(queueName));
+    super(ServerId.Type.COMPACTOR, opts, ServerContext::new, args);
+  }
+
+  @Override
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return conf.get(Property.COMPACTOR_GROUP_NAME);
   }
 
   private long getTotalEntriesRead() {
@@ -180,16 +187,26 @@ public class Compactor extends AbstractServer
     return FileCompactor.getTotalEntriesWritten();
   }
 
+  private long compactionInProgress() {
+    return compactionRunning.get() ? 1 : 0;
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
     FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
-        .description(COMPACTOR_ENTRIES_READ.getDescription()).register(registry);
+        .description(COMPACTOR_ENTRIES_READ.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
-        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription()).register(registry);
+        .description(COMPACTOR_ENTRIES_WRITTEN.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
+    Gauge.builder(COMPACTOR_MAJC_IN_PROGRESS.getName(), this, Compactor::compactionInProgress)
+        .description(COMPACTOR_MAJC_IN_PROGRESS.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
-        .description(COMPACTOR_MAJC_STUCK.getDescription()).register(registry);
+        .description(COMPACTOR_MAJC_STUCK.getDescription())
+        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
     CompactionWatcher.setTimer(timer);
   }
 
@@ -217,26 +234,30 @@ public class Compactor extends AbstractServer
           return;
         }
 
-        if (job.getKind() == TCompactionKind.USER) {
-          String zTablePath = getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
-              + extent.tableId() + Constants.ZTABLE_COMPACT_CANCEL_ID;
-          byte[] id = getContext().getZooCache().get(zTablePath);
-          if (id == null) {
-            // table probably deleted
-            LOG.info("Cancelling compaction {} for table that no longer exists {}", ecid, extent);
-            JOB_HOLDER.cancel(job.getExternalCompactionId());
-          } else {
-            var cancelId = Long.parseLong(new String(id, UTF_8));
+        var tableState = getContext().getTableState(extent.tableId());
+        if (tableState != TableState.ONLINE) {
+          LOG.info("Cancelling compaction {} because table state is {}", ecid, tableState);
+          JOB_HOLDER.cancel(job.getExternalCompactionId());
+          return;
+        }
 
-            if (cancelId >= job.getUserCompactionId()) {
-              LOG.info("Cancelling compaction {} because user compaction was canceled", ecid);
-              JOB_HOLDER.cancel(job.getExternalCompactionId());
-            }
+        if (job.getKind() == TCompactionKind.USER) {
+
+          var cconf =
+              CompactionConfigStorage.getConfig(getContext(), FateId.fromThrift(job.getFateId()));
+
+          if (cconf == null) {
+            LOG.info("Cancelling compaction {} for user compaction that no longer exists {} {}",
+                ecid, FateId.fromThrift(job.getFateId()), extent);
+            JOB_HOLDER.cancel(job.getExternalCompactionId());
           }
         }
-      } catch (RuntimeException e) {
+      } catch (RuntimeException | KeeperException e) {
         LOG.warn("Failed to check if compaction {} for {} was canceled.",
             job.getExternalCompactionId(), KeyExtent.fromThrift(job.getExtent()), e);
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        throw new RuntimeException(e);
       }
     }
   }
@@ -251,35 +272,23 @@ public class Compactor extends AbstractServer
   protected void announceExistence(HostAndPort clientAddress)
       throws KeeperException, InterruptedException {
 
-    String hostPort = ExternalCompactionUtil.getHostPortString(clientAddress);
-
-    ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
-    String compactorQueuePath =
-        getContext().getZooKeeperRoot() + Constants.ZCOMPACTORS + "/" + this.queueName;
-    String zPath = compactorQueuePath + "/" + hostPort;
-
-    try {
-      zoo.mkdirs(compactorQueuePath);
-      zoo.putPersistentData(zPath, new byte[] {}, NodeExistsPolicy.SKIP);
-    } catch (KeeperException.NoAuthException e) {
-      LOG.error("Failed to write to ZooKeeper. Ensure that"
-          + " accumulo.properties, specifically instance.secret, is consistent.");
-      throw e;
-    }
-
-    compactorLock =
-        new ServiceLock(getContext().getZooSession(), ServiceLock.path(zPath), compactorId);
-    LockWatcher lw = new ServiceLockWatcher("compactor", () -> getShutdownComplete().get(),
-        (name) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
+    final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
+    final ServiceLockPath path =
+        getContext().getServerPaths().createCompactorPath(getResourceGroup(), clientAddress);
+    ServiceLockSupport.createNonHaServiceLockPath(Type.COMPACTOR, zoo, path);
+    compactorLock = new ServiceLock(getContext().getZooSession(), path, compactorId);
+    LockWatcher lw = new ServiceLockWatcher(Type.COMPACTOR, () -> getShutdownComplete().get(),
+        (type) -> getContext().getLowMemoryDetector().logGCInfo(getConfiguration()));
 
     try {
       for (int i = 0; i < 25; i++) {
-        zoo.putPersistentData(zPath, new byte[0], NodeExistsPolicy.SKIP);
+        zoo.putPersistentData(path.toString(), new byte[0], NodeExistsPolicy.SKIP);
 
         ServiceDescriptors descriptors = new ServiceDescriptors();
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.COMPACTOR}) {
-          descriptors.addService(new ServiceDescriptor(compactorId, svc, hostPort, this.queueName));
+          descriptors.addService(new ServiceDescriptor(compactorId, svc,
+              ExternalCompactionUtil.getHostPortString(clientAddress), this.getResourceGroup()));
         }
 
         if (compactorLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -298,6 +307,10 @@ public class Compactor extends AbstractServer
     }
   }
 
+  protected CompactorService.Iface getCompactorThriftHandlerInterface() {
+    return this;
+  }
+
   /**
    * Start this Compactors thrift service to handle incoming client requests
    *
@@ -305,14 +318,15 @@ public class Compactor extends AbstractServer
    * @throws UnknownHostException host unknown
    */
   protected ServerAddress startCompactorClientService() throws UnknownHostException {
-    ClientServiceHandler clientHandler =
-        new ClientServiceHandler(getContext(), new TransactionWatcher(getContext()));
-    var processor =
-        ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler, this, getContext());
+
+    ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
+    var processor = ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler,
+        getCompactorThriftHandlerInterface(), getContext());
     ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
         Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
+    setHostname(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -440,7 +454,7 @@ public class Compactor extends AbstractServer
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), queueName,
+                getContext().rpcCreds(), this.getResourceGroup(),
                 ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
                 eci.toString());
           } catch (Exception e) {
@@ -530,7 +544,7 @@ public class Compactor extends AbstractServer
         job.getIteratorSettings().getIterators()
             .forEach(tis -> iters.add(SystemIteratorUtil.toIteratorSetting(tis)));
 
-        final ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, queueName);
+        final ExtCEnv cenv = new ExtCEnv(JOB_HOLDER, getResourceGroup());
         compactor.set(
             new FileCompactor(getContext(), extent, files, outputFile, job.isPropagateDeletes(),
                 cenv, iters, aConfig, tConfig.getCryptoService(), pausedMetrics));
@@ -630,7 +644,6 @@ public class Compactor extends AbstractServer
   }
 
   protected long getWaitTimeBetweenCompactionChecks(int numCompactors) {
-    // get the total number of compactors assigned to this queue
     long minWait = getConfiguration().getTimeInMillis(Property.COMPACTOR_MIN_JOB_WAIT_TIME);
     // Aim for around 3 compactors checking in per min wait time.
     long sleepTime = numCompactors * minWait / 3;
@@ -648,7 +661,7 @@ public class Compactor extends AbstractServer
 
   protected Collection<Tag> getServiceTags(HostAndPort clientAddress) {
     return MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress, queueName);
+        clientAddress, getResourceGroup());
   }
 
   @Override
@@ -666,6 +679,7 @@ public class Compactor extends AbstractServer
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Error registering compactor in ZooKeeper", e);
     }
+    this.getContext().setServiceLock(compactorLock);
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
 
@@ -682,6 +696,8 @@ public class Compactor extends AbstractServer
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
+      final LogSorter logSorter = new LogSorter(this);
+      long nextSortLogsCheckTime = System.currentTimeMillis();
 
       while (!isShutdownRequested()) {
         if (Thread.currentThread().isInterrupted()) {
@@ -696,12 +712,20 @@ public class Compactor extends AbstractServer
           err.set(null);
           JOB_HOLDER.reset();
 
+          if (System.currentTimeMillis() > nextSortLogsCheckTime) {
+            // Attempt to process all existing log sorting work serially in this thread.
+            // When no work remains, this call will return so that we can look for compaction
+            // work.
+            LOG.debug("Checking to see if any recovery logs need sorting");
+            nextSortLogsCheckTime = logSorter.sortLogsIfNeeded();
+          }
+
           TExternalCompactionJob job;
           try {
             TNextCompactionJob next = getNextJob(getNextId());
             job = next.getJob();
             if (!job.isSetExternalCompactionId()) {
-              LOG.trace("No external compactions in queue {}", this.queueName);
+              LOG.trace("No external compactions in queue {}", this.getResourceGroup());
               UtilWaitThread.sleep(getWaitTimeBetweenCompactionChecks(next.getCompactorCount()));
               continue;
             }
@@ -975,5 +999,4 @@ public class Compactor extends AbstractServer
   public ServiceLock getLock() {
     return compactorLock;
   }
-
 }

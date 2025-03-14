@@ -43,6 +43,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.hadoop.io.Text;
 
+@Deprecated
 public abstract class BaseHostRegexTableLoadBalancerTest extends HostRegexTableLoadBalancer {
 
   protected static class TestTable {

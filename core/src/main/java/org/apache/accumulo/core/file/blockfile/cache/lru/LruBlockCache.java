@@ -556,7 +556,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * Statistics thread. Periodically prints the cache statistics to the log.
    */
   private static class StatisticsThread extends AccumuloDaemonThread {
-    LruBlockCache lru;
+    final LruBlockCache lru;
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");

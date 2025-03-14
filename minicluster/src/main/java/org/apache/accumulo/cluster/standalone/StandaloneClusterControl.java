@@ -34,13 +34,10 @@ import java.util.Map.Entry;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.cluster.RemoteShell;
 import org.apache.accumulo.cluster.RemoteShellOptions;
-import org.apache.accumulo.compactor.Compactor;
-import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.util.Admin;
-import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.util.Shell.ExitCodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,7 +147,8 @@ public class StandaloneClusterControl implements ClusterControl {
    */
   public void setGoalState(String goalState) throws IOException {
     requireNonNull(goalState, "Goal state must not be null");
-    checkArgument(ManagerGoalState.valueOf(goalState) != null, "Unknown goal state: " + goalState);
+    checkArgument(ManagerGoalState.valueOf(goalState) != null,
+        "Unknown availability state: " + goalState);
     String manager = getHosts(MANAGER_HOSTS_FILE).get(0);
     String[] cmd = {serverCmdPrefix, accumuloPath, SetGoalState.class.getName(), goalState};
     Entry<Integer,String> pair = exec(manager, cmd);
@@ -368,24 +366,6 @@ public class StandaloneClusterControl implements ClusterControl {
 
       return hosts;
     }
-  }
-
-  @Override
-  public void startCompactors(Class<? extends Compactor> compactor, int limit, String queueName)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
-
-  @Override
-  public void startCoordinator(Class<? extends CompactionCoordinator> coordinator)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
-  }
-
-  @Override
-  public void startScanServer(Class<? extends ScanServer> scanServer, int limit, String groupName)
-      throws IOException {
-    throw new UnsupportedOperationException("Not yet implemented.");
   }
 
 }

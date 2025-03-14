@@ -22,10 +22,11 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
@@ -65,20 +66,18 @@ public class PreUpgradeCheck implements KeywordExecutable {
           + " has already been upgraded to version " + thisVersion);
     }
 
-    final String zkRoot = context.getZooKeeperRoot();
     final ZooSession zs = context.getZooSession();
+    final ZooReader zr = zs.asReader();
     final String prepUpgradePath = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
 
-    if (!zs.asReader().exists(prepUpgradePath)) {
+    if (!zr.exists(prepUpgradePath)) {
       LOG.info("{} node not found in ZooKeeper, 'ZooZap -prepare-for-upgrade' was likely"
           + " not run after shutting down instance for upgrade. Removing"
           + " server locks and checking for fate transactions.", prepUpgradePath);
 
       try {
-        final String fatePath = zkRoot + Constants.ZFATE;
         // Adapted from UpgradeCoordinator.abortIfFateTransactions
-        final ReadOnlyTStore<PreUpgradeCheck> fate = new ZooStore<>(fatePath, zs);
-        if (!fate.list().isEmpty()) {
+        if (!zr.getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
           throw new IllegalStateException("Cannot continue pre-upgrade checks"
               + " because FATE transactions exist. You can start a tserver, but"
               + " not the Manager, with the old version of Accumulo then use "
@@ -92,14 +91,20 @@ public class PreUpgradeCheck implements KeywordExecutable {
       LOG.info("No FATE transactions found");
 
       // Forcefully delete all server locks
-      Set<String> serviceLockPaths = Set.of(zkRoot + Constants.ZCOMPACTORS,
-          zkRoot + Constants.ZCOORDINATOR_LOCK, zkRoot + Constants.ZGC_LOCK,
-          zkRoot + Constants.ZMANAGER_LOCK, zkRoot + Constants.ZMONITOR_LOCK,
-          zkRoot + Constants.ZSSERVERS, zkRoot + Constants.ZTSERVERS);
-      for (String slp : serviceLockPaths) {
+      Set<ServiceLockPath> serviceLockPaths =
+          context.getServerPaths().getCompactor((g) -> true, AddressSelector.all(), true);
+      serviceLockPaths.addAll(
+          context.getServerPaths().getTabletServer((g) -> true, AddressSelector.all(), true));
+      serviceLockPaths
+          .addAll(context.getServerPaths().getScanServer((g) -> true, AddressSelector.all(), true));
+      serviceLockPaths.add(context.getServerPaths().getManager(true));
+      serviceLockPaths.add(context.getServerPaths().getGarbageCollector(true));
+      serviceLockPaths.add(context.getServerPaths().getMonitor(true));
+
+      for (ServiceLockPath slp : serviceLockPaths) {
         LOG.info("Deleting all zookeeper entries under {}", slp);
         try {
-          List<String> children = zs.asReader().getChildren(slp);
+          List<String> children = zr.getChildren(slp.toString());
           for (String child : children) {
             LOG.debug("Performing recursive delete on node:  {}", child);
             ZooUtil.recursiveDelete(zs, slp + "/" + child, NodeMissingPolicy.SKIP);

@@ -18,43 +18,41 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.server.util.ManagerMetadataUtil;
-import org.apache.hadoop.fs.Path;
+import org.apache.accumulo.server.ServerContext;
 
-class MetaDataStateStore implements TabletStateStore {
+import com.google.common.base.Preconditions;
+
+class MetaDataStateStore extends AbstractTabletStateStore implements TabletStateStore {
 
   protected final ClientContext context;
-  protected final CurrentState state;
   private final String targetTableName;
   private final Ample ample;
   private final DataLevel level;
 
-  protected MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state,
-      String targetTableName) {
+  protected MetaDataStateStore(DataLevel level, ServerContext context, String targetTableName) {
+    super(context);
     this.level = level;
     this.context = context;
-    this.state = state;
     this.ample = context.getAmple();
     this.targetTableName = targetTableName;
   }
 
-  MetaDataStateStore(DataLevel level, ClientContext context, CurrentState state) {
-    this(level, context, state, AccumuloTable.METADATA.tableName());
+  MetaDataStateStore(DataLevel level, ServerContext context) {
+    this(level, context, AccumuloTable.METADATA.tableName());
   }
 
   @Override
@@ -63,96 +61,27 @@ class MetaDataStateStore implements TabletStateStore {
   }
 
   @Override
-  public ClosableIterator<TabletLocationState> iterator() {
-    return new MetaDataTableScanner(context, TabletsSection.getRange(), state, targetTableName);
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    Preconditions.checkArgument(parameters.getLevel() == getLevel());
+    return new TabletManagementScanner(context, ranges, parameters, targetTableName);
   }
 
   @Override
-  public void setLocations(Collection<Assignment> assignments) throws DistributedStoreException {
-    try (var tabletsMutator = ample.mutateTablets()) {
-      for (Assignment assignment : assignments) {
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(assignment.tablet);
-        tabletMutator.putLocation(Location.current(assignment.server));
-        ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator, assignment.server,
-            assignment.lastLocation);
-        tabletMutator.deleteLocation(Location.future(assignment.server));
-        tabletMutator.deleteSuspension();
-        tabletMutator.mutate();
+  public void unsuspend(Collection<TabletMetadata> tablets) throws DistributedStoreException {
+    try (var tabletsMutator = ample.conditionallyMutateTablets()) {
+      for (TabletMetadata tm : tablets) {
+        if (tm.getSuspend() != null) {
+          tabletsMutator.mutateTablet(tm.getExtent()).requireAbsentOperation()
+              .requireSame(tm, SUSPEND).deleteSuspension()
+              .submit(tabletMetadata -> tabletMetadata.getSuspend() == null);
+        }
       }
-    } catch (RuntimeException ex) {
-      throw new DistributedStoreException(ex);
-    }
-  }
 
-  @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
-      throws DistributedStoreException {
-    try (var tabletsMutator = ample.mutateTablets()) {
-      for (Assignment assignment : assignments) {
-        tabletsMutator.mutateTablet(assignment.tablet).deleteSuspension()
-            .putLocation(Location.future(assignment.server)).mutate();
-      }
-    } catch (RuntimeException ex) {
-      throw new DistributedStoreException(ex);
-    }
-  }
-
-  @Override
-  public void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
-    unassign(tablets, logsForDeadServers, null);
-  }
-
-  @Override
-  public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
-      throws DistributedStoreException {
-    unassign(tablets, logsForDeadServers, suspensionTimestamp);
-  }
-
-  private void unassign(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
-      throws DistributedStoreException {
-    try (var tabletsMutator = ample.mutateTablets()) {
-      for (TabletLocationState tls : tablets) {
-        TabletMutator tabletMutator = tabletsMutator.mutateTablet(tls.extent);
-        if (tls.current != null) {
-          ManagerMetadataUtil.updateLastForAssignmentMode(context, tabletMutator,
-              tls.current.getServerInstance(), tls.last);
-          tabletMutator.deleteLocation(tls.current);
-          if (logsForDeadServers != null) {
-            List<Path> logs = logsForDeadServers.get(tls.current.getServerInstance());
-            if (logs != null) {
-              for (Path log : logs) {
-                LogEntry entry = LogEntry.fromPath(log.toString());
-                tabletMutator.putWal(entry);
-              }
-            }
-          }
-          if (suspensionTimestamp != null && suspensionTimestamp.getMillis() >= 0) {
-            tabletMutator.putSuspension(tls.current.getServerInstance(), suspensionTimestamp);
-          }
-        }
-        if (tls.suspend != null && suspensionTimestamp == null) {
-          tabletMutator.deleteSuspension();
-        }
-        if (tls.hasFuture()) {
-          tabletMutator.deleteLocation(tls.future);
-        }
-        tabletMutator.mutate();
-      }
-    } catch (RuntimeException ex) {
-      throw new DistributedStoreException(ex);
-    }
-  }
-
-  @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
-    try (var tabletsMutator = ample.mutateTablets()) {
-      for (TabletLocationState tls : tablets) {
-        if (tls.suspend != null) {
-          tabletsMutator.mutateTablet(tls.extent).deleteSuspension().mutate();
-        }
+      boolean unacceptedConditions = tabletsMutator.process().values().stream()
+          .anyMatch(conditionalResult -> conditionalResult.getStatus() != Status.ACCEPTED);
+      if (unacceptedConditions) {
+        throw new DistributedStoreException("Some mutations failed to satisfy conditions");
       }
     } catch (RuntimeException ex) {
       throw new DistributedStoreException(ex);
@@ -164,4 +93,17 @@ class MetaDataStateStore implements TabletStateStore {
     return "Normal Tablets";
   }
 
+  @Override
+  protected void processSuspension(Ample.ConditionalTabletMutator tabletMutator, TabletMetadata tm,
+      SteadyTime suspensionTimestamp) {
+    if (tm.hasCurrent()) {
+      if (suspensionTimestamp != null) {
+        tabletMutator.putSuspension(tm.getLocation().getServerInstance(), suspensionTimestamp);
+      }
+    }
+
+    if (tm.getSuspend() != null && suspensionTimestamp == null) {
+      tabletMutator.deleteSuspension();
+    }
+  }
 }

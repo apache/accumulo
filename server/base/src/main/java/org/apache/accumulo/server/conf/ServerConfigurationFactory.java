@@ -36,6 +36,8 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -49,7 +51,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -80,11 +81,12 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     this.systemConfig = memoize(() -> new SystemConfiguration(context,
         SystemPropKey.of(context.getInstanceID()), siteConfig));
     tableParentConfigs =
-        Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
-    tableConfigs =
-        Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
-    namespaceConfigs =
-        Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
+        Caches.getInstance().createNewBuilder(CacheName.TABLE_PARENT_CONFIGS, false)
+            .expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
+    tableConfigs = Caches.getInstance().createNewBuilder(CacheName.TABLE_CONFIGS, false)
+        .expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
+    namespaceConfigs = Caches.getInstance().createNewBuilder(CacheName.NAMESPACE_CONFIGS, false)
+        .expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
 
     refresher = new ConfigRefreshRunner();
     Runtime.getRuntime()

@@ -34,6 +34,8 @@ import java.util.stream.IntStream;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -54,14 +56,10 @@ public class BalanceIT extends ConfigurableMacBase {
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
     siteConfig.put(Property.GENERAL_MICROMETER_ENABLED.getKey(), "true");
     siteConfig.put("general.custom.metrics.opts.logging.step", "0.5s");
     cfg.setSiteConfig(siteConfig);
-    // ensure we have two tservers
-    if (cfg.getNumTservers() != 2) {
-      cfg.setNumTservers(2);
-    }
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
   }
 
   @Override
@@ -94,7 +92,8 @@ public class BalanceIT extends ConfigurableMacBase {
       for (int i = 0; i < 10; i++) {
         splits.add(new Text("" + i));
       }
-      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED));
 
       var metaSplits = IntStream.range(1, 100).mapToObj(i -> Integer.toString(i, 36)).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
@@ -110,8 +109,8 @@ public class BalanceIT extends ConfigurableMacBase {
       assertTrue(stats.getMin() >= 50, locCounts.toString());
       assertEquals(2, stats.getCount(), locCounts.toString());
 
-      assertEquals(2, getCluster().getConfig().getNumTservers());
-      getCluster().getConfig().setNumTservers(4);
+      assertEquals(2, c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size());
+      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(4);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 

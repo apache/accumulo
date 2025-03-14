@@ -26,7 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 
@@ -37,19 +39,20 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.util.TextUtil;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class CreateInitialSplitsIT extends AccumuloClusterHarness {
+public class CreateInitialSplitsIT extends SharedMiniClusterBase {
 
   private AccumuloClient client;
   private String tableName;
@@ -59,12 +62,19 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(2);
   }
 
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration conf) {
-    cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setMemory(ServerType.TABLET_SERVER, 512, MemoryUnit.MEGABYTE);
 
-    // use raw local file system
-    conf.set("fs.file.impl", RawLocalFileSystem.class.getName());
+      // use raw local file system
+      coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+    });
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @BeforeEach
@@ -106,6 +116,37 @@ public class CreateInitialSplitsIT extends AccumuloClusterHarness {
       AccumuloException, TableNotFoundException {
     tableName = getUniqueNames(1)[0];
     runTest(generateNonBinarySplits(3000, 32));
+  }
+
+  @Test
+  public void testCreateInitialSplitsWithMergeability() throws TableExistsException,
+      AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    tableName = getUniqueNames(1)[0];
+
+    SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+    var splitDuration = Duration.ofSeconds(10);
+    for (int i = 0; i < 10; i++) {
+      splits.put(encode(getRandomText(32), false), TabletMergeability.after(splitDuration));
+    }
+
+    NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+    assertFalse(client.tableOperations().exists(tableName));
+    client.tableOperations().create(tableName, ntc);
+    assertTrue(client.tableOperations().exists(tableName));
+    Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
+    assertEquals(splits.keySet(), new TreeSet<>(createdSplits));
+
+    var tableId = getCluster().getServerContext().getTableId(tableName);
+    try (var tablets =
+        getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+      // default tablet (null end row) should have a default TabletMergeability of never for user
+      // created tablets
+      assertTrue(tablets.stream()
+          .anyMatch(tm -> tm.getEndRow() == null && tm.getTabletMergeability().isNever()));
+      // other splits should be created with a duration of 10 seconds
+      assertEquals(10, tablets.stream().filter(tm -> tm.getTabletMergeability().getDelay()
+          .map(delay -> delay.equals(splitDuration)).orElse(false)).count());
+    }
   }
 
   @Test

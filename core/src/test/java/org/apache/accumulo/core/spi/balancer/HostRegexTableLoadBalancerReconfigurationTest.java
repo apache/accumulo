@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.TableId;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class HostRegexTableLoadBalancerReconfigurationTest
     extends BaseHostRegexTableLoadBalancerTest {
 
@@ -82,6 +84,7 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(15, assignments.size());
     // Ensure unique tservers
@@ -108,7 +111,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // getOnlineTabletsForTable
     UtilWaitThread.sleep(3000);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
-        migrations, migrationsOut, DataLevel.USER, tables));
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), migrations,
+        migrationsOut, DataLevel.USER, tables));
     assertEquals(0, migrationsOut.size());
     // Change property, simulate call by TableConfWatcher
 
@@ -120,7 +124,8 @@ public class HostRegexTableLoadBalancerReconfigurationTest
     // populate the map with an older time value
     this.lastOOBCheckTimes.put(DataLevel.USER, System.currentTimeMillis() / 2);
     this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
-        migrations, migrationsOut, DataLevel.USER, tables));
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), migrations,
+        migrationsOut, DataLevel.USER, tables));
     assertEquals(5, migrationsOut.size());
     for (TabletMigration migration : migrationsOut) {
       assertTrue(migration.getNewTabletServer().getHost().startsWith("192.168.0.1")

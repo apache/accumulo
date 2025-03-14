@@ -34,7 +34,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -217,7 +217,7 @@ public class BatchWriterIterator extends WrappingIterator {
         if (firstWrite) {
           batchWriter.flush();
           if (clearCacheAfterFirstWrite) {
-            TabletLocator.clearLocators();
+            ClientTabletCache.clearInstances();
           }
           if (splitAfterFirstWrite) {
             SortedSet<Text> splits = new TreeSet<>();

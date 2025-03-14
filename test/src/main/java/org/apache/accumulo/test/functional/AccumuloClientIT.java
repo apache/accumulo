@@ -145,11 +145,11 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     Scanner scanner;
 
-    assertEquals(0, SingletonManager.getReservationCount());
+    assertEquals(1, SingletonManager.getReservationCount());
     assertEquals(Mode.CLIENT, SingletonManager.getMode());
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      assertEquals(1, SingletonManager.getReservationCount());
+      assertEquals(2, SingletonManager.getReservationCount());
 
       c.tableOperations().create(tableName);
 
@@ -165,10 +165,10 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
     // scanner created from closed client should fail
     expectClosed(() -> scanner.iterator().next());
 
-    assertEquals(0, SingletonManager.getReservationCount());
+    assertEquals(1, SingletonManager.getReservationCount());
 
     AccumuloClient c = Accumulo.newClient().from(getClientProps()).build();
-    assertEquals(1, SingletonManager.getReservationCount());
+    assertEquals(2, SingletonManager.getReservationCount());
 
     // ensure client created after everything was closed works
     Scanner scanner2 = c.createScanner(tableName, Authorizations.EMPTY);
@@ -183,7 +183,7 @@ public class AccumuloClientIT extends AccumuloClusterHarness {
 
     c.close();
 
-    assertEquals(0, SingletonManager.getReservationCount());
+    assertEquals(1, SingletonManager.getReservationCount());
 
     expectClosed(() -> c.createScanner(tableName, Authorizations.EMPTY));
     expectClosed(() -> c.createConditionalWriter(tableName));

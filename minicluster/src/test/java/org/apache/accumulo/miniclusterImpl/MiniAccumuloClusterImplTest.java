@@ -70,7 +70,7 @@ public class MiniAccumuloClusterImplTest {
     MiniAccumuloConfigImpl config =
         new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
-    config.setNumTservers(NUM_TSERVERS);
+    config.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
@@ -128,6 +128,8 @@ public class MiniAccumuloClusterImplTest {
         "root table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(AccumuloTable.METADATA.tableId().canonical()),
         "meta table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(AccumuloTable.FATE.tableId().canonical()),
+        "fate table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(AccumuloTable.SCAN_REF.tableId().canonical()),
         "scan ref table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(testTableID),

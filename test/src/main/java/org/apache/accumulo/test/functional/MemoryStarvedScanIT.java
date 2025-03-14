@@ -42,11 +42,13 @@ import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -72,7 +74,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setMemory(ServerType.TABLET_SERVER, 256, MemoryUnit.MEGABYTE);
       // Configure the LowMemoryDetector in the TabletServer
       cfg.setProperty(Property.GENERAL_LOW_MEM_DETECTOR_INTERVAL, "5s");
@@ -120,8 +122,8 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
               double val = Double.parseDouble(metric.getValue());
               SCAN_RETURNED_EARLY.add(val);
             } else if (metric.getName().equals(LOW_MEMORY.getName())) {
-              String process = metric.getTags().get("process.name");
-              if (process != null && process.contains("tserver")) {
+              String process = metric.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY);
+              if (process != null && process.contains(ServerId.Type.TABLET_SERVER.name())) {
                 int val = Integer.parseInt(metric.getValue());
                 LOW_MEM_DETECTED.set(val);
               }

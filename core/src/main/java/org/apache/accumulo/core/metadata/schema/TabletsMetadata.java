@@ -19,14 +19,8 @@
 package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkState;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -60,30 +54,15 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterators;
@@ -109,11 +88,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private boolean checkConsistency = false;
     private boolean saveKeyValues;
     private TableId tableId;
-    private ReadConsistency readConsistency = ReadConsistency.IMMEDIATE;
     private final AccumuloClient _client;
+    private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
+    private final Function<DataLevel,String> tableMapper;
 
-    Builder(AccumuloClient client) {
+    Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
       this._client = client;
+      this.tableMapper = Objects.requireNonNull(tableMapper);
     }
 
     @Override
@@ -125,12 +106,28 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         return buildExtents(_client);
       }
 
+      if (!tabletMetadataFilters.isEmpty()) {
+        checkState(!checkConsistency, "Can not check tablet consistency and filter tablets");
+        if (!fetchedCols.isEmpty()) {
+          for (var filter : tabletMetadataFilters) {
+            // This defends against the case where the columns needed by the filter were not
+            // fetched. For example, the following code only fetches the file column and then
+            // configures the WAL filter which also needs the column for write ahead logs.
+            // ample.readTablets().forLevel(DataLevel.USER).fetch(ColumnType.FILES).filter(new
+            // HasWalsFilter()).build();
+            checkState(fetchedCols.containsAll(filter.getColumns()),
+                "%s needs cols %s however only %s were fetched", filter.getClass().getSimpleName(),
+                filter.getColumns(), fetchedCols);
+          }
+        }
+      }
+
       checkState((level == null) != (table == null),
           "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s",
           level, table);
       if (level == DataLevel.ROOT) {
         ClientContext ctx = ((ClientContext) _client);
-        return new TabletsMetadata(getRootMetadata(ctx, readConsistency));
+        return new TabletsMetadata(getRootMetadata(ctx));
       } else {
         return buildNonRoot(_client);
       }
@@ -153,26 +150,35 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       for (DataLevel level : groupedExtents.keySet()) {
         if (level == DataLevel.ROOT) {
-          iterables.add(() -> Iterators
-              .singletonIterator(getRootMetadata((ClientContext) client, readConsistency)));
+          iterables.add(() -> Iterators.singletonIterator(getRootMetadata((ClientContext) client)));
         } else {
           try {
             BatchScanner scanner =
-                client.createBatchScanner(level.metaTable(), Authorizations.EMPTY);
+                client.createBatchScanner(tableMapper.apply(level), Authorizations.EMPTY);
 
             var ranges =
                 groupedExtents.get(level).stream().map(KeyExtent::toMetaRange).collect(toList());
             scanner.setRanges(ranges);
 
             configureColumns(scanner);
-            IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
+            int iteratorPriority = 100;
+
+            for (TabletMetadataFilter tmf : tabletMetadataFilters) {
+              IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+              iterSetting.addOptions(tmf.getServerSideOptions());
+              scanner.addScanIterator(iterSetting);
+              iteratorPriority++;
+            }
+
+            IteratorSetting iterSetting =
+                new IteratorSetting(iteratorPriority, WholeRowIterator.class);
             scanner.addScanIterator(iterSetting);
 
             Iterable<TabletMetadata> tmi = () -> Iterators.transform(scanner.iterator(), entry -> {
               try {
                 return TabletMetadata.convertRow(WholeRowIterator
                     .decodeRow(entry.getKey(), entry.getValue()).entrySet().iterator(), fetchedCols,
-                    saveKeyValues);
+                    saveKeyValues, false);
               } catch (IOException e) {
                 throw new UncheckedIOException(e);
               }
@@ -221,7 +227,7 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private TabletsMetadata buildNonRoot(AccumuloClient client) {
       try {
 
-        String resolvedTable = table == null ? level.metaTable() : table;
+        String resolvedTable = table == null ? tableMapper.apply(level) : table;
 
         Scanner scanner =
             new IsolatedScanner(client.createScanner(resolvedTable, Authorizations.EMPTY));
@@ -236,12 +242,22 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         configureColumns(scanner);
         Range range1 = scanner.getRange();
 
+        if (!tabletMetadataFilters.isEmpty()) {
+          int iteratorPriority = 100;
+          for (TabletMetadataFilter tmf : tabletMetadataFilters) {
+            iteratorPriority++;
+            IteratorSetting iterSetting = new IteratorSetting(iteratorPriority, tmf.getClass());
+            iterSetting.addOptions(tmf.getServerSideOptions());
+            scanner.addScanIterator(iterSetting);
+          }
+        }
+
         Function<Range,Iterator<TabletMetadata>> iterFactory = r -> {
           synchronized (scanner) {
             scanner.setRange(r);
             RowIterator rowIter = new RowIterator(scanner);
             Iterator<TabletMetadata> iter = Iterators.transform(rowIter,
-                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues));
+                ri -> TabletMetadata.convertRow(ri, fetchedCols, saveKeyValues, false));
             if (extentsPresent) {
               return Iterators.filter(iter,
                   tabletMetadata -> extentsToFetch.contains(tabletMetadata.getExtent()));
@@ -288,64 +304,15 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     @Override
     public Options fetch(ColumnType... colsToFetch) {
       Preconditions.checkArgument(colsToFetch.length > 0);
-
-      for (ColumnType colToFetch : colsToFetch) {
-
-        fetchedCols.add(colToFetch);
-
-        switch (colToFetch) {
-          case CLONED:
-            families.add(ClonedColumnFamily.NAME);
-            break;
-          case COMPACT_ID:
-            qualifiers.add(COMPACT_COLUMN);
-            break;
-          case DIR:
-            qualifiers.add(DIRECTORY_COLUMN);
-            break;
-          case FILES:
-            families.add(DataFileColumnFamily.NAME);
-            break;
-          case FLUSH_ID:
-            qualifiers.add(FLUSH_COLUMN);
-            break;
-          case LAST:
-            families.add(LastLocationColumnFamily.NAME);
-            break;
-          case LOADED:
-            families.add(BulkFileColumnFamily.NAME);
-            break;
-          case LOCATION:
-            families.add(CurrentLocationColumnFamily.NAME);
-            families.add(FutureLocationColumnFamily.NAME);
-            break;
-          case LOGS:
-            families.add(LogColumnFamily.NAME);
-            break;
-          case PREV_ROW:
-            qualifiers.add(PREV_ROW_COLUMN);
-            break;
-          case SCANS:
-            families.add(ScanFileColumnFamily.NAME);
-            break;
-          case SUSPEND:
-            families.add(SuspendLocationColumn.SUSPEND_COLUMN.getColumnFamily());
-            break;
-          case TIME:
-            qualifiers.add(TIME_COLUMN);
-            break;
-          case ECOMP:
-            families.add(ExternalCompactionColumnFamily.NAME);
-            break;
-          case MERGED:
-            families.add(MergedColumnFamily.NAME);
-            break;
-          default:
-            throw new IllegalArgumentException("Unknown col type " + colToFetch);
-
+      for (var col : colsToFetch) {
+        fetchedCols.add(col);
+        var qualifier = ColumnType.resolveQualifier(col);
+        if (qualifier != null) {
+          qualifiers.add(qualifier);
+        } else {
+          families.addAll(ColumnType.resolveFamiliesAsText(col));
         }
       }
-
       return this;
     }
 
@@ -432,8 +399,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     }
 
     @Override
-    public Options readConsistency(ReadConsistency readConsistency) {
-      this.readConsistency = Objects.requireNonNull(readConsistency);
+    public Options filter(TabletMetadataFilter filter) {
+      this.tabletMetadataFilters.add(filter);
       return this;
     }
   }
@@ -457,10 +424,13 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     Options saveKeyValues();
 
     /**
-     * Controls how the data is read. If not, set then the default is
-     * {@link ReadConsistency#IMMEDIATE}
+     * Adds a filter to be applied while fetching the data. Filters are applied in the order they
+     * are added. This method can be called multiple times to chain multiple filters together. The
+     * first filter added has the highest priority and each subsequent filter is applied with a
+     * sequentially lower priority. If columns needed by a filter are not fetched then a runtime
+     * exception is thrown.
      */
-    Options readConsistency(ReadConsistency readConsistency);
+    Options filter(TabletMetadataFilter filter);
   }
 
   public interface RangeOptions extends Options {
@@ -579,35 +549,16 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   }
 
   public static TableOptions builder(AccumuloClient client) {
-    return new Builder(client);
+    return new Builder(client, DataLevel::metaTable);
   }
 
-  private static TabletMetadata getRootMetadata(ClientContext ctx,
-      ReadConsistency readConsistency) {
-    String zkRoot = ctx.getZooKeeperRoot();
-    switch (readConsistency) {
-      case EVENTUAL:
-        return getRootMetadata(zkRoot, ctx.getZooCache());
-      case IMMEDIATE:
-        ZooReader zooReader = ctx.getZooSession().asReader();
-        try {
-          var path = zkRoot + RootTable.ZROOT_TABLET;
-          // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
-          // zookeeper
-          zooReader.sync(path);
-          byte[] bytes = zooReader.getData(path);
-          return new RootTabletMetadata(new String(bytes, UTF_8)).toTabletMetadata();
-        } catch (InterruptedException | KeeperException e) {
-          throw new IllegalStateException(e);
-        }
-      default:
-        throw new IllegalArgumentException("Unknown consistency level " + readConsistency);
-    }
+  public static TableOptions builder(AccumuloClient client,
+      Function<DataLevel,String> tableMapper) {
+    return new Builder(client, tableMapper);
   }
 
-  public static TabletMetadata getRootMetadata(String zkRoot, ZooCache zc) {
-    byte[] jsonBytes = zc.get(zkRoot + RootTable.ZROOT_TABLET);
-    return new RootTabletMetadata(new String(jsonBytes, UTF_8)).toTabletMetadata();
+  private static TabletMetadata getRootMetadata(ClientContext ctx) {
+    return RootTabletMetadata.read(ctx).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;

@@ -35,8 +35,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -44,6 +42,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
+import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -69,7 +68,6 @@ public class TableManager {
   private final String zkRoot;
   private final InstanceId instanceID;
   private final ZooReaderWriter zoo;
-  private final ZooCache zooStateCache;
 
   public static void prepareNewNamespaceState(final ServerContext context, NamespaceId namespaceId,
       String namespace, NodeExistsPolicy existsPolicy)
@@ -102,8 +100,6 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8),
         existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_ID, ZERO_BYTE, existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
     var propKey = TablePropKey.of(instanceId, tableId);
@@ -124,7 +120,8 @@ public class TableManager {
     zkRoot = context.getZooKeeperRoot();
     instanceID = context.getInstanceID();
     zoo = context.getZooSession().asReaderWriter();
-    zooStateCache = new ZooCache(context.getZooSession(), new TableStateWatcher());
+    // add our Watcher to the shared ZooCache
+    context.getZooCache().addZooCacheWatcher(new TableStateWatcher());
     updateTableStateCache();
   }
 
@@ -181,9 +178,9 @@ public class TableManager {
 
   private void updateTableStateCache() {
     synchronized (tableStateCache) {
-      for (String tableId : zooStateCache.getChildren(zkRoot + Constants.ZTABLES)) {
-        if (zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
-            != null) {
+      for (String tableId : context.getZooCache().getChildren(zkRoot + Constants.ZTABLES)) {
+        if (context.getZooCache()
+            .get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE) != null) {
           updateTableStateCache(TableId.of(tableId));
         }
       }
@@ -193,8 +190,8 @@ public class TableManager {
   public TableState updateTableStateCache(TableId tableId) {
     synchronized (tableStateCache) {
       TableState tState = TableState.UNKNOWN;
-      byte[] data =
-          zooStateCache.get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+      byte[] data = context.getZooCache()
+          .get(zkRoot + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
       if (data != null) {
         String sState = new String(data, UTF_8);
         try {
@@ -272,27 +269,28 @@ public class TableManager {
           }
         }
         if (tableId == null) {
-          log.warn("Unknown path in {}", event);
+          log.trace("Unhandled path {}", event);
           return;
         }
       }
 
       switch (zType) {
         case NodeChildrenChanged:
-          if (zPath != null && zPath.equals(tablesPrefix)) {
-            updateTableStateCache();
-          } else {
-            log.warn("Unexpected path {} in {}", zPath, event);
-          }
+          // According to documentation we should not receive this event now
+          // that ZooCache is using Persistent Watchers. Not logging an error here.
+          // According to https://issues.apache.org/jira/browse/ZOOKEEPER-4475 we
+          // may receive this event (Fixed in 3.9.0)
           break;
         case NodeCreated:
         case NodeDataChanged:
           // state transition
-          TableState tState = updateTableStateCache(tableId);
-          log.debug("State transition to {} @ {}", tState, event);
-          synchronized (observers) {
-            for (TableObserver to : observers) {
-              to.stateChanged(tableId, tState);
+          if (tableId != null) {
+            TableState tState = updateTableStateCache(tableId);
+            log.debug("State transition to {} @ {}", tState, event);
+            synchronized (observers) {
+              for (TableObserver to : observers) {
+                to.stateChanged(tableId, tState);
+              }
             }
           }
           break;

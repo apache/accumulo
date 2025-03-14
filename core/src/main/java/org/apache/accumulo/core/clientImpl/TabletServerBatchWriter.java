@@ -54,12 +54,13 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
-import org.apache.accumulo.core.clientImpl.TabletLocator.TabletServerMutations;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -666,7 +667,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private final ThreadPoolExecutor binningThreadPool;
     private final Map<String,TabletServerMutations<Mutation>> serversMutations;
     private final Set<String> queued;
-    private final Map<TableId,TabletLocator> locators;
+    private final Map<TableId,ClientTabletCache> locators;
 
     public MutationWriter(int numSendThreads) {
       serversMutations = new HashMap<>();
@@ -679,10 +680,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       binningThreadPool.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private synchronized TabletLocator getLocator(TableId tableId) {
-      TabletLocator ret = locators.get(tableId);
+    private synchronized ClientTabletCache getLocator(TableId tableId) {
+      ClientTabletCache ret = locators.get(tableId);
       if (ret == null) {
-        ret = new TimeoutTabletLocator(timeout, context, tableId);
+        ret = new TimeoutClientTabletCache(timeout, context, tableId);
         locators.put(tableId, ret);
       }
 
@@ -696,7 +697,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
         Set<Entry<TableId,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
         for (Entry<TableId,List<Mutation>> entry : es) {
           tableId = entry.getKey();
-          TabletLocator locator = getLocator(tableId);
+          ClientTabletCache locator = getLocator(tableId);
           List<Mutation> tableMutations = entry.getValue();
 
           if (tableMutations != null) {
@@ -723,7 +724,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
       } catch (AccumuloSecurityException e) {
         updateAuthorizationFailures(Collections.singletonMap(new KeyExtent(tableId, null, null),
             SecurityErrorCode.valueOf(e.getSecurityErrorCode().name())));
-      } catch (TableDeletedException | TableNotFoundException | TableOfflineException e) {
+      } catch (InvalidTabletHostingRequestException | TableDeletedException | TableNotFoundException
+          | TableOfflineException e) {
         updateUnknownErrors(e.getMessage(), e);
       }
 

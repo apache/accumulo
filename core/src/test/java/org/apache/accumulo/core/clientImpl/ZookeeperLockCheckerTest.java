@@ -18,28 +18,56 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import java.util.UUID;
+import java.util.function.Predicate;
+
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooCache;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class ZookeeperLockCheckerTest {
 
+  private ClientContext context;
+  private ZooCache zc;
+
+  @BeforeEach
+  public void setUp() {
+    var instanceId = InstanceId.of(UUID.randomUUID());
+    zc = createMock(ZooCache.class);
+    context = createMock(ClientContext.class);
+    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceId)).anyTimes();
+    expect(context.getZooCache()).andReturn(zc).anyTimes();
+    replay(context, zc);
+  }
+
+  @AfterEach
+  public void tearDown() {
+    verify(context, zc);
+  }
+
   @Test
   public void testInvalidateCache() {
-    ZooCache zc = createMock(ZooCache.class);
-    String basePath = "/arbitrary/base/path";
+    var zklc = new ZookeeperLockChecker(zc, context.getZooKeeperRoot());
 
-    zc.clear(basePath + "/server");
+    verify(zc);
+    reset(zc);
+    @SuppressWarnings("unchecked")
+    Predicate<String> anyObj = anyObject(Predicate.class);
+    zc.clear(anyObj);
     expectLastCall().once();
     replay(zc);
 
-    var zklc = new ZookeeperLockChecker(zc, basePath);
     zklc.invalidateCache("server");
-
-    verify(zc);
   }
 }

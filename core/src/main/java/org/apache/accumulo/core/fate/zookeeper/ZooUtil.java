@@ -21,7 +21,6 @@ package org.apache.accumulo.core.fate.zookeeper;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
-import java.math.BigInteger;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -31,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
@@ -82,7 +82,7 @@ public class ZooUtil {
         path = root + "/" + sa[0].substring(0, lastSlash);
       }
       node = sa[0].substring(lastSlash + 1);
-      eid = new BigInteger(sa[1], 16).longValue();
+      eid = Long.parseUnsignedLong(sa[1], 16);
     }
 
     public LockID(String path, String node, long eid) {
@@ -97,7 +97,25 @@ public class ZooUtil {
 
     @Override
     public String toString() {
-      return " path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
+      return "path = " + path + " node = " + node + " eid = " + Long.toHexString(eid);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (obj == this) {
+        return true;
+      }
+      if (obj instanceof LockID) {
+        LockID other = (LockID) obj;
+        return this.path.equals(other.path) && this.node.equals(other.node)
+            && this.eid == other.eid;
+      }
+      return false;
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(path, node, eid);
     }
   }
 

@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -53,28 +54,33 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.accumulo.server.iterators.MetadataBulkLoadFilter;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class MetadataIT extends AccumuloClusterHarness {
+public class MetadataIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(
+        (cfg, coreSite) -> cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1));
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
-  }
-
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
   }
 
   @Test
@@ -243,18 +249,15 @@ public class MetadataIT extends AccumuloClusterHarness {
           client.tableOperations().getTableProperties(AccumuloTable.METADATA.tableName());
 
       // Verify root table config
-      testCommonSystemTableConfig(rootTableProps);
-      assertEquals("root",
-          rootTableProps.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service"));
+      testCommonSystemTableConfig(client, AccumuloTable.ROOT.tableId(), rootTableProps);
 
       // Verify metadata table config
-      testCommonSystemTableConfig(metadataTableProps);
-      assertEquals("meta",
-          metadataTableProps.get(Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service"));
+      testCommonSystemTableConfig(client, AccumuloTable.METADATA.tableId(), metadataTableProps);
     }
   }
 
-  private void testCommonSystemTableConfig(Map<String,String> tableProps) {
+  private void testCommonSystemTableConfig(ClientContext client, TableId tableId,
+      Map<String,String> tableProps) {
     // Verify properties all have a table. prefix
     assertTrue(tableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
 
@@ -274,10 +277,6 @@ public class MetadataIT extends AccumuloClusterHarness {
             MetadataSchema.TabletsSection.ServerColumnFamily.NAME,
             MetadataSchema.TabletsSection.FutureLocationColumnFamily.NAME),
         tableProps.get(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "server"));
-    assertEquals("20," + MetadataBulkLoadFilter.class.getName(),
-        tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter"));
-    assertEquals(SimpleCompactionDispatcher.class.getName(),
-        tableProps.get(Property.TABLE_COMPACTION_DISPATCHER.getKey()));
 
     // Verify VersioningIterator related properties are correct
     var iterClass = "10," + VersioningIterator.class.getName();
@@ -291,5 +290,13 @@ public class MetadataIT extends AccumuloClusterHarness {
     assertEquals(iterClass, tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
     assertEquals(maxVersions,
         tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+
+    // Verify all tablets are HOSTED and Mergeablity is NEVER
+    try (var tablets = client.getAmple().readTablets().forTable(tableId).build()) {
+      assertTrue(
+          tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
+      assertTrue(tablets.stream()
+          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeabilityMetadata.never())));
+    }
   }
 }

@@ -21,7 +21,7 @@ package org.apache.accumulo.manager.tableOps;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.manager.Manager;
@@ -36,26 +36,26 @@ public class TraceRepo<T> implements Repo<T> {
 
   private static final long serialVersionUID = 1L;
 
-  TInfo tinfo;
-  Repo<T> repo;
+  final TInfo tinfo;
+  final Repo<T> repo;
 
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;
     tinfo = TraceUtil.traceInfo();
   }
 
-  private static void setAttributes(long tid, Span span) {
+  private static void setAttributes(FateId fateId, Span span) {
     if (span.isRecording()) {
-      span.setAttribute(ID_ATTR, FateTxId.formatTid(tid));
+      span.setAttribute(ID_ATTR, fateId.canonical());
     }
   }
 
   @Override
-  public long isReady(long tid, T environment) throws Exception {
+  public long isReady(FateId fateId, T environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), "isReady", tinfo);
     try (Scope scope = span.makeCurrent()) {
-      setAttributes(tid, span);
-      var delay = repo.isReady(tid, environment);
+      setAttributes(fateId, span);
+      var delay = repo.isReady(fateId, environment);
       if (span.isRecording()) {
         span.setAttribute(DELAY_ATTR, delay + "ms");
       }
@@ -69,11 +69,11 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public Repo<T> call(long tid, T environment) throws Exception {
+  public Repo<T> call(FateId fateId, T environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), "call", tinfo);
     try (Scope scope = span.makeCurrent()) {
-      setAttributes(tid, span);
-      Repo<T> result = repo.call(tid, environment);
+      setAttributes(fateId, span);
+      Repo<T> result = repo.call(fateId, environment);
       if (result == null) {
         return null;
       }
@@ -87,11 +87,11 @@ public class TraceRepo<T> implements Repo<T> {
   }
 
   @Override
-  public void undo(long tid, T environment) throws Exception {
+  public void undo(FateId fateId, T environment) throws Exception {
     Span span = TraceUtil.startFateSpan(repo.getClass(), "undo", tinfo);
     try (Scope scope = span.makeCurrent()) {
-      setAttributes(tid, span);
-      repo.undo(tid, environment);
+      setAttributes(fateId, span);
+      repo.undo(fateId, environment);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;

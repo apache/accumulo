@@ -22,6 +22,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -43,19 +44,19 @@ class CloneZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
+  public long isReady(FateId fateId, Manager environment) throws Exception {
     long val = 0;
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, tid, LockType.READ, true,
+      val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, fateId, LockType.READ, true,
           TableOperation.CLONE);
     }
-    val += Utils.reserveTable(environment, cloneInfo.tableId, tid, LockType.WRITE, false,
+    val += Utils.reserveTable(environment, cloneInfo.tableId, fateId, LockType.WRITE, false,
         TableOperation.CLONE);
     return val;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     Utils.getTableNameLock().lock();
     try {
       // write tableName & tableId to zookeeper
@@ -75,12 +76,12 @@ class CloneZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
+  public void undo(FateId fateId, Manager environment) throws Exception {
     environment.getTableManager().removeTable(cloneInfo.tableId);
     if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, LockType.READ);
+      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, fateId, LockType.READ);
     }
-    Utils.unreserveTable(environment, cloneInfo.tableId, tid, LockType.WRITE);
+    Utils.unreserveTable(environment, cloneInfo.tableId, fateId, LockType.WRITE);
     environment.getContext().clearTableListCache();
   }
 

@@ -21,14 +21,17 @@ package org.apache.accumulo.server.metadata;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
@@ -36,12 +39,15 @@ import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.TabletMutator {
+public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
+    implements Ample.TabletMutator {
+
+  private final ServiceLock lock;
   private final ServerContext context;
 
   private static final Logger log = LoggerFactory.getLogger(RootTabletMutatorImpl.class);
 
-  private static class RootEnv implements SystemEnvironment, Constraint.Environment {
+  static class RootEnv implements SystemEnvironment, Constraint.Environment {
 
     private final ServerContext context;
 
@@ -71,13 +77,18 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
   }
 
   RootTabletMutatorImpl(ServerContext context) {
-    super(context, RootTable.EXTENT);
+    super(RootTable.EXTENT);
     this.context = context;
+    this.lock = this.context.getServiceLock();
+    Objects.requireNonNull(this.lock, "ServiceLock not set on ServerContext");
   }
 
   @Override
   public void mutate() {
 
+    if (putServerLock) {
+      this.putZooLock(this.context.getZooKeeperRoot(), lock);
+    }
     Mutation mutation = getMutation();
 
     MetadataConstraints metaConstraint = new MetadataConstraints();
@@ -94,6 +105,7 @@ public class RootTabletMutatorImpl extends TabletMutatorBase implements Ample.Ta
       context.getZooCache().clear(zpath);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
+      // TODO for efficiency this should maybe call mutateExisting
       context.getZooSession().asReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
         String currJson = new String(currVal, UTF_8);
         var rtm = new RootTabletMetadata(currJson);

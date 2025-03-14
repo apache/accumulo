@@ -146,12 +146,6 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
-  public void testTypeLAST_LOCATION_MODE() {
-    valid(null, "compaction", "assignment");
-    invalid("", "other");
-  }
-
-  @Test
   public void testTypeFRACTION() {
     valid(null, "1", "0", "1.0", "25%", "2.5%", "10.2E-3", "10.2E-3%", ".3");
     invalid("", "other", "20%%", "-0.3", "3.6a", "%25", "3%a");

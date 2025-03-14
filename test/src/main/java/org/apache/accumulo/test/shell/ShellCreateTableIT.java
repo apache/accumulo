@@ -33,6 +33,7 @@ import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -57,6 +58,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -75,7 +77,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       // Only one tserver to avoid race conditions on ZK propagation (auths and configuration)
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       // Set the min span to 0 so we will definitely get all the traces back. See ACCUMULO-4365
       Map<String,String> siteConf = cfg.getSiteConfig();
       cfg.setSiteConfig(siteConf);
@@ -627,6 +629,65 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
       Files.delete(Paths.get(splitsFile));
+    }
+  }
+
+  // Verify that createtable handles initial TabletAvailability parameters.
+  // Argument should handle upper/lower/mixed case as value.
+  // If splits are supplied, each created tablet should contain the ~tab:availability value in
+  // the
+  // metadata table.
+  @Test
+  public void testCreateTableWithInitialTabletAvailability() throws Exception {
+    final String[] tables = getUniqueNames(5);
+
+    // createtable with no tablet availability argument supplied
+    String createCmd = "createtable " + tables[0];
+    verifyTableWithTabletAvailability(createCmd, tables[0], "ONDEMAND", 1);
+
+    // createtable with '-a' argument supplied
+    createCmd = "createtable " + tables[1] + " -a hosted";
+    verifyTableWithTabletAvailability(createCmd, tables[1], "HOSTED", 1);
+
+    // using --availability
+    createCmd = "createtable " + tables[2] + " --availability unHosted";
+    verifyTableWithTabletAvailability(createCmd, tables[2], "UNHOSTED", 1);
+
+    String splitsFile = System.getProperty("user.dir") + "/target/splitsFile";
+    Path splitFilePath = Paths.get(splitsFile);
+    try {
+      generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
+      createCmd = "createtable " + tables[3] + " -a Hosted -sf " + splitsFile;
+      verifyTableWithTabletAvailability(createCmd, tables[3], "HOSTED", 11);
+    } finally {
+      Files.delete(splitFilePath);
+    }
+
+    try {
+      generateSplitsFile(splitsFile, 5, 5, true, true, true, false, false);
+      createCmd = "createtable " + tables[4] + " -a unhosted -sf " + splitsFile;
+      verifyTableWithTabletAvailability(createCmd, tables[4], "UNHOSTED", 6);
+    } finally {
+      Files.delete(splitFilePath);
+    }
+  }
+
+  private void verifyTableWithTabletAvailability(String cmd, String tableName,
+      String tabletAvailability, int expectedTabletCnt) throws Exception {
+    ts.exec(cmd);
+    String tableId = getTableId(tableName);
+    String result = ts.exec(
+        "scan -t accumulo.metadata -b " + tableId + " -e " + tableId + "< -c ~tab:availability");
+    // the ~tab:availability entry should be created at table creation
+    assertTrue(result.contains("~tab:availability"));
+    // There should be a corresponding tablet availability value for each expected tablet
+    assertEquals(expectedTabletCnt, StringUtils.countMatches(result, tabletAvailability));
+  }
+
+  private String getTableId(String tableName) throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> idMap = client.tableOperations().tableIdMap();
+      return idMap.get(tableName);
     }
   }
 

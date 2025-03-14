@@ -574,7 +574,7 @@ public class TabletServerLogger {
     }
   }
 
-  public void recover(ServerContext context, KeyExtent extent, List<LogEntry> walogs,
+  public void recover(ServerContext context, KeyExtent extent, Collection<LogEntry> walogs,
       Set<String> tabletFiles, MutationReceiver mr) throws IOException {
     try {
       var resourceMgr = tserver.getResourceManager();

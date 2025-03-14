@@ -30,7 +30,10 @@ import org.apache.accumulo.core.data.TableId;
  */
 public enum AccumuloTable {
 
-  ROOT("root", "+r"), METADATA("metadata", "!0"), SCAN_REF("scanref", "+scanref");
+  ROOT("root", "+r"),
+  METADATA("metadata", "!0"),
+  FATE("fate", "+fate"),
+  SCAN_REF("scanref", "+scanref");
 
   private final String name;
   private final TableId tableId;

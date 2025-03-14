@@ -117,7 +117,7 @@ public class Upgrader11to12 implements Upgrader {
       var rtm = new RootTabletMetadata(json);
 
       TreeMap<Key,Value> entries = new TreeMap<>();
-      rtm.toKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
+      rtm.getKeyValues().filter(e -> UPGRADE_FAMILIES.contains(e.getKey().getColumnFamily()))
           .forEach(entry -> entries.put(entry.getKey(), entry.getValue()));
       ArrayList<Mutation> mutations = new ArrayList<>();
 

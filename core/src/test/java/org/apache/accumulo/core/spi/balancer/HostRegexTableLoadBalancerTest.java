@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.regex.Pattern;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.junit.jupiter.api.Test;
 
+@Deprecated
 public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalancerTest {
 
   public void init(Map<String,String> tableProperties) {
@@ -92,9 +94,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(DEFAULT_TABLE_PROPERTIES);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    long wait =
-        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    long wait = this.balance(new BalanceParamsImpl(current,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations, migrationsOut,
+        DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // should balance four tablets in one of the tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -104,8 +107,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
+    SortedMap<TabletServerId,TServerStatus> current2 = createCurrent(15);
+    wait = this.balance(new BalanceParamsImpl(current2,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current2.keySet()), migrations, migrationsOut,
+        DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -115,8 +120,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
+    SortedMap<TabletServerId,TServerStatus> current3 = createCurrent(15);
+    wait = this.balance(new BalanceParamsImpl(current3,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current3.keySet()), migrations, migrationsOut,
+        DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // should balance four tablets in one of the other tables before reaching max
     assertEquals(4, migrationsOut.size());
@@ -126,8 +133,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       migrations.add(m.getTablet());
     }
     migrationsOut.clear();
-    wait = this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-        migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
+    SortedMap<TabletServerId,TServerStatus> current4 = createCurrent(15);
+    wait = this.balance(new BalanceParamsImpl(current4,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current4.keySet()), migrations, migrationsOut,
+        DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // no more balancing to do
     assertEquals(0, migrationsOut.size());
@@ -142,9 +151,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     Set<TabletId> migrations = new HashSet<>();
     migrations.addAll(tableTablets.get(FOO.getTableName()));
     migrations.addAll(tableTablets.get(BAR.getTableName()));
-    long wait =
-        this.balance(new BalanceParamsImpl(Collections.unmodifiableSortedMap(createCurrent(15)),
-            migrations, migrationsOut, DataLevel.USER, environment.getTableIdMap()));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    long wait = this.balance(new BalanceParamsImpl(current,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations, migrationsOut,
+        DataLevel.USER, environment.getTableIdMap()));
     assertEquals(20000, wait);
     // no migrations should have occurred as 10 is the maxOutstandingMigrations
     assertEquals(0, migrationsOut.size());
@@ -338,6 +348,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(15, assignments.size());
     // Ensure unique tservers
@@ -363,8 +374,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   public void testAllAssigned() {
     init(DEFAULT_TABLE_PROPERTIES);
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    this.getAssignments(new AssignmentParamsImpl(
-        Collections.unmodifiableSortedMap(allTabletServers), Map.of(), assignments));
+    this.getAssignments(
+        new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()), Map.of(),
+            assignments));
     assertEquals(0, assignments.size());
   }
 
@@ -384,6 +397,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
     this.getAssignments(
         new AssignmentParamsImpl(Collections.unmodifiableSortedMap(allTabletServers),
+            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
             Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
     // Ensure unique tservers
@@ -428,6 +442,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
       current.remove(r);
     }
     this.getAssignments(new AssignmentParamsImpl(Collections.unmodifiableSortedMap(current),
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
         Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
     // Ensure assignments are correct
@@ -470,6 +485,7 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     }
 
     this.getAssignments(new AssignmentParamsImpl(Collections.unmodifiableSortedMap(current),
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, allTabletServers.keySet()),
         Collections.unmodifiableMap(unassigned), assignments));
     assertEquals(unassigned.size(), assignments.size());
 
@@ -491,8 +507,10 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
     init(DEFAULT_TABLE_PROPERTIES);
     Set<TabletId> migrations = new HashSet<>();
     List<TabletMigration> migrationsOut = new ArrayList<>();
-    this.balance(new BalanceParamsImpl(createCurrent(15), migrations, migrationsOut, DataLevel.USER,
-        environment.getTableIdMap()));
+    SortedMap<TabletServerId,TServerStatus> current = createCurrent(15);
+    this.balance(new BalanceParamsImpl(current,
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations, migrationsOut,
+        DataLevel.USER, environment.getTableIdMap()));
     assertEquals(2, migrationsOut.size());
   }
 
