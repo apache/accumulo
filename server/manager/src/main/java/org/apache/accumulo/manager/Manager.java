@@ -335,8 +335,8 @@ public class Manager extends AbstractServer
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
+          upgradeCoordinator.continueUpgrade();
           upgradeCoordinator.preUpgradeValidation();
-          upgradeCoordinator.startOrContinueUpgrade();
           upgradeCoordinator.upgradeZookeeper(nextEvent);
         }
         break;

@@ -43,13 +43,13 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeImpl;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.manager.upgrade.UpgradeProgress;
-import org.apache.accumulo.manager.upgrade.UpgradeProgressTracker;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
@@ -139,13 +139,20 @@ public class UpgradeProgressTrackerIT {
     zk.create(zRoot + Constants.ZUPGRADE_PROGRESS, GSON.get().toJson(progress).getBytes(UTF_8),
         ZooUtil.PUBLIC, CreateMode.PERSISTENT);
     assertTrue(upgradeNodeExists());
-    var ise =
-        assertThrows(IllegalStateException.class, () -> progressTracker.startOrContinueUpgrade());
+    var ise = assertThrows(IllegalStateException.class, () -> progressTracker.continueUpgrade());
     assertTrue(ise.getMessage()
         .startsWith("Upgrade was already started with a different version of software"));
     var npe = assertThrows(NullPointerException.class, () -> progressTracker.getProgress());
-    assertEquals("Must call startOrContinueUpgrade() before checking the progress",
-        npe.getMessage());
+    assertEquals("Must call continueUpgrade() before checking the progress", npe.getMessage());
+  }
+
+  @Test
+  public void testInitializationNotDone() throws KeeperException, InterruptedException {
+    expectVersion(AccumuloDataVersion.get());
+    assertFalse(upgradeNodeExists());
+    IllegalStateException ise =
+        assertThrows(IllegalStateException.class, () -> progressTracker.continueUpgrade());
+    assertTrue(ise.getMessage().startsWith("initialize not called,"));
   }
 
   @Test
@@ -154,8 +161,9 @@ public class UpgradeProgressTrackerIT {
     assertFalse(upgradeNodeExists());
     assertThrows(NullPointerException.class, () -> progressTracker.getProgress());
     assertFalse(upgradeNodeExists());
-    progressTracker.startOrContinueUpgrade();
+    progressTracker.initialize();
     assertTrue(upgradeNodeExists());
+    progressTracker.continueUpgrade();
     final var progress = progressTracker.getProgress();
     assertNotNull(progress);
     assertEquals(AccumuloDataVersion.get(), progress.getZooKeeperVersion());
@@ -169,8 +177,9 @@ public class UpgradeProgressTrackerIT {
   public void testUpdates() throws KeeperException, InterruptedException {
     expectVersion(AccumuloDataVersion.get() - 1);
     assertFalse(upgradeNodeExists());
-    progressTracker.startOrContinueUpgrade();
+    progressTracker.initialize();
     assertTrue(upgradeNodeExists());
+    progressTracker.continueUpgrade();
     final var progress = progressTracker.getProgress();
     assertNotNull(progress);
     assertEquals(AccumuloDataVersion.get() - 1, progress.getZooKeeperVersion());
@@ -225,8 +234,9 @@ public class UpgradeProgressTrackerIT {
   public void testCompleteUpgrade() throws KeeperException, InterruptedException {
     expectVersion(AccumuloDataVersion.get());
     assertFalse(upgradeNodeExists());
-    progressTracker.startOrContinueUpgrade();
+    progressTracker.initialize();
     assertTrue(upgradeNodeExists());
+    progressTracker.continueUpgrade();
     final var progress = progressTracker.getProgress();
     assertNotNull(progress);
     assertEquals(AccumuloDataVersion.get(), progress.getZooKeeperVersion());
