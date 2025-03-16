@@ -49,6 +49,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -93,32 +95,66 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testMergeabilityAll() throws Exception {
+  public void testMergeabilityAlwaysUserTable() throws Exception {
     String tableName = getUniqueNames(1)[0];
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       c.tableOperations().create(tableName);
       var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-
-      TreeSet<Text> splits = new TreeSet<>();
-      splits.add(new Text(String.format("%09d", 333)));
-      splits.add(new Text(String.format("%09d", 666)));
-      splits.add(new Text(String.format("%09d", 999)));
-
-      // create splits with mergeabilty disabled so the task does not merge them away
-      // The default tablet is always mergeable, but it is currently the only one that is mergeable,
-      // so nothing will merge
-      c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.userDefaultSplits(splits));
-      Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true) == 4,
-          5000, 200);
-
-      // update to always mergeable so the task can now merge tablets
-      c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.systemDefaultSplits(splits));
-
-      // Wait for merge, we should have one tablet
-      Wait.waitFor(() -> hasExactTablets(getCluster().getServerContext(), tableId,
-          Set.of(new KeyExtent(tableId, null, null))), 10000, 200);
-
+      testMergeabilityAlways(c, tableName, "", Set.of(new KeyExtent(tableId, null, null)));
     }
+  }
+
+  @Test
+  public void testMergeabilityMetadata() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      var splitPoint = MetadataSchema.TabletsSection.getRange().getEndKey().getRow();
+      // Test merge with new splits added after splitPoint default tablet (which is mergeable)
+      // Should keep tablets section tablet on merge
+      testMergeabilityAlways(c, AccumuloTable.METADATA.tableName(), "~",
+          Set.of(new KeyExtent(AccumuloTable.METADATA.tableId(), null, splitPoint),
+              new KeyExtent(AccumuloTable.METADATA.tableId(), splitPoint, null)));
+    }
+  }
+
+  @Test
+  public void testMergeabilityFate() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      testMergeabilityAlways(c, AccumuloTable.FATE.tableName(), "",
+          Set.of(new KeyExtent(AccumuloTable.FATE.tableId(), null, null)));
+    }
+  }
+
+  @Test
+  public void testMergeabilityScanRef() throws Exception {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      testMergeabilityAlways(c, AccumuloTable.SCAN_REF.tableName(), "",
+          Set.of(new KeyExtent(AccumuloTable.SCAN_REF.tableId(), null, null)));
+    }
+  }
+
+  private void testMergeabilityAlways(AccumuloClient c, String tableName, String newSplitPrefix,
+      Set<KeyExtent> expectedMergedExtents) throws Exception {
+    var tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
+
+    TreeSet<Text> splits = new TreeSet<>();
+    splits.add(new Text(newSplitPrefix + String.format("%09d", 333)));
+    splits.add(new Text(newSplitPrefix + String.format("%09d", 666)));
+    splits.add(new Text(newSplitPrefix + String.format("%09d", 999)));
+
+    // create splits with mergeabilty disabled so the task does not merge them away
+    // The default tablet is always mergeable, but it is currently the only one that is mergeable,
+    // so nothing will merge
+    c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.userDefaultSplits(splits));
+    Wait.waitFor(() -> countTablets(getCluster().getServerContext(), tableName, tm -> true)
+        == splits.size() + expectedMergedExtents.size(), 5000, 200);
+
+    // update new splits to always mergeable so the task can now merge tablets
+    c.tableOperations().putSplits(tableName, TabletMergeabilityUtil.systemDefaultSplits(splits));
+
+    // Wait for merge, and check extents
+    Wait.waitFor(
+        () -> hasExactTablets(getCluster().getServerContext(), tableId, expectedMergedExtents),
+        10000, 2000);
   }
 
   @Test
