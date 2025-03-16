@@ -59,6 +59,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Encoding;
@@ -289,7 +290,11 @@ public class Upgrader11to12 implements Upgrader {
     try {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
-      FileSystemInitializer.InitialTablet scanRefTablet = initializer.createScanRefTablet(context);
+      // For upgrading an existing system set to never merge. If the mergeability is changed
+      // then we would look to use the thrift client to look up the current Manager time to
+      // set as part of the mergeability metadata
+      FileSystemInitializer.InitialTablet scanRefTablet =
+          initializer.createScanRefTablet(context, TabletMergeabilityMetadata.never());
       // Add references to the Metadata Table
       try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         writer.addMutation(scanRefTablet.createMutation());
