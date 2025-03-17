@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.BiFunction;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -93,9 +94,13 @@ public class ZooPropStore implements PropStore, PropChangeListener {
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted trying to read root node from ZooKeeper", ex);
+      throw new IllegalStateException(
+          "Interrupted trying to read instance root node from ZooKeeper located at "
+              + Constants.ZROOT + "/<uuid>",
+          ex);
     } catch (KeeperException ex) {
-      throw new IllegalStateException("Failed to read root node from ZooKeeper", ex);
+      throw new IllegalStateException("Failed to read instance root node from ZooKeeper located at "
+          + Constants.ZROOT + "/<uuid>", ex);
     }
   }
 
