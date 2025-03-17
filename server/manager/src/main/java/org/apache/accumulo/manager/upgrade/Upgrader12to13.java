@@ -141,6 +141,8 @@ public class Upgrader12to13 implements Upgrader {
     } catch (Exception e) {
       if (e.getCause() instanceof KeeperException.NodeExistsException) {
         LOG.debug("Fate table node already exists in ZooKeeper");
+      } else {
+        throw e;
       }
     }
 
