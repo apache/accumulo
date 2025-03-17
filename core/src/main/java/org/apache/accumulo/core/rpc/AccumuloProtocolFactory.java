@@ -57,7 +57,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     private Span span = null;
     private Scope scope = null;
-    private Map<String,String> traceHeaders = new HashMap<>();
+    private final Map<String,String> traceHeaders = new HashMap<>();
 
     public AccumuloProtocol(TTransport transport, boolean isClient) {
       super(transport);
