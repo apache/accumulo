@@ -29,14 +29,20 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -48,6 +54,7 @@ import org.apache.accumulo.core.metadata.schema.filters.GcWalsFilter;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -236,37 +243,102 @@ public class GarbageCollectWriteAheadLogs {
     return result;
   }
 
-  private long removeFile(Path path) {
-    try {
-      if (!fs.moveToTrash(path)) {
-        fs.deleteRecursively(path);
+  private Future<?> removeFile(ExecutorService deleteThreadPool, Path path, AtomicLong counter,
+      String msg) {
+    return deleteThreadPool.submit(() -> {
+      try {
+        log.debug(msg);
+        if (!fs.moveToTrash(path)) {
+          fs.deleteRecursively(path);
+        }
+        counter.incrementAndGet();
+      } catch (FileNotFoundException ex) {
+        // ignored
+      } catch (IOException ex) {
+        log.error("Unable to delete {}", path, ex);
       }
-      return 1;
-    } catch (FileNotFoundException ex) {
-      // ignored
-    } catch (IOException ex) {
-      log.error("Unable to delete wal {}", path, ex);
-    }
-
-    return 0;
+    });
   }
 
   private long removeFiles(Collection<Pair<WalState,Path>> collection, final GCStatus status) {
-    for (Pair<WalState,Path> stateFile : collection) {
-      Path path = stateFile.getSecond();
-      log.debug("Removing {} WAL {}", stateFile.getFirst(), path);
-      status.currentLog.deleted += removeFile(path);
+
+    final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
+    final Map<Path,Future<?>> futures = new HashMap<>(collection.size());
+    final AtomicLong counter = new AtomicLong();
+
+    try {
+      for (Pair<WalState,Path> stateFile : collection) {
+        Path path = stateFile.getSecond();
+        futures.put(path, removeFile(deleteThreadPool, path, counter,
+            "Removing " + stateFile.getFirst() + " WAL " + path));
+      }
+
+      while (!futures.isEmpty()) {
+        Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+        while (iter.hasNext()) {
+          Entry<Path,Future<?>> f = iter.next();
+          if (f.getValue().isDone()) {
+            try {
+              iter.remove();
+              f.getValue().get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new RuntimeException("Uncaught exception deleting wal file" + f.getKey(), e);
+            }
+          }
+        }
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Interrupted while sleeping", e);
+        }
+      }
+    } finally {
+      deleteThreadPool.shutdownNow();
     }
-    return status.currentLog.deleted;
+    status.currentLog.deleted += counter.get();
+    return counter.get();
   }
 
   private long removeFiles(Collection<Path> values) {
-    long count = 0;
-    for (Path path : values) {
-      log.debug("Removing recovery log {}", path);
-      count += removeFile(path);
+
+    final ExecutorService deleteThreadPool = ThreadPools.getServerThreadPools()
+        .createExecutorService(context.getConfiguration(), Property.GC_DELETE_WAL_THREADS);
+    final Map<Path,Future<?>> futures = new HashMap<>(values.size());
+    final AtomicLong counter = new AtomicLong();
+
+    try {
+      for (Path path : values) {
+        futures.put(path,
+            removeFile(deleteThreadPool, path, counter, "Removing recovery log " + path));
+      }
+
+      while (!futures.isEmpty()) {
+        Iterator<Entry<Path,Future<?>>> iter = futures.entrySet().iterator();
+        while (iter.hasNext()) {
+          Entry<Path,Future<?>> f = iter.next();
+          if (f.getValue().isDone()) {
+            try {
+              iter.remove();
+              f.getValue().get();
+            } catch (InterruptedException | ExecutionException e) {
+              throw new RuntimeException(
+                  "Uncaught exception deleting recovery log file" + f.getKey(), e);
+            }
+          }
+        }
+        try {
+          Thread.sleep(500);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new RuntimeException("Interrupted while sleeping", e);
+        }
+      }
+    } finally {
+      deleteThreadPool.shutdownNow();
     }
-    return count;
+    return counter.get();
   }
 
   private Map<UUID,TServerInstance> removeEntriesInUse(Map<TServerInstance,Set<UUID>> candidates,
