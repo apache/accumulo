@@ -35,7 +35,9 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class UpgradeIT extends AccumuloClusterHarness {
@@ -78,10 +80,18 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
     getCluster().stop();
 
-    assertThrows(AssertionError.class,
-        () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
+    getCluster().getClusterControl().startAllServers(ServerType.ZOOKEEPER);
 
     final ZooReader zr = zs.asReader();
+    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZCOMPACTORS).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZGC_LOCK).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZMANAGER_LOCK).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZSSERVERS).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZTSERVERS).isEmpty());
+
+    assertThrows(IllegalStateException.class,
+        () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
+
     assertTrue(zr.getChildren(zkRoot + Constants.ZCOMPACTORS).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZGC_LOCK).isEmpty());
     assertTrue(zr.getChildren(zkRoot + Constants.ZMANAGER_LOCK).isEmpty());
