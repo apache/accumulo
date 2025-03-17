@@ -683,7 +683,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
     long startTime = System.currentTimeMillis();
 
-    LockID lid = new LockID(context.getZooKeeperRoot() + Constants.ZTSERVERS, sessionId.lockId);
+    LockID lid = new LockID(Constants.ZTSERVERS, sessionId.lockId);
 
     while (true) {
       if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {

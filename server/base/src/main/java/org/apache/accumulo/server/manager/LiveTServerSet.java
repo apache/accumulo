@@ -329,16 +329,15 @@ public class LiveTServerSet implements ZooCacheWatcher {
     // its important that these event are propagated by ZooCache, because this ensures when reading
     // zoocache that is has already processed the event and cleared
     // relevant nodes before code below reads from zoocache
-    final String tserverZPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    if (event.getPath() != null && event.getPath().startsWith(tserverZPath)) {
-      if (event.getPath().equals(tserverZPath)) {
+    if (event.getPath() != null && event.getPath().startsWith(Constants.ZTSERVERS)) {
+      if (event.getPath().equals(Constants.ZTSERVERS)) {
         scanServers();
       } else if (event.getPath().contains(Constants.ZTSERVERS)) {
         // It's possible that the path contains more than the tserver address, it
         // could contain it's children. We need to fix the path before parsing it
-        // path should be: zooKeeperRoot + Constants.ZTSERVERS + "/" + resourceGroup + "/" address
+        // path should be: Constants.ZTSERVERS + "/" + resourceGroup + "/" address
         String pathToUse = null;
-        String remaining = event.getPath().substring(tserverZPath.length() + 1);
+        String remaining = event.getPath().substring(Constants.ZTSERVERS.length() + 1);
         int numSlashes = StringUtils.countMatches(remaining, '/');
         if (numSlashes == 1) {
           // event path is the server
@@ -348,7 +347,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
           int idx = remaining.indexOf("/");
           String rg = remaining.substring(0, idx);
           String server = remaining.substring(idx + 1, remaining.indexOf("/", idx + 1));
-          pathToUse = tserverZPath + "/" + rg + "/" + server;
+          pathToUse = Constants.ZTSERVERS + "/" + rg + "/" + server;
         } else {
           // malformed path
           pathToUse = null;

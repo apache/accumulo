@@ -61,7 +61,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, TablePropKey.of(context, tableId), parent);
+    super(log, context, TablePropKey.of(tableId), parent);
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
