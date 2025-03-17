@@ -78,7 +78,6 @@ import org.apache.accumulo.core.tabletscan.thrift.ScanServerBusyException;
 import org.apache.accumulo.core.tabletscan.thrift.TSampleNotPresentException;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
@@ -912,8 +911,8 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         Map<String,String> execHints =
             options.executionHints.isEmpty() ? null : options.executionHints;
 
-        InitialMultiScan imsr = client.startMultiScan(TraceUtil.traceInfo(), context.rpcCreds(),
-            thriftTabletRanges, columns.stream().map(Column::toThrift).collect(Collectors.toList()),
+        InitialMultiScan imsr = client.startMultiScan(context.rpcCreds(), thriftTabletRanges,
+            columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             options.serverSideIteratorList, options.serverSideIteratorOptions,
             ByteBufferUtil.toByteBuffers(authorizations.getAuthorizations()), waitForWrites,
             SamplerConfigurationImpl.toThrift(options.getSamplerConfiguration()),
@@ -959,7 +958,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             timer.restart();
           }
 
-          scanResult = client.continueMultiScan(TraceUtil.traceInfo(), imsr.scanID, busyTimeout);
+          scanResult = client.continueMultiScan(imsr.scanID, busyTimeout);
 
           if (timer != null) {
             log.trace("tid={} oid={} Got more multi scan results, #results={} {} in {}",
@@ -984,7 +983,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
           trackScanning(failures, unscanned, scanResult);
         }
 
-        client.closeMultiScan(TraceUtil.traceInfo(), imsr.scanID);
+        client.closeMultiScan(imsr.scanID);
         scanIdToClose = null;
 
       } finally {
@@ -995,7 +994,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             // clean up server side resources. When the batch scanner is closed it will interrupt
             // the threads in its thread pool which could cause an interrupted exception in this
             // code.
-            client.closeMultiScan(TraceUtil.traceInfo(), scanIdToClose);
+            client.closeMultiScan(scanIdToClose);
           }
         } catch (Exception e) {
           log.trace("Failed to close scan session in finally {} {}", server, scanIdToClose, e);

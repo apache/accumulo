@@ -36,7 +36,6 @@ import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
@@ -82,7 +81,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       while (true) {
         ClientContext context = (ClientContext) c;
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
+            client -> client.getManagerStats(context.rpcCreds()));
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {

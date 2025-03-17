@@ -41,7 +41,6 @@ struct MetricResponse {
 service ServerProcessService {
 
   MetricResponse getMetrics(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials  
   ) throws (
     1:client.ThriftSecurityException sec

@@ -37,7 +37,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -461,7 +460,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   @Override
-  public GCStatus getStatus(TInfo info, TCredentials credentials) {
+  public GCStatus getStatus(TCredentials credentials) {
     return status;
   }
 

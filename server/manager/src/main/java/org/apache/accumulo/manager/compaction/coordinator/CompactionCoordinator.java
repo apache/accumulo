@@ -70,7 +70,6 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -449,9 +448,8 @@ public class CompactionCoordinator
    * @return compaction job
    */
   @Override
-  public TNextCompactionJob getCompactionJob(TInfo tinfo, TCredentials credentials,
-      String groupName, String compactorAddress, String externalCompactionId)
-      throws ThriftSecurityException {
+  public TNextCompactionJob getCompactionJob(TCredentials credentials, String groupName,
+      String compactorAddress, String externalCompactionId) throws ThriftSecurityException {
 
     // do not expect users to call this directly, expect compactors to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -736,7 +734,7 @@ public class CompactionCoordinator
    * operation so that it's known to be done before the fate operation returns. Since the fate
    * operation will do it, there is no need to do it here for user compactions.
    *
-   * @param tinfo trace info
+   *
    * @param credentials tcredentials object
    * @param externalCompactionId compaction id
    * @param textent tablet extent
@@ -744,9 +742,8 @@ public class CompactionCoordinator
    * @throws ThriftSecurityException when permission error
    */
   @Override
-  public void compactionCompleted(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TKeyExtent textent, TCompactionStats stats)
-      throws ThriftSecurityException {
+  public void compactionCompleted(TCredentials credentials, String externalCompactionId,
+      TKeyExtent textent, TCompactionStats stats) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -799,7 +796,7 @@ public class CompactionCoordinator
   }
 
   @Override
-  public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
+  public void compactionFailed(TCredentials credentials, String externalCompactionId,
       TKeyExtent extent) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -925,7 +922,7 @@ public class CompactionCoordinator
   /**
    * Compactor calls to update the status of the assigned compaction
    *
-   * @param tinfo trace info
+   *
    * @param credentials tcredentials object
    * @param externalCompactionId compaction id
    * @param update compaction status update
@@ -933,9 +930,8 @@ public class CompactionCoordinator
    * @throws ThriftSecurityException when permission error
    */
   @Override
-  public void updateCompactionStatus(TInfo tinfo, TCredentials credentials,
-      String externalCompactionId, TCompactionStatusUpdate update, long timestamp)
-      throws ThriftSecurityException {
+  public void updateCompactionStatus(TCredentials credentials, String externalCompactionId,
+      TCompactionStatusUpdate update, long timestamp) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -993,13 +989,13 @@ public class CompactionCoordinator
   /**
    * Return information about running compactions
    *
-   * @param tinfo trace info
+   *
    * @param credentials tcredentials object
    * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionMap getRunningCompactions(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionMap getRunningCompactions(TCredentials credentials)
       throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -1022,15 +1018,15 @@ public class CompactionCoordinator
   /**
    * Return top 50 longest running compactions for each resource group
    *
-   * @param tinfo trace info
+   *
    * @param credentials tcredentials object
    * @return map of group name to list of up to 50 compactions in sorted order, oldest compaction
    *         first.
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public Map<String,TExternalCompactionList> getLongRunningCompactions(TInfo tinfo,
-      TCredentials credentials) throws ThriftSecurityException {
+  public Map<String,TExternalCompactionList> getLongRunningCompactions(TCredentials credentials)
+      throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -1060,13 +1056,13 @@ public class CompactionCoordinator
   /**
    * Return information about recently completed compactions
    *
-   * @param tinfo trace info
+   *
    * @param credentials tcredentials object
    * @return map of ECID to TExternalCompaction objects
    * @throws ThriftSecurityException permission error
    */
   @Override
-  public TExternalCompactionMap getCompletedCompactions(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionMap getCompletedCompactions(TCredentials credentials)
       throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
@@ -1086,8 +1082,7 @@ public class CompactionCoordinator
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
+  public void cancel(TCredentials credentials, String externalCompactionId) throws TException {
     var runningCompaction = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     var extent = KeyExtent.fromThrift(runningCompaction.getJob().getExtent());
     try {

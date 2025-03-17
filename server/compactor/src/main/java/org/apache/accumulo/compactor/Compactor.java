@@ -50,7 +50,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -101,7 +100,6 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -348,8 +346,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
+  public void cancel(TCredentials credentials, String externalCompactionId) throws TException {
     TableId tableId = JOB_HOLDER.getTableId();
     try {
       NamespaceId nsId = getContext().getNamespaceId(tableId);
@@ -378,7 +375,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
+            coordinatorClient.updateCompactionStatus(getContext().rpcCreds(),
                 job.getExternalCompactionId(), update, System.currentTimeMillis());
             return "";
           } finally {
@@ -400,7 +397,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
+            coordinatorClient.compactionFailed(getContext().rpcCreds(),
                 job.getExternalCompactionId(), job.extent);
             return "";
           } finally {
@@ -423,7 +420,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
-            coordinatorClient.compactionCompleted(TraceUtil.traceInfo(), getContext().rpcCreds(),
+            coordinatorClient.compactionCompleted(getContext().rpcCreds(),
                 job.getExternalCompactionId(), job.extent, stats);
             return "";
           } finally {
@@ -453,8 +450,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             ExternalCompactionId eci = ExternalCompactionId.generate(uuid.get());
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
-            return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup(),
+            return coordinatorClient.getCompactionJob(getContext().rpcCreds(),
+                this.getResourceGroup(),
                 ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
                 eci.toString());
           } catch (Exception e) {
@@ -924,7 +921,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
+  public List<ActiveCompaction> getActiveCompactions(TCredentials credentials)
       throws ThriftSecurityException, TException {
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -945,12 +942,11 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   /**
    * Called by a CompactionCoordinator to get the running compaction
    *
-   * @param tinfo trace info
    * @param credentials caller credentials
    * @return current compaction job or empty compaction job is none running
    */
   @Override
-  public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionJob getRunningCompaction(TCredentials credentials)
       throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {
@@ -975,7 +971,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   @Override
-  public String getRunningCompactionId(TInfo tinfo, TCredentials credentials)
+  public String getRunningCompactionId(TCredentials credentials)
       throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!getContext().getSecurityOperation().canPerformSystemActions(credentials)) {

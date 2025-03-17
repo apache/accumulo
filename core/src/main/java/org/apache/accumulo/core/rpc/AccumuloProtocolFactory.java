@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -27,7 +30,10 @@ import org.apache.thrift.transport.TTransport;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
+import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
+import io.opentelemetry.context.propagation.TextMapGetter;
 
 /**
  * Factory for creating instances of the AccumuloProtocol.
@@ -45,11 +51,13 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     private static final int MAGIC_NUMBER = 0x41434355; // "ACCU" in ASCII
     private static final byte PROTOCOL_VERSION = 1;
+    private static final boolean HEADER_HAS_TRACE = true;
 
     private final boolean isClient;
 
     private Span span = null;
     private Scope scope = null;
+    private Map<String,String> traceHeaders = new HashMap<>();
 
     public AccumuloProtocol(TTransport transport, boolean isClient) {
       super(transport);
@@ -93,6 +101,23 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     private void writeHeader() throws TException {
       super.writeI32(MAGIC_NUMBER);
       super.writeByte(PROTOCOL_VERSION);
+
+      if (this.isClient && span != null && span.getSpanContext().isValid()) {
+        super.writeBool(HEADER_HAS_TRACE);
+        traceHeaders.clear();
+
+        W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
+            (headers, key, value) -> headers.put(key, value));
+
+        super.writeI16((short) traceHeaders.size());
+
+        for (Map.Entry<String,String> entry : traceHeaders.entrySet()) {
+          super.writeString(entry.getKey());
+          super.writeString(entry.getValue());
+        }
+      } else {
+        super.writeBool(false);
+      }
     }
 
     @Override
@@ -135,6 +160,39 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       if (!isCompatibleVersion(version)) {
         throw new TException("Incompatible protocol version. Client version: " + version
             + ", Server version: " + PROTOCOL_VERSION);
+      }
+
+      final boolean hasTrace = super.readBool();
+
+      if (hasTrace) {
+        final short numHeaders = super.readI16();
+
+        final Map<String,String> headers = new HashMap<>(numHeaders);
+        for (int i = 0; i < numHeaders; i++) {
+          String key = super.readString();
+          String value = super.readString();
+          headers.put(key, value);
+        }
+
+        if (!headers.isEmpty()) {
+          Context extractedContext = W3CTraceContextPropagator.getInstance()
+              .extract(Context.current(), headers, new TextMapGetter<>() {
+                @Override
+                public Iterable<String> keys(Map<String,String> carrier) {
+                  return carrier.keySet();
+                }
+
+                @Override
+                public String get(Map<String,String> carrier, String key) {
+                  return carrier.get(key);
+                }
+              });
+
+          // Create server span with extracted context as parent
+          span = TraceUtil.startServerRpcSpanFromContext(this.getClass(), "handleMessage",
+              extractedContext);
+          scope = span.makeCurrent();
+        }
       }
     }
 

@@ -30,7 +30,6 @@ import org.apache.accumulo.core.manager.thrift.RecoveryStatus;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 
@@ -39,7 +38,7 @@ public class GetManagerStats {
     ManagerMonitorInfo stats = null;
     var context = new ServerContext(SiteConfiguration.auto());
     stats = ThriftClientTypes.MANAGER.execute(context,
-        client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
+        client -> client.getManagerStats(context.rpcCreds()));
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
     if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {

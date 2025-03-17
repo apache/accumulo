@@ -59,7 +59,6 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
@@ -126,7 +125,7 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public TFateId beginFateOperation(TInfo tinfo, TCredentials credentials, TFateInstanceType type)
+  public TFateId beginFateOperation(TCredentials credentials, TFateInstanceType type)
       throws ThriftSecurityException {
     authenticate(credentials);
     return new TFateId(type,
@@ -134,7 +133,7 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public void executeFateOperation(TInfo tinfo, TCredentials c, TFateId opid, TFateOperation top,
+  public void executeFateOperation(TCredentials c, TFateId opid, TFateOperation top,
       List<ByteBuffer> arguments, Map<String,String> options, boolean autoCleanup)
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     authenticate(c);
@@ -836,7 +835,7 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public String waitForFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
+  public String waitForFateOperation(TCredentials credentials, TFateId opid)
       throws ThriftSecurityException, ThriftTableOperationException {
     authenticate(credentials);
 
@@ -864,7 +863,7 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public void finishFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
+  public void finishFateOperation(TCredentials credentials, TFateId opid)
       throws ThriftSecurityException {
     authenticate(credentials);
     FateId fateId = FateId.fromThrift(opid);
@@ -960,7 +959,7 @@ class FateServiceHandler implements FateService.Iface {
   }
 
   @Override
-  public boolean cancelFateOperation(TInfo tinfo, TCredentials credentials, TFateId opid)
+  public boolean cancelFateOperation(TCredentials credentials, TFateId opid)
       throws ThriftSecurityException, ThriftNotActiveServiceException {
     FateId fateId = FateId.fromThrift(opid);
 

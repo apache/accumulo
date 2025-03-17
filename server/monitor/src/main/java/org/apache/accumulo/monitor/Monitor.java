@@ -74,7 +74,6 @@ import org.apache.accumulo.core.tabletscan.thrift.ActiveScan;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.monitor.next.InformationFetcher;
@@ -234,7 +233,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
         try {
           client = ThriftClientTypes.MANAGER.getConnection(context);
           if (client != null) {
-            mmi = client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds());
+            mmi = client.getManagerStats(context.rpcCreds());
             retry = false;
             // Now that Manager is up, set the coordinator host
             Set<ServerId> managers = context.instanceOperations().getServers(ServerId.Type.MANAGER);
@@ -345,7 +344,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
         GCMonitorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.GC, address, context);
         try {
-          result = client.getStatus(TraceUtil.traceInfo(), context.rpcCreds());
+          result = client.getStatus(context.rpcCreds());
         } finally {
           ThriftUtil.returnClient(client, context);
         }
@@ -626,7 +625,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
       TabletScanClientService.Client client = null;
       try {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
-        List<ActiveScan> activeScans = client.getActiveScans(null, context.rpcCreds());
+        List<ActiveScan> activeScans = client.getActiveScans(context.rpcCreds());
         scans.put(parsedServer, new ScanStats(activeScans));
       } catch (Exception ex) {
         log.error("Failed to get active scans from {}", server, ex);
@@ -653,7 +652,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
       Client tserver = null;
       try {
         tserver = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, parsedServer, context);
-        var compacts = tserver.getActiveCompactions(null, context.rpcCreds());
+        var compacts = tserver.getActiveCompactions(context.rpcCreds());
         allCompactions.put(parsedServer, new CompactionStats(compacts));
       } catch (Exception ex) {
         log.debug("Failed to get active compactions from {}", server, ex);
@@ -697,7 +696,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
           ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, ccHost, getContext());
       TExternalCompactionMap running;
       try {
-        running = client.getRunningCompactions(TraceUtil.traceInfo(), getContext().rpcCreds());
+        running = client.getRunningCompactions(getContext().rpcCreds());
         return new ExternalCompactionsSnapshot(Optional.ofNullable(running.getCompactions()));
       } catch (Exception e) {
         throw new IllegalStateException("Unable to get running compactions from " + ccHost, e);

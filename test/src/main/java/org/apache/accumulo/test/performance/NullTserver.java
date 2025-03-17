@@ -31,7 +31,6 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -107,42 +106,41 @@ public class NullTserver {
     private long updateSession = 1;
 
     @Override
-    public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability durability) {
+    public long startUpdate(TCredentials credentials, TDurability durability) {
       return updateSession++;
     }
 
     @Override
-    public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent keyExtent,
-        List<TMutation> mutation) {}
+    public void applyUpdates(long updateID, TKeyExtent keyExtent, List<TMutation> mutation) {}
 
     @Override
-    public UpdateErrors closeUpdate(TInfo tinfo, long updateID) {
+    public UpdateErrors closeUpdate(long updateID) {
       return new UpdateErrors(new HashMap<>(), new ArrayList<>(), new HashMap<>());
     }
 
     @Override
-    public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+    public boolean cancelUpdate(long updateID) throws TException {
       return true;
     }
 
     @Override
-    public void closeMultiScan(TInfo tinfo, long scanID) {}
+    public void closeMultiScan(long scanID) {}
 
     @Override
-    public void closeScan(TInfo tinfo, long scanID) {}
+    public void closeScan(long scanID) {}
 
     @Override
-    public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout) {
+    public MultiScanResult continueMultiScan(long scanID, long busyTimeout) {
       return null;
     }
 
     @Override
-    public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout) {
+    public ScanResult continueScan(long scanID, long busyTimeout) {
       return null;
     }
 
     @Override
-    public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
+    public InitialMultiScan startMultiScan(TCredentials credentials,
         Map<TKeyExtent,List<TRange>> batch, List<TColumn> columns, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         TSamplerConfiguration tsc, long batchTimeOut, String context,
@@ -151,8 +149,8 @@ public class NullTserver {
     }
 
     @Override
-    public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent extent,
-        TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
+    public InitialScan startScan(TCredentials credentials, TKeyExtent extent, TRange range,
+        List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
         Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
         boolean isolated, long readaheadThreshold, TSamplerConfiguration tsc, long batchTimeOut,
         String classLoaderContext, Map<String,String> executionHints, long busyTimeout) {
@@ -160,112 +158,111 @@ public class NullTserver {
     }
 
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
+    public TabletServerStatus getTabletServerStatus(TCredentials credentials) {
       return null;
     }
 
     @Override
-    public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) {
+    public List<TabletStats> getTabletStats(TCredentials credentials, String tableId) {
       return null;
     }
 
     @Override
-    public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
+    public TabletStats getHistoricalStats(TCredentials credentials) {
       return null;
     }
 
     @Override
-    public void halt(TInfo tinfo, TCredentials credentials, String lock) {}
+    public void halt(TCredentials credentials, String lock) {}
 
     @Override
-    public void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {}
+    public void fastHalt(TCredentials credentials, String lock) {}
 
     @Override
-    public void loadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {}
+    public void loadTablet(TCredentials credentials, String lock, TKeyExtent extent) {}
 
     @Override
-    public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent,
+    public void unloadTablet(TCredentials credentials, String lock, TKeyExtent extent,
         TUnloadTabletGoal goal, long requestTime) {}
 
     @Override
-    public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials) {
+    public List<ActiveScan> getActiveScans(TCredentials credentials) {
       return new ArrayList<>();
     }
 
     @Override
-    public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent extent) {
+    public void flushTablet(TCredentials credentials, String lock, TKeyExtent extent) {
 
     }
 
     @Override
-    public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-        ByteBuffer startRow, ByteBuffer endRow) {
+    public void flush(TCredentials credentials, String lock, String tableId, ByteBuffer startRow,
+        ByteBuffer endRow) {
 
     }
 
     @Override
-    public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials) {
+    public List<ActiveCompaction> getActiveCompactions(TCredentials credentials) {
       return new ArrayList<>();
     }
 
     @Override
-    public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials,
+    public TConditionalSession startConditionalUpdate(TCredentials credentials,
         List<ByteBuffer> authorizations, String tableID, TDurability durability,
         String classLoaderContext) {
       return null;
     }
 
     @Override
-    public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID,
+    public List<TCMResult> conditionalUpdate(long sessID,
         Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols) {
       return null;
     }
 
     @Override
-    public void invalidateConditionalUpdate(TInfo tinfo, long sessID) {}
+    public void invalidateConditionalUpdate(long sessID) {}
 
     @Override
-    public void closeConditionalUpdate(TInfo tinfo, long sessID) {}
+    public void closeConditionalUpdate(long sessID) {}
 
     @Override
-    public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
+    public List<String> getActiveLogs(TCredentials credentials) {
       return null;
     }
 
     @Override
-    public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) {}
+    public void removeLogs(TCredentials credentials, List<String> filenames) {}
 
     @Override
-    public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
-        TSummaryRequest request) {
+    public TSummaries startGetSummaries(TCredentials credentials, TSummaryRequest request) {
       return null;
     }
 
     @Override
-    public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials,
+    public TSummaries startGetSummariesForPartition(TCredentials credentials,
         TSummaryRequest request, int modulus, int remainder) {
       return null;
     }
 
     @Override
-    public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials,
-        TSummaryRequest request, Map<String,List<TRowRange>> files) {
+    public TSummaries startGetSummariesFromFiles(TCredentials credentials, TSummaryRequest request,
+        Map<String,List<TRowRange>> files) {
       return null;
     }
 
     @Override
-    public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId) {
+    public TSummaries contiuneGetSummaries(long sessionId) {
       return null;
     }
 
     @Override
-    public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
-        List<TKeyExtent> refreshes) throws TException {
+    public List<TKeyExtent> refreshTablets(TCredentials credentials, List<TKeyExtent> refreshes)
+        throws TException {
       return List.of();
     }
 
     @Override
-    public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
+    public Map<TKeyExtent,Long> allocateTimestamps(TCredentials credentials,
         List<TKeyExtent> tablets) throws TException {
       return Map.of();
     }

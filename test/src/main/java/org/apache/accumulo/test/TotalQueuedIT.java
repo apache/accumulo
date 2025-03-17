@@ -132,7 +132,7 @@ public class TotalQueuedIT extends ConfigurableMacBase {
       TabletServerClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
               HostAndPort.fromParts(tserver.getHost(), tserver.getPort()), context);
-      TabletServerStatus status = client.getTabletServerStatus(null, context.rpcCreds());
+      TabletServerStatus status = client.getTabletServerStatus(context.rpcCreds());
       return status.syncs;
     }
     return 0;

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.thrift.TException;
@@ -95,9 +94,8 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
           ThriftClientTypes.TABLET_SERVER,
           HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()), getContext());
       try {
-        return client
-            .getTabletStats(TraceUtil.traceInfo(), getContext().rpcCreds(), tableId.canonical())
-            .stream().map(TabletStatisticsImpl::new).collect(Collectors.toList());
+        return client.getTabletStats(getContext().rpcCreds(), tableId.canonical()).stream()
+            .map(TabletStatisticsImpl::new).collect(Collectors.toList());
       } catch (TTransportException e) {
         log.error("Unable to connect to {}: ", tabletServerId, e);
       } finally {

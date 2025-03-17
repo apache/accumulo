@@ -31,7 +31,6 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -42,7 +41,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -82,14 +80,12 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       // Make the same RPC calls made by the BatchWriter, but pass a corrupt serialized mutation in
       // this try block.
       try {
-        TInfo tinfo = TraceUtil.traceInfo();
-
-        long sessionId = client.startUpdate(tinfo, ctx.rpcCreds(), TDurability.DEFAULT);
+        long sessionId = client.startUpdate(ctx.rpcCreds(), TDurability.DEFAULT);
 
         // Write two valid mutations to the session. The tserver buffers data it receives via
         // applyUpdates and may not write them until closeUpdate RPC is called. Because
         // TSERV_TOTAL_MUTATION_QUEUE_MAX was set so small, these values should be written.
-        client.applyUpdates(tinfo, sessionId, extent.toThrift(),
+        client.applyUpdates(sessionId, extent.toThrift(),
             List.of(createTMutation("abc", "z1"), createTMutation("def", "z2")));
 
         // Simulate data corruption in the serialized mutation
@@ -99,17 +95,17 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
         // Write some good and bad mutations to the session. The server side will see an error here,
         // however since this is a thrift oneway method no exception is expected here. This should
         // leave the session in a broken state where it no longer accepts any new data.
-        client.applyUpdates(tinfo, sessionId, extent.toThrift(),
+        client.applyUpdates(sessionId, extent.toThrift(),
             List.of(createTMutation("jkl", "z4"), badMutation, createTMutation("mno", "z5")));
 
         // Write two more valid mutations to the session, these should be dropped on the server side
         // because of the previous error. So should never see these updates.
-        client.applyUpdates(tinfo, sessionId, extent.toThrift(),
+        client.applyUpdates(sessionId, extent.toThrift(),
             List.of(createTMutation("pqr", "z6"), createTMutation("stu", "z7")));
 
         // Since client.applyUpdates experienced an error, should see an error when closing the
         // session.
-        assertThrows(TApplicationException.class, () -> client.closeUpdate(tinfo, sessionId));
+        assertThrows(TApplicationException.class, () -> client.closeUpdate(sessionId));
       } finally {
         ThriftUtil.returnClient((TServiceClient) client, ctx);
       }

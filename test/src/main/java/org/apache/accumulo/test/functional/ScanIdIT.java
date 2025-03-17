@@ -75,16 +75,6 @@ import org.slf4j.LoggerFactory;
  * The test uses the Minicluster and the {@code org.apache.accumulo.test.functional.SlowIterator} to
  * create multiple scan sessions. The test exercises multiple tablet servers with splits and
  * multiple ranges to force the scans to occur across multiple tablet servers for completeness.
- *
- * <p>
- * This patch modified thrift, the TraceRepoDeserializationTest test seems to fail unless the
- * following be added:
- *
- * <p>
- * private static final long serialVersionUID = -4659975753252858243l;
- *
- * <p>
- * back into org.apache.accumulo.trace.thrift.TInfo until that test signature is regenerated.
  */
 public class ScanIdIT extends AccumuloClusterHarness {
 

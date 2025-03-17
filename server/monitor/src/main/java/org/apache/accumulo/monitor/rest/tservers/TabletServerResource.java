@@ -47,7 +47,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.manager.ManagerResource;
@@ -181,9 +180,9 @@ public class TabletServerResource {
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
       try {
         for (String tableId : mmi.tableMap.keySet()) {
-          tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));
+          tsStats.addAll(client.getTabletStats(context.rpcCreds(), tableId));
         }
-        historical = client.getHistoricalStats(TraceUtil.traceInfo(), context.rpcCreds());
+        historical = client.getHistoricalStats(context.rpcCreds());
       } finally {
         ThriftUtil.returnClient(client, context);
       }

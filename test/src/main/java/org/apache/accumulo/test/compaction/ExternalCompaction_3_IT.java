@@ -57,7 +57,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
@@ -289,7 +288,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
         CompactionCoordinatorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), ctx);
         try {
-          results = client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+          results = client.getLongRunningCompactions(ctx.rpcCreds());
         } finally {
           ThriftUtil.returnClient(client, ctx);
         }

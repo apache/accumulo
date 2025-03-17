@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -70,7 +69,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.CancelFlagFuture;
 import org.apache.accumulo.core.util.CompletableFutureUtil;
@@ -288,14 +286,12 @@ public class Gatherer {
 
     final HostAndPort location;
     final Map<StoredTabletFile,List<TRowRange>> allFiles;
-    private final TInfo tinfo;
     private final AtomicBoolean cancelFlag;
 
-    public FilesProcessor(TInfo tinfo, HostAndPort location,
-        Map<StoredTabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
+    public FilesProcessor(HostAndPort location, Map<StoredTabletFile,List<TRowRange>> allFiles,
+        AtomicBoolean cancelFlag) {
       this.location = location;
       this.allFiles = allFiles;
-      this.tinfo = tinfo;
       this.cancelFlag = cancelFlag;
     }
 
@@ -315,11 +311,11 @@ public class Gatherer {
           }
 
           try {
-            TSummaries tSums = client.startGetSummariesFromFiles(tinfo, ctx.rpcCreds(),
-                getRequest(), files.entrySet().stream().collect(Collectors
+            TSummaries tSums = client.startGetSummariesFromFiles(ctx.rpcCreds(), getRequest(),
+                files.entrySet().stream().collect(Collectors
                     .toMap(entry -> entry.getKey().getNormalizedPathStr(), Entry::getValue)));
             while (!tSums.finished && !cancelFlag.get()) {
-              tSums = client.contiuneGetSummaries(tinfo, tSums.sessionId);
+              tSums = client.contiuneGetSummaries(tSums.sessionId);
             }
 
             pfiles.summaries.merge(new SummaryCollection(tSums), factory);
@@ -349,7 +345,7 @@ public class Gatherer {
     private final CompletableFuture<SummaryCollection> future;
     private final AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
-    PartitionFuture(TInfo tinfo, ExecutorService execSrv, int modulus, int remainder) {
+    PartitionFuture(ExecutorService execSrv, int modulus, int remainder) {
       Function<ProcessedFiles,CompletableFuture<ProcessedFiles>> go = previousWork -> {
         Predicate<StoredTabletFile> fileSelector = file -> Math
             .abs(Hashing.murmur3_32_fixed().hashString(file.getNormalizedPathStr(), UTF_8).asInt())
@@ -371,7 +367,7 @@ public class Gatherer {
           Map<StoredTabletFile,List<TRowRange>> allFiles = entry.getValue();
 
           futures.add(CompletableFuture
-              .supplyAsync(new FilesProcessor(tinfo, location, allFiles, cancelFlag), execSrv));
+              .supplyAsync(new FilesProcessor(location, allFiles, cancelFlag), execSrv));
         }
 
         return CompletableFutureUtil.merge(futures,
@@ -416,12 +412,12 @@ public class Gatherer {
   }
 
   /**
-   * This methods reads a subset of file paths into memory and groups them by location. Then it
+   * This method reads a subset of file paths into memory and groups them by location. Then it
    * request summaries for files from each location/tablet server.
    */
   public Future<SummaryCollection> processPartition(ExecutorService execSrv, int modulus,
       int remainder) {
-    return new PartitionFuture(TraceUtil.traceInfo(), execSrv, modulus, remainder);
+    return new PartitionFuture(execSrv, modulus, remainder);
   }
 
   public interface FileSystemResolver {
@@ -459,13 +455,11 @@ public class Gatherer {
 
     private final int remainder;
     private final int modulus;
-    private final TInfo tinfo;
     private final AtomicBoolean cancelFlag;
 
-    GatherRequest(TInfo tinfo, int remainder, int modulus, AtomicBoolean cancelFlag) {
+    GatherRequest(int remainder, int modulus, AtomicBoolean cancelFlag) {
       this.remainder = remainder;
       this.modulus = modulus;
-      this.tinfo = tinfo;
       this.cancelFlag = cancelFlag;
     }
 
@@ -477,9 +471,9 @@ public class Gatherer {
       try {
         tSums = ThriftClientTypes.TABLET_SERVER.execute(ctx, client -> {
           TSummaries tsr =
-              client.startGetSummariesForPartition(tinfo, ctx.rpcCreds(), req, modulus, remainder);
+              client.startGetSummariesForPartition(ctx.rpcCreds(), req, modulus, remainder);
           while (!tsr.finished && !cancelFlag.get()) {
-            tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
+            tsr = client.contiuneGetSummaries(tsr.sessionId);
           }
           return tsr;
         });
@@ -511,10 +505,8 @@ public class Gatherer {
 
     AtomicBoolean cancelFlag = new AtomicBoolean(false);
 
-    TInfo tinfo = TraceUtil.traceInfo();
     for (int i = 0; i < numRequest; i++) {
-      futures.add(
-          CompletableFuture.supplyAsync(new GatherRequest(tinfo, i, numRequest, cancelFlag), es));
+      futures.add(CompletableFuture.supplyAsync(new GatherRequest(i, numRequest, cancelFlag), es));
     }
 
     Future<SummaryCollection> future = CompletableFutureUtil.merge(futures,

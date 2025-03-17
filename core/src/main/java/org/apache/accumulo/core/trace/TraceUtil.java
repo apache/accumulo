@@ -25,7 +25,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ClassUtil;
@@ -41,10 +40,7 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
-import io.opentelemetry.context.Scope;
-import io.opentelemetry.context.propagation.TextMapGetter;
 
 public class TraceUtil {
 
@@ -76,27 +72,43 @@ public class TraceUtil {
   }
 
   public static Span startSpan(Class<?> caller, String spanName) {
-    return startSpan(caller, spanName, null, null, null);
+    return startSpan(caller, spanName, null, null);
   }
 
   public static Span startSpan(Class<?> caller, String spanName, Map<String,String> attributes) {
-    return startSpan(caller, spanName, null, attributes, null);
+    return startSpan(caller, spanName, null, attributes);
   }
 
   public static Span startClientRpcSpan(Class<?> caller, String spanName) {
-    return startSpan(caller, spanName, SpanKind.CLIENT, null, null);
+    return startSpan(caller, spanName, SpanKind.CLIENT, null);
   }
 
-  public static Span startFateSpan(Class<?> caller, String spanName, TInfo tinfo) {
-    return startSpan(caller, spanName, null, null, tinfo);
+  public static Span startFateSpan(Class<?> caller, String spanName) {
+    return startSpan(caller, spanName, null, null);
   }
 
-  public static Span startServerRpcSpan(Class<?> caller, String spanName, TInfo tinfo) {
-    return startSpan(caller, spanName, SpanKind.SERVER, null, tinfo);
+  public static Span startServerRpcSpan(Class<?> caller, String spanName) {
+    return startSpan(caller, spanName, SpanKind.SERVER, null);
+  }
+
+  public static Span startServerRpcSpanFromContext(Class<?> caller, String spanName,
+      Context parentContext) {
+    if (!enabled && !Span.current().getSpanContext().isValid()) {
+      return Span.getInvalid();
+    }
+    final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
+    final SpanBuilder builder =
+        getTracer(getOpenTelemetry()).spanBuilder(name).setSpanKind(SpanKind.SERVER);
+
+    if (parentContext != null) {
+      builder.setParent(parentContext);
+    }
+
+    return builder.startSpan();
   }
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
-      Map<String,String> attributes, TInfo tinfo) {
+      Map<String,String> attributes) {
     if (!enabled && !Span.current().getSpanContext().isValid()) {
       return Span.getInvalid();
     }
@@ -107,9 +119,6 @@ public class TraceUtil {
     }
     if (attributes != null) {
       attributes.forEach(builder::setAttribute);
-    }
-    if (tinfo != null) {
-      builder.setParent(getContext(tinfo));
     }
     return builder.startSpan();
   }
@@ -131,48 +140,6 @@ public class TraceUtil {
     }
   }
 
-  /**
-   * Obtain {@link org.apache.accumulo.core.clientImpl.thrift.TInfo} for the current context. This
-   * is used to send the current trace information to a remote process
-   */
-  public static TInfo traceInfo() {
-    TInfo tinfo = new TInfo();
-    W3CTraceContextPropagator.getInstance().inject(Context.current(), tinfo, TInfo::putToHeaders);
-    return tinfo;
-  }
-
-  /**
-   * Returns a newly created Context from the TInfo object sent by a remote process. The Context can
-   * then be used in this process to continue the tracing. The Context is used like:
-   *
-   * <pre>
-   * Context remoteCtx = getContext(tinfo);
-   * Span span = tracer.spanBuilder(name).setParent(remoteCtx).startSpan()
-   * </pre>
-   *
-   * @param tinfo tracing information serialized over Thrift
-   */
-  private static Context getContext(TInfo tinfo) {
-    return W3CTraceContextPropagator.getInstance().extract(Context.current(), tinfo,
-        new TextMapGetter<TInfo>() {
-          @Override
-          public Iterable<String> keys(TInfo carrier) {
-            if (carrier.getHeaders() == null) {
-              return null;
-            }
-            return carrier.getHeaders().keySet();
-          }
-
-          @Override
-          public String get(TInfo carrier, String key) {
-            if (carrier.getHeaders() == null) {
-              return null;
-            }
-            return carrier.getHeaders().get(key);
-          }
-        });
-  }
-
   public static Runnable wrap(Runnable r) {
     return r instanceof TraceWrappedRunnable ? r : new TraceWrappedRunnable(r);
   }
@@ -191,22 +158,13 @@ public class TraceUtil {
 
   public static <T> T wrapService(final T instance) {
     InvocationHandler handler = (obj, method, args) -> {
-      if (args == null || args.length < 1 || args[0] == null || !(args[0] instanceof TInfo)) {
-        try {
-          return method.invoke(instance, args);
-        } catch (InvocationTargetException e) {
-          throw e.getCause();
-        }
-      }
-      Span span = startServerRpcSpan(instance.getClass(), method.getName(), (TInfo) args[0]);
-      try (Scope scope = span.makeCurrent()) {
+      Span span = Span.current(); // should be set by protocol
+      try {
         return method.invoke(instance, args);
       } catch (Exception e) {
         Throwable t = e instanceof InvocationTargetException ? e.getCause() : e;
         setException(span, t, true);
         throw t;
-      } finally {
-        span.end();
       }
     };
     return wrapRpc(handler, instance);

@@ -67,7 +67,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -252,8 +251,7 @@ public class ExternalCompactionTestUtils {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
-      TExternalCompactionMap running =
-          client.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      TExternalCompactionMap running = client.getRunningCompactions(context.rpcCreds());
       return running;
     } finally {
       ThriftUtil.returnClient(client, context);
@@ -265,8 +263,7 @@ public class ExternalCompactionTestUtils {
     CompactionCoordinatorService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), context);
     try {
-      TExternalCompactionMap completed =
-          client.getCompletedCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      TExternalCompactionMap completed = client.getCompletedCompactions(context.rpcCreds());
       return completed;
     } finally {
       ThriftUtil.returnClient(client, context);

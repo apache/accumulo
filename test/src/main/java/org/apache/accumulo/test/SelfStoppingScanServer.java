@@ -21,7 +21,6 @@ package org.apache.accumulo.test;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.thrift.TException;
@@ -39,9 +38,9 @@ public class SelfStoppingScanServer extends ScanServer {
   }
 
   @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
+  public void closeMultiScan(long scanID) throws NoSuchScanIDException, TException {
     scanCount.incrementAndGet();
-    super.closeMultiScan(tinfo, scanID);
+    super.closeMultiScan(scanID);
     if (scanCount.get() == 3) {
       gracefulShutdown(getContext().rpcCreds());
     }

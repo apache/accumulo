@@ -91,7 +91,6 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.tables.TableMap;
@@ -672,7 +671,7 @@ public class Admin implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+        client -> client.shutdown(context.rpcCreds(), tabletServersToo));
   }
 
   // Visible for tests
@@ -718,8 +717,8 @@ public class Admin implements KeywordExecutable {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
+        ThriftClientTypes.MANAGER.executeVoid(context,
+            client -> client.shutdownTabletServer(context.rpcCreds(), finalServer, force));
       }
     }
   }
@@ -1108,7 +1107,7 @@ public class Admin implements KeywordExecutable {
     FateService.Client client = null;
     try {
       client = ThriftClientTypes.FATE.getConnectionWithRetry(context);
-      return client.cancelFateOperation(TraceUtil.traceInfo(), context.rpcCreds(), thriftFateId);
+      return client.cancelFateOperation(context.rpcCreds(), thriftFateId);
     } catch (Exception e) {
       throw new AccumuloException(e);
     } finally {

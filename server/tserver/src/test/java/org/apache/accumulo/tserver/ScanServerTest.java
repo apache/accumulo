@@ -35,7 +35,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
@@ -132,7 +131,6 @@ public class ScanServerTest {
   public void testScan() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     KeyExtent sextent = createMock(KeyExtent.class);
     ScanReservation reservation = createMock(ScanReservation.class);
@@ -152,11 +150,11 @@ public class ScanServerTest {
     expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
     reservation.close();
     reservation.close();
-    expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
+    expect(handler.startScan(tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false, false,
+        10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
         .andReturn(new InitialScan(15, null));
-    expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
-    handler.closeScan(tinfo, 15);
+    expect(handler.continueScan(15, 0L)).andReturn(new ScanResult());
+    handler.closeScan(15);
 
     replay(reservation, handler);
 
@@ -168,11 +166,11 @@ public class ScanServerTest {
     ss.systemUser = false;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
-    InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
-        false, false, 10, tsc, 30L, classLoaderContext, execHints, 0L);
+    InitialScan is = ss.startScan(tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
+        false, 10, tsc, 30L, classLoaderContext, execHints, 0L);
     assertEquals(15, is.getScanID());
-    ss.continueScan(tinfo, is.getScanID(), 0L);
-    ss.closeScan(tinfo, is.getScanID());
+    ss.continueScan(is.getScanID(), 0L);
+    ss.closeScan(is.getScanID());
     verify(reservation, handler);
   }
 
@@ -180,7 +178,6 @@ public class ScanServerTest {
   public void testScanTabletLoadFailure() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     KeyExtent extent = createMock(KeyExtent.class);
     TKeyExtent textent = createMock(TKeyExtent.class);
@@ -209,8 +206,8 @@ public class ScanServerTest {
     ss.systemUser = false;
 
     assertThrows(NotServingTabletException.class, () -> {
-      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-          tsc, 30L, classLoaderContext, execHints, 0L);
+      ss.startScan(tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10, tsc,
+          30L, classLoaderContext, execHints, 0L);
     });
 
     verify(extent, reservation);
@@ -220,7 +217,6 @@ public class ScanServerTest {
   public void testBatchScan() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
     KeyExtent extent = createMock(KeyExtent.class);
@@ -253,10 +249,10 @@ public class ScanServerTest {
     expect(reservation.getFailures()).andReturn(Map.of());
     reservation.close();
     reservation.close();
-    expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
+    expect(handler.startMultiScan(tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
         classLoaderContext, execHints, resolver, 0L)).andReturn(new InitialMultiScan(15, null));
-    expect(handler.continueMultiScan(tinfo, 15, 0L)).andReturn(new MultiScanResult());
-    handler.closeMultiScan(tinfo, 15);
+    expect(handler.continueMultiScan(15, 0L)).andReturn(new MultiScanResult());
+    handler.closeMultiScan(15);
 
     replay(extent, reservation, handler);
 
@@ -269,12 +265,12 @@ public class ScanServerTest {
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(createMock(TKeyExtent.class), ranges);
-    InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
-        false, tsc, 30L, classLoaderContext, execHints, 0L);
+    InitialMultiScan is = ss.startMultiScan(tcreds, extents, tcols, titer, ssio, auths, false, tsc,
+        30L, classLoaderContext, execHints, 0L);
     assertEquals(15, is.getScanID());
-    ss.continueMultiScan(tinfo, is.getScanID(), 0L);
+    ss.continueMultiScan(is.getScanID(), 0L);
     assertEquals(15, is.getScanID());
-    ss.closeMultiScan(tinfo, is.getScanID());
+    ss.closeMultiScan(is.getScanID());
     verify(extent, reservation, handler);
   }
 
@@ -282,7 +278,6 @@ public class ScanServerTest {
   public void testBatchScanTabletLoadFailure() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     List<TRange> ranges = new ArrayList<>();
     KeyExtent extent = createMock(KeyExtent.class);
@@ -317,7 +312,7 @@ public class ScanServerTest {
     reservation.close();
     InitialMultiScan ims = new InitialMultiScan(15, null);
     ims.setResult(new MultiScanResult());
-    expect(handler.startMultiScan(tinfo, tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
+    expect(handler.startMultiScan(tcreds, tcols, titer, batch, ssio, auths, false, tsc, 30L,
         classLoaderContext, execHints, resolver, 0L)).andReturn(ims);
 
     replay(extent, reservation, handler);
@@ -331,8 +326,8 @@ public class ScanServerTest {
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     extents.put(textent, ranges);
-    InitialMultiScan is = ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths,
-        false, tsc, 30L, classLoaderContext, execHints, 0L);
+    InitialMultiScan is = ss.startMultiScan(tcreds, extents, tcols, titer, ssio, auths, false, tsc,
+        30L, classLoaderContext, execHints, 0L);
     assertEquals(15, is.getScanID());
     assertEquals(0, is.getResult().getFailuresSize());
 
@@ -344,7 +339,6 @@ public class ScanServerTest {
   public void testBatchScanNoRanges() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
     List<TColumn> tcols = new ArrayList<>();
@@ -374,7 +368,7 @@ public class ScanServerTest {
     ss.systemUser = false;
 
     assertThrows(TException.class, () -> {
-      ss.startMultiScan(tinfo, tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
+      ss.startMultiScan(tcreds, extents, tcols, titer, ssio, auths, false, tsc, 30L,
           classLoaderContext, execHints, 0L);
     });
     verify(handler);
@@ -384,7 +378,6 @@ public class ScanServerTest {
   public void testScanMetaTablesSystemUser() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     KeyExtent sextent = createMock(KeyExtent.class);
     ScanReservation reservation = createMock(ScanReservation.class);
@@ -405,11 +398,11 @@ public class ScanServerTest {
     expect(reservation.getFailures()).andReturn(Map.of()).anyTimes();
     reservation.close();
     reservation.close();
-    expect(handler.startScan(tinfo, tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false,
-        false, 10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
+    expect(handler.startScan(tcreds, sextent, trange, tcols, 10, titer, ssio, auths, false, false,
+        10, tsc, 30L, classLoaderContext, execHints, resolver, 0L))
         .andReturn(new InitialScan(15, null));
-    expect(handler.continueScan(tinfo, 15, 0L)).andReturn(new ScanResult());
-    handler.closeScan(tinfo, 15);
+    expect(handler.continueScan(15, 0L)).andReturn(new ScanResult());
+    handler.closeScan(15);
 
     replay(sextent, reservation, handler);
 
@@ -421,11 +414,11 @@ public class ScanServerTest {
     ss.systemUser = true;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
-    InitialScan is = ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths,
-        false, false, 10, tsc, 30L, classLoaderContext, execHints, 0L);
+    InitialScan is = ss.startScan(tcreds, textent, trange, tcols, 10, titer, ssio, auths, false,
+        false, 10, tsc, 30L, classLoaderContext, execHints, 0L);
     assertEquals(15, is.getScanID());
-    ss.continueScan(tinfo, is.getScanID(), 0L);
-    ss.closeScan(tinfo, is.getScanID());
+    ss.continueScan(is.getScanID(), 0L);
+    ss.closeScan(is.getScanID());
     verify(sextent, reservation, handler);
 
   }
@@ -434,7 +427,6 @@ public class ScanServerTest {
   public void testScanMetaTablesNonSystemUser() throws Exception {
     handler = createMock(ThriftScanClientHandler.class);
 
-    TInfo tinfo = createMock(TInfo.class);
     TCredentials tcreds = createMock(TCredentials.class);
     KeyExtent sextent = createMock(KeyExtent.class);
     ScanReservation reservation = createMock(ScanReservation.class);
@@ -463,8 +455,8 @@ public class ScanServerTest {
 
     TKeyExtent textent = createMock(TKeyExtent.class);
     assertThrows(TException.class, () -> {
-      ss.startScan(tinfo, tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10,
-          tsc, 30L, classLoaderContext, execHints, 0L);
+      ss.startScan(tcreds, textent, trange, tcols, 10, titer, ssio, auths, false, false, 10, tsc,
+          30L, classLoaderContext, execHints, 0L);
     });
     verify(sextent, reservation, handler);
 

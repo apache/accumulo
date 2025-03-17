@@ -47,7 +47,6 @@ import org.apache.accumulo.core.clientImpl.CompressedIterators;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
@@ -149,7 +148,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability tdurabilty)
+  public long startUpdate(TCredentials credentials, TDurability tdurabilty)
       throws ThriftSecurityException {
     // Make sure user is real
     Durability durability = DurabilityImpl.fromThrift(tdurabilty);
@@ -234,8 +233,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void applyUpdates(TInfo tinfo, long updateID, TKeyExtent tkeyExtent,
-      List<TMutation> tmutations) {
+  public void applyUpdates(long updateID, TKeyExtent tkeyExtent, List<TMutation> tmutations) {
     UpdateSession us = (UpdateSession) server.sessionManager.reserveSession(updateID);
     if (us == null) {
       return;
@@ -475,7 +473,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public UpdateErrors closeUpdate(TInfo tinfo, long updateID) throws NoSuchScanIDException {
+  public UpdateErrors closeUpdate(long updateID) throws NoSuchScanIDException {
     // Reserve the session and wait for any write that may currently have it reserved. Once reserved
     // no write stragglers can start against this session id.
     final UpdateSession us = (UpdateSession) server.sessionManager.reserveSession(updateID, true);
@@ -554,7 +552,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public boolean cancelUpdate(TInfo tinfo, long updateID) throws TException {
+  public boolean cancelUpdate(long updateID) throws TException {
     return server.sessionManager.removeIfNotReserved(updateID);
   }
 
@@ -775,7 +773,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public TConditionalSession startConditionalUpdate(TInfo tinfo, TCredentials credentials,
+  public TConditionalSession startConditionalUpdate(TCredentials credentials,
       List<ByteBuffer> authorizations, String tableIdStr, TDurability tdurabilty,
       String classLoaderContext) throws ThriftSecurityException, TException {
 
@@ -803,7 +801,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TCMResult> conditionalUpdate(TInfo tinfo, long sessID,
+  public List<TCMResult> conditionalUpdate(long sessID,
       Map<TKeyExtent,List<TConditionalMutation>> mutations, List<String> symbols)
       throws NoSuchScanIDException, TException {
 
@@ -882,7 +880,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void invalidateConditionalUpdate(TInfo tinfo, long sessID) {
+  public void invalidateConditionalUpdate(long sessID) {
     // For the given session, this method should wait for any running conditional update to
     // complete. After this method returns a conditional update should not be able to start against
     // this session and nothing should be running.
@@ -903,17 +901,17 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void closeConditionalUpdate(TInfo tinfo, long sessID) {
+  public void closeConditionalUpdate(long sessID) {
     server.sessionManager.removeSession(sessID, false);
   }
 
   @Override
-  public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
+  public TabletServerStatus getTabletServerStatus(TCredentials credentials) {
     return server.getStats(server.sessionManager.getActiveScansPerTable());
   }
 
   @Override
-  public List<TabletStats> getTabletStats(TInfo tinfo, TCredentials credentials, String tableId) {
+  public List<TabletStats> getTabletStats(TCredentials credentials, String tableId) {
     List<TabletStats> result = new ArrayList<>();
     TableId text = TableId.of(tableId);
     KeyExtent start = new KeyExtent(text, new Text(), null);
@@ -989,8 +987,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void loadTablet(TInfo tinfo, TCredentials credentials, String lock,
-      final TKeyExtent textent) {
+  public void loadTablet(TCredentials credentials, String lock, final TKeyExtent textent) {
 
     try {
       checkPermission(security, context, server, credentials, lock, "loadTablet");
@@ -1064,7 +1061,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent,
+  public void unloadTablet(TCredentials credentials, String lock, TKeyExtent textent,
       TUnloadTabletGoal goal, long requestTime) {
     try {
       checkPermission(security, context, server, credentials, lock, "unloadTablet");
@@ -1080,8 +1077,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
-      ByteBuffer startRow, ByteBuffer endRow) {
+  public void flush(TCredentials credentials, String lock, String tableId, ByteBuffer startRow,
+      ByteBuffer endRow) {
     try {
       checkPermission(security, context, server, credentials, lock, "flush");
     } catch (ThriftSecurityException e) {
@@ -1114,7 +1111,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
+  public void flushTablet(TCredentials credentials, String lock, TKeyExtent textent) {
     try {
       checkPermission(security, context, server, credentials, lock, "flushTablet");
     } catch (ThriftSecurityException e) {
@@ -1135,8 +1132,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void halt(TInfo tinfo, TCredentials credentials, String lock)
-      throws ThriftSecurityException {
+  public void halt(TCredentials credentials, String lock) throws ThriftSecurityException {
 
     checkPermission(security, context, server, credentials, lock, "halt");
 
@@ -1153,21 +1149,21 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public void fastHalt(TInfo info, TCredentials credentials, String lock) {
+  public void fastHalt(TCredentials credentials, String lock) {
     try {
-      halt(info, credentials, lock);
+      halt(credentials, lock);
     } catch (Exception e) {
       log.warn("Error halting", e);
     }
   }
 
   @Override
-  public TabletStats getHistoricalStats(TInfo tinfo, TCredentials credentials) {
+  public TabletStats getHistoricalStats(TCredentials credentials) {
     return server.statsKeeper.getTabletStats();
   }
 
   @Override
-  public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
+  public List<ActiveCompaction> getActiveCompactions(TCredentials credentials)
       throws ThriftSecurityException, TException {
     try {
       checkPermission(security, context, server, credentials, null, "getActiveCompactions");
@@ -1187,8 +1183,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<TKeyExtent> refreshTablets(TInfo tinfo, TCredentials credentials,
-      List<TKeyExtent> refreshes) throws TException {
+  public List<TKeyExtent> refreshTablets(TCredentials credentials, List<TKeyExtent> refreshes)
+      throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -1242,8 +1238,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
-      List<TKeyExtent> extents) throws TException {
+  public Map<TKeyExtent,Long> allocateTimestamps(TCredentials credentials, List<TKeyExtent> extents)
+      throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -1265,14 +1261,14 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public List<String> getActiveLogs(TInfo tinfo, TCredentials credentials) {
+  public List<String> getActiveLogs(TCredentials credentials) {
     // Might be null if there is no active logger
     LogEntry le = server.logger.getLogEntry();
     return le == null ? Collections.emptyList() : Collections.singletonList(le.getPath());
   }
 
   @Override
-  public void removeLogs(TInfo tinfo, TCredentials credentials, List<String> filenames) {
+  public void removeLogs(TCredentials credentials, List<String> filenames) {
     log.warn("Garbage collector is attempting to remove logs through the tablet server");
     log.warn("This is probably because your file"
         + " Garbage Collector is an older version than your tablet servers.\n"
@@ -1314,8 +1310,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public TSummaries startGetSummaries(TInfo tinfo, TCredentials credentials,
-      TSummaryRequest request)
+  public TSummaries startGetSummaries(TCredentials credentials, TSummaryRequest request)
       throws ThriftSecurityException, ThriftTableOperationException, TException {
     NamespaceId namespaceId;
     TableId tableId = TableId.of(request.getTableId());
@@ -1341,9 +1336,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public TSummaries startGetSummariesForPartition(TInfo tinfo, TCredentials credentials,
-      TSummaryRequest request, int modulus, int remainder)
-      throws ThriftSecurityException, TException {
+  public TSummaries startGetSummariesForPartition(TCredentials credentials, TSummaryRequest request,
+      int modulus, int remainder) throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -1361,9 +1355,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public TSummaries startGetSummariesFromFiles(TInfo tinfo, TCredentials credentials,
-      TSummaryRequest request, Map<String,List<TRowRange>> files)
-      throws ThriftSecurityException, TException {
+  public TSummaries startGetSummariesFromFiles(TCredentials credentials, TSummaryRequest request,
+      Map<String,List<TRowRange>> files) throws ThriftSecurityException, TException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
@@ -1385,8 +1378,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
   }
 
   @Override
-  public TSummaries contiuneGetSummaries(TInfo tinfo, long sessionId)
-      throws NoSuchScanIDException, TException {
+  public TSummaries contiuneGetSummaries(long sessionId) throws NoSuchScanIDException, TException {
     SummarySession session = (SummarySession) server.sessionManager.getSession(sessionId);
     if (session == null) {
       throw new NoSuchScanIDException();

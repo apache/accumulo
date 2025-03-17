@@ -26,7 +26,6 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -42,7 +41,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
@@ -73,13 +71,13 @@ public class ZombieTServer {
     boolean halted = false;
 
     @Override
-    public synchronized void fastHalt(TInfo tinfo, TCredentials credentials, String lock) {
+    public synchronized void fastHalt(TCredentials credentials, String lock) {
       halted = true;
       notifyAll();
     }
 
     @Override
-    public TabletServerStatus getTabletServerStatus(TInfo tinfo, TCredentials credentials) {
+    public TabletServerStatus getTabletServerStatus(TCredentials credentials) {
       synchronized (this) {
         if (statusCount++ < 1) {
           TabletServerStatus result = new TabletServerStatus();
@@ -97,7 +95,7 @@ public class ZombieTServer {
     }
 
     @Override
-    public synchronized void halt(TInfo tinfo, TCredentials credentials, String lock) {
+    public synchronized void halt(TCredentials credentials, String lock) {
       halted = true;
       notifyAll();
     }
@@ -149,7 +147,7 @@ public class ZombieTServer {
       @Override
       public void lostLock(final LockLossReason reason) {
         try {
-          tch.halt(TraceUtil.traceInfo(), null, null);
+          tch.halt(null, null);
         } catch (Exception ex) {
           log.error("Exception", ex);
           System.exit(1);
@@ -161,7 +159,7 @@ public class ZombieTServer {
       @Override
       public void unableToMonitorLockNode(Exception e) {
         try {
-          tch.halt(TraceUtil.traceInfo(), null, null);
+          tch.halt(null, null);
         } catch (Exception ex) {
           log.error("Exception", ex);
           System.exit(1);

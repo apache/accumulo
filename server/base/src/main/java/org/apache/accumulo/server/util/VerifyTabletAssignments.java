@@ -34,7 +34,6 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -184,24 +183,23 @@ public class VerifyTabletAssignments {
       Range r = new Range(row, true, row2, false);
       batch.put(keyExtent.toThrift(), Collections.singletonList(r.toThrift()));
     }
-    TInfo tinfo = TraceUtil.traceInfo();
     Map<String,Map<String,String>> emptyMapSMapSS = Collections.emptyMap();
     List<IterInfo> emptyListIterInfo = Collections.emptyList();
     List<TColumn> emptyListColumn = Collections.emptyList();
-    InitialMultiScan is = client.startMultiScan(tinfo, context.rpcCreds(), batch, emptyListColumn,
+    InitialMultiScan is = client.startMultiScan(context.rpcCreds(), batch, emptyListColumn,
         emptyListIterInfo, emptyMapSMapSS, Authorizations.EMPTY.getAuthorizationsBB(), false, null,
         0L, null, null, 0L);
     if (is.result.more) {
-      MultiScanResult result = client.continueMultiScan(tinfo, is.scanID, 0L);
+      MultiScanResult result = client.continueMultiScan(is.scanID, 0L);
       checkFailures(entry.getKey(), failures, result);
 
       while (result.more) {
-        result = client.continueMultiScan(tinfo, is.scanID, 0L);
+        result = client.continueMultiScan(is.scanID, 0L);
         checkFailures(entry.getKey(), failures, result);
       }
     }
 
-    client.closeMultiScan(tinfo, is.scanID);
+    client.closeMultiScan(is.scanID);
 
     ThriftUtil.returnClient((TServiceClient) client, context);
   }

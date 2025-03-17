@@ -52,7 +52,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -953,8 +952,8 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
-      TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
+  public InitialScan startScan(TCredentials credentials, TKeyExtent textent, TRange range,
+      List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration samplerConfig,
       long batchTimeOut, String classLoaderContext, Map<String,String> executionHints,
@@ -982,8 +981,8 @@ public class ScanServer extends AbstractServer
 
       TabletBase tablet = reservation.newTablet(this, extent);
 
-      InitialScan is = delegate.startScan(tinfo, credentials, extent, range, columns, batchSize,
-          ssiList, ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
+      InitialScan is = delegate.startScan(credentials, extent, range, columns, batchSize, ssiList,
+          ssio, authorizations, waitForWrites, isolated, readaheadThreshold, samplerConfig,
           batchTimeOut, classLoaderContext, executionHints, getScanTabletResolver(tablet),
           busyTimeout);
 
@@ -999,14 +998,13 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout)
-      throws NoSuchScanIDException, NotServingTabletException, TooManyFilesException,
-      TSampleNotPresentException, TException {
+  public ScanResult continueScan(long scanID, long busyTimeout) throws NoSuchScanIDException,
+      NotServingTabletException, TooManyFilesException, TSampleNotPresentException, TException {
     LOG.trace("continue scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
-      return delegate.continueScan(tinfo, scanID, busyTimeout);
+      return delegate.continueScan(scanID, busyTimeout);
     } catch (ScanServerBusyException be) {
       scanServerMetrics.incrementBusy();
       throw be;
@@ -1014,13 +1012,13 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public void closeScan(TInfo tinfo, long scanID) throws TException {
+  public void closeScan(long scanID) throws TException {
     LOG.trace("close scan: {}", scanID);
-    delegate.closeScan(tinfo, scanID);
+    delegate.closeScan(scanID);
   }
 
   @Override
-  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
+  public InitialMultiScan startMultiScan(TCredentials credentials,
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
@@ -1060,9 +1058,9 @@ public class ScanServer extends AbstractServer
         }
       });
 
-      InitialMultiScan ims = delegate.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch,
-          ssio, authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg,
-          executionHints, getBatchScanTabletResolver(tablets), busyTimeout);
+      InitialMultiScan ims = delegate.startMultiScan(credentials, tcolumns, ssiList, batch, ssio,
+          authorizations, waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints,
+          getBatchScanTabletResolver(tablets), busyTimeout);
 
       LOG.trace("started multi scan: {}", ims.getScanID());
       return ims;
@@ -1079,13 +1077,13 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout)
+  public MultiScanResult continueMultiScan(long scanID, long busyTimeout)
       throws NoSuchScanIDException, TSampleNotPresentException, TException {
     LOG.trace("continue multi scan: {}", scanID);
 
     try (ScanReservation reservation = reserveFilesInstrumented(scanID)) {
       Preconditions.checkState(reservation.getFailures().isEmpty());
-      return delegate.continueMultiScan(tinfo, scanID, busyTimeout);
+      return delegate.continueMultiScan(scanID, busyTimeout);
     } catch (ScanServerBusyException be) {
       scanServerMetrics.incrementBusy();
       throw be;
@@ -1093,15 +1091,15 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException, TException {
+  public void closeMultiScan(long scanID) throws NoSuchScanIDException, TException {
     LOG.trace("close multi scan: {}", scanID);
-    delegate.closeMultiScan(tinfo, scanID);
+    delegate.closeMultiScan(scanID);
   }
 
   @Override
-  public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
+  public List<ActiveScan> getActiveScans(TCredentials credentials)
       throws ThriftSecurityException, TException {
-    return delegate.getActiveScans(tinfo, credentials);
+    return delegate.getActiveScans(credentials);
   }
 
   @Override

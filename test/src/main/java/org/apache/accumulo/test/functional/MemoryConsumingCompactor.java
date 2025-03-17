@@ -23,7 +23,6 @@ import java.util.Map;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.data.Key;
@@ -51,15 +50,14 @@ public class MemoryConsumingCompactor extends Compactor {
   }
 
   @Override
-  public void cancel(TInfo tinfo, TCredentials credentials, String externalCompactionId)
-      throws TException {
+  public void cancel(TCredentials credentials, String externalCompactionId) throws TException {
     // Use the cancel Thrift RPC to free the consumed memory
     LOG.warn("cancel called, freeing memory");
     MemoryConsumingIterator.freeBuffers();
   }
 
   @Override
-  public TExternalCompactionJob getRunningCompaction(TInfo tinfo, TCredentials credentials)
+  public TExternalCompactionJob getRunningCompaction(TCredentials credentials)
       throws ThriftSecurityException, TException {
     // Use the getRunningCompaction Thrift RPC to consume the memory
     LOG.warn("getRunningCompaction called, consuming memory");
