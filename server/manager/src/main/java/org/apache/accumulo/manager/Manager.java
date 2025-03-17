@@ -1217,8 +1217,7 @@ public class Manager extends AbstractServer
         }
       });
     } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY
-          + " relative to instance root node at " + Constants.ZROOT + "/<uuid>", e);
+      throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
