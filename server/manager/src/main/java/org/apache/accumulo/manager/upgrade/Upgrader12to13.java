@@ -88,8 +88,6 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext context) {
-    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
-    createFateTable(context);
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
@@ -102,6 +100,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeMetadata(ServerContext context) {
+    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
+    createFateTable(context);
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
@@ -129,8 +129,20 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   private void createFateTable(ServerContext context) {
-    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
-    zkInit.initFateTableState(context);
+
+    if (context.tableOperations().exists(AccumuloTable.FATE.tableName())) {
+      LOG.info("Fate table already exists");
+      return;
+    }
+
+    try {
+      ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
+      zkInit.initFateTableState(context);
+    } catch (Exception e) {
+      if (e.getCause() instanceof KeeperException.NodeExistsException) {
+        LOG.debug("Fate table node already exists in ZooKeeper");
+      }
+    }
 
     try {
       FileSystemInitializer initializer = new FileSystemInitializer(
@@ -226,7 +238,7 @@ public class Upgrader12to13 implements Upgrader {
     // FATE transaction ids have changed from 3.x to 4.x which are used as the value for the bulk
     // file column. FATE ops won't persist through upgrade, so these columns can be safely deleted
     // if they exist.
-    try (var scanner = context.createScanner(tableName);
+    try (var scanner = context.createScanner(tableName, Authorizations.EMPTY);
         var writer = context.createBatchWriter(tableName)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
       scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
