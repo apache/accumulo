@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -41,10 +42,14 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public abstract class TabletLocator {
+
+  private static final Logger log = LoggerFactory.getLogger(TabletLocator.class);
 
   /**
    * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache
@@ -132,13 +137,16 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
-  // TODO make configurable
-  private static boolean useConcurrentLocator = true;
-
   private static TabletLocator newTabletLocator(ClientContext context, TableId tableId,
       TabletLocator parent) {
+
+    boolean useConcurrentLocator =
+        ClientProperty.EXPERIMENTAL_TABLET_CACHE.getBoolean(context.getProperties());
+
     MetadataLocationObtainer mlo = new MetadataLocationObtainer();
     if (useConcurrentLocator) {
+      log.info("Using experimental tablet location cache configured by client property {}",
+          ClientProperty.EXPERIMENTAL_TABLET_CACHE.getKey());
       return new ConcurrentTabletLocator(tableId, parent, mlo, context.getTServerLockChecker());
     } else {
       return new TabletLocatorImpl(tableId, parent, mlo, context.getTServerLockChecker());

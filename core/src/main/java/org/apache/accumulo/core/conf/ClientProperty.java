@@ -135,6 +135,9 @@ public enum ClientProperty {
       "The maximum duration to leave idle transports open in the client's transport pool", "2.1.0",
       false),
 
+  EXPERIMENTAL_TABLET_CACHE("experimental.tablet.cache.enabled", "false",
+      "Enable experimental tablet location cache that supports better concurrency"),
+
   // Trace
   @Deprecated(since = "2.1.0", forRemoval = true)
   TRACE_SPAN_RECEIVERS("trace.span.receivers", "org.apache.accumulo.tracer.ZooTraceClient",
