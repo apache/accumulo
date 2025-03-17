@@ -211,10 +211,12 @@ public class UpgradeCoordinator {
           // if the current version is 10, then the code above will get the Upgrader for version
           // 10 from the upgraders map. It will run the Upgrader10to11 code, which means that the
           // current version of ZooKeeper after running the upgrade is 11.
-          progressTracker.updateZooKeeperVersion(upgradeVersion + 1);
+          final int nextVersion = upgradeVersion + 1;
+          progressTracker.updateZooKeeperVersion(nextVersion);
+          log.info("ZooKeeper upgrade from version {} to version {} complete.", upgradeVersion,
+              nextVersion);
         }
       }
-
       setStatus(UpgradeStatus.UPGRADED_ZOOKEEPER, eventCoordinator);
     } catch (Exception e) {
       handleFailure(e);
@@ -255,7 +257,10 @@ public class UpgradeCoordinator {
                 // if the current version is 10, then the code above will get the Upgrader for
                 // version 10 from the upgraders map. It will run the Upgrader10to11 code, which
                 // means that the current version of ZooKeeper after running the upgrade is 11.
-                progressTracker.updateRootVersion(upgradeVersion + 1);
+                final int nextVersion = upgradeVersion + 1;
+                progressTracker.updateRootVersion(nextVersion);
+                log.info("Root upgrade from version {} to version {} complete.", upgradeVersion,
+                    nextVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
@@ -278,7 +283,10 @@ public class UpgradeCoordinator {
                 // if the current version is 10, then the code above will get the Upgrader for
                 // version 10 from the upgraders map. It will run the Upgrader10to11 code, which
                 // means that the current version of ZooKeeper after running the upgrade is 11.
-                progressTracker.updateMetadataVersion(upgradeVersion + 1);
+                final int nextVersion = upgradeVersion + 1;
+                progressTracker.updateMetadataVersion(nextVersion);
+                log.info("Metadata upgrade from version {} to version {} complete.", upgradeVersion,
+                    nextVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 
