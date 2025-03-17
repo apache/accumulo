@@ -54,6 +54,7 @@ import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +92,20 @@ public abstract class AbstractServer
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
+
+    final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
+    try {
+      if (context.getZooSession().asReader().exists(upgradePrepNode)) {
+        throw new IllegalStateException(
+            "Instance has been prepared for upgrade, no servers can be started."
+                + " To undo this state and abort upgrade preparations delete the zookeeper node: "
+                + upgradePrepNode);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(
+          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper", e);
+    }
+
     log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
