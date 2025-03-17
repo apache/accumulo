@@ -472,7 +472,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Override
   public Duration getManagerTime() throws AccumuloException, AccumuloSecurityException {
     return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
-        client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
+        client -> client.getManagerTimeNanos(context.rpcCreds())));
   }
 
   @Override
