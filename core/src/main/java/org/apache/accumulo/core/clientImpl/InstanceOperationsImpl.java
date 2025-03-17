@@ -470,6 +470,12 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
+  public Duration getManagerTime() throws AccumuloException, AccumuloSecurityException {
+    return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
+        client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds())));
+  }
+
+  @Override
   public ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port) {
     Objects.requireNonNull(type, "type parameter cannot be null");
     Objects.requireNonNull(host, "host parameter cannot be null");
