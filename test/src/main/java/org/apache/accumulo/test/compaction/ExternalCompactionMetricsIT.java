@@ -63,8 +63,12 @@ import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
+
+  private static final Logger log = LoggerFactory.getLogger(ExternalCompactionMetricsIT.class);
 
   public static class ExternalCompactionMetricsITConfig
       implements MiniClusterConfigurationCallback {
@@ -184,6 +188,9 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
         avgDCQ1 |= assertMetric(qm, "dcq1", COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getName());
         timerDCQ1 |=
             assertMetric(qm, "dcq1", COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getName());
+        log.debug("Saw metric {} ", qm);
+        log.debug("sawDCQ1_0:{}  sawDCQ2_0:{} minDCQ1:{} maxDCQ1:{} avgDCQ1:{} timerDCQ1:{} ",
+            sawDCQ1_0, sawDCQ2_0, minDCQ1, maxDCQ1, avgDCQ1, timerDCQ1);
       }
 
       shutdownTailer.set(true);

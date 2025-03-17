@@ -53,7 +53,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -127,12 +126,7 @@ public class AddSplitIT extends SharedMiniClusterBase {
       verifyData(c, tableName, 2L);
 
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-      try (TabletsMetadata tm =
-          getCluster().getServerContext().getAmple().readTablets().forTable(id).build()) {
-        // Default for user created tablets should be mergeability set to NEVER
-        tm.stream().forEach(tablet -> assertEquals(TabletMergeabilityMetadata.never(),
-            tablet.getTabletMergeability()));
-      }
+      verifySplits(id, TabletMergeabilityUtil.userDefaultSplits(splits));
     }
   }
 
@@ -360,9 +354,9 @@ public class AddSplitIT extends SharedMiniClusterBase {
         getCluster().getServerContext().getAmple().readTablets().forTable(id).build()) {
       tm.stream().forEach(t -> {
         var split = t.getEndRow();
-        // default tablet should be set to never
+        // default tablet should be set to always
         if (split == null) {
-          assertEquals(TabletMergeability.never(),
+          assertEquals(TabletMergeability.always(),
               t.getTabletMergeability().getTabletMergeability());
         } else {
           assertTrue(addedSplits.remove(split));
@@ -381,9 +375,9 @@ public class AddSplitIT extends SharedMiniClusterBase {
     c.tableOperations().getTabletInformation(tableName, new Range()).forEach(ti -> {
       var tmInfo = ti.getTabletMergeabilityInfo();
       var split = ti.getTabletId().getEndRow();
-      // default tablet should always be set to never
+      // default tablet should always be set to always
       if (split == null) {
-        assertEquals(TabletMergeability.never(),
+        assertEquals(TabletMergeability.always(),
             ti.getTabletMergeabilityInfo().getTabletMergeability());
       } else {
         assertTrue(addedSplits.remove(split));
