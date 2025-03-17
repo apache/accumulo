@@ -22,11 +22,12 @@ import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import java.util.UUID;
 
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.fate.FateExecutionOrderIT;
 
 public class MetaFateExecutionOrderIT extends FateExecutionOrderIT {
@@ -38,9 +39,16 @@ public class MetaFateExecutionOrderIT extends FateExecutionOrderIT {
   @Override
   public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    ServerContext sctx = getCluster().getServerContext();
-    var zk = sctx.getZooSession();
-    zk.asReaderWriter().mkdirs(ZK_ROOT);
-    testMethod.execute(new MetaFateStore<>(zk, createDummyLockID(), null), sctx);
+    var sctx = getCluster().getServerContext();
+    var conf = sctx.getConfiguration();
+    try (var zk = new ZooSession(getClass().getSimpleName() + ".mkdirs", conf)) {
+      zk.asReaderWriter().mkdirs(ZK_ROOT);
+    }
+    try (var zk = new ZooSession(getClass().getSimpleName() + ".fakeroot",
+        conf.get(Property.INSTANCE_ZK_HOST) + ZK_ROOT,
+        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+        conf.get(Property.INSTANCE_SECRET))) {
+      testMethod.execute(new MetaFateStore<>(zk, createDummyLockID(), null), sctx);
+    }
   }
 }
