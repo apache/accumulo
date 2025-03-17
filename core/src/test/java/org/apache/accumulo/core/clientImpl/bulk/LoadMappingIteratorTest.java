@@ -18,29 +18,35 @@
  */
 package org.apache.accumulo.core.clientImpl.bulk;
 
-import static org.junit.Assert.assertEquals;
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.clientImpl.bulk.BulkSerialize.createGson;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import com.google.gson.Gson;
+import com.google.gson.stream.JsonWriter;
 
 public class LoadMappingIteratorTest {
   private LoadMappingIterator createLoadMappingIter(Map<KeyExtent,String> loadRanges)
       throws IOException {
-    SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
+    Map<KeyExtent,Bulk.Files> unorderedMapping = new LinkedHashMap<>();
 
     loadRanges.forEach((extent, files) -> {
       Bulk.Files testFiles = new Bulk.Files();
@@ -50,15 +56,15 @@ public class LoadMappingIteratorTest {
         testFiles.add(new Bulk.FileInfo(f, c, c));
       }
 
-      mapping.put(extent, testFiles);
+      unorderedMapping.put(extent, testFiles);
     });
 
+    // Serialize unordered mapping directly
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    BulkSerialize.writeLoadMapping(mapping, "/some/dir", p -> baos);
+    writeLoadMappingWithoutSorting(unorderedMapping, "/some/dir", p -> baos);
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
-    LoadMappingIterator lmi =
-        BulkSerialize.readLoadMapping("/some/dir", TableId.of("1"), p -> bais);
-    return lmi;
+
+    return BulkSerialize.readLoadMapping("/some/dir", TableId.of("1"), p -> bais);
   }
 
   KeyExtent nke(String prev, String end) {
@@ -66,6 +72,27 @@ public class LoadMappingIteratorTest {
     Text er = end == null ? null : new Text(end);
 
     return new KeyExtent(TableId.of("1"), er, per);
+  }
+
+  /**
+   * Serialize bulk load mapping without sorting.
+   */
+  public static void writeLoadMappingWithoutSorting(Map<KeyExtent,Bulk.Files> loadMapping,
+      String sourceDir, BulkSerialize.Output output) throws IOException {
+    final Path lmFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
+
+    try (OutputStream fsOut = output.create(lmFile); JsonWriter writer =
+        new JsonWriter(new BufferedWriter(new OutputStreamWriter(fsOut, UTF_8)))) {
+      Gson gson = createGson();
+      writer.setIndent("  ");
+      writer.beginArray();
+      // Iterate over entries in the order they are inserted
+      for (Map.Entry<KeyExtent,Bulk.Files> entry : loadMapping.entrySet()) {
+        Bulk.Mapping mapping = new Bulk.Mapping(entry.getKey(), entry.getValue());
+        gson.toJson(mapping, Bulk.Mapping.class, writer);
+      }
+      writer.endArray();
+    }
   }
 
   @Test
@@ -78,11 +105,12 @@ public class LoadMappingIteratorTest {
     loadRanges.put(nke("w", null), "f2 f6");
 
     try (LoadMappingIterator iterator = createLoadMappingIter(loadRanges)) {
-      List<KeyExtent> result = new ArrayList<>();
+      var loadRangesIter = loadRanges.keySet().iterator();
+
       while (iterator.hasNext()) {
-        result.add(iterator.next().getKey());
+        assertEquals(loadRangesIter.next(), iterator.next().getKey());
       }
-      assertEquals(new ArrayList<>(loadRanges.keySet()), result);
+      assertFalse(loadRangesIter.hasNext(), "Iterator should consume all expected entries");
     }
   }
 
@@ -90,24 +118,15 @@ public class LoadMappingIteratorTest {
   void testInvalidOutOfOrderInput() throws IOException {
     Map<KeyExtent,String> loadRanges = new LinkedHashMap<>();
     loadRanges.put(nke("c", "g"), "f2 f3");
-    loadRanges.put(nke(null, "c"), "f1 f2"); // Out of order!
+    loadRanges.put(nke(null, "c"), "f1 f2");
     loadRanges.put(nke("g", "r"), "f2 f4");
     loadRanges.put(nke("r", "w"), "f2 f5");
     loadRanges.put(nke("w", null), "f2 f6");
 
     try (LoadMappingIterator iterator = createLoadMappingIter(loadRanges)) {
-      KeyExtent previous = null;
-      while (iterator.hasNext()) {
-        KeyExtent current = iterator.next().getKey();
-        System.out.println("Comparing " + current + " with previous: " + previous);
-        assertFalse(previous != null && current.compareTo(previous) < 0, "Input is out of order!");
-
-        previous = current;
-      }
-    } catch (IllegalStateException e) {
-      assertThrows(IllegalStateException.class, () -> {
-        throw e;
-      }, "Expected an IllegalStateException due to out-of-order KeyExtents");
+      assertEquals(nke("c", "g"), iterator.next().getKey());
+      assertThrows(IllegalStateException.class, iterator::next,
+          "Expected an IllegalStateException due to out-of-order KeyExtents");
     }
   }
 }
