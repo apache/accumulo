@@ -189,9 +189,9 @@ public class UpgradeProgressTrackerIT {
     assertArrayEquals(GSON.get().toJson(progress).getBytes(UTF_8), serialized);
 
     // Test updating out of order
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(IllegalStateException.class,
         () -> progressTracker.updateMetadataVersion(AccumuloDataVersion.get()));
-    assertThrows(IllegalArgumentException.class,
+    assertThrows(IllegalStateException.class,
         () -> progressTracker.updateRootVersion(AccumuloDataVersion.get()));
     serialized = zk.asReader().getData(zRoot + Constants.ZUPGRADE_PROGRESS);
     assertArrayEquals(GSON.get().toJson(progress).getBytes(UTF_8), serialized);

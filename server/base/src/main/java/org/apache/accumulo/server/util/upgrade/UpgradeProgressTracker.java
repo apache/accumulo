@@ -92,7 +92,7 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateZooKeeperVersion(int newVersion) {
-    checkArgument(progress != null, "continueUpgrade must be called first");
+    checkState(progress != null, "continueUpgrade must be called first");
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -102,7 +102,7 @@ public class UpgradeProgressTracker {
     checkArgument(newVersion > progress.getRootVersion(),
         "New ZooKeeper version (%s) expected to be greater than the root version (%s)", newVersion,
         progress.getRootVersion());
-    checkArgument(progress.getMetadataVersion() == progress.getRootVersion(),
+    checkState(progress.getMetadataVersion() == progress.getRootVersion(),
         "Root (%s) and Metadata (%s) versions expected to be equal when upgrading ZooKeeper",
         progress.getRootVersion(), progress.getMetadataVersion());
     progress.setZooKeeperVersion(newVersion);
@@ -110,7 +110,10 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateRootVersion(int newVersion) {
-    checkArgument(progress != null, "continueUpgrade must be called first");
+    checkState(progress != null, "continueUpgrade must be called first");
+    checkState(progress.getZooKeeperVersion() == AccumuloDataVersion.get(),
+        "ZooKeeper has not been upgraded to version %s yet, currently at %s, cannot upgrade Root yet",
+        AccumuloDataVersion.get(), progress.getZooKeeperVersion());
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -128,7 +131,10 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void updateMetadataVersion(int newVersion) {
-    checkArgument(progress != null, "continueUpgrade must be called first");
+    checkState(progress != null, "continueUpgrade must be called first");
+    checkState(progress.getRootVersion() == AccumuloDataVersion.get(),
+        "Root has not been upgraded to version %s yet, currently at %s, cannot upgrade Metadata yet",
+        AccumuloDataVersion.get(), progress.getRootVersion());
     checkArgument(newVersion <= AccumuloDataVersion.get(),
         "New version (%s) cannot be larger than current data version (%s)", newVersion,
         AccumuloDataVersion.get());
@@ -169,6 +175,15 @@ public class UpgradeProgressTracker {
   }
 
   public synchronized void upgradeComplete() {
+    checkState(progress.getZooKeeperVersion() == AccumuloDataVersion.get(),
+        "ZooKeeper upgrade has not completed, expected version %s, currently at %s",
+        AccumuloDataVersion.get(), progress.getZooKeeperVersion());
+    checkState(progress.getRootVersion() == AccumuloDataVersion.get(),
+        "Root upgrade has not completed, expected version %s, currently at %s",
+        AccumuloDataVersion.get(), progress.getRootVersion());
+    checkState(progress.getMetadataVersion() == AccumuloDataVersion.get(),
+        "Metadata upgrade has not completed, expected version %s, currently at %s",
+        AccumuloDataVersion.get(), progress.getMetadataVersion());
     // This should be updated prior to deleting the tracking data in zookeeper.
     checkState(AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get(),
         "Upgrade completed, but current version (%s) is not equal to the software version (%s)",
