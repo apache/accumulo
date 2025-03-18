@@ -61,16 +61,17 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadataCheck;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.ColumnFamilySizeLimitIterator;
-import org.apache.accumulo.server.metadata.iterators.DisjointCompactionIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
+import org.apache.accumulo.server.metadata.iterators.TabletMetadataCheckIterator;
 
 import com.google.common.base.Preconditions;
 
@@ -370,9 +371,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
-  public ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files) {
+  public ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    Condition condition = DisjointCompactionIterator.createCondition(files);
+    Condition condition = TabletMetadataCheckIterator.createCondition(check, extent);
     mutation.addCondition(condition);
     return this;
   }
@@ -388,7 +389,7 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       mutation.addCondition(c);
     }
     if (putServerLock) {
-      this.putZooLock(context.getZooKeeperRoot(), lock);
+      this.putZooLock(lock);
     }
     getMutation();
     mutationConsumer.accept(mutation);

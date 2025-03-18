@@ -29,10 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.util.Pair;
 
 /**
@@ -53,13 +55,21 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey,
-      Repo<String> repo, boolean autoCleanUp) {
-    return Optional.empty();
+  public Seeder<String> beginSeeding() {
+    return new Seeder<>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<String> repo, boolean autoCleanUp) {
+        return CompletableFuture.completedFuture(Optional.empty());
+      }
+
+      @Override
+      public void close() {}
+    };
   }
 
   @Override
-  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<String> repo,
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<String> repo,
       boolean autoCleanUp) {
     return false;
   }

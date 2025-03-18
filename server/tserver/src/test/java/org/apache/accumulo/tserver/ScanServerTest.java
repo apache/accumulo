@@ -119,6 +119,11 @@ public class ScanServerTest {
       return systemUser;
     }
 
+    @Override
+    public boolean isShutdownRequested() {
+      return false;
+    }
+
   }
 
   private ThriftScanClientHandler handler;

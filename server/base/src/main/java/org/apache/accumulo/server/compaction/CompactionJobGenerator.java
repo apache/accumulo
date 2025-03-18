@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -285,7 +284,7 @@ public class CompactionJobGenerator {
           Collection<CompactableFile> files = ecMeta.getJobFiles().stream()
               .map(f -> new CompactableFileImpl(f, allFiles2.get(f))).collect(Collectors.toList());
           CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-              ecMeta.getCompactionGroupId(), files, ecMeta.getKind(), Optional.empty());
+              ecMeta.getCompactionGroupId(), files, ecMeta.getKind());
           return job;
         }).collect(Collectors.toUnmodifiableList());
       }
@@ -297,7 +296,7 @@ public class CompactionJobGenerator {
 
       @Override
       public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
+        return new CompactionPlanImpl.BuilderImpl(kind, candidates);
       }
     };
     return planCompactions(planner, params, serviceId);

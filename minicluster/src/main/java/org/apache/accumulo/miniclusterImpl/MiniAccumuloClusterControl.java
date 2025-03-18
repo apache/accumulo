@@ -24,10 +24,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -37,6 +39,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.util.Admin;
+import org.apache.accumulo.server.util.ZooZap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -270,6 +273,11 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         if (managerProcess != null) {
           try {
             cluster.stopProcessWithTimeout(managerProcess, 30, TimeUnit.SECONDS);
+            try {
+              new ZooZap().zap(cluster.getServerContext(), "-manager");
+            } catch (RuntimeException e) {
+              log.error("Error zapping Manager zookeeper lock", e);
+            }
           } catch (ExecutionException | TimeoutException e) {
             log.warn("Manager did not fully stop after 30 seconds", e);
           } catch (InterruptedException e) {
@@ -516,4 +524,66 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     return tabletServerProcesses.get(resourceGroup);
   }
 
+  public void refreshProcesses(ServerType type) {
+    switch (type) {
+      case COMPACTOR:
+        compactorProcesses.forEach((k, v) -> v.removeIf(process -> !process.isAlive()));
+        break;
+      case GARBAGE_COLLECTOR:
+        if (!gcProcess.isAlive()) {
+          gcProcess = null;
+        }
+        break;
+      case MANAGER:
+        if (!managerProcess.isAlive()) {
+          managerProcess = null;
+        }
+        break;
+      case MONITOR:
+        if (!monitor.isAlive()) {
+          monitor = null;
+        }
+        break;
+      case SCAN_SERVER:
+        scanServerProcesses.forEach((k, v) -> v.removeIf(process -> !process.isAlive()));
+        break;
+      case TABLET_SERVER:
+        tabletServerProcesses.forEach((k, v) -> v.removeIf(process -> !process.isAlive()));
+        break;
+      case ZOOKEEPER:
+        if (!zooKeeperProcess.isAlive()) {
+          zooKeeperProcess = null;
+        }
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled type: " + type);
+    }
+  }
+
+  public Set<Process> getProcesses(ServerType type) {
+    switch (type) {
+      case COMPACTOR:
+        Set<Process> cprocesses = new HashSet<>();
+        compactorProcesses.values().forEach(list -> list.forEach(cprocesses::add));
+        return cprocesses;
+      case GARBAGE_COLLECTOR:
+        return gcProcess == null ? Set.of() : Set.of(gcProcess);
+      case MANAGER:
+        return managerProcess == null ? Set.of() : Set.of(managerProcess);
+      case MONITOR:
+        return monitor == null ? Set.of() : Set.of(monitor);
+      case SCAN_SERVER:
+        Set<Process> sprocesses = new HashSet<>();
+        scanServerProcesses.values().forEach(list -> list.forEach(sprocesses::add));
+        return sprocesses;
+      case TABLET_SERVER:
+        Set<Process> tprocesses = new HashSet<>();
+        tabletServerProcesses.values().forEach(list -> list.forEach(tprocesses::add));
+        return tprocesses;
+      case ZOOKEEPER:
+        return zooKeeperProcess == null ? Set.of() : Set.of(zooKeeperProcess);
+      default:
+        throw new IllegalArgumentException("Unhandled type: " + type);
+    }
+  }
 }

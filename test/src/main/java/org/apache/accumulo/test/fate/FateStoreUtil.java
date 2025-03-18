@@ -22,7 +22,8 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
-import java.util.UUID;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -31,6 +32,10 @@ import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -72,6 +77,22 @@ public class FateStoreUtil {
     assertEquals(fateTableProps, testFateTableProps);
   }
 
+  // For now just process one at a time as the current impl completes
+  // each seed transaction individually. In future versions we can test
+  // batching multiple seeding atempts together.
+  public static <T> Optional<FateId> seedTransaction(FateStore<T> store, Fate.FateOperation fateOp,
+      FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+    CompletableFuture<Optional<FateId>> fateIdFuture;
+    try (var seeder = store.beginSeeding()) {
+      fateIdFuture = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+    }
+    try {
+      return fateIdFuture.get();
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
   /**
    * Contains the necessary utilities for setting up (and shutting down) a ZooKeeper instance for
    * use in testing MetaFateStore
@@ -80,8 +101,6 @@ public class FateStoreUtil {
   public static class MetaFateZKSetup {
     private static ZooKeeperTestingServer szk;
     private static ZooSession zk;
-    private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
-    private static String ZK_FATE_PATH;
 
     /**
      * Sets up the ZooKeeper instance and creates the paths needed for testing MetaFateStore
@@ -89,10 +108,9 @@ public class FateStoreUtil {
     public static void setup(@TempDir File tempDir) throws Exception {
       szk = new ZooKeeperTestingServer(tempDir);
       zk = szk.newClient();
-      ZK_FATE_PATH = ZK_ROOT + Constants.ZFATE;
       var zrw = zk.asReaderWriter();
-      zrw.mkdirs(ZK_FATE_PATH);
-      zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+      zrw.mkdirs(Constants.ZFATE);
+      zrw.mkdirs(Constants.ZTABLE_LOCKS);
     }
 
     /**
@@ -102,16 +120,9 @@ public class FateStoreUtil {
       szk.close();
     }
 
-    public static String getZkRoot() {
-      return ZK_ROOT;
-    }
-
     public static ZooSession getZk() {
       return zk;
     }
 
-    public static String getZkFatePath() {
-      return ZK_FATE_PATH;
-    }
   }
 }

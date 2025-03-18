@@ -24,7 +24,6 @@ import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
@@ -36,13 +35,11 @@ import io.micrometer.core.instrument.MeterRegistry;
 
 public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
-  private final String fateRootPath;
   private final AtomicLong totalOpsGauge = new AtomicLong(0);
   private final AtomicLong fateErrorsGauge = new AtomicLong(0);
 
   public MetaFateMetrics(ServerContext context, long minimumRefreshDelay) {
     super(context, minimumRefreshDelay);
-    this.fateRootPath = getFateRootPath(context);
   }
 
   @Override
@@ -62,10 +59,10 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   }
 
   @Override
-  protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>> buildStore(ServerContext context) {
+  protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>>
+      buildReadOnlyStore(ServerContext context) {
     try {
-      return new MetaFateStore<>(getFateRootPath(context), context.getZooSession(),
-          AbstractFateStore.createDummyLockID(), null);
+      return new MetaFateStore<>(context.getZooSession(), null, null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -78,10 +75,6 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
   @Override
   protected MetaFateMetricValues getMetricValues() {
-    return MetaFateMetricValues.getMetaStoreMetrics(context, fateRootPath, fateStore);
-  }
-
-  private static String getFateRootPath(ServerContext context) {
-    return context.getZooKeeperRoot() + Constants.ZFATE;
+    return MetaFateMetricValues.getMetaStoreMetrics(context, Constants.ZFATE, readOnlyFateStore);
   }
 }

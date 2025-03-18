@@ -79,14 +79,13 @@ public class RenameTable extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkTableNameDoesNotExist(manager.getContext(), newTableName, tableId,
+      Utils.checkTableNameDoesNotExist(manager.getContext(), newTableName, namespaceId, tableId,
           TableOperation.RENAME);
 
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap = manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
-          + Constants.ZTABLE_NAME;
+      final String tap = Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);

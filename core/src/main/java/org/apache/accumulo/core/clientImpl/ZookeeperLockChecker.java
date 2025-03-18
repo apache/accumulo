@@ -24,24 +24,22 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 
 import com.google.common.net.HostAndPort;
 
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   private final ZooCache zc;
-  private final String root;
   private final ServiceLockPaths lockPaths;
 
-  ZookeeperLockChecker(ZooCache zooCache, String zkRoot, ServiceLockPaths serviceLockPaths) {
+  ZookeeperLockChecker(ZooCache zooCache) {
     this.zc = requireNonNull(zooCache);
-    this.root = requireNonNull(zkRoot);
-    this.lockPaths = requireNonNull(serviceLockPaths);
+    this.lockPaths = new ServiceLockPaths(this.zc);
   }
 
   public boolean doesTabletServerLockExist(String server) {
@@ -70,6 +68,6 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
   public void invalidateCache(String tserver) {
     // The path for the tserver contains a resource group. The resource group is unknown, so can not
     // construct a prefix. Therefore clear any path that contains the tserver.
-    zc.clear(path -> path.startsWith(root + Constants.ZTSERVERS) && path.contains(tserver));
+    zc.clear(path -> path.startsWith(Constants.ZTSERVERS) && path.contains(tserver));
   }
 }

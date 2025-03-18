@@ -60,6 +60,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.Metric;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -144,11 +145,11 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     List<String> statsDMetrics;
 
-    final int compactionPriorityQueueLengthBit = 0;
-    final int compactionPriorityQueueQueuedBit = 1;
-    final int compactionPriorityQueueDequeuedBit = 2;
-    final int compactionPriorityQueueRejectedBit = 3;
-    final int compactionPriorityQueuePriorityBit = 4;
+    final int compactionPriorityQueueQueuedBit = 0;
+    final int compactionPriorityQueueDequeuedBit = 1;
+    final int compactionPriorityQueueRejectedBit = 2;
+    final int compactionPriorityQueuePriorityBit = 3;
+    final int compactionPriorityQueueSizeBit = 4;
 
     final BitSet trueSet = new BitSet(5);
     trueSet.set(0, 4, true);
@@ -157,8 +158,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
     AtomicReference<Exception> error = new AtomicReference<>();
     Thread workerThread = new Thread(() -> {
-      try {
-        doWorkToGenerateMetrics();
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+        doWorkToGenerateMetrics(client, getClass());
       } catch (Exception e) {
         error.set(e);
       }
@@ -179,7 +180,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             } else if (flakyMetrics.contains(metric)) {
               // ignore any flaky metric names seen
               // these aren't always expected, but we shouldn't be surprised if we see them
-            } else if (metric.getName().startsWith("accumulo.compactor.")) {
+            } else if (metric.getName().startsWith("accumulo.compaction.")) {
               // Compactor queue metrics are not guaranteed to be emitted
               // during the call to doWorkToGenerateMetrics above. This will
               // flip a bit in the BitSet when each metric is seen. The top-level
@@ -187,9 +188,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
               seenMetrics.add(metric);
               expectedMetrics.remove(metric);
               switch (metric) {
-                case COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH:
-                  queueMetricsSeen.set(compactionPriorityQueueLengthBit, true);
-                  break;
                 case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED:
                   queueMetricsSeen.set(compactionPriorityQueueQueuedBit, true);
                   break;
@@ -201,6 +199,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
                   break;
                 case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY:
                   queueMetricsSeen.set(compactionPriorityQueuePriorityBit, true);
+                  break;
+                case COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE:
+                  queueMetricsSeen.set(compactionPriorityQueueSizeBit, true);
                   break;
                 default:
                   break;
@@ -222,49 +223,47 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
   }
 
-  private void doWorkToGenerateMetrics() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-      String tableName = this.getClass().getSimpleName();
-      client.tableOperations().create(tableName);
-      SortedSet<Text> splits = new TreeSet<>(List.of(new Text("5")));
-      client.tableOperations().addSplits(tableName, splits);
-      Thread.sleep(3_000);
-      BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
-      try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
-        Mutation m = new Mutation("row");
+  static void doWorkToGenerateMetrics(AccumuloClient client, Class<?> testClass) throws Exception {
+    String tableName = testClass.getSimpleName();
+    client.tableOperations().create(tableName);
+    SortedSet<Text> splits = new TreeSet<>(List.of(new Text("5")));
+    client.tableOperations().addSplits(tableName, splits);
+    Thread.sleep(3_000);
+    BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
+    try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", new Value("value"));
+      writer.addMutation(m);
+    }
+    client.tableOperations().flush(tableName);
+    try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
+      Mutation m = new Mutation("row");
+      m.put("cf", "cq", new Value("value"));
+      writer.addMutation(m);
+    }
+    client.tableOperations().flush(tableName);
+    try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
+      for (int i = 0; i < 10; i++) {
+        Mutation m = new Mutation(i + "_row");
         m.put("cf", "cq", new Value("value"));
         writer.addMutation(m);
       }
-      client.tableOperations().flush(tableName);
-      try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
-        Mutation m = new Mutation("row");
-        m.put("cf", "cq", new Value("value"));
-        writer.addMutation(m);
-      }
-      client.tableOperations().flush(tableName);
-      try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
-        for (int i = 0; i < 10; i++) {
-          Mutation m = new Mutation(i + "_row");
-          m.put("cf", "cq", new Value("value"));
-          writer.addMutation(m);
-        }
-      }
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      try (Scanner scanner = client.createScanner(tableName)) {
-        scanner.forEach((k, v) -> {});
-      }
-      // Start a compaction with the slow iterator to ensure that the compaction queues
-      // are not removed quickly
-      CompactionConfig cc = new CompactionConfig();
-      IteratorSetting is = new IteratorSetting(100, "slow", SlowIterator.class);
-      SlowIterator.setSleepTime(is, 3000);
-      cc.setIterators(List.of(is));
-      cc.setWait(false);
-      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
-      client.tableOperations().delete(tableName);
-      while (client.tableOperations().exists(tableName)) {
-        Thread.sleep(1000);
-      }
+    }
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+    try (Scanner scanner = client.createScanner(tableName)) {
+      scanner.forEach((k, v) -> {});
+    }
+    // Start a compaction with the slow iterator to ensure that the compaction queues
+    // are not removed quickly
+    CompactionConfig cc = new CompactionConfig();
+    IteratorSetting is = new IteratorSetting(100, "slow", SlowIterator.class);
+    SlowIterator.setSleepTime(is, 3000);
+    cc.setIterators(List.of(is));
+    cc.setWait(false);
+    client.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+    client.tableOperations().delete(tableName);
+    while (client.tableOperations().exists(tableName)) {
+      Thread.sleep(1000);
     }
   }
 
@@ -276,7 +275,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   @Test
   public void metricTags() throws Exception {
 
-    doWorkToGenerateMetrics();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      doWorkToGenerateMetrics(client, getClass());
+    }
     cluster.stop();
 
     List<String> statsDMetrics;
@@ -289,13 +290,13 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.info("METRICS, received from statsd - name: '{}' num tags: {}, tags: {} = {}",
                 a.getName(), t.size(), t, a.getValue());
             // check hostname is always set and is valid
-            assertNotEquals("0.0.0.0", a.getTags().get("host"));
-            assertNotNull(a.getTags().get("instance.name"));
+            assertNotEquals("0.0.0.0", a.getTags().get(MetricsInfo.HOST_TAG_KEY));
+            assertNotNull(a.getTags().get(MetricsInfo.INSTANCE_NAME_TAG_KEY));
 
-            assertNotNull(a.getTags().get("process.name"));
+            assertNotNull(a.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY));
 
             // check resource.group tag exists
-            assertNotNull(a.getTags().get("resource.group"));
+            assertNotNull(a.getTags().get(MetricsInfo.RESOURCE_GROUP_TAG_KEY));
 
             // check that the user tags are present
             assertEquals("value1", a.getTags().get("tag1"));
@@ -310,7 +311,9 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
 
   @Test
   public void fateMetrics() throws Exception {
-    doWorkToGenerateMetrics();
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      doWorkToGenerateMetrics(client, getClass());
+    }
     cluster.stop();
 
     List<String> statsDMetrics;

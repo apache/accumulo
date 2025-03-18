@@ -56,7 +56,10 @@ public class ConfigOpts extends Help {
 
   @Parameter(names = "-o", splitter = NullSplitter.class,
       description = "Overrides configuration set in accumulo.properties (but NOT system-wide config"
-          + " set in Zookeeper). Expected format: -o <key>=<value>")
+          + " set in Zookeeper). This is useful when you have process specific configuration items"
+          + " that are one-offs from a shared common configuration. Setting the bind address,"
+          + " for example, can be done with the arguments \"-o general.process.bind.addr=127.0.0.1\"."
+          + " Expected format: -o <key>=<value> [-o <key>=<value>]")
   private List<String> overrides = new ArrayList<>();
 
   private SiteConfiguration siteConfig = null;

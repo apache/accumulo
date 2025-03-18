@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZGC_LOCK;
+import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
@@ -37,12 +38,10 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.serviceStatus.ServiceStatusReport;
@@ -58,22 +57,19 @@ public class ServiceStatusCmdTest {
 
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusCmdTest.class);
 
-  private String zRoot;
   private ServerContext context;
   private ZooSession zooReader;
   private ZooCache zooCache;
 
   @BeforeEach
   public void populateContext() {
-    zRoot = ZooUtil.getRoot(InstanceId.of(UUID.randomUUID()));
     context = createMock(ServerContext.class);
     zooReader = createMock(ZooSession.class);
     zooCache = createMock(ZooCache.class);
     expect(zooReader.asReader()).andReturn(new ZooReader(zooReader)).anyTimes();
     expect(context.getZooCache()).andReturn(zooCache).anyTimes();
     expect(context.getZooSession()).andReturn(zooReader).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn(zRoot).anyTimes();
-    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(context)).anyTimes();
+    expect(context.getServerPaths()).andReturn(new ServiceLockPaths(zooCache)).anyTimes();
     replay(context);
   }
 
@@ -96,7 +92,7 @@ public class ServiceStatusCmdTest {
     String lock3Data =
         "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\"hostA:9999\",\"group\":\"manager1\"}]}";
 
-    String lockPath = zRoot + Constants.ZMANAGER_LOCK;
+    String lockPath = Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(lockPath, null))
         .andReturn(List.of(lock1Name, lock2Name, lock3Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
@@ -141,7 +137,7 @@ public class ServiceStatusCmdTest {
     String host2 =
         "{\"descriptors\":[{\"uuid\":\"87465459-9c8f-4f95-b4c6-ef3029030d05\",\"service\":\"NONE\",\"address\":\"hostB\",\"group\":\"default\"}]}";
 
-    String lockPath = zRoot + Constants.ZMONITOR_LOCK;
+    String lockPath = Constants.ZMONITOR_LOCK;
     expect(zooReader.getChildren(lockPath, null)).andReturn(List.of(lock1Name, lock2Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
         .andReturn(host1.getBytes(UTF_8));
@@ -217,7 +213,7 @@ public class ServiceStatusCmdTest {
             + "\",\"group\":\"default\"},{\"uuid\":\"d0e29f70-1eb5-4dc5-9ad6-2466ab56ea32\",\"service\":\"TABLET_INGEST\",\"address\":\""
             + host3 + "\",\"group\":\"default\"}]}";
 
-    String basePath = zRoot + Constants.ZTSERVERS;
+    String basePath = Constants.ZTSERVERS;
     expect(zooCache.getChildren(basePath))
         .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
     expect(zooCache.getChildren(basePath + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME))
@@ -308,7 +304,7 @@ public class ServiceStatusCmdTest {
             + "\",\"group\":\"default\"},{\"uuid\":\"f408fed7-ce93-40d2-8e60-63e8a3daf416\",\"service\":\"CLIENT\",\"address\":\""
             + host4 + "\",\"group\":\"default\"}]}";
 
-    String lockPath = zRoot + Constants.ZSSERVERS;
+    String lockPath = Constants.ZSSERVERS;
     expect(zooCache.getChildren(lockPath))
         .andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, "sg1"));
     expect(zooCache.getChildren(lockPath + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME))
@@ -357,28 +353,63 @@ public class ServiceStatusCmdTest {
   @Test
   public void testCompactorStatus() throws Exception {
     replay(zooReader);
-    String lockPath = zRoot + Constants.ZCOMPACTORS;
-    expect(zooCache.getChildren(lockPath)).andReturn(List.of("q1", "q2"));
+
+    UUID uuid1 = UUID.randomUUID();
+    String lock1Name = "zlock#" + uuid1 + "#0000000001";
+    UUID uuid2 = UUID.randomUUID();
+    String lock2Name = "zlock#" + uuid2 + "#0000000022";
+    UUID uuid3 = UUID.randomUUID();
+    String lock3Name = "zlock#" + uuid3 + "#0000000033";
+    UUID uuid4 = UUID.randomUUID();
+    String lock4Name = "zlock#" + uuid4 + "#0000000044";
+
+    String lock1data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostA:8080\",\"group\":\"q1\"}]}";
+    String lock2data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostC:8081\",\"group\":\"q1\"}]}";
+    String lock3data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostB:9090\",\"group\":\"q2\"}]}";
+    String lock4data =
+        "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"COMPACTOR\",\"address\":\"hostD:9091\",\"group\":\"q2\"}]}";
+
+    String lockPath = Constants.ZCOMPACTORS;
+    expect(zooCache.getChildren(lockPath)).andReturn(List.of("q1", "q2", "q3"));
     expect(zooCache.getChildren(lockPath + "/q1")).andReturn(List.of("hostA:8080", "hostC:8081"));
     expect(zooCache.getChildren(lockPath + "/q2")).andReturn(List.of("hostB:9090", "hostD:9091"));
-    expect(zooCache.getChildren(lockPath + "/q1/hostA:8080")).andReturn(List.of());
-    expect(zooCache.getChildren(lockPath + "/q1/hostC:8081")).andReturn(List.of());
-    expect(zooCache.getChildren(lockPath + "/q2/hostB:9090")).andReturn(List.of());
-    expect(zooCache.getChildren(lockPath + "/q2/hostD:9091")).andReturn(List.of());
+    // Create compactor group with dead compactor
+    expect(zooCache.getChildren(lockPath + "/q3")).andReturn(List.of("deadHost:8080"));
+
+    expect(zooCache.getChildren(lockPath + "/q1/hostA:8080")).andReturn(List.of(lock1Name));
+    expect(zooCache.get(eq(lockPath + "/q1/hostA:8080/" + lock1Name), anyObject(ZcStat.class)))
+        .andReturn(lock1data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q1/hostC:8081")).andReturn(List.of(lock2Name));
+    expect(zooCache.get(eq(lockPath + "/q1/hostC:8081/" + lock2Name), anyObject(ZcStat.class)))
+        .andReturn(lock2data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q2/hostB:9090")).andReturn(List.of(lock3Name));
+    expect(zooCache.get(eq(lockPath + "/q2/hostB:9090/" + lock3Name), anyObject(ZcStat.class)))
+        .andReturn(lock3data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q2/hostD:9091")).andReturn(List.of(lock4Name));
+    expect(zooCache.get(eq(lockPath + "/q2/hostD:9091/" + lock4Name), anyObject(ZcStat.class)))
+        .andReturn(lock4data.getBytes(UTF_8));
+    expect(zooCache.getChildren(lockPath + "/q3/deadHost:8080")).andReturn(List.of());
 
     replay(zooCache);
 
     ServiceStatusCmd cmd = new ServiceStatusCmd();
     StatusSummary status = cmd.getCompactorStatus(context);
+
     LOG.info("compactor group counts: {}", status);
-    assertEquals(0, status.getResourceGroups().size());
+    assertEquals(2, status.getResourceGroups().size());
+
+    LOG.info("Live compactor counts: {}", status.getServiceCount());
+    assertEquals(4, status.getServiceCount());
   }
 
   @Test
   public void testGcHosts() throws Exception {
     replay(zooCache);
 
-    String lockPath = zRoot + ZGC_LOCK;
+    String lockPath = ZGC_LOCK;
     UUID uuid1 = UUID.randomUUID();
     String lock1Name = "zlock#" + uuid1 + "#0000000001";
     UUID uuid2 = UUID.randomUUID();
@@ -437,7 +468,7 @@ public class ServiceStatusCmdTest {
         "{\"descriptors\":[{\"uuid\":\"6effb690-c29c-4e0b-92ff-f6b308385a42\",\"service\":\"MANAGER\",\"address\":\""
             + host3 + "\",\"group\":\"manager1\"}]}";
 
-    String lockPath = zRoot + Constants.ZMANAGER_LOCK;
+    String lockPath = Constants.ZMANAGER_LOCK;
     expect(zooReader.getChildren(lockPath, null))
         .andReturn(List.of(lock1Name, lock2Name, lock3Name));
     expect(zooReader.getData(lockPath + "/" + lock1Name, null, null))
@@ -466,7 +497,7 @@ public class ServiceStatusCmdTest {
   @Test
   public void testServiceStatusCommandOpts() {
     replay(zooReader, zooCache);
-    ServiceStatusCmd.Opts opts = new ServiceStatusCmd.Opts();
+    Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
     assertFalse(opts.noHosts);
   }

@@ -25,7 +25,7 @@
 // Suffixes for quantity
 var QUANTITY_SUFFIX = ['', 'K', 'M', 'B', 'T', 'e15', 'e18', 'e21'];
 // Suffixes for size
-var SIZE_SUFFIX = ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z'];
+var SIZE_SUFFIX = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB'];
 
 /**
  * Initializes Auto Refresh to false if it is not set,
@@ -103,14 +103,14 @@ function bigNumber(big, suffixes, base) {
 }
 
 /**
- * Converts a number to a size with suffix
+ * Converts a size in bytes to a human-readable string with appropriate units.
  *
- * @param {number} size Number to convert
- * @return {string} Number with suffix added
+ * @param {number} size - The size in bytes to be converted.
+ * @returns {string} The human-readable string representation of the size.
  */
 function bigNumberForSize(size) {
-  if (size === null) {
-    size = 0;
+  if (size === 0) {
+    return '0B';
   }
   return bigNumber(size, SIZE_SUFFIX, 1024);
 }
@@ -458,4 +458,235 @@ function clearAllTableCells(tableId) {
   $("#" + tableId + " > tbody > tr > td").each(function () {
     $(this).text("");
   });
+}
+
+// NEW REST CALLS
+
+const REST_V2_PREFIX = '/rest-v2';
+
+/**
+ * REST GET call for /problems,
+ * stores it on a sessionStorage variable
+ */
+function getProblems() {
+  return getJSONForTable(REST_V2_PREFIX + '/problems', 'problems');
+}
+
+/**
+ * REST GET call for /lastUpdate,
+ * stores it on a sessionStorage variable
+ */
+function getLastUpdate() {
+  return getJSONForTable(REST_V2_PREFIX + '/lastUpdate', 'lastUpdate');
+}
+
+/**
+ * REST GET call for /tservers/summary/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getTserversSummary(group) {
+  const url = `${REST_V2_PREFIX}/tservers/summary/${group}`;
+  const sessionDataVar = `tserversSummary_${group}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /suggestions,
+ * stores it on a sessionStorage variable
+ */
+function getSuggestions() {
+  return getJSONForTable(REST_V2_PREFIX + '/suggestions', 'suggestions');
+}
+
+/**
+ * REST GET call for /compactors/detail/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getCompactorsDetail(group) {
+  const url = `${REST_V2_PREFIX}/compactors/detail/${group}`;
+  const sessionDataVar = `compactorsDetail_${group}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /stats,
+ * stores it on a sessionStorage variable
+ */
+function getStats() {
+  return getJSONForTable(REST_V2_PREFIX + '/stats', 'stats');
+}
+
+/**
+ * REST GET call for /compactors/summary/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getCompactorsSummary(group) {
+  const url = `${REST_V2_PREFIX}/compactors/summary/${group}`;
+  const sessionDataVar = `compactorsSummary_${group}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /sservers/summary,
+ * stores it on a sessionStorage variable
+ */
+function getSserversSummary() {
+  return getJSONForTable(REST_V2_PREFIX + '/sservers/summary', 'sserversSummary');
+}
+
+/**
+ * REST GET call for /tables/{name}/tablets,
+ * stores it on a sessionStorage variable
+ * @param {string} name Table name
+ */
+function getTableTablets(name) {
+  const url = `${REST_V2_PREFIX}/tables/${name}/tablets`;
+  const sessionDataVar = `tableTablets_${name}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /metrics,
+ * stores it on a sessionStorage variable
+ */
+function getMetrics() {
+  return getJSONForTable(REST_V2_PREFIX + '/metrics', 'metrics');
+}
+
+/**
+ * REST GET call for /gc,
+ * stores it on a sessionStorage variable
+ */
+function getGc() {
+  return getJSONForTable(REST_V2_PREFIX + '/gc', 'gc');
+}
+
+/**
+ * REST GET call for /tservers/detail/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getTserversDetail(group) {
+  const url = `${REST_V2_PREFIX}/tservers/detail/${group}`;
+  const sessionDataVar = `tserversDetail_${group}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /tables,
+ * stores it on a sessionStorage variable
+ */
+function getTables() {
+  return getJSONForTable(REST_V2_PREFIX + '/tables', 'tables');
+}
+
+/**
+ * REST GET call for /groups,
+ * stores it on a sessionStorage variable
+ */
+function getGroups() {
+  return getJSONForTable(REST_V2_PREFIX + '/groups', 'groups');
+}
+
+/**
+ * REST GET call for /deployment,
+ * stores it on a sessionStorage variable
+ */
+function getDeployment() {
+  return getJSONForTable(REST_V2_PREFIX + '/deployment', 'deployment');
+}
+
+/**
+ * REST GET call for /sservers/summary/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getSserversSummaryGroup(group) {
+  const url = `${REST_V2_PREFIX}/sservers/summary/${group}`;
+  const sessionDataVar = `sserversSummary_${group}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /tservers/summary,
+ * stores it on a sessionStorage variable
+ */
+function getTserversSummary() {
+  return getJSONForTable(REST_V2_PREFIX + '/tservers/summary', 'tserversSummary');
+}
+
+/**
+ * REST GET call for /instance,
+ * stores it on a sessionStorage variable
+ */
+function getInstanceInfo() {
+  return getJSONForTable(REST_V2_PREFIX + '/instance', 'instance');
+}
+
+/**
+ * REST GET call for /sservers/detail/{group},
+ * stores it on a sessionStorage variable
+ * @param {string} group Group name
+ */
+function getSserversDetail(group) {
+  const url = `${REST_V2_PREFIX}/sservers/detail/${group}`;
+  const sessionDataVar = `sserversDetail_${group}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /manager,
+ * stores it on a sessionStorage variable
+ */
+function getManager() {
+  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
+}
+
+/**
+ * REST GET call for /compactors/summary,
+ * stores it on a sessionStorage variable
+ */
+function getCompactorsSummary() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactors/summary', 'compactorsSummary');
+}
+
+/**
+ * REST GET call for /tables/{name},
+ * stores it on a sessionStorage variable
+ * @param {string} name Table name
+ */
+function getTable(name) {
+  const url = `${REST_V2_PREFIX}/tables/${name}`;
+  const sessionDataVar = `table_${name}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /compactions/detail/{num},
+ * stores it on a sessionStorage variable
+ * @param {number} num Detail number
+ */
+function getCompactionsDetail(num) {
+  const url = `${REST_V2_PREFIX}/compactions/detail/${num}`;
+  const sessionDataVar = `compactionsDetail_${num}`;
+  return getJSONForTable(url, sessionDataVar);
+}
+
+/**
+ * REST GET call for /compactions/detail,
+ * stores it on a sessionStorage variable
+ */
+function getCompactionsDetail() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/detail', 'compactionsDetail');
+}
+
+/**
+ * REST GET call for /compactions/summary,
+ * stores it on a sessionStorage variable
+ */
+function getCompactionsSummary() {
+  return getJSONForTable(REST_V2_PREFIX + '/compactions/summary', 'compactionsSummary');
 }

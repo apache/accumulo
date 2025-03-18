@@ -23,38 +23,54 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricSource;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
+import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 
-public abstract class AbstractServer implements AutoCloseable, MetricsProducer, Runnable {
+public abstract class AbstractServer
+    implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
+  private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
-  private final String hostname;
+  private String hostname;
   private final String resourceGroup;
   private final Logger log;
   private final ProcessMetrics processMetrics;
@@ -62,11 +78,13 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
   private volatile Timer idlePeriodTimer = null;
   private volatile Thread serverThread;
   private volatile Thread verificationThread;
+  private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
+  private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
-  protected AbstractServer(String appName, ConfigOpts opts,
+  protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
-    this.applicationName = appName;
-    opts.parseArgs(appName, args);
+    this.applicationName = serverType.name();
+    opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
@@ -76,7 +94,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
-    context.init(appName);
+    context.init(applicationName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     TraceUtil.initializeTracer(context.getConfiguration());
     if (context.getSaslParams() != null) {
@@ -91,6 +109,28 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     processMetrics = new ProcessMetrics(context);
     idleReportingPeriodMillis =
         context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL);
+    switch (serverType) {
+      case COMPACTOR:
+        metricSource = MetricSource.COMPACTOR;
+        break;
+      case GARBAGE_COLLECTOR:
+        metricSource = MetricSource.GARBAGE_COLLECTOR;
+        break;
+      case MANAGER:
+        metricSource = MetricSource.MANAGER;
+        break;
+      case MONITOR:
+        metricSource = null;
+        break;
+      case SCAN_SERVER:
+        metricSource = MetricSource.SCAN_SERVER;
+        break;
+      case TABLET_SERVER:
+        metricSource = MetricSource.TABLET_SERVER;
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled server type: " + serverType);
+    }
   }
 
   /**
@@ -128,8 +168,62 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     return resourceGroup;
   }
 
+  @Override
+  public void gracefulShutdown(TCredentials credentials) {
+
+    try {
+      if (!context.getSecurityOperation().canPerformSystemActions(credentials)) {
+        log.warn("Ignoring shutdown request, user " + credentials.getPrincipal()
+            + " does not have the appropriate permissions.");
+      }
+    } catch (ThriftSecurityException e) {
+      log.error(
+          "Error trying to determine if user has permissions to shutdown server, ignoring request",
+          e);
+      return;
+    }
+
+    if (shutdownRequested.compareAndSet(false, true)) {
+      // Don't interrupt the server thread, that will cause
+      // IO operations to fail as the servers are finishing
+      // their work.
+      log.info("Graceful shutdown initiated.");
+    } else {
+      log.warn("Graceful shutdown previously requested.");
+    }
+  }
+
+  public boolean isShutdownRequested() {
+    return shutdownRequested.get();
+  }
+
+  public AtomicBoolean getShutdownComplete() {
+    return shutdownComplete;
+  }
+
   /**
-   * Run this server in a main thread
+   * Run this server in a main thread. The server's run method should set up the server, then wait
+   * on isShutdownRequested() to return false, like so:
+   *
+   * <pre>
+   * public void run() {
+   *   // setup server and start threads
+   *   while (!isShutdownRequested()) {
+   *     if (Thread.currentThread().isInterrupted()) {
+   *       LOG.info("Server process thread has been interrupted, shutting down");
+   *       break;
+   *     }
+   *     try {
+   *       // sleep or other things
+   *     } catch (InterruptedException e) {
+   *       gracefulShutdown();
+   *     }
+   *   }
+   *   // shut down server
+   *   getShutdownComplete().set(true);
+   *   ServiceLock.unlock(serverLock);
+   * }
+   * </pre>
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
@@ -141,6 +235,7 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
       verificationThread.interrupt();
       verificationThread.join();
     }
+    log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
     if (thrown != null) {
       if (thrown instanceof Error) {
@@ -169,6 +264,10 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
     return hostname;
   }
 
+  public void setHostname(HostAndPort address) {
+    hostname = address.toString();
+  }
+
   public ServerContext getContext() {
     return context;
   }
@@ -179,6 +278,47 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
 
   public String getApplicationName() {
     return applicationName;
+  }
+
+  @Override
+  public MetricResponse getMetrics(TInfo tinfo, TCredentials credentials) throws TException {
+
+    if (!context.getSecurityOperation().authenticateUser(credentials, credentials)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
+    final MetricResponseWrapper response = new MetricResponseWrapper(builder);
+
+    if (getHostname().startsWith(Property.GENERAL_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      log.error("Host is not set, this should have been done after starting the Thrift service.");
+      return response;
+    }
+
+    if (metricSource == null) {
+      // Metrics not reported for Monitor type
+      return response;
+    }
+
+    response.setServerType(metricSource);
+    response.setServer(getHostname());
+    response.setResourceGroup(getResourceGroup());
+    response.setTimestamp(System.currentTimeMillis());
+
+    if (context.getMetricsInfo().isMetricsEnabled()) {
+      Metrics.globalRegistry.getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")) {
+          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+              response::writeDistributionSummary, response::writeLongTaskTimer,
+              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+              response::writeMeter);
+        }
+      });
+    }
+
+    builder.clear();
+    return response;
   }
 
   /**
@@ -230,5 +370,12 @@ public abstract class AbstractServer implements AutoCloseable, MetricsProducer, 
 
   @Override
   public void close() {}
+
+  protected void waitForUpgrade() throws InterruptedException {
+    while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {
+      log.info("Waiting for upgrade to complete.");
+      Thread.sleep(1000);
+    }
+  }
 
 }

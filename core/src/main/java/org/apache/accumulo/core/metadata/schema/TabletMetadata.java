@@ -18,15 +18,28 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily.UNSPLITTABLE_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
 
 import java.util.Collection;
@@ -40,17 +53,18 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -76,6 +90,8 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.Text;
@@ -202,7 +218,152 @@ public class TabletMetadata {
     COMPACTED,
     USER_COMPACTION_REQUESTED,
     UNSPLITTABLE,
-    MERGEABILITY
+    MERGEABILITY;
+
+    public static final Map<ColumnType,Set<Text>> COLUMNS_TO_FAMILIES;
+    public static final Map<ColumnType,ColumnFQ> COLUMNS_TO_QUALIFIERS;
+
+    static {
+      ImmutableMap.Builder<ColumnType,Set<Text>> colsToFamilies = ImmutableMap.builder();
+      ImmutableMap.Builder<ColumnType,ColumnFQ> colsToQualifiers = ImmutableMap.builder();
+
+      for (ColumnType column : EnumSet.allOf(ColumnType.class)) {
+        switch (column) {
+          case CLONED:
+            colsToFamilies.put(column, Set.of(ClonedColumnFamily.NAME));
+            break;
+          case DIR:
+          case FLUSH_ID:
+          case TIME:
+          case OPID:
+          case SELECTED:
+          case FLUSH_NONCE:
+            colsToFamilies.put(column, Set.of(ServerColumnFamily.NAME));
+            break;
+          case FILES:
+            colsToFamilies.put(column, Set.of(DataFileColumnFamily.NAME));
+            break;
+          case AVAILABILITY:
+          case HOSTING_REQUESTED:
+          case PREV_ROW:
+          case MERGEABILITY:
+            colsToFamilies.put(column, Set.of(TabletColumnFamily.NAME));
+            break;
+          case LAST:
+            colsToFamilies.put(column, Set.of(LastLocationColumnFamily.NAME));
+            break;
+          case LOADED:
+            colsToFamilies.put(column, Set.of(BulkFileColumnFamily.NAME));
+            break;
+          case LOCATION:
+            colsToFamilies.put(column,
+                Set.of(CurrentLocationColumnFamily.NAME, FutureLocationColumnFamily.NAME));
+            break;
+          case LOGS:
+            colsToFamilies.put(column, Set.of(LogColumnFamily.NAME));
+            break;
+          case SCANS:
+            colsToFamilies.put(column, Set.of(ScanFileColumnFamily.NAME));
+            break;
+          case SUSPEND:
+            colsToFamilies.put(column, Set.of(SuspendLocationColumn.NAME));
+            break;
+          case ECOMP:
+            colsToFamilies.put(column, Set.of(ExternalCompactionColumnFamily.NAME));
+            break;
+          case MERGED:
+            colsToFamilies.put(column, Set.of(MergedColumnFamily.NAME));
+            break;
+          case COMPACTED:
+            colsToFamilies.put(column, Set.of(CompactedColumnFamily.NAME));
+            break;
+          case USER_COMPACTION_REQUESTED:
+            colsToFamilies.put(column, Set.of(UserCompactionRequestedColumnFamily.NAME));
+            break;
+          case UNSPLITTABLE:
+            colsToFamilies.put(column, Set.of(SplitColumnFamily.NAME));
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown col type " + column);
+        }
+      }
+
+      for (ColumnType column : EnumSet.allOf(ColumnType.class)) {
+        switch (column) {
+          case CLONED:
+          case COMPACTED:
+          case ECOMP:
+          case FILES:
+          case LAST:
+          case LOADED:
+          case LOCATION:
+          case LOGS:
+          case SCANS:
+          case USER_COMPACTION_REQUESTED:
+            break;
+          case DIR:
+            colsToQualifiers.put(column, DIRECTORY_COLUMN);
+            break;
+          case FLUSH_ID:
+            colsToQualifiers.put(column, FLUSH_COLUMN);
+            break;
+          case TIME:
+            colsToQualifiers.put(column, TIME_COLUMN);
+            break;
+          case OPID:
+            colsToQualifiers.put(column, OPID_COLUMN);
+            break;
+          case SELECTED:
+            colsToQualifiers.put(column, SELECTED_COLUMN);
+            break;
+          case FLUSH_NONCE:
+            colsToQualifiers.put(column, FLUSH_NONCE_COLUMN);
+            break;
+          case AVAILABILITY:
+            colsToQualifiers.put(column, AVAILABILITY_COLUMN);
+            break;
+          case HOSTING_REQUESTED:
+            colsToQualifiers.put(column, REQUESTED_COLUMN);
+            break;
+          case PREV_ROW:
+            colsToQualifiers.put(column, PREV_ROW_COLUMN);
+            break;
+          case MERGEABILITY:
+            colsToQualifiers.put(column, MERGEABILITY_COLUMN);
+            break;
+          case SUSPEND:
+            colsToQualifiers.put(column, SUSPEND_COLUMN);
+            break;
+          case MERGED:
+            colsToQualifiers.put(column, MERGED_COLUMN);
+            break;
+          case UNSPLITTABLE:
+            colsToQualifiers.put(column, UNSPLITTABLE_COLUMN);
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown col type " + column);
+        }
+      }
+
+      COLUMNS_TO_FAMILIES = colsToFamilies.build();
+      COLUMNS_TO_QUALIFIERS = colsToQualifiers.build();
+    }
+
+    public static Set<ByteSequence> resolveFamilies(Set<ColumnType> columns) {
+      return columns.stream()
+          .flatMap(cf -> COLUMNS_TO_FAMILIES.get(cf).stream()
+              .map(family -> new ArrayByteSequence(family.copyBytes())))
+          .collect(Collectors.toUnmodifiableSet());
+    }
+
+    public static Set<Text> resolveFamiliesAsText(ColumnType column) {
+      return COLUMNS_TO_FAMILIES.get(column);
+    }
+
+    public static ColumnFQ resolveQualifier(ColumnType columnType) {
+      return COLUMNS_TO_QUALIFIERS.get(columnType);
+    }
+
   }
 
   public static class Location {
@@ -631,7 +792,7 @@ public class TabletMetadata {
   }
 
   @VisibleForTesting
-  static TabletMetadata create(String id, String prevEndRow, String endRow) {
+  public static TabletMetadata create(String id, String prevEndRow, String endRow) {
     final var tmBuilder = new Builder();
     tmBuilder.table(TableId.of(id));
     tmBuilder.sawPrevEndRow(true);
@@ -663,7 +824,7 @@ public class TabletMetadata {
    */
   private static Optional<TServerInstance> checkTabletServer(ClientContext context,
       ServiceLockPath slp) {
-    ZooCache.ZcStat stat = new ZooCache.ZcStat();
+    ZcStat stat = new ZcStat();
     log.trace("Checking server at ZK path: {}", slp);
     return ServiceLock.getLockData(context.getZooCache(), slp, stat)
         .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))

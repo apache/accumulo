@@ -40,14 +40,17 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -75,35 +78,38 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.META;
-  private String path;
   private ZooSession zk;
   private ZooReaderWriter zrw;
 
   private String getTXPath(FateId fateId) {
-    return path + "/tx_" + fateId.getTxUUIDStr();
-  }
-
-  public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
-      Predicate<ZooUtil.LockID> isLockHeld) throws KeeperException, InterruptedException {
-    this(path, zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
-  }
-
-  @VisibleForTesting
-  public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
-      Predicate<ZooUtil.LockID> isLockHeld, int maxDeferred, FateIdGenerator fateIdGenerator)
-      throws KeeperException, InterruptedException {
-    super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
-    this.path = path;
-    this.zk = zk;
-    this.zrw = zk.asReaderWriter();
-
-    this.zrw.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
+    return Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
   }
 
   /**
-   * For testing only
+   * Constructs a MetaFateStore
+   *
+   * @param zk the {@link ZooSession}
+   * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
+   *        null if this store will be used as read-only (will not be used to reserve transactions)
+   * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
+   *        time of invocation. If the store is used for a {@link Fate} which runs a dead
+   *        reservation cleaner, this should be non-null, otherwise null is fine
    */
-  MetaFateStore() {}
+  public MetaFateStore(ZooSession zk, ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld)
+      throws KeeperException, InterruptedException {
+    this(zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  }
+
+  @VisibleForTesting
+  public MetaFateStore(ZooSession zk, ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld,
+      int maxDeferred, FateIdGenerator fateIdGenerator)
+      throws KeeperException, InterruptedException {
+    super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
+    this.zk = zk;
+    this.zrw = zk.asReaderWriter();
+
+    this.zrw.putPersistentData(Constants.ZFATE, new byte[0], NodeExistsPolicy.SKIP);
+  }
 
   @Override
   public FateId create() {
@@ -124,8 +130,9 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   private Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
-    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
     final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+    verifyLock(lockID, fateId);
+    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
 
     try {
       byte[] newSerFateData =
@@ -136,8 +143,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
                 // node if it doesn't yet exist:
                 // TStatus = TStatus.NEW, FateReservation = reservation, FateKey = fateKey
                 // This might occur if there was a ZK server fault and the same write is running a
-                // 2nd
-                // time
+                // 2nd time
                 // 2) The existing node for fateId has:
                 // TStatus = TStatus.NEW, no FateReservation present, FateKey = fateKey
                 // The fateId is NEW/unseeded and not reserved, so we can allow it to be reserved
@@ -175,25 +181,35 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp) {
-    return createAndReserve(fateKey).map(txStore -> {
-      try {
-        seedTransaction(txName, repo, autoCleanUp, txStore);
-        return txStore.getID();
-      } finally {
-        txStore.unreserve(Duration.ZERO);
+  public Seeder<T> beginSeeding() {
+    return new Seeder<T>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+        return CompletableFuture.completedFuture(createAndReserve(fateKey).map(txStore -> {
+          try {
+            seedTransaction(fateOp, repo, autoCleanUp, txStore);
+            return txStore.getID();
+          } finally {
+            txStore.unreserve(Duration.ZERO);
+          }
+        }));
       }
-    });
+
+      @Override
+      public void close() {
+        // Nothing to do for Meta fate store
+      }
+    };
   }
 
   @Override
-  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<T> repo,
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp) {
     return tryReserve(fateId).map(txStore -> {
       try {
         if (txStore.getStatus() == NEW) {
-          seedTransaction(txName, repo, autoCleanUp, txStore);
+          seedTransaction(fateOp, repo, autoCleanUp, txStore);
           return true;
         }
         return false;
@@ -203,7 +219,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }).orElse(false);
   }
 
-  private void seedTransaction(Fate.FateOperation txName, Repo<T> repo, boolean autoCleanUp,
+  private void seedTransaction(Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp,
       FateTxStore<T> txStore) {
     if (txStore.top() == null) {
       try {
@@ -217,12 +233,13 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     if (autoCleanUp) {
       txStore.setTransactionInfo(TxInfo.AUTO_CLEAN, autoCleanUp);
     }
-    txStore.setTransactionInfo(TxInfo.TX_NAME, txName);
+    txStore.setTransactionInfo(TxInfo.FATE_OP, fateOp);
     txStore.setStatus(SUBMITTED);
   }
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    verifyLock(lockID, fateId);
     // uniquely identify this attempt to reserve the fate operation data
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 
@@ -560,7 +577,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   @Override
   protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
     try {
-      Stream<FateIdStatus> stream = zrw.getChildren(path).stream().map(strTxid -> {
+      Stream<FateIdStatus> stream = zrw.getChildren(Constants.ZFATE).stream().map(strTxid -> {
         String txUUIDStr = strTxid.split("_")[1];
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         // Memoizing for two reasons. First the status or reservation may never be requested, so

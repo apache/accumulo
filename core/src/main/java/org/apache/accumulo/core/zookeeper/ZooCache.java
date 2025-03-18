@@ -16,19 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.fate.zookeeper;
+package org.apache.accumulo.core.zookeeper;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.time.Duration;
-import java.util.ConcurrentModificationException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.NavigableSet;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.LockSupport;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -36,7 +39,6 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.cache.Caches;
-import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.WatchedEvent;
@@ -46,7 +48,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Ticker;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
@@ -59,54 +61,31 @@ public class ZooCache {
 
   private static final Logger log = LoggerFactory.getLogger(ZooCache.class);
 
-  private final ZCacheWatcher watcher = new ZCacheWatcher();
-  private final Optional<ZooCacheWatcher> externalWatcher;
+  private final NavigableSet<String> watchedPaths;
+
+  // visible for tests
+  protected final ZCacheWatcher watcher = new ZCacheWatcher();
+  private final List<ZooCacheWatcher> externalWatchers =
+      Collections.synchronizedList(new ArrayList<>());
 
   private static final AtomicLong nextCacheId = new AtomicLong(0);
   private final String cacheId = "ZC" + nextCacheId.incrementAndGet();
 
-  // The concurrent map returned by Caffiene will only allow one thread to run at a time for a given
-  // key and ZooCache relies on that. Not all concurrent map implementations have this behavior for
-  // their compute functions.
+  public static final Duration CACHE_DURATION = Duration.ofMinutes(30);
+
+  private final Cache<String,ZcNode> cache;
+
   private final ConcurrentMap<String,ZcNode> nodeCache;
 
   private final ZooSession zk;
 
   private volatile boolean closed = false;
 
-  public static class ZcStat {
-    private long ephemeralOwner;
-    private long mzxid;
+  private final AtomicLong updateCount = new AtomicLong();
 
-    public ZcStat() {}
+  private final AtomicLong zkClientTracker = new AtomicLong();
 
-    private ZcStat(Stat stat) {
-      this.ephemeralOwner = stat.getEphemeralOwner();
-      this.mzxid = stat.getMzxid();
-    }
-
-    public long getEphemeralOwner() {
-      return ephemeralOwner;
-    }
-
-    private void set(ZcStat cachedStat) {
-      this.ephemeralOwner = cachedStat.ephemeralOwner;
-      this.mzxid = cachedStat.mzxid;
-    }
-
-    @VisibleForTesting
-    public void setEphemeralOwner(long ephemeralOwner) {
-      this.ephemeralOwner = ephemeralOwner;
-    }
-
-    public long getMzxid() {
-      return mzxid;
-    }
-  }
-
-  private final AtomicLong updateCount = new AtomicLong(0);
-
-  private class ZCacheWatcher implements Watcher {
+  class ZCacheWatcher implements Watcher {
     @Override
     public void process(WatchedEvent event) {
       if (log.isTraceEnabled()) {
@@ -114,22 +93,40 @@ public class ZooCache {
       }
 
       switch (event.getType()) {
-        case NodeDataChanged:
         case NodeChildrenChanged:
-        case NodeCreated:
-        case NodeDeleted:
+          // According to documentation we should not receive this event.
+          // According to https://issues.apache.org/jira/browse/ZOOKEEPER-4475 we
+          // may receive this event (Fixed in 3.9.0)
+          break;
         case ChildWatchRemoved:
         case DataWatchRemoved:
-          remove(event.getPath());
+          // We don't need to do anything with the cache on these events.
+          break;
+        case NodeDataChanged:
+          log.trace("{} node data changed; clearing {}", cacheId, event.getPath());
+          clear(path -> path.equals(event.getPath()));
+          break;
+        case NodeCreated:
+        case NodeDeleted:
+          // With the Watcher being set at a higher level we need to remove
+          // the parent of the affected node and all of its children from the cache
+          // so that the parent and children node can be re-cached. If we only remove the
+          // affected node, then the cached children in the parent could be incorrect.
+          int lastSlash = event.getPath().lastIndexOf('/');
+          String parent = lastSlash == 0 ? "/" : event.getPath().substring(0, lastSlash);
+          log.trace("{} node created or deleted {}; clearing {}", cacheId, event.getPath(), parent);
+          clear((path) -> path.startsWith(parent));
+          break;
+        case PersistentWatchRemoved:
+          log.warn(
+              "{} persistent watch removed {} which is only done in ZooSession.addPersistentRecursiveWatchers; ignoring;",
+              cacheId, event.getPath());
           break;
         case None:
           switch (event.getState()) {
             case Closed:
-              // Closed is a new event in ZK 3.5 generated client-side when the ZK client is closed
-              // These are ignored, because they are generated by SingletonManager closing
-              // ZooKeepers for ZooSession, and SingletonManager is already responsible for clearing
-              // caches via the registered ZooCacheFactory singleton
-              log.trace("{} ZooKeeper connection closed, ignoring; {}", cacheId, event);
+              log.trace("{} ZooKeeper connection closed, clearing cache; {}", cacheId, event);
+              clear();
               break;
             case Disconnected:
               log.trace("{} ZooKeeper connection disconnected, clearing cache; {}", cacheId, event);
@@ -143,84 +140,145 @@ public class ZooCache {
               clear();
               break;
             default:
-              log.warn("{} Unhandled {}", cacheId, event);
+              log.warn("{} Unhandled state {}", cacheId, event);
               break;
           }
           break;
         default:
-          log.warn("{} Unhandled {}", cacheId, event);
+          log.warn("{} Unhandled event type {}", cacheId, event);
           break;
       }
 
-      externalWatcher.ifPresent(w -> w.accept(event));
+      externalWatchers.forEach(ew -> {
+        try {
+          ew.accept(event);
+        } catch (Exception e) {
+          log.error(
+              "Exception calling external watcher. This is a bug and could impact proper operation.",
+              e);
+        }
+      });
     }
   }
 
   /**
-   * Creates a new cache without an external watcher.
+   * Creates a ZooCache instance that uses the supplied ZooSession for communicating with the
+   * instance's ZooKeeper servers. The ZooCache will create persistent watchers at the given
+   * pathsToWatch, if any, to be updated when changes are made in ZooKeeper for nodes at or below in
+   * the tree. If ZooCacheWatcher's are added via {@code addZooCacheWatcher}, then they will be
+   * notified when this object is notified of changes via the PersistentWatcher callback.
    *
-   * @param zk the ZooKeeper instance
-   * @throws NullPointerException if zk is {@code null}
+   * @param zk ZooSession for this instance
+   * @param pathsToWatch Paths in ZooKeeper to watch
    */
-  public ZooCache(ZooSession zk) {
-    this(zk, Optional.empty(), Duration.ofMinutes(3));
+  public ZooCache(ZooSession zk, Set<String> pathsToWatch) {
+    this(zk, pathsToWatch, Ticker.systemTicker());
+  }
+
+  // visible for tests that use a Ticker
+  public ZooCache(ZooSession zk, Set<String> pathsToWatch, Ticker ticker) {
+    this.zk = requireNonNull(zk);
+    // this initial value is meant to indicate watchers were never setup
+    this.zkClientTracker.set(-1);
+    this.cache = Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
+        .ticker(requireNonNull(ticker)).expireAfterAccess(CACHE_DURATION).build();
+    // The concurrent map returned by Caffeine will only allow one thread to run at a time for a
+    // given key and ZooCache relies on that. Not all concurrent map implementations have this
+    // behavior for their compute functions.
+    this.nodeCache = cache.asMap();
+    this.watchedPaths = Collections.unmodifiableNavigableSet(new TreeSet<>(pathsToWatch));
+    setupWatchers();
+    log.trace("{} created new cache watching {}", cacheId, pathsToWatch, new Exception());
+  }
+
+  public void addZooCacheWatcher(ZooCacheWatcher watcher) {
+    externalWatchers.add(requireNonNull(watcher));
+  }
+
+  // visible for tests
+  long getZKClientObjectVersion() {
+    long counter = zk.getConnectionCounter();
+    // -1 is used to signify ZK has not been setup in this code and this code assume ZooSession will
+    // always return something >= 0.
+    Preconditions.checkState(counter >= 0);
+    return counter;
   }
 
   /**
-   * Creates a new cache. The given watcher is called whenever a watched node changes.
-   *
-   * @param zk the ZooKeeper instance
-   * @param watcher watcher object
-   * @throws NullPointerException if zk or watcher is {@code null}
+   * @return true if ZK has changed; false otherwise
    */
-  public ZooCache(ZooSession zk, ZooCacheWatcher watcher) {
-    this(zk, Optional.of(watcher), Duration.ofMinutes(3));
+  private boolean handleZKConnectionChange() {
+    final long currentCount = getZKClientObjectVersion();
+    final long oldCount = zkClientTracker.get();
+    if (oldCount != currentCount) {
+      return setupWatchers();
+    }
+    return false;
   }
 
-  public ZooCache(ZooSession zk, Optional<ZooCacheWatcher> watcher, Duration timeout) {
-    this.zk = requireNonNull(zk);
-    this.externalWatcher = watcher;
-    RemovalListener<String,ZcNode> removalListerner = (path, zcNode, reason) -> {
-      try {
-        log.trace("{} removing watches for {} because {} accesses {}", cacheId, path, reason,
-            zcNode == null ? -1 : zcNode.getAccessCount());
-        zk.removeWatches(path, ZooCache.this.watcher, Watcher.WatcherType.Any, false);
-      } catch (InterruptedException | KeeperException | RuntimeException e) {
-        log.warn("{} failed to remove watches on path {} in zookeeper", cacheId, path, e);
+  // Called on construction and when ZooKeeper connection changes
+  synchronized boolean setupWatchers() {
+
+    final long currentCount = getZKClientObjectVersion();
+    final long oldCount = zkClientTracker.get();
+
+    if (currentCount == oldCount) {
+      return false;
+    }
+
+    for (String left : watchedPaths) {
+      for (String right : watchedPaths) {
+        if (!right.startsWith("/")) {
+          throw new IllegalArgumentException("Watched path must start with slash: '" + right + "'");
+        }
+        if (right.length() > 1 && right.endsWith("/")) {
+          throw new IllegalArgumentException(
+              "Watched path must not end with slash: '" + right + "'");
+        }
+        if ((left.equals("/") && right.length() > 1) || right.startsWith(left + "/")) {
+          throw new IllegalArgumentException(
+              "Overlapping paths found in paths to watch. '" + left + "' contains '" + right + "'");
+        }
       }
-    };
-    // Must register the removal listener using evictionListener inorder for removal to be mutually
-    // exclusive with any other operations on the same path. This is important for watcher
-    // consistency, concurrently adding and removing watches for the same path would leave zoocache
-    // in a really bad state. The cache builder has another way to register a removal listener that
-    // is not mutually exclusive.
-    Cache<String,ZcNode> cache =
-        Caches.getInstance().createNewBuilder(Caches.CacheName.ZOO_CACHE, false)
-            .expireAfterAccess(timeout).evictionListener(removalListerner).build();
-    nodeCache = cache.asMap();
-    log.trace("{} created new cache", cacheId, new Exception());
+    }
+
+    try {
+      long zkId = zk.addPersistentRecursiveWatchers(watchedPaths, watcher);
+      zkClientTracker.set(zkId);
+      clear();
+      log.trace("{} Reinitialized persistent watchers and cleared cache {}", cacheId,
+          zkClientTracker.get());
+      return true;
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException("Error setting up persistent recursive watcher", e);
+    }
+
   }
 
-  private abstract static class ZooRunnable<T> {
+  private boolean isWatchedPath(String path) {
+    // Check that the path is equal to, or a descendant of, a watched path
+    var floor = watchedPaths.floor(path);
+    return floor != null
+        && (floor.equals("/") || floor.equals(path) || path.startsWith(floor + "/"));
+  }
+
+  private void ensureWatched(String path) {
+    if (!isWatchedPath(path)) {
+      throw new IllegalStateException("Supplied path " + path + " is not watched by this ZooCache");
+    }
+  }
+
+  private abstract class ZooRunnable<T> {
     /**
      * Runs an operation against ZooKeeper. Retries are performed by the retry method when
      * KeeperExceptions occur.
-     *
-     * Changes were made in ACCUMULO-4388 so that the run method no longer accepts Zookeeper as an
-     * argument, and instead relies on the ZooRunnable implementation to call
-     * {@link #getZooKeeper()}. Performing the call to retrieving a ZooKeeper Session after caches
-     * are checked has the benefit of limiting ZK connections and blocking as a result of obtaining
-     * these sessions.
      *
      * @return T the result of the runnable
      */
     abstract T run() throws KeeperException, InterruptedException;
 
     /**
-     * Retry will attempt to call the run method. Run should make a call to {@link #getZooKeeper()}
-     * after checks to cached information are made. This change, per ACCUMULO-4388 ensures that we
-     * don't create a ZooKeeper session when information is cached, and access to ZooKeeper is
-     * unnecessary.
+     * Retry will attempt to call the run method.
      *
      * @return result of the runnable access success ( i.e. no exceptions ).
      */
@@ -231,7 +289,11 @@ public class ZooCache {
       while (true) {
 
         try {
-          return run();
+          T result = run();
+          if (handleZKConnectionChange()) {
+            continue;
+          }
+          return result;
         } catch (KeeperException | ZcException e) {
           KeeperException ke;
           if (e instanceof ZcException) {
@@ -251,8 +313,6 @@ public class ZooCache {
           }
         } catch (InterruptedException | ZcInterruptedException e) {
           log.info("Zookeeper error, will retry", e);
-        } catch (ConcurrentModificationException e) {
-          log.debug("Zookeeper was modified, will retry");
         }
 
         try {
@@ -261,7 +321,6 @@ public class ZooCache {
         } catch (InterruptedException e) {
           log.debug("Wait in retry() was interrupted.", e);
         }
-        LockSupport.parkNanos(sleepTime);
         if (sleepTime < 10_000) {
           sleepTime = (int) (sleepTime + sleepTime * RANDOM.get().nextDouble());
         }
@@ -291,14 +350,14 @@ public class ZooCache {
   }
 
   /**
-   * Gets the children of the given node. A watch is established by this call.
+   * Gets the children of the given node.
    *
    * @param zPath path of node
    * @return children list, or null if node has no children or does not exist
    */
   public List<String> getChildren(final String zPath) {
-    Preconditions.checkState(!closed);
-
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
+    ensureWatched(zPath);
     ZooRunnable<List<String>> zr = new ZooRunnable<>() {
 
       @Override
@@ -317,23 +376,12 @@ public class ZooCache {
             return zcn;
           }
           try {
-            // Register a watcher on the node to monitor creation/deletion events for the node. It
-            // is possible that an event from this watch could trigger prior to calling getChildren.
-            // That is ok because the compute() call on the map has a lock and processing the event
-            // will block until compute() returns. After compute() returns the event processing
-            // would clear the map entry.
-            Stat stat = zk.exists(zPath, watcher);
-            if (stat == null) {
-              log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
-              return ZcNode.NON_EXISTENT;
-            }
-            List<String> children = zk.getChildren(zPath, watcher);
+            List<String> children = zk.getChildren(zPath, null);
             log.trace("{} adding {} children of {} to cache", cacheId, children.size(), zPath);
             return new ZcNode(children, zcn);
           } catch (KeeperException.NoNodeException nne) {
-            log.trace("{} get children saw race condition for {}, node deleted after exists call",
-                cacheId, zPath);
-            throw new ConcurrentModificationException(nne);
+            log.trace("{} getChildren saw that {} does not exists", cacheId, zPath);
+            return ZcNode.NON_EXISTENT;
           } catch (KeeperException e) {
             throw new ZcException(e);
           } catch (InterruptedException e) {
@@ -350,8 +398,7 @@ public class ZooCache {
   }
 
   /**
-   * Gets data at the given path. Status information is not returned. A watch is established by this
-   * call.
+   * Gets data at the given path. Status information is not returned.
    *
    * @param zPath path to get
    * @return path data, or null if non-existent
@@ -362,14 +409,15 @@ public class ZooCache {
 
   /**
    * Gets data at the given path, filling status information into the given <code>Stat</code>
-   * object. A watch is established by this call.
+   * object.
    *
    * @param zPath path to get
    * @param status status object to populate
    * @return path data, or null if non-existent
    */
   public byte[] get(final String zPath, final ZcStat status) {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
+    ensureWatched(zPath);
     ZooRunnable<byte[]> zr = new ZooRunnable<>() {
 
       @Override
@@ -391,44 +439,27 @@ public class ZooCache {
           if (zcn != null && zcn.cachedData()) {
             return zcn;
           }
-          /*
-           * The following call to exists() is important, since we are caching that a node does not
-           * exist. Once the node comes into existence, it will be added to the cache. But this
-           * notification of a node coming into existence will only be given if exists() was
-           * previously called. If the call to exists() is bypassed and only getData() is called
-           * with a special case that looks for Code.NONODE in the KeeperException, then
-           * non-existence can not be cached.
-           */
           try {
-            Stat stat = zk.exists(zPath, watcher);
-            if (stat == null) {
-              if (log.isTraceEnabled()) {
-                log.trace("{} zookeeper did not contain {}", cacheId, zPath);
-              }
+            byte[] data = null;
+            Stat stat = new Stat();
+            ZcStat zstat = null;
+            try {
+              data = zk.getData(zPath, null, stat);
+              zstat = new ZcStat(stat);
+            } catch (KeeperException.NoNodeException e1) {
+              log.trace("{} zookeeper did not contain {}", cacheId, zPath);
               return ZcNode.NON_EXISTENT;
-            } else {
-              byte[] data = null;
-              ZcStat zstat = null;
-              try {
-                data = zk.getData(zPath, watcher, stat);
-                zstat = new ZcStat(stat);
-              } catch (KeeperException.BadVersionException | KeeperException.NoNodeException e1) {
-                throw new ConcurrentModificationException(e1);
-              } catch (InterruptedException e) {
-                throw new ZcInterruptedException(e);
-              }
-              if (log.isTraceEnabled()) {
-                log.trace("{} zookeeper contained {} {}", cacheId, zPath,
-                    (data == null ? null : new String(data, UTF_8)));
-              }
-              return new ZcNode(data, zstat, zcn);
+            } catch (InterruptedException e) {
+              throw new ZcInterruptedException(e);
             }
+            if (log.isTraceEnabled()) {
+              log.trace("{} zookeeper contained {} {}", cacheId, zPath,
+                  (data == null ? null : new String(data, UTF_8)));
+            }
+            return new ZcNode(data, zstat, zcn);
           } catch (KeeperException ke) {
             throw new ZcException(ke);
-          } catch (InterruptedException e) {
-            throw new ZcInterruptedException(e);
           }
-
         });
 
         // update this after the compute call completes when the change is visible
@@ -450,29 +481,29 @@ public class ZooCache {
    * @param cachedStat cached statistic, that is or will be cached
    */
   protected void copyStats(ZcStat userStat, ZcStat cachedStat) {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     if (userStat != null && cachedStat != null) {
       userStat.set(cachedStat);
     }
   }
 
-  private void remove(String zPath) {
-    nodeCache.remove(zPath);
-    log.trace("{} removed {} from cache", cacheId, zPath);
-    updateCount.incrementAndGet();
-  }
-
   /**
    * Clears this cache.
    */
-  public void clear() {
-    Preconditions.checkState(!closed);
+  protected void clear() {
+    if (closed) {
+      return;
+    }
     nodeCache.clear();
     updateCount.incrementAndGet();
     log.trace("{} cleared all from cache", cacheId);
   }
 
   public void close() {
+    if (closed) {
+      return;
+    }
+    clear();
     closed = true;
   }
 
@@ -481,7 +512,7 @@ public class ZooCache {
    * count is the same, then it means cache did not change.
    */
   public long getUpdateCount() {
-    Preconditions.checkState(!closed);
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
     return updateCount.get();
   }
 
@@ -493,6 +524,7 @@ public class ZooCache {
    */
   @VisibleForTesting
   public boolean dataCached(String zPath) {
+    ensureWatched(zPath);
     var zcn = nodeCache.get(zPath);
     return zcn != null && zcn.cachedData();
   }
@@ -505,6 +537,7 @@ public class ZooCache {
    */
   @VisibleForTesting
   public boolean childrenCached(String zPath) {
+    ensureWatched(zPath);
     var zcn = nodeCache.get(zPath);
     return zcn != null && zcn.cachedChildren();
   }
@@ -513,22 +546,16 @@ public class ZooCache {
    * Removes all paths in the cache match the predicate.
    */
   public void clear(Predicate<String> pathPredicate) {
-    Preconditions.checkState(!closed);
-
-    Predicate<String> pathPredicateToUse;
-    if (log.isTraceEnabled()) {
-      pathPredicateToUse = path -> {
-        boolean testResult = pathPredicate.test(path);
-        if (testResult) {
-          log.trace("{} removing {} from cache", cacheId, path);
-        }
-        return testResult;
-      };
-    } else {
-      pathPredicateToUse = pathPredicate;
-    }
-    nodeCache.keySet().removeIf(pathPredicateToUse);
-    updateCount.incrementAndGet();
+    Preconditions.checkState(!closed, "Operation not allowed: ZooCache is already closed.");
+    Predicate<String> pathPredicateWrapper = path -> {
+      boolean testResult = pathPredicate.test(path);
+      if (testResult) {
+        updateCount.incrementAndGet();
+        log.trace("{} removing {} from cache", cacheId, path);
+      }
+      return testResult;
+    };
+    nodeCache.keySet().removeIf(pathPredicateWrapper);
   }
 
   /**
@@ -537,10 +564,15 @@ public class ZooCache {
    * @param zPath path of top node
    */
   public void clear(String zPath) {
+    ensureWatched(zPath);
     clear(path -> path.startsWith(zPath));
   }
 
+  /**
+   * Gets the lock data from the node in the cache at the specified path
+   */
   public Optional<ServiceLockData> getLockData(ServiceLockPath path) {
+    ensureWatched(path.toString());
     List<String> children = ServiceLock.validateAndSort(path, getChildren(path.toString()));
     if (children == null || children.isEmpty()) {
       return Optional.empty();

@@ -634,7 +634,8 @@ public class MetadataConstraintsTest {
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/invalid"));
+    m.put(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), new Value("/invalid"));
     violations = mc.check(createEnv(), m);
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
@@ -663,7 +664,7 @@ public class MetadataConstraintsTest {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":1,\"never\"=true}"));
     assertViolation(mc, m, (short) 4006);
 
-    // SteadyTime must be set if delay positive
+    // SteadyTime must be set if delay is set
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10,\"never\"=false}"));
     assertViolation(mc, m, (short) 4006);

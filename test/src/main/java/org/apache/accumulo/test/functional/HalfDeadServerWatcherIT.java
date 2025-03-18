@@ -101,8 +101,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       getOnlineTablets().keySet().forEach(ke -> {
         if (!ke.isMeta()) {
           final TableId tid = ke.tableId();
-          final String zooRoot = this.getContext().getZooKeeperRoot();
-          final String tableZPath = zooRoot + Constants.ZTABLES + "/" + tid.canonical();
+          final String tableZPath = Constants.ZTABLES + "/" + tid.canonical();
           try {
             this.getContext().getZooSession().asReader().exists(tableZPath, new StuckWatcher());
           } catch (KeeperException | InterruptedException e) {

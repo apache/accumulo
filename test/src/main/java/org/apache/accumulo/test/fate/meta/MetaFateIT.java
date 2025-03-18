@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
-import static org.apache.accumulo.core.fate.AbstractFateStore.createDummyLockID;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
@@ -59,17 +59,13 @@ public class MetaFateIT extends FateIT {
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
-    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
     var zk = FateStoreUtil.MetaFateZKSetup.getZk();
-    String fatePath = FateStoreUtil.MetaFateZKSetup.getZkFatePath();
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
 
     testMethod.execute(
-        new MetaFateStore<>(fatePath, zk, createDummyLockID(), null, maxDeferred, fateIdGenerator),
-        sctx);
+        new MetaFateStore<>(zk, createDummyLockID(), null, maxDeferred, fateIdGenerator), sctx);
   }
 
   @Override
@@ -87,10 +83,9 @@ public class MetaFateIT extends FateIT {
    */
   private static TStatus getTxStatus(ZooSession zk, FateId fateId)
       throws KeeperException, InterruptedException {
-    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
     var zrw = zk.asReaderWriter();
-    zrw.sync(zkRoot);
-    String txdir = String.format("%s%s/tx_%s", zkRoot, Constants.ZFATE, fateId.getTxUUIDStr());
+    zrw.sync("/");
+    String txdir = String.format("%s/tx_%s", Constants.ZFATE, fateId.getTxUUIDStr());
 
     try (DataInputBuffer buffer = new DataInputBuffer()) {
       var serialized = zrw.getData(txdir);
