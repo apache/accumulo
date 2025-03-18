@@ -384,8 +384,6 @@ public class Tablet extends TabletBase {
     boolean failed = false;
     long start = System.currentTimeMillis();
     timer.incrementStatusMinor();
-    long pauseLimit =
-        getContext().getTableConfiguration(extent.tableId()).getCount(Property.TABLE_FILE_PAUSE);
     long count = 0;
 
     String oldName = Thread.currentThread().getName();
@@ -395,13 +393,6 @@ public class Tablet extends TabletBase {
       Span span = TraceUtil.startSpan(this.getClass(), "minorCompact::write");
       try (Scope scope = span.makeCurrent()) {
         count = memTable.getNumEntries();
-        if (count > pauseLimit && pauseLimit > 0) {
-          log.debug(
-              "tablet {} has {} entries, which exceeds the pause limit of {}, pausing minor compaction.",
-              this.extent, count, pauseLimit);
-          failed = true; // Set the failed flag
-          return null;
-        }
         MinorCompactor compactor = new MinorCompactor(tabletServer, this, memTable, tmpDatafile,
             mincReason, tableConfiguration);
         stats = compactor.call();
@@ -592,7 +583,8 @@ public class Tablet extends TabletBase {
       MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
     long t1, t2;
-
+    long pauseLimit =
+        getContext().getTableConfiguration(extent.tableId()).getCount(Property.TABLE_FILE_PAUSE);
     StringBuilder logMessage = null;
 
     try {
@@ -600,7 +592,8 @@ public class Tablet extends TabletBase {
         t1 = System.currentTimeMillis();
 
         if (isClosing() || isClosed() || getTabletMemory().memoryReservedForMinC()
-            || getTabletMemory().getMemTable().getNumEntries() == 0 || updatingFlushID) {
+            || updatingFlushID || (mincReason == MinorCompactionReason.SYSTEM
+                && getDatafiles().size() >= pauseLimit)) {
 
           logMessage = new StringBuilder();
 
@@ -610,9 +603,9 @@ public class Tablet extends TabletBase {
             logMessage.append(" tabletMemory.memoryReservedForMinC() "
                 + getTabletMemory().memoryReservedForMinC());
           }
-          if (getTabletMemory() != null && getTabletMemory().getMemTable() != null) {
-            logMessage.append(" tabletMemory.getMemTable().getNumEntries() "
-                + getTabletMemory().getMemTable().getNumEntries());
+          if (mincReason == MinorCompactionReason.SYSTEM) {
+            logMessage.append(" fileCount " + getDatafiles().size());
+            logMessage.append(" fileCountPauseLimit " + pauseLimit);
           }
           logMessage.append(" updatingFlushID " + updatingFlushID);
 
