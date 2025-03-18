@@ -60,6 +60,7 @@ import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.gc.metrics.GcCycleMetrics;
 import org.apache.accumulo.gc.metrics.GcMetrics;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -78,10 +79,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-// Could/Should implement HighlyAvailableService but the Thrift server is already started before
-// the ZK lock is acquired. The server is only for metrics, there are no concerns about clients
-// using the service before the lock is acquired.
-public class SimpleGarbageCollector extends AbstractServer implements Iface {
+public class SimpleGarbageCollector extends AbstractServer
+    implements Iface, HighlyAvailableService {
 
   private static final Logger log = LoggerFactory.getLogger(SimpleGarbageCollector.class);
 
@@ -425,7 +424,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   private HostAndPort startStatsService() {
-    var processor = ThriftProcessorTypes.getGcTProcessor(this, this, getContext());
+    var processor = ThriftProcessorTypes.getGcTProcessor(this, this, this, getContext());
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
@@ -472,6 +471,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   @Override
   public ServiceLock getLock() {
     return gcLock;
+  }
+
+  @Override
+  public boolean isActiveService() {
+    return gcLock.isLocked();
   }
 
 }

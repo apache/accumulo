@@ -31,6 +31,7 @@ import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.thrift.TBaseProcessor;
@@ -113,9 +114,11 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getGcTProcessor(ServerProcessService.Iface processHandler,
+  public static HighlyAvailableServiceTMultiplexedProcessor getGcTProcessor(
+      HighlyAvailableService gc, ServerProcessService.Iface processHandler,
       GCMonitorService.Iface serviceHandler, ServerContext context) {
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    HighlyAvailableServiceTMultiplexedProcessor muxProcessor =
+        new HighlyAvailableServiceTMultiplexedProcessor(gc);
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
             ServerProcessService.Iface.class, processHandler, context));
@@ -124,11 +127,13 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getManagerTProcessor(
-      ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
+  public static HighlyAvailableServiceTMultiplexedProcessor getManagerTProcessor(
+      HighlyAvailableService manager, ServerProcessService.Iface processHandler,
+      FateService.Iface fateServiceHandler,
       CompactionCoordinatorService.Iface coordinatorServiceHandler,
       ManagerClientService.Iface managerServiceHandler, ServerContext context) {
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    HighlyAvailableServiceTMultiplexedProcessor muxProcessor =
+        new HighlyAvailableServiceTMultiplexedProcessor(manager);
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
         SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
             ServerProcessService.Iface.class, processHandler, context));
