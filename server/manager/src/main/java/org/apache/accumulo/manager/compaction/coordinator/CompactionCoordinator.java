@@ -1131,15 +1131,14 @@ public class CompactionCoordinator
   }
 
   private void cleanUpEmptyCompactorPathInZK() {
-    final String compactorQueuesPath = this.ctx.getZooKeeperRoot() + Constants.ZCOMPACTORS;
 
     final var zoorw = this.ctx.getZooSession().asReaderWriter();
 
     try {
-      var groups = zoorw.getChildren(compactorQueuesPath);
+      var groups = zoorw.getChildren(Constants.ZCOMPACTORS);
 
       for (String group : groups) {
-        final String qpath = compactorQueuesPath + "/" + group;
+        final String qpath = Constants.ZCOMPACTORS + "/" + group;
         final CompactorGroupId cgid = CompactorGroupId.of(group);
         final var compactors = zoorw.getChildren(qpath);
 
@@ -1153,8 +1152,9 @@ public class CompactionCoordinator
           }
         } else {
           for (String compactor : compactors) {
-            String cpath = compactorQueuesPath + "/" + group + "/" + compactor;
-            var lockNodes = zoorw.getChildren(compactorQueuesPath + "/" + group + "/" + compactor);
+            String cpath = Constants.ZCOMPACTORS + "/" + group + "/" + compactor;
+            var lockNodes =
+                zoorw.getChildren(Constants.ZCOMPACTORS + "/" + group + "/" + compactor);
             if (lockNodes.isEmpty()) {
               deleteEmpty(zoorw, cpath);
             }

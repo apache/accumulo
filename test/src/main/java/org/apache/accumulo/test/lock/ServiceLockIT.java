@@ -67,7 +67,7 @@ public class ServiceLockIT {
 
   private static class TestServiceLockPath extends ServiceLockPath {
     protected TestServiceLockPath(String path) {
-      super(path);
+      super(ServiceLockIT.class.getSimpleName().hashCode(), path);
     }
   }
 

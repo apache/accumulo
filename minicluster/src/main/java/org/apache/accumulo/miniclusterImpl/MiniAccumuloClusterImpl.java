@@ -79,7 +79,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
@@ -103,8 +103,6 @@ import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.ServerDirs;
-import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.init.Initialize;
 import org.apache.accumulo.server.util.AccumuloStatus;
 import org.apache.accumulo.server.util.PortUtils;
@@ -509,35 +507,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     MiniAccumuloClusterControl control = getClusterControl();
 
     if (config.useExistingInstance()) {
-      AccumuloConfiguration acuConf = config.getAccumuloConfiguration();
-      Configuration hadoopConf = config.getHadoopConfiguration();
-      ServerDirs serverDirs = new ServerDirs(acuConf, hadoopConf);
-
-      Path instanceIdPath;
-      try (var fs = getServerContext().getVolumeManager()) {
-        instanceIdPath = serverDirs.getInstanceIdLocation(fs.getFirst());
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-
-      InstanceId instanceIdFromFile =
-          VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
-      ZooReaderWriter zrw = getServerContext().getZooSession().asReaderWriter();
-
-      String instanceName = null;
-      try {
-        for (String name : zrw.getChildren(Constants.ZROOT + Constants.ZINSTANCES)) {
-          String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + name;
-          byte[] bytes = zrw.getData(instanceNamePath);
-          InstanceId iid = InstanceId.of(new String(bytes, UTF_8));
-          if (iid.equals(instanceIdFromFile)) {
-            instanceName = name;
-          }
-        }
-      } catch (KeeperException e) {
-        throw new IllegalStateException("Unable to read instance name from zookeeper.", e);
-      }
-      if (instanceName == null) {
+      String instanceName = getServerContext().getInstanceName();
+      if (instanceName == null || instanceName.isBlank()) {
         throw new IllegalStateException("Unable to read instance name from zookeeper.");
       }
 
@@ -708,7 +679,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
         Property.INSTANCE_ZK_TIMEOUT.getKey(), Property.INSTANCE_ZK_TIMEOUT.getDefaultValue()));
     final String secret = properties.get(Property.INSTANCE_SECRET.getKey());
     miniLockZk = new ZooSession(MiniAccumuloClusterImpl.class.getSimpleName() + ".lock",
-        config.getZooKeepers(), timeout, secret);
+        config.getZooKeepers() + ZooUtil.getRoot(iid), timeout, secret);
 
     // It's possible start was called twice...
     if (miniLock == null) {
@@ -996,16 +967,17 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext().getSiteConfiguration(), "-manager", "-tservers",
-          "-compactors", "-sservers");
+      new ZooZap().zap(getServerContext(), "-manager", "-tservers", "-compactors", "-sservers");
     } catch (RuntimeException e) {
-      log.error("Error zapping zookeeper locks", e);
+      if (!e.getMessage().startsWith("Accumulo not initialized")) {
+        log.error("Error zapping zookeeper locks", e);
+      }
     }
 
     // Clear the location of the servers in ZooCache.
     boolean macStarted = false;
     try {
-      getServerContext().getZooKeeperRoot();
+      ZooUtil.getRoot(getServerContext().getInstanceID());
       macStarted = true;
     } catch (IllegalStateException e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {

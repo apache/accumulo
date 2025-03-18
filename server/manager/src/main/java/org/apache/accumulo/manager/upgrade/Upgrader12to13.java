@@ -120,9 +120,8 @@ public class Upgrader12to13 implements Upgrader {
 
   private static void addCompactionsNode(ServerContext context) {
     try {
-      context.getZooSession().asReaderWriter().putPersistentData(
-          ZooUtil.getRoot(context.getInstanceID()) + Constants.ZCOMPACTIONS, new byte[0],
-          ZooUtil.NodeExistsPolicy.SKIP);
+      context.getZooSession().asReaderWriter().putPersistentData(Constants.ZCOMPACTIONS,
+          new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
@@ -138,9 +137,13 @@ public class Upgrader12to13 implements Upgrader {
     try {
       ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
       zkInit.initFateTableState(context);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
+      // initFateTableState wraps KeeperException and InterruptedException
+      // with a RuntimeException
       if (e.getCause() instanceof KeeperException.NodeExistsException) {
         LOG.debug("Fate table node already exists in ZooKeeper");
+      } else {
+        throw e;
       }
     }
 
@@ -166,12 +169,11 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   private void removeCompactColumnsFromRootTabletMetadata(ServerContext context) {
-    var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
 
     try {
       var zrw = context.getZooSession().asReaderWriter();
       Stat stat = new Stat();
-      byte[] rootData = zrw.getData(rootBase, stat);
+      byte[] rootData = zrw.getData(ZROOT_TABLET, stat);
 
       String json = new String(rootData, UTF_8);
 
@@ -197,7 +199,7 @@ public class Upgrader12to13 implements Upgrader {
       if (!mutations.isEmpty()) {
         LOG.info("Root metadata in ZooKeeper before upgrade: {}", json);
         rtm.update(mutations.get(0));
-        zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
     } catch (InterruptedException ex) {
@@ -261,21 +263,20 @@ public class Upgrader12to13 implements Upgrader {
 
   private void removeUnusedZKNodes(ServerContext context) {
     try {
-      final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
       final var zrw = context.getZooSession().asReaderWriter();
 
       final String ZCOORDINATOR = "/coordinators";
       final String BULK_ARBITRATOR_TYPE = "bulkTx";
 
-      zrw.recursiveDelete(zkRoot + ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
-      zrw.recursiveDelete(zkRoot + "/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete("/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
 
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
       for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
         final String tId = e.getValue();
-        final String zTablePath = zkRoot + Constants.ZTABLES + "/" + tId;
+        final String zTablePath = Constants.ZTABLES + "/" + tId;
         zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
       }
@@ -286,7 +287,7 @@ public class Upgrader12to13 implements Upgrader {
 
   private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
-    PropUtil.removeProperties(context, TablePropKey.of(context, tableId), List.of(propName));
+    PropUtil.removeProperties(context, TablePropKey.of(tableId), List.of(propName));
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
@@ -372,15 +373,14 @@ public class Upgrader12to13 implements Upgrader {
     // and dead tserver zookeeper paths. Make sure that the these paths
     // are empty. This means that for the Accumulo 4.0 upgrade, the Manager
     // should be started first before any other process.
-    final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
     final ZooReader zr = context.getZooSession().asReader();
     for (String serverPath : new String[] {Constants.ZCOMPACTORS, Constants.ZSSERVERS,
         Constants.ZTSERVERS, Constants.ZDEADTSERVERS}) {
       try {
-        List<String> children = zr.getChildren(zkRoot + serverPath);
+        List<String> children = zr.getChildren(serverPath);
         for (String child : children) {
           if (child.contains(":")) {
-            String childPath = zkRoot + serverPath + "/" + child;
+            String childPath = serverPath + "/" + child;
             if (zr.getChildren(childPath).isEmpty()) {
               // child is likely host:port and is an empty directory. Since there
               // is no lock here, then the server is likely down (or should be).

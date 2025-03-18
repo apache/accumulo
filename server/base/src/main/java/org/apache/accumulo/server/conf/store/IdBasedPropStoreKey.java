@@ -18,26 +18,25 @@
  */
 package org.apache.accumulo.server.conf.store;
 
-public interface PropChangeListener {
+import org.apache.accumulo.core.data.AbstractId;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
-  /**
-   * Signal that a ZooKeeper data change event occurred and that the data has changed.
-   */
-  void zkChangeEvent(final PropStoreKey propStoreKey);
+/**
+ * Provides a strongly-typed id for storing properties in ZooKeeper based on a specific AbstractId
+ * type. The path is based on the AbstractId type, and is the canonical String version of this key.
+ */
+public abstract class IdBasedPropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
+    extends PropStoreKey {
 
-  /**
-   * Signal that a cache change event occurred - cache change events occur on eviction or
-   * invalidation of the cache entry. The underlying data may or may not have changed.
-   */
-  void cacheChangeEvent(final PropStoreKey propStoreKey);
+  private final ID_TYPE id;
 
-  /**
-   * Signal that the node had been deleted from ZooKeeper.
-   */
-  void deleteEvent(final PropStoreKey propStoreKey);
+  protected IdBasedPropStoreKey(final String path, final ID_TYPE id) {
+    super(path);
+    this.id = id;
+  }
 
-  /**
-   * A ZooKeeper connection event (session closed, expired...) and that
-   */
-  void connectionEvent();
+  public @NonNull ID_TYPE getId() {
+    return id;
+  }
+
 }

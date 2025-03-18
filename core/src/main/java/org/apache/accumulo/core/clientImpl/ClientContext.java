@@ -234,16 +234,15 @@ public class ClientContext implements AccumuloClient {
     this.hadoopConf = info.getHadoopConf();
 
     this.zooSession = memoize(() -> {
-      var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", "")
-          .get();
+      var zk =
+          info.getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")",
+              ZooUtil.getRoot(getInstanceID())).get();
       zooKeeperOpened.set(true);
       return zk;
     });
 
     this.zooCache = memoize(() -> {
-      var zc = new ZooCache(getZooSession(),
-          createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID())));
+      var zc = new ZooCache(getZooSession(), createPersistentWatcherPaths());
       zooCacheCreated.set(true);
       return zc;
     });
@@ -258,8 +257,7 @@ public class ClientContext implements AccumuloClient {
     this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.serverPaths =
-        Suppliers.memoize(() -> new ServiceLockPaths(this.getZooKeeperRoot(), this.getZooCache()));
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this.getZooCache()));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -502,10 +500,6 @@ public class ClientContext implements AccumuloClient {
    */
   public InstanceId getInstanceID() {
     return info.getInstanceId();
-  }
-
-  public String getZooKeeperRoot() {
-    return ZooUtil.getRoot(getInstanceID());
   }
 
   /**
@@ -1090,10 +1084,9 @@ public class ClientContext implements AccumuloClient {
       // so, it can't rely on being able to continue to use the same client's ZooCache,
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), "").get();
-      String zkRoot = getZooKeeperRoot();
-      this.zkLockChecker =
-          new ZookeeperLockChecker(new ZooCache(zk, Set.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
+          ZooUtil.getRoot(getInstanceID())).get();
+      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
     }
     return this.zkLockChecker;
   }
@@ -1107,13 +1100,13 @@ public class ClientContext implements AccumuloClient {
     return namespaces;
   }
 
-  private static Set<String> createPersistentWatcherPaths(String zkRoot) {
+  private static Set<String> createPersistentWatcherPaths() {
     Set<String> pathsToWatch = new HashSet<>();
     for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
         Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
-      pathsToWatch.add(zkRoot + path);
+      pathsToWatch.add(path);
     }
     return pathsToWatch;
   }

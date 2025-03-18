@@ -407,11 +407,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
 
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
-      final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
-      zoo.delete(path);
-      zoo.putEphemeralData(path, url.toString().getBytes(UTF_8));
+      zoo.delete(Constants.ZMONITOR_HTTP_ADDR);
+      zoo.putEphemeralData(Constants.ZMONITOR_HTTP_ADDR, url.toString().getBytes(UTF_8));
       log.info("Set monitor address in zookeeper to {}", url);
     } catch (Exception ex) {
       log.error("Unable to advertise monitor HTTP address in zookeeper", ex);
@@ -717,21 +716,19 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
   private void getMonitorLock(HostAndPort monitorLocation)
       throws KeeperException, InterruptedException {
     ServerContext context = getContext();
-    final String zRoot = context.getZooKeeperRoot();
-    final String monitorPath = zRoot + Constants.ZMONITOR;
     final var monitorLockPath = context.getServerPaths().createMonitorPath();
 
     // Ensure that everything is kosher with ZK as this has changed.
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-    if (zoo.exists(monitorPath)) {
-      byte[] data = zoo.getData(monitorPath);
+    if (zoo.exists(Constants.ZMONITOR)) {
+      byte[] data = zoo.getData(Constants.ZMONITOR);
       // If the node isn't empty, it's from a previous install (has hostname:port for HTTP server)
       if (data.length != 0) {
         // Recursively delete from that parent node
-        zoo.recursiveDelete(monitorPath, NodeMissingPolicy.SKIP);
+        zoo.recursiveDelete(Constants.ZMONITOR, NodeMissingPolicy.SKIP);
 
         // And then make the nodes that we expect for the incoming ephemeral nodes
-        zoo.putPersistentData(monitorPath, new byte[0], NodeExistsPolicy.FAIL);
+        zoo.putPersistentData(Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
         zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);
       } else if (!zoo.exists(monitorLockPath.toString())) {
         // monitor node in ZK exists and is empty as we expect
@@ -740,7 +737,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
       }
     } else {
       // 1.5.0 and earlier
-      zoo.putPersistentData(zRoot + Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(Constants.ZMONITOR, new byte[0], NodeExistsPolicy.FAIL);
       if (!zoo.exists(monitorLockPath.toString())) {
         // Somehow the monitor node exists but not monitor/lock
         zoo.putPersistentData(monitorLockPath.toString(), new byte[0], NodeExistsPolicy.FAIL);

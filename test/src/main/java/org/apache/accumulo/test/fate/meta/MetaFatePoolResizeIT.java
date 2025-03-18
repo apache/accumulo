@@ -51,16 +51,12 @@ public class MetaFatePoolResizeIT extends FatePoolResizeIT {
   @Override
   public void executeTest(FateTestExecutor<PoolResizeTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    String zkRoot = FateStoreUtil.MetaFateZKSetup.getZkRoot();
     var zk = FateStoreUtil.MetaFateZKSetup.getZk();
-    String fatePath = FateStoreUtil.MetaFateZKSetup.getZkFatePath();
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
 
     testMethod.execute(
-        new MetaFateStore<>(fatePath, zk, createDummyLockID(), null, maxDeferred, fateIdGenerator),
-        sctx);
+        new MetaFateStore<>(zk, createDummyLockID(), null, maxDeferred, fateIdGenerator), sctx);
   }
 }
