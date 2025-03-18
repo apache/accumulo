@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -374,6 +376,17 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   public ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition condition = TabletMetadataCheckIterator.createCondition(check, extent);
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireMigration(TServerInstance tserver) {
+    System.out.println("KEVIN RATHBUN requiring migration " + tserver);
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition condition =
+        new Condition(MIGRATION_COLUMN.getColumnFamily(), MIGRATION_COLUMN.getColumnQualifier())
+            .setValue(tserver.getHostPortSession());
     mutation.addCondition(condition);
     return this;
   }

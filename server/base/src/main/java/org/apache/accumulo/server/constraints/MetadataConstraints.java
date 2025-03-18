@@ -94,6 +94,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.FLUSH_NONCE_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
+          ServerColumnFamily.MIGRATION_COLUMN,
           TabletColumnFamily.AVAILABILITY_COLUMN,
           TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
@@ -203,6 +204,7 @@ public class MetadataConstraints implements Constraint {
           validateTabletFamily(violations, columnUpdate, mutation);
           break;
         case ServerColumnFamily.STR_NAME:
+          // TODO KEVIN RATHBUN could prob add some validation for a migration col
           validateServerFamily(violations, columnUpdate, context, bfcValidationData);
           break;
         case CurrentLocationColumnFamily.STR_NAME:
@@ -258,6 +260,7 @@ public class MetadataConstraints implements Constraint {
       }
     }
 
+    log.info("KEVIN RATHBUN violations " + violations);
     return violations;
   }
 

@@ -118,6 +118,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.Sets;
 
 public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
+  // TODO KEVIN RATHBUN prob need to add to this test
 
   @BeforeAll
   public static void setup() throws Exception {

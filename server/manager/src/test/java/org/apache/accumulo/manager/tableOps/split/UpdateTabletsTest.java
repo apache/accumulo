@@ -98,7 +98,8 @@ public class UpdateTabletsTest {
       ColumnType.USER_COMPACTION_REQUESTED, ColumnType.MERGED, ColumnType.LAST, ColumnType.SCANS,
       ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID, ColumnType.FLUSH_NONCE,
       ColumnType.SUSPEND, ColumnType.AVAILABILITY, ColumnType.HOSTING_REQUESTED,
-      ColumnType.COMPACTED, ColumnType.UNSPLITTABLE, ColumnType.MERGEABILITY);
+      ColumnType.COMPACTED, ColumnType.UNSPLITTABLE, ColumnType.MERGEABILITY, ColumnType.MIGRATION);
+  // TODO KEVIN RATHBUN can the split code handle the new MIGRATION col?
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o

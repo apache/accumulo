@@ -34,6 +34,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -109,10 +110,11 @@ public class MergeTabletsTest {
    * implications for merging tablets. For a column to be in this set it means an Accumulo developer
    * has determined that merge code can handle that column OR has opened an issue about handling it.
    */
-  private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE =
-      EnumSet.of(TIME, LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED,
-          USER_COMPACTION_REQUESTED, MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE,
-          SUSPEND, AVAILABILITY, HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE, MERGEABILITY);
+  private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE = EnumSet.of(TIME,
+      LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED, USER_COMPACTION_REQUESTED,
+      MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE, SUSPEND, AVAILABILITY,
+      HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE, MERGEABILITY, MIGRATION);
+  // TODO KEVIN RATHBUN can the merge code handle the new MIGRATION col?
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o

@@ -218,6 +218,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   public synchronized void startListeningForTabletServerChanges() {
+    log.info("KEVIN RATHBUN calling scanServers() from startListeningForTabletServerChanges()");
+    // TODO KEVIN RATHBUN i believe this call to scanServers() can be removed since its called below
     scanServers();
 
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
@@ -251,6 +253,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       }
 
       // log.debug("Current: " + current.keySet());
+      log.info("KEVIN RATHBUN CALLING UPDATE FROM scanServers()");
       this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
@@ -332,6 +335,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     final String tserverZPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
     if (event.getPath() != null && event.getPath().startsWith(tserverZPath)) {
       if (event.getPath().equals(tserverZPath)) {
+        log.info("KEVIN RATHBUN calling scanServers() from accept()");
         scanServers();
       } else if (event.getPath().contains(Constants.ZTSERVERS)) {
         // It's possible that the path contains more than the tserver address, it
@@ -364,6 +368,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
                 final Set<TServerInstance> updates = new HashSet<>();
                 final Set<TServerInstance> doomed = new HashSet<>();
                 checkServer(updates, doomed, slp);
+                log.info("KEVIN RATHBUN CALLING UPDATE FROM accept()");
                 this.cback.update(this, doomed, updates);
               } catch (Exception ex) {
                 log.error("Error processing event for tserver: " + slp.toString(), ex);

@@ -100,6 +100,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadataTest {
+  // TODO KEVIN RATHBUN prob have to update this test to include my new migration col
 
   @Test
   public void testAllColumns() {

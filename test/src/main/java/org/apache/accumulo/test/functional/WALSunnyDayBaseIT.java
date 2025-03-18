@@ -53,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.manager.state.SetGoalState;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -171,6 +172,25 @@ public abstract class WALSunnyDayBaseIT extends ConfigurableMacBase {
       Thread.sleep(SECONDS.toMillis(5));
       Map<String,WalState> walsAfterRestartAndGC = getWALsAndAssertCount(context, 2);
       assertEquals(2, countInUse(walsAfterRestartAndGC.values()), "logs in use should be 2");
+    }
+  }
+
+  @Test
+  public void failureCase() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+      scanMetaTable(client);
+      getCluster().getClusterControl().stop(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+      scanMetaTable(client);
+    }
+  }
+
+  private void scanMetaTable(AccumuloClient client) throws Exception {
+    System.out.println("ENTERED SCAN META");
+    try (var scan = client.createScanner(AccumuloTable.METADATA.tableName())) {
+      for (var e : scan) {
+        System.out.println("METADATA ELT " + e);
+      }
     }
   }
 

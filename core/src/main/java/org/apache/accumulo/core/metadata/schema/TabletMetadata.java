@@ -25,6 +25,8 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
@@ -142,6 +144,7 @@ public class TabletMetadata {
   private final UnSplittableMetadata unSplittableMetadata;
   private final TabletMergeabilityMetadata mergeability;
   private final Supplier<Long> fileSize;
+  private final TServerInstance migration;
 
   private TabletMetadata(Builder tmBuilder) {
     this.tableId = tmBuilder.tableId;
@@ -185,6 +188,7 @@ public class TabletMetadata {
     });
     this.extent =
         Suppliers.memoize(() -> new KeyExtent(getTableId(), getEndRow(), getPrevEndRow()));
+    this.migration = tmBuilder.migration;
   }
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
@@ -218,7 +222,8 @@ public class TabletMetadata {
     COMPACTED,
     USER_COMPACTION_REQUESTED,
     UNSPLITTABLE,
-    MERGEABILITY;
+    MERGEABILITY,
+    MIGRATION;
 
     public static final Map<ColumnType,Set<Text>> COLUMNS_TO_FAMILIES;
     public static final Map<ColumnType,ColumnFQ> COLUMNS_TO_QUALIFIERS;
@@ -238,6 +243,7 @@ public class TabletMetadata {
           case OPID:
           case SELECTED:
           case FLUSH_NONCE:
+          case MIGRATION:
             colsToFamilies.put(column, Set.of(ServerColumnFamily.NAME));
             break;
           case FILES:
@@ -339,6 +345,9 @@ public class TabletMetadata {
             break;
           case UNSPLITTABLE:
             colsToQualifiers.put(column, UNSPLITTABLE_COLUMN);
+            break;
+          case MIGRATION:
+            colsToQualifiers.put(column, MIGRATION_COLUMN);
             break;
           default:
             throw new IllegalArgumentException("Unknown col type " + column);
@@ -609,8 +618,14 @@ public class TabletMetadata {
     return mergeability;
   }
 
+  public TServerInstance getMigration() {
+    ensureFetched(ColumnType.MIGRATION);
+    return migration;
+  }
+
   @Override
   public String toString() {
+    // TODO KEVIN RATHBUN prob have to add to this
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
         .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
         .append("endRow", endRow).append("location", location).append("files", files)
@@ -727,6 +742,11 @@ public class TabletMetadata {
             case SELECTED_QUAL:
               tmBuilder.selectedFiles(SelectedFiles.from(val));
               break;
+            case MIGRATION_QUAL:
+              log.info("KEVIN RATHBUN TServerInstance about to create");
+              var x = new TServerInstance(val);
+              log.info("KEVIN RATHBUN TServerInstance : " + x);
+              tmBuilder.migration(x);
           }
           break;
         case DataFileColumnFamily.STR_NAME:
@@ -864,6 +884,7 @@ public class TabletMetadata {
     private final ImmutableSet.Builder<FateId> userCompactionsRequested = ImmutableSet.builder();
     private UnSplittableMetadata unSplittableMetadata;
     private TabletMergeabilityMetadata mergeability = TabletMergeabilityMetadata.never();
+    private TServerInstance migration;
 
     void table(TableId tableId) {
       this.tableId = tableId;
@@ -907,6 +928,10 @@ public class TabletMetadata {
 
     void selectedFiles(SelectedFiles selectedFiles) {
       this.selectedFiles = selectedFiles;
+    }
+
+    void migration(TServerInstance tserver) {
+      this.migration = tserver;
     }
 
     void location(String val, String qual, LocationType lt, boolean suppressError) {

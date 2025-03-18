@@ -68,7 +68,6 @@ public enum TabletGoalState {
       return trace(HOSTED, tm, "tablet is in assigned state");
     }
 
-    KeyExtent extent = tm.getExtent();
     // Shutting down?
     TabletGoalState systemGoalState = getSystemGoalState(tm, params);
 
@@ -113,7 +112,7 @@ public enum TabletGoalState {
         }
       }
 
-      TServerInstance dest = params.getMigrations().get(extent);
+      TServerInstance dest = tm.getMigration();
       if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
         return trace(UNASSIGNED, tm, () -> "tablet has a migration to " + dest);
       }
