@@ -137,9 +137,13 @@ public class Upgrader12to13 implements Upgrader {
     try {
       ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
       zkInit.initFateTableState(context);
-    } catch (Exception e) {
+    } catch (RuntimeException e) {
+      // initFateTableState wraps KeeperException and InterruptedException
+      // with a RuntimeException
       if (e.getCause() instanceof KeeperException.NodeExistsException) {
         LOG.debug("Fate table node already exists in ZooKeeper");
+      } else {
+        throw e;
       }
     }
 
