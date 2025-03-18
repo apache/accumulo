@@ -400,7 +400,8 @@ public class MetadataConstraints implements Constraint {
         String lockId = new String(columnUpdate.getValue(), UTF_8);
 
         try {
-          lockHeld = ServiceLock.isLockHeld(context.getZooCache(), new ZooUtil.LockID("", lockId));
+          lockHeld =
+              ServiceLock.isLockHeld(context.getZooCache(), ZooUtil.LockID.deserialize(lockId));
         } catch (Exception e) {
           log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
         }
