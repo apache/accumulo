@@ -237,6 +237,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedBusyTimeout;
     }
+
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},

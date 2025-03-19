@@ -183,12 +183,6 @@ $(function () {
         "type": "numeric",
         "orderData": [16, 17]
       },
-      // major compaction column will be sorted by number of running, then by number of queued
-      {
-        "targets": [10],
-        "type": "numeric",
-        "orderData": [18, 19]
-      }
     ],
     "columns": [{
         "data": "hostname",
@@ -228,9 +222,6 @@ $(function () {
         "data": "minorCombo"
       },
       {
-        "data": "majorCombo"
-      },
-      {
         "data": "indexCacheHitRate"
       },
       {
@@ -253,14 +244,6 @@ $(function () {
       },
       {
         "data": "minorQueued",
-        "visible": false
-      },
-      {
-        "data": "majorRunning",
-        "visible": false
-      },
-      {
-        "data": "majorQueued",
         "visible": false
       }
     ],

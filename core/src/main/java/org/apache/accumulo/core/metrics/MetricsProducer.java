@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.core.metrics;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import io.micrometer.core.instrument.MeterRegistry;
 
 /**
@@ -34,9 +31,6 @@ import io.micrometer.core.instrument.MeterRegistry;
  * @since 2.1.0
  */
 public interface MetricsProducer {
-
-  Logger LOG = LoggerFactory.getLogger(MetricsProducer.class);
-
   /**
    * Build Micrometer Meter objects and register them with the registry
    */

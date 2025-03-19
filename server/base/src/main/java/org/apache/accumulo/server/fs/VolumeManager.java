@@ -28,6 +28,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -167,8 +168,8 @@ public interface VolumeManager extends AutoCloseable {
    * This operation should be idempotent to allow calling multiple times in the case of a partial
    * completion.
    */
-  void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
-      String transactionId) throws IOException;
+  void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName, FateId fateId)
+      throws IOException;
 
   // forward to the appropriate FileSystem object
   boolean moveToTrash(Path sourcePath) throws IOException;

@@ -45,7 +45,9 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ImportConfiguration;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -91,7 +93,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Override
   public void beforeClusterStart(MiniAccumuloConfigImpl cfg) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   // Must be static to survive Junit re-initialising the class every time.
@@ -203,7 +205,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
   @Test
   public void testTableOperationsAudits() throws AccumuloException, AccumuloSecurityException,
-      TableExistsException, TableNotFoundException, IOException {
+      TableExistsException, TableNotFoundException, InterruptedException, IOException {
 
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
     client.securityOperations().grantSystemPermission(AUDIT_USER_1, SystemPermission.SYSTEM);
@@ -448,7 +450,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Create our user with no privs
     client.securityOperations().createLocalUser(AUDIT_USER_1, new PasswordToken(PASSWORD));
-    client.tableOperations().create(OLD_TEST_TABLE_NAME);
+    NewTableConfiguration ntc =
+        new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED);
+    client.tableOperations().create(OLD_TEST_TABLE_NAME, ntc);
     auditAccumuloClient =
         getCluster().createAccumuloClient(AUDIT_USER_1, new PasswordToken(PASSWORD));
 

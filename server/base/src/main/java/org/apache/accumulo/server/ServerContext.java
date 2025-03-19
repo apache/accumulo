@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
@@ -51,7 +52,7 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -78,7 +79,6 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -92,7 +92,6 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
-  private final Supplier<String> zkUserPath;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -103,6 +102,7 @@ public class ServerContext extends ClientContext {
   private final Supplier<AuditedSecurityOperation> securityOperation;
   private final Supplier<CryptoServiceFactory> cryptoFactorySupplier;
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
+  private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
 
   public ServerContext(SiteConfiguration siteConfig) {
@@ -116,9 +116,8 @@ public class ServerContext extends ClientContext {
 
     // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
     @SuppressWarnings("resource")
-    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooSession()));
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getZooSession()));
     propStore = tmpPropStore;
-    zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
@@ -308,15 +307,8 @@ public class ServerContext extends ClientContext {
 
   public void waitForZookeeperAndHdfs() {
     log.info("Attempting to talk to zookeeper");
-    while (true) {
-      try {
-        getZooSession().asReaderWriter().getChildren(Constants.ZROOT);
-        break;
-      } catch (InterruptedException | KeeperException ex) {
-        log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, SECONDS);
-      }
-    }
+    // Next line blocks until connection is established
+    getZooSession();
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
@@ -449,12 +441,23 @@ public class ServerContext extends ClientContext {
     return securityOperation.get();
   }
 
-  public String zkUserPath() {
-    return zkUserPath.get();
-  }
-
   public LowMemoryDetector getLowMemoryDetector() {
     return lowMemoryDetector.get();
+  }
+
+  public void setServiceLock(ServiceLock lock) {
+    if (!serverLock.compareAndSet(null, lock)) {
+      throw new IllegalStateException("ServiceLock already set on ServerContext");
+    }
+  }
+
+  public ServiceLock getServiceLock() {
+    return serverLock.get();
+  }
+
+  /** Intended to be called from MiniAccumuloClusterImpl only as can be restarted **/
+  public void clearServiceLock() {
+    serverLock.set(null);
   }
 
   public MetricsInfo getMetricsInfo() {

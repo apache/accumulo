@@ -64,7 +64,7 @@ import org.apache.hadoop.io.Text;
  */
 public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
-  protected Text nullText = new Text();
+  protected final Text nullText = new Text();
 
   protected Text getPartition(Key key) {
     return key.getRow();
@@ -91,10 +91,10 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
   }
 
   public static class TermSource {
-    public SortedKeyValueIterator<Key,Value> iter;
-    public Text term;
+    public final SortedKeyValueIterator<Key,Value> iter;
+    public final Text term;
     public Collection<ByteSequence> seekColfams;
-    public boolean notFlag;
+    public final boolean notFlag;
 
     public TermSource(TermSource other) {
       this.iter = other.iter;
@@ -128,7 +128,7 @@ public class IntersectingIterator implements SortedKeyValueIterator<Key,Value> {
 
   // query-time settings
   protected Text currentPartition = null;
-  protected Text currentDocID = new Text(emptyByteArray);
+  protected final Text currentDocID = new Text(emptyByteArray);
   static final byte[] emptyByteArray = new byte[0];
 
   protected Key topKey = null;

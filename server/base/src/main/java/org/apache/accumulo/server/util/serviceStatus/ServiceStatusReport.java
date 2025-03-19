@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
-import static org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME;
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.time.ZoneId;
@@ -96,7 +96,6 @@ public class ServiceStatusReport {
     fmtResourceGroups(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
     fmtResourceGroups(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
     fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), noHosts);
-    fmtResourceGroups(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
     fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), noHosts);
 
     sb.append("\n");
@@ -147,7 +146,7 @@ public class ServiceStatusReport {
     }
     // only default group is present, omit grouping from report
     if (!summary.getResourceGroups().isEmpty()
-        && summary.getResourceGroups().equals(Set.of(DEFAULT_GROUP_NAME))) {
+        && summary.getResourceGroups().equals(Set.of(DEFAULT_RESOURCE_GROUP_NAME))) {
       fmtServiceStatus(sb, reportKey, summary, noHosts);
       return;
     }
@@ -185,7 +184,6 @@ public class ServiceStatusReport {
 
   public enum ReportKey {
     COMPACTOR("Compactors"),
-    COORDINATOR("Coordinators"),
     GC("Garbage Collectors"),
     MANAGER("Managers"),
     MONITOR("Monitors"),

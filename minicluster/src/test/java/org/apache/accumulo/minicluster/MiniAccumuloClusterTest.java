@@ -187,7 +187,7 @@ public class MiniAccumuloClusterTest extends WithTestNames {
   public void testDebugPorts() {
 
     Set<Pair<ServerType,Integer>> debugPorts = accumulo.getDebugPorts();
-    assertEquals(5, debugPorts.size());
+    assertEquals(7, debugPorts.size());
     for (Pair<ServerType,Integer> debugPort : debugPorts) {
       assertTrue(debugPort.getSecond() > 0);
     }

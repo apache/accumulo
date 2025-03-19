@@ -38,32 +38,40 @@ import org.apache.accumulo.core.data.Condition;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-public class SessionDurabilityIT extends ConfigurableMacBase {
+public class SessionDurabilityIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
+      coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    });
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
-    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
-  }
-
   @Test
   public void nondurableTableHasDurableWrites() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default has no durability
       c.tableOperations().create(tableName, new NewTableConfiguration()
@@ -81,7 +89,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test
   public void durableTableLosesNonDurableWrites() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName, new NewTableConfiguration()
@@ -113,7 +121,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test
   public void testConditionDurability() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName, new NewTableConfiguration()
@@ -132,7 +140,7 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
 
   @Test
   public void testConditionDurability2() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       // table default is durable writes
       c.tableOperations().create(tableName, new NewTableConfiguration()
@@ -161,10 +169,10 @@ public class SessionDurabilityIT extends ConfigurableMacBase {
   }
 
   private void restartTServer() throws Exception {
-    for (ProcessReference proc : cluster.getProcesses().get(ServerType.TABLET_SERVER)) {
-      cluster.killProcess(ServerType.TABLET_SERVER, proc);
+    for (ProcessReference proc : getCluster().getProcesses().get(ServerType.TABLET_SERVER)) {
+      getCluster().killProcess(ServerType.TABLET_SERVER, proc);
     }
-    cluster.start();
+    getCluster().start();
   }
 
 }

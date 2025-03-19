@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>3.1.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-minicluster</artifactId>
   <name>Apache Accumulo MiniCluster</name>
@@ -46,10 +46,6 @@
     <dependency>
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.accumulo</groupId>
-      <artifactId>accumulo-compaction-coordinator</artifactId>
     </dependency>
     <dependency>
       <groupId>org.apache.accumulo</groupId>

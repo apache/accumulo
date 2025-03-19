@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -87,8 +88,7 @@ public class SimpleLoadBalancerTest {
       for (TabletId tabletId : servers.get(tserver).tablets) {
         if (tabletId.getTable().equals(tableId)) {
           KeyExtent extent = new KeyExtent(tableId, tabletId.getEndRow(), tabletId.getPrevEndRow());
-          TabletStats stats =
-              new TabletStats(new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0));
+          TabletStats stats = new TabletStats(new TabletStats(extent.toThrift(), null, 0L, 0., 0.));
           result.add(new TabletStatisticsImpl(stats));
         }
       }
@@ -203,8 +203,10 @@ public class SimpleLoadBalancerTest {
     // balance until we can't balance no more!
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER));
+      SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
+      balancer.balance(new BalanceParamsImpl(tservers,
+          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers.keySet()), migrations,
+          migrationsOut, DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -246,8 +248,10 @@ public class SimpleLoadBalancerTest {
     // balance until we can't balance no more!
     while (true) {
       List<TabletMigration> migrationsOut = new ArrayList<>();
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER));
+      SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
+      balancer.balance(new BalanceParamsImpl(tservers,
+          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers.keySet()), migrations,
+          migrationsOut, DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }

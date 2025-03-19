@@ -49,6 +49,10 @@ public class SuspendingTServer {
     return new Value(tServer.getHostPort() + "|" + suspensionTime.getMillis());
   }
 
+  public Value toValue() {
+    return new Value(server + "|" + suspensionTime.getMillis());
+  }
+
   @Override
   public boolean equals(Object rhsObject) {
     if (!(rhsObject instanceof SuspendingTServer)) {

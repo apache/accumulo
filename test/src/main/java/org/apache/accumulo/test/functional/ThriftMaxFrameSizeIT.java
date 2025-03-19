@@ -89,7 +89,7 @@ public class ThriftMaxFrameSizeIT {
 
     @Override
     public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setProperty(Property.GENERAL_RPC_SERVER_TYPE, serverType.name());
       String maxFrameSizeStr = Integer.toString(CONFIGURED_MAX_FRAME_SIZE);
       cfg.setProperty(Property.RPC_MAX_MESSAGE_SIZE, maxFrameSizeStr);

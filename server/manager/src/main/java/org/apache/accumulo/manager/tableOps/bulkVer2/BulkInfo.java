@@ -21,7 +21,6 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 import java.io.Serializable;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 
 /**
  * Package private class to hold all the information used for bulk import2
@@ -33,7 +32,6 @@ class BulkInfo implements Serializable {
   String sourceDir;
   String bulkDir;
   boolean setTime;
-  TableState tableState;
   // firstSplit and lastSplit describe the min and max splits in the table that overlap the bulk
   // imported data
   byte[] firstSplit;

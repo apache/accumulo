@@ -52,7 +52,7 @@ public class MetaGetsReadersIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "2");
     cfg.setProperty(Property.TABLE_BLOCKCACHE_ENABLED, "false");
   }

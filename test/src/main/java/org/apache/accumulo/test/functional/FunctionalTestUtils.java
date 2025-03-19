@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.OptionalLong;
 import java.util.Set;
@@ -47,7 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -56,10 +56,13 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
-import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -225,12 +228,16 @@ public class FunctionalTestUtils {
 
   private static FateStatus getFateStatus(AccumuloCluster cluster) {
     try {
-      AdminUtil<String> admin = new AdminUtil<>(false);
+      AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
       var zk = context.getZooSession();
-      ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
-      var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-      return admin.getStatus(zs, zk, lockPath, null, null);
+      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+      UserFateStore<String> readOnlyUFS =
+          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+      Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
+          Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
+      var lockPath = context.getServerPaths().createTableLocksPath();
+      return admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -239,31 +246,19 @@ public class FunctionalTestUtils {
   /**
    * Verify that flush ID gets updated properly and is the same for all tablets.
    */
-  static long checkFlushId(ClientContext c, TableId tableId, long prevFlushID) throws Exception {
+  static Map<KeyExtent,OptionalLong> getFlushIds(ClientContext c, TableId tableId)
+      throws Exception {
+
+    Map<KeyExtent,OptionalLong> flushValues = new HashMap<>();
+
     try (TabletsMetadata metaScan =
         c.getAmple().readTablets().forTable(tableId).fetch(FLUSH_ID).checkConsistency().build()) {
 
-      long flushId = 0, prevTabletFlushId = 0;
       for (TabletMetadata tabletMetadata : metaScan) {
-        OptionalLong optFlushId = tabletMetadata.getFlushId();
-        if (optFlushId.isPresent()) {
-          flushId = optFlushId.getAsLong();
-          if (prevTabletFlushId > 0 && prevTabletFlushId != flushId) {
-            throw new Exception("Flush ID different between tablets");
-          } else {
-            prevTabletFlushId = flushId;
-          }
-        } else {
-          throw new Exception("Missing flush ID");
-        }
+        flushValues.put(tabletMetadata.getExtent(), tabletMetadata.getFlushId());
       }
 
-      if (prevFlushID >= flushId) {
-        throw new Exception(
-            "Flush ID did not increase. prevFlushID: " + prevFlushID + " current: " + flushId);
-      }
-
-      return flushId;
     }
+    return flushValues;
   }
 }

@@ -28,18 +28,26 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
+import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -50,7 +58,7 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
-    return Duration.ofSeconds(30);
+    return Duration.ofSeconds(60);
   }
 
   @BeforeAll
@@ -90,6 +98,85 @@ public class NewTableConfigurationIT extends SharedMiniClusterBase {
           "newerval2");
       assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop1"));
       assertFalse(props.containsKey(Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop2"));
+    }
+  }
+
+  @Test
+  public void testCreateTableWithInitialTabletAvailability() throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, TableExistsException {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String[] tableNames = getUniqueNames(8);
+
+      // use a default NewTableConfiguration
+      verifyNtcWithTabletAvailability(client, tableNames[0], null, null);
+      // set initial goals for tables upon creation, without splits
+      verifyNtcWithTabletAvailability(client, tableNames[1], TabletAvailability.ONDEMAND, null);
+      verifyNtcWithTabletAvailability(client, tableNames[2], TabletAvailability.HOSTED, null);
+      verifyNtcWithTabletAvailability(client, tableNames[3], TabletAvailability.UNHOSTED, null);
+
+      SortedSet<Text> splits = new TreeSet<>();
+      splits.add(new Text("d"));
+      splits.add(new Text("h"));
+      splits.add(new Text("m"));
+      splits.add(new Text("r"));
+      splits.add(new Text("w"));
+
+      // Use NTC to set initial splits. Verify each tablet has tablet availability set.
+      // Should work with no availability explicitly supplied as well as each of the accepted goals
+      verifyNtcWithTabletAvailability(client, tableNames[4], null, splits);
+      verifyNtcWithTabletAvailability(client, tableNames[5], TabletAvailability.ONDEMAND, splits);
+      verifyNtcWithTabletAvailability(client, tableNames[6], TabletAvailability.HOSTED, splits);
+      verifyNtcWithTabletAvailability(client, tableNames[7], TabletAvailability.UNHOSTED, splits);
+    }
+  }
+
+  // Verify that NewTableConfiguration correctly sets the initial tablet availability on a table,
+  // both with and without initial splits being set.
+  private void verifyNtcWithTabletAvailability(AccumuloClient client, String tableName,
+      TabletAvailability tabletAvailability, SortedSet<Text> splits) throws TableNotFoundException,
+      AccumuloException, AccumuloSecurityException, TableExistsException {
+
+    NewTableConfiguration ntc = new NewTableConfiguration();
+
+    // If availability not supplied via NewTableConfiguration, expect ONDEMAND as default
+    String expectedTabletAvailability = TabletAvailability.ONDEMAND.toString();
+    if (tabletAvailability != null) {
+      expectedTabletAvailability = tabletAvailability.toString();
+      ntc.withInitialTabletAvailability(tabletAvailability);
+    }
+
+    // Set expected number of tablets if no splits are provided
+    int expectedTabletCount = 1;
+    if (splits != null) {
+      expectedTabletCount = splits.size() + 1;
+      ntc.withSplits(splits);
+    }
+    client.tableOperations().create(tableName, ntc);
+
+    String tableId = getTableId(tableName);
+    Text beginRow;
+    Text endRow = new Text(tableId + "<");
+    if (expectedTabletCount == 1) {
+      beginRow = endRow;
+    } else {
+      beginRow = new Text(tableId + ";" + splits.first());
+    }
+    Range range = new Range(beginRow, endRow);
+    try (Scanner scanner = client.createScanner("accumulo.metadata")) {
+      TabletColumnFamily.AVAILABILITY_COLUMN.fetch(scanner);
+      scanner.setRange(range);
+      for (Map.Entry<Key,Value> entry : scanner) {
+        assertEquals(expectedTabletAvailability, entry.getValue().toString());
+      }
+      assertEquals(expectedTabletCount, scanner.stream().count());
+    }
+  }
+
+  private String getTableId(String tableName) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      Map<String,String> idMap = client.tableOperations().tableIdMap();
+      return idMap.get(tableName);
     }
   }
 

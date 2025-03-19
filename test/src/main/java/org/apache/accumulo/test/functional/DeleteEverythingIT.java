@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
@@ -28,17 +27,15 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class DeleteEverythingIT extends AccumuloClusterHarness {
@@ -51,30 +48,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> siteConfig = cfg.getSiteConfig();
-    siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "1s");
     cfg.setSiteConfig(siteConfig);
-  }
-
-  private String majcDelay;
-
-  @BeforeEach
-  public void updateMajcDelay() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      majcDelay =
-          c.instanceOperations().getSystemConfiguration().get(Property.TSERV_MAJC_DELAY.getKey());
-      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1s");
-      if (getClusterType() == ClusterType.STANDALONE) {
-        // Gotta wait for the cluster to get out of the default sleep value
-        Thread.sleep(ConfigurationTypeHelper.getTimeInMillis(majcDelay));
-      }
-    }
-  }
-
-  @AfterEach
-  public void resetMajcDelay() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      c.instanceOperations().setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-    }
   }
 
   @Test
@@ -104,7 +78,7 @@ public class DeleteEverythingIT extends AccumuloClusterHarness {
         c.tableOperations().flush(tableName, null, null, true);
 
         c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "1.0");
-        Thread.sleep(SECONDS.toMillis(4));
+        Wait.waitFor(() -> FunctionalTestUtils.countRFiles(c, tableName) == 0);
 
         FunctionalTestUtils.checkRFiles(c, tableName, 1, 1, 0, 0);
 

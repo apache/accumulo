@@ -21,6 +21,7 @@ package org.apache.accumulo.server.rpc;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 
+import org.apache.accumulo.core.util.ClassUtil;
 import org.apache.accumulo.server.HighlyAvailableService;
 
 /**
@@ -42,7 +43,7 @@ public class HighlyAvailableServiceWrapper {
 
     @SuppressWarnings("unchecked")
     I proxiedInstance = (I) Proxy.newProxyInstance(instance.getClass().getClassLoader(),
-        instance.getClass().getInterfaces(), handler);
+        ClassUtil.getInterfaces(instance.getClass()).toArray(new Class<?>[0]), handler);
     return proxiedInstance;
   }
 

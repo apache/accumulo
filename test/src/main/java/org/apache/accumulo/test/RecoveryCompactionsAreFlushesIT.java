@@ -57,7 +57,7 @@ public class RecoveryCompactionsAreFlushesIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     // file system supports recovery
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());

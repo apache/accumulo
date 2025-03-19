@@ -127,7 +127,7 @@ public class Initialize implements KeywordExecutable {
   }
 
   private boolean doInit(ZooReaderWriter zoo, Opts opts, VolumeManager fs,
-      InitialConfiguration initConfig) {
+      InitialConfiguration initConfig) throws InterruptedException, KeeperException {
     String instanceNamePath;
     String instanceName;
     String rootUser;
@@ -157,6 +157,7 @@ public class Initialize implements KeywordExecutable {
     InstanceId instanceId = InstanceId.of(UUID.randomUUID());
     ZooKeeperInitializer zki = new ZooKeeperInitializer();
     zki.initializeConfig(instanceId, zoo);
+    zki.initInstanceNameAndId(zoo, instanceId, opts.clearInstanceName, instanceNamePath);
 
     try (ServerContext context =
         ServerContext.initialize(initConfig.getSiteConf(), instanceName, instanceId)) {
@@ -167,8 +168,7 @@ public class Initialize implements KeywordExecutable {
       String rootTabletFileUri = new Path(fs.choose(chooserEnv, initConfig.getVolumeUris())
           + SEPARATOR + TABLE_DIR + SEPARATOR + AccumuloTable.ROOT.tableId() + SEPARATOR
           + rootTabletDirName + SEPARATOR + "00000_00000." + ext).toString();
-      zki.initialize(context, opts.clearInstanceName, instanceNamePath, rootTabletDirName,
-          rootTabletFileUri);
+      zki.initialize(context, rootTabletDirName, rootTabletFileUri);
 
       if (!createDirs(fs, instanceId, initConfig.getVolumeUris())) {
         throw new IOException("Problem creating directories on " + fs.getVolumes());
@@ -543,6 +543,12 @@ public class Initialize implements KeywordExecutable {
       }
     } catch (IOException e) {
       log.error("Problem trying to get Volume configuration", e);
+      success = false;
+    } catch (InterruptedException e) {
+      log.error("Thread was interrupted when trying to get Volume configuration", e);
+      success = false;
+    } catch (KeeperException e) {
+      log.error("ZooKeeper error when trying to get Volume configuration", e);
       success = false;
     } finally {
       if (!success) {

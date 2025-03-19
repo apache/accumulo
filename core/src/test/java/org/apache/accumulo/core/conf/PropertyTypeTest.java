@@ -146,12 +146,6 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
-  public void testTypeLAST_LOCATION_MODE() {
-    valid(null, "compaction", "assignment");
-    invalid("", "other");
-  }
-
-  @Test
   public void testTypeFRACTION() {
     valid(null, "1", "0", "1.0", "25%", "2.5%", "10.2E-3", "10.2E-3%", ".3");
     invalid("", "other", "20%%", "-0.3", "3.6a", "%25", "3%a");
@@ -223,6 +217,17 @@ public class PropertyTypeTest extends WithTestNames {
   public void testTypeFILENAME_EXT() {
     valid(RFile.EXTENSION, "rf");
     invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
+  }
+
+  @Test
+  public void testTypeVOLUMES() {
+    // more comprehensive parsing tests are in ConfigurationTypeHelperTest.testGetVolumeUris()
+    valid("", "hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,", "hdfs:/volA,file:/volB",
+        ",hdfs:/volA,file:/volB", "hdfs:/volA,,file:/volB", "hdfs:/volA,file:/volB,   ,");
+    invalid(null, "   ", ",", ",,,", " ,,,", ",,, ", ", ,,", "hdfs:/volA,hdfs:/volB,volA",
+        ",volA,hdfs:/volA,hdfs:/volB", "hdfs:/volA,,volA,hdfs:/volB",
+        "hdfs:/volA,volA,hdfs:/volB,   ,", "hdfs:/volA,hdfs:/volB,hdfs:/volA",
+        "hdfs:/volA,hdfs :/::/volB");
   }
 
 }

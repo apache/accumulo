@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.constraints.VisibilityConstraint;
@@ -69,6 +70,7 @@ public class CreateTableCommand extends Command {
   private Option createTableOptLocalityProps;
   private Option createTableOptIteratorProps;
   private Option createTableOptOffline;
+  private Option createTableOptInitialTabletAvailability;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -113,6 +115,25 @@ public class CreateTableCommand extends Command {
       if (!shellState.getAccumuloClient().tableOperations().exists(oldTable)) {
         throw new TableNotFoundException(null, oldTable, null);
       }
+    }
+
+    // set initial tablet availability, if argument supplied.
+    // CreateTable will default to ONDEMAND if argument not supplied
+    if (cl.hasOption(createTableOptInitialTabletAvailability.getOpt())) {
+      String tabletAvailability =
+          cl.getOptionValue(createTableOptInitialTabletAvailability.getOpt()).toUpperCase();
+      TabletAvailability initialTabletAvailability;
+      switch (tabletAvailability) {
+        case "HOSTED":
+          initialTabletAvailability = TabletAvailability.HOSTED;
+          break;
+        case "UNHOSTED":
+          initialTabletAvailability = TabletAvailability.UNHOSTED;
+          break;
+        default:
+          initialTabletAvailability = TabletAvailability.ONDEMAND;
+      }
+      ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
     }
 
     TimeType timeType = TimeType.MILLIS;
@@ -327,11 +348,14 @@ public class CreateTableCommand extends Command {
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
     createTableOptInitProp =
         new Option("prop", "init-properties", true, "user defined initial properties");
+    createTableOptInitialTabletAvailability =
+        new Option("a", "availability", true, "initial tablet availability (defaults to ONDEMAND)");
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
     createTableOptFormatter.setArgName("className");
     createTableOptInitProp.setArgName("properties");
+    createTableOptInitialTabletAvailability.setArgName("availability");
 
     createTableOptLocalityProps =
         new Option("l", "locality", true, "create locality groups at table creation");
@@ -371,6 +395,7 @@ public class CreateTableCommand extends Command {
     o.addOption(createTableOptLocalityProps);
     o.addOption(createTableOptIteratorProps);
     o.addOption(createTableOptOffline);
+    o.addOption(createTableOptInitialTabletAvailability);
 
     return o;
   }

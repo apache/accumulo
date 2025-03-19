@@ -61,10 +61,7 @@ public class MemoryConsumingIterator extends WrappingIterator {
     return (int) amountToConsume;
   }
 
-  @Override
-  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
-      throws IOException {
-    LOG.info("seek called");
+  public void consume() throws IOException {
     while (!this.isRunningLowOnMemory()) {
       int amountToConsume = getAmountToConsume();
       if (amountToConsume > 0) {
@@ -83,6 +80,13 @@ public class MemoryConsumingIterator extends WrappingIterator {
       }
     }
     LOG.info("Running low on memory == true");
+  }
+
+  @Override
+  public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+      throws IOException {
+    LOG.info("seek called");
+    consume();
     super.seek(range, columnFamilies, inclusive);
   }
 

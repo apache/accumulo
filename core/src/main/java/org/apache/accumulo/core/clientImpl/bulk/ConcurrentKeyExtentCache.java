@@ -51,7 +51,7 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   private final Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
 
-  List<Text> lookupRows = new ArrayList<>();
+  final List<Text> lookupRows = new ArrayList<>();
 
   private final ConcurrentSkipListMap<Text,KeyExtent> extents =
       new ConcurrentSkipListMap<>((t1, t2) -> {

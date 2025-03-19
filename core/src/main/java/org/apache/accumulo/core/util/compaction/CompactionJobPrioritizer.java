@@ -91,7 +91,6 @@ public class CompactionJobPrioritizer {
         SYSTEM_NS_SYSTEM);
   }
 
-  @SuppressWarnings("deprecation")
   public static short createPriority(final NamespaceId nsId, final TableId tableId,
       final CompactionKind kind, final int totalFiles, final int compactingFiles,
       final int maxFilesPerTablet) {
@@ -117,27 +116,20 @@ public class CompactionJobPrioritizer {
       }
     };
 
-    // Handle the case of a CHOP compaction. For the purposes of determining
-    // a priority, treat them as a USER compaction.
-    CompactionKind calculationKind = kind;
-    if (kind == CompactionKind.SELECTOR) {
-      calculationKind = CompactionKind.SYSTEM;
-    }
-
     Range<Short> range = null;
     Function<Range<Short>,Short> func = normalPriorityFunction;
     if (Namespace.ACCUMULO.id() == nsId) {
       // Handle system tables
-      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, calculationKind));
+      range = SYSTEM_TABLE_RANGES.get(new Pair<>(tableId, kind));
       if (range == null) {
-        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, calculationKind));
+        range = ACCUMULO_NAMESPACE_RANGES.get(new Pair<>(nsId, kind));
       }
     } else {
       // Handle user tables
-      if (totalFiles > maxFilesPerTablet && calculationKind == CompactionKind.SYSTEM) {
+      if (totalFiles > maxFilesPerTablet && kind == CompactionKind.SYSTEM) {
         range = TABLE_OVER_SIZE;
         func = tabletOverSizeFunction;
-      } else if (calculationKind == CompactionKind.SYSTEM) {
+      } else if (kind == CompactionKind.SYSTEM) {
         range = USER_TABLE_SYSTEM;
       } else {
         range = USER_TABLE_USER;
@@ -151,5 +143,4 @@ public class CompactionJobPrioritizer {
     return func.apply(range);
 
   }
-
 }

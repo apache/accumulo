@@ -27,6 +27,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ThriftTransportKey;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.Test;
@@ -53,21 +55,18 @@ public class TransportCachingIT extends AccumuloClusterHarness {
   public void testCachedTransport() throws InterruptedException {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
-      List<String> tservers;
-
-      while ((tservers = client.instanceOperations().getTabletServers()).isEmpty()) {
-        // sleep until a tablet server is up
-        Thread.sleep(50);
-      }
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).isEmpty());
 
       ClientContext context = (ClientContext) client;
       long rpcTimeout =
           ConfigurationTypeHelper.getTimeInMillis(Property.GENERAL_RPC_TIMEOUT.getDefaultValue());
 
-      List<ThriftTransportKey> servers = tservers.stream().map(serverStr -> {
-        return new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromString(serverStr),
-            rpcTimeout, context);
-      }).collect(Collectors.toList());
+      List<ThriftTransportKey> servers =
+          client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).stream().map(tsi -> {
+            return new ThriftTransportKey(ThriftClientTypes.CLIENT,
+                HostAndPort.fromParts(tsi.getHost(), tsi.getPort()), rpcTimeout, context);
+          }).collect(Collectors.toList());
 
       // only want to use one server for all subsequent test
       ThriftTransportKey ttk = servers.get(0);

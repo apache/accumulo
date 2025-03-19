@@ -71,7 +71,7 @@ public class CompactionInfo {
   }
 
   public Thread getThread() {
-    return compactor.thread;
+    return compactor.getThread();
   }
 
   public StoredTabletFile getOutputFile() {

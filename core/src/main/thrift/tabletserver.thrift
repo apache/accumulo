@@ -45,14 +45,16 @@ struct ActionStats {
 
 struct TabletStats {
   1:data.TKeyExtent extent
-  2:ActionStats majors
+  // do not reuse field 2, it was dropped
+  //2:ActionStats majors
   3:ActionStats minors
-  4:ActionStats splits
+  // do not reuse field 4, it was dropped
+  //4:ActionStats splits
   5:i64 numEntries
   6:double ingestRate
   7:double queryRate
-  // zero if loaded by the manager, currentTimeMillis when the split was created
-  8:i64 splitCreationTime
+  // do not reuse field 8, it was dropped
+  //8:i64 splitCreationTime
 }
 
 enum TCompactionType {
@@ -110,18 +112,18 @@ struct TExternalCompactionJob {
   5:string outputFile
   6:bool propagateDeletes
   7:TCompactionKind kind
-  8:i64 userCompactionId
+  8:manager.TFateId fateId
   9:map<string, string> overrides
 }
 
 enum TCompactionKind {
-  SELECTOR
-  SYSTEM
-  USER
+  // SELECTOR was removed and used to be zero
+  SYSTEM = 1
+  USER = 2
 }
 
-struct TCompactionQueueSummary {
-  1:string queue
+struct TCompactionGroupSummary {
+  1:string group
   2:i16 priority
 }
 
@@ -138,15 +140,6 @@ service TabletServerClientService {
     1:security.TCredentials credentials
     3:string lock
     2:string tableId
-    5:binary startRow
-    6:binary endRow
-  )
-
-  oneway void compact(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string lock
-    4:string tableId
     5:binary startRow
     6:binary endRow
   )
@@ -240,40 +233,17 @@ service TabletServerClientService {
     1:NoSuchScanIDException nssi
   )
   
-  list<TCompactionQueueSummary> getCompactionQueueInfo(
+  list<data.TKeyExtent> refreshTablets(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-  
-  TExternalCompactionJob reserveCompactionJob(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string queueName
-    4:i64 priority
-    5:string compactor
-    6:string externalCompactionId
-  ) throws (
-    1:client.ThriftSecurityException sec
-  )
-  
-  oneway void compactionJobFinished(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:string externalCompactionId
-    4:data.TKeyExtent extent
-    5:i64 fileSize
-    6:i64 entries
+    3:list<data.TKeyExtent> tabletsToRefresh
   )
 
-  oneway void compactionJobFailed(
+  map<data.TKeyExtent, i64> allocateTimestamps(
     1:client.TInfo tinfo
     2:security.TCredentials credentials
-    3:string externalCompactionId
-    4:data.TKeyExtent extent
+    3:list<data.TKeyExtent> tablets
   )
-
 }
 
 typedef i32 TabletID

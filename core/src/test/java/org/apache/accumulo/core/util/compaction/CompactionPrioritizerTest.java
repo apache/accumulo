@@ -37,7 +37,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.Namespace;
@@ -45,6 +44,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.commons.lang3.Range;
 import org.junit.jupiter.api.Test;
 
@@ -59,10 +59,9 @@ public class CompactionPrioritizerTest {
       files.add(CompactableFile
           .create(URI.create("hdfs://foonn/accumulo/tables/5/" + tablet + "/" + i + ".rf"), 4, 4));
     }
-    return new CompactionJobImpl(
-        CompactionJobPrioritizer.createPriority(Namespace.DEFAULT.id(), TableId.of("5"), kind,
-            totalFiles, numFiles, totalFiles * 2),
-        CompactionExecutorIdImpl.externalId("test"), files, kind, Optional.of(false));
+    return new CompactionJobImpl(CompactionJobPrioritizer.createPriority(Namespace.DEFAULT.id(),
+        TableId.of("5"), kind, totalFiles, numFiles, totalFiles * 2), CompactorGroupId.of("test"),
+        files, kind);
   }
 
   @Test
@@ -221,8 +220,8 @@ public class CompactionPrioritizerTest {
     var j3 = createJob(CompactionKind.USER, "t-011", 11, 20);
     var j4 = createJob(CompactionKind.SYSTEM, "t-012", 11, 30);
     var j5 = createJob(CompactionKind.SYSTEM, "t-013", 5, 10);
-    var j8 = createJob(DeprecatedCompactionKind.SELECTOR, "t-014", 5, 21);
-    var j9 = createJob(DeprecatedCompactionKind.SELECTOR, "t-015", 7, 20);
+    var j8 = createJob(CompactionKind.SYSTEM, "t-014", 5, 21);
+    var j9 = createJob(CompactionKind.SYSTEM, "t-015", 7, 20);
 
     var expected = List.of(j2, j3, j1, j4, j9, j8, j5);
 
