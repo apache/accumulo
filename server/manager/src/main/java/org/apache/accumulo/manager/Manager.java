@@ -1395,7 +1395,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    // Replace the ServiceLockData informion in the Manager lock node in ZooKeeper.
+    // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager
     // for the Coordinator, Fate, and Manager services. Do **not** do this until
     // after the upgrade process is finished and the dependent services are started.
