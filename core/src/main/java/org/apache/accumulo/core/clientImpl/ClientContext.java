@@ -41,6 +41,7 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -88,6 +89,8 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
@@ -135,7 +138,7 @@ public class ClientContext implements AccumuloClient {
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration accumuloConf;
   private final Configuration hadoopConf;
-  private final HashMap<TableId,ClientTabletCache> tabletCaches = new HashMap<>();
+  private final Map<TableId,ClientTabletCache> tabletLocationCache = new ConcurrentHashMap<>();
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -1088,9 +1091,32 @@ public class ClientContext implements AccumuloClient {
     return namespaces;
   }
 
-  public HashMap<TableId,ClientTabletCache> tabletCaches() {
+  public ClientTabletCache getTabletLocationCache(TableId tableId) {
     ensureOpen();
-    return tabletCaches;
+    synchronized (tabletLocationCache) {
+      return tabletLocationCache.computeIfAbsent(tableId, (TableId key) -> {
+        var mlo = new MetadataCachedTabletObtainer();
+        var lockChecker = getTServerLockChecker();
+        if (AccumuloTable.ROOT.tableId().equals(tableId)) {
+          return new RootClientTabletCache(lockChecker);
+        } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
+          return new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
+              getTabletLocationCache(AccumuloTable.ROOT.tableId()), mlo, lockChecker);
+        } else {
+          return new ClientTabletCacheImpl(tableId,
+              getTabletLocationCache(AccumuloTable.METADATA.tableId()), mlo, lockChecker);
+        }
+      });
+    }
+  }
+
+  public void clearTabletLocationCache() {
+    synchronized (tabletLocationCache) {
+      for (ClientTabletCache cache : tabletLocationCache.values()) {
+        cache.invalidate();
+      }
+      tabletLocationCache.clear();
+    }
   }
 
   private static Set<String> createPersistentWatcherPaths() {

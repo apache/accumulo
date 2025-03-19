@@ -57,7 +57,6 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -237,13 +236,13 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     // The initial set of tablets should be unassigned
     Wait.waitFor(() -> getTabletStats(c, tableId).isEmpty(), 60000, 50);
 
-    assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+    assertEquals(0, ((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
         .getTabletHostingRequestCount());
 
     // loading data will force the tablets to be hosted
     loadDataForScan(c, tableName);
 
-    assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+    assertTrue(((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
         .getTabletHostingRequestCount() > 0);
 
     Wait.waitFor(() -> getTabletStats(c, tableId).size() == 4, 60000, 50);
@@ -257,7 +256,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     c.tableOperations().online(tableName, true);
 
     Wait.waitFor(() -> getTabletStats(c, tableId).isEmpty(), 60000, 50);
-    assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+    assertEquals(0, ((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
         .getTabletHostingRequestCount());
 
     return tableId;
@@ -279,7 +278,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     List<TabletStats> stats = getTabletStats(client, tableId);
     // There should be one tablet online
     assertEquals(1, stats.size());
-    assertTrue(ClientTabletCache.getInstance((ClientContext) client, TableId.of(tableId))
+    assertTrue(((ClientContext) client).getTabletLocationCache(TableId.of(tableId))
         .getTabletHostingRequestCount() > 0);
 
   }
@@ -297,8 +296,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     List<TabletStats> stats = getTabletStats(client, tableId);
     assertEquals(3, stats.size());
-    long hostingRequestCount = ClientTabletCache
-        .getInstance((ClientContext) client, TableId.of(tableId)).getTabletHostingRequestCount();
+    long hostingRequestCount = ((ClientContext) client).getTabletLocationCache(TableId.of(tableId))
+        .getTabletHostingRequestCount();
     assertTrue(hostingRequestCount > 0);
 
     // Run another scan, the t tablet should get loaded
@@ -311,8 +310,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     stats = getTabletStats(client, tableId);
     assertEquals(3, stats.size());
     // No more tablets should have been brought online
-    assertEquals(hostingRequestCount, ClientTabletCache
-        .getInstance((ClientContext) client, TableId.of(tableId)).getTabletHostingRequestCount());
+    assertEquals(hostingRequestCount, ((ClientContext) client)
+        .getTabletLocationCache(TableId.of(tableId)).getTabletHostingRequestCount());
 
   }
 
@@ -331,7 +330,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     List<TabletStats> stats = getTabletStats(client, tableId);
     // There should be one tablet online
     assertEquals(1, stats.size());
-    assertTrue(ClientTabletCache.getInstance((ClientContext) client, TableId.of(tableId))
+    assertTrue(((ClientContext) client).getTabletLocationCache(TableId.of(tableId))
         .getTabletHostingRequestCount() > 0);
 
   }
@@ -349,8 +348,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     List<TabletStats> stats = getTabletStats(client, tableId);
     assertEquals(3, stats.size());
-    long hostingRequestCount = ClientTabletCache
-        .getInstance((ClientContext) client, TableId.of(tableId)).getTabletHostingRequestCount();
+    long hostingRequestCount = ((ClientContext) client).getTabletLocationCache(TableId.of(tableId))
+        .getTabletHostingRequestCount();
     assertTrue(hostingRequestCount > 0);
 
     // Run another scan, all tablets should be loaded
@@ -362,8 +361,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     stats = getTabletStats(client, tableId);
     assertEquals(3, stats.size());
     // No more tablets should have been brought online
-    assertEquals(hostingRequestCount, ClientTabletCache
-        .getInstance((ClientContext) client, TableId.of(tableId)).getTabletHostingRequestCount());
+    assertEquals(hostingRequestCount, ((ClientContext) client)
+        .getTabletLocationCache(TableId.of(tableId)).getTabletHostingRequestCount());
 
   }
 
@@ -520,7 +519,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     // could potentially send a kill -9 to the process. Shut the tablet
     // servers down in a more graceful way.
     final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-    ClientTabletCache.getInstance((ClientContext) client, tid).binRanges((ClientContext) client,
+    ((ClientContext) client).getTabletLocationCache(tid).binRanges((ClientContext) client,
         Collections.singletonList(TabletsSection.getRange()), binnedRanges);
     binnedRanges.keySet().forEach((location) -> {
       HostAndPort address = HostAndPort.fromString(location);
