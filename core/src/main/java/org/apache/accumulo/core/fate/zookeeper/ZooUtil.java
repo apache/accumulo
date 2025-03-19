@@ -78,8 +78,7 @@ public class ZooUtil {
       Preconditions.checkArgument(
           path != null && !path.contains("$") && path.startsWith("/") && !path.endsWith("/"),
           "Illegal path %s", path);
-      // Do not allow $ and / chars in the node name as this would cause problems for serialization.
-      // Current code does not pass these as input.
+      // node must not contain '$' or '/'
       Preconditions.checkArgument(
           node != null && !node.contains("$") && !node.contains("/") && !node.isEmpty(),
           "Illegal node name %s", node);
