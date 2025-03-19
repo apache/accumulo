@@ -109,7 +109,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
             (headers, key, value) -> headers.put(key, value));
 
-        super.writeI16((short) traceHeaders.size());
+        super.writeI32(traceHeaders.size());
 
         for (Map.Entry<String,String> entry : traceHeaders.entrySet()) {
           super.writeString(entry.getKey());
@@ -165,7 +165,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       final boolean hasTrace = super.readBool();
 
       if (hasTrace) {
-        final short numHeaders = super.readI16();
+        final int numHeaders = super.readI32();
 
         final Map<String,String> headers = new HashMap<>(numHeaders);
         for (int i = 0; i < numHeaders; i++) {
