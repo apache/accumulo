@@ -74,10 +74,7 @@ public class ZooUtil {
     private final Supplier<String> serialized;
 
     public LockID(String path, String node, long eid) {
-      // Do not allow the path to end with / because this would cause problems for serialization. Do
-      // not allow $ char in path as this would cause problems for serialization. Current code does
-      // not pass these as input. The path is expected to be an absolute path, so check it starts
-      // with /.
+      // path must start with a '/', must not end with one, and must not contain '$'.
       Preconditions.checkArgument(
           path != null && !path.contains("$") && path.startsWith("/") && !path.endsWith("/"),
           "Illegal path %s", path);
