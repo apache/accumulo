@@ -74,11 +74,13 @@ public class ZooUtil {
     private final Supplier<String> serialized;
 
     public LockID(String path, String node, long eid) {
-      // path must start with a '/', must not end with one, and must not contain '$'.
+      // path must start with a '/', must not end with one, and must not contain '$'. These chars
+      // would cause problems for serialization.
       Preconditions.checkArgument(
           path != null && !path.contains("$") && path.startsWith("/") && !path.endsWith("/"),
           "Illegal path %s", path);
-      // node must not contain '$' or '/'
+      // node must not contain '$' or '/' because these chars would cause problems for
+      // serialization.
       Preconditions.checkArgument(
           node != null && !node.contains("$") && !node.contains("/") && !node.isEmpty(),
           "Illegal node name %s", node);
