@@ -49,8 +49,8 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
   public static class AccumuloProtocol extends TCompactProtocol {
 
-    private static final int MAGIC_NUMBER = 0x41434355; // "ACCU" in ASCII
-    private static final byte PROTOCOL_VERSION = 1;
+    static final int MAGIC_NUMBER = 0x41434355; // "ACCU" in ASCII
+    static final byte PROTOCOL_VERSION = 1;
     private static final boolean HEADER_HAS_TRACE = true;
 
     private final boolean isClient;
@@ -149,7 +149,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
      *
      * @throws TException if the header is invalid or incompatible
      */
-    private void validateHeader() throws TException {
+    void validateHeader() throws TException {
       final int magic = super.readI32();
       if (magic != MAGIC_NUMBER) {
         throw new TException("Invalid Accumulo protocol: magic number mismatch. Expected: 0x"
