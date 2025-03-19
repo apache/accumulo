@@ -78,6 +78,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -212,7 +213,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private TServer server;
 
-  private String lockID;
+  private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
@@ -369,7 +370,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private TabletClientHandler thriftClientHandler;
   private ThriftScanClientHandler scanClientHandler;
 
-  String getLockID() {
+  ZooUtil.LockID getLockID() {
     return lockID;
   }
 
@@ -509,7 +510,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          lockID = tabletServerLock.getLockID().serialize(Constants.ZTSERVERS + "/");
+          lockID = tabletServerLock.getLockID();
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());
