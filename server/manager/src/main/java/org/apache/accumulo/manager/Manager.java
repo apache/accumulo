@@ -52,7 +52,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
@@ -97,7 +96,6 @@ import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
-import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -133,7 +131,6 @@ import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator.UpgradeStatus;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -145,7 +142,6 @@ import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
-import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
@@ -183,8 +179,7 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer
-    implements LiveTServerSet.Listener, TableObserver, HighlyAvailableService {
+public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -235,8 +230,6 @@ public class Manager extends AbstractServer
   volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
 
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
-
-  private final AtomicBoolean managerInitialized = new AtomicBoolean(false);
 
   private final long timeToCacheRecoveryWalExistence;
   private ExecutorService tableInformationStatusPool = null;
@@ -1146,14 +1139,9 @@ public class Manager extends AbstractServer
     managerClientHandler = new ManagerClientServiceHandler(this);
     compactionCoordinator = new CompactionCoordinator(context, security, fateRefs, this);
 
-    // Start the Manager's Client service
-    // Ensure that calls before the manager gets the lock fail
-    ManagerClientService.Iface haProxy =
-        HighlyAvailableServiceWrapper.service(managerClientHandler, this);
-
     ServerAddress sa;
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
-        compactionCoordinator.getThriftService(), haProxy, getContext());
+        compactionCoordinator.getThriftService(), managerClientHandler, getContext());
 
     try {
       sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
@@ -1165,7 +1153,12 @@ public class Manager extends AbstractServer
     clientService = sa.server;
     log.info("Started Manager client service at {}", sa.address);
 
-    // block until we can obtain the ZK lock for the manager
+    // block until we can obtain the ZK lock for the manager. Create the
+    // initial lock using ThriftService.NONE. This will allow the lock
+    // allocation to occur, but prevent any services from getting the
+    // Manager address for the COORDINATOR, FATE, and MANAGER services.
+    // The lock data is replaced below and the manager address is exposed
+    // for each of these services.
     ServiceLockData sld;
     try {
       sld = getManagerLock(context.getServerPaths().createManagerPath());
@@ -1402,7 +1395,11 @@ public class Manager extends AbstractServer
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    UUID uuid = sld.getServerUUID(ThriftService.MANAGER);
+    // Replace the ServiceLockData informion in the Manager lock node in ZooKeeper.
+    // This advertises the address that clients can use to connect to the Manager
+    // for the Coordinator, Fate, and Manager services. Do **not** do this until
+    // after the upgrade process is finished and the dependent services are started.
+    UUID uuid = sld.getServerUUID(ThriftService.NONE);
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
         ThriftService.FATE}) {
@@ -1421,9 +1418,6 @@ public class Manager extends AbstractServer
     while (!clientService.isServing()) {
       sleepUninterruptibly(100, MILLISECONDS);
     }
-
-    // The manager is fully initialized. Clients are allowed to connect now.
-    managerInitialized.set(true);
 
     while (!isShutdownRequested() && clientService.isServing()) {
       if (Thread.currentThread().isInterrupted()) {
@@ -1607,7 +1601,7 @@ public class Manager extends AbstractServer
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
-    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.MANAGER,
+    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
         managerClientAddress, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
@@ -1871,12 +1865,6 @@ public class Manager extends AbstractServer
     return timeKeeper.getTime();
   }
 
-  @Override
-  public boolean isActiveService() {
-    return managerInitialized.get();
-  }
-
-  @Override
   public boolean isUpgrading() {
     return upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE;
   }
