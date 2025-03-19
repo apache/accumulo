@@ -29,6 +29,7 @@ import java.util.Map;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -41,10 +42,14 @@ import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public abstract class TabletLocator {
+
+  private static final Logger log = LoggerFactory.getLogger(TabletLocator.class);
 
   /**
    * Flipped false on call to {@link #clearLocators}. Checked by client classes that locally cache
@@ -132,22 +137,35 @@ public abstract class TabletLocator {
     enabled = true;
   }
 
+  private static TabletLocator newTabletLocator(ClientContext context, TableId tableId,
+      TabletLocator parent) {
+
+    boolean useConcurrentLocator =
+        ClientProperty.EXPERIMENTAL_TABLET_CACHE.getBoolean(context.getProperties());
+
+    MetadataLocationObtainer mlo = new MetadataLocationObtainer();
+    if (useConcurrentLocator) {
+      log.info("Using experimental tablet location cache configured by client property {}",
+          ClientProperty.EXPERIMENTAL_TABLET_CACHE.getKey());
+      return new ConcurrentTabletLocator(tableId, parent, mlo, context.getTServerLockChecker());
+    } else {
+      return new TabletLocatorImpl(tableId, parent, mlo, context.getTServerLockChecker());
+    }
+
+  }
+
   public static synchronized TabletLocator getLocator(ClientContext context, TableId tableId) {
     Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
         + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
     LocatorKey key = new LocatorKey(context.getInstanceID(), tableId);
     TabletLocator tl = locators.get(key);
     if (tl == null) {
-      MetadataLocationObtainer mlo = new MetadataLocationObtainer();
-
       if (RootTable.ID.equals(tableId)) {
         tl = new RootTabletLocator(context.getTServerLockChecker());
       } else if (MetadataTable.ID.equals(tableId)) {
-        tl = new TabletLocatorImpl(MetadataTable.ID, getLocator(context, RootTable.ID), mlo,
-            context.getTServerLockChecker());
+        tl = newTabletLocator(context, tableId, getLocator(context, RootTable.ID));
       } else {
-        tl = new TabletLocatorImpl(tableId, getLocator(context, MetadataTable.ID), mlo,
-            context.getTServerLockChecker());
+        tl = newTabletLocator(context, tableId, getLocator(context, MetadataTable.ID));
       }
       locators.put(key, tl);
     }
