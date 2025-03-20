@@ -34,21 +34,16 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonService;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
-
-import com.google.common.base.Preconditions;
 
 /**
  * Client side cache of information about Tablets. Currently, a tablet prev end row is cached and
@@ -189,55 +184,12 @@ public abstract class ClientTabletCache {
    */
   public abstract void invalidateCache(ClientContext context, String server);
 
-  private static class InstanceKey {
-    final InstanceId instanceId;
-    final TableId tableId;
-
-    InstanceKey(InstanceId instanceId, TableId table) {
-      this.instanceId = instanceId;
-      this.tableId = table;
-    }
-
-    @Override
-    public int hashCode() {
-      return instanceId.hashCode() + tableId.hashCode();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-      if (o instanceof InstanceKey) {
-        return equals((InstanceKey) o);
-      }
-      return false;
-    }
-
-    public boolean equals(InstanceKey lk) {
-      return instanceId.equals(lk.instanceId) && tableId.equals(lk.tableId);
-    }
-
-  }
-
-  private static final HashMap<InstanceKey,ClientTabletCache> instances = new HashMap<>();
-  private static boolean enabled = true;
-
-  public static synchronized void clearInstances() {
+  public static synchronized void clearInstances(ClientContext context) {
+    final var instances = context.tabletCaches();
     for (ClientTabletCache locator : instances.values()) {
       locator.isValid = false;
     }
     instances.clear();
-  }
-
-  static synchronized boolean isEnabled() {
-    return enabled;
-  }
-
-  static synchronized void disable() {
-    clearInstances();
-    enabled = false;
-  }
-
-  static synchronized void enable() {
-    enabled = true;
   }
 
   public long getTabletHostingRequestCount() {
@@ -245,10 +197,8 @@ public abstract class ClientTabletCache {
   }
 
   public static synchronized ClientTabletCache getInstance(ClientContext context, TableId tableId) {
-    Preconditions.checkState(enabled, "The Accumulo singleton that that tracks tablet locations is "
-        + "disabled. This is likely caused by all AccumuloClients being closed or garbage collected");
-    InstanceKey key = new InstanceKey(context.getInstanceID(), tableId);
-    ClientTabletCache tl = instances.get(key);
+    final var caches = context.tabletCaches();
+    ClientTabletCache tl = caches.get(tableId);
     if (tl == null) {
       MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
 
@@ -263,30 +213,10 @@ public abstract class ClientTabletCache {
             getInstance(context, AccumuloTable.METADATA.tableId()), mlo,
             context.getTServerLockChecker());
       }
-      instances.put(key, tl);
+      caches.put(tableId, tl);
     }
 
     return tl;
-  }
-
-  static {
-    SingletonManager.register(new SingletonService() {
-
-      @Override
-      public boolean isEnabled() {
-        return ClientTabletCache.isEnabled();
-      }
-
-      @Override
-      public void enable() {
-        ClientTabletCache.enable();
-      }
-
-      @Override
-      public void disable() {
-        ClientTabletCache.disable();
-      }
-    });
   }
 
   public static class CachedTablets {
