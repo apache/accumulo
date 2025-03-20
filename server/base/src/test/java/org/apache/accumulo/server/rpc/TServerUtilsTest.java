@@ -301,9 +301,10 @@ public class TServerUtilsTest {
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(context, hostname, Property.TSERV_CLIENTPORT, processor,
-        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-
+    ServerAddress sa = TServerUtils.createThriftServer(context, hostname, Property.TSERV_CLIENTPORT,
+        processor, "TServerUtilsTest", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sa.startThriftServer("TServerUtilsTestThread");
+    return sa;
   }
 }

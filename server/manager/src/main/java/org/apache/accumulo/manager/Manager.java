@@ -1144,14 +1144,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
 
     try {
-      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
-          "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
+      sa = TServerUtils.createThriftServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
+          processor, "Manager", null, Property.MANAGER_MINTHREADS,
           Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
     }
-    clientService = sa.server;
-    log.info("Started Manager client service at {}", sa.address);
 
     // block until we can obtain the ZK lock for the manager. Create the
     // initial lock using ThriftService.NONE. This will allow the lock
@@ -1395,6 +1393,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
+    // Now that the Manager is up, start the ThriftServer
+    sa.startThriftServer("Manager Client Service Handler");
+    clientService = sa.server;
+    log.info("Started Manager client service at {}", sa.address);
+
     // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager
     // for the Coordinator, Fate, and Manager services. Do **not** do this until
@@ -1413,10 +1416,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       managerLock.replaceLockData(sld);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception updating manager lock", e);
-    }
-
-    while (!clientService.isServing()) {
-      sleepUninterruptibly(100, MILLISECONDS);
     }
 
     while (!isShutdownRequested() && clientService.isServing()) {
