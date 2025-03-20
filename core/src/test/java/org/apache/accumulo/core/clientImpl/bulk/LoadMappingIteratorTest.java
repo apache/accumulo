@@ -60,9 +60,12 @@ public class LoadMappingIteratorTest {
     });
 
     // Serialize unordered mapping directly
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    writeLoadMappingWithoutSorting(unorderedMapping, "/some/dir", p -> baos);
-    ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+    byte[] serializedData;
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+      writeLoadMappingWithoutSorting(unorderedMapping, "/some/dir", p -> baos);
+      serializedData = baos.toByteArray();
+    }
+    ByteArrayInputStream bais = new ByteArrayInputStream(serializedData);
 
     return BulkSerialize.readLoadMapping("/some/dir", TableId.of("1"), p -> bais);
   }
@@ -81,8 +84,9 @@ public class LoadMappingIteratorTest {
       String sourceDir, BulkSerialize.Output output) throws IOException {
     final Path lmFile = new Path(sourceDir, Constants.BULK_LOAD_MAPPING);
 
-    try (OutputStream fsOut = output.create(lmFile); JsonWriter writer =
-        new JsonWriter(new BufferedWriter(new OutputStreamWriter(fsOut, UTF_8)))) {
+    try (OutputStream fsOut = output.create(lmFile);
+        OutputStreamWriter osw = new OutputStreamWriter(fsOut, UTF_8);
+        BufferedWriter bw = new BufferedWriter(osw); JsonWriter writer = new JsonWriter(bw)) {
       Gson gson = createGson();
       writer.setIndent("  ");
       writer.beginArray();
