@@ -70,6 +70,7 @@ import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.AccumuloTable;
@@ -157,7 +158,21 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     UpdateSession us =
         new UpdateSession(new TservConstraintEnv(server.getContext(), security, credentials),
-            credentials, durability);
+            credentials, durability) {
+          @Override
+          public boolean cleanup() {
+            // This is called when a client abandons a session. When this happens need to decrement
+            // any queued mutations.
+            if (queuedMutationSize > 0) {
+              log.trace(
+                  "cleaning up abandoned update session, decrementing totalQueuedMutationSize by {}",
+                  queuedMutationSize);
+              server.updateTotalQueuedMutationSize(-queuedMutationSize);
+              queuedMutationSize = 0;
+            }
+            return true;
+          }
+        };
     return server.sessionManager.createSession(us, false);
   }
 
@@ -166,8 +181,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     if (us.currentTablet != null && us.currentTablet.getExtent().equals(keyExtent)) {
       return;
     }
-    if (us.currentTablet == null
-        && (us.failures.containsKey(keyExtent) || us.authFailures.containsKey(keyExtent))) {
+    if (us.currentTablet == null && (us.failures.containsKey(keyExtent)
+        || us.authFailures.containsKey(keyExtent) || us.unhandledException != null)) {
       // if there were previous failures, then do not accept additional writes
       return;
     }
@@ -190,7 +205,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           // not serving tablet, so report all mutations as
           // failures
           us.failures.put(keyExtent, 0L);
-          server.updateMetrics.addUnknownTabletErrors(0);
+          server.updateMetrics.addUnknownTabletErrors(1);
         }
       } else {
         log.warn("Denying access to table {} for user {}", keyExtent.tableId(), us.getUser());
@@ -198,7 +213,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.authTimes.addStat(t2 - t1);
         us.currentTablet = null;
         us.authFailures.put(keyExtent, SecurityErrorCode.PERMISSION_DENIED);
-        server.updateMetrics.addPermissionErrors(0);
+        server.updateMetrics.addPermissionErrors(1);
       }
     } catch (TableNotFoundException tnfe) {
       log.error("Table " + tableId + " not found ", tnfe);
@@ -206,7 +221,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, SecurityErrorCode.TABLE_DOESNT_EXIST);
-      server.updateMetrics.addUnknownTabletErrors(0);
+      server.updateMetrics.addUnknownTabletErrors(1);
     } catch (ThriftSecurityException e) {
       log.error("Denying permission to check user " + us.getUser() + " with user " + e.getUser(),
           e);
@@ -214,7 +229,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.authTimes.addStat(t2 - t1);
       us.currentTablet = null;
       us.authFailures.put(keyExtent, e.getCode());
-      server.updateMetrics.addPermissionErrors(0);
+      server.updateMetrics.addPermissionErrors(1);
     }
   }
 
@@ -236,6 +251,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         List<Mutation> mutations = us.queuedMutations.get(us.currentTablet);
         for (TMutation tmutation : tmutations) {
           Mutation mutation = new ServerMutation(tmutation);
+          // Deserialize the mutation in an attempt to check for data corruption that happened on
+          // the network. This will avoid writing a corrupt mutation to the write ahead log and
+          // failing after its written to the write ahead log when it is deserialized to update the
+          // in memory map.
+          mutation.getUpdates();
           mutations.add(mutation);
           additionalMutationSize += mutation.numBytes();
         }
@@ -255,6 +275,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           }
         }
       }
+    } catch (RuntimeException e) {
+      // This method is a thrift oneway method so an exception from it will not make it back to the
+      // client. Need to record the exception and set the session such that any future updates to
+      // the session are ignored.
+      us.unhandledException = e;
+      us.currentTablet = null;
+
+      // Rethrowing it will cause logging from thrift, so not adding logging here.
+      throw e;
     } finally {
       if (reserved) {
         server.sessionManager.unreserveSession(us);
@@ -282,6 +311,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       server.resourceManager.waitUntilCommitsAreEnabled();
     }
 
+    int preppedMutations = 0;
+    int sendableMutations = 0;
+
     Span span = TraceUtil.startSpan(this.getClass(), "flush::prep");
     try (Scope scope = span.makeCurrent()) {
       for (Entry<Tablet,? extends List<Mutation>> entry : us.queuedMutations.entrySet()) {
@@ -291,6 +323,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
             DurabilityImpl.resolveDurabilty(us.durability, tablet.getDurability());
         List<Mutation> mutations = entry.getValue();
         if (!mutations.isEmpty()) {
+          preppedMutations += mutations.size();
           try {
             server.updateMetrics.addMutationArraySize(mutations.size());
 
@@ -309,11 +342,12 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
                   loggables.put(session, new TabletMutations(session, validMutations, durability));
                 }
                 sendables.put(session, validMutations);
+                sendableMutations += validMutations.size();
               }
 
               if (!prepared.getViolations().isEmpty()) {
                 us.violations.add(prepared.getViolations());
-                server.updateMetrics.addConstraintViolations(0);
+                server.updateMetrics.addConstraintViolations(1);
               }
               // Use the size of the original mutation list, regardless of how many mutations
               // did not violate constraints.
@@ -337,7 +371,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     long pt2 = System.currentTimeMillis();
     us.prepareTimes.addStat(pt2 - pt1);
-    updateAvgPrepTime(pt2 - pt1, us.queuedMutations.size());
+    updateAvgPrepTime(pt2 - pt1, preppedMutations);
 
     if (error != null) {
       sendables.forEach((commitSession, value) -> commitSession.abortCommit());
@@ -366,6 +400,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         }
       } catch (Exception e) {
         TraceUtil.setException(span2, e, true);
+        log.error("Error logging mutations sent from {}", TServerUtils.clientAddress.get(), e);
         throw e;
       } finally {
         span2.end();
@@ -392,7 +427,11 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         us.flushTime += (t2 - pt1);
         us.commitTimes.addStat(t2 - t1);
 
-        updateAvgCommitTime(t2 - t1, sendables.size());
+        updateAvgCommitTime(t2 - t1, sendableMutations);
+      } catch (Exception e) {
+        TraceUtil.setException(span3, e, true);
+        log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
+        throw e;
       } finally {
         span3.end();
       }
@@ -405,6 +444,18 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       us.queuedMutationSize = 0;
     }
     us.totalUpdates += mutationCount;
+  }
+
+  private void updateAverageLockTime(long time, TimeUnit unit, int size) {
+    if (size > 0) {
+      server.updateMetrics.addLockTime((long) (time / (double) size), unit);
+    }
+  }
+
+  private void updateAverageCheckTime(long time, TimeUnit unit, int size) {
+    if (size > 0) {
+      server.updateMetrics.addCheckTime((long) (time / (double) size), unit);
+    }
   }
 
   private void updateWalogWriteTime(long time) {
@@ -433,6 +484,20 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
 
     try {
+      if (us.unhandledException != null) {
+        // Since flush() is not being called, any memory added to the global queued mutations
+        // counter will not be decremented. So do that here before throwing an exception.
+        server.updateTotalQueuedMutationSize(-us.queuedMutationSize);
+        us.queuedMutationSize = 0;
+        // make this memory available for GC
+        us.queuedMutations.clear();
+
+        // Something unexpected happened during this write session, so throw an exception here to
+        // cause a TApplicationException on the client side.
+        throw new IllegalStateException(
+            "Write session " + updateID + " saw an unexpected exception", us.unhandledException);
+      }
+
       // clients may or may not see data from an update session while
       // it is in progress, however when the update session is closed
       // want to ensure that reads wait for the write to finish
@@ -559,6 +624,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     boolean sessionCanceled = sess.interruptFlag.get();
 
     Span span = TraceUtil.startSpan(this.getClass(), "writeConditionalMutations::prep");
+    int preppedMutions = 0;
+    int sendableMutations = 0;
     try (Scope scope = span.makeCurrent()) {
       long t1 = System.currentTimeMillis();
       for (Entry<KeyExtent,List<ServerConditionalMutation>> entry : es) {
@@ -570,6 +637,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
               DurabilityImpl.resolveDurabilty(sess.durability, tablet.getDurability());
 
           List<Mutation> mutations = Collections.unmodifiableList(entry.getValue());
+          preppedMutions += mutations.size();
           if (!mutations.isEmpty()) {
 
             PreparedMutations prepared = tablet.prepareMutationsForCommit(
@@ -587,6 +655,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
                   loggables.put(session, new TabletMutations(session, validMutations, durability));
                 }
                 sendables.put(session, validMutations);
+                sendableMutations += validMutations.size();
               }
 
               if (!prepared.getViolators().isEmpty()) {
@@ -598,7 +667,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       }
 
       long t2 = System.currentTimeMillis();
-      updateAvgPrepTime(t2 - t1, es.size());
+      updateAvgPrepTime(t2 - t1, preppedMutions);
     } catch (Exception e) {
       TraceUtil.setException(span, e, true);
       throw e;
@@ -636,9 +705,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       long t1 = System.currentTimeMillis();
       sendables.forEach(CommitSession::commit);
       long t2 = System.currentTimeMillis();
-      updateAvgCommitTime(t2 - t1, sendables.size());
+      updateAvgCommitTime(t2 - t1, sendableMutations);
     } catch (Exception e) {
       TraceUtil.setException(span3, e, true);
+      log.error("Error committing mutations sent from {}", TServerUtils.clientAddress.get(), e);
       throw e;
     } finally {
       span3.end();
@@ -661,7 +731,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       List<String> symbols) throws IOException {
     // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is
     // more efficient and detect duplicate rows.
-    ConditionalMutationSet.sortConditionalMutations(updates);
+    int numMutations = ConditionalMutationSet.sortConditionalMutations(updates);
 
     Map<KeyExtent,List<ServerConditionalMutation>> deferred = new HashMap<>();
 
@@ -670,11 +740,17 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     ConditionalMutationSet.deferDuplicatesRows(updates, deferred);
 
     // get as many locks as possible w/o blocking... defer any rows that are locked
+    long lt1 = System.nanoTime();
     List<RowLock> locks = rowLocks.acquireRowlocks(updates, deferred);
+    long lt2 = System.nanoTime();
+    updateAverageLockTime(lt2 - lt1, TimeUnit.NANOSECONDS, numMutations);
     try {
       Span span = TraceUtil.startSpan(this.getClass(), "conditionalUpdate::Check conditions");
       try (Scope scope = span.makeCurrent()) {
+        long t1 = System.nanoTime();
         checkConditions(updates, results, cs, symbols);
+        long t2 = System.nanoTime();
+        updateAverageCheckTime(t2 - t1, TimeUnit.NANOSECONDS, numMutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;
@@ -723,7 +799,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         tableId, DurabilityImpl.fromThrift(tdurabilty));
 
     long sid = server.sessionManager.createSession(cs, false);
-    return new TConditionalSession(sid, server.getLockID(), server.sessionManager.getMaxIdleTime());
+    return new TConditionalSession(sid, server.getLockID().serialize(),
+        server.sessionManager.getMaxIdleTime());
   }
 
   @Override
@@ -767,19 +844,30 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         }
       }
 
-      ArrayList<TCMResult> results = new ArrayList<>();
+      var lambdaCs = cs;
+      // Conditional updates read data into memory, examine it, and then make an update. This can be
+      // CPU, I/O, and memory intensive. Using a thread pool directly limits CPU usage and
+      // indirectly limits memory and I/O usage.
+      Future<ArrayList<TCMResult>> future =
+          server.resourceManager.executeConditionalUpdate(cs.tableId, () -> {
+            ArrayList<TCMResult> results = new ArrayList<>();
 
-      Map<KeyExtent,List<ServerConditionalMutation>> deferred =
-          conditionalUpdate(cs, updates, results, symbols);
+            Map<KeyExtent,List<ServerConditionalMutation>> deferred =
+                conditionalUpdate(lambdaCs, updates, results, symbols);
 
-      while (!deferred.isEmpty()) {
-        deferred = conditionalUpdate(cs, deferred, results, symbols);
-      }
+            while (!deferred.isEmpty()) {
+              deferred = conditionalUpdate(lambdaCs, deferred, results, symbols);
+            }
 
-      return results;
-    } catch (IOException ioe) {
-      throw new TException(ioe);
-    } catch (Exception e) {
+            return results;
+          });
+
+      return future.get();
+    } catch (ExecutionException | InterruptedException e) {
+      log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
+          cs == null ? null : cs.tableId, opid, e);
+      throw new TException(e);
+    } catch (RuntimeException e) {
       log.warn("Exception returned for conditionalUpdate. tableId: {}, opid: {}",
           cs == null ? null : cs.tableId, opid, e);
       throw e;
@@ -787,6 +875,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       if (opid != null) {
         writeTracker.finishWrite(opid);
       }
+
       if (cs != null) {
         server.sessionManager.unreserveSession(sessID);
       }
@@ -879,15 +968,15 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
 
     if (lock != null) {
-      ZooUtil.LockID lid =
-          new ZooUtil.LockID(context.getServerPaths().createManagerPath().toString(), lock);
+      ZooUtil.LockID lid = ZooUtil.LockID.deserialize(lock);
 
       try {
-        if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
+        if (!ServiceLock.isLockHeld(server.getContext().getZooCache(), lid)) {
           // maybe the cache is out of date and a new manager holds the
           // lock?
-          server.getManagerLockCache().clear();
-          if (!ServiceLock.isLockHeld(server.getManagerLockCache(), lid)) {
+          server.getContext().getZooCache().clear(
+              (path) -> path.equals(ServiceLockPaths.parse(Optional.empty(), lid.path).toString()));
+          if (!ServiceLock.isLockHeld(server.getContext().getZooCache(), lid)) {
             log.warn("Got {} message from a manager that does not hold the current lock {}",
                 request, lock);
             throw new RuntimeException("bad manager lock");
@@ -1154,7 +1243,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
   @Override
   public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
-      List<TKeyExtent> extents, int numStamps) throws TException {
+      List<TKeyExtent> extents) throws TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
@@ -1168,8 +1257,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
       var extent = KeyExtent.fromThrift(textent);
       Tablet tablet = tabletsSnapshot.get(extent);
       if (tablet != null) {
-        tablet.allocateTimestamp(numStamps)
-            .ifPresent(timestamp -> timestamps.put(textent, timestamp));
+        tablet.allocateTimestamp().ifPresent(timestamp -> timestamps.put(textent, timestamp));
       }
     }
 

@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -57,8 +56,6 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.TSERV_MAXMEM, "50K");
   }
 
-  private String majcDelay, maxMem;
-
   @BeforeEach
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.MINI) {
@@ -66,8 +63,6 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     }
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
-      Map<String,String> conf = iops.getSystemConfiguration();
-      maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
 
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 

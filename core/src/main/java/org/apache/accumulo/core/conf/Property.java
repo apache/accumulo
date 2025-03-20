@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
+import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
@@ -143,9 +144,9 @@ public enum Property {
           + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
           + " running and you are logged in as the user that controls Accumulo files in"
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
-          + " org.apache.accumulo.server.util.ChangeSecret`.",
+          + " admin changeSecret`.",
       "1.3.5"),
-  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
+  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.VOLUMES,
       "A comma separated list of dfs uris to use. Files will be stored across"
           + " these filesystems. In some situations, the first volume in this list"
           + " may be treated differently, such as being preferred for writing out"
@@ -181,11 +182,6 @@ public enum Property {
           + "other reserved characters in a URI use standard URI hex encoding. For "
           + "example replace commas with %2C.",
       "1.6.0"),
-  INSTANCE_VOLUMES_UPGRADE_RELATIVE("instance.volumes.upgrade.relative", "", PropertyType.STRING,
-      "The volume dfs uri containing relative tablet file paths. Relative paths may exist in the metadata from "
-          + "versions prior to 1.6. This property is only required if a relative path is detected "
-          + "during the upgrade process and will only be used once.",
-      "2.1.0"),
   @Experimental // interface uses unstable internal types, use with caution
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
@@ -281,7 +277,7 @@ public enum Property {
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
-  GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
+  GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "3", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
@@ -298,6 +294,9 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
+      TinyLfuBlockCacheManager.class.getName(), PropertyType.STRING,
+      "Specifies the class name of the block cache factory implementation.", "2.1.4"),
   GENERAL_DELEGATION_TOKEN_LIFETIME("general.delegation.token.lifetime", "7d",
       PropertyType.TIMEDURATION,
       "The length of time that delegation tokens and secret keys are valid.", "1.7.0"),
@@ -338,9 +337,18 @@ public enum Property {
       PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
       "4.0.0"),
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
-      "Enables metrics functionality using Micrometer.", "2.1.0"),
+      "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
-      PropertyType.BOOLEAN, "Enables JVM metrics functionality using Micrometer.", "2.1.0"),
+      PropertyType.BOOLEAN,
+      "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
+          + "property 'general.micrometer.enabled' to be set to 'true' to take effect.",
+      "2.1.0"),
+  GENERAL_MICROMETER_LOG_METRICS("general.micrometer.log.metrics", "none", PropertyType.STRING,
+      "Enables additional log metrics collection and reporting using Micrometer. Requires "
+          + "property 'general.micrometer.enabled' to be set to 'true' to take effect. Micrometer "
+          + "natively instruments Log4j2 and Logback. Valid values for this property are 'none',"
+          + "'log4j2' or 'logback'.",
+      "2.1.4"),
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
       "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
@@ -357,6 +365,11 @@ public enum Property {
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
+  GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
+      PropertyType.TIMEDURATION,
+      "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
+          + " disables this check. The default value change from 0 to 2m in 3.1.0.",
+      "2.1.4"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the manager server.", "2.1.0"),
@@ -388,6 +401,11 @@ public enum Property {
           + " are performed (e.g. Bulk Import). This property specifies the maximum number of threads in a"
           + " ThreadPool in the Manager that will be used to request these refresh operations.",
       "4.0.0"),
+  MANAGER_TABLET_MERGEABILITY_INTERVAL("manager.tablet.mergeability.interval", "24h",
+      PropertyType.TIMEDURATION,
+      "Time to wait between scanning tables to identify ranges of tablets that can be "
+          + " auto-merged. Valid ranges will be have merge fate ops submitted.",
+      "4.0.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
@@ -416,10 +434,16 @@ public enum Property {
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "4", PropertyType.COUNT,
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64", PropertyType.COUNT,
       "The number of threads used to run fault-tolerant executions (FATE)."
           + " These are primarily table operations like merge.",
       "1.4.3"),
+  MANAGER_FATE_IDLE_CHECK_INTERVAL("manager.fate.idle.check.interval", "60m",
+      PropertyType.TIMEDURATION,
+      "The interval at which to check if the number of idle Fate threads has consistently been zero."
+          + " The way this is checked is an approximation. Logs a warning in the Manager log to increase"
+          + " MANAGER_FATE_THREADPOOL_SIZE. A value of zero disables this check and has a maximum value of 60m.",
+      "4.0.0"),
   MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "
           + "indicates an unlimited number of threads will be used.",
@@ -442,16 +466,16 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0.",
       "1.10.0"),
-  MANAGER_SPLIT_WORKER_THREADS("manager.split.inspection.threadpool.size", "8", PropertyType.COUNT,
-      "The number of threads used to inspect tablets files to find split points.", "4.0.0"),
-
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE(
-      "manager.compaction.major.service.queue.initial.size", "10000", PropertyType.COUNT,
-      "The initial size of each resource groups compaction job priority queue.", "4.0.0"),
-  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE_FACTOR(
-      "manager.compaction.major.service.queue.size.factor", "3.0", PropertyType.FRACTION,
-      "The dynamic resizing of the compaction job priority queue is based on"
-          + " the number of compactors for the group multiplied by this factor.",
+  MANAGER_SPLIT_WORKER_THREADS("manager.split.seed.threadpool.size", "8", PropertyType.COUNT,
+      "The number of threads used to seed fate split task, the actual split work is done by fate"
+          + " threads.",
+      "4.0.0"),
+  MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
+      "1M", PropertyType.MEMORY,
+      "The data size of each resource groups compaction job priority queue.  The memory size of "
+          + "each compaction job is estimated and the sum of these sizes per resource group will not "
+          + "exceed this setting. When the size is exceeded the lowest priority jobs are dropped as "
+          + "needed.",
       "4.0.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
       "System wide properties related to splitting tablets.", "3.1.0"),
@@ -462,22 +486,16 @@ public enum Property {
           + " as un-splittable.",
       "3.1.0"),
   // properties that are specific to scan server behavior
-  @Experimental
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the scan servers.", "2.1.0"),
-  @Experimental
   SSERV_DATACACHE_SIZE("sserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks on each scan server.", "2.1.0"),
-  @Experimental
   SSERV_INDEXCACHE_SIZE("sserver.cache.index.size", "25%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile index blocks on each scan server.", "2.1.0"),
-  @Experimental
   SSERV_SUMMARYCACHE_SIZE("sserver.cache.summary.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for summary data on each scan server.", "2.1.0"),
-  @Experimental
   SSERV_DEFAULT_BLOCKSIZE("sserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the scan server caches.", "2.1.0"),
-  @Experimental
   SSERV_GROUP_NAME("sserver.group", ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME,
       PropertyType.STRING,
       "Resource group name for this ScanServer. Resource groups support at least two use cases:"
@@ -485,12 +503,10 @@ public enum Property {
           + " configure the ConfigurableScanServerSelector to specify the resource group to use for"
           + " eventual consistency scans.",
       "3.0.0"),
-  @Experimental
   SSERV_CACHED_TABLET_METADATA_EXPIRATION("sserver.cache.metadata.expiration", "5m",
       PropertyType.TIMEDURATION,
       "The time after which cached tablet metadata will be expired if not previously refreshed.",
       "2.1.0"),
-  @Experimental
   SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT("sserver.cache.metadata.refresh.percent", ".75",
       PropertyType.FRACTION,
       "The time after which cached tablet metadata will be refreshed, expressed as a "
@@ -498,21 +514,16 @@ public enum Property {
           + "expiration time, will trigger a background refresh for future hits. "
           + "Value must be less than 100%. Set to 0 will disable refresh.",
       "2.1.3"),
-  @Experimental
   SSERV_PORTSEARCH("sserver.port.search", "true", PropertyType.BOOLEAN,
       "if the sserver.port.client ports are in use, search higher ports until one is available.",
       "2.1.0"),
-  @Experimental
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
-  @Experimental
   SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
-  @Experimental
   SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
       "2.1.0"),
-  @Experimental
   SSERV_SCAN_EXECUTORS_PREFIX("sserver.scan.executors.", null, PropertyType.PREFIX,
       "Prefix for defining executors to service scans. See "
           + "[scan executors]({% durl administration/scan-executors %}) for an overview of why and"
@@ -523,7 +534,6 @@ public enum Property {
           + "`sserver.scan.executors.<name>.prioritizer=<class name>`, and "
           + "`sserver.scan.executors.<name>.prioritizer.opts.<key>=<value>`.",
       "2.1.0"),
-  @Experimental
   SSERV_SCAN_EXECUTORS_DEFAULT_THREADS("sserver.scan.executors.default.threads", "16",
       PropertyType.COUNT, "The number of threads for the scan executor that tables use by default.",
       "2.1.0"),
@@ -533,18 +543,14 @@ public enum Property {
           + "results in FIFO priority.  Set to a class that implements "
           + ScanPrioritizer.class.getName() + " to configure one.",
       "2.1.0"),
-  @Experimental
   SSERV_SCAN_EXECUTORS_META_THREADS("sserver.scan.executors.meta.threads", "8", PropertyType.COUNT,
       "The number of threads for the metadata table scan executor.", "2.1.0"),
-  @Experimental
   SSERV_SCAN_REFERENCE_EXPIRATION_TIME("sserver.scan.reference.expiration", "5m",
       PropertyType.TIMEDURATION,
       "The amount of time a scan reference is unused before its deleted from metadata table.",
       "2.1.0"),
-  @Experimental
   SSERV_THREADCHECK("sserver.server.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the thrift server thread pool.", "2.1.0"),
-  @Experimental
   SSERV_WAL_SORT_MAX_CONCURRENT("sserver.wal.sort.concurrent.max", "2", PropertyType.COUNT,
       "The maximum number of threads to use to sort logs during recovery.", "4.0.0"),
   // properties that are specific to tablet server behavior
@@ -554,12 +560,6 @@ public enum Property {
       "Time to wait for clients to continue scans before closing a session.", "1.3.5"),
   TSERV_DEFAULT_BLOCKSIZE("tserver.default.blocksize", "1M", PropertyType.BYTES,
       "Specifies a default blocksize for the tserver caches.", "1.3.5"),
-  TSERV_CACHE_MANAGER_IMPL("tserver.cache.manager.class",
-      "org.apache.accumulo.core.file.blockfile.cache.lru.LruBlockCacheManager", PropertyType.STRING,
-      "Specifies the class name of the block cache factory implementation."
-          + " Alternative implementation is"
-          + " org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager.",
-      "2.0.0"),
   TSERV_DATACACHE_SIZE("tserver.cache.data.size", "10%", PropertyType.MEMORY,
       "Specifies the size of the cache for RFile data blocks.", "1.3.5"),
   TSERV_INDEXCACHE_SIZE("tserver.cache.index.size", "25%", PropertyType.MEMORY,
@@ -608,7 +608,7 @@ public enum Property {
           + " until it is closed.",
       "1.3.5"),
   TSERV_NATIVEMAP_ENABLED("tserver.memory.maps.native.enabled", "true", PropertyType.BOOLEAN,
-      "An in-memory data store for accumulo implemented in c++ that increases"
+      "An off-heap in-memory data store for accumulo implemented in c++ that increases"
           + " the amount of data accumulo can hold in memory and avoids Java GC pauses.",
       "1.3.5"),
   TSERV_MAXMEM("tserver.memory.maps.max", "33%", PropertyType.MEMORY,
@@ -616,7 +616,8 @@ public enum Property {
           + " tablet server. There are two other properties that can effectively limit"
           + " memory usage `table.compaction.minor.logs.threshold` and"
           + " `tserver.wal.max.size`. Ensure that `table.compaction.minor.logs.threshold`"
-          + " * `tserver.wal.max.size` >= this property.",
+          + " * `tserver.wal.max.size` >= this property. This map is created in off-heap"
+          + " memory when " + TSERV_NATIVEMAP_ENABLED.name() + " is enabled.",
       "1.3.5"),
   TSERV_SESSION_MAXIDLE("tserver.session.idle.max", "1m", PropertyType.TIMEDURATION,
       "When a tablet server's SimpleTimer thread triggers to check idle"
@@ -751,6 +752,15 @@ public enum Property {
       "Resource group name for this TabletServer. Resource groups can be defined to dedicate resources "
           + " to specific tables (e.g. balancing tablets for table(s) within a group, see TableLoadBalancer).",
       "4.0.0"),
+  TSERV_CONDITIONAL_UPDATE_THREADS_ROOT("tserver.conditionalupdate.threads.root", "16",
+      PropertyType.COUNT, "Numbers of threads for executing conditional updates on the root table.",
+      "4.0.0"),
+  TSERV_CONDITIONAL_UPDATE_THREADS_META("tserver.conditionalupdate.threads.meta", "64",
+      PropertyType.COUNT,
+      "Numbers of threads for executing conditional updates on the metadata table.", "4.0.0"),
+  TSERV_CONDITIONAL_UPDATE_THREADS_USER("tserver.conditionalupdate.threads.user", "64",
+      PropertyType.COUNT, "Numbers of threads for executing conditional updates on user tables.",
+      "4.0.0"),
 
   // accumulo garbage collector properties
   GC_PREFIX("gc.", null, PropertyType.PREFIX,
@@ -767,8 +777,10 @@ public enum Property {
       "1.3.5"),
   GC_PORT("gc.port.client", "9998", PropertyType.PORT,
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
+  GC_DELETE_WAL_THREADS("gc.threads.delete.wal", "4", PropertyType.COUNT,
+      "The number of threads used to delete write-ahead logs and recovery files.", "2.1.4"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
-      "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
+      "The number of threads used to delete RFiles.", "1.3.5"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files.", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
@@ -823,6 +835,18 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
+  MONITOR_FETCH_TIMEOUT("monitor.fetch.timeout", "5m", PropertyType.TIMEDURATION,
+      "The Monitor fetches information for display in a set of background threads. This property"
+          + " controls the amount of time that process should wait before cancelling any remaining"
+          + " tasks to fetch information. These background threads could end up waiting on servers"
+          + " to respond or for scans to complete.",
+      "4.0.0"),
+  MONITOR_DEAD_LIST_RG_EXCLUSIONS("monitor.dead.server.rg.exclusions", "", PropertyType.STRING,
+      "The Monitor displays information about servers that it believes have died recently."
+          + " This property accepts a comma separated list of resource group names. If"
+          + " the dead servers resource group matches a resource group in this list,"
+          + " then it will be suppressed from the dead servers list in the monitor.",
+      "4.0.0"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
@@ -865,14 +889,6 @@ public enum Property {
           + "server to see a write to a tablet server. The default value of this property is set to such a "
           + "high value that is should never cause a minor compaction.",
       "3.1.0"),
-  @Deprecated(since = "3.1.0")
-  @ReplacedBy(property = TABLE_MINC_COMPACT_MAXAGE)
-  TABLE_MINC_COMPACT_IDLETIME("table.compaction.minor.idle", "5m", PropertyType.TIMEDURATION,
-      "When the age of the youngest key value in a tablets in memory map exceeds this configuration, then"
-          + " a minor compaction may be initiated. There is no guarantee an idle tablet will be compacted."
-          + "This property was deprecated because the new property table.compaction.minor.age can offer the "
-          + " same functionality although it may cause more minor compactions than this property would have.",
-      "1.3.5"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
       "A configurable dispatcher that decides what compaction service a table should use.",
@@ -895,6 +911,9 @@ public enum Property {
   TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
       "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
+  TABLE_MAX_MERGEABILITY_THRESHOLD("table.mergeability.threshold", ".25", PropertyType.FRACTION,
+      "A range of tablets are eligible for automatic merging until the combined size of RFiles reaches this percentage of the split threshold.",
+      "4.0.0"),
 
   // Crypto-related properties
   @Experimental
@@ -918,6 +937,14 @@ public enum Property {
       "The maximum amount of memory that will be used to cache results of a client query/scan. "
           + "Once this limit is reached, the buffered data is sent to the client.",
       "1.3.5"),
+  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "100", PropertyType.COUNT,
+      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited.",
+      "2.1.0"),
+  TABLE_BULK_MAX_TABLET_FILES("table.bulk.max.tablet.files", "100", PropertyType.COUNT,
+      "The maximum number of files a bulk import can add to a single tablet.  When this property "
+          + "is exceeded for any tablet the entire bulk import operation will fail before making any "
+          + "changes. Value of 0 is unlimited.",
+      "4.0.0"),
   TABLE_FILE_TYPE("table.file.type", RFile.EXTENSION, PropertyType.FILENAME_EXT,
       "Change the type of file a table writes.", "1.3.5"),
   TABLE_LOAD_BALANCER("table.balancer", "org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer",
@@ -944,17 +971,28 @@ public enum Property {
           + " defaults are used.",
       "1.3.5"),
   TABLE_FILE_MAX("table.file.max", "15", PropertyType.COUNT,
-      "The maximum number of RFiles each tablet in a table can have. When"
-          + " adjusting this property you may want to consider adjusting"
-          + " table.compaction.major.ratio also. Setting this property to 0 will make"
-          + " it default to tserver.scan.files.open.max-1, this will prevent a tablet"
-          + " from having more RFiles than can be opened. Prior to 2.1.0 this property"
-          + " was used to trigger merging minor compactions, but merging minor compactions"
-          + " were removed in 2.1.0. Now this property is only used by the"
-          + " DefaultCompactionStrategy and the RatioBasedCompactionPlanner."
-          + " The RatioBasedCompactionPlanner started using this property in 2.1.3, before"
-          + " that it did not use the property.",
+      "This property is used to signal to the compaction planner that it should be more "
+          + "aggressive for compacting tablets that exceed this limit. The "
+          + "RatioBasedCompactionPlanner will lower the compaction ratio and increase the "
+          + "priority for tablets that exceed this limit. When  adjusting this property you may "
+          + "want to consider adjusting table.compaction.major.ratio also. Setting this property "
+          + "to 0 will make it default to tserver.scan.files.open.max-1, this will prevent a tablet"
+          + " from having more RFiles than can be opened by a scan.",
       "1.4.0"),
+  TABLE_FILE_PAUSE("table.file.pause", "100", PropertyType.COUNT,
+      "When a tablet has more than this number of files, bulk imports and minor compactions "
+          + "will wait until the tablet has less files before proceeding.  This will cause back "
+          + "pressure on bulk imports and writes to tables when compactions are not keeping up. "
+          + "Only the number of files a tablet currently has is considered for pausing, the "
+          + "number of files a bulk import will add is not considered. This means a bulk import "
+          + "can surge above this limit once causing future bulk imports or minor compactions to "
+          + "pause until compactions can catch up.  This property plus "
+          + TABLE_BULK_MAX_TABLET_FILES.getKey()
+          + " determines the total number of files a tablet could temporarily surge to based on bulk "
+          + "imports.  Ideally this property would be set higher than " + TABLE_FILE_MAX.getKey()
+          + " so that compactions are more aggressive prior to reaching the pause point. Value of 0 is "
+          + "unlimited.",
+      "4.0.0"),
   TABLE_MERGE_FILE_MAX("table.merge.file.max", "10000", PropertyType.COUNT,
       "The maximum number of files that a merge operation will process.  Before "
           + "merging a sum of the number of files in the merge range is computed and if it "
@@ -991,10 +1029,6 @@ public enum Property {
       "1.3.5"),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type.", "1.3.5"),
-  TABLE_BULK_MAX_TABLETS("table.bulk.max.tablets", "0", PropertyType.COUNT,
-      "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
-          + "This property is only enforced in the new bulk import API.",
-      "2.1.0"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
@@ -1115,7 +1149,6 @@ public enum Property {
           + "constraint.",
       "2.0.0"),
   // Compactor properties
-  @Experimental
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
   COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
@@ -1123,12 +1156,10 @@ public enum Property {
       "Interval at which Compactors will check to see if the currently executing compaction"
           + " should be cancelled. This checks for situations like was the tablet deleted (split "
           + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
-      "4.0.0"),
-  @Experimental
+      "2.1.4"),
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
       "If the compactor.port.client ports are in use, search higher ports until one is available.",
       "2.1.0"),
-  @Experimental
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers.", "2.1.0"),
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
@@ -1139,43 +1170,34 @@ public enum Property {
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
-  @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
-  @Experimental
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
       "2.1.0"),
-  @Experimental
   COMPACTOR_THREADCHECK("compactor.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "2.1.0"),
-  @Experimental
   COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
-  @Experimental
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compaction coordinator server.",
       "2.1.0"),
-  @Experimental
+  COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT("compaction.coordinator.reservation.threads.root",
+      "1", PropertyType.COUNT,
+      "The number of threads used to reserve files for compaction in a tablet for the root tablet.",
+      "4.0.0"),
+  COMPACTION_COORDINATOR_RESERVATION_THREADS_META("compaction.coordinator.reservation.threads.meta",
+      "1", PropertyType.COUNT,
+      "The number of threads used to reserve files for compaction in a tablet for accumulo.metadata tablets.",
+      "4.0.0"),
+  COMPACTION_COORDINATOR_RESERVATION_THREADS_USER("compaction.coordinator.reservation.threads.user",
+      "64", PropertyType.COUNT,
+      "The number of threads used to reserve files for compaction in a tablet for user tables.",
+      "4.0.0"),
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
-      "The interval at which to check for dead compactors.", "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS(
-      "compaction.coordinator.compaction.finalizer.threads.maximum", "5", PropertyType.COUNT,
-      "The maximum number of threads to use for notifying tablet servers that an external compaction has completed.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL(
-      "compaction.coordinator.compaction.finalizer.check.interval", "60s",
-      PropertyType.TIMEDURATION,
-      "The interval at which to check for external compaction final state markers in the metadata table.",
-      "2.1.0"),
-  @Experimental
-  COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
-      "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
-      "The interval at which to check the tservers for external compactions.", "2.1.0");
+      "The interval at which to check for dead compactors.", "2.1.0");
 
   private final String key;
   private final String defaultValue;
@@ -1452,10 +1474,10 @@ public enum Property {
       RPC_MAX_MESSAGE_SIZE,
 
       // compaction coordiantor properties
-      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE,
+      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
 
       // block cache options
-      TSERV_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
+      GENERAL_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
       TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
 
       // blocksize options
@@ -1470,8 +1492,7 @@ public enum Property {
       COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
-      TSERV_SESSION_MAXIDLE, TSERV_UPDATE_SESSION_MAXIDLE);
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart

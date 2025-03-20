@@ -77,8 +77,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
     Utils.getTableNameLock().lock();
     try {
       // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.tableId,
-          TableOperation.CREATE);
+      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.namespaceId,
+          tableInfo.tableId, TableOperation.CREATE);
 
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
       NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
@@ -92,7 +92,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(env.getContext(), TablePropKey.of(env.getContext(), tableInfo.tableId),
+      PropUtil.setProperties(env.getContext(), TablePropKey.of(tableInfo.tableId),
           getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),

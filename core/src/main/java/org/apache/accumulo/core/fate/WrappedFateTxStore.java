@@ -24,14 +24,15 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
-import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
-import org.apache.accumulo.core.util.Pair;
+import com.google.common.base.Preconditions;
 
 public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   protected final FateStore.FateTxStore<T> wrapped;
+  private final boolean allowForceDel;
 
-  public WrappedFateTxStore(FateStore.FateTxStore<T> wrapped) {
+  public WrappedFateTxStore(FateStore.FateTxStore<T> wrapped, boolean allowForceDel) {
     this.wrapped = wrapped;
+    this.allowForceDel = allowForceDel;
   }
 
   @Override
@@ -65,11 +66,6 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   }
 
   @Override
-  public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
-    return wrapped.getStatusAndKey();
-  }
-
-  @Override
   public void setStatus(FateStore.TStatus status) {
     wrapped.setStatus(status);
   }
@@ -92,6 +88,12 @@ public class WrappedFateTxStore<T> implements FateStore.FateTxStore<T> {
   @Override
   public void delete() {
     wrapped.delete();
+  }
+
+  @Override
+  public void forceDelete() {
+    Preconditions.checkState(allowForceDel, "Force delete is not allowed");
+    wrapped.forceDelete();
   }
 
   @Override

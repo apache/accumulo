@@ -43,24 +43,23 @@ public class UniqueNameAllocator {
   private static final int DEFAULT_MIN = DefaultConfiguration.getInstance().getCount(MIN_PROP);
 
   private final ServerContext context;
-  private final String nextNamePath;
 
   private long next = 0;
   private long maxAllocated = 0;
 
   public UniqueNameAllocator(ServerContext context) {
     this.context = context;
-    nextNamePath = Constants.ZROOT + "/" + context.getInstanceID() + Constants.ZNEXT_FILE;
   }
 
   public synchronized String getNextName() {
     while (next >= maxAllocated) {
       final int allocate = getAllocation();
       try {
-        byte[] max = context.getZooReaderWriter().mutateExisting(nextNamePath, currentValue -> {
-          long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
-          return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
-        });
+        byte[] max = context.getZooSession().asReaderWriter().mutateExisting(Constants.ZNEXT_FILE,
+            currentValue -> {
+              long l = Long.parseLong(new String(currentValue, UTF_8), Character.MAX_RADIX);
+              return Long.toString(l + allocate, Character.MAX_RADIX).getBytes(UTF_8);
+            });
 
         maxAllocated = Long.parseLong(new String(max, UTF_8), Character.MAX_RADIX);
         next = maxAllocated - allocate;

@@ -28,11 +28,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalLong;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -49,12 +56,14 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
@@ -83,13 +92,13 @@ public class UpdateTabletsTest {
    * developer has determined that split code can handle that column OR has opened an issue about
    * handling it.
    */
-  private static final Set<ColumnType> COLUMNS_HANDLED_BY_SPLIT =
-      EnumSet.of(ColumnType.TIME, ColumnType.LOGS, ColumnType.FILES, ColumnType.PREV_ROW,
-          ColumnType.OPID, ColumnType.LOCATION, ColumnType.ECOMP, ColumnType.SELECTED,
-          ColumnType.LOADED, ColumnType.USER_COMPACTION_REQUESTED, ColumnType.MERGED,
-          ColumnType.LAST, ColumnType.SCANS, ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID,
-          ColumnType.FLUSH_NONCE, ColumnType.SUSPEND, ColumnType.AVAILABILITY,
-          ColumnType.HOSTING_REQUESTED, ColumnType.COMPACTED, ColumnType.UNSPLITTABLE);
+  private static final Set<ColumnType> COLUMNS_HANDLED_BY_SPLIT = EnumSet.of(ColumnType.TIME,
+      ColumnType.LOGS, ColumnType.FILES, ColumnType.PREV_ROW, ColumnType.OPID, ColumnType.LOCATION,
+      ColumnType.ECOMP, ColumnType.SELECTED, ColumnType.LOADED,
+      ColumnType.USER_COMPACTION_REQUESTED, ColumnType.MERGED, ColumnType.LAST, ColumnType.SCANS,
+      ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID, ColumnType.FLUSH_NONCE,
+      ColumnType.SUSPEND, ColumnType.AVAILABILITY, ColumnType.HOSTING_REQUESTED,
+      ColumnType.COMPACTED, ColumnType.UNSPLITTABLE, ColumnType.MERGEABILITY);
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -136,7 +145,8 @@ public class UpdateTabletsTest {
 
     var expected = Map.of(ke1, ke1Expected, ke2, ke2Expected, ke3, ke3Expected, ke4, ke4Expected);
 
-    Set<KeyExtent> newExtents = Set.of(ke1, ke2, ke3, ke4);
+    SortedMap<KeyExtent,TabletMergeability> newExtents = new TreeMap<>(Set.of(ke1, ke2, ke3, ke4)
+        .stream().collect(Collectors.toMap(Function.identity(), e -> TabletMergeability.never())));
 
     TabletMetadata tabletMeta = EasyMock.createMock(TabletMetadata.class);
     EasyMock.expect(tabletMeta.getFilesMap()).andReturn(tabletFiles).anyTimes();
@@ -230,6 +240,8 @@ public class UpdateTabletsTest {
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file3)).andReturn(newFileInfo("d", "f"));
     EasyMock.expect(splitter.getCachedFileInfo(tableId, file4)).andReturn(newFileInfo("d", "j"));
     EasyMock.expect(manager.getSplitter()).andReturn(splitter).atLeastOnce();
+    EasyMock.expect(manager.getSteadyTime()).andReturn(SteadyTime.from(100_000, TimeUnit.SECONDS))
+        .atLeastOnce();
 
     ServiceLock managerLock = EasyMock.mock(ServiceLock.class);
     EasyMock.expect(context.getServiceLock()).andReturn(managerLock).anyTimes();
@@ -294,6 +306,11 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet1Mutator.putFile(file1, new DataFileValue(333, 33, 20)))
         .andReturn(tablet1Mutator);
     EasyMock.expect(tablet1Mutator.putFile(file2, dfv2)).andReturn(tablet1Mutator);
+    // SplitInfo marked as system generated so should be set to ALWAYS (0 delay)
+    EasyMock
+        .expect(tablet1Mutator.putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(100_000, TimeUnit.SECONDS))))
+        .andReturn(tablet1Mutator);
     tablet1Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
     EasyMock.expect(tabletsMutator.mutateTablet(newExtent1)).andReturn(tablet1Mutator);
@@ -310,6 +327,11 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid1)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putCompacted(ucfid3)).andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putTabletAvailability(availability)).andReturn(tablet2Mutator);
+    // SplitInfo marked as system generated so should be set to ALWAYS (0 delay)
+    EasyMock
+        .expect(tablet2Mutator.putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(100_000, TimeUnit.SECONDS))))
+        .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded1.getTabletFile(), flid1))
         .andReturn(tablet2Mutator);
     EasyMock.expect(tablet2Mutator.putBulkFile(loaded2.getTabletFile(), flid2))
@@ -353,7 +375,8 @@ public class UpdateTabletsTest {
     EasyMock.expect(tabletsMutator.mutateTablet(origExtent)).andReturn(tablet3Mutator);
 
     // setup processing of conditional mutations
-    Ample.ConditionalResult cr = EasyMock.niceMock(Ample.ConditionalResult.class);
+    Ample.ConditionalResult cr = EasyMock.createMock(Ample.ConditionalResult.class);
+    EasyMock.expect(cr.getExtent()).andReturn(origExtent).atLeastOnce();
     EasyMock.expect(cr.getStatus()).andReturn(Ample.ConditionalResult.Status.ACCEPTED)
         .atLeastOnce();
     EasyMock.expect(tabletsMutator.process())
@@ -366,8 +389,9 @@ public class UpdateTabletsTest {
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(newExtent1.endRow(), newExtent2.endRow()));
-    UpdateTablets updateTablets =
-        new UpdateTablets(new SplitInfo(origExtent, splits), List.of(dir1, dir2));
+    UpdateTablets updateTablets = new UpdateTablets(
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
+        List.of(dir1, dir2));
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample, tabletMeta, splitter, tabletsMutator, tablet1Mutator,
@@ -445,8 +469,9 @@ public class UpdateTabletsTest {
     // Now we can actually test the split code that writes the new tablets with a bunch columns in
     // the original tablet
     SortedSet<Text> splits = new TreeSet<>(List.of(new Text("c")));
-    UpdateTablets updateTablets =
-        new UpdateTablets(new SplitInfo(origExtent, splits), List.of("d1"));
+    UpdateTablets updateTablets = new UpdateTablets(
+        new SplitInfo(origExtent, TabletMergeabilityUtil.systemDefaultSplits(splits)),
+        List.of("d1"));
     updateTablets.call(fateId, manager);
 
     EasyMock.verify(manager, context, ample);

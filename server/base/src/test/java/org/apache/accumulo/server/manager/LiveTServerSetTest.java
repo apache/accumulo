@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.LiveTServerSet.Listener;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -47,13 +48,21 @@ public class LiveTServerSetTest {
             mockConn, Constants.DEFAULT_RESOURCE_GROUP_NAME);
     servers.put("server1", server1);
 
-    LiveTServerSet tservers = new LiveTServerSet(EasyMock.createMock(ServerContext.class),
-        EasyMock.createMock(Listener.class));
+    ServerContext ctx = EasyMock.createMock(ServerContext.class);
+    ZooCache zc = EasyMock.createMock(ZooCache.class);
+    EasyMock.expect(ctx.getZooCache()).andReturn(zc);
+    zc.addZooCacheWatcher(EasyMock.isA(LiveTServerSet.class));
+    EasyMock.replay(ctx, zc);
+
+    LiveTServerSet tservers = new LiveTServerSet(ctx, EasyMock.createMock(Listener.class));
 
     assertEquals(server1.instance, tservers.find(servers, "localhost:1234"));
     assertNull(tservers.find(servers, "localhost:4321"));
     assertEquals(server1.instance, tservers.find(servers, "localhost:1234[5555]"));
     assertNull(tservers.find(servers, "localhost:1234[55755]"));
+
+    EasyMock.verify(ctx, zc);
+
   }
 
 }

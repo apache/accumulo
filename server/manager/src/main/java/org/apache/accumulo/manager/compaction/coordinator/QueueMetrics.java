@@ -19,11 +19,15 @@
 package org.apache.accumulo.manager.compaction.coordinator;
 
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUES;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
-import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE;
 import static org.apache.accumulo.core.metrics.MetricsUtil.formatString;
 
 import java.util.HashMap;
@@ -48,56 +52,89 @@ import com.google.common.collect.Sets.SetView;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
+import io.micrometer.core.instrument.Timer;
 
 public class QueueMetrics implements MetricsProducer {
 
   private static class QueueMeters {
-    private final Gauge length;
     private final Gauge jobsQueued;
+    private final Gauge jobsQueuedSize;
     private final Gauge jobsDequeued;
     private final Gauge jobsRejected;
     private final Gauge jobsLowestPriority;
+    private final Gauge jobsMinAge;
+    private final Gauge jobsMaxAge;
+    private final Gauge jobsAvgAge;
+    private final Timer jobsQueueTimer;
 
     public QueueMeters(MeterRegistry meterRegistry, CompactorGroupId cgid,
         CompactionJobPriorityQueue queue) {
       var queueId = formatString(cgid.canonical());
 
-      length =
-          Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName(), queue, q -> q.getMaxSize())
-              .description("Length of priority queues").tags(List.of(Tag.of("queue.id", queueId)))
-              .register(meterRegistry);
-
       jobsQueued = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getName(), queue,
               q -> q.getQueuedJobs())
-          .description("Count of queued jobs").tags(List.of(Tag.of("queue.id", queueId)))
-          .register(meterRegistry);
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_QUEUED.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsQueuedSize = Gauge
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName(), queue,
+              q -> q.getQueuedJobsSize())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
 
       jobsDequeued = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getName(), queue,
               q -> q.getDequeuedJobs())
-          .description("Count of jobs dequeued").tags(List.of(Tag.of("queue.id", queueId)))
-          .register(meterRegistry);
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_DEQUEUED.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
 
       jobsRejected = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName(), queue,
               q -> q.getRejectedJobs())
-          .description("Count of rejected jobs").tags(List.of(Tag.of("queue.id", queueId)))
-          .register(meterRegistry);
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
 
       jobsLowestPriority = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName(), queue,
               q -> q.getLowestPriority())
-          .description("Lowest priority queued job").tags(List.of(Tag.of("queue.id", queueId)))
-          .register(meterRegistry);
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsMinAge = Gauge
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getName(), queue,
+              q -> q.getJobQueueStats().getMinAge().toSeconds())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MIN_AGE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsMaxAge = Gauge
+          .builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getName(), queue,
+              q -> q.getJobQueueStats().getMaxAge().toSeconds())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_MAX_AGE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsAvgAge = Gauge.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getName(), queue,
+          // Divide by 1000.0 instead of using toSeconds() so we get a double
+          q -> q.getJobQueueStats().getAvgAge().toMillis() / 1000.0)
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_AVG_AGE.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+
+      jobsQueueTimer = Timer.builder(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getName())
+          .description(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_POLL_TIMER.getDescription())
+          .tags(List.of(Tag.of("queue.id", queueId))).register(meterRegistry);
+      queue.setJobQueueTimerCallback(jobsQueueTimer);
     }
 
     private void removeMeters(MeterRegistry registry) {
-      registry.remove(length);
       registry.remove(jobsQueued);
       registry.remove(jobsDequeued);
       registry.remove(jobsRejected);
       registry.remove(jobsLowestPriority);
+      registry.remove(jobsMinAge);
+      registry.remove(jobsMaxAge);
+      registry.remove(jobsAvgAge);
+      registry.remove(jobsQueueTimer);
+      registry.remove(jobsQueuedSize);
     }
   }
 
@@ -122,21 +159,25 @@ public class QueueMetrics implements MetricsProducer {
     // read the volatile variable once so the rest of the method has consistent view
     var localRegistry = meterRegistry;
 
+    if (localRegistry == null) {
+      return;
+    }
+
     if (queueCountMeter == null) {
       queueCountMeter = Gauge
           .builder(COMPACTOR_JOB_PRIORITY_QUEUES.getName(), compactionJobQueues,
               CompactionJobQueues::getQueueCount)
-          .description("Number of current Queues").register(localRegistry);
+          .description(COMPACTOR_JOB_PRIORITY_QUEUES.getDescription()).register(localRegistry);
     }
-    LOG.debug("update - cjq queues: {}", compactionJobQueues.getQueueIds());
+    LOG.trace("update - cjq queues: {}", compactionJobQueues.getQueueIds());
 
     Set<CompactorGroupId> definedQueues = compactionJobQueues.getQueueIds();
-    LOG.debug("update - defined queues: {}", definedQueues);
+    LOG.trace("update - defined queues: {}", definedQueues);
 
     // Copy the keySet into a new Set so that changes to perQueueMetrics
     // don't affect the collection
     Set<CompactorGroupId> queuesWithMetrics = new HashSet<>(perQueueMetrics.keySet());
-    LOG.debug("update - queues with metrics: {}", queuesWithMetrics);
+    LOG.trace("update - queues with metrics: {}", queuesWithMetrics);
 
     SetView<CompactorGroupId> queuesWithoutMetrics =
         Sets.difference(definedQueues, queuesWithMetrics);

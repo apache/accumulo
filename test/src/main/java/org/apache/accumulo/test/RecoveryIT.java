@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
@@ -143,10 +143,12 @@ public class RecoveryIT extends AccumuloClusterHarness {
 
       // Stop any running Compactors and ScanServers
       control.stopAllServers(ServerType.COMPACTOR);
-      Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).size() == 0, 60_000);
+      Wait.waitFor(() -> getServerContext().getServerPaths()
+          .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
 
       control.stopAllServers(ServerType.SCAN_SERVER);
-      Wait.waitFor(() -> ((ClientContext) c).getScanServers().size() == 0, 60_000);
+      Wait.waitFor(() -> getServerContext().getServerPaths()
+          .getScanServer(rg -> true, AddressSelector.all(), true).size() == 0, 60_000);
 
       // Kill the TabletServer in resource group that is hosting the table
       List<Process> procs = control.getTabletServers(RESOURCE_GROUP);
@@ -221,8 +223,7 @@ public class RecoveryIT extends AccumuloClusterHarness {
           String filename = walog.getPath();
           String dest = RecoveryPath.getRecoveryPath(new Path(filename)).toString();
 
-          if (ctx.getZooCache().get(ctx.getZooKeeperRoot() + Constants.ZRECOVERY + "/" + sortId)
-              != null
+          if (ctx.getZooCache().get(Constants.ZRECOVERY + "/" + sortId) != null
               || !ctx.getVolumeManager().exists(SortedLogState.getFinishedMarkerPath(dest))) {
             return false;
           }

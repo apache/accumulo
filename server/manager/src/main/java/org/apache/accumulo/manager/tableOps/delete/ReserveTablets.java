@@ -96,7 +96,8 @@ public class ReserveTablets extends ManagerRepo {
           // must wait for the tablet to have no location before proceeding to actually delete. See
           // the documentation about the opid column in the MetadataSchema class for more details.
           conditionalMutator.mutateTablet(tabletMeta.getExtent()).requireAbsentOperation()
-              .putOperation(opid).submit(tm -> opid.equals(tm.getOperationId()));
+              .putOperation(opid)
+              .submit(tm -> opid.equals(tm.getOperationId()), () -> "put opid " + opid);
           submitted++;
         }
       }

@@ -22,6 +22,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
+import java.io.InterruptedIOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -255,6 +256,8 @@ public class ThriftScanner {
 
     KeyExtent prevExtent = null;
 
+    volatile boolean closeInitiated = false;
+
     public ScanState(ClientContext context, TableId tableId, Authorizations authorizations,
         Range range, SortedSet<Column> fetchedColumns, int size,
         List<IterInfo> serverSideIteratorList,
@@ -389,8 +392,8 @@ public class ThriftScanner {
       // call the scan server selector and just go back to the previous scan server
       addr = scanState.prevLoc;
       log.trace(
-          "For tablet {} continuing scan on scan server {} without consulting scan server selector, using busyTimeout {}",
-          loc.getExtent(), addr.serverAddress, scanState.busyTimeout);
+          "For tablet {} continuing scan {} on scan server {} without consulting scan server selector, using busyTimeout {}",
+          loc.getExtent(), scanState.scanID, addr.serverAddress, scanState.busyTimeout);
     } else {
       var tabletId = new TabletIdImpl(loc.getExtent());
       // obtain a snapshot once and only expose this snapshot to the plugin for consistency
@@ -768,8 +771,13 @@ public class ThriftScanner {
           if (addr.serverType == ServerType.TSERVER) {
             // only tsever locations are in cache, invalidating a scan server would not find
             // anything the cache
-            ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
-                addr.serverAddress);
+            boolean wasInterruptedAfterClose =
+                e.getCause() != null && e.getCause().getClass().equals(InterruptedIOException.class)
+                    && scanState.closeInitiated;
+            if (!wasInterruptedAfterClose) {
+              ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
+                  addr.serverAddress);
+            }
           }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()
               + " " + addr.serverAddress;
@@ -898,7 +906,6 @@ public class ThriftScanner {
         }
 
       } else {
-        // log.debug("Calling continue scan : "+scanState.range+" loc = "+loc);
         String msg =
             "Continuing scan tserver=" + addr.serverAddress + " scanid=" + scanState.scanID;
         Thread.currentThread().setName(msg);
@@ -981,7 +988,8 @@ public class ThriftScanner {
     if (!scanState.finished && scanState.scanID != null && scanState.prevLoc != null) {
       TInfo tinfo = TraceUtil.traceInfo();
 
-      log.debug("Closing active scan {} {}", scanState.prevLoc, scanState.scanID);
+      log.trace("Closing active scan {} {} {}", scanState.prevLoc.serverType,
+          scanState.prevLoc.serverAddress, scanState.scanID);
       HostAndPort parsedLocation = HostAndPort.fromString(scanState.prevLoc.serverAddress);
       TabletScanClientService.Client client = null;
       try {

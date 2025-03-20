@@ -32,12 +32,13 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -129,7 +130,7 @@ public class RestartIT extends AccumuloClusterHarness {
       control.stopAllServers(ServerType.GARBAGE_COLLECTOR);
       control.stopAllServers(ServerType.MONITOR);
 
-      ZooCache zcache = cluster.getServerContext().getZooCache();
+      ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();
       Optional<ServiceLockData> managerLockData;
       do {
@@ -179,7 +180,7 @@ public class RestartIT extends AccumuloClusterHarness {
 
       control.stopAllServers(ServerType.MANAGER);
 
-      ZooCache zcache = cluster.getServerContext().getZooCache();
+      ZooCache zcache = ((ClientContext) c).getZooCache();
       var zLockPath = getServerContext().getServerPaths().createManagerPath();
       Optional<ServiceLockData> managerLockData;
       do {

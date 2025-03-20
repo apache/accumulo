@@ -24,6 +24,7 @@ import static org.apache.accumulo.minicluster.ServerType.SCAN_SERVER;
 import static org.apache.accumulo.minicluster.ServerType.TABLET_SERVER;
 import static org.apache.accumulo.test.functional.ScannerIT.countActiveScans;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -41,9 +42,14 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
+import org.apache.accumulo.core.client.admin.ActiveScan;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.ScanType;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -197,7 +203,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       // should eventually see the four zombie scans running against four tablets
       Wait.waitFor(() -> countDistinctTabletsScans(table, c) == 4);
 
-      assertEquals(1, c.instanceOperations().getTabletServers().size());
+      assertEquals(1, c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size());
 
       // Start 3 new tablet servers, this should cause the table to balance and the tablets with
       // zombie scans to unload. The Zombie scans should not prevent the table from unloading. The
@@ -206,7 +212,8 @@ public class ZombieScanIT extends ConfigurableMacBase {
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER, Map.of(), 4);
 
       // Wait for all tablets servers
-      Wait.waitFor(() -> c.instanceOperations().getTabletServers().size() == 4);
+      Wait.waitFor(
+          () -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 4);
 
       // The table should eventually balance across the 4 tablet servers
       Wait.waitFor(() -> countLocations(table, c) == 4);
@@ -230,15 +237,19 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
       // The zombie scans should migrate with the tablets, taking up more scan threads in the
       // system.
-      Set<String> tabletSeversWithZombieScans = new HashSet<>();
-      for (String tserver : c.instanceOperations().getTabletServers()) {
-        if (c.instanceOperations().getActiveScans(tserver).stream()
+      Set<ServerId> tabletServersWithZombieScans = new HashSet<>();
+      for (ServerId tserver : c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)) {
+        if (c.instanceOperations().getActiveScans(List.of(tserver)).stream()
             .flatMap(activeScan -> activeScan.getSsiList().stream())
             .anyMatch(scanIters -> scanIters.contains(ZombieIterator.class.getName()))) {
-          tabletSeversWithZombieScans.add(tserver);
+          tabletServersWithZombieScans.add(tserver);
         }
       }
-      assertEquals(4, tabletSeversWithZombieScans.size());
+      assertEquals(4, tabletServersWithZombieScans.size());
+
+      // This check may be outside the scope of this test but works nicely for this check and is
+      // simple enough to include
+      assertValidScanIds(c);
 
       executor.shutdownNow();
     }
@@ -266,7 +277,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       if (serverType == SCAN_SERVER) {
         // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
         // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(() -> !c.instanceOperations().getScanServers().isEmpty());
+        Wait.waitFor(() -> !c.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
       }
 
       c.tableOperations().create(table);
@@ -344,14 +355,10 @@ public class ZombieScanIT extends ConfigurableMacBase {
 
   private static long countDistinctTabletsScans(String table, AccumuloClient client)
       throws Exception {
-    var tservers = client.instanceOperations().getTabletServers();
-    long count = 0;
-    for (String tserver : tservers) {
-      count += client.instanceOperations().getActiveScans(tserver).stream()
-          .filter(activeScan -> activeScan.getTable().equals(table))
-          .map(activeScan -> activeScan.getTablet()).distinct().count();
-    }
-    return count;
+    Set<ServerId> tservers = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
+    return client.instanceOperations().getActiveScans(tservers).stream()
+        .filter(activeScan -> activeScan.getTable().equals(table)).map(ActiveScan::getTablet)
+        .distinct().count();
   }
 
   private Future<String> startStuckScan(AccumuloClient c, String table, ExecutorService executor,
@@ -399,5 +406,25 @@ public class ZombieScanIT extends ConfigurableMacBase {
     return sink.getLines().stream().map(TestStatsDSink::parseStatsDMetric)
         .filter(metric -> metric.getName().equals(SCAN_ZOMBIE_THREADS.getName()))
         .mapToInt(metric -> Integer.parseInt(metric.getValue())).max().orElse(-1);
+  }
+
+  /**
+   * Ensure that the scan session ids are valid (should not expect 0 or -1). 0 would mean the id was
+   * never set (previously existing bug). -1 previously indicated that the scan session was no
+   * longer tracking the id (occurred for scans when cleanup was attempted but deferred for later)
+   */
+  private void assertValidScanIds(AccumuloClient c)
+      throws AccumuloException, AccumuloSecurityException {
+    Set<Long> scanIds = new HashSet<>();
+    Set<ScanType> scanTypes = new HashSet<>();
+    var tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
+    c.instanceOperations().getActiveScans(tservers).forEach(activeScan -> {
+      scanIds.add(activeScan.getScanid());
+      scanTypes.add(activeScan.getType());
+    });
+    assertNotEquals(0, scanIds.size());
+    scanIds.forEach(id -> assertTrue(id != 0L && id != -1L));
+    // ensure coverage of both batch and single scans
+    assertEquals(scanTypes, Set.of(ScanType.SINGLE, ScanType.BATCH));
   }
 }

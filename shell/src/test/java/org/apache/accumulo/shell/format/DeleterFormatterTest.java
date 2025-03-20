@@ -21,7 +21,6 @@ package org.apache.accumulo.shell.format;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createNiceMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -85,12 +84,17 @@ public class DeleterFormatterTest {
   }
 
   @BeforeEach
-  public void setUp() throws IOException {
+  public void setUp() throws Exception {
     input = new SettableInputStream();
     baos = new ByteArrayOutputStream();
 
-    writer = createNiceMock(BatchWriter.class);
-    shellState = createNiceMock(Shell.class);
+    writer = createMock(BatchWriter.class);
+    writer.addMutation(anyObject());
+    expectLastCall().anyTimes();
+    writer.close();
+    expectLastCall().anyTimes();
+
+    shellState = createMock(Shell.class);
 
     terminal = new DumbTerminal(input, baos);
     terminal.setSize(new Size(80, 24));
@@ -197,7 +201,7 @@ public class DeleterFormatterTest {
   @Test
   public void testMutationException() throws MutationsRejectedException {
     MutationsRejectedException mre = createMock(MutationsRejectedException.class);
-    BatchWriter exceptionWriter = createNiceMock(BatchWriter.class);
+    BatchWriter exceptionWriter = createMock(BatchWriter.class);
     exceptionWriter.close();
     expectLastCall().andThrow(mre);
     exceptionWriter.addMutation(anyObject(Mutation.class));

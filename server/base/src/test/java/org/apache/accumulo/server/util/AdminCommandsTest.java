@@ -38,13 +38,6 @@ public class AdminCommandsTest {
   }
 
   @Test
-  public void testCheckTabletsCommand() {
-    Admin.CheckTabletsCommand cmd = new Admin.CheckTabletsCommand();
-    assertFalse(cmd.fixFiles);
-    assertNull(cmd.tableName);
-  }
-
-  @Test
   public void testStopManagerCommand() {
     new Admin.StopManagerCommand();
   }
@@ -80,8 +73,8 @@ public class AdminCommandsTest {
 
   // not a command, but easy enough to include here
   @Test
-  public void testAdminOpts() {
-    Admin.AdminOpts opts = new Admin.AdminOpts();
+  public void testStopOpts() {
+    Admin.StopCommand opts = new Admin.StopCommand();
     assertFalse(opts.force);
   }
 }

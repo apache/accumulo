@@ -47,7 +47,6 @@ public class Constants {
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
   public static final String ZNAMESPACES = "/namespaces";
-  public static final String ZNAMESPACE_NAME = "/name";
 
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
@@ -75,14 +74,14 @@ public class Constants {
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
 
-  public static final String ZPROBLEMS = "/problems";
-
   public static final String ZFATE = "/fate";
 
   public static final String ZNEXT_FILE = "/next_file";
 
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
   public static final String ZRECOVERY = "/recovery";
+
+  public static final String ZUPGRADE_PROGRESS = "/upgrade_progress";
 
   /**
    * Base znode for storing secret keys that back delegation tokens
@@ -91,10 +90,13 @@ public class Constants {
 
   public static final String ZTABLE_LOCKS = "/table_locks";
   public static final String ZMINI_LOCK = "/mini";
+  public static final String ZADMIN_LOCK = "/admin/lock";
+  public static final String ZTEST_LOCK = "/test/lock";
 
   public static final String BULK_PREFIX = "b-";
   public static final String BULK_RENAME_FILE = "renames.json";
   public static final String BULK_LOAD_MAPPING = "loadmap.json";
+  public static final String BULK_WORKING_PREFIX = "accumulo-bulk-";
 
   public static final String CLONE_PREFIX = "c-";
   public static final byte[] CLONE_PREFIX_BYTES = CLONE_PREFIX.getBytes(UTF_8);

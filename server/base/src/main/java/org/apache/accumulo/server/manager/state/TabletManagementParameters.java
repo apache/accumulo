@@ -24,11 +24,7 @@ import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -49,8 +45,6 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 
 import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
@@ -120,7 +114,7 @@ public class TabletManagementParameters {
     this.serversToShutdown =
         jdata.serversToShutdown.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
     this.migrations = jdata.migrations.entrySet().stream()
-        .collect(toUnmodifiableMap(entry -> JsonData.strToExtent(entry.getKey()),
+        .collect(toUnmodifiableMap(entry -> KeyExtent.fromBase64(entry.getKey()),
             entry -> new TServerInstance(entry.getValue())));
     this.level = jdata.level;
     this.compactionHints = makeImmutable(jdata.compactionHints.entrySet().stream()
@@ -226,31 +220,8 @@ public class TabletManagementParameters {
     Map<URI,URI> volumeReplacements;
     long steadyTime;
 
-    private static String toString(KeyExtent extent) {
-      DataOutputBuffer buffer = new DataOutputBuffer();
-      try {
-        extent.writeTo(buffer);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-
-      return Base64.getEncoder()
-          .encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
-
-    }
-
-    private static KeyExtent strToExtent(String kes) {
-      byte[] data = Base64.getDecoder().decode(kes);
-      DataInputBuffer buffer = new DataInputBuffer();
-      buffer.reset(data, data.length);
-      try {
-        return KeyExtent.readFrom(buffer);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    }
-
     // Gson requires private constructor
+    @SuppressWarnings("unused")
     private JsonData() {}
 
     JsonData(TabletManagementParameters params) {
@@ -261,8 +232,9 @@ public class TabletManagementParameters {
           .collect(toList());
       serversToShutdown = params.serversToShutdown.stream().map(TServerInstance::getHostPortSession)
           .collect(toList());
-      migrations = params.migrations.entrySet().stream().collect(
-          toMap(entry -> toString(entry.getKey()), entry -> entry.getValue().getHostPortSession()));
+      migrations =
+          params.migrations.entrySet().stream().collect(toMap(entry -> entry.getKey().toBase64(),
+              entry -> entry.getValue().getHostPortSession()));
       level = params.level;
       tserverGroups = params.getGroupedTServers().entrySet().stream()
           .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream()

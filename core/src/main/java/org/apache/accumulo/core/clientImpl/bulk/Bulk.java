@@ -42,6 +42,7 @@ public class Bulk {
     private Collection<FileInfo> files;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private Mapping() {}
 
     public Mapping(KeyExtent tablet, Files files) {
@@ -71,6 +72,7 @@ public class Bulk {
     private byte[] prevEndRow;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private Tablet() {}
 
     public Tablet(Text endRow, Text prevEndRow) {
@@ -111,6 +113,7 @@ public class Bulk {
     long estEntries;
 
     // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
     private FileInfo() {}
 
     public FileInfo(String fileName, long estFileSize, long estNumEntries) {

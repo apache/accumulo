@@ -28,33 +28,41 @@ monitor:
 gc:
   - localhost
 
+compactor:
+  q1:
+    # servers not specified, defaults to 1
+    hosts:
+      - localhost1
+      - localhost2
+  q2:
+    servers_per_host: 4
+    hosts:
+      - localhost3
+      - localhost4
+
+sserver:
+  default:
+    servers_per_host: 2
+    hosts:
+      - localhost1
+      - localhost2
+  highmem:
+    servers_per_host: 1	
+    hosts:
+      - hmvm1
+      - hmvm2
+      - hmvm3
+  cheap:
+    servers_per_host: 3	
+    hosts:
+      - burstyvm1
+      - burstyvm2
+
 tserver:
   default:
-    - localhost1
-    - localhost2
-    - localhost3
-    - localhost4
-
-#sserver:
-#  default:
-#    - localhost1
-#    - localhost2
-#  highmem:
-#    - hmvm1
-#    - hmvm2
-#    - hmvm3
-#  cheap:
-#    - burstyvm1
-#    - burstyvm2
-#
-#compactor:
-#  q1:
-#    - localhost1
-#    - localhost2
-#  q2:
-#    - localhost3
-#    - localhost4
-#
-#tservers_per_host: 2
-#sservers_per_host: 1
-    
+    servers_per_host: 2
+    hosts:
+      - localhost1
+      - localhost2
+      - localhost3
+      - localhost4

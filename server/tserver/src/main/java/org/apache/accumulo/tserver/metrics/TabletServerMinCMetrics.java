@@ -44,11 +44,11 @@ public class TabletServerMinCMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    activeMinc = Timer.builder(MINC_RUNNING.getName()).description("Minor compactions time active")
+    activeMinc = Timer.builder(MINC_RUNNING.getName()).description(MINC_RUNNING.getDescription())
         .register(registry);
 
-    queuedMinc = Timer.builder(MINC_QUEUED.getName())
-        .description("Queued minor compactions time queued").register(registry);
+    queuedMinc = Timer.builder(MINC_QUEUED.getName()).description(MINC_QUEUED.getDescription())
+        .register(registry);
   }
 
 }

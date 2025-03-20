@@ -60,6 +60,7 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -74,14 +75,12 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
-import org.apache.accumulo.server.problems.ProblemReport;
 import org.apache.accumulo.server.problems.ProblemReportingIterator;
-import org.apache.accumulo.server.problems.ProblemReports;
-import org.apache.accumulo.server.problems.ProblemType;
 import org.apache.hadoop.fs.FileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Collections2;
 
 import io.opentelemetry.api.trace.Span;
@@ -143,13 +142,48 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   // a unique id to identify a compactor
   private final long compactorID = nextCompactorID.getAndIncrement();
-  protected volatile Thread thread;
+  private volatile Thread thread;
   private final ServerContext context;
 
   private final AtomicBoolean interruptFlag = new AtomicBoolean(false);
 
-  public void interrupt() {
+  public synchronized void interrupt() {
     interruptFlag.set(true);
+
+    if (thread != null) {
+      // Never want to interrupt the thread after clearThread was called as the thread could have
+      // moved on to something completely different than the compaction. This method and clearThread
+      // being synchronized and clearThread setting thread to null prevent this.
+      thread.interrupt();
+    }
+  }
+
+  private class ThreadClearer implements AutoCloseable {
+    @Override
+    public void close() throws InterruptedException {
+      clearThread();
+    }
+  }
+
+  private synchronized ThreadClearer setThread() {
+    thread = Thread.currentThread();
+    return new ThreadClearer();
+  }
+
+  private synchronized void clearThread() throws InterruptedException {
+    Preconditions.checkState(thread == Thread.currentThread());
+    thread = null;
+    // If the thread was interrupted during compaction do not want to allow the thread to continue
+    // w/ the interrupt status set as this could impact code unrelated to the compaction. For
+    // internal compactions the thread will execute metadata update code after the compaction and
+    // would not want the interrupt status set for that.
+    if (Thread.interrupted()) {
+      throw new InterruptedException();
+    }
+  }
+
+  Thread getThread() {
+    return thread;
   }
 
   public long getCompactorID() {
@@ -275,7 +309,8 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   @Override
-  public CompactionStats call() throws IOException, CompactionCanceledException {
+  public CompactionStats call()
+      throws IOException, CompactionCanceledException, InterruptedException {
 
     FileSKVWriter mfw = null;
 
@@ -293,8 +328,9 @@ public class FileCompactor implements Callable<CompactionStats> {
     String newThreadName =
         "MajC compacting " + extent + " started " + threadStartDate + " file: " + outputFile;
     Thread.currentThread().setName(newThreadName);
-    thread = Thread.currentThread();
-    try {
+    // Use try w/ resources for clearing the thread instead of finally because clearing may throw an
+    // exception. Java's handling of exceptions thrown in finally blocks is not good.
+    try (var ignored = setThread()) {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
@@ -379,7 +415,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     } finally {
       Thread.currentThread().setName(oldThreadName);
       if (remove) {
-        thread = null;
         runningCompactions.remove(this);
       }
 
@@ -432,7 +467,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
         readers.add(reader);
 
-        InterruptibleIterator iter = new ProblemReportingIterator(context, extent.tableId(),
+        InterruptibleIterator iter = new ProblemReportingIterator(extent.tableId(),
             dataFile.getNormalizedPathStr(), false, reader);
         iter.setInterruptFlag(interruptFlag);
 
@@ -441,11 +476,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         iters.add(iter);
 
       } catch (Exception e) {
-
-        ProblemReports.getInstance(context).report(new ProblemReport(extent.tableId(),
-            ProblemType.FILE_READ, dataFile.getNormalizedPathStr(), e));
-
-        log.warn("Some problem opening data file {} {}", dataFile, e.getMessage(), e);
+        TabletLogger.fileReadFailed(dataFile.toString(), extent, e);
         // failed to open some data file... close the ones that were opened
         for (FileSKVIterator reader : readers) {
           try {

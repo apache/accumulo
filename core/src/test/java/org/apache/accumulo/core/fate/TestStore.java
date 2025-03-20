@@ -29,10 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.util.Pair;
 
 /**
@@ -53,14 +55,30 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateTxStore<String>> createAndReserve(FateKey key) {
-    throw new UnsupportedOperationException();
+  public Seeder<String> beginSeeding() {
+    return new Seeder<>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<String> repo, boolean autoCleanUp) {
+        return CompletableFuture.completedFuture(Optional.empty());
+      }
+
+      @Override
+      public void close() {}
+    };
+  }
+
+  @Override
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<String> repo,
+      boolean autoCleanUp) {
+    return false;
   }
 
   @Override
   public FateTxStore<String> reserve(FateId fateId) {
     if (reserved.contains(fateId)) {
-      throw new IllegalStateException(); // zoo store would wait, but do not expect test to reserve
+      // other fate stores would wait, but do not expect test to reserve
+      throw new IllegalStateException();
     }
     // twice... if test change, then change this
     reserved.add(fateId);
@@ -76,6 +94,18 @@ public class TestStore implements FateStore<String> {
       }
       return Optional.empty();
     }
+  }
+
+  @Override
+  public Map<FateId,FateReservation> getActiveReservations() {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
+  }
+
+  @Override
+  public void deleteDeadReservations() {
+    // This method only makes sense for the FateStores that don't store their reservations in memory
+    throw new UnsupportedOperationException();
   }
 
   private class TestFateTxStore implements FateTxStore<String> {
@@ -98,26 +128,28 @@ public class TestStore implements FateStore<String> {
 
     @Override
     public TStatus getStatus() {
-      return getStatusAndKey().getFirst();
-    }
-
-    @Override
-    public Optional<FateKey> getKey() {
-      return getStatusAndKey().getSecond();
-    }
-
-    @Override
-    public Pair<TStatus,Optional<FateKey>> getStatusAndKey() {
       if (!reserved.contains(fateId)) {
         throw new IllegalStateException();
       }
 
       Pair<TStatus,Optional<FateKey>> status = statuses.get(fateId);
       if (status == null) {
-        return new Pair<>(TStatus.UNKNOWN, Optional.empty());
+        return TStatus.UNKNOWN;
+      }
+      return status.getFirst();
+    }
+
+    @Override
+    public Optional<FateKey> getKey() {
+      if (!reserved.contains(fateId)) {
+        throw new IllegalStateException();
       }
 
-      return status;
+      Pair<TStatus,Optional<FateKey>> status = statuses.get(fateId);
+      if (status == null) {
+        return Optional.empty();
+      }
+      return status.getSecond();
     }
 
     @Override
@@ -185,6 +217,12 @@ public class TestStore implements FateStore<String> {
     }
 
     @Override
+    public void forceDelete() {
+      throw new UnsupportedOperationException(
+          this.getClass().getSimpleName() + " should not be calling forceDelete()");
+    }
+
+    @Override
     public void unreserve(Duration deferTime) {
       if (!reserved.remove(fateId)) {
         throw new IllegalStateException();
@@ -209,11 +247,17 @@ public class TestStore implements FateStore<String> {
       public TStatus getStatus() {
         return e.getValue().getFirst();
       }
+
+      @Override
+      public Optional<FateReservation> getFateReservation() {
+        throw new UnsupportedOperationException(
+            "Only the 'reserved' set should be used for reservations in the test store");
+      }
     });
   }
 
   @Override
-  public Stream<FateIdStatus> list(Set<TStatus> statuses) {
+  public Stream<FateIdStatus> list(EnumSet<TStatus> statuses) {
     return list().filter(fis -> statuses.contains(fis.getStatus()));
   }
 

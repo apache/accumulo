@@ -25,14 +25,15 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.logging.ConditionalLogger;
@@ -53,6 +54,7 @@ import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.event.Level;
@@ -101,7 +103,7 @@ public class CompactionJobGenerator {
   public Collection<CompactionJob> generateJobs(TabletMetadata tablet, Set<CompactionKind> kinds) {
     Collection<CompactionJob> systemJobs = Set.of();
 
-    log.debug("Planning for {} {} {}", tablet.getExtent(), kinds, this.hashCode());
+    log.trace("Planning for {} {} {}", tablet.getExtent(), kinds, this.hashCode());
 
     if (kinds.contains(CompactionKind.SYSTEM)) {
       CompactionServiceId serviceId = dispatch(CompactionKind.SYSTEM, tablet, Map.of());
@@ -239,6 +241,12 @@ public class CompactionJobGenerator {
     }
 
     CompactionPlanner.PlanningParameters params = new CompactionPlanner.PlanningParameters() {
+
+      @Override
+      public NamespaceId getNamespaceId() throws TableNotFoundException {
+        return ((ServiceEnvironmentImpl) env).getContext().getNamespaceId(tablet.getTableId());
+      }
+
       @Override
       public TableId getTableId() {
         return tablet.getTableId();
@@ -276,7 +284,7 @@ public class CompactionJobGenerator {
           Collection<CompactableFile> files = ecMeta.getJobFiles().stream()
               .map(f -> new CompactableFileImpl(f, allFiles2.get(f))).collect(Collectors.toList());
           CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-              ecMeta.getCompactionGroupId(), files, ecMeta.getKind(), Optional.empty());
+              ecMeta.getCompactionGroupId(), files, ecMeta.getKind());
           return job;
         }).collect(Collectors.toUnmodifiableList());
       }
@@ -288,7 +296,7 @@ public class CompactionJobGenerator {
 
       @Override
       public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
+        return new CompactionPlanImpl.BuilderImpl(kind, candidates);
       }
     };
     return planCompactions(planner, params, serviceId);

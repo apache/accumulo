@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -79,7 +78,7 @@ public class Upgrader10to11 implements Upgrader {
   public void upgradeZookeeper(final ServerContext context) {
     log.info("upgrade of ZooKeeper entries");
 
-    var zrw = context.getZooReaderWriter();
+    var zrw = context.getZooSession().asReaderWriter();
     var iid = context.getInstanceID();
 
     // if the replication base path (../tables/+rep) assume removed or never existed.
@@ -217,7 +216,7 @@ public class Upgrader10to11 implements Upgrader {
    * {@code /accumulo/INSTANCE_ID/tables/+rep}
    */
   static String buildRepTablePath(final InstanceId iid) {
-    return ZooUtil.getRoot(iid) + ZTABLES + "/" + REPLICATION_ID.canonical();
+    return ZTABLES + "/" + REPLICATION_ID.canonical();
   }
 
   private void deleteReplicationTableZkEntries(ZooReaderWriter zrw, InstanceId iid) {
@@ -235,7 +234,7 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
-    PropStoreKey<TableId> metaKey = TablePropKey.of(iid, AccumuloTable.METADATA.tableId());
+    var metaKey = TablePropKey.of(AccumuloTable.METADATA.tableId());
     var p = propStore.get(metaKey);
     var props = p.asMap();
     List<String> filtered = filterReplConfigKeys(props.keySet());

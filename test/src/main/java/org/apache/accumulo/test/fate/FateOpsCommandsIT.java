@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.core.util.compaction.ExternalCompactionUtil.getCompactorAddrs;
+import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -37,67 +38,65 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
-import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
+import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
+import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestRepo;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.conf.Configuration;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public abstract class FateOpsCommandsIT extends ConfigurableMacBase
-    implements FateTestRunner<FateTestRunner.TestEnv> {
+    implements FateTestRunner<LatchTestEnv> {
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    // Used for tests that shutdown the manager so the sleep time after shutdown isn't too long
-    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
-  }
-
   @BeforeEach
-  public void shutdownCompactor() throws Exception {
+  public void beforeEachSetup() throws Exception {
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCompactorAddrs(getCluster().getServerContext()).isEmpty(), 60_000);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
   }
 
   @Test
@@ -105,16 +104,17 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     executeTest(this::testFateSummaryCommand);
   }
 
-  protected void testFateSummaryCommand(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testFateSummaryCommand(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Configure Fate
-    Fate<TestEnv> fate = initializeFate(store);
+    Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
     // validate blank report, no transactions have started
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     FateSummaryReport report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -135,7 +135,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -156,7 +157,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -173,7 +175,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -191,7 +194,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -212,7 +216,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -228,7 +233,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -248,7 +254,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "META");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -268,7 +275,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "USER");
     assertEquals(0, p.getProcess().waitFor());
     result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     assertNotEquals(0, report.getReportTime());
@@ -284,7 +292,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
     }
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -292,10 +300,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     executeTest(this::testFateSummaryCommandPlainText);
   }
 
-  protected void testFateSummaryCommandPlainText(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testFateSummaryCommandPlainText(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Configure Fate
-    Fate<TestEnv> fate = initializeFate(store);
+    Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -312,7 +320,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
             "Fate ID Filters: [" + fateId2.canonical() + ", " + fateId1.canonical() + "]"));
     assertTrue(result.contains("Instance Types Filters: [" + store.type().name() + "]"));
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -320,10 +328,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     executeTest(this::testFatePrintCommand);
   }
 
-  protected void testFatePrintCommand(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testFatePrintCommand(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Configure Fate
-    Fate<TestEnv> fate = initializeFate(store);
+    Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
     // validate no transactions
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--print");
@@ -414,7 +422,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertTrue(fateIdsFromResult.isEmpty());
     }
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -422,7 +430,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     executeTest(this::testTransactionNameAndStep);
   }
 
-  protected void testTransactionNameAndStep(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testTransactionNameAndStep(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Since the other tests just use NEW transactions for simplicity, there are some fields of the
     // summary and print outputs which are null and not tested for (transaction name and transaction
@@ -450,13 +458,14 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertEquals(0, p.getProcess().waitFor());
 
       String result = p.readStdOut();
-      result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
       FateSummaryReport report = FateSummaryReport.fromJson(result);
 
       // Validate transaction name and transaction step from summary command
 
       for (FateTxnDetails d : report.getFateDetails()) {
-        assertEquals("TABLE_COMPACT", d.getTxName());
+        assertEquals("TABLE_COMPACT", d.getFateOp());
         assertEquals("CompactionDriver", d.getStep());
         fateIdsStarted.add(d.getFateId());
       }
@@ -489,10 +498,10 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     executeTest(this::testFateCancelCommand);
   }
 
-  protected void testFateCancelCommand(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testFateCancelCommand(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Configure Fate
-    Fate<TestEnv> fate = initializeFate(store);
+    Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -514,18 +523,19 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
         fateIdsFromSummary);
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
-  public void testFateFailCommand() throws Exception {
-    executeTest(this::testFateFailCommand);
+  public void testFateFailCommandTimeout() throws Exception {
+    stopManagerAndExecuteTest(this::testFateFailCommandTimeout);
   }
 
-  protected void testFateFailCommand(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testFateFailCommandTimeout(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Configure Fate
-    Fate<TestEnv> fate = initializeFate(store);
+    LatchTestEnv env = new LatchTestEnv();
+    FastFate<LatchTestEnv> fate = initFateWithDeadResCleaner(store, env);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -536,19 +546,50 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
         fateIdsFromSummary);
 
-    // Attempt to --fail the transaction. Should not work as the Manager is still up
+    // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
+    fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
+    // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
+    Wait.waitFor(() -> env.numWorkers.get() == 1);
+
+    // Try to fail fateId1
+    // This should not work as it is already reserved and being worked on by our running FATE
+    // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
     ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
-    assertEquals(1, p.getProcess().waitFor());
+    assertEquals(0, p.getProcess().waitFor());
+    String result = p.readStdOut();
+
+    assertTrue(result.contains("Could not fail " + fateId1 + " in a reasonable time"));
     fateIdsFromSummary = getFateIdsFromSummary();
+    assertEquals(Map.of(fateId1.canonical(), "IN_PROGRESS", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
+
+    // Finish work and shutdown
+    env.workersLatch.countDown();
+    fate.shutdown(1, TimeUnit.MINUTES);
+  }
+
+  @Test
+  public void testFateFailCommandSuccess() throws Exception {
+    executeTest(this::testFateFailCommandSuccess);
+  }
+
+  protected void testFateFailCommandSuccess(FateStore<LatchTestEnv> store, ServerContext sctx)
+      throws Exception {
+    // Configure Fate
+    Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
+
+    // Start some transactions
+    FateId fateId1 = fate.startTransaction();
+    FateId fateId2 = fate.startTransaction();
+
+    // Check that summary output lists both the transactions with a NEW status
+    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
     assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
         fateIdsFromSummary);
 
-    // Stop MANAGER so --fail can be called
-    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
-    Thread.sleep(20_000);
-
-    // Fail the first transaction and ensure that it was failed
-    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+    // Try to fail fateId1
+    // This should work since nothing has fateId1 reserved (it is NEW)
+    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
 
@@ -559,18 +600,19 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         || fateIdsFromSummary
             .equals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW")));
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
-  public void testFateDeleteCommand() throws Exception {
-    executeTest(this::testFateDeleteCommand);
+  public void testFateDeleteCommandTimeout() throws Exception {
+    stopManagerAndExecuteTest(this::testFateDeleteCommandTimeout);
   }
 
-  protected void testFateDeleteCommand(FateStore<TestEnv> store, ServerContext sctx)
+  protected void testFateDeleteCommandTimeout(FateStore<LatchTestEnv> store, ServerContext sctx)
       throws Exception {
     // Configure Fate
-    Fate<TestEnv> fate = initializeFate(store);
+    LatchTestEnv env = new LatchTestEnv();
+    FastFate<LatchTestEnv> fate = initFateWithDeadResCleaner(store, env);
 
     // Start some transactions
     FateId fateId1 = fate.startTransaction();
@@ -581,19 +623,50 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
         fateIdsFromSummary);
 
-    // Attempt to --delete the transaction. Should not work as the Manager is still up
+    // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
+    fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
+    // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
+    Wait.waitFor(() -> env.numWorkers.get() == 1);
+
+    // Try to delete fateId1
+    // This should not work as it is already reserved and being worked on by our running FATE
+    // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
     ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
-    assertEquals(1, p.getProcess().waitFor());
+    assertEquals(0, p.getProcess().waitFor());
+    String result = p.readStdOut();
+
+    assertTrue(result.contains("Could not delete " + fateId1 + " in a reasonable time"));
     fateIdsFromSummary = getFateIdsFromSummary();
+    assertEquals(Map.of(fateId1.canonical(), "IN_PROGRESS", fateId2.canonical(), "NEW"),
+        fateIdsFromSummary);
+
+    // Finish work and shutdown
+    env.workersLatch.countDown();
+    fate.shutdown(1, TimeUnit.MINUTES);
+  }
+
+  @Test
+  public void testFateDeleteCommandSuccess() throws Exception {
+    executeTest(this::testFateDeleteCommandSuccess);
+  }
+
+  protected void testFateDeleteCommandSuccess(FateStore<LatchTestEnv> store, ServerContext sctx)
+      throws Exception {
+    // Configure Fate
+    Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
+
+    // Start some transactions
+    FateId fateId1 = fate.startTransaction();
+    FateId fateId2 = fate.startTransaction();
+
+    // Check that summary output lists both the transactions with a NEW status
+    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
     assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
         fateIdsFromSummary);
 
-    // Stop MANAGER so --delete can be called
-    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
-    Thread.sleep(20_000);
-
-    // Delete the first transaction and ensure that it was deleted
-    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+    // Try to delete fateId1
+    // This should work since nothing has fateId1 reserved (it is NEW)
+    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
 
@@ -601,7 +674,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     fateIdsFromSummary = getFateIdsFromSummary();
     assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
 
-    fate.shutdown(10, TimeUnit.MINUTES);
+    fate.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -609,7 +682,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     executeTest(this::testFatePrintAndSummaryCommandsWithInProgressTxns);
   }
 
-  protected void testFatePrintAndSummaryCommandsWithInProgressTxns(FateStore<TestEnv> store,
+  protected void testFatePrintAndSummaryCommandsWithInProgressTxns(FateStore<LatchTestEnv> store,
       ServerContext sctx) throws Exception {
     // This test was written for an issue with the 'admin fate --print' and 'admin fate --summary'
     // commands where transactions could complete mid-print causing the command to fail. These
@@ -617,20 +690,20 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     // If a transaction completed between getting the list and probing for info on that
     // transaction, the command would fail. This test ensures that this problem has been fixed
     // (if the tx no longer exists, it should just be ignored so the print/summary can complete).
-    FateStore<TestEnv> mockedStore;
+    FateStore<LatchTestEnv> mockedStore;
 
     // This error was occurring in AdminUtil.getTransactionStatus(), so we will test this method.
     if (store.type().equals(FateInstanceType.USER)) {
       Method listMethod = UserFateStore.class.getMethod("list");
-      mockedStore =
-          EasyMock.createMockBuilder(UserFateStore.class).withConstructor(ClientContext.class)
-              .withArgs(sctx).addMockedMethod(listMethod).createMock();
+      mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
+          .withConstructor(ClientContext.class, String.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx, AccumuloTable.FATE.tableName(), null, null).addMockedMethod(listMethod)
+          .createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooReaderWriter.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooReaderWriter())
-          .addMockedMethod(listMethod).createMock();
+          .withConstructor(ZooSession.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx.getZooSession(), null, null).addMockedMethod(listMethod).createMock();
     }
 
     // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that
@@ -668,7 +741,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
             ReadOnlyFateStore.TStatus.NEW));
     // None of them should have a name since none of them were seeded with work
-    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTxName)
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateOp)
         .collect(Collectors.toList()), Arrays.asList(null, null, null));
     // None of them should have a Repo since none of them were seeded with work
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
@@ -685,10 +758,16 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
   }
 
   private ReadOnlyFateStore.FateIdStatus createFateIdStatus(FateId fateId) {
+    // We are only using the fateId from this, so null/empty is fine for the rest
     return new AbstractFateStore.FateIdStatusBase(fateId) {
       @Override
       public ReadOnlyFateStore.TStatus getStatus() {
         return null;
+      }
+
+      @Override
+      public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
       }
     };
   }
@@ -726,7 +805,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
     assertEquals(0, p.getProcess().waitFor());
     String result = p.readStdOut();
-    result = result.substring(result.indexOf("{"), result.lastIndexOf("}") + 1);
+    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+        .collect(Collectors.joining("\n"));
     FateSummaryReport report = FateSummaryReport.fromJson(result);
     assertNotNull(report);
     Map<String,String> fateIdToStatus = new HashMap<>();
@@ -750,18 +830,24 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertTrue(fateIdsStarted.contains(d.getFateId()));
       assertEquals("NEW", d.getStatus());
       assertEquals("?", d.getStep());
-      assertEquals("?", d.getTxName());
+      assertEquals("?", d.getFateOp());
       assertNotEquals(0, d.getRunning());
       assertEquals("[]", d.getLocksHeld().toString());
       assertEquals("[]", d.getLocksWaiting().toString());
     }
   }
 
-  private Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new TestEnv(), store, Object::toString, config);
+  protected FastFate<LatchTestEnv> initFateWithDeadResCleaner(FateStore<LatchTestEnv> store,
+      LatchTestEnv env) {
+    // Using FastFate so the cleanup will run often. This ensures that the cleanup will run when
+    // there are reservations present and that the cleanup will not unexpectedly delete these live
+    // reservations
+    return new FastFate<>(env, store, true, Object::toString, DefaultConfiguration.getInstance());
+  }
+
+  protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
+    return new Fate<>(new LatchTestEnv(), store, false, Object::toString,
+        DefaultConfiguration.getInstance());
   }
 
   private boolean wordIsTStatus(String word) {
@@ -771,5 +857,20 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       return false;
     }
     return true;
+  }
+
+  /**
+   * Stop the MANAGER. For some of our tests, we want to be able to seed transactions with our own
+   * test repos. We want our fate to reserve these transactions (and not the real fates running in
+   * the Manager as that will lead to exceptions since the real fates wouldn't be able to handle our
+   * test repos). So, we essentially have the fates created here acting as the real fates: they have
+   * the same threads running that the real fates would, use a fate store with a ZK lock, use the
+   * same locations to store fate data that the Manager does, and are running in a separate process
+   * from the Admin process. Note that we cannot simply use different locations for our fate data
+   * from Manager to keep our test env separate from Manager. Admin uses the real fate data
+   * locations, so our test must also use the real locations.
+   */
+  protected void stopManager() throws IOException {
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
   }
 }

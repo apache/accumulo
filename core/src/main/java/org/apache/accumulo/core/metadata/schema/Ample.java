@@ -21,8 +21,10 @@ package org.apache.accumulo.core.metadata.schema;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -257,10 +259,11 @@ public interface Ample {
   interface ConditionalResult {
 
     /**
-     * This enum was created instead of using {@link ConditionalWriter.Status} because Ample has
-     * automated handling for most of the statuses of the conditional writer and therefore only a
-     * subset are expected to be passed out of Ample. This enum represents the subset that Ample
-     * will actually return.
+     * This enum was created instead of using
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status} because Ample has automated
+     * handling for most of the statuses of the conditional writer and therefore only a subset are
+     * expected to be passed out of Ample. This enum represents the subset that Ample will actually
+     * return.
      */
     enum Status {
       ACCEPTED, REJECTED
@@ -391,6 +394,8 @@ public interface Ample {
 
     T putCloned();
 
+    T putTabletMergeability(TabletMergeabilityMetadata tabletMergeability);
+
     /**
      * By default the server lock is automatically added to mutations unless this method is set to
      * false.
@@ -515,6 +520,27 @@ public interface Ample {
     ConditionalTabletMutator requireAbsentLogs();
 
     /**
+     * Require that a tablet contain all the files in the set
+     */
+    ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files);
+
+    /**
+     * Require that a tablet have less than or equals the specified number of files.
+     */
+    ConditionalTabletMutator requireLessOrEqualsFiles(long limit);
+
+    /**
+     * Requires that a tablet not have these loaded flags set.
+     */
+    ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
+
+    /**
+     * This check will run atomically on the server side and must pass in order for the tablet to be
+     * updated.
+     */
+    ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check);
+
+    /**
      * <p>
      * Ample provides the following features on top of the conditional writer to help automate
      * handling of edges cases that arise when using the conditional writer.
@@ -602,6 +628,16 @@ public interface Ample {
      *        let the rejected status carry forward in this case.
      */
     void submit(RejectionHandler rejectionHandler);
+
+    /**
+     * Overloaded version of {@link #submit(RejectionHandler)} that takes a short description of the
+     * operation to assist with debugging.
+     *
+     * @param rejectionHandler The rejection handler
+     * @param description A short description of the operation (e.g., "bulk import", "compaction")
+     */
+    void submit(RejectionHandler rejectionHandler, Supplier<String> description);
+
   }
 
   /**

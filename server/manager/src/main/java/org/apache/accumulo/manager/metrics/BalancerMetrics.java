@@ -48,6 +48,6 @@ public class BalancerMetrics implements MetricsProducer {
     Gauge
         .builder(MANAGER_BALANCER_MIGRATIONS_NEEDED.getName(), this,
             BalancerMetrics::getMigratingCount)
-        .description("Overall total migrations that need to complete").register(registry);
+        .description(MANAGER_BALANCER_MIGRATIONS_NEEDED.getDescription()).register(registry);
   }
 }

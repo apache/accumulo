@@ -42,8 +42,6 @@ import org.apache.accumulo.shell.ShellOptions;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -52,8 +50,6 @@ import com.google.common.annotations.VisibleForTesting;
  * grep, etc. in order to answer questions like which tablets have the most files.
  */
 public class ListTabletsCommand extends Command {
-
-  private static final Logger log = LoggerFactory.getLogger(ListTabletsCommand.class);
 
   private Option outputFileOpt;
   private Option optTablePattern;
@@ -70,10 +66,9 @@ public class ListTabletsCommand extends Command {
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
     final Set<TableInfo> tableInfoSet = populateTables(cl, shellState);
     if (tableInfoSet.isEmpty()) {
-      log.warn("No tables found that match your criteria");
+      Shell.log.warn("No tables found that match your criteria");
       return 0;
     }
-
     boolean humanReadable = cl.hasOption(optHumanReadable.getOpt());
 
     List<String> lines = new LinkedList<>();
@@ -178,7 +173,7 @@ public class ListTabletsCommand extends Command {
           TableId id = TableId.of(tableIdString);
           tableSet.add(new TableInfo(name, id));
         } else {
-          log.warn("Table not found: {}", name);
+          Shell.log.warn("Table not found: {}", name);
         }
       });
       return tableSet;
@@ -191,7 +186,7 @@ public class ListTabletsCommand extends Command {
         TableId id = TableId.of(idString);
         tableSet.add(new TableInfo(table, id));
       } else {
-        log.warn("Table not found: {}", table);
+        Shell.log.warn("Table not found: {}", table);
       }
       return tableSet;
     }

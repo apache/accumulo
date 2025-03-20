@@ -304,7 +304,8 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       hasNext = nmiPointer != 0;
 
       nmiPtr.set(nmiPointer);
-      cleanableNMI = NativeMapCleanerUtil.deleteNMIterator(this, nmiPtr);
+      // avoid registering a cleanable if there's nothing to delete
+      cleanableNMI = hasNext ? NativeMapCleanerUtil.deleteNMIterator(this, nmiPtr) : null;
     }
 
     // delete is synchronized on a per iterator basis want to ensure only one

@@ -18,13 +18,19 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
 
 public interface InstanceOperations {
@@ -181,7 +187,9 @@ public interface InstanceOperations {
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
+  @Deprecated(since = "4.0.0")
   List<String> getManagerLocations();
 
   /**
@@ -189,23 +197,62 @@ public interface InstanceOperations {
    *
    * @return A set of currently active compactors.
    * @since 2.1.4
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
+  @Deprecated(since = "4.0.0")
   Set<String> getCompactors();
 
   /**
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
+   * @deprecated see {@link #getServers(ServerId.Type)}
    * @since 2.1.0
    */
+  @Deprecated(since = "4.0.0")
   Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
+  @Deprecated(since = "4.0.0")
   List<String> getTabletServers();
+
+  /**
+   * Resolve the server of the given type and address to a ServerId
+   *
+   * @param type type of server
+   * @param resourceGroup group of server, can be null
+   * @param host host name, cannot be null
+   * @param port host port
+   * @return ServerId if found, else null
+   * @since 4.0.0
+   */
+  ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
+
+  /**
+   * Returns all servers of the given types. For the Manager, Monitor, and Garbage Collector, the
+   * result will contain only one element for the current active process.
+   *
+   * @return set of servers of the supplied type
+   * @since 4.0.0
+   */
+  Set<ServerId> getServers(ServerId.Type type);
+
+  /**
+   * Returns the servers of a given type that match the given criteria
+   *
+   * @param resourceGroupPredicate only returns servers where the resource group matches this
+   *        predicate. For the Manager, Monitor, and Garbage Collector, this parameter is not used.
+   * @param hostPortPredicate only returns servers where its host and port match this predicate.
+   * @return set of servers of the supplied type matching the supplied test
+   * @since 4.0.0
+   */
+  Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate);
 
   /**
    * List the active scans on a tablet server.
@@ -213,8 +260,22 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
+   * @deprecated see {@link #getActiveScans(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveScan> getActiveScans(String tserver)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active scans on a collection of servers.
+   *
+   * @param servers Collection of server types and addresses
+   * @return A list of active scans on the given servers.
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
+   *         SCAN_SERVER
+   * @since 4.0.0
+   */
+  List<ActiveScan> getActiveScans(Collection<ServerId> servers)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
@@ -226,7 +287,9 @@ public interface InstanceOperations {
    * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
@@ -235,17 +298,41 @@ public interface InstanceOperations {
    *
    * @return the list of active compactions
    * @since 2.1.0
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * List the active compaction running on a collection of TabletServers or Compactors. The server
+   * addresses can be retrieved using {@link #getServers(Type)}. Use {@link #getActiveCompactions()}
+   * to get a list of all compactions running on tservers and compactors.
    *
-   * @param tserver The tablet server address. This should be of the form
-   *        {@code <ip address>:<port>}
+   * @param servers The collection of servers
+   * @return the list of active compactions
+   * @throws IllegalArgumentException if a type of server is not TABLET_SERVER or COMPACTOR
+   * @since 4.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(Collection<ServerId> servers)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
+   *
+   * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
+   * @throws AccumuloException if the server cannot be contacted
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;
+
+  /**
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
+   *
+   * @param server ServerId object for the server to be pinged, only the host and port is used.
+   * @throws AccumuloException if the server cannot be contacted
+   * @since 4.0.0
+   */
+  void ping(ServerId server) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not
@@ -271,4 +358,14 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   InstanceId getInstanceId();
+
+  /**
+   * Return the current manager time. This duration represents the amount of time an accumulo
+   * manager process has been running. The duration is persisted and should only increase over the
+   * lifetime of an Accumulo instance.
+   *
+   * @return current time
+   * @since 4.0.0
+   */
+  Duration getManagerTime() throws AccumuloException, AccumuloSecurityException;
 }

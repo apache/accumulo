@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.client.admin.Locations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.SummaryRetriever;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.Range;
@@ -79,6 +81,9 @@ public class TableOperationsHelperTest {
 
     @Override
     public void addSplits(String tableName, SortedSet<Text> partitionKeys) {}
+
+    @Override
+    public void putSplits(String tableName, SortedMap<Text,TabletMergeability> partitionKeys) {}
 
     @Override
     public Collection<Text> listSplits(String tableName) {

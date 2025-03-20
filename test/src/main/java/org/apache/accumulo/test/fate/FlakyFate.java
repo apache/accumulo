@@ -35,7 +35,7 @@ public class FlakyFate<T> extends Fate<T> {
 
   public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
-    super(environment, store, toLogStrFunc, conf);
+    super(environment, store, false, toLogStrFunc, conf);
   }
 
   @Override

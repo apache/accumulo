@@ -97,5 +97,4 @@ public class AsyncConditionalTabletsMutatorImpl implements Ample.AsyncConditiona
     bufferingMutator.close();
     executor.shutdownNow();
   }
-
 }

@@ -35,14 +35,17 @@ public class FateSchema {
 
     public static final String CREATE_TIME = "ctime";
     public static final ColumnFQ CREATE_TIME_COLUMN = new ColumnFQ(NAME, new Text(CREATE_TIME));
+
+    public static final String RESERVATION = "reservation";
+    public static final ColumnFQ RESERVATION_COLUMN = new ColumnFQ(NAME, new Text(RESERVATION));
   }
 
   public static class TxInfoColumnFamily {
     public static final String STR_NAME = "txinfo";
     public static final Text NAME = new Text(STR_NAME);
 
-    public static final String TX_NAME = "txname";
-    public static final ColumnFQ TX_NAME_COLUMN = new ColumnFQ(NAME, new Text(TX_NAME));
+    public static final String FATE_OP = "fateop";
+    public static final ColumnFQ FATE_OP_COLUMN = new ColumnFQ(NAME, new Text(FATE_OP));
 
     public static final String AUTO_CLEAN = "autoclean";
     public static final ColumnFQ AUTO_CLEAN_COLUMN = new ColumnFQ(NAME, new Text(AUTO_CLEAN));

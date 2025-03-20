@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.lock;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -27,8 +26,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID;
@@ -36,6 +33,9 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UuidUtil;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
@@ -43,7 +43,6 @@ import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.apache.zookeeper.Watcher.Event.KeeperState;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -87,7 +86,7 @@ public class ServiceLock implements Watcher {
   }
 
   private final ServiceLockPath path;
-  protected final ZooKeeper zooKeeper;
+  protected final ZooSession zooKeeper;
   private final Prefix vmLockPrefix;
 
   private LockWatcher lockWatcher;
@@ -98,7 +97,7 @@ public class ServiceLock implements Watcher {
   private String createdNodeName;
   private String watchingNodeName;
 
-  public ServiceLock(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
+  public ServiceLock(ZooSession zookeeper, ServiceLockPath path, UUID uuid) {
     this.zooKeeper = requireNonNull(zookeeper);
     this.path = requireNonNull(path);
     try {
@@ -371,6 +370,7 @@ public class ServiceLock implements Watcher {
   private void lostLock(LockLossReason reason) {
     LockWatcher localLw = lockWatcher;
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     localLw.lostLock(reason);
@@ -537,6 +537,7 @@ public class ServiceLock implements Watcher {
     String localLock = lockNodeName;
 
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     final String pathToDelete = path + "/" + localLock;
@@ -575,11 +576,18 @@ public class ServiceLock implements Watcher {
     return lockNodeName;
   }
 
+  private LockID lockId = null;
+
   public synchronized LockID getLockID() {
     if (lockNodeName == null) {
       throw new IllegalStateException("Lock not held");
     }
-    return new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+
+    if (lockId == null) {
+      lockId = new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+    }
+
+    return lockId;
   }
 
   /**
@@ -653,7 +661,7 @@ public class ServiceLock implements Watcher {
     return zc.get(lid.path + "/" + lid.node, stat) != null && stat.getEphemeralOwner() == lid.eid;
   }
 
-  public static Optional<ServiceLockData> getLockData(ZooKeeper zk, ServiceLockPath path)
+  public static Optional<ServiceLockData> getLockData(ZooSession zk, ServiceLockPath path)
       throws KeeperException, InterruptedException {
 
     List<String> children = validateAndSort(path, zk.getChildren(path.toString(), null));
@@ -664,15 +672,15 @@ public class ServiceLock implements Watcher {
 
     String lockNode = children.get(0);
 
-    byte[] data = zk.getData(path + "/" + lockNode, false, null);
+    byte[] data = zk.getData(path + "/" + lockNode, null, null);
     if (data == null) {
       data = new byte[0];
     }
     return ServiceLockData.parse(data);
   }
 
-  public static Optional<ServiceLockData> getLockData(
-      org.apache.accumulo.core.fate.zookeeper.ZooCache zc, ServiceLockPath path, ZcStat stat) {
+  public static Optional<ServiceLockData> getLockData(ZooCache zc, ServiceLockPath path,
+      ZcStat stat) {
 
     List<String> children = validateAndSort(path, zc.getChildren(path.toString()));
 
@@ -745,30 +753,26 @@ public class ServiceLock implements Watcher {
 
   }
 
-  public static boolean deleteLock(ZooReaderWriter zk, ServiceLockPath path, String lockData)
-      throws InterruptedException, KeeperException {
-
-    List<String> children = validateAndSort(path, zk.getChildren(path.toString()));
-
-    if (children.isEmpty()) {
-      throw new IllegalStateException("No lock is held at " + path);
+  /**
+   * Checks that the lock still exists in ZooKeeper. The typical mechanism for determining if a lock
+   * is lost depends on a Watcher set on the lock node. There exists a case where the Watcher may
+   * not get called if another Watcher is stuck waiting on I/O or otherwise hung. In the case where
+   * this method returns false, then the typical action is to exit the server process.
+   *
+   * @return true if lock path still exists, false otherwise and on error
+   */
+  public boolean verifyLockAtSource() {
+    final String lockPath = getLockPath();
+    if (lockPath == null) {
+      // lock not set yet or lock was lost
+      return false;
     }
-
-    String lockNode = children.get(0);
-
-    if (!lockNode.startsWith(ZLOCK_PREFIX)) {
-      throw new IllegalStateException("Node " + lockNode + " at " + path + " is not a lock node");
+    try {
+      return null != this.zooKeeper.exists(lockPath, null);
+    } catch (KeeperException | InterruptedException | RuntimeException e) {
+      LOG.error("Error verfiying lock at {}", lockPath, e);
+      return false;
     }
-
-    byte[] data = zk.getData(path + "/" + lockNode);
-
-    if (lockData.equals(new String(data, UTF_8))) {
-      String pathToDelete = path + "/" + lockNode;
-      LOG.debug("Deleting all at path {} due to lock deletion", pathToDelete);
-      zk.recursiveDelete(pathToDelete, NodeMissingPolicy.FAIL);
-      return true;
-    }
-
-    return false;
   }
+
 }

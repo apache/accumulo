@@ -53,6 +53,7 @@ import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata.TableOptions;
 import org.apache.accumulo.core.security.Authorizations;
@@ -149,6 +150,7 @@ public class TestAmple {
         tabletMutator.putDirName(dirName);
         tabletMutator.putTime(new MetadataTime(0, TimeType.MILLIS));
         tabletMutator.putTabletAvailability(TabletAvailability.HOSTED);
+        tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.never());
         tabletMutator.mutate();
       } catch (Exception e) {
         throw new IllegalStateException(e);
@@ -185,12 +187,13 @@ public class TestAmple {
                 WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
             Text row = decodedRow.firstKey().getRow();
             Mutation m = new Mutation(row);
-
             decodedRow.entrySet().stream().filter(e -> includeColumn.test(e.getKey(), e.getValue()))
                 .forEach(e -> m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(),
                     e.getKey().getColumnVisibilityParsed(), e.getKey().getTimestamp(),
                     e.getValue()));
-            bw.addMutation(m);
+            if (!m.getUpdates().isEmpty()) {
+              bw.addMutation(m);
+            }
           }
         }
       }

@@ -21,28 +21,25 @@ package org.apache.accumulo.manager.metrics.fate.meta;
 import static org.apache.accumulo.core.metrics.Metric.FATE_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
 
-import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.Tag;
 
 public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
-  private final String fateRootPath;
   private final AtomicLong totalOpsGauge = new AtomicLong(0);
   private final AtomicLong fateErrorsGauge = new AtomicLong(0);
 
   public MetaFateMetrics(ServerContext context, long minimumRefreshDelay) {
     super(context, minimumRefreshDelay);
-    this.fateRootPath = getFateRootPath(context);
   }
 
   @Override
@@ -55,15 +52,17 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
-    registry.gauge(FATE_OPS_ACTIVITY.getName(), totalOpsGauge);
-    registry.gauge(FATE_ERRORS.getName(), List.of(Tag.of("type", "zk.connection")),
-        fateErrorsGauge);
+    Gauge.builder(FATE_OPS_ACTIVITY.getName(), totalOpsGauge, AtomicLong::get)
+        .description(FATE_OPS_ACTIVITY.getDescription()).register(registry);
+    Gauge.builder(FATE_ERRORS.getName(), fateErrorsGauge, AtomicLong::get)
+        .tag("type", "zk.connection").description(FATE_ERRORS.getDescription()).register(registry);
   }
 
   @Override
-  protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>> buildStore(ServerContext context) {
+  protected ReadOnlyFateStore<FateMetrics<MetaFateMetricValues>>
+      buildReadOnlyStore(ServerContext context) {
     try {
-      return new MetaFateStore<>(getFateRootPath(context), context.getZooReaderWriter());
+      return new MetaFateStore<>(context.getZooSession(), null, null);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
@@ -76,10 +75,6 @@ public class MetaFateMetrics extends FateMetrics<MetaFateMetricValues> {
 
   @Override
   protected MetaFateMetricValues getMetricValues() {
-    return MetaFateMetricValues.getMetaStoreMetrics(context, fateRootPath, fateStore);
-  }
-
-  private static String getFateRootPath(ServerContext context) {
-    return context.getZooKeeperRoot() + Constants.ZFATE;
+    return MetaFateMetricValues.getMetaStoreMetrics(context, Constants.ZFATE, readOnlyFateStore);
   }
 }

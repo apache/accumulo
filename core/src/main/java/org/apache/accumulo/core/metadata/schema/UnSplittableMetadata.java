@@ -74,7 +74,6 @@ public class UnSplittableMetadata {
     return Base64.getEncoder().encodeToString(hashOfSplitParameters.asBytes());
   }
 
-  @SuppressWarnings("UnstableApiUsage")
   private static HashCode calculateSplitParamsHash(KeyExtent keyExtent, long splitThreshold,
       long maxEndRowSize, int maxFilesToOpen, Set<StoredTabletFile> files) {
     Preconditions.checkArgument(splitThreshold > 0, "splitThreshold must be greater than 0");

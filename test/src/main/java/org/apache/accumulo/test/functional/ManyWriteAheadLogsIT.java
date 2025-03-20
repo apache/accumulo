@@ -53,11 +53,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
 
-  private String walSize;
-
-  @SuppressWarnings("deprecation")
-  private static Property IDLE_MINC_PROP = Property.TABLE_MINC_COMPACT_IDLETIME;
-
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // configure a smaller wal size so the wals will roll frequently in the test
@@ -69,7 +64,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     // idle compactions may addess the problem this test is creating, however they will not prevent
     // lots of closed WALs for all write patterns. This test ensures code that directly handles many
     // tablets referencing many different WALs is working.
-    cfg.setProperty(IDLE_MINC_PROP, "1h");
+    cfg.setProperty(Property.TABLE_MINC_COMPACT_MAXAGE, "1h");
     cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
@@ -81,8 +76,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     }
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
-      Map<String,String> conf = iops.getSystemConfiguration();
-      walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
       iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);

@@ -86,37 +86,34 @@ public class RootTabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator
   @Override
   public void mutate() {
 
-    if (putServerLock) {
-      this.putZooLock(this.context.getZooKeeperRoot(), lock);
-    }
     Mutation mutation = getMutation();
 
     MetadataConstraints metaConstraint = new MetadataConstraints();
     List<Short> violations = metaConstraint.check(new RootEnv(context), mutation);
 
-    if (violations != null && !violations.isEmpty()) {
+    if (!violations.isEmpty()) {
       throw new IllegalStateException(
           "Mutation for root tablet metadata violated constraints : " + violations);
     }
 
     try {
-      String zpath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
 
-      context.getZooCache().clear(zpath);
+      context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
       // TODO examine implementation of getZooReaderWriter().mutate()
       // TODO for efficiency this should maybe call mutateExisting
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
-        String currJson = new String(currVal, UTF_8);
-        var rtm = new RootTabletMetadata(currJson);
-        rtm.update(mutation);
-        String newJson = rtm.toJson();
-        log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);
-        return newJson.getBytes(UTF_8);
-      });
+      context.getZooSession().asReaderWriter().mutateOrCreate(RootTable.ZROOT_TABLET, new byte[0],
+          currVal -> {
+            String currJson = new String(currVal, UTF_8);
+            var rtm = new RootTabletMetadata(currJson);
+            rtm.update(mutation);
+            String newJson = rtm.toJson();
+            log.debug("mutation: from:[{}] to: [{}]", currJson, newJson);
+            return newJson.getBytes(UTF_8);
+          });
 
       // TODO this is racy...
-      context.getZooCache().clear(zpath);
+      context.getZooCache().clear(RootTable.ZROOT_TABLET);
 
       if (closeAfterMutate != null) {
         closeAfterMutate.close();

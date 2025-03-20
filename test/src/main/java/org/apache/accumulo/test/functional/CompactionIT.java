@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getActiveCompactions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,12 +66,12 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -243,7 +244,7 @@ public class CompactionIT extends CompactionBaseIT {
         LOG.debug("Plan job priority is {}:{}", job.getKind(), job.getPriority());
         return new CompactionJobImpl(
             job.getKind() == CompactionKind.SYSTEM ? Short.MAX_VALUE : job.getPriority(),
-            job.getGroup(), job.getFiles(), job.getKind(), Optional.empty());
+            job.getGroup(), job.getFiles(), job.getKind());
       }).collect(toList());
     }
   }
@@ -996,9 +997,9 @@ public class CompactionIT extends CompactionBaseIT {
         Wait.waitFor(() -> {
           var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
           var externalCompactions = tabletMeta.getExternalCompactions();
-          assertTrue(externalCompactions.values().stream()
-              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM));
-          return externalCompactions.size() == 1;
+          boolean allECAreSystem = externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM);
+          return allECAreSystem && externalCompactions.size() == 1;
         }, Wait.MAX_WAIT_MILLIS, 10);
 
         // Wait for the user compaction to now run after the system finishes
@@ -1158,7 +1159,7 @@ public class CompactionIT extends CompactionBaseIT {
 
       List<ActiveCompaction> compactions = new ArrayList<>();
       do {
-        client.instanceOperations().getActiveCompactions().forEach((ac) -> {
+        getActiveCompactions(client.instanceOperations()).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
               compactions.add(ac);
@@ -1171,13 +1172,12 @@ public class CompactionIT extends CompactionBaseIT {
       } while (compactions.isEmpty());
 
       ActiveCompaction running1 = compactions.get(0);
-      CompactionHost host = running1.getHost();
-      assertTrue(host.getType() == CompactionHost.Type.COMPACTOR);
+      ServerId host = running1.getServerId();
+      assertTrue(host.getType() == ServerId.Type.COMPACTOR);
 
       compactions.clear();
       do {
-        HostAndPort hp = HostAndPort.fromParts(host.getAddress(), host.getPort());
-        client.instanceOperations().getActiveCompactions(hp.toString()).forEach((ac) -> {
+        client.instanceOperations().getActiveCompactions(List.of(host)).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
               compactions.add(ac);

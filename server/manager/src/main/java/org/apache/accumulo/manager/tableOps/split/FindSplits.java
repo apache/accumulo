@@ -23,7 +23,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 
 import java.util.Optional;
 import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,7 +48,7 @@ public class FindSplits extends ManagerRepo {
   private final SplitInfo splitInfo;
 
   public FindSplits(KeyExtent extent) {
-    this.splitInfo = new SplitInfo(extent, new TreeSet<>());
+    this.splitInfo = new SplitInfo(extent, new TreeMap<>());
   }
 
   @Override
@@ -117,11 +117,12 @@ public class FindSplits extends ManagerRepo {
         // Case 1: If a split is needed then set the unsplittable marker as no split
         // points could be found so that we don't keep trying again until the
         // split metadata is changed
-        if (SplitUtils.needsSplit(manager.getContext(), tabletMetadata)) {
+        final var context = manager.getContext();
+        if (SplitUtils.needsSplit(context, tabletMetadata)) {
           log.info("Tablet {} needs to split, but no split points could be found.",
               tabletMetadata.getExtent());
           var unSplittableMeta = computedUnsplittable
-              .orElseGet(() -> SplitUtils.toUnSplittable(manager.getContext(), tabletMetadata));
+              .orElseGet(() -> SplitUtils.toUnSplittable(context, tabletMetadata));
 
           // With the current design we don't need to require the files to be the same
           // for correctness as the TabletManagementIterator will detect the difference

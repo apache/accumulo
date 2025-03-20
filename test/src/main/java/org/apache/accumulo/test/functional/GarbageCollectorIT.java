@@ -38,6 +38,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -115,7 +116,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
     var path = getServerContext().getServerPaths().createGarbageCollectorPath();
-    ZooReaderWriter zk = getServerContext().getZooReaderWriter();
+    ZooReaderWriter zk = getServerContext().getZooSession().asReaderWriter();
     try {
       ServiceLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
@@ -138,7 +139,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       TestIngest.ingest(c, cluster.getFileSystem(), params);
       log.info("Compacting the table {}", table);
       c.tableOperations().compact(table, null, null, true, true);
-      String pathString = cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf";
+      // the following path expects mini to be configured with a single volume
+      final String pathString = cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES) + "/"
+          + Constants.TABLE_DIR + "/1/*/*.rf";
       log.info("Counting files in path: {}", pathString);
 
       int before = countFiles(pathString);
@@ -407,7 +410,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      ZooReaderWriter zk = cluster.getServerContext().getZooReaderWriter();
+      ZooReaderWriter zk = cluster.getServerContext().getZooSession().asReaderWriter();
       var path = getServerContext().getServerPaths().createGarbageCollectorPath();
       for (int i = 0; i < 5; i++) {
         List<String> locks;

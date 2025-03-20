@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
@@ -188,6 +189,32 @@ public interface TableOperations {
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
+   *
+   * Ensures that tablets are split along a set of keys.
+   *
+   * TODO: This method currently only adds new splits (existing are stripped). The intent in a
+   * future PR is so support updating existing splits and the TabletMergeabilty setting. See
+   * https://github.com/apache/accumulo/issues/5014
+   *
+   * <p>
+   * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
+   * encoding is not enforced by operations that work with byte arrays.
+   * <p>
+   * For example, you can create 256 evenly-sliced splits via the following code sample even though
+   * the given byte sequences are not valid UTF-8.
+   *
+   * @param tableName the name of the table
+   * @param splits a sorted map of row key values to pre-split the table on and associated
+   *        TabletMergeability
+   *
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws TableNotFoundException if the table does not exist
+   */
+  void putSplits(String tableName, SortedMap<Text,TabletMergeability> splits)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
    * @param tableName the name of the table
    * @return the split points (end-row names) for the table's current split profile
    * @throws TableNotFoundException if the table does not exist
@@ -250,7 +277,8 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Delete rows between (start, end]
+   * Delete rows between (start, end]. This operation may remove some of the table splits that fall
+   * within the range.
    *
    * @param tableName the table to merge
    * @param start delete rows after this, null means the first row of the table

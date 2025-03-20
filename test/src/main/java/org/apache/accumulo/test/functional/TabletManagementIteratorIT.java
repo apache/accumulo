@@ -36,7 +36,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -69,6 +68,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -576,8 +576,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
-    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.empty())) {
+    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(rg -> true,
+        AddressSelector.all(), true)) {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
         tservers.add(new TServerInstance(tserver.getServer(), sessionId));

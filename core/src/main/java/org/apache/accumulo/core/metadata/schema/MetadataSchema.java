@@ -158,6 +158,10 @@ public class MetadataSchema {
       public static final String REQUESTED_QUAL = "requestToHost";
       public static final ColumnFQ REQUESTED_COLUMN = new ColumnFQ(NAME, new Text(REQUESTED_QUAL));
 
+      public static final String MERGEABILITY_QUAL = "mergeability";
+      public static final ColumnFQ MERGEABILITY_COLUMN =
+          new ColumnFQ(NAME, new Text(MERGEABILITY_QUAL));
+
       public static Value encodePrevEndRow(Text per) {
         if (per == null) {
           return new Value(new byte[] {0});
@@ -199,7 +203,13 @@ public class MetadataSchema {
        * Holds the location of the tablet in the DFS file system
        */
       public static final String DIRECTORY_QUAL = "dir";
-      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
+      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL)) {
+        @Override
+        public void put(Mutation m, Value v) {
+          validateDirCol(v.toString());
+          super.put(m, v);
+        }
+      };
       /**
        * Initial tablet directory name for the default tablet in all tables
        */
@@ -331,8 +341,9 @@ public class MetadataSchema {
      */
     public static class SuspendLocationColumn {
       public static final String STR_NAME = "suspend";
-      public static final ColumnFQ SUSPEND_COLUMN =
-          new ColumnFQ(new Text(STR_NAME), new Text("loc"));
+      public static final Text NAME = new Text(STR_NAME);
+      public static final String SUSPEND_QUAL = "loc";
+      public static final ColumnFQ SUSPEND_COLUMN = new ColumnFQ(NAME, new Text(SUSPEND_QUAL));
     }
 
     /**
@@ -528,20 +539,4 @@ public class MetadataSchema {
 
   }
 
-  /**
-   * Holds error message processing flags
-   */
-  public static class ProblemSection {
-    private static final Section section =
-        new Section(RESERVED_PREFIX + "err_", true, RESERVED_PREFIX + "err`", false);
-
-    public static Range getRange() {
-      return section.getRange();
-    }
-
-    public static String getRowPrefix() {
-      return section.getRowPrefix();
-    }
-
-  }
 }

@@ -18,40 +18,46 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.util.Optional;
+import static java.util.Objects.requireNonNull;
+
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 
 import com.google.common.net.HostAndPort;
 
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
-  private final ClientContext ctx;
-  private final String root;
+  private final ZooCache zc;
+  private final ServiceLockPaths lockPaths;
 
-  ZookeeperLockChecker(ClientContext context) {
-    this.ctx = context;
-    this.root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+  ZookeeperLockChecker(ZooCache zooCache) {
+    this.zc = requireNonNull(zooCache);
+    this.lockPaths = new ServiceLockPaths(this.zc);
   }
 
   public boolean doesTabletServerLockExist(String server) {
     // ServiceLockPaths only returns items that have a lock
-    Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(server)));
+    var hostAndPort = HostAndPort.fromString(server);
+    Set<ServiceLockPath> tservers =
+        lockPaths.getTabletServer(rg -> true, AddressSelector.exact(hostAndPort), true);
     return !tservers.isEmpty();
   }
 
   @Override
   public boolean isLockHeld(String server, String session) {
     // ServiceLockPaths only returns items that have a lock
-    Set<ServiceLockPath> tservers = ctx.getServerPaths().getTabletServer(Optional.empty(),
-        Optional.of(HostAndPort.fromString(server)));
+    var hostAndPort = HostAndPort.fromString(server);
+    Set<ServiceLockPath> tservers =
+        lockPaths.getTabletServer(rg -> true, AddressSelector.exact(hostAndPort), true);
     for (ServiceLockPath slp : tservers) {
-      if (ServiceLock.getSessionId(ctx.getZooCache(), slp) == Long.parseLong(session, 16)) {
+      if (ServiceLock.getSessionId(zc, slp) == Long.parseLong(session, 16)) {
         return true;
       }
     }
@@ -60,7 +66,8 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
 
   @Override
   public void invalidateCache(String tserver) {
-    ctx.getZooCache().clear(root + "/" + tserver);
+    // The path for the tserver contains a resource group. The resource group is unknown, so can not
+    // construct a prefix. Therefore clear any path that contains the tserver.
+    zc.clear(path -> path.startsWith(Constants.ZTSERVERS) && path.contains(tserver));
   }
-
 }

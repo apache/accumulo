@@ -50,7 +50,6 @@ import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
-import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
@@ -82,7 +81,7 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   public Ample.TabletMutator mutateTablet(KeyExtent extent) {
     TabletsMutator tmi = mutateTablets();
     Ample.TabletMutator tabletMutator = tmi.mutateTablet(extent);
-    ((TabletMutatorBase) tabletMutator).setCloseAfterMutate(tmi);
+    ((TabletMutatorImpl) tabletMutator).setCloseAfterMutate(tmi);
     return tabletMutator;
   }
 
@@ -104,24 +103,24 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {
-    String zpath = context.getZooKeeperRoot() + ZROOT_TABLET_GC_CANDIDATES;
     try {
       // TODO calling create seems unnecessary and is possibly racy and inefficient
-      context.getZooReaderWriter().mutateOrCreate(zpath, new byte[0], currVal -> {
-        String currJson = new String(currVal, UTF_8);
-        RootGcCandidates rgcc = new RootGcCandidates(currJson);
-        log.debug("Root GC candidates before change : {}", currJson);
-        mutator.accept(rgcc);
-        String newJson = rgcc.toJson();
-        log.debug("Root GC candidates after change  : {}", newJson);
-        if (newJson.length() > 262_144) {
-          log.warn(
-              "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
-                  + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
-              zpath, newJson.length());
-        }
-        return newJson.getBytes(UTF_8);
-      });
+      context.getZooSession().asReaderWriter().mutateOrCreate(ZROOT_TABLET_GC_CANDIDATES,
+          new byte[0], currVal -> {
+            String currJson = new String(currVal, UTF_8);
+            RootGcCandidates rgcc = new RootGcCandidates(currJson);
+            log.debug("Root GC candidates before change : {}", currJson);
+            mutator.accept(rgcc);
+            String newJson = rgcc.toJson();
+            log.debug("Root GC candidates after change  : {}", newJson);
+            if (newJson.length() > 262_144) {
+              log.warn(
+                  "Root tablet deletion candidates stored in ZK at {} are getting large ({} bytes), is"
+                      + " Accumulo GC process running?  Large nodes may cause problems for Zookeeper!",
+                  ZROOT_TABLET_GC_CANDIDATES, newJson.length());
+            }
+            return newJson.getBytes(UTF_8);
+          });
     } catch (Exception e) {
       throw new IllegalStateException(e);
     }
@@ -232,11 +231,10 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   @Override
   public Iterator<GcCandidate> getGcCandidates(DataLevel level) {
     if (level == DataLevel.ROOT) {
-      var zooReader = context.getZooReader();
+      var zooReader = context.getZooSession().asReader();
       byte[] jsonBytes;
       try {
-        jsonBytes =
-            zooReader.getData(context.getZooKeeperRoot() + RootTable.ZROOT_TABLET_GC_CANDIDATES);
+        jsonBytes = zooReader.getData(RootTable.ZROOT_TABLET_GC_CANDIDATES);
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException(e);
       }

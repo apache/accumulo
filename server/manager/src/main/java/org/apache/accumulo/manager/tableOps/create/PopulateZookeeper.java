@@ -55,14 +55,14 @@ class PopulateZookeeper extends ManagerRepo {
     try {
       // write tableName & tableId to zookeeper
       Utils.checkTableNameDoesNotExist(manager.getContext(), tableInfo.getTableName(),
-          tableInfo.getTableId(), TableOperation.CREATE);
+          tableInfo.getNamespaceId(), tableInfo.getTableId(), TableOperation.CREATE);
 
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
       try {
-        PropUtil.setProperties(manager.getContext(),
-            TablePropKey.of(manager.getContext(), tableInfo.getTableId()), tableInfo.props);
+        PropUtil.setProperties(manager.getContext(), TablePropKey.of(tableInfo.getTableId()),
+            tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,

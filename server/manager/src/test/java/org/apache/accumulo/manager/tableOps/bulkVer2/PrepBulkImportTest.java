@@ -56,7 +56,7 @@ import com.google.common.collect.Sets;
 
 public class PrepBulkImportTest {
 
-  KeyExtent nke(String prev, String end) {
+  static KeyExtent nke(String prev, String end) {
     Text per = prev == null ? null : new Text(prev);
     Text er = end == null ? null : new Text(end);
 
@@ -129,12 +129,12 @@ public class PrepBulkImportTest {
         .map(Text::toString).orElse(null);
 
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets);
+      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 0);
       assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
     }
   }
 
-  private LoadMappingIterator createLoadMappingIter(Map<KeyExtent,String> loadRanges)
+  static LoadMappingIterator createLoadMappingIter(Map<KeyExtent,String> loadRanges)
       throws IOException {
     SortedMap<KeyExtent,Bulk.Files> mapping = new TreeMap<>();
 

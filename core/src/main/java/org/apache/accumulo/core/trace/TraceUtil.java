@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.util.ClassUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -214,7 +215,7 @@ public class TraceUtil {
   private static <T> T wrapRpc(final InvocationHandler handler, final T instance) {
     @SuppressWarnings("unchecked")
     T proxiedInstance = (T) Proxy.newProxyInstance(instance.getClass().getClassLoader(),
-        instance.getClass().getInterfaces(), handler);
+        ClassUtil.getInterfaces(instance.getClass()).toArray(new Class<?>[0]), handler);
     return proxiedInstance;
   }
 

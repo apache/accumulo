@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
@@ -86,8 +88,6 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeRoot(ServerContext context) {
-    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
-    createFateTable(context);
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
@@ -100,6 +100,8 @@ public class Upgrader12to13 implements Upgrader {
 
   @Override
   public void upgradeMetadata(ServerContext context) {
+    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
+    createFateTable(context);
     LOG.info("Looking for partial splits");
     handlePartialSplits(context, AccumuloTable.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
@@ -118,23 +120,41 @@ public class Upgrader12to13 implements Upgrader {
 
   private static void addCompactionsNode(ServerContext context) {
     try {
-      context.getZooReaderWriter().putPersistentData(
-          ZooUtil.getRoot(context.getInstanceID()) + Constants.ZCOMPACTIONS, new byte[0],
-          ZooUtil.NodeExistsPolicy.SKIP);
+      context.getZooSession().asReaderWriter().putPersistentData(Constants.ZCOMPACTIONS,
+          new byte[0], ZooUtil.NodeExistsPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
     }
   }
 
   private void createFateTable(ServerContext context) {
-    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
-    zkInit.initFateTableState(context);
+
+    if (context.tableOperations().exists(AccumuloTable.FATE.tableName())) {
+      LOG.info("Fate table already exists");
+      return;
+    }
+
+    try {
+      ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
+      zkInit.initFateTableState(context);
+    } catch (RuntimeException e) {
+      // initFateTableState wraps KeeperException and InterruptedException
+      // with a RuntimeException
+      if (e.getCause() instanceof KeeperException.NodeExistsException) {
+        LOG.debug("Fate table node already exists in ZooKeeper");
+      } else {
+        throw e;
+      }
+    }
 
     try {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
+      // For upgrading an existing system set to never merge. If the mergeability is changed
+      // then we would look to use the thrift client to look up the current Manager time to
+      // set as part of the mergeability metadata
       FileSystemInitializer.InitialTablet fateTableTableTablet =
-          initializer.createFateRefTablet(context);
+          initializer.createFateRefTablet(context, TabletMergeabilityMetadata.never());
       // Add references to the Metadata Table
       try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
         writer.addMutation(fateTableTableTablet.createMutation());
@@ -149,12 +169,11 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   private void removeCompactColumnsFromRootTabletMetadata(ServerContext context) {
-    var rootBase = ZooUtil.getRoot(context.getInstanceID()) + ZROOT_TABLET;
 
     try {
-      var zrw = context.getZooReaderWriter();
+      var zrw = context.getZooSession().asReaderWriter();
       Stat stat = new Stat();
-      byte[] rootData = zrw.getData(rootBase, stat);
+      byte[] rootData = zrw.getData(ZROOT_TABLET, stat);
 
       String json = new String(rootData, UTF_8);
 
@@ -180,7 +199,7 @@ public class Upgrader12to13 implements Upgrader {
       if (!mutations.isEmpty()) {
         LOG.info("Root metadata in ZooKeeper before upgrade: {}", json);
         rtm.update(mutations.get(0));
-        zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         LOG.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
     } catch (InterruptedException ex) {
@@ -221,7 +240,7 @@ public class Upgrader12to13 implements Upgrader {
     // FATE transaction ids have changed from 3.x to 4.x which are used as the value for the bulk
     // file column. FATE ops won't persist through upgrade, so these columns can be safely deleted
     // if they exist.
-    try (var scanner = context.createScanner(tableName);
+    try (var scanner = context.createScanner(tableName, Authorizations.EMPTY);
         var writer = context.createBatchWriter(tableName)) {
       scanner.setRange(MetadataSchema.TabletsSection.getRange());
       scanner.fetchColumnFamily(TabletsSection.BulkFileColumnFamily.NAME);
@@ -244,22 +263,20 @@ public class Upgrader12to13 implements Upgrader {
 
   private void removeUnusedZKNodes(ServerContext context) {
     try {
-      final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
-      final var zrw = context.getZooReaderWriter();
+      final var zrw = context.getZooSession().asReaderWriter();
 
       final String ZCOORDINATOR = "/coordinators";
       final String BULK_ARBITRATOR_TYPE = "bulkTx";
 
-      zrw.recursiveDelete(zkRoot + ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
-      zrw.recursiveDelete(zkRoot + "/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(ZCOORDINATOR, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete("/" + BULK_ARBITRATOR_TYPE, ZooUtil.NodeMissingPolicy.SKIP);
 
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
       for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-        final String tName = e.getKey();
         final String tId = e.getValue();
-        final String zTablePath = zkRoot + Constants.ZTABLES + "/" + tId;
+        final String zTablePath = Constants.ZTABLES + "/" + tId;
         zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
       }
@@ -270,7 +287,7 @@ public class Upgrader12to13 implements Upgrader {
 
   private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
-    PropUtil.removeProperties(context, TablePropKey.of(context, tableId), List.of(propName));
+    PropUtil.removeProperties(context, TablePropKey.of(tableId), List.of(propName));
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
@@ -356,16 +373,25 @@ public class Upgrader12to13 implements Upgrader {
     // and dead tserver zookeeper paths. Make sure that the these paths
     // are empty. This means that for the Accumulo 4.0 upgrade, the Manager
     // should be started first before any other process.
-    final String zkRoot = ZooUtil.getRoot(context.getInstanceID());
-    final ZooReader zr = context.getZooReader();
+    final ZooReader zr = context.getZooSession().asReader();
     for (String serverPath : new String[] {Constants.ZCOMPACTORS, Constants.ZSSERVERS,
         Constants.ZTSERVERS, Constants.ZDEADTSERVERS}) {
       try {
-        List<String> children = zr.getChildren(zkRoot + serverPath);
+        List<String> children = zr.getChildren(serverPath);
         for (String child : children) {
           if (child.contains(":")) {
-            throw new IllegalStateException("Found server address at " + serverPath + "/" + child
-                + ". Was expecting either a resource group name or nothing. Stop any referenced servers.");
+            String childPath = serverPath + "/" + child;
+            if (zr.getChildren(childPath).isEmpty()) {
+              // child is likely host:port and is an empty directory. Since there
+              // is no lock here, then the server is likely down (or should be).
+              // Remove the entry and move on.
+              context.getZooSession().asReaderWriter().recursiveDelete(childPath,
+                  NodeMissingPolicy.SKIP);
+            } else {
+              throw new IllegalStateException("Found server address at " + serverPath + "/" + child
+                  + " with content in the directory. Was expecting either a nothing, a resource group name or an empty directory."
+                  + " Stop any referenced servers.");
+            }
           }
         }
       } catch (InterruptedException | KeeperException e) {
