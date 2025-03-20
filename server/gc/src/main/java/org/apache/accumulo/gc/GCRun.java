@@ -341,7 +341,6 @@ public class GCRun implements GarbageCollectionEnvironment {
               if (parts.length > 2) {
                 TableId tableId = TableId.of(parts[1]);
                 String tabletDir = parts[2];
-                context.getTableManager().updateTableStateCache(tableId);
                 TableState tableState = context.getTableManager().getTableState(tableId);
                 if (tableState != null && tableState != TableState.DELETING) {
                   // clone directories don't always exist
