@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -72,19 +73,21 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+
+    var context = env.getContext();
     // reserve the table name in zookeeper or fail
-
     Utils.getTableNameLock().lock();
-    try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.namespaceId,
-          tableInfo.tableId, TableOperation.CREATE);
 
+    try {
+
+      // write tableName & tableId, first to Table Mapping and then to Zookeeper
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
-      NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
+      NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
+      TableMapping.put(context.getZooSession().asReaderWriter(), tableInfo.tableId, namespaceId,
+          tableInfo.tableName, TableOperation.IMPORT);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
 
-      env.getContext().clearTableListCache();
+      context.clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
     }
@@ -92,8 +95,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(env.getContext(), TablePropKey.of(tableInfo.tableId),
-          getExportedProps(volMan));
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId), getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,

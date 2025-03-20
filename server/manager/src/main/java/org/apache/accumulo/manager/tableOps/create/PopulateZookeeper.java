@@ -24,6 +24,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -53,16 +54,15 @@ class PopulateZookeeper extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(manager.getContext(), tableInfo.getTableName(),
-          tableInfo.getNamespaceId(), tableInfo.getTableId(), TableOperation.CREATE);
-
+      var context = manager.getContext();
+      // write tableName & tableId, first to Table Mapping and then to Zookeeper
+      TableMapping.put(context.getZooSession().asReaderWriter(), tableInfo.getTableId(),
+          tableInfo.getNamespaceId(), tableInfo.getTableName(), TableOperation.CREATE);
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
       try {
-        PropUtil.setProperties(manager.getContext(), TablePropKey.of(tableInfo.getTableId()),
-            tableInfo.props);
+        PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId()), tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,
@@ -70,7 +70,7 @@ class PopulateZookeeper extends ManagerRepo {
                 + tableInfo.props);
       }
 
-      manager.getContext().clearTableListCache();
+      context.clearTableListCache();
       return new ChooseDir(tableInfo);
     } finally {
       Utils.getTableNameLock().unlock();

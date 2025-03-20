@@ -25,6 +25,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -59,15 +60,14 @@ class CloneZookeeper extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     Utils.getTableNameLock().lock();
     try {
-      // write tableName & tableId to zookeeper
-
-      Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.tableName,
-          cloneInfo.namespaceId, cloneInfo.tableId, TableOperation.CLONE);
-
+      var context = environment.getContext();
+      // write tableName & tableId, first to Table Mapping and then to Zookeeper
+      TableMapping.put(context.getZooSession().asReaderWriter(), cloneInfo.tableId,
+          cloneInfo.namespaceId, cloneInfo.tableName, TableOperation.CLONE);
       environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
           cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
           cloneInfo.propertiesToExclude);
-      environment.getContext().clearTableListCache();
+      context.clearTableListCache();
 
       return new CloneMetadata(cloneInfo);
     } finally {

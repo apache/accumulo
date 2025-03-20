@@ -43,6 +43,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -107,6 +108,17 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     TableManager.prepareNewNamespaceState(context, Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
+
+    zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.DEFAULT.id()),
+        NamespaceMapping.serialize(Map.of()), ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot
+        .putPersistentData(TableMapping.getZTableMapPath(Namespace.ACCUMULO.id()),
+            NamespaceMapping.serialize(Map.of(AccumuloTable.ROOT.tableId().canonical(),
+                AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableId().canonical(),
+                AccumuloTable.METADATA.tableName(), AccumuloTable.SCAN_REF.tableId().canonical(),
+                AccumuloTable.SCAN_REF.tableName(), AccumuloTable.FATE.tableId().canonical(),
+                AccumuloTable.FATE.tableName())),
+            ZooUtil.NodeExistsPolicy.FAIL);
 
     TableManager.prepareNewTableState(context, AccumuloTable.ROOT.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,
