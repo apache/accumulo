@@ -330,7 +330,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        ClientTabletCache::clearInstances, jitter(), jitter(), TimeUnit.MILLISECONDS));
+        () -> ClientTabletCache.clearInstances(context), jitter(), jitter(),
+        TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
