@@ -1095,11 +1095,12 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     synchronized (tabletLocationCache) {
       return tabletLocationCache.computeIfAbsent(tableId, (TableId key) -> {
-        var mlo = new MetadataCachedTabletObtainer();
         var lockChecker = getTServerLockChecker();
         if (AccumuloTable.ROOT.tableId().equals(tableId)) {
           return new RootClientTabletCache(lockChecker);
-        } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
+        }
+        var mlo = new MetadataCachedTabletObtainer();
+        if (AccumuloTable.METADATA.tableId().equals(tableId)) {
           return new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
               getTabletLocationCache(AccumuloTable.ROOT.tableId()), mlo, lockChecker);
         } else {
