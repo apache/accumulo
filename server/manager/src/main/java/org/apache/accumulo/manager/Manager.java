@@ -200,8 +200,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
-  final SortedMap<KeyExtent,TServerInstance> migrations =
-      Collections.synchronizedSortedMap(new TreeMap<>());
+  private final Set<TServerInstance> deletedTServers = Collections.synchronizedSet(new HashSet<>());
+  private final AtomicBoolean watchersStarted = new AtomicBoolean(false);
   final EventCoordinator nextEvent = new EventCoordinator();
   RecoveryManager recoveryManager = null;
   private final ManagerTime timeKeeper;
@@ -525,8 +525,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   public void clearMigrations(TableId tableId) {
-    synchronized (migrations) {
-      migrations.keySet().removeIf(extent -> extent.tableId().equals(tableId));
+    var ample = getContext().getAmple();
+    // prev row needed for the extent
+    try (var tabletsMetadata = ample.readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
+      for (TabletMetadata tabletMetadata : tabletsMetadata) {
+        ample.mutateTablet(tabletMetadata.getExtent()).deleteMigration().mutate();
+      }
     }
   }
 
@@ -563,10 +568,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     @Override
     public void run() {
       while (stillManager()) {
-        if (!migrations.isEmpty()) {
+        // migrations are stored in the metadata tables which cannot be read until the
+        // TabletGroupWatchers are started
+        if (watchersStarted.get() && numMigrations() > 0) {
           try {
             cleanupOfflineMigrations();
             cleanupNonexistentMigrations(getContext());
+            cleanupDeletedMigrations();
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
@@ -581,14 +589,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
      * the metadata table and remove any migrating tablets that no longer exist.
      */
     private void cleanupNonexistentMigrations(final ClientContext clientContext) {
+      Map<DataLevel,Set<KeyExtent>> notSeen = partitionMigrations();
 
-      Map<DataLevel,Set<KeyExtent>> notSeen;
-
-      synchronized (migrations) {
-        notSeen = partitionMigrations(migrations.keySet());
-      }
-
-      // for each level find the set of migrating tablets that do not exists in metadata store
+      // for each level find the migrating tablets that do not exist in metadata store
       for (DataLevel dataLevel : DataLevel.values()) {
         var notSeenForLevel = notSeen.getOrDefault(dataLevel, Set.of());
         if (notSeenForLevel.isEmpty() || dataLevel == DataLevel.ROOT) {
@@ -606,7 +609,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
         // remove any tablets that previously existed in migrations for this level but were not seen
         // in the metadata table for the level
-        migrations.keySet().removeAll(notSeenForLevel);
+        try (var tabletsMutator = getContext().getAmple().mutateTablets()) {
+          notSeenForLevel
+              .forEach(extent -> tabletsMutator.mutateTablet(extent).deleteMigration().mutate());
+        }
       }
     }
 
@@ -621,6 +627,30 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
+        }
+      }
+    }
+
+    /**
+     * Remove any migrations to any of the deleted TServers
+     */
+    private void cleanupDeletedMigrations() {
+      synchronized (deletedTServers) {
+        var iter = deletedTServers.iterator();
+        var ample = getContext().getAmple();
+        while (iter.hasNext()) {
+          var deletedTServer = iter.next();
+          for (DataLevel dl : DataLevel.values()) {
+            // prev row needed for the extent
+            try (var tabletsMetadata = ample.readTablets().forLevel(dl)
+                .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION)
+                .build()) {
+              for (var tabletMetadata : tabletsMetadata) {
+                conditionallyDeleteMigration(tabletMetadata.getExtent(), deletedTServer);
+              }
+            }
+          }
+          iter.remove();
         }
       }
     }
@@ -672,17 +702,35 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
    * balanceTablets() balances tables by DataLevel. Return the current set of migrations partitioned
    * by DataLevel
    */
-  private static Map<DataLevel,Set<KeyExtent>>
-      partitionMigrations(final Set<KeyExtent> migrations) {
+  private Map<DataLevel,Set<KeyExtent>> partitionMigrations() {
     final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = new EnumMap<>(DataLevel.class);
     // populate to prevent NPE
     for (DataLevel dl : DataLevel.values()) {
-      partitionedMigrations.put(dl, new HashSet<>());
+      Set<KeyExtent> extents = new HashSet<>();
+      // prev row needed for the extent
+      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
+          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
+        for (var tabletMetadata : tabletsMetadata) {
+          if (tabletMetadata.getMigration() != null) {
+            extents.add(tabletMetadata.getExtent());
+          }
+        }
+      }
+      partitionedMigrations.put(dl, extents);
     }
-    migrations.forEach(ke -> {
-      partitionedMigrations.get(DataLevel.of(ke.tableId())).add(ke);
-    });
     return partitionedMigrations;
+  }
+
+  /**
+   * Delete the migration, if present, for the given extent if the migration destination is the
+   * provided tserver
+   */
+  void conditionallyDeleteMigration(KeyExtent extent, TServerInstance tserver) {
+    try (var mutator = getContext().getAmple().conditionallyMutateTablets()) {
+      mutator.mutateTablet(extent).requireAbsentOperation().requireMigration(tserver)
+          .deleteMigration().submit(tm -> false);
+      mutator.process();
+    }
   }
 
   private class StatusThread implements Runnable {
@@ -931,8 +979,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       BalanceParamsImpl params = null;
       long wait = 0;
       long totalMigrationsOut = 0;
-      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations =
-          partitionMigrations(migrationsSnapshot().keySet());
+      final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = partitionMigrations();
       int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {
@@ -979,7 +1026,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             continue;
           }
           migrationsOutForLevel++;
-          migrations.put(ke, TabletServerIdImpl.toThrift(m.getNewTabletServer()));
+          getContext().getAmple().mutateTablet(ke)
+              .putMigration(TabletServerIdImpl.toThrift(m.getNewTabletServer())).mutate();
           log.debug("migration {}", m);
         }
         totalMigrationsOut += migrationsOutForLevel;
@@ -987,15 +1035,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         // increment this at end of loop to signal complete run w/o any continue
         levelsCompleted++;
       }
-      balancerMetrics.assignMigratingCount(migrations::size);
+      balancerMetrics.assignMigratingCount(Manager.this::numMigrations);
 
       if (totalMigrationsOut == 0 && levelsCompleted == DataLevel.values().length) {
         synchronized (balancedNotifier) {
           balancedNotifier.notifyAll();
         }
       } else if (totalMigrationsOut > 0) {
-        nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
-            migrations.size());
+        nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut, numMigrations());
       }
       return wait;
     }
@@ -1309,6 +1356,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         userTableTGW.start();
       }
     }
+    watchersStarted.set(true);
 
     // Once we are sure the upgrade is complete, we can safely allow fate use.
     try {
@@ -1669,16 +1717,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       synchronized (serversToShutdown) {
         cleanListByHostAndPort(serversToShutdown, deleted, added);
       }
-
-      synchronized (migrations) {
-        Iterator<Entry<KeyExtent,TServerInstance>> iter = migrations.entrySet().iterator();
-        while (iter.hasNext()) {
-          Entry<KeyExtent,TServerInstance> entry = iter.next();
-          if (deleted.contains(entry.getValue())) {
-            log.info("Canceling migration of {} to {}", entry.getKey(), entry.getValue());
-            iter.remove();
-          }
-        }
+      // We need to cancel any migrations to a now deleted TServer. Migrations are stored in the
+      // metadata tables, and we cannot read these tables until the TabletGroupWatchers have
+      // started. Save these deleted TServers to be processed after the TGWs have started.
+      synchronized (deletedTServers) {
+        deletedTServers.addAll(deleted);
       }
       nextEvent.event("There are now %d tablet servers", current.size());
     }
@@ -1789,7 +1832,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (displayUnassigned() > 0 || !migrations.isEmpty()
+      } while (displayUnassigned() > 0 || numMigrations() > 0
           || eventCounter != nextEvent.waitForEvents(0, 0));
     }
   }
@@ -1833,12 +1876,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
    */
   public boolean delegationTokensAvailable() {
     return delegationTokensAvailable;
-  }
-
-  public Map<KeyExtent,TServerInstance> migrationsSnapshot() {
-    synchronized (migrations) {
-      return Map.copyOf(migrations);
-    }
   }
 
   public Set<TServerInstance> shutdownServers() {
@@ -1921,5 +1958,18 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   @Override
   public ServiceLock getLock() {
     return managerLock;
+  }
+
+  private long numMigrations() {
+    long count = 0;
+    for (DataLevel dl : DataLevel.values()) {
+      // prev row needed for the extent
+      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
+          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
+        count += tabletsMetadata.stream()
+            .filter(tabletMetadata -> tabletMetadata.getMigration() != null).count();
+      }
+    }
+    return count;
   }
 }

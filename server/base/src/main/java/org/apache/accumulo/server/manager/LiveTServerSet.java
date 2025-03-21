@@ -218,8 +218,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   public synchronized void startListeningForTabletServerChanges() {
-    scanServers();
-
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
   }
@@ -250,7 +248,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
         checkServer(updates, doomed, tserverPath);
       }
 
-      // log.debug("Current: " + current.keySet());
       this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);

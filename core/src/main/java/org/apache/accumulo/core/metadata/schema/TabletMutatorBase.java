@@ -395,6 +395,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return getThis();
   }
 
+  @Override
+  public T putMigration(TServerInstance tserver) {
+    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, new Value(tserver.getHostPortSession()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteMigration() {
+    ServerColumnFamily.MIGRATION_COLUMN.putDelete(mutation);
+    return getThis();
+  }
+
   public void setCloseAfterMutate(AutoCloseable closeable) {
     this.closeAfterMutate = closeable;
   }

@@ -21,7 +21,6 @@ package org.apache.accumulo.server.manager.state;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -68,7 +67,6 @@ public enum TabletGoalState {
       return trace(HOSTED, tm, "tablet is in assigned state");
     }
 
-    KeyExtent extent = tm.getExtent();
     // Shutting down?
     TabletGoalState systemGoalState = getSystemGoalState(tm, params);
 
@@ -113,7 +111,7 @@ public enum TabletGoalState {
         }
       }
 
-      TServerInstance dest = params.getMigrations().get(extent);
+      TServerInstance dest = tm.getMigration();
       if (dest != null && tm.hasCurrent() && !dest.equals(tm.getLocation().getServerInstance())) {
         return trace(UNASSIGNED, tm, () -> "tablet has a migration to " + dest);
       }
