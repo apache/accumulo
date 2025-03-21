@@ -153,7 +153,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     private final Map<String,Pattern> poolNameToRegexPattern;
 
     HrtlbConf(PluginEnvironment.Configuration conf) {
-      System.out.println("building hrtlb conf");
+      LOG.info("Building conf");
       String oobProperty = conf.get(HOST_BALANCER_OOB_CHECK_KEY);
       if (oobProperty != null) {
         oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
