@@ -108,10 +108,11 @@ public class GroupBalancerTest {
         }
       };
 
-      balance(balancer, maxMigrations, tid);
+      balance(balancer, maxMigrations, Map.of("1", tid));
     }
 
-    public void balance(TabletBalancer balancer, int maxMigrations, TableId tid) {
+    public void balance(TabletBalancer balancer, int maxMigrations,
+        Map<String,TableId> tablesToBalance) {
 
       while (true) {
         Set<TabletId> migrations = new HashSet<>();
@@ -123,8 +124,8 @@ public class GroupBalancerTest {
               new org.apache.accumulo.core.master.thrift.TabletServerStatus()));
         }
 
-        balancer
-            .balance(new BalanceParamsImpl(current, migrations, migrationsOut, DataLevel.of(tid)));
+        balancer.balance(new BalanceParamsImpl(current, migrations, migrationsOut,
+            DataLevel.USER.name(), tablesToBalance));
 
         assertTrue(migrationsOut.size() <= (maxMigrations + 5),
             "Max Migration exceeded " + maxMigrations + " " + migrationsOut.size());

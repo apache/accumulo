@@ -65,7 +65,7 @@ public class CompactionInfo {
   }
 
   public Thread getThread() {
-    return compactor.thread;
+    return compactor.getThread();
   }
 
   public String getOutputFile() {

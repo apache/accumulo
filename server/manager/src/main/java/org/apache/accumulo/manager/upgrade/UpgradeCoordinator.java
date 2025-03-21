@@ -160,9 +160,7 @@ public class UpgradeCoordinator {
         "Not currently in a suitable state to do zookeeper upgrade %s", status);
 
     try {
-      int cv = context.getServerDirs()
-          .getAccumuloPersistentVersion(context.getVolumeManager().getFirst());
-      ServerContext.ensureDataVersionCompatible(cv);
+      int cv = AccumuloDataVersion.getCurrentVersion(context);
       this.currentVersion = cv;
 
       if (cv == AccumuloDataVersion.get()) {

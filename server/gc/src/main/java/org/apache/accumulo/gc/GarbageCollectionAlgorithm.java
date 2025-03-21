@@ -387,6 +387,7 @@ public class GarbageCollectionAlgorithm {
 
     Iterator<GcCandidate> candidatesIter = gce.getCandidates();
     long totalBlips = 0;
+    int batchCount = 0;
 
     while (candidatesIter.hasNext()) {
       List<GcCandidate> batchOfCandidates;
@@ -399,7 +400,8 @@ public class GarbageCollectionAlgorithm {
       } finally {
         candidatesSpan.end();
       }
-      totalBlips = deleteBatch(gce, batchOfCandidates);
+      batchCount++;
+      totalBlips = deleteBatch(gce, batchOfCandidates, batchCount);
     }
     return totalBlips;
   }
@@ -407,11 +409,12 @@ public class GarbageCollectionAlgorithm {
   /**
    * Given a sub-list of possible deletion candidates, process and remove valid deletion candidates.
    */
-  private long deleteBatch(GarbageCollectionEnvironment gce, List<GcCandidate> currentBatch)
-      throws InterruptedException, TableNotFoundException, IOException {
+  private long deleteBatch(GarbageCollectionEnvironment gce, List<GcCandidate> currentBatch,
+      int batchCount) throws InterruptedException, TableNotFoundException, IOException {
 
     long origSize = currentBatch.size();
     gce.incrementCandidatesStat(origSize);
+    log.info("Batch {} total deletion candidates: {}", batchCount, origSize);
 
     SortedMap<String,GcCandidate> candidateMap = makeRelative(currentBatch);
 

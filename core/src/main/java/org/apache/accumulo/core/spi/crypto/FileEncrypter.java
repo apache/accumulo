@@ -21,13 +21,14 @@ package org.apache.accumulo.core.spi.crypto;
 import java.io.OutputStream;
 
 /**
- * Class implementation that will encrypt a file. Make sure implementation is thread safe.
+ * Class implementation that will encrypt a file.
  *
  * @since 2.0
  */
 public interface FileEncrypter {
   /**
-   * Encrypt the OutputStream.
+   * Encrypt the OutputStream. Only one OutputStream is expected to be active at a time. Before a
+   * new encryption OutputStream is created the previous one is expected to be closed.
    */
   OutputStream encryptStream(OutputStream outputStream) throws CryptoService.CryptoException;
 
