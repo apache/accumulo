@@ -419,7 +419,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       // to a conditional writer and any known results will be removed
       // from the pending map. Unknown results will be re-attempted up
       // to the maxAttempts count
-      for (int attempt = 0; attempt < maxAttempts; attempt++) {
+      for (int attempt = 0; attempt < maxAttempts && !pending.isEmpty(); attempt++) {
         var currentResults = tryMutateBatch();
         for (Entry<FateId,ConditionalWriter.Status> result : currentResults.entrySet()) {
           var fateId = result.getKey();
