@@ -58,6 +58,7 @@ public class RegexGroupBalancer extends GroupBalancer {
 
   private final TableId tableId;
 
+  @SuppressWarnings("deprecation")
   public RegexGroupBalancer(TableId tableId) {
     super(tableId);
     this.tableId = tableId;

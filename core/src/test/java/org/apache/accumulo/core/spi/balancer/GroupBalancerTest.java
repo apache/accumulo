@@ -85,6 +85,7 @@ public class GroupBalancerTest {
 
     public void balance(final int maxMigrations) {
       TableId tid = TableId.of("1");
+      @SuppressWarnings("deprecation")
       GroupBalancer balancer = new GroupBalancer(tid) {
 
         @Override

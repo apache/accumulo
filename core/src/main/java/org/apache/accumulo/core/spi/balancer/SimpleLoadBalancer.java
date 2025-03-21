@@ -77,6 +77,7 @@ public class SimpleLoadBalancer implements TabletBalancer {
 
   public SimpleLoadBalancer() {}
 
+  @Deprecated
   public SimpleLoadBalancer(TableId table) {
     tableToBalance = table;
   }

@@ -66,6 +66,7 @@ public class TableLoadBalancer implements TabletBalancer {
     return null;
   }
 
+  @SuppressWarnings("deprecation")
   protected TabletBalancer getBalancerForTable(TableId tableId) {
     TabletBalancer balancer = perTableBalancers.get(tableId);
 
