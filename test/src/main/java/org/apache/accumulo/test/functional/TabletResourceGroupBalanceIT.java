@@ -327,8 +327,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
   private int getCountOfHostedTablets(AccumuloClient client, String tableName) throws Exception {
 
-    ClientTabletCache locator = ClientTabletCache.getInstance((ClientContext) client,
-        TableId.of(client.tableOperations().tableIdMap().get(tableName)));
+    ClientTabletCache locator = ((ClientContext) client)
+        .getTabletLocationCache(TableId.of(client.tableOperations().tableIdMap().get(tableName)));
     locator.invalidateCache();
     AtomicInteger locations = new AtomicInteger(0);
     locator.findTablets((ClientContext) client, Collections.singletonList(new Range()), (ct, r) -> {

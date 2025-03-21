@@ -67,7 +67,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
       int numLocations = 0;
       try {
         final TableId tid = context.getTableId(tableName);
-        final ClientTabletCache locator = ClientTabletCache.getInstance(context, tid);
+        final ClientTabletCache locator = context.getTabletLocationCache(tid);
         final Set<String> locations = new HashSet<>();
         final List<Range> failures = locator.findTablets(context, ALL_TABLETS_RANGE,
             (ct, r) -> ct.getTserverLocation().ifPresent(locations::add),

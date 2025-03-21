@@ -42,7 +42,6 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -147,7 +146,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be no tablets online
       List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(0, stats.size());
-      assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+      assertEquals(0, ((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
           .getTabletHostingRequestCount());
       assertEquals(0, ONDEMAND_ONLINE_COUNT);
 
@@ -158,7 +157,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be four tablets online
       stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(4, stats.size());
-      assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+      assertTrue(((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
           .getTabletHostingRequestCount() > 0);
       Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 4);
 
