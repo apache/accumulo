@@ -31,7 +31,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompaction;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
@@ -138,7 +137,7 @@ public class ECAdmin implements KeywordExecutable {
     ecid = ExternalCompactionId.from(ecid).canonical();
     try {
       coordinatorClient = getCoordinatorClient(context);
-      coordinatorClient.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      coordinatorClient.cancel(context.rpcCreds(), ecid);
       System.out.println("Cancel sent to coordinator for " + ecid);
     } catch (Exception e) {
       throw new IllegalStateException("Exception calling cancel compaction for " + ecid, e);
@@ -165,7 +164,7 @@ public class ECAdmin implements KeywordExecutable {
     TExternalCompactionMap running;
     try {
       coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      running = coordinatorClient.getRunningCompactions(context.rpcCreds());
       if (running == null) {
         System.out.println("No running compactions found.");
         return;

@@ -52,7 +52,6 @@ import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -73,7 +72,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -238,10 +236,9 @@ public class ConditionalWriterImpl implements ConditionalWriter {
           continue;
         }
 
-        TInfo tinfo = TraceUtil.traceInfo();
         try {
           client = getClient(sid.location);
-          client.closeConditionalUpdate(tinfo, sid.sessionID);
+          client.closeConditionalUpdate(sid.sessionID);
         } catch (Exception e) {} finally {
           ThriftUtil.returnClient((TServiceClient) client, context);
         }
@@ -484,8 +481,8 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
   private final HashMap<HostAndPort,SessionID> cachedSessionIDs = new HashMap<>();
 
-  private SessionID reserveSessionID(HostAndPort location, TabletIngestClientService.Iface client,
-      TInfo tinfo) throws ThriftSecurityException, TException {
+  private SessionID reserveSessionID(HostAndPort location, TabletIngestClientService.Iface client)
+      throws ThriftSecurityException, TException {
     // avoid cost of repeatedly making RPC to create sessions, reuse sessions
     synchronized (cachedSessionIDs) {
       SessionID sid = cachedSessionIDs.get(location);
@@ -503,7 +500,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       }
     }
 
-    TConditionalSession tcs = client.startConditionalUpdate(tinfo, context.rpcCreds(),
+    TConditionalSession tcs = client.startConditionalUpdate(context.rpcCreds(),
         ByteBufferUtil.toByteBuffers(auths.getAuthorizations()), tableId.canonical(),
         DurabilityImpl.toThrift(durability), this.classLoaderContext);
 
@@ -567,8 +564,6 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private void sendToServer(HostAndPort location, TabletServerMutations<QCMutation> mutations) {
     TabletIngestClientService.Iface client = null;
 
-    TInfo tinfo = TraceUtil.traceInfo();
-
     Map<Long,CMK> cmidToCm = new HashMap<>();
     MutableLong cmid = new MutableLong(0);
 
@@ -586,8 +581,8 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       List<TCMResult> tresults = null;
       while (tresults == null) {
         try {
-          sessionId = reserveSessionID(location, client, tinfo);
-          tresults = client.conditionalUpdate(tinfo, sessionId.sessionID, tmutations,
+          sessionId = reserveSessionID(location, client);
+          tresults = client.conditionalUpdate(sessionId.sessionID, tmutations,
               compressedIters.getSymbolTable());
         } catch (NoSuchScanIDException nssie) {
           sessionId = null;
@@ -724,11 +719,9 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {
     TabletIngestClientService.Iface client = null;
 
-    TInfo tinfo = TraceUtil.traceInfo();
-
     try {
       client = getClient(location);
-      client.invalidateConditionalUpdate(tinfo, sessionId);
+      client.invalidateConditionalUpdate(sessionId);
     } finally {
       ThriftUtil.returnClient((TServiceClient) client, context);
     }

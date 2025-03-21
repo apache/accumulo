@@ -63,7 +63,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
@@ -323,8 +322,7 @@ class LoadFiles extends ManagerRepo {
         client =
             ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context, timeInMillis);
 
-        var timestamps =
-            client.allocateTimestamps(TraceUtil.traceInfo(), context.rpcCreds(), extents);
+        var timestamps = client.allocateTimestamps(context.rpcCreds(), extents);
 
         log.trace("{} allocate timestamps request to {} returned {} timestamps", fateId, server,
             timestamps.size());

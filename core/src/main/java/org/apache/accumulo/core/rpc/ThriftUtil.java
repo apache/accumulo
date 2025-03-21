@@ -53,7 +53,10 @@ public class ThriftUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
-  private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
+  private static final AccumuloProtocolFactory clientAccumuloProtocolFactory =
+      AccumuloProtocolFactory.clientFactory();
+  private static final AccumuloProtocolFactory serverAccumuloProtocolFactory =
+      AccumuloProtocolFactory.serverFactory();
   private static final AccumuloTFramedTransportFactory transportFactory =
       new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
@@ -63,12 +66,16 @@ public class ThriftUtil {
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
-   * An instance of {@link TraceProtocolFactory}
+   * An instance of {@link AccumuloProtocolFactory}
    *
    * @return The default Thrift TProtocolFactory for RPC
    */
-  public static TProtocolFactory protocolFactory() {
-    return protocolFactory;
+  public static TProtocolFactory clientProtocolFactory() {
+    return clientAccumuloProtocolFactory;
+  }
+
+  public static TProtocolFactory serverProtocolFactory() {
+    return serverAccumuloProtocolFactory;
   }
 
   /**
@@ -85,7 +92,7 @@ public class ThriftUtil {
    */
   public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
       TTransport transport) {
-    return type.getClient(protocolFactory.getProtocol(transport));
+    return type.getClient(clientProtocolFactory().getProtocol(transport));
   }
 
   /**

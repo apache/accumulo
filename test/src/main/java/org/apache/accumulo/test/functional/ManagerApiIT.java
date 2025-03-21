@@ -43,7 +43,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
@@ -94,8 +93,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void testPermissions_setManagerGoalState() throws Exception {
     // To setManagerGoalState, user needs SystemPermission.SYSTEM
     op = user -> client -> {
-      client.setManagerGoalState(TraceUtil.traceInfo(), user.toThrift(instanceId),
-          ManagerGoalState.NORMAL);
+      client.setManagerGoalState(user.toThrift(instanceId), ManagerGoalState.NORMAL);
       return null;
     };
     expectPermissionDenied(op, regularUser);
@@ -126,7 +124,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     }
 
     op = user -> client -> {
-      client.initiateFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId);
+      client.initiateFlush(user.toThrift(instanceId), tableId);
       return null;
     };
     expectPermissionDenied(op, regularUser);
@@ -162,12 +160,12 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     AtomicLong flushId = new AtomicLong();
     // initiateFlush as the root user to get the flushId, then test waitForFlush with other users
     op = user -> client -> {
-      flushId.set(client.initiateFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId));
+      flushId.set(client.initiateFlush(user.toThrift(instanceId), tableId));
       return null;
     };
     expectPermissionSuccess(op, rootUser);
     op = user -> client -> {
-      client.waitForFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId,
+      client.waitForFlush(user.toThrift(instanceId), tableId,
           TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
           flushId.get(), 1);
       return null;
@@ -186,14 +184,14 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
     op = user -> client -> {
-      client.modifySystemProperties(TraceUtil.traceInfo(), user.toThrift(instanceId),
+      client.modifySystemProperties(user.toThrift(instanceId),
           new TVersionedProperties(0, Map.of(propKey, "10000")));
       return null;
     };
     expectPermissionDenied(op, regularUser);
     expectPermissionSuccess(op, rootUser);
     op = user -> client -> {
-      client.modifySystemProperties(TraceUtil.traceInfo(), user.toThrift(instanceId),
+      client.modifySystemProperties(user.toThrift(instanceId),
           new TVersionedProperties(1, Map.of(propKey, "10000")));
       return null;
     };
@@ -213,13 +211,13 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       client.instanceOperations().setProperty(propKey2, "10000"); // ensure it exists
     }
     op = user -> client -> {
-      client.removeSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey1);
+      client.removeSystemProperty(user.toThrift(instanceId), propKey1);
       return null;
     };
     expectPermissionDenied(op, regularUser);
     expectPermissionSuccess(op, rootUser);
     op = user -> client -> {
-      client.removeSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey2);
+      client.removeSystemProperty(user.toThrift(instanceId), propKey2);
       return null;
     };
     expectPermissionSuccess(op, privilegedUser);
@@ -230,7 +228,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
     op = user -> client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey, "10000");
+      client.setSystemProperty(user.toThrift(instanceId), propKey, "10000");
       return null;
     };
     expectPermissionDenied(op, regularUser);
@@ -247,8 +245,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     // this server won't exist, so shutting it down is a NOOP on success
     String fakeHostAndPort = getUniqueNames(1)[0] + ":0";
     op = user -> client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId), fakeHostAndPort,
-          false);
+      client.shutdownTabletServer(user.toThrift(instanceId), fakeHostAndPort, false);
       return null;
     };
     expectPermissionDenied(op, regularUser);
@@ -259,8 +256,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   @Test
   public void shutdownTabletServer() throws Exception {
     op = user -> client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId),
-          "fakeTabletServer:9997", true);
+      client.shutdownTabletServer(user.toThrift(instanceId), "fakeTabletServer:9997", true);
       return null;
     };
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
@@ -282,7 +278,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     try (var rootClient = rootUserBuilder.build(); var privClient = privUserBuilder.build()) {
       // To shutdown, user needs SystemPermission.SYSTEM
       op = user -> client -> {
-        client.shutdown(TraceUtil.traceInfo(), user.toThrift(instanceId), false);
+        client.shutdown(user.toThrift(instanceId), false);
         return null;
       };
       expectPermissionDenied(op, regularUser);

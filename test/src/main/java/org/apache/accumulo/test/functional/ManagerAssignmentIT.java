@@ -78,7 +78,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.util.Wait;
@@ -459,8 +458,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
   public static List<TabletStats> getTabletStats(AccumuloClient c, String tableId)
       throws AccumuloException, AccumuloSecurityException {
-    return ThriftClientTypes.TABLET_SERVER.execute((ClientContext) c, client -> client
-        .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
+    return ThriftClientTypes.TABLET_SERVER.execute((ClientContext) c,
+        client -> client.getTabletStats(((ClientContext) c).rpcCreds(), tableId));
   }
 
   @Test
@@ -536,9 +535,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final String finalAddress = addressWithSession;
       System.out.println("Attempting to shutdown TabletServer at: " + address);
       try {
-        ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-            c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        ThriftClientTypes.MANAGER.executeVoid((ClientContext) client, c -> c
+            .shutdownTabletServer(getCluster().getServerContext().rpcCreds(), finalAddress, false));
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }
@@ -587,9 +585,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       final String finalAddress = addressWithSession;
       System.out.println("Attempting to shutdown TabletServer at: " + address);
       try {
-        ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
-            c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
+        ThriftClientTypes.MANAGER.executeVoid((ClientContext) client, c -> c
+            .shutdownTabletServer(getCluster().getServerContext().rpcCreds(), finalAddress, false));
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }

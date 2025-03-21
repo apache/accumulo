@@ -62,7 +62,6 @@ import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
@@ -942,7 +941,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
       if (tabMuts.isEmpty()) {
         return new MutationSet();
       }
-      TInfo tinfo = TraceUtil.traceInfo();
 
       timeoutTracker.startingWrite();
 
@@ -965,7 +963,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           // set the session on the sessionCloser so that any failures after this point will close
           // the session if needed
           sessionCloser.setSession(
-              client.startUpdate(tinfo, context.rpcCreds(), DurabilityImpl.toThrift(durability)));
+              client.startUpdate(context.rpcCreds(), DurabilityImpl.toThrift(durability)));
 
           List<TMutation> updates = new ArrayList<>();
           for (Entry<KeyExtent,List<Mutation>> entry : tabMuts.entrySet()) {
@@ -978,14 +976,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
                 size += mutation.numBytes();
               }
 
-              client.applyUpdates(tinfo, sessionCloser.getSession(), entry.getKey().toThrift(),
-                  updates);
+              client.applyUpdates(sessionCloser.getSession(), entry.getKey().toThrift(), updates);
               updates.clear();
               size = 0;
             }
           }
 
-          UpdateErrors updateErrors = client.closeUpdate(tinfo, sessionCloser.getSession());
+          UpdateErrors updateErrors = client.closeUpdate(sessionCloser.getSession());
 
           // the write completed successfully so no need to close the session
           sessionCloser.clearSession();
@@ -1131,11 +1128,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
             if (useCloseUpdate) {
               // This compatability handling for accumulo version 2.1.2 and earlier that did not
               // have cancelUpdate. Can remove this in 3.1.
-              client.closeUpdate(TraceUtil.traceInfo(), usid.getAsLong());
+              client.closeUpdate(usid.getAsLong());
               retry.logCompletion(log, "Closed failed write session " + location + " " + usid);
               break;
             } else {
-              if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
+              if (client.cancelUpdate(usid.getAsLong())) {
                 retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);
                 break;
               } else {
