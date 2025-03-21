@@ -162,7 +162,7 @@ public class LoadFilesTest {
     Path bulkDir = EasyMock.createMock(Path.class);
     EasyMock.replay(manager, bulkDir);
 
-    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, manager, txid);
+    LoadFiles.loadFiles(cl, info, bulkDir, lmi, tmf, manager, txid, 0);
     EasyMock.verify(manager, bulkDir);
     List<CaptureLoader.LoadResult> results = cl.getLoadResults();
     assertEquals(loadRanges.size(), results.size());

@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -49,6 +48,8 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRangeInfoNode;
+import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRanges;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -117,8 +118,11 @@ public class PrepBulkImport extends ManagerRepo {
    * file goes to too many tablets.
    */
   @VisibleForTesting
-  static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
+  static MetadataRanges validateLoadMapping(String tableId, LoadMappingIterator lmi,
       TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
+
+    final MetadataRanges metadataRanges = new MetadataRanges();
+
     var currRange = lmi.next();
 
     Text startRow = currRange.getKey().prevEndRow();
@@ -132,7 +136,6 @@ public class PrepBulkImport extends ManagerRepo {
       int count;
 
       KeyExtent firstTablet = currRange.getKey();
-      KeyExtent lastTablet = currRange.getKey();
 
       if (!tabletIter.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
           && equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
@@ -146,13 +149,18 @@ public class PrepBulkImport extends ManagerRepo {
             break;
           }
           currRange = lmi.next();
-          lastTablet = currRange.getKey();
         }
 
+        int skippedMetadataTablets = 0;
         while (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
             && tabletIter.hasNext()) {
+          skippedMetadataTablets++;
           currTablet = tabletIter.next();
         }
+        if (skippedMetadataTablets > 0) {
+          metadataRanges.add(new MetadataRangeInfoNode(skippedMetadataTablets));
+        }
+        KeyExtent firstExtentForRange = currTablet;
 
         boolean matchedPrevRow = equals(KeyExtent::prevEndRow, currTablet, currRange.getKey());
 
@@ -167,6 +175,7 @@ public class PrepBulkImport extends ManagerRepo {
           count++;
         }
 
+        metadataRanges.add(new MetadataRangeInfoNode(firstExtentForRange, currTablet, count));
         if (!matchedPrevRow || !equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
           break;
         }
@@ -194,15 +203,14 @@ public class PrepBulkImport extends ManagerRepo {
                   + new TreeMap<>(fileCounts));
         }
       }
-
-      return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
-
+      log.info("Metadata range info: {}", metadataRanges);
+      return metadataRanges;
     } finally {
       tabletIterFactory.close();
     }
   }
 
-  private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
+  private MetadataRanges checkForMerge(final long tid, final Manager manager) throws Exception {
 
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
@@ -240,16 +248,24 @@ public class PrepBulkImport extends ManagerRepo {
   @Override
   public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    KeyExtent tabletsRange = checkForMerge(tid, manager);
+    MetadataRanges metadataRanges = checkForMerge(tid, manager);
 
-    bulkInfo.firstSplit =
-        Optional.ofNullable(tabletsRange.prevEndRow()).map(Text::getBytes).orElse(null);
-    bulkInfo.lastSplit =
-        Optional.ofNullable(tabletsRange.endRow()).map(Text::getBytes).orElse(null);
+    Text start = metadataRanges.getRangeStartPrevEndRow();
+    if (start != null) {
+      bulkInfo.firstSplit = start.getBytes();
+    }
 
-    log.trace("{} first split:{} last split:{}", FateTxId.formatTid(tid), tabletsRange.prevEndRow(),
-        tabletsRange.endRow());
+    Text end = metadataRanges.getRangeEndRow();
+    if (end != null) {
+      bulkInfo.lastSplit = end.getBytes();
+    }
+    log.warn("{} first split:{} last split:{}", FateTxId.formatTid(tid), start, end);
 
+    int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+        .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+    if (skip > 0) {
+      bulkInfo.metadataRangesInfo = metadataRanges;
+    }
     bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
 
     VolumeManager fs = manager.getVolumeManager();

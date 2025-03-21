@@ -66,6 +66,7 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRanges;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -123,7 +124,9 @@ class LoadFiles extends ManagerRepo {
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
           .fetch(PREV_ROW, LOCATION, LOADED).build();
 
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, tid);
+      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, tid, skip);
     }
   }
 
@@ -352,8 +355,8 @@ class LoadFiles extends ManagerRepo {
    */
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
-      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager, long tid)
-      throws Exception {
+      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager, long tid,
+      int skipDistance) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
@@ -364,19 +367,28 @@ class LoadFiles extends ManagerRepo {
 
     loader.start(bulkDir, manager, tid, bulkInfo.setTime);
 
+    MetadataRanges mdr = skipDistance > 0 ? bulkInfo.metadataRangesInfo : null;
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
     KeyExtent prevLastExtent = null; // KeyExtent of last tablet from prior loadMapEntry
+    int nodeForPrevLastExtent = 0; // node index in metadata ranges
 
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
     Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
     while (lmi.hasNext()) {
       loadMapEntry = lmi.next();
       KeyExtent loadMapKey = loadMapEntry.getKey();
-      if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
-        tabletsMetadata.close();
-        tabletsMetadata = factory.newTabletsMetadata(startRow);
-        tabletIter = tabletsMetadata.iterator();
+      if (mdr != null && prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
+        nodeForPrevLastExtent = mdr.findNodeForExtent(prevLastExtent, nodeForPrevLastExtent);
+        int nodeForLoadMapKey = mdr.findNodeForExtent(loadMapKey, nodeForPrevLastExtent);
+        if (nodeForPrevLastExtent >= 0 && nodeForLoadMapKey >= 0) {
+          int distance = mdr.getTabletDistance(nodeForPrevLastExtent + 1, nodeForLoadMapKey);
+          if (distance > skipDistance) {
+            tabletsMetadata.close();
+            tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
+            tabletIter = tabletsMetadata.iterator();
+          }
+        }
       }
       List<TabletMetadata> tablets =
           findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
