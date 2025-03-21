@@ -213,6 +213,11 @@ public class MergeTablets extends ManagerRepo {
           tabletMutator.deleteUnSplittable();
         }
 
+        if (lastTabletMeta.getMigration() != null) {
+          // This is no longer the same tablet, so delete the migration
+          tabletMutator.deleteMigration();
+        }
+
         // Set merged marker on the last tablet when we are finished
         // so we know that we already updated metadata if the process restarts
         tabletMutator.setMerged();

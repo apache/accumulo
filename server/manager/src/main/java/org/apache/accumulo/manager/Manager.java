@@ -106,7 +106,6 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -203,8 +202,7 @@ public class Manager extends AbstractServer
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
-  private final Map<TabletsMetadata,Set<TServerInstance>> outstandingMigrationsCleanup =
-      Collections.synchronizedMap(new HashMap<>());
+  private final Set<TServerInstance> deletedTServers = Collections.synchronizedSet(new HashSet<>());
   private final AtomicBoolean watchersStarted = new AtomicBoolean(false);
   final EventCoordinator nextEvent = new EventCoordinator();
   RecoveryManager recoveryManager = null;
@@ -532,18 +530,14 @@ public class Manager extends AbstractServer
   }
 
   public void clearMigrations(TableId tableId) {
-    log.info("KEVIN RATHBUN clearMigrations start");
     var ample = getContext().getAmple();
     // prev row needed for the extent
-    try (var tabletsMetadata =
-        ample.readTablets().forTable(tableId).fetch(TabletMetadata.ColumnType.PREV_ROW)
-            .fetch(TabletMetadata.ColumnType.MIGRATION).build()) {
-      log.info("KEVIN RATHBUN updating table {}", tableId);
+    try (var tabletsMetadata = ample.readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
       for (TabletMetadata tabletMetadata : tabletsMetadata) {
         ample.mutateTablet(tabletMetadata.getExtent()).deleteMigration().mutate();
       }
     }
-    log.info("KEVIN RATHBUN clearMigrations fin");
   }
 
   private Splitter splitter;
@@ -579,17 +573,17 @@ public class Manager extends AbstractServer
     @Override
     public void run() {
       while (stillManager()) {
-        if (numMigrations() > 0) {
+        // migrations are stored in the metadata tables which cannot be read until the
+        // TabletGroupWatchers are started
+        if (watchersStarted.get() && numMigrations() > 0) {
           try {
             cleanupOfflineMigrations();
             cleanupNonexistentMigrations(getContext());
-            cleanupOutstandingMigrations();
+            cleanupDeletedMigrations();
           } catch (Exception ex) {
             log.error("Error cleaning up migrations", ex);
           }
         }
-        // TODO KEVIN RATHBUN a difference with cleaning up those computed in update() is now it is
-        // done every 5 minutes instead of every 5 seconds... Not sure if that matters
         sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
       }
     }
@@ -600,13 +594,9 @@ public class Manager extends AbstractServer
      * the metadata table and remove any migrating tablets that no longer exist.
      */
     private void cleanupNonexistentMigrations(final ClientContext clientContext) {
-      log.info("KEVIN RATHBUN cleanupNonexistentMigrations start");
-      // TODO KEVIN RATHBUN still not entirely sure if this method is needed anymore... In the case
-      // described above, does the fact that migrations are stored in the metadata table effect
-      // anything? Maybe the entire row is deleted in the above case?
       Map<DataLevel,Set<KeyExtent>> notSeen = partitionMigrations();
 
-      // for each level find the set of migrating tablets that do not exists in metadata store
+      // for each level find the migrating tablets that do not exist in metadata store
       for (DataLevel dataLevel : DataLevel.values()) {
         var notSeenForLevel = notSeen.getOrDefault(dataLevel, Set.of());
         if (notSeenForLevel.isEmpty() || dataLevel == DataLevel.ROOT) {
@@ -629,7 +619,6 @@ public class Manager extends AbstractServer
               .forEach(extent -> tabletsMutator.mutateTablet(extent).deleteMigration().mutate());
         }
       }
-      log.info("KEVIN RATHBUN cleanupNonexistentMigrations end");
     }
 
     /**
@@ -637,7 +626,6 @@ public class Manager extends AbstractServer
      * tablet server will load the tablet. check for offline tables and remove their migrations.
      */
     private void cleanupOfflineMigrations() {
-      log.info("KEVIN RATHBUN cleanupOfflineMigrations start");
       ServerContext context = getContext();
       TableManager manager = context.getTableManager();
       for (TableId tableId : context.getTableIdToNameMap().keySet()) {
@@ -646,35 +634,30 @@ public class Manager extends AbstractServer
           clearMigrations(tableId);
         }
       }
-      log.info("KEVIN RATHBUN cleanupOfflineMigrations end");
     }
 
     /**
-     * TODO KEVIN RATHBUN
+     * Remove any migrations to any of the deleted TServers
      */
-    private void cleanupOutstandingMigrations() {
-      log.info("KEVIN RATHBUN cleanupOutstandingMigrations start");
-      if (watchersStarted.get()) {
-        synchronized (outstandingMigrationsCleanup) {
-          var iter = outstandingMigrationsCleanup.entrySet().iterator();
-          while (iter.hasNext()) {
-            var entry = iter.next();
-            var tabletsMetadata = entry.getKey();
-            var deleted = entry.getValue();
-            for (var tabletMetadata : tabletsMetadata) {
-              var migration = tabletMetadata.getMigration();
-              // TODO KEVIN RATHBUN can prob use conditional mut here...
-              if (deleted.contains(migration)) {
-                var extent = tabletMetadata.getExtent();
-                log.info("Canceling migration of {} to {}", extent, migration);
-                getContext().getAmple().mutateTablet(extent).deleteMigration().mutate();
+    private void cleanupDeletedMigrations() {
+      synchronized (deletedTServers) {
+        var iter = deletedTServers.iterator();
+        var ample = getContext().getAmple();
+        while (iter.hasNext()) {
+          var deletedTServer = iter.next();
+          for (DataLevel dl : DataLevel.values()) {
+            // prev row needed for the extent
+            try (var tabletsMetadata = ample.readTablets().forLevel(dl)
+                .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION)
+                .build()) {
+              for (var tabletMetadata : tabletsMetadata) {
+                conditionallyDeleteMigration(tabletMetadata.getExtent(), deletedTServer);
               }
             }
-            iter.remove();
           }
+          iter.remove();
         }
       }
-      log.info("KEVIN RATHBUN cleanupOutstandingMigrations end");
     }
   }
 
@@ -725,15 +708,13 @@ public class Manager extends AbstractServer
    * by DataLevel
    */
   private Map<DataLevel,Set<KeyExtent>> partitionMigrations() {
-    log.info("KEVIN RATHBUN partitionMigrations start");
     final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = new EnumMap<>(DataLevel.class);
     // populate to prevent NPE
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
       try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.PREV_ROW).fetch(TabletMetadata.ColumnType.MIGRATION)
-          .build()) {
+          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
         for (var tabletMetadata : tabletsMetadata) {
           if (tabletMetadata.getMigration() != null) {
             extents.add(tabletMetadata.getExtent());
@@ -742,8 +723,19 @@ public class Manager extends AbstractServer
       }
       partitionedMigrations.put(dl, extents);
     }
-    log.info("KEVIN RATHBUN partitionMigrations end " + partitionedMigrations);
     return partitionedMigrations;
+  }
+
+  /**
+   * Delete the migration, if present, for the given extent if the migration destination is the
+   * provided tserver
+   */
+  void conditionallyDeleteMigration(KeyExtent extent, TServerInstance tserver) {
+    try (var mutator = getContext().getAmple().conditionallyMutateTablets()) {
+      mutator.mutateTablet(extent).requireAbsentOperation().requireMigration(tserver)
+          .deleteMigration().submit(tm -> false);
+      mutator.process();
+    }
   }
 
   private class StatusThread implements Runnable {
@@ -1039,8 +1031,6 @@ public class Manager extends AbstractServer
             continue;
           }
           migrationsOutForLevel++;
-          // create the migration
-          log.info("KEVIN RATHBUN putting the migration");
           getContext().getAmple().mutateTablet(ke)
               .putMigration(TabletServerIdImpl.toThrift(m.getNewTabletServer())).mutate();
           log.debug("migration {}", m);
@@ -1263,7 +1253,6 @@ public class Manager extends AbstractServer
 
     Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
-    log.info("KEVIN RATHBUN calling startListeningForTabletServerChanges() from Manager.run");
     tserverSet.startListeningForTabletServerChanges();
 
     Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
@@ -1327,8 +1316,6 @@ public class Manager extends AbstractServer
             return false;
           }
         });
-    // TODO KEVIN RATHBUN HERE!!! table scans on metadata tables cannot occur until AFTER the
-    // watchers are started
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
@@ -1635,7 +1622,6 @@ public class Manager extends AbstractServer
   @Override
   public void update(LiveTServerSet current, Set<TServerInstance> deleted,
       Set<TServerInstance> added) {
-    log.info("KEVIN RATHBUN manager.update() start");
 
     // if we have deleted or added tservers, then adjust our dead server list
     if (!deleted.isEmpty() || !added.isEmpty()) {
@@ -1671,21 +1657,11 @@ public class Manager extends AbstractServer
       synchronized (serversToShutdown) {
         cleanListByHostAndPort(serversToShutdown, deleted, added);
       }
-
-      var ample = getContext().getAmple();
-      for (DataLevel dl : DataLevel.values()) {
-        // prev row needed for the extent
-        try (var tabletsMetadata =
-            ample.readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW)
-                .fetch(TabletMetadata.ColumnType.MIGRATION).build()) {
-          log.info("KEVIN RATHBUN update() at level dl {}", dl);
-          // The TabletGroupWatchers may not have been started yet, so we cannot yet iterate
-          // through the TabletsMetadata. Save the TabletsMetadata and the deleted set to be
-          // processed after the TGWs have been started
-          log.info("KEVIN RATHBUN putting in map: " + deleted);
-          outstandingMigrationsCleanup.put(tabletsMetadata, deleted);
-        }
-        log.info("KEVIN RATHBUN update() fin at level dl {}", dl);
+      // We need to cancel any migrations to a now deleted TServer. Migrations are stored in the
+      // metadata tables, and we cannot read these tables until the TabletGroupWatchers have
+      // started. Save these deleted TServers to be processed after the TGWs have started.
+      synchronized (deletedTServers) {
+        deletedTServers.addAll(deleted);
       }
       nextEvent.event("There are now %d tablet servers", current.size());
     }
@@ -1694,7 +1670,6 @@ public class Manager extends AbstractServer
     // this is needed when we are using a fate operation to shutdown a tserver as it
     // will continue to add the server to the serversToShutdown (ACCUMULO-4410)
     serversToShutdown.retainAll(current.getCurrentServers());
-    log.info("KEVIN RATHBUN manager.update() finished");
   }
 
   private static void cleanListByHostAndPort(Collection<TServerInstance> badServers,
@@ -1932,20 +1907,15 @@ public class Manager extends AbstractServer
   }
 
   private long numMigrations() {
-    log.info("KEVIN RATHBUN numMigrations start COUNTING MIGRATIONS");
     long count = 0;
     for (DataLevel dl : DataLevel.values()) {
       // prev row needed for the extent
       try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.PREV_ROW).fetch(TabletMetadata.ColumnType.MIGRATION)
-          .build()) {
-        // TODO KEVIN RATHBUN check here and where i fetch MIGRATION if I even need to check
-        // for null... im guessing it only fetches the columns if it exists
+          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
         count += tabletsMetadata.stream()
             .filter(tabletMetadata -> tabletMetadata.getMigration() != null).count();
       }
     }
-    log.info("KEVIN RATHBUN numMigrations FIN COUNTING MIGRATIONS {}", count);
     return count;
   }
 }

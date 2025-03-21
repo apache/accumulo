@@ -398,15 +398,12 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T putMigration(TServerInstance tserver) {
-    var val = new Value(tserver.getHostPortSession());
-    System.out.println("KEVIN RATHBUN migration putting : " + val);
-    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, val);
+    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, new Value(tserver.getHostPortSession()));
     return getThis();
   }
 
   @Override
   public T deleteMigration() {
-    System.out.println("KEVIN RATHBUN migration deleting");
     ServerColumnFamily.MIGRATION_COLUMN.putDelete(mutation);
     return getThis();
   }

@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
@@ -100,7 +101,6 @@ import org.junit.jupiter.api.Test;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadataTest {
-  // TODO KEVIN RATHBUN prob have to update this test to include my new migration col
 
   @Test
   public void testAllColumns() {
@@ -167,6 +167,9 @@ public class TabletMetadataTest {
             CompactorGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
 
+    TServerInstance tsi = new TServerInstance("localhost:9997", 5000L);
+    MIGRATION_COLUMN.put(mutation, new Value(tsi.getHostPortSession()));
+
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
@@ -204,6 +207,7 @@ public class TabletMetadataTest {
     assertEquals(unsplittableMeta, tm.getUnSplittable());
     assertEquals(ecMeta.toJson(), tm.getExternalCompactions().get(ecid).toJson());
     assertEquals(10, tm.getFlushNonce().getAsLong());
+    assertEquals(tsi, tm.getMigration());
   }
 
   @Test
@@ -640,6 +644,8 @@ public class TabletMetadataTest {
     FateId compactFateId1 = FateId.from(type, UUID.randomUUID());
     FateId compactFateId2 = FateId.from(type, UUID.randomUUID());
 
+    TServerInstance migration = new TServerInstance("localhost:9999", 1000L);
+
     TabletMetadata tm = TabletMetadata.builder(extent)
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
@@ -647,6 +653,7 @@ public class TabletMetadataTest {
         .putCompacted(compactFateId1).putCompacted(compactFateId2).putCloned()
         .putTabletMergeability(
             TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)))
+        .putMigration(migration)
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -668,6 +675,7 @@ public class TabletMetadataTest {
     assertEquals("OK", tm.getCloned());
     assertEquals(TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)),
         tm.getTabletMergeability());
+    assertEquals(migration, tm.getMigration());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -695,6 +703,7 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm2::getUserCompactionsRequested);
     assertThrows(IllegalStateException.class, tm2::getUnSplittable);
     assertThrows(IllegalStateException.class, tm2::getTabletAvailability);
+    assertThrows(IllegalStateException.class, tm2::getMigration);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm =

@@ -99,7 +99,6 @@ public class UpdateTabletsTest {
       ColumnType.DIR, ColumnType.CLONED, ColumnType.FLUSH_ID, ColumnType.FLUSH_NONCE,
       ColumnType.SUSPEND, ColumnType.AVAILABILITY, ColumnType.HOSTING_REQUESTED,
       ColumnType.COMPACTED, ColumnType.UNSPLITTABLE, ColumnType.MERGEABILITY, ColumnType.MIGRATION);
-  // TODO KEVIN RATHBUN can the split code handle the new MIGRATION col?
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -226,6 +225,7 @@ public class UpdateTabletsTest {
     var availability = TabletAvailability.HOSTED;
     var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
     var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
+    var migration = new TServerInstance("localhost:1234", 56L);
 
     String dir1 = "dir1";
     String dir2 = "dir2";
@@ -281,6 +281,7 @@ public class UpdateTabletsTest {
     UnSplittableMetadata usm =
         UnSplittableMetadata.toUnSplittable(origExtent, 1000, 1001, 1002, tabletFiles.keySet());
     EasyMock.expect(tabletMeta.getUnSplittable()).andReturn(usm).atLeastOnce();
+    EasyMock.expect(tabletMeta.getMigration()).andReturn(migration).atLeastOnce();
 
     EasyMock.expect(ample.readTablet(origExtent)).andReturn(tabletMeta);
 
@@ -371,6 +372,7 @@ public class UpdateTabletsTest {
     EasyMock.expect(tablet3Mutator.deleteSuspension()).andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.deleteLocation(lastLocation)).andReturn(tablet3Mutator);
     EasyMock.expect(tablet3Mutator.deleteUnSplittable()).andReturn(tablet3Mutator);
+    EasyMock.expect(tablet3Mutator.deleteMigration()).andReturn(tablet3Mutator);
     tablet3Mutator.submit(EasyMock.anyObject());
     EasyMock.expectLastCall().once();
     EasyMock.expect(tabletsMutator.mutateTablet(origExtent)).andReturn(tablet3Mutator);

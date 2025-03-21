@@ -382,7 +382,6 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   @Override
   public ConditionalTabletMutator requireMigration(TServerInstance tserver) {
-    System.out.println("KEVIN RATHBUN requiring migration " + tserver);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Condition condition =
         new Condition(MIGRATION_COLUMN.getColumnFamily(), MIGRATION_COLUMN.getColumnQualifier())

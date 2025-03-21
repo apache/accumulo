@@ -114,7 +114,6 @@ public class MergeTabletsTest {
       LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED, USER_COMPACTION_REQUESTED,
       MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE, SUSPEND, AVAILABILITY,
       HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE, MERGEABILITY, MIGRATION);
-  // TODO KEVIN RATHBUN can the merge code handle the new MIGRATION col?
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -155,6 +154,7 @@ public class MergeTabletsTest {
     var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
     var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
     var mergeability = TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS));
+    var migration = new TServerInstance("localhost:1234", 56L);
 
     var tablet1 =
         TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
@@ -201,6 +201,7 @@ public class MergeTabletsTest {
     EasyMock.expect(lastTabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getUnSplittable()).andReturn(unsplittableMeta).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getTabletMergeability()).andReturn(mergeability).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getMigration()).andReturn(migration).atLeastOnce();
 
     EasyMock.replay(lastTabletMeta, compactions);
 
@@ -240,6 +241,7 @@ public class MergeTabletsTest {
           .expect(tabletMutator.putTabletMergeability(
               TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS))))
           .andReturn(tabletMutator).once();
+      EasyMock.expect(tabletMutator.deleteMigration()).andReturn(tabletMutator);
 
     });
 
@@ -388,17 +390,17 @@ public class MergeTabletsTest {
           .putTime(MetadataTime.parse(times[0])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE, MERGEABILITY);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
       var tablet2 = TabletMetadata.builder(ke2).putOperation(opid).putDirName("td2")
           .putTime(MetadataTime.parse(times[1])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE, MERGEABILITY);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
       var tablet3 = TabletMetadata.builder(ke3).putOperation(opid).putDirName("td3")
           .putTime(MetadataTime.parse(times[2])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE, MERGEABILITY);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
 
       testMerge(List.of(tablet1, tablet2, tablet3), tableId, null, null, tabletMutator -> {
         EasyMock.expect(tabletMutator.putTime(MetadataTime.parse("L30"))).andReturn(tabletMutator)

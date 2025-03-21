@@ -39,6 +39,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -204,7 +205,6 @@ public class MetadataConstraints implements Constraint {
           validateTabletFamily(violations, columnUpdate, mutation);
           break;
         case ServerColumnFamily.STR_NAME:
-          // TODO KEVIN RATHBUN could prob add some validation for a migration col
           validateServerFamily(violations, columnUpdate, context, bfcValidationData);
           break;
         case CurrentLocationColumnFamily.STR_NAME:
@@ -260,7 +260,6 @@ public class MetadataConstraints implements Constraint {
       }
     }
 
-    log.info("KEVIN RATHBUN violations " + violations);
     return violations;
   }
 
@@ -304,6 +303,8 @@ public class MetadataConstraints implements Constraint {
         return "Malformed availability value";
       case 4006:
         return "Malformed mergeability value";
+      case 4007:
+        return "Malformed migration value";
 
     }
     return null;
@@ -443,6 +444,12 @@ public class MetadataConstraints implements Constraint {
           addViolation(violations, 4001);
         }
         break;
+      case ServerColumnFamily.MIGRATION_QUAL:
+        try {
+          new TServerInstance(new String(columnUpdate.getValue(), UTF_8));
+        } catch (Exception e) {
+          addViolation(violations, 4007);
+        }
     }
   }
 

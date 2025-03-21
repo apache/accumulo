@@ -625,7 +625,6 @@ public class TabletMetadata {
 
   @Override
   public String toString() {
-    // TODO KEVIN RATHBUN prob have to add to this
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
         .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
         .append("endRow", endRow).append("location", location).append("files", files)
@@ -639,7 +638,7 @@ public class TabletMetadata {
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
         .append("userCompactionsRequested", userCompactionsRequested)
         .append("unSplittableMetadata", unSplittableMetadata).append("mergeability", mergeability)
-        .toString();
+        .append("migration", migration).toString();
   }
 
   public List<Entry<Key,Value>> getKeyValues() {
@@ -743,10 +742,7 @@ public class TabletMetadata {
               tmBuilder.selectedFiles(SelectedFiles.from(val));
               break;
             case MIGRATION_QUAL:
-              log.info("KEVIN RATHBUN TServerInstance about to create");
-              var x = new TServerInstance(val);
-              log.info("KEVIN RATHBUN TServerInstance : " + x);
-              tmBuilder.migration(x);
+              tmBuilder.migration(new TServerInstance(val));
           }
           break;
         case DataFileColumnFamily.STR_NAME:

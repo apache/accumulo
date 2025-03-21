@@ -21,7 +21,6 @@ package org.apache.accumulo.server.manager.state;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
 import org.apache.accumulo.core.metadata.TServerInstance;
