@@ -123,6 +123,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.manager.compaction.coordinator.CompactionCoordinator;
+import org.apache.accumulo.manager.merge.FindMergeableRangeTask;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
 import org.apache.accumulo.manager.recovery.RecoveryManager;
@@ -492,7 +493,7 @@ public class Manager extends AbstractServer
       final long tokenUpdateInterval =
           aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL);
       keyDistributor = new ZooAuthenticationKeyDistributor(context.getZooSession(),
-          context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+          Constants.ZDELEGATION_TOKEN_KEYS);
       authenticationTokenKeyManager = new AuthenticationTokenKeyManager(context.getSecretManager(),
           keyDistributor, tokenUpdateInterval, tokenLifetime);
       delegationTokensAvailable = true;
@@ -510,8 +511,7 @@ public class Manager extends AbstractServer
 
   void setManagerGoalState(ManagerGoalState state) {
     try {
-      getContext().getZooSession().asReaderWriter().putPersistentData(
-          getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE,
+      getContext().getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_GOAL_STATE,
           state.name().getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     } catch (Exception ex) {
       log.error("Unable to set manager goal state in zookeeper");
@@ -521,8 +521,8 @@ public class Manager extends AbstractServer
   ManagerGoalState getManagerGoalState() {
     while (true) {
       try {
-        byte[] data = getContext().getZooSession().asReaderWriter()
-            .getData(getContext().getZooKeeperRoot() + Constants.ZMANAGER_GOAL_STATE);
+        byte[] data =
+            getContext().getZooSession().asReaderWriter().getData(Constants.ZMANAGER_GOAL_STATE);
         return ManagerGoalState.valueOf(new String(data, UTF_8));
       } catch (Exception e) {
         log.error("Problem getting real goal state from zookeeper: ", e);
@@ -1137,7 +1137,6 @@ public class Manager extends AbstractServer
   @Override
   public void run() {
     final ServerContext context = getContext();
-    final String zroot = context.getZooKeeperRoot();
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
@@ -1206,20 +1205,20 @@ public class Manager extends AbstractServer
 
     ZooReaderWriter zReaderWriter = context.getZooSession().asReaderWriter();
     try {
-      zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, new Watcher() {
+      zReaderWriter.getChildren(Constants.ZRECOVERY, new Watcher() {
         @Override
         public void process(WatchedEvent event) {
           nextEvent.event("Noticed recovery changes %s", event.getType());
           try {
             // watcher only fires once, add it back
-            zReaderWriter.getChildren(zroot + Constants.ZRECOVERY, this);
+            zReaderWriter.getChildren(Constants.ZRECOVERY, this);
           } catch (Exception e) {
             log.error("Failed to add log recovery watcher back", e);
           }
         }
       });
     } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Unable to read " + zroot + Constants.ZRECOVERY, e);
+      throw new IllegalStateException("Unable to read " + Constants.ZRECOVERY, e);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
@@ -1354,8 +1353,7 @@ public class Manager extends AbstractServer
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
       var metaInstance = initializeFateInstance(context,
-          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, context.getZooSession(),
-              managerLock.getLockID(), isLockHeld));
+          new MetaFateStore<>(context.getZooSession(), managerLock.getLockID(), isLockHeld));
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
           AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
@@ -1371,6 +1369,12 @@ public class Manager extends AbstractServer
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
+
+    var tabletMergeabilityInterval =
+        getConfiguration().getDuration(Property.MANAGER_TABLET_MERGEABILITY_INTERVAL);
+    ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
+        new FindMergeableRangeTask(this), tabletMergeabilityInterval.toMillis(),
+        tabletMergeabilityInterval.toMillis(), MILLISECONDS));
 
     // Make sure that we have a secret key (either a new one or an old one from ZK) before we start
     // the manager client service.

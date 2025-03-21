@@ -16,18 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.singletons;
+package org.apache.accumulo.server.conf.store;
+
+import org.apache.accumulo.core.data.AbstractId;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
- * The {@link SingletonManager} uses this interface to enable and disable singleton services.
- *
- * @see SingletonManager#register(SingletonService)
+ * Provides a strongly-typed id for storing properties in ZooKeeper based on a specific AbstractId
+ * type. The path is based on the AbstractId type, and is the canonical String version of this key.
  */
-public interface SingletonService {
+public abstract class IdBasedPropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
+    extends PropStoreKey {
 
-  public boolean isEnabled();
+  private final ID_TYPE id;
 
-  public void enable();
+  protected IdBasedPropStoreKey(final String path, final ID_TYPE id) {
+    super(path);
+    this.id = id;
+  }
 
-  public void disable();
+  public @NonNull ID_TYPE getId() {
+    return id;
+  }
+
 }

@@ -95,8 +95,6 @@ import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
@@ -137,6 +135,7 @@ public class ClientContext implements AccumuloClient {
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration accumuloConf;
   private final Configuration hadoopConf;
+  private final HashMap<TableId,ClientTabletCache> tabletCaches = new HashMap<>();
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -156,7 +155,6 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  private final SingletonReservation singletonReservation;
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
@@ -223,27 +221,24 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * Create a client context with the provided configuration. Legacy client code must provide a
-   * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
-   * Accumulo.newClient() builder, which will create a client reservation in
-   * {@link ClientBuilderImpl#buildClient}
+   * Create a client context with the provided configuration. Clients should call
+   * Accumulo.newClient() builder
    */
-  public ClientContext(SingletonReservation reservation, ClientInfo info,
-      AccumuloConfiguration serverConf, UncaughtExceptionHandler ueh) {
+  public ClientContext(ClientInfo info, AccumuloConfiguration serverConf,
+      UncaughtExceptionHandler ueh) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
 
     this.zooSession = memoize(() -> {
-      var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", "")
-          .get();
+      var zk =
+          info.getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")",
+              ZooUtil.getRoot(getInstanceID())).get();
       zooKeeperOpened.set(true);
       return zk;
     });
 
     this.zooCache = memoize(() -> {
-      var zc = new ZooCache(getZooSession(),
-          createPersistentWatcherPaths(ZooUtil.getRoot(getInstanceID())));
+      var zc = new ZooCache(getZooSession(), createPersistentWatcherPaths());
       zooCacheCreated.set(true);
       return zc;
     });
@@ -255,11 +250,9 @@ public class ClientContext implements AccumuloClient {
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()), 100,
         MILLISECONDS);
     scanServerSelectorSupplier = memoize(this::createScanServerSelector);
-    this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
-    this.serverPaths =
-        Suppliers.memoize(() -> new ServiceLockPaths(this.getZooKeeperRoot(), this.getZooCache()));
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this.getZooCache()));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -502,10 +495,6 @@ public class ClientContext implements AccumuloClient {
    */
   public InstanceId getInstanceID() {
     return info.getInstanceId();
-  }
-
-  public String getZooKeeperRoot() {
-    return ZooUtil.getRoot(getInstanceID());
   }
 
   /**
@@ -813,7 +802,6 @@ public class ClientContext implements AccumuloClient {
       if (cleanupThreadPool != null) {
         cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
       }
-      singletonReservation.close();
     }
   }
 
@@ -846,16 +834,10 @@ public class ClientContext implements AccumuloClient {
     }
 
     public static AccumuloClient buildClient(ClientBuilderImpl<AccumuloClient> cbi) {
-      SingletonReservation reservation = SingletonManager.getClientReservation();
-      try {
-        // ClientContext closes reservation unless a RuntimeException is thrown
-        ClientInfo info = cbi.getClientInfo();
-        var config = ClientConfConverter.toAccumuloConf(info.getClientProperties());
-        return new ClientContext(reservation, info, config, cbi.getUncaughtExceptionHandler());
-      } catch (RuntimeException e) {
-        reservation.close();
-        throw e;
-      }
+      // ClientContext closes reservation unless a RuntimeException is thrown
+      ClientInfo info = cbi.getClientInfo();
+      var config = ClientConfConverter.toAccumuloConf(info.getClientProperties());
+      return new ClientContext(info, config, cbi.getUncaughtExceptionHandler());
     }
 
     public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
@@ -1090,10 +1072,9 @@ public class ClientContext implements AccumuloClient {
       // so, it can't rely on being able to continue to use the same client's ZooCache,
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), "").get();
-      String zkRoot = getZooKeeperRoot();
-      this.zkLockChecker =
-          new ZookeeperLockChecker(new ZooCache(zk, Set.of(zkRoot + Constants.ZTSERVERS)), zkRoot);
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
+          ZooUtil.getRoot(getInstanceID())).get();
+      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
     }
     return this.zkLockChecker;
   }
@@ -1107,13 +1088,18 @@ public class ClientContext implements AccumuloClient {
     return namespaces;
   }
 
-  private static Set<String> createPersistentWatcherPaths(String zkRoot) {
+  public HashMap<TableId,ClientTabletCache> tabletCaches() {
+    ensureOpen();
+    return tabletCaches;
+  }
+
+  private static Set<String> createPersistentWatcherPaths() {
     Set<String> pathsToWatch = new HashSet<>();
     for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
         Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
         Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
-      pathsToWatch.add(zkRoot + path);
+      pathsToWatch.add(path);
     }
     return pathsToWatch;
   }

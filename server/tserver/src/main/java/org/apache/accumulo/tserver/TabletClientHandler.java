@@ -799,7 +799,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         tableId, DurabilityImpl.fromThrift(tdurabilty));
 
     long sid = server.sessionManager.createSession(cs, false);
-    return new TConditionalSession(sid, server.getLockID(), server.sessionManager.getMaxIdleTime());
+    return new TConditionalSession(sid, server.getLockID().serialize(),
+        server.sessionManager.getMaxIdleTime());
   }
 
   @Override
@@ -967,8 +968,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     }
 
     if (lock != null) {
-      ZooUtil.LockID lid =
-          new ZooUtil.LockID(context.getServerPaths().createManagerPath().toString(), lock);
+      ZooUtil.LockID lid = ZooUtil.LockID.deserialize(lock);
 
       try {
         if (!ServiceLock.isLockHeld(server.getContext().getZooCache(), lid)) {

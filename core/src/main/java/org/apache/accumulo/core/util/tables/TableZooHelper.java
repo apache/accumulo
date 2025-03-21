@@ -130,13 +130,13 @@ public class TableZooHelper implements AutoCloseable {
 
   public boolean tableNodeExists(TableId tableId) {
     ZooCache zc = context.getZooCache();
-    List<String> tableIds = zc.getChildren(context.getZooKeeperRoot() + Constants.ZTABLES);
+    List<String> tableIds = zc.getChildren(Constants.ZTABLES);
     return tableIds.contains(tableId.canonical());
   }
 
   public void clearTableListCache() {
-    context.getZooCache().clear(context.getZooKeeperRoot() + Constants.ZTABLES);
-    context.getZooCache().clear(context.getZooKeeperRoot() + Constants.ZNAMESPACES);
+    context.getZooCache().clear(Constants.ZTABLES);
+    context.getZooCache().clear(Constants.ZNAMESPACES);
     instanceToMapCache.invalidateAll();
   }
 
@@ -170,8 +170,7 @@ public class TableZooHelper implements AutoCloseable {
    * @return the table state.
    */
   public TableState getTableState(TableId tableId, boolean clearCachedState) {
-    String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId.canonical()
-        + Constants.ZTABLE_STATE;
+    String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
     if (clearCachedState) {
       context.getZooCache().clear(statePath);
       instanceToMapCache.invalidateAll();
@@ -200,8 +199,7 @@ public class TableZooHelper implements AutoCloseable {
     }
 
     ZooCache zc = context.getZooCache();
-    byte[] n = zc.get(context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
-        + Constants.ZTABLE_NAMESPACE);
+    byte[] n = zc.get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
     // We might get null out of ZooCache if this tableID doesn't exist
     if (n == null) {
       throw new TableNotFoundException(tableId.canonical(), null, null);

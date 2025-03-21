@@ -46,7 +46,7 @@ class TabletMutatorImpl extends TabletMutatorBase<Ample.TabletMutator>
   public void mutate() {
     try {
       if (putServerLock) {
-        this.putZooLock(this.context.getZooKeeperRoot(), lock);
+        this.putZooLock(lock);
       }
       writer.addMutation(getMutation());
 

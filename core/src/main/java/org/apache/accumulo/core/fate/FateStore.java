@@ -27,7 +27,6 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
@@ -202,7 +201,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     private static byte[] serialize(ZooUtil.LockID lockID, UUID reservationUUID) {
       try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
           DataOutputStream dos = new DataOutputStream(baos)) {
-        dos.writeUTF(lockID.serialize("/"));
+        dos.writeUTF(lockID.serialize());
         dos.writeUTF(reservationUUID.toString());
         dos.close();
         return baos.toByteArray();
@@ -214,7 +213,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     public static FateReservation deserialize(byte[] serialized) {
       try (DataInputBuffer buffer = new DataInputBuffer()) {
         buffer.reset(serialized, serialized.length);
-        ZooUtil.LockID lockID = new ZooUtil.LockID("", buffer.readUTF());
+        ZooUtil.LockID lockID = ZooUtil.LockID.deserialize(buffer.readUTF());
         UUID reservationUUID = UUID.fromString(buffer.readUTF());
         return new FateReservation(lockID, reservationUUID);
       } catch (IOException e) {
@@ -224,7 +223,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
     @Override
     public String toString() {
-      return lockID.serialize("/") + ":" + reservationUUID;
+      return lockID.serialize() + ":" + reservationUUID;
     }
 
     @Override
