@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRanges;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -96,21 +98,28 @@ public class PrepBulkImportTest {
 
   public void runTest(Map<KeyExtent,String> loadRanges, List<KeyExtent> tabletRanges,
       int maxTablets) throws Exception {
-    TabletIterFactory tabletIterFactory = startRow -> {
-      int start = -1;
+    TabletIterFactory tabletIterFactory = new TabletIterFactory() {
 
-      if (startRow == null) {
-        start = 0;
-      } else {
-        for (int i = 0; i < tabletRanges.size(); i++) {
-          if (tabletRanges.get(i).contains(startRow)) {
-            start = i;
-            break;
+      @Override
+      public Iterator<KeyExtent> newTabletIter(Text startRow) {
+        int start = -1;
+
+        if (startRow == null) {
+          start = 0;
+        } else {
+          for (int i = 0; i < tabletRanges.size(); i++) {
+            if (tabletRanges.get(i).contains(startRow)) {
+              start = i;
+              break;
+            }
           }
         }
+
+        return tabletRanges.subList(start, tabletRanges.size()).iterator();
       }
 
-      return tabletRanges.subList(start, tabletRanges.size()).iterator();
+      @Override
+      public void close() {}
     };
 
     var sortedExtents = loadRanges.keySet().stream().sorted().collect(Collectors.toList());
@@ -120,9 +129,13 @@ public class PrepBulkImportTest {
         .map(Text::toString).orElse(null);
 
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      var extent =
+      MetadataRanges ranges =
           PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001);
-      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
+      String start = ranges.getRangeStartPrevEndRow() == null ? null
+          : ranges.getRangeStartPrevEndRow().toString();
+      String end = ranges.getRangeEndRow() == null ? null : ranges.getRangeEndRow().toString();
+      assertEquals(minPrevEndRow, start, loadRanges + " " + tabletRanges);
+      assertEquals(maxPrevEndRow, end, loadRanges + " " + tabletRanges);
     }
   }
 
