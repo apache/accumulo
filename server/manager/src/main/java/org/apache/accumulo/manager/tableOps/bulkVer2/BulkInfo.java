@@ -147,8 +147,9 @@ class BulkInfo implements Serializable {
   byte[] lastSplit;
   // List of metadata tablet ranges that files will be loaded into. This list contains nodes
   // that either represent a contiguous range of metadata tablets or the number of metadata
-  // tablets to the next set of contiguous range of metadata tablets.
-  // With bulk import fate transactions going into the new fate table, and not ZooKeeper,
+  // tablets to the next set of contiguous range of metadata tablets. For Accumulo versions
+  // prior to 2.1 we need to be concerned about the size of the serialized repo. In 4.0,
+  // with bulk import fate transactions going into the new fate table, and not ZooKeeper,
   // we likely don't have a limit on serialized Fate repo size
   MetadataRanges metadataRangesInfo;
 }
