@@ -77,9 +77,6 @@ public class FateStoreUtil {
     assertEquals(fateTableProps, testFateTableProps);
   }
 
-  // For now just process one at a time as the current impl completes
-  // each seed transaction individually. In future versions we can test
-  // batching multiple seeding atempts together.
   public static <T> Optional<FateId> seedTransaction(FateStore<T> store, Fate.FateOperation fateOp,
       FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
     CompletableFuture<Optional<FateId>> fateIdFuture;

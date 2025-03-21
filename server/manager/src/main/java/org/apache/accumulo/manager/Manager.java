@@ -1337,7 +1337,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
     compactionCoordinator.start();
 
-    this.splitter = new Splitter(context);
+    this.splitter = new Splitter(this);
     this.splitter.start();
 
     try {
