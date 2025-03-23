@@ -38,6 +38,10 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -498,7 +502,7 @@ public class ClientTabletCacheImplTest {
 
   static class TServers {
     private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
-    private BiConsumer<CachedTablet,Text> lookupConsumer = (cachedTablet, row) -> {};
+    private volatile BiConsumer<CachedTablet,Text> lookupConsumer = (cachedTablet, row) -> {};
   }
 
   static class TestCachedTabletObtainer implements CachedTabletObtainer {
@@ -513,7 +517,7 @@ public class ClientTabletCacheImplTest {
 
     @Override
     public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row,
-        Text stopRow, ClientTabletCache parent) {
+        Text stopRow) {
 
       lookupConsumer.accept(src, row);
 
@@ -521,14 +525,12 @@ public class ClientTabletCacheImplTest {
           tservers.get(src.getTserverLocation().orElseThrow());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
         return null;
       }
 
       SortedMap<Key,Value> tabletData = tablets.get(src.getExtent());
 
       if (tabletData == null) {
-        parent.invalidateCache(src.getExtent());
         return null;
       }
 
@@ -542,60 +544,6 @@ public class ClientTabletCacheImplTest {
 
       return MetadataCachedTabletObtainer.getMetadataLocationEntries(results);
     }
-
-    @Override
-    public List<CachedTablet> lookupTablets(ClientContext context, String tserver,
-        Map<KeyExtent,List<Range>> map, ClientTabletCache parent) {
-
-      ArrayList<CachedTablet> list = new ArrayList<>();
-
-      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(tserver);
-
-      if (tablets == null) {
-        parent.invalidateCache(context, tserver);
-        return list;
-      }
-
-      TreeMap<Key,Value> results = new TreeMap<>();
-
-      Set<Entry<KeyExtent,List<Range>>> es = map.entrySet();
-      List<KeyExtent> failures = new ArrayList<>();
-      for (Entry<KeyExtent,List<Range>> entry : es) {
-        SortedMap<Key,Value> tabletData = tablets.get(entry.getKey());
-
-        if (tabletData == null) {
-          failures.add(entry.getKey());
-          continue;
-        }
-        List<Range> ranges = entry.getValue();
-        for (Range range : ranges) {
-          SortedMap<Key,Value> tm;
-          if (range.getStartKey() == null) {
-            tm = tabletData;
-          } else {
-            tm = tabletData.tailMap(range.getStartKey());
-          }
-
-          for (Entry<Key,Value> de : tm.entrySet()) {
-            if (range.afterEndKey(de.getKey())) {
-              break;
-            }
-
-            if (range.contains(de.getKey())) {
-              results.put(de.getKey(), de.getValue());
-            }
-          }
-        }
-      }
-
-      if (!failures.isEmpty()) {
-        parent.invalidateCache(failures);
-      }
-
-      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getCachedTablets();
-
-    }
-
   }
 
   static class YesLockChecker implements TabletServerLockChecker {
@@ -843,6 +791,9 @@ public class ClientTabletCacheImplTest {
     tab1TabletCache.invalidateCache(tab1e21);
     tab1TabletCache.invalidateCache(tab1e22);
 
+    // parent cache has incorrect entry, the first attempt will fail and clear that, should work on
+    // 2nd attempt
+    locateTabletTest(tab1TabletCache, "a", null, null);
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
@@ -1974,5 +1925,113 @@ public class ClientTabletCacheImplTest {
     assertEquals(Map.of(ke1, List.of(range1), ke2, List.of(range2), ke3, List.of(range2), ke4,
         List.of(range3)), seen);
     assertEquals(0, failures.size());
+  }
+
+  @Test
+  public void testMultithreadedLookups() throws Exception {
+
+    // This test ensures that when multiple threads all attempt to lookup data that is not currently
+    // in the cache that the minimal amount of metadata lookups are done. Should only see one
+    // concurrent lookup per metadata tablet and no more or less.
+    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("foo;m"), null);
+    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("foo;m"));
+
+    var ke1 = createNewKeyExtent("foo", "m", null);
+    var ke2 = createNewKeyExtent("foo", "q", "m");
+    var ke3 = createNewKeyExtent("foo", null, "q");
+
+    TServers tservers = new TServers();
+
+    List<KeyExtent> lookups = Collections.synchronizedList(new ArrayList<>());
+    AtomicInteger activeLookups = new AtomicInteger(0);
+    AtomicBoolean sawTwoActive = new AtomicBoolean(false);
+    tservers.lookupConsumer = (src, row) -> {
+      if (!src.getExtent().equals(ROOT_TABLE_EXTENT)) {
+        lookups.add(src.getExtent());
+        // increment the total number of threads currently doing metadata lookups
+        activeLookups.incrementAndGet();
+        try {
+          while (!sawTwoActive.get()) {
+            // sleep to simulate metadata lookup that takes time, this gives threads time to pile up
+            // waiting for the metadata lookup
+            Thread.sleep(100);
+            // wait until two threads are doing metadata lookups
+            if (activeLookups.get() == 2) {
+              sawTwoActive.set(true);
+            } else {
+              // Should never see more than two threads in here because the cache should not do more
+              // than one lookup per metadata tablet at a time and there are two metadata tablets.
+              assertTrue(activeLookups.get() <= 2);
+            }
+          }
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        } finally {
+          activeLookups.decrementAndGet();
+        }
+      }
+    };
+    TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
+
+    RootClientTabletCache rtl = new TestRootClientTabletCache();
+
+    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
+        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl metaCache =
+        new ClientTabletCacheImpl(TableId.of("foo"), rootTabletCache, ttlo, new YesLockChecker());
+
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
+
+    setLocation(tservers, "tserver2", mte1, ke1, "tserver7");
+    setLocation(tservers, "tserver3", mte2, ke2, "tserver8");
+    setLocation(tservers, "tserver3", mte2, ke3, "tserver9");
+
+    var executor = Executors.newCachedThreadPool();
+    List<Future<CachedTablet>> futures = new ArrayList<>();
+
+    // start 64 threads all trying to lookup data in the cache, should see only two threads do a
+    // concurrent lookup in the metadata table and no more or less.
+    List<String> rowsToLookup = new ArrayList<>();
+
+    for (int i = 0; i < 64; i++) {
+      String lookup = (char) ('a' + (i % 26)) + "";
+      rowsToLookup.add(lookup);
+    }
+
+    Collections.shuffle(rowsToLookup);
+
+    for (var lookup : rowsToLookup) {
+      var future = executor.submit(() -> {
+        var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
+        if (lookup.compareTo("m") <= 0) {
+          assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
+        } else if (lookup.compareTo("q") <= 0) {
+          assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
+        } else {
+          assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
+        }
+        return loc;
+      });
+      futures.add(future);
+    }
+
+    for (var future : futures) {
+      assertNotNull(future.get());
+    }
+
+    assertTrue(sawTwoActive.get());
+    // The second metadata tablet (mte2) contains two user tablets (ke2 and ke3). Depending on which
+    // of these two user tablets is looked up in the metadata table first will see a total of 2 or 3
+    // lookups. If the location of ke2 is looked up first then it will get the locations of ke2 and
+    // ke3 from mte2 and put them in the cache. If the location of ke3 is looked up first then it
+    // will only get the location of ke3 from mte2 and not ke2.
+    assertTrue(lookups.size() == 2 || lookups.size() == 3, lookups::toString);
+    assertEquals(1, lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte1)).count(),
+        lookups::toString);
+    var mte2Lookups =
+        lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte2)).count();
+    assertTrue(mte2Lookups == 1 || mte2Lookups == 2, lookups::toString);
+    executor.shutdown();
   }
 }
