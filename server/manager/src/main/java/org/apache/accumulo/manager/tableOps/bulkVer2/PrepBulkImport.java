@@ -126,8 +126,8 @@ public class PrepBulkImport extends ManagerRepo {
 
     Text startRow = currRange.getKey().prevEndRow();
 
-    Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
-    PeekingIterator<KeyExtent> pi = new PeekingIterator<>(tabletIter);
+    PeekingIterator<KeyExtent> pi =
+        new PeekingIterator<>(tabletIterFactory.newTabletIter(startRow));
 
     try {
       KeyExtent currTablet = pi.next();
@@ -154,14 +154,17 @@ public class PrepBulkImport extends ManagerRepo {
         }
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
-        if (skip > 0) {
+        if (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey()) && skip > 0
+            && currRange.getKey().prevEndRow() != null) {
           final KeyExtent search = currRange.getKey();
-          SearchResults results =
-              pi.advanceTo((ke) -> ke.prevEndRow().equals(search.prevEndRow()), skip);
+          SearchResults results = pi.advanceTo(
+              (ke) -> ke.prevEndRow() != null && ke.prevEndRow().equals(search.prevEndRow()), skip);
           if (!results.isMatchFound()) {
+            log.warn(
+                "Tablet metadata for prevEndRow {} not found in {} tablets from current tablet {}, recreating TabletMetadata to jump ahead",
+                search.prevEndRow(), skip, currTablet);
             tabletIterFactory.close();
-            tabletIter = tabletIterFactory.newTabletIter(currRange.getKey().prevEndRow());
-            pi = new PeekingIterator<>(tabletIter);
+            pi = new PeekingIterator<>(tabletIterFactory.newTabletIter(search.prevEndRow()));
             currTablet = pi.next();
           }
         }
@@ -177,15 +180,18 @@ public class PrepBulkImport extends ManagerRepo {
 
         count = matchedPrevRow ? 1 : 0;
 
-        if (skip > 0) {
+        if (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && skip > 0
+            && currRange.getKey().endRow() != null) {
           final KeyExtent search2 = currRange.getKey();
-          SearchResults results =
-              pi.advanceTo((ke) -> ke.prevEndRow().equals(search2.prevEndRow()), skip);
+          SearchResults results = pi
+              .advanceTo((ke) -> ke.endRow() != null && ke.endRow().equals(search2.endRow()), skip);
           count += results.getElementsConsumed();
           if (!results.isMatchFound()) {
+            log.warn(
+                "Tablet metadata for endRow {} not found in {} tablets from current tablet {}, recreating TabletMetadata to jump ahead",
+                search2.endRow(), skip, currTablet);
             tabletIterFactory.close();
-            tabletIter = tabletIterFactory.newTabletIter(currRange.getKey().prevEndRow());
-            pi = new PeekingIterator<>(tabletIter);
+            pi = new PeekingIterator<>(tabletIterFactory.newTabletIter(search2.prevEndRow()));
             currTablet = pi.next();
           }
         }

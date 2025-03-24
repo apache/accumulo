@@ -89,14 +89,15 @@ public class PrepBulkImportTest {
     }).iterator();
   }
 
-  private void runTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges) throws Exception {
+  private void runTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges, int skipDistance)
+      throws Exception {
     Map<KeyExtent,String> lrm = new HashMap<>();
     loadRanges.forEach(e -> lrm.put(e, "f1 f2 f3"));
-    runTest(lrm, tabletRanges, 100);
+    runTest(lrm, tabletRanges, 100, skipDistance);
   }
 
   public void runTest(Map<KeyExtent,String> loadRanges, List<KeyExtent> tabletRanges,
-      int maxTablets) throws Exception {
+      int maxTablets, int skipDistance) throws Exception {
     TabletIterFactory tabletIterFactory = new TabletIterFactory() {
 
       @Override
@@ -128,8 +129,8 @@ public class PrepBulkImportTest {
         .map(Text::toString).orElse(null);
 
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      var extent =
-          PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001, 0);
+      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets,
+          10001, skipDistance);
       assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
     }
   }
@@ -162,23 +163,24 @@ public class PrepBulkImportTest {
         .collect(Collectors.joining(","));
   }
 
-  public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges) {
+  public void runExceptionTest(List<KeyExtent> loadRanges, List<KeyExtent> tabletRanges,
+      int skipDistance) {
     String message = "expected " + toRangeStrings(loadRanges) + " to fail against "
         + toRangeStrings(tabletRanges);
     assertThrows(AcceptableThriftTableOperationException.class,
-        () -> runTest(loadRanges, tabletRanges), message);
+        () -> runTest(loadRanges, tabletRanges, skipDistance), message);
   }
 
   @Test
   public void testSingleTablet() throws Exception {
-    runTest(Arrays.asList(nke(null, null)), Arrays.asList(nke(null, null)));
+    runTest(Arrays.asList(nke(null, null)), Arrays.asList(nke(null, null)), 0);
 
     for (List<KeyExtent> loadRanges : powerSet(nke(null, "b"), nke("b", "k"), nke("k", "r"),
         nke("r", null))) {
       if (loadRanges.isEmpty()) {
         continue;
       }
-      runExceptionTest(loadRanges, Arrays.asList(nke(null, null)));
+      runExceptionTest(loadRanges, Arrays.asList(nke(null, null)), 0);
     }
   }
 
@@ -194,8 +196,8 @@ public class PrepBulkImportTest {
 
       List<String> requiredRows = List.of("b", "m", "r", "v");
       for (Set<String> otherRows : Sets.powerSet(Set.of("a", "c", "q", "t", "x"))) {
-        runTest(loadRanges,
-            createExtents(Stream.concat(requiredRows.stream(), otherRows.stream())));
+        runTest(loadRanges, createExtents(Stream.concat(requiredRows.stream(), otherRows.stream())),
+            0);
       }
     }
   }
@@ -225,14 +227,14 @@ public class PrepBulkImportTest {
         // test will all but one of the rows in the load mapping
         for (Set<String> otherRows : Sets.powerSet(Set.of("a", "c", "q", "t", "x"))) {
           runExceptionTest(loadRanges,
-              createExtents(Stream.concat(rows2.stream(), otherRows.stream())));
+              createExtents(Stream.concat(rows2.stream(), otherRows.stream())), 0);
         }
       }
 
       if (rows.size() > 1) {
         // test with none of the rows in the load mapping
         for (Set<String> otherRows : Sets.powerSet(Set.of("a", "c", "q", "t", "x"))) {
-          runExceptionTest(loadRanges, createExtents(otherRows.stream()));
+          runExceptionTest(loadRanges, createExtents(otherRows.stream()), 0);
         }
       }
     }
@@ -258,14 +260,14 @@ public class PrepBulkImportTest {
         int totalTablets = requiredRows.size() + otherRows.size() + 1;
 
         if (totalTablets > maxTablets) {
-          runTooManyTest(loadRanges, tablets, "{f2=" + totalTablets + "}", maxTablets);
+          runTooManyTest(loadRanges, tablets, "{f2=" + totalTablets + "}", maxTablets, 2);
         } else {
-          runTest(loadRanges, createExtents(tablets), maxTablets);
+          runTest(loadRanges, createExtents(tablets), maxTablets, 2);
         }
       }
 
       runTest(loadRanges, createExtents(Stream.concat(requiredRows.stream(), otherRows.stream())),
-          0);
+          0, 2);
     }
 
     loadRanges.clear();
@@ -275,20 +277,20 @@ public class PrepBulkImportTest {
     loadRanges.put(nke("re", "rz"), "f4");
 
     runTooManyTest(loadRanges, Stream.of("ca", "cd", "cz", "e", "ma", "md", "mm", "re", "rz"),
-        "{f3=4}", 3);
+        "{f3=4}", 3, 2);
     runTooManyTest(loadRanges, Stream.of("b", "ca", "cd", "cz", "e", "ma", "md", "mm", "re", "rz"),
-        "{f3=4}", 3);
+        "{f3=4}", 3, 2);
     runTooManyTest(loadRanges,
         Stream.of("ca", "cd", "cz", "e", "ma", "md", "mm", "re", "rf", "rh", "rm", "rz"),
-        "{f3=4, f4=4}", 3);
+        "{f3=4, f4=4}", 3, 2);
     runTooManyTest(loadRanges,
-        Stream.of("ca", "cd", "cz", "e", "ma", "mm", "re", "rf", "rh", "rm", "rz"), "{f4=4}", 3);
+        Stream.of("ca", "cd", "cz", "e", "ma", "mm", "re", "rf", "rh", "rm", "rz"), "{f4=4}", 3, 2);
   }
 
   private void runTooManyTest(Map<KeyExtent,String> loadRanges, Stream<String> tablets,
-      String expectedMessage, int maxTablets) {
+      String expectedMessage, int maxTablets, int skipDistance) {
     var exception = assertThrows(ThriftTableOperationException.class,
-        () -> runTest(loadRanges, createExtents(tablets), maxTablets));
+        () -> runTest(loadRanges, createExtents(tablets), maxTablets, skipDistance));
     String message = exception.toString();
     assertTrue(exception.toString().contains(expectedMessage), expectedMessage + " -- " + message);
   }

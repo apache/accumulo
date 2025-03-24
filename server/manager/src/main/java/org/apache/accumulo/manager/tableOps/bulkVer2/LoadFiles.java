@@ -374,6 +374,7 @@ class LoadFiles extends ManagerRepo {
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
     try {
       Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
+      PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletIter);
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
@@ -383,16 +384,20 @@ class LoadFiles extends ManagerRepo {
           if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
             final KeyExtent search = prevLastExtent;
             SearchResults results =
-                lmi.advanceTo(e -> e.getKey().isPreviousExtent(search), skipDistance);
+                pi.advanceTo(tm -> tm.getExtent().isPreviousExtent(search), skipDistance);
             if (!results.isMatchFound()) {
+              log.debug(
+                  "Tablet metadata for previous extent {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                  prevLastExtent, skipDistance);
               tabletsMetadata.close();
               tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
               tabletIter = tabletsMetadata.iterator();
+              pi = new PeekingIterator<>(tabletIter);
             }
           }
         }
         List<TabletMetadata> tablets =
-            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
+            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
         loader.load(tablets, loadMapEntry.getValue());
         prevLastExtent = tablets.get(tablets.size() - 1).getExtent();
       }
