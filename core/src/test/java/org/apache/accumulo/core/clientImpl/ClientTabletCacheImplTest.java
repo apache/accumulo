@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -42,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -2033,5 +2035,180 @@ public class ClientTabletCacheImplTest {
         lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte2)).count();
     assertTrue(mte2Lookups == 1 || mte2Lookups == 2, lookups::toString);
     executor.shutdown();
+  }
+
+  @Test
+  public void testNonBlocking() throws Exception {
+    // Tests that when two threads query the cache and one needs to read from metadata table and one
+    // does not, that the one that does not is not blocked. This test ensures that when data is in
+    // cache it can always be accessed immediately.
+
+    List<KeyExtent> lookups = new ArrayList<>();
+    TServers tservers = new TServers();
+    // This lock is used by the test to cause a metadata lookup to block
+    var lookupLock = new ReentrantLock();
+    tservers.lookupConsumer = (src, row) -> {
+      lookupLock.lock();
+      try {
+        lookups.add(src.getExtent());
+      } finally {
+        lookupLock.unlock();
+      }
+    };
+
+    ClientTabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+
+    var ke1 = createNewKeyExtent("foo", "g", null);
+    var ke2 = createNewKeyExtent("foo", "m", "g");
+    var ke3 = createNewKeyExtent("foo", "r", "m");
+    var ke4 = createNewKeyExtent("foo", null, "r");
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "tserver3");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "tserver4");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, "tserver5");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, "tserver6");
+
+    assertEquals("tserver3",
+        metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver4",
+        metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver5",
+        metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver6",
+        metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+
+    // clear this extent from cache to cause it to be looked up again in the metadata table
+    metaCache.invalidateCache(ke2);
+
+    var executor = Executors.newCachedThreadPool();
+
+    // acquire this lock to simulate a metadata table lookup blocking
+    lookupLock.lock();
+
+    // verify test assumption
+    assertEquals(0, lookupLock.getQueueLength());
+
+    // start a background task that will read from the metadata table
+    var lookupFuture = executor
+        .submit(() -> metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+
+    // wait for the background thread to get stuck waiting on the lock
+    while (lookupLock.getQueueLength() == 0) {
+      Thread.sleep(5);
+    }
+
+    // The lookup task should be blocked trying to get location from the metadata table
+    assertFalse(lookupFuture.isDone());
+    assertEquals(1, lookupLock.getQueueLength());
+
+    // should be able to get the tablet locations that are still in the cache w/o blocking
+    assertEquals("tserver3",
+        metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver5",
+        metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver6",
+        metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+
+    // The lookup task should still be blocked
+    assertFalse(lookupFuture.isDone());
+    assertEquals(1, lookupLock.getQueueLength());
+
+    // allow the metadata lookup running in background thread to proceed.
+    lookupLock.unlock();
+
+    // The future should be able to run and complete
+    assertEquals("tserver4", lookupFuture.get());
+
+    // verify test assumptions
+    assertTrue(lookupFuture.isDone());
+    assertEquals(0, lookupLock.getQueueLength());
+  }
+
+  @Test
+  public void testInvalidation() throws Exception {
+    // Test invalidation methods on the cache. Other test methods call the invalidate methods and
+    // assume it works, but do not verify its working as expected. Want to verify two things in this
+    // test. First verify that invalidation only invalidates what was requested and no more. Second
+    // verify that invalidation causes a metadata read on subsequent cache accesses.
+
+    List<String> lookups = new ArrayList<>();
+    TServers tservers = new TServers();
+    tservers.lookupConsumer = (src, row) -> {
+      if (src.getExtent().equals(METADATA_TABLE_EXTENT)) {
+        lookups.add(row.toString());
+      }
+    };
+
+    ClientTabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+
+    var ke1 = createNewKeyExtent("foo", "g", null);
+    var ke2 = createNewKeyExtent("foo", "m", "g");
+    var ke3 = createNewKeyExtent("foo", "r", "m");
+    var ke4 = createNewKeyExtent("foo", null, "r");
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "tserver3");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "tserver4");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, "tserver5");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, "tserver3");
+
+    // Do cache lookups in reverse order to force a metadata lookup for each row. The cache will
+    // read ahead when doing metadata lookups and want to avoid that in this case.
+    Map<String,String> expectedLocations = new LinkedHashMap<>();
+    expectedLocations.put("s", "tserver3");
+    expectedLocations.put("n", "tserver5");
+    expectedLocations.put("h", "tserver4");
+    expectedLocations.put("a", "tserver3");
+
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;s", "foo;n", "foo;h", "foo;a"), Set.copyOf(lookups));
+
+    // invalidate one extent from the metadata table, should only read that extent from metadata
+    // table
+    metaCache.invalidateCache(ke2);
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;h"), Set.copyOf(lookups));
+
+    // invalidate two extents
+    metaCache.invalidateCache(List.of(ke2, ke4));
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;h", "foo;s"), Set.copyOf(lookups));
+
+    // invalidate all extents w/ a given server
+    metaCache.invalidateCache(context, "tserver3");
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;a", "foo;s"), Set.copyOf(lookups));
+
+    // invalidate everything in cache
+    metaCache.invalidateCache();
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;s", "foo;n", "foo;h", "foo;a"), Set.copyOf(lookups));
+
+    // when nothing was invalidated, should see no metadata lookups
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of(), Set.copyOf(lookups));
+  }
+
+  private void checkLocations(Map<String,String> expectedLocations, ClientTabletCacheImpl metaCache)
+      throws Exception {
+    for (var entry : expectedLocations.entrySet()) {
+      String row = entry.getKey();
+      String location = entry.getValue();
+      assertEquals(location,
+          metaCache.findTablet(context, new Text(row), false, LocationNeed.REQUIRED)
+              .getTserverLocation().orElseThrow());
+    }
   }
 }
