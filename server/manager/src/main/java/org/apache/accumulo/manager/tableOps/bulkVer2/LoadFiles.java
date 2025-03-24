@@ -66,7 +66,6 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRanges;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -367,23 +366,21 @@ class LoadFiles extends ManagerRepo {
 
     loader.start(bulkDir, manager, tid, bulkInfo.setTime);
 
-    MetadataRanges mdr = skipDistance > 0 ? bulkInfo.metadataRangesInfo : null;
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
     KeyExtent prevLastExtent = null; // KeyExtent of last tablet from prior loadMapEntry
-    int nodeForPrevLastExtent = 0; // node index in metadata ranges
 
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
     Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
     while (lmi.hasNext()) {
       loadMapEntry = lmi.next();
-      KeyExtent loadMapKey = loadMapEntry.getKey();
-      if (mdr != null && prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
-        nodeForPrevLastExtent = mdr.findNodeForExtent(prevLastExtent, nodeForPrevLastExtent);
-        int nodeForLoadMapKey = mdr.findNodeForExtent(loadMapKey, nodeForPrevLastExtent);
-        if (nodeForPrevLastExtent >= 0 && nodeForLoadMapKey >= 0) {
-          int distance = mdr.getTabletDistance(nodeForPrevLastExtent + 1, nodeForLoadMapKey);
-          if (distance > skipDistance) {
+      // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
+      // at the next skipDistance tablets before recreating the iterator
+      if (skipDistance > 0) {
+        final KeyExtent loadMapKey = loadMapEntry.getKey();
+        if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
+          final KeyExtent search = prevLastExtent;
+          if (!lmi.advanceTo(e -> e.getKey().isPreviousExtent(search), skipDistance)) {
             tabletsMetadata.close();
             tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
             tabletIter = tabletsMetadata.iterator();

@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -45,11 +46,10 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRangeInfoNode;
-import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRanges;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
@@ -118,49 +118,53 @@ public class PrepBulkImport extends ManagerRepo {
    * file goes to too many tablets.
    */
   @VisibleForTesting
-  static MetadataRanges validateLoadMapping(String tableId, LoadMappingIterator lmi,
-      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid) throws Exception {
-
-    final MetadataRanges metadataRanges = new MetadataRanges();
+  static KeyExtent validateLoadMapping(String tableId, LoadMappingIterator lmi,
+      TabletIterFactory tabletIterFactory, int maxNumTablets, long tid, int skip) throws Exception {
 
     var currRange = lmi.next();
 
     Text startRow = currRange.getKey().prevEndRow();
 
     Iterator<KeyExtent> tabletIter = tabletIterFactory.newTabletIter(startRow);
+    PeekingIterator<KeyExtent> pi = new PeekingIterator<>(tabletIter);
 
     try {
-      KeyExtent currTablet = tabletIter.next();
+      KeyExtent currTablet = pi.next();
 
       var fileCounts = new HashMap<String,Integer>();
       int count;
 
       KeyExtent firstTablet = currRange.getKey();
+      KeyExtent lastTablet = currRange.getKey();
 
-      if (!tabletIter.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
+      if (!pi.hasNext() && equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
           && equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
         currRange = null;
       }
 
-      while (tabletIter.hasNext()) {
+      while (pi.hasNext()) {
 
         if (currRange == null) {
           if (!lmi.hasNext()) {
             break;
           }
           currRange = lmi.next();
+          lastTablet = currRange.getKey();
         }
-
-        int skippedMetadataTablets = 0;
-        while (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey())
-            && tabletIter.hasNext()) {
-          skippedMetadataTablets++;
-          currTablet = tabletIter.next();
+        // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
+        // at the next skipDistance tablets before recreating the iterator
+        if (skip > 0) {
+          final KeyExtent search = currRange.getKey();
+          if (!pi.advanceTo((ke) -> ke.prevEndRow().equals(search.prevEndRow()), skip)) {
+            tabletIterFactory.close();
+            tabletIter = tabletIterFactory.newTabletIter(currRange.getKey().prevEndRow());
+            pi = new PeekingIterator<>(tabletIter);
+            currTablet = pi.next();
+          }
         }
-        if (skippedMetadataTablets > 0) {
-          metadataRanges.add(new MetadataRangeInfoNode(skippedMetadataTablets));
+        while (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey()) && pi.hasNext()) {
+          currTablet = pi.next();
         }
-        KeyExtent firstExtentForRange = currTablet;
 
         boolean matchedPrevRow = equals(KeyExtent::prevEndRow, currTablet, currRange.getKey());
 
@@ -170,12 +174,11 @@ public class PrepBulkImport extends ManagerRepo {
 
         count = matchedPrevRow ? 1 : 0;
 
-        while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && tabletIter.hasNext()) {
-          currTablet = tabletIter.next();
+        while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && pi.hasNext()) {
+          currTablet = pi.next();
           count++;
         }
 
-        metadataRanges.add(new MetadataRangeInfoNode(firstExtentForRange, currTablet, count));
         if (!matchedPrevRow || !equals(KeyExtent::endRow, currTablet, currRange.getKey())) {
           break;
         }
@@ -203,14 +206,13 @@ public class PrepBulkImport extends ManagerRepo {
                   + new TreeMap<>(fileCounts));
         }
       }
-      log.info("Metadata range info: {}", metadataRanges);
-      return metadataRanges;
+      return new KeyExtent(firstTablet.tableId(), lastTablet.endRow(), firstTablet.prevEndRow());
     } finally {
       tabletIterFactory.close();
     }
   }
 
-  private MetadataRanges checkForMerge(final long tid, final Manager manager) throws Exception {
+  private KeyExtent checkForMerge(final long tid, final Manager manager) throws Exception {
 
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.sourceDir);
@@ -240,32 +242,25 @@ public class PrepBulkImport extends ManagerRepo {
         }
       };
 
+      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
       return validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
-          tid);
+          tid, skip);
     }
   }
 
   @Override
   public Repo<Manager> call(final long tid, final Manager manager) throws Exception {
     // now that table lock is acquired check that all splits in load mapping exists in table
-    MetadataRanges metadataRanges = checkForMerge(tid, manager);
+    KeyExtent tabletsRange = checkForMerge(tid, manager);
 
-    Text start = metadataRanges.getRangeStartPrevEndRow();
-    if (start != null) {
-      bulkInfo.firstSplit = start.getBytes();
-    }
+    bulkInfo.firstSplit =
+        Optional.ofNullable(tabletsRange.prevEndRow()).map(Text::getBytes).orElse(null);
+    bulkInfo.lastSplit =
+        Optional.ofNullable(tabletsRange.endRow()).map(Text::getBytes).orElse(null);
+    log.trace("{} first split:{} last split:{}", FateTxId.formatTid(tid), tabletsRange.prevEndRow(),
+        tabletsRange.endRow());
 
-    Text end = metadataRanges.getRangeEndRow();
-    if (end != null) {
-      bulkInfo.lastSplit = end.getBytes();
-    }
-    log.warn("{} first split:{} last split:{}", FateTxId.formatTid(tid), start, end);
-
-    int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
-        .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-    if (skip > 0) {
-      bulkInfo.metadataRangesInfo = metadataRanges;
-    }
     bulkInfo.tableState = manager.getContext().getTableState(bulkInfo.tableId);
 
     VolumeManager fs = manager.getVolumeManager();

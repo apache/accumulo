@@ -48,7 +48,6 @@ import org.apache.accumulo.core.clientImpl.bulk.LoadMappingIterator;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.manager.tableOps.bulkVer2.BulkInfo.MetadataRanges;
 import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport.TabletIterFactory;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -129,13 +128,9 @@ public class PrepBulkImportTest {
         .map(Text::toString).orElse(null);
 
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      MetadataRanges ranges =
-          PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001);
-      String start = ranges.getRangeStartPrevEndRow() == null ? null
-          : ranges.getRangeStartPrevEndRow().toString();
-      String end = ranges.getRangeEndRow() == null ? null : ranges.getRangeEndRow().toString();
-      assertEquals(minPrevEndRow, start, loadRanges + " " + tabletRanges);
-      assertEquals(maxPrevEndRow, end, loadRanges + " " + tabletRanges);
+      var extent =
+          PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 10001, 0);
+      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
     }
   }
 

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util;
 
 import java.util.Iterator;
+import java.util.function.Predicate;
 
 public class PeekingIterator<E> implements Iterator<E> {
 
@@ -90,5 +91,32 @@ public class PeekingIterator<E> implements Iterator<E> {
       throw new IllegalStateException("Iterator has not yet been initialized");
     }
     return top != null;
+  }
+
+  /**
+   * Advances the iterator looking for a match, up to {@code limit} times. When this method returns
+   * true, the next call to {@code next} will return the matching element.
+   *
+   * @param predicate condition that we are looking for
+   * @param limit number of times that we should look for a match
+   * @return true if match found within the limit, false otherwise
+   */
+  public boolean advanceTo(Predicate<E> predicate, int limit) {
+    for (int i = 0; i < limit; i++) {
+      E next = peek();
+      if (next == null) {
+        return false;
+      }
+      if (predicate.test(next)) {
+        return true;
+      } else if (i < (limit - 1)) {
+        if (hasNext()) {
+          next();
+        } else {
+          return false;
+        }
+      }
+    }
+    return false;
   }
 }
