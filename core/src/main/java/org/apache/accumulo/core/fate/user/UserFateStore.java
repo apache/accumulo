@@ -274,21 +274,24 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       RowFateStatusFilter.configureScanner(scanner, statuses);
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
+      TxInfoColumnFamily.FATE_OP_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         SortedMap<Key,Value> rowMap;
         TStatus status = TStatus.UNKNOWN;
         FateReservation reservation = null;
+        Fate.FateOperation fateOp = null;
         try {
           rowMap = WholeRowIterator.decodeRow(e.getKey(), e.getValue());
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
-        // expect status and optionally reservation
-        Preconditions.checkState(rowMap.size() == 1 || rowMap.size() == 2,
-            "Invalid row seen: %s. Expected to see one entry for the status and optionally an "
-                + "entry for the fate reservation",
+        // Always expect a status, optionally expect a fate operation (present if seeded)
+        // and optionally expect a fate reservation (present if currently reserved)
+        Preconditions.checkState(rowMap.size() >= 1 && rowMap.size() <= 3,
+            "Invalid row seen: %s. Expected to see tx status and optionally a fate op and "
+                + "optionally a fate reservation",
             rowMap);
         for (Entry<Key,Value> entry : rowMap.entrySet()) {
           Text colf = entry.getKey().getColumnFamily();
@@ -301,12 +304,16 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
             case TxColumnFamily.RESERVATION:
               reservation = FateReservation.deserialize(val.get());
               break;
+            case TxInfoColumnFamily.FATE_OP:
+              fateOp = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
+              break;
             default:
               throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
           }
         }
         final TStatus finalStatus = status;
         final Optional<FateReservation> finalReservation = Optional.ofNullable(reservation);
+        final Optional<Fate.FateOperation> finalFateOp = Optional.ofNullable(fateOp);
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
@@ -316,6 +323,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           @Override
           public Optional<FateReservation> getFateReservation() {
             return finalReservation;
+          }
+
+          @Override
+          public Optional<Fate.FateOperation> getFateOperation() {
+            return finalFateOp;
           }
         };
       });

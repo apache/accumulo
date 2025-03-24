@@ -32,7 +32,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
-import static org.apache.accumulo.test.fate.FateStoreUtil.seedTransaction;
+import static org.apache.accumulo.test.fate.FateTestUtil.seedTransaction;
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
 import static org.apache.accumulo.test.util.FileMetadataUtil.splitFilesIntoRanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
