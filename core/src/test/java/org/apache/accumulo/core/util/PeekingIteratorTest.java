@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Iterator;
 import java.util.stream.IntStream;
 
+import org.apache.accumulo.core.util.PeekingIterator.SearchResults;
 import org.junit.jupiter.api.Test;
 
 public class PeekingIteratorTest {
@@ -58,7 +59,9 @@ public class PeekingIteratorTest {
     PeekingIterator<Integer> peek = new PeekingIterator<>(ints);
 
     assertEquals(1, peek.peek());
-    assertTrue(peek.advanceTo((x) -> x == 4, 5));
+    SearchResults results = peek.advanceTo((x) -> x == 4, 5);
+    assertTrue(results.isMatchFound());
+    assertEquals(3, results.getElementsConsumed());
     assertTrue(peek.hasNext());
     assertEquals(4, peek.next());
     assertEquals(5, peek.peek());
@@ -66,14 +69,25 @@ public class PeekingIteratorTest {
     // Advance the iterator 2 times looking for 7.
     // This will return false, but will advance
     // twice leaving the iterator at 6.
-    assertFalse(peek.advanceTo((x) -> x == 7, 2));
+    results = peek.advanceTo((x) -> x == 7, 2);
+    assertFalse(results.isMatchFound());
+    assertEquals(1, results.getElementsConsumed());
 
     assertTrue(peek.hasNext());
     assertEquals(6, peek.next());
 
-    assertTrue(peek.advanceTo((x) -> x == 8, 2));
+    results = peek.advanceTo((x) -> x == 8, 2);
+    assertTrue(results.isMatchFound());
+    assertEquals(1, results.getElementsConsumed());
     assertTrue(peek.hasNext());
     assertEquals(8, peek.next());
+
+    // Try to advance past the end
+    results = peek.advanceTo((x) -> x == 7, 3);
+    assertFalse(results.isMatchFound());
+    assertEquals(2, results.getElementsConsumed());
+    assertFalse(peek.hasNext());
+    assertNull(peek.next());
 
   }
 

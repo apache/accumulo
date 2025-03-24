@@ -23,6 +23,25 @@ import java.util.function.Predicate;
 
 public class PeekingIterator<E> implements Iterator<E> {
 
+  public static class SearchResults {
+    private final boolean matchFound;
+    private final int elementsConsumed;
+
+    public SearchResults(boolean matchFound, int elementsConsumed) {
+      super();
+      this.matchFound = matchFound;
+      this.elementsConsumed = elementsConsumed;
+    }
+
+    public boolean isMatchFound() {
+      return matchFound;
+    }
+
+    public int getElementsConsumed() {
+      return elementsConsumed;
+    }
+  }
+
   boolean isInitialized;
   Iterator<E> source;
   E top;
@@ -94,29 +113,30 @@ public class PeekingIterator<E> implements Iterator<E> {
   }
 
   /**
-   * Advances the iterator looking for a match, up to {@code limit} times. When this method returns
-   * true, the next call to {@code next} will return the matching element.
+   * Advances the underlying iterator looking for a match, up to {@code limit} times.
    *
    * @param predicate condition that we are looking for
    * @param limit number of times that we should look for a match
-   * @return true if match found within the limit, false otherwise
+   * @return results of the search and number of elements consumed from the underlying iterator
    */
-  public boolean advanceTo(Predicate<E> predicate, int limit) {
+  public SearchResults advanceTo(Predicate<E> predicate, int limit) {
+    int consumed = 0;
     for (int i = 0; i < limit; i++) {
       E next = peek();
       if (next == null) {
-        return false;
+        return new SearchResults(false, consumed);
       }
       if (predicate.test(next)) {
-        return true;
+        return new SearchResults(true, consumed);
       } else if (i < (limit - 1)) {
         if (hasNext()) {
           next();
+          consumed++;
         } else {
-          return false;
+          return new SearchResults(false, consumed);
         }
       }
     }
-    return false;
+    return new SearchResults(false, consumed);
   }
 }

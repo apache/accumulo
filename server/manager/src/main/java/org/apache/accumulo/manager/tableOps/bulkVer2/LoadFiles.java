@@ -62,6 +62,7 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.core.util.PeekingIterator.SearchResults;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
@@ -381,7 +382,9 @@ class LoadFiles extends ManagerRepo {
           final KeyExtent loadMapKey = loadMapEntry.getKey();
           if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
             final KeyExtent search = prevLastExtent;
-            if (!lmi.advanceTo(e -> e.getKey().isPreviousExtent(search), skipDistance)) {
+            SearchResults results =
+                lmi.advanceTo(e -> e.getKey().isPreviousExtent(search), skipDistance);
+            if (!results.isMatchFound()) {
               tabletsMetadata.close();
               tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
               tabletIter = tabletsMetadata.iterator();

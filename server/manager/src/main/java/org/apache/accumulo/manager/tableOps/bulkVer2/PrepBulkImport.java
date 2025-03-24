@@ -47,6 +47,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.core.util.PeekingIterator.SearchResults;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -155,7 +156,9 @@ public class PrepBulkImport extends ManagerRepo {
         // at the next skipDistance tablets before recreating the iterator
         if (skip > 0) {
           final KeyExtent search = currRange.getKey();
-          if (!pi.advanceTo((ke) -> ke.prevEndRow().equals(search.prevEndRow()), skip)) {
+          SearchResults results =
+              pi.advanceTo((ke) -> ke.prevEndRow().equals(search.prevEndRow()), skip);
+          if (!results.isMatchFound()) {
             tabletIterFactory.close();
             tabletIter = tabletIterFactory.newTabletIter(currRange.getKey().prevEndRow());
             pi = new PeekingIterator<>(tabletIter);
@@ -174,6 +177,18 @@ public class PrepBulkImport extends ManagerRepo {
 
         count = matchedPrevRow ? 1 : 0;
 
+        if (skip > 0) {
+          final KeyExtent search2 = currRange.getKey();
+          SearchResults results =
+              pi.advanceTo((ke) -> ke.prevEndRow().equals(search2.prevEndRow()), skip);
+          count += results.getElementsConsumed();
+          if (!results.isMatchFound()) {
+            tabletIterFactory.close();
+            tabletIter = tabletIterFactory.newTabletIter(currRange.getKey().prevEndRow());
+            pi = new PeekingIterator<>(tabletIter);
+            currTablet = pi.next();
+          }
+        }
         while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && pi.hasNext()) {
           currTablet = pi.next();
           count++;
