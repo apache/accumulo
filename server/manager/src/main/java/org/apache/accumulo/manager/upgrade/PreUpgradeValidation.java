@@ -25,7 +25,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.core.zookeeper.ZooSession.ZKUtil;
-import org.apache.accumulo.manager.EventCoordinator;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.zookeeper.KeeperException;
@@ -48,10 +47,11 @@ public class PreUpgradeValidation {
 
   private final static Logger log = LoggerFactory.getLogger(PreUpgradeValidation.class);
 
-  public void validate(final ServerContext context, final EventCoordinator eventCoordinator) {
-    int cv = AccumuloDataVersion.getCurrentVersion(context);
-    if (cv == AccumuloDataVersion.get()) {
-      log.debug("already at current data version: {}, skipping validation", cv);
+  public void validate(final ServerContext context) {
+    int storedVersion = AccumuloDataVersion.getCurrentVersion(context);
+    int currentVersion = AccumuloDataVersion.get();
+    if (storedVersion == currentVersion) {
+      log.debug("already at current data version: {}, skipping validation", currentVersion);
       return;
     }
     validateACLs(context);
@@ -61,13 +61,12 @@ public class PreUpgradeValidation {
 
     final AtomicBoolean aclErrorOccurred = new AtomicBoolean(false);
     final ZooSession zk = context.getZooSession();
-    final String rootPath = context.getZooKeeperRoot();
     final Set<String> users = Set.of("accumulo", "anyone");
 
     log.info("Starting validation on ZooKeeper ACLs");
 
     try {
-      ZKUtil.visitSubTreeDFS(zk, rootPath, false, (rc, path, ctx, name) -> {
+      ZKUtil.visitSubTreeDFS(zk, "/", false, (rc, path, ctx, name) -> {
         try {
           final List<ACL> acls = zk.getACL(path, new Stat());
           if (!hasAllPermissions(users, acls)) {
@@ -88,7 +87,8 @@ public class PreUpgradeValidation {
                 + "for instructions on how to fix.");
       }
     } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Upgrade Failed! Error validating nodes under " + rootPath, e);
+      throw new RuntimeException("Upgrade Failed! Error validating nodes under current root node.",
+          e);
     }
     log.info("Successfully completed validation on ZooKeeper ACLs");
   }

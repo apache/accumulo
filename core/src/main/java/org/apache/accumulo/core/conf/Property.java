@@ -146,7 +146,7 @@ public enum Property {
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
           + " admin changeSecret`.",
       "1.3.5"),
-  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.STRING,
+  INSTANCE_VOLUMES("instance.volumes", "", PropertyType.VOLUMES,
       "A comma separated list of dfs uris to use. Files will be stored across"
           + " these filesystems. In some situations, the first volume in this list"
           + " may be treated differently, such as being preferred for writing out"
@@ -277,7 +277,7 @@ public enum Property {
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
-  GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "1", PropertyType.COUNT,
+  GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "3", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
@@ -401,6 +401,11 @@ public enum Property {
           + " are performed (e.g. Bulk Import). This property specifies the maximum number of threads in a"
           + " ThreadPool in the Manager that will be used to request these refresh operations.",
       "4.0.0"),
+  MANAGER_TABLET_MERGEABILITY_INTERVAL("manager.tablet.mergeability.interval", "24h",
+      PropertyType.TIMEDURATION,
+      "Time to wait between scanning tables to identify ranges of tablets that can be "
+          + " auto-merged. Valid ranges will be have merge fate ops submitted.",
+      "4.0.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
@@ -440,7 +445,7 @@ public enum Property {
       "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
           + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
-          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT\": 4,"
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE\": 4,"
           + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
       PropertyType.FATE_USER_CONFIG,
       "The number of threads used to run fault-tolerant executions (FATE) on user"
@@ -453,7 +458,7 @@ public enum Property {
       "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
           + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
-          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT\": 4,"
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE\": 4,"
           + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
       PropertyType.FATE_META_CONFIG,
       "The number of threads used to run fault-tolerant executions (FATE) on Accumulo"
@@ -491,10 +496,6 @@ public enum Property {
           + "indefinitely. Default is 0 to block indefinitely. Only valid when tserver available "
           + "threshold is set greater than 0.",
       "1.10.0"),
-  MANAGER_SPLIT_WORKER_THREADS("manager.split.seed.threadpool.size", "8", PropertyType.COUNT,
-      "The number of threads used to seed fate split task, the actual split work is done by fate"
-          + " threads.",
-      "4.0.0"),
   MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE("manager.compaction.major.service.queue.size",
       "1M", PropertyType.MEMORY,
       "The data size of each resource groups compaction job priority queue.  The memory size of "
@@ -802,8 +803,10 @@ public enum Property {
       "1.3.5"),
   GC_PORT("gc.port.client", "9998", PropertyType.PORT,
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
+  GC_DELETE_WAL_THREADS("gc.threads.delete.wal", "4", PropertyType.COUNT,
+      "The number of threads used to delete write-ahead logs and recovery files.", "2.1.4"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
-      "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
+      "The number of threads used to delete RFiles.", "1.3.5"),
   GC_SAFEMODE("gc.safemode", "false", PropertyType.BOOLEAN,
       "Provides listing of files to be deleted but does not delete any files.", "2.1.0"),
   GC_USE_FULL_COMPACTION("gc.post.metadata.action", "flush", PropertyType.GC_POST_ACTION,
@@ -934,6 +937,9 @@ public enum Property {
   TABLE_ONDEMAND_UNLOADER("tserver.ondemand.tablet.unloader",
       "org.apache.accumulo.core.spi.ondemand.DefaultOnDemandTabletUnloader", PropertyType.CLASSNAME,
       "The class that will be used to determine which on-demand Tablets to unload.", "4.0.0"),
+  TABLE_MAX_MERGEABILITY_THRESHOLD("table.mergeability.threshold", ".25", PropertyType.FRACTION,
+      "A range of tablets are eligible for automatic merging until the combined size of RFiles reaches this percentage of the split threshold.",
+      "4.0.0"),
 
   // Crypto-related properties
   @Experimental

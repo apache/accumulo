@@ -206,7 +206,7 @@ public class SimpleLoadBalancerTest {
       SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
       balancer.balance(new BalanceParamsImpl(tservers,
           Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers.keySet()), migrations,
-          migrationsOut, DataLevel.USER));
+          migrationsOut, DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }
@@ -251,7 +251,7 @@ public class SimpleLoadBalancerTest {
       SortedMap<TabletServerId,TServerStatus> tservers = getAssignments(servers);
       balancer.balance(new BalanceParamsImpl(tservers,
           Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers.keySet()), migrations,
-          migrationsOut, DataLevel.USER));
+          migrationsOut, DataLevel.USER, Map.of()));
       if (migrationsOut.isEmpty()) {
         break;
       }

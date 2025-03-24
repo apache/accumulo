@@ -379,7 +379,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   public long balance(BalanceParameters params) {
     long minBalanceTime = 20_000;
     // Iterate over the tables and balance each of them
-    Map<String,TableId> tableIdMap = environment.getTableIdMap();
+    Map<String,TableId> tableIdMap = params.getTablesToBalance();
     Map<TableId,String> tableIdToTableName = tableIdMap.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     tableIdToTableName.keySet().forEach(this::checkTableConfig);
@@ -510,8 +510,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      getBalancerForTable(tableId).balance(new BalanceParamsImpl(currentView,
-          params.currentResourceGroups(), migrations, newMigrations, DataLevel.of(tableId)));
+      getBalancerForTable(tableId)
+          .balance(new BalanceParamsImpl(currentView, params.currentResourceGroups(), migrations,
+              newMigrations, DataLevel.of(tableId), Map.of(tableName, tableId)));
 
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);

@@ -38,6 +38,7 @@ public enum ThreadPoolNames {
   COORDINATOR_RESERVATION_META_POOL("accumulo.pool.compaction.coordinator.reservation.meta"),
   COORDINATOR_RESERVATION_USER_POOL("accumulo.pool.compaction.coordinator.reservation.user"),
   GC_DELETE_POOL("accumulo.pool.gc.threads.delete"),
+  GC_WAL_DELETE_POOL("accumulo.pool.gc.threads.delete.wal"),
   GENERAL_SERVER_POOL("accumulo.pool.general.server"),
   SERVICE_LOCK_POOL("accumulo.pool.service.lock"),
   IMPORT_TABLE_RENAME_POOL("accumulo.pool.import.table.rename"),

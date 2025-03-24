@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.access.AccessEvaluator;
 import org.apache.accumulo.access.InvalidAccessExpressionException;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
@@ -683,7 +682,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
     long startTime = System.currentTimeMillis();
 
-    LockID lid = new LockID(context.getZooKeeperRoot() + Constants.ZTSERVERS, sessionId.lockId);
+    LockID lid = LockID.deserialize(sessionId.lockId);
 
     while (true) {
       if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {

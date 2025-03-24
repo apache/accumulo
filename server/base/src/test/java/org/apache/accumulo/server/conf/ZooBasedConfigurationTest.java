@@ -96,7 +96,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void defaultSysConfigTest() {
-    var sysKey = SystemPropKey.of(instanceId);
+    var sysKey = SystemPropKey.of();
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
@@ -113,7 +113,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void get() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
@@ -134,7 +134,7 @@ public class ZooBasedConfigurationTest {
   @Test
   public void getPropertiesTest() {
     var tableId = TableId.of("t1");
-    var tablePropKey = TablePropKey.of(instanceId, tableId);
+    var tablePropKey = TablePropKey.of(tableId);
 
     VersionedProperties tProps =
         new VersionedProperties(Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -147,7 +147,7 @@ public class ZooBasedConfigurationTest {
 
     VersionedProperties nProps =
         new VersionedProperties(Map.of(TABLE_SPLIT_THRESHOLD.getKey(), "3G"));
-    expect(propStore.get(eq(NamespacePropKey.of(instanceId, nsId)))).andReturn(nProps).once();
+    expect(propStore.get(eq(NamespacePropKey.of(nsId)))).andReturn(nProps).once();
 
     replay(context, propStore);
 
@@ -173,7 +173,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void systemPropTest() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties vProps =
         new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(vProps).once();
@@ -190,7 +190,7 @@ public class ZooBasedConfigurationTest {
 
   @Test
   public void loadFailBecauseNodeNotExistTest() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .once();
@@ -207,17 +207,17 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void tablePropTest() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
 
-    var nsPropKey = NamespacePropKey.of(instanceId, NamespaceId.of("ns1"));
+    var nsPropKey = NamespacePropKey.of(NamespaceId.of("ns1"));
     VersionedProperties nsProps =
         new VersionedProperties(2, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("ns1.table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"));
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -278,18 +278,18 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void updateCountTest() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("fake no node"))
         .anyTimes();
     // mock node deleted after event
 
-    var nsPropKey = NamespacePropKey.of(instanceId, NamespaceId.of("ns1"));
+    var nsPropKey = NamespacePropKey.of(NamespaceId.of("ns1"));
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("ns1.table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
 
@@ -317,15 +317,15 @@ public class ZooBasedConfigurationTest {
    */
   @Test
   public void updateCountTableTest() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps = new VersionedProperties(100, Instant.now(), Map.of());
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
 
-    var nsPropKey = NamespacePropKey.of(instanceId, NamespaceId.of("ns1"));
+    var nsPropKey = NamespacePropKey.of(NamespaceId.of("ns1"));
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(instanceId, TableId.of("ns1.table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
 

@@ -792,7 +792,7 @@ public class TabletMetadata {
   }
 
   @VisibleForTesting
-  static TabletMetadata create(String id, String prevEndRow, String endRow) {
+  public static TabletMetadata create(String id, String prevEndRow, String endRow) {
     final var tmBuilder = new Builder();
     tmBuilder.table(TableId.of(id));
     tmBuilder.sawPrevEndRow(true);

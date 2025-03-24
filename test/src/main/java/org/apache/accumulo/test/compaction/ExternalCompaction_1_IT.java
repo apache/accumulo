@@ -32,6 +32,7 @@ import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.cr
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.row;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.verify;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
+import static org.apache.accumulo.test.fate.FateTestUtil.seedTransaction;
 import static org.apache.accumulo.test.util.FileMetadataUtil.countFencedFiles;
 import static org.apache.accumulo.test.util.FileMetadataUtil.splitFilesIntoRanges;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,7 +56,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.compactor.ExtCEnv.CompactorIterEnv;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -251,8 +251,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testCompactionCommitAndDeadDetectionRoot() throws Exception {
     var ctx = getCluster().getServerContext();
-    FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooSession(), testLock.getLockID(), null);
+    FateStore<Manager> metaFateStore =
+        new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       var tableId = ctx.getTableId(AccumuloTable.ROOT.tableName());
@@ -270,8 +270,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   @Test
   public void testCompactionCommitAndDeadDetectionMeta() throws Exception {
     var ctx = getCluster().getServerContext();
-    FateStore<Manager> metaFateStore = new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE,
-        ctx.getZooSession(), testLock.getLockID(), null);
+    FateStore<Manager> metaFateStore =
+        new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
@@ -320,8 +320,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       UserFateStore<Manager> userFateStore =
           new UserFateStore<>(ctx, AccumuloTable.FATE.tableName(), testLock.getLockID(), null);
       FateStore<Manager> metaFateStore =
-          new MetaFateStore<>(ctx.getZooKeeperRoot() + Constants.ZFATE, ctx.getZooSession(),
-              testLock.getLockID(), null);
+          new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
@@ -381,7 +380,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     // should never run. Its purpose is to prevent the dead compaction detector
     // from deleting the id.
     Repo<Manager> repo = new FakeRepo();
-    var fateId = fateStore.seedTransaction(Fate.FateOperation.COMMIT_COMPACTION,
+    var fateId = seedTransaction(fateStore, Fate.FateOperation.COMMIT_COMPACTION,
         FateKey.forCompactionCommit(allCids.get(tableId).get(0)), repo, true).orElseThrow();
 
     // Read the tablet metadata

@@ -52,6 +52,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.FateStore.Seeder;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.logging.FateLogger;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
@@ -95,6 +96,7 @@ public class Fate<T> {
     NAMESPACE_RENAME(TFateOperation.NAMESPACE_RENAME),
     SHUTDOWN_TSERVER(null),
     SYSTEM_SPLIT(null),
+    SYSTEM_MERGE(null),
     TABLE_BULK_IMPORT2(TFateOperation.TABLE_BULK_IMPORT2),
     TABLE_CANCEL_COMPACT(TFateOperation.TABLE_CANCEL_COMPACT),
     TABLE_CLONE(TFateOperation.TABLE_CLONE),
@@ -112,8 +114,8 @@ public class Fate<T> {
     TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY);
 
     private final TFateOperation top;
-    private static final Set<FateOperation> nonThriftOps =
-        Collections.unmodifiableSet(EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT));
+    private static final Set<FateOperation> nonThriftOps = Collections.unmodifiableSet(
+        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT, SYSTEM_MERGE));
     private static final Set<FateOperation> allUserFateOps =
         Collections.unmodifiableSet(EnumSet.allOf(FateOperation.class));
     private static final Set<FateOperation> allMetaFateOps =
@@ -364,9 +366,16 @@ public class Fate<T> {
     return store.create();
   }
 
+  public Seeder<T> beginSeeding() {
+    return store.beginSeeding();
+  }
+
   public void seedTransaction(FateOperation fateOp, FateKey fateKey, Repo<T> repo,
       boolean autoCleanUp) {
-    store.seedTransaction(fateOp, fateKey, repo, autoCleanUp);
+    try (var seeder = store.beginSeeding()) {
+      @SuppressWarnings("unused")
+      var unused = seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+    }
   }
 
   // start work in the transaction.. it is safe to call this

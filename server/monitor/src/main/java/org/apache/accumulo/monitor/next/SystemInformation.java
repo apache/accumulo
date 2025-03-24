@@ -40,6 +40,7 @@ import org.apache.accumulo.core.client.admin.TabletMergeabilityInfo;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -154,6 +155,11 @@ public class SystemInformation {
     private final AtomicLong totalHostedTablets = new AtomicLong();
     private final AtomicLong totalSuspendedTablets = new AtomicLong();
     private final AtomicLong totalUnassignedTablets = new AtomicLong();
+    private String tableName;
+
+    public TableSummary(String tableName) {
+      this.tableName = tableName;
+    }
 
     public long getTotalEntries() {
       return totalEntries.get();
@@ -205,6 +211,10 @@ public class SystemInformation {
 
     public long getTotalUnassignedTablets() {
       return totalUnassignedTablets.get();
+    }
+
+    public String getTableName() {
+      return tableName;
     }
 
     public void addTablet(TabletInformation info) {
@@ -327,8 +337,8 @@ public class SystemInformation {
       new AtomicReference<>();
 
   // Table Information
-  private final Map<String,TableSummary> tables = new ConcurrentHashMap<>();
-  private final Map<String,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
+  private final Map<TableId,TableSummary> tables = new ConcurrentHashMap<>();
+  private final Map<TableId,List<TabletInformation>> tablets = new ConcurrentHashMap<>();
 
   // Deployment Overview
   private final Map<String,Map<String,ProcessSummary>> deployment = new ConcurrentHashMap<>();
@@ -460,11 +470,11 @@ public class SystemInformation {
     oldestCompactions.set(running);
   }
 
-  public void processTabletInformation(String tableName, TabletInformation info) {
+  public void processTabletInformation(TableId tableId, String tableName, TabletInformation info) {
     final SanitizedTabletInformation sti = new SanitizedTabletInformation(info);
-    tablets.computeIfAbsent(tableName, (t) -> Collections.synchronizedList(new ArrayList<>()))
+    tablets.computeIfAbsent(tableId, (t) -> Collections.synchronizedList(new ArrayList<>()))
         .add(sti);
-    tables.computeIfAbsent(tableName, (t) -> new TableSummary()).addTablet(sti);
+    tables.computeIfAbsent(tableId, (t) -> new TableSummary(tableName)).addTablet(sti);
     if (sti.getEstimatedEntries() == 0) {
       suggestions.add("Tablet " + sti.getTabletId().toString() + " (tid: "
           + sti.getTabletId().getTable() + ") may have zero entries and could be merged.");
@@ -582,12 +592,12 @@ public class SystemInformation {
     return list.getCompactions();
   }
 
-  public Map<String,TableSummary> getTables() {
+  public Map<TableId,TableSummary> getTables() {
     return this.tables;
   }
 
-  public List<TabletInformation> getTablets(String table) {
-    return this.tablets.get(table);
+  public List<TabletInformation> getTablets(TableId tableId) {
+    return this.tablets.get(tableId);
   }
 
   public Map<String,Map<String,ProcessSummary>> getDeploymentOverview() {

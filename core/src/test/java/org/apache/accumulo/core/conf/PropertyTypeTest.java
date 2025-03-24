@@ -221,6 +221,17 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   @Test
+  public void testTypeVOLUMES() {
+    // more comprehensive parsing tests are in ConfigurationTypeHelperTest.testGetVolumeUris()
+    valid("", "hdfs:/volA", ",hdfs:/volA", "hdfs:/volA,", "hdfs:/volA,file:/volB",
+        ",hdfs:/volA,file:/volB", "hdfs:/volA,,file:/volB", "hdfs:/volA,file:/volB,   ,");
+    invalid(null, "   ", ",", ",,,", " ,,,", ",,, ", ", ,,", "hdfs:/volA,hdfs:/volB,volA",
+        ",volA,hdfs:/volA,hdfs:/volB", "hdfs:/volA,,volA,hdfs:/volB",
+        "hdfs:/volA,volA,hdfs:/volB,   ,", "hdfs:/volA,hdfs:/volB,hdfs:/volA",
+        "hdfs:/volA,hdfs :/::/volB");
+  }
+
+  @Test
   public void testTypeFATE_USER_CONFIG() {
     var allUserFateOps = Fate.FateOperation.getAllUserFateOps();
     int poolSize1 = allUserFateOps.size() / 2;

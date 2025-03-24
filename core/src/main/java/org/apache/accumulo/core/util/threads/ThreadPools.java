@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_ROOT_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_RESERVATION_USER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_WAL_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHED_FUTURE_CHECKER_POOL;
@@ -363,6 +364,8 @@ public class ThreadPools {
           builder.enableThreadPoolMetrics();
         }
         return builder.build();
+      case GC_DELETE_WAL_THREADS:
+        return getPoolBuilder(GC_WAL_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
       case GC_DELETE_THREADS:
         return getPoolBuilder(GC_DELETE_POOL).numCoreThreads(conf.getCount(p)).build();
       case COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT:
