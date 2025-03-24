@@ -371,28 +371,31 @@ class LoadFiles extends ManagerRepo {
     KeyExtent prevLastExtent = null; // KeyExtent of last tablet from prior loadMapEntry
 
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
-    Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
-    while (lmi.hasNext()) {
-      loadMapEntry = lmi.next();
-      // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
-      // at the next skipDistance tablets before recreating the iterator
-      if (skipDistance > 0) {
-        final KeyExtent loadMapKey = loadMapEntry.getKey();
-        if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
-          final KeyExtent search = prevLastExtent;
-          if (!lmi.advanceTo(e -> e.getKey().isPreviousExtent(search), skipDistance)) {
-            tabletsMetadata.close();
-            tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
-            tabletIter = tabletsMetadata.iterator();
+    try {
+      Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
+      while (lmi.hasNext()) {
+        loadMapEntry = lmi.next();
+        // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
+        // at the next skipDistance tablets before recreating the iterator
+        if (skipDistance > 0) {
+          final KeyExtent loadMapKey = loadMapEntry.getKey();
+          if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
+            final KeyExtent search = prevLastExtent;
+            if (!lmi.advanceTo(e -> e.getKey().isPreviousExtent(search), skipDistance)) {
+              tabletsMetadata.close();
+              tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
+              tabletIter = tabletsMetadata.iterator();
+            }
           }
         }
+        List<TabletMetadata> tablets =
+            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
+        loader.load(tablets, loadMapEntry.getValue());
+        prevLastExtent = tablets.get(tablets.size() - 1).getExtent();
       }
-      List<TabletMetadata> tablets =
-          findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
-      loader.load(tablets, loadMapEntry.getValue());
-      prevLastExtent = tablets.get(tablets.size() - 1).getExtent();
+    } finally {
+      tabletsMetadata.close();
     }
-    tabletsMetadata.close();
     Duration totalProcessingTime = timer.elapsed();
 
     log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
