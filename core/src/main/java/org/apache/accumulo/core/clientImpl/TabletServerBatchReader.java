@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.lang.ref.Cleaner.Cleanable;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -119,6 +120,6 @@ public class TabletServerBatchReader extends ScannerOptions implements BatchScan
     }
 
     return new TabletServerBatchReaderIterator(context, tableId, tableName, authorizations, ranges,
-        numThreads, queryThreadPool, this, retryTimeout);
+        numThreads, queryThreadPool, this, Duration.ofMillis(retryTimeout));
   }
 }
