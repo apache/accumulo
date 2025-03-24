@@ -23,25 +23,6 @@ import java.util.function.Predicate;
 
 public class PeekingIterator<E> implements Iterator<E> {
 
-  public static class SearchResults {
-    private final boolean matchFound;
-    private final int elementsConsumed;
-
-    public SearchResults(boolean matchFound, int elementsConsumed) {
-      super();
-      this.matchFound = matchFound;
-      this.elementsConsumed = elementsConsumed;
-    }
-
-    public boolean isMatchFound() {
-      return matchFound;
-    }
-
-    public int getElementsConsumed() {
-      return elementsConsumed;
-    }
-  }
-
   boolean isInitialized;
   Iterator<E> source;
   E top;
@@ -119,24 +100,22 @@ public class PeekingIterator<E> implements Iterator<E> {
    * @param limit number of times that we should look for a match
    * @return results of the search and number of elements consumed from the underlying iterator
    */
-  public SearchResults advanceTo(Predicate<E> predicate, int limit) {
-    int consumed = 0;
+  public boolean advanceTo(Predicate<E> predicate, int limit) {
     for (int i = 0; i < limit; i++) {
       E next = peek();
       if (next == null) {
-        return new SearchResults(false, consumed);
+        return false;
       }
       if (predicate.test(next)) {
-        return new SearchResults(true, consumed);
+        return true;
       } else if (i < (limit - 1)) {
         if (hasNext()) {
           next();
-          consumed++;
         } else {
-          return new SearchResults(false, consumed);
+          return false;
         }
       }
     }
-    return new SearchResults(false, consumed);
+    return false;
   }
 }

@@ -62,7 +62,6 @@ import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.core.util.PeekingIterator.SearchResults;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
@@ -369,37 +368,30 @@ class LoadFiles extends ManagerRepo {
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
-    KeyExtent prevLastExtent = null; // KeyExtent of last tablet from prior loadMapEntry
 
     TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
     try {
-      Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
-      PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletIter);
+      PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
         // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
         // at the next skipDistance tablets before recreating the iterator
         if (skipDistance > 0) {
           final KeyExtent loadMapKey = loadMapEntry.getKey();
-          if (prevLastExtent != null && !loadMapKey.isPreviousExtent(prevLastExtent)) {
-            final KeyExtent search = prevLastExtent;
-            SearchResults results =
-                pi.advanceTo(tm -> tm.getExtent().isPreviousExtent(search), skipDistance);
-            if (!results.isMatchFound()) {
-              log.debug(
-                  "Tablet metadata for previous extent {} not found in {} tablets, recreating TabletMetadata to jump ahead",
-                  prevLastExtent, skipDistance);
-              tabletsMetadata.close();
-              tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
-              tabletIter = tabletsMetadata.iterator();
-              pi = new PeekingIterator<>(tabletIter);
-            }
+          if (!pi.advanceTo(
+              tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
+              skipDistance)) {
+            log.debug(
+                "Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                loadMapKey.prevEndRow(), skipDistance);
+            tabletsMetadata.close();
+            tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
+            pi = new PeekingIterator<>(tabletsMetadata.iterator());
           }
         }
         List<TabletMetadata> tablets =
             findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
         loader.load(tablets, loadMapEntry.getValue());
-        prevLastExtent = tablets.get(tablets.size() - 1).getExtent();
       }
     } finally {
       tabletsMetadata.close();

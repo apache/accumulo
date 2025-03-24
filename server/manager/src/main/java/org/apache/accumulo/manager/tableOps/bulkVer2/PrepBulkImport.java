@@ -47,7 +47,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
-import org.apache.accumulo.core.util.PeekingIterator.SearchResults;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -157,9 +156,7 @@ public class PrepBulkImport extends ManagerRepo {
         if (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey()) && skip > 0
             && currRange.getKey().prevEndRow() != null) {
           final KeyExtent search = currRange.getKey();
-          SearchResults results = pi.advanceTo(
-              (ke) -> ke.prevEndRow() != null && ke.prevEndRow().equals(search.prevEndRow()), skip);
-          if (!results.isMatchFound()) {
+          if (!pi.advanceTo((ke) -> Objects.equals(ke.prevEndRow(), search.prevEndRow()), skip)) {
             log.warn(
                 "Tablet metadata for prevEndRow {} not found in {} tablets from current tablet {}, recreating TabletMetadata to jump ahead",
                 search.prevEndRow(), skip, currTablet);
@@ -180,21 +177,6 @@ public class PrepBulkImport extends ManagerRepo {
 
         count = matchedPrevRow ? 1 : 0;
 
-        if (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && skip > 0
-            && currRange.getKey().endRow() != null) {
-          final KeyExtent search2 = currRange.getKey();
-          SearchResults results = pi
-              .advanceTo((ke) -> ke.endRow() != null && ke.endRow().equals(search2.endRow()), skip);
-          count += results.getElementsConsumed();
-          if (!results.isMatchFound()) {
-            log.warn(
-                "Tablet metadata for endRow {} not found in {} tablets from current tablet {}, recreating TabletMetadata to jump ahead",
-                search2.endRow(), skip, currTablet);
-            tabletIterFactory.close();
-            pi = new PeekingIterator<>(tabletIterFactory.newTabletIter(search2.prevEndRow()));
-            currTablet = pi.next();
-          }
-        }
         while (!equals(KeyExtent::endRow, currTablet, currRange.getKey()) && pi.hasNext()) {
           currTablet = pi.next();
           count++;
