@@ -21,6 +21,7 @@ package org.apache.accumulo.test.fate;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -109,10 +110,22 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
           "testing");
       fate.seedTransaction(fateOpFromSet2, fate.startTransaction(), new PoolResizeTestRepo(), true,
           "testing");
+
       // wait for the FateExecutors to work on the transactions
       Wait.waitFor(() -> env.numWorkers.get() == 2);
+      // sum has been verified, verify each term
+      Map<Fate.FateOperation,
+          Long> seenCounts = store.list()
+              .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+                  && fateIdStatus.getFateReservation().isPresent())
+              .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+                  Collectors.counting()));
+      Map<Fate.FateOperation,Long> expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
+      assertEquals(expectedCounts, seenCounts);
+
       // wait for all transaction runners to be active
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == numWorkersSet1 + numWorkersSet2);
+      // sum has been verified, verify each term
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
 
@@ -122,8 +135,7 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       // pool size for the pool assigned to work on SET1
       Wait.waitFor(() -> fate.getTotalTxRunnersActive()
           == newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4);
-      // num actively executing tasks should not be affected
-      assertEquals(2, env.numWorkers.get());
+      // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor assigned to SET2 is no longer valid after the config change, so a
       // shutdown should be initiated and all the runners but the one working on a transaction
@@ -133,13 +145,26 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
       assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
 
+      // num actively executing tasks should not be affected
+      assertEquals(2, env.numWorkers.get());
+      // sum has been verified, verify each term
+      seenCounts = store.list()
+          .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+              && fateIdStatus.getFateReservation().isPresent())
+          .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+              Collectors.counting()));
+      expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
+      assertEquals(expectedCounts, seenCounts);
+
       // finish work
       env.isReadyLatch.countDown();
 
       Wait.waitFor(() -> env.numWorkers.get() == 0);
+
       // workers should still be running: we haven't shutdown FATE, just not working on anything
       Wait.waitFor(() -> fate.getTotalTxRunnersActive()
           == newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4);
+      // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor for SET2 should have finished work and be shutdown now since it was
       // previously invalidated by the config change and has since finished its assigned txn
@@ -176,21 +201,40 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
     final int newNumWorkers = 3;
     final Set<Fate.FateOperation> allFateOps =
         store.type() == FateInstanceType.USER ? ALL_USER_FATE_OPS : ALL_META_FATE_OPS;
+    final var fateOp = FateTestUtil.TEST_FATE_OP;
     try {
       for (int i = 0; i < newNumWorkers; i++) {
-        fate.seedTransaction(FateTestUtil.TEST_FATE_OP, fate.startTransaction(),
-            new PoolResizeTestRepo(), true, "testing");
+        fate.seedTransaction(fateOp, fate.startTransaction(), new PoolResizeTestRepo(), true,
+            "testing");
       }
-      // wait for the 2 treads to pick up 2 of the 3 transactions
+
+      // wait for the 2 threads to pick up 2 of the 3 transactions
       Wait.waitFor(() -> env.numWorkers.get() == numWorkers);
+      Map<Fate.FateOperation,
+          Long> seenCounts = store.list()
+              .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+                  && fateIdStatus.getFateReservation().isPresent())
+              .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+                  Collectors.counting()));
+      Map<Fate.FateOperation,Long> expectedCounts = Map.of(fateOp, (long) numWorkers);
+      assertEquals(expectedCounts, seenCounts);
+
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == numWorkers);
       assertEquals(numWorkers, fate.getTxRunnersActive(allFateOps));
 
       // increase the pool size
       changeConfigIncTest2(config, newNumWorkers);
 
-      // wait for the final thread to be picked up
+      // wait for the final tx to be picked up
       Wait.waitFor(() -> env.numWorkers.get() == newNumWorkers);
+      seenCounts = store.list()
+          .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+              && fateIdStatus.getFateReservation().isPresent())
+          .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+              Collectors.counting()));
+      expectedCounts = Map.of(fateOp, (long) newNumWorkers);
+      assertEquals(expectedCounts, seenCounts);
+
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newNumWorkers);
       assertEquals(newNumWorkers, fate.getTxRunnersActive(allFateOps));
 
@@ -198,9 +242,11 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       env.isReadyLatch.countDown();
 
       Wait.waitFor(() -> env.numWorkers.get() == 0);
+
       // workers should still be running: we haven't shutdown FATE, just not working on anything
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newNumWorkers);
       assertEquals(newNumWorkers, fate.getTxRunnersActive(allFateOps));
+
       allAssertsOccurred = true;
     } catch (Exception e) {
       System.out.println("Failure: " + e);
@@ -263,9 +309,21 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       }
       // wait for all threads to be working on a tx
       Wait.waitFor(() -> env.numWorkers.get() == numWorkersSet1 + numWorkersSet3 + numWorkersSet4);
+      // sum has been verified, verify each term
+      Map<Fate.FateOperation,
+          Long> seenCounts = store.list()
+              .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+                  && fateIdStatus.getFateReservation().isPresent())
+              .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+                  Collectors.counting()));
+      Map<Fate.FateOperation,Long> expectedCounts = Map.of(fateOpFromSet1, (long) numWorkersSet1,
+          fateOpFromSet3, (long) numWorkersSet3, fateOpFromSet4, (long) numWorkersSet4);
+      assertEquals(expectedCounts, seenCounts);
+
       // wait for all transaction runners to be active
       Wait.waitFor(
           () -> fate.getTotalTxRunnersActive() == numWorkersSet1 + numWorkersSet3 + numWorkersSet4);
+      // sum has been verified, verify each term
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       // this has not been set in the config yet so shouldn't exist
       assertEquals(0, fate.getTxRunnersActive(set2));
@@ -283,12 +341,23 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       // executor has started (for SET2), then we allow isReady to pass and the txns to complete.
       Wait.waitFor(() -> fate.getTotalTxRunnersActive()
           == numWorkersSet1 + numWorkersSet2 + numWorkersSet3 + numWorkersSet4);
-      // num actively executing tasks should not be affected
-      assertEquals(numWorkersSet1 + numWorkersSet3 + numWorkersSet4, env.numWorkers.get());
+      // sum has been verified, verify each term
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
       assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
       assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
+
+      // num actively executing tasks should not be affected
+      assertEquals(numWorkersSet1 + numWorkersSet3 + numWorkersSet4, env.numWorkers.get());
+      // sum has been verified, verify each term
+      seenCounts = store.list()
+          .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+              && fateIdStatus.getFateReservation().isPresent())
+          .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+              Collectors.counting()));
+      expectedCounts = Map.of(fateOpFromSet1, (long) numWorkersSet1, fateOpFromSet3,
+          (long) numWorkersSet3, fateOpFromSet4, (long) numWorkersSet4);
+      assertEquals(expectedCounts, seenCounts);
 
       // finish work
       env.isReadyLatch.countDown();
@@ -298,7 +367,9 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       // the pool size for the executor for SET1 should have been updated, and the executor for
       // SET2 should still be running.
       Wait.waitFor(() -> env.numWorkers.get() == 0);
+
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newNumWorkersSet1 + numWorkersSet2);
+      // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
       // the FateExecutors for SET3 and SET4 should be fully shutdown now
@@ -384,6 +455,10 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
     final int numSeedPool2 = 6;
     final int numSeedPool3 = 1;
     final int numSeedPool4 = 4;
+    final long expectedRunningPool1 = Math.min(numThreadsPool1, numSeedPool1);
+    final long expectedRunningPool2 = Math.min(numThreadsPool2, numSeedPool2);
+    final long expectedRunningPool3 = Math.min(numThreadsPool3, numSeedPool3);
+    final long expectedRunningPool4 = Math.min(numThreadsPool4, numSeedPool4);
 
     final int numUserOpsPerPool = ALL_USER_FATE_OPS.size() / 4;
     final int numMetaOpsPerPool = ALL_META_FATE_OPS.size() / 4;
@@ -466,12 +541,25 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
             true, "testing");
       }
 
-      Wait.waitFor(() -> env.numWorkers.get()
-          == Math.min(numThreadsPool1, numSeedPool1) + Math.min(numThreadsPool2, numSeedPool2)
-              + Math.min(numThreadsPool3, numSeedPool3) + Math.min(numThreadsPool4, numSeedPool4));
+      // wait for the threads to be working on the transactions
+      Wait.waitFor(() -> env.numWorkers.get() == expectedRunningPool1 + expectedRunningPool2
+          + expectedRunningPool3 + expectedRunningPool4);
+      // sum has been verified, verify each term
+      Map<Fate.FateOperation,
+          Long> seenCounts = store.list()
+              .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+                  && fateIdStatus.getFateReservation().isPresent())
+              .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+                  Collectors.counting()));
+      Map<Fate.FateOperation,Long> expectedCounts =
+          Map.of(fateOpFromPool1, expectedRunningPool1, fateOpFromPool2, expectedRunningPool2,
+              fateOpFromPool3, expectedRunningPool3, fateOpFromPool4, expectedRunningPool4);
+      assertEquals(expectedCounts, seenCounts);
+
       // wait for all transaction runners to be active
       Wait.waitFor(() -> fate.getTotalTxRunnersActive()
           == numThreadsPool1 + numThreadsPool2 + numThreadsPool3 + numThreadsPool4);
+      // sum has been verified, verify each term
       assertEquals(numThreadsPool1, fate.getTxRunnersActive(pool1));
       assertEquals(numThreadsPool2, fate.getTxRunnersActive(pool2));
       assertEquals(numThreadsPool3, fate.getTxRunnersActive(pool3));
@@ -481,11 +569,22 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
       // anything
       Thread.sleep(fate.getPoolWatcherDelay().toMillis() + 1_000);
 
-      assertEquals(env.numWorkers.get(),
-          Math.min(numThreadsPool1, numSeedPool1) + Math.min(numThreadsPool2, numSeedPool2)
-              + Math.min(numThreadsPool3, numSeedPool3) + Math.min(numThreadsPool4, numSeedPool4));
+      assertEquals(env.numWorkers.get(), expectedRunningPool1 + expectedRunningPool2
+          + expectedRunningPool3 + expectedRunningPool4);
+      // sum has been verified, verify each term
+      seenCounts = store.list()
+          .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+              && fateIdStatus.getFateReservation().isPresent())
+          .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+              Collectors.counting()));
+      expectedCounts =
+          Map.of(fateOpFromPool1, expectedRunningPool1, fateOpFromPool2, expectedRunningPool2,
+              fateOpFromPool3, expectedRunningPool3, fateOpFromPool4, expectedRunningPool4);
+      assertEquals(expectedCounts, seenCounts);
+
       assertEquals(fate.getTotalTxRunnersActive(),
           numThreadsPool1 + numThreadsPool2 + numThreadsPool3 + numThreadsPool4);
+      // sum has been verified, verify each term
       assertEquals(numThreadsPool1, fate.getTxRunnersActive(pool1));
       assertEquals(numThreadsPool2, fate.getTxRunnersActive(pool2));
       assertEquals(numThreadsPool3, fate.getTxRunnersActive(pool3));
