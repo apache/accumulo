@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUE
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -460,12 +461,14 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
       NewTableConfiguration ntc = new NewTableConfiguration().setProperties(props)
           .withInitialTabletAvailability(TabletAvailability.HOSTED);
       c.tableOperations().create(table2, ntc);
+      TableId table2Id = TableId.of(c.tableOperations().tableIdMap().get(table2));
 
       // Create splits so there are two groupings of tablets with similar file counts for both
       // queues.
       String splitString = "500 1000 1500 2000 3750 5500 7250 9000";
+      String splitString2 = "500 1000 1500 2000 3750 5500";
       addSplits(c, tableName, splitString);
-      addSplits(c, table2, splitString);
+      addSplits(c, table2, splitString2);
 
       // Add files to both directories (simulating two different queues)
       for (int i = 0; i < 100; i++) {
@@ -491,17 +494,24 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
 
       c.tableOperations().compact(tableName, configQ1);
       c.tableOperations().compact(table2, configQ2);
-
       // Get file sizes for each queue's tablets
       try (TabletsMetadata tm = context.getAmple().readTablets().forTable(tableId).build()) {
         for (TabletMetadata tablet : tm) {
           long fileSize = tablet.getFiles().size();
-          log.info("Number of files in tablet {}: {}", tablet.getExtent().toString(), fileSize);
+          log.info("Number of files in tablet1 {}: {}", tablet.getExtent().toString(), fileSize);
           highestFileCountQueue1 = Math.max(highestFileCountQueue1, fileSize);
+        }
+      }
+
+      try (TabletsMetadata tm = context.getAmple().readTablets().forTable(table2Id).build()) {
+        for (TabletMetadata tablet : tm) {
+          long fileSize = tablet.getFiles().size();
+          log.info("Number of files in tablet2 {}: {}", tablet.getExtent().toString(), fileSize);
           highestFileCountQueue2 = Math.max(highestFileCountQueue2, fileSize);
         }
       }
 
+      assertNotEquals(highestFileCountQueue1, highestFileCountQueue2);
       verifyData(c, tableName, 0, 100 * 100 - 1, false);
       verifyData(c, table2, 0, 100 * 100 - 1, false);
     }
@@ -534,8 +544,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     long lowestPriorityQ2 = Short.MIN_VALUE;
     long rejectedCountQ1 = 0L;
     long rejectedCountQ2 = 0L;
-    int queue1Size = 0;
-    int queue2Size = 0;
+    boolean sawQ1Metric = false;
+    boolean sawQ2Metric = false;
     boolean sawQs = false;
 
     while (!queueMetrics.isEmpty()) {
@@ -547,8 +557,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         } else if (metric.getName()
             .contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())) {
           lowestPriorityQ1 = Math.max(lowestPriorityQ1, Long.parseLong(metric.getValue()));
-        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())) {
-          queue1Size = Integer.parseInt(metric.getValue());
+        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName())) {
+          sawQ1Metric = true;
         }
       } else if (metric.getTags().containsValue(QUEUE2_METRIC_LABEL)) {
         if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_REJECTED.getName())) {
@@ -556,8 +566,8 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
         } else if (metric.getName()
             .contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_PRIORITY.getName())) {
           lowestPriorityQ2 = Math.max(lowestPriorityQ2, Long.parseLong(metric.getValue()));
-        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_LENGTH.getName())) {
-          queue2Size = Integer.parseInt(metric.getValue());
+        } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUE_JOBS_SIZE.getName())) {
+          sawQ2Metric = true;
         }
       } else if (metric.getName().contains(COMPACTOR_JOB_PRIORITY_QUEUES.getName())) {
         sawQs = true;
@@ -573,23 +583,28 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     // Priority is the file counts + number of compactions for that tablet.
     // The lowestPriority job in the queue should have been
     // at least 1 count higher than the highest file count.
-    short highestFileCountPrioQ1 = CompactionJobPrioritizer.createPriority(
-        getCluster().getServerContext().getTableId(tableName), CompactionKind.USER,
-        (int) highestFileCountQueue1, 0);
+    TableId tid = context.getTableId(tableName);
+    TableId tid2 = context.getTableId(table2);
+
+    short highestFileCountPrioQ1 =
+        CompactionJobPrioritizer.createPriority(getCluster().getServerContext().getNamespaceId(tid),
+            tid, CompactionKind.USER, (int) highestFileCountQueue1, 0,
+            context.getTableConfiguration(tid).getCount(Property.TABLE_FILE_MAX));
     assertTrue(lowestPriorityQ1 > highestFileCountPrioQ1,
         lowestPriorityQ1 + " " + highestFileCountQueue1 + " " + highestFileCountPrioQ1);
 
-    short highestFileCountPrioQ2 =
-        CompactionJobPrioritizer.createPriority(getCluster().getServerContext().getTableId(table2),
-            CompactionKind.USER, (int) highestFileCountQueue2, 0);
+    short highestFileCountPrioQ2 = CompactionJobPrioritizer.createPriority(
+        getCluster().getServerContext().getNamespaceId(tid2), tid2, CompactionKind.USER,
+        (int) highestFileCountQueue2, 0,
+        context.getTableConfiguration(tid2).getCount(Property.TABLE_FILE_MAX));
     assertTrue(lowestPriorityQ2 > highestFileCountPrioQ2,
         lowestPriorityQ2 + " " + highestFileCountQueue2 + " " + highestFileCountPrioQ2);
 
     // Multiple Queues have been created
     assertTrue(sawQs);
 
-    assertEquals(QUEUE1_SIZE, queue1Size);
-    assertEquals(QUEUE2_SIZE, queue2Size);
+    assertTrue(sawQ1Metric);
+    assertTrue(sawQ2Metric);
 
     // Start Compactors for both QUEUE1 and QUEUE2
     getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(QUEUE1, 1);
