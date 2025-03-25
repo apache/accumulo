@@ -149,7 +149,6 @@ import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
-import org.apache.accumulo.server.tables.TableObserver;
 import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
@@ -179,7 +178,7 @@ import io.opentelemetry.context.Scope;
  * <p>
  * The manager will also coordinate log recoveries and reports general status.
  */
-public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver {
+public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -1174,7 +1173,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
-    context.getTableManager().addObserver(this);
+    context.getZooCache().addZooCacheWatcher(new TableStateWatcher((tableId, event) -> {
+      TableState state = getTableManager().getTableState(tableId);
+      log.debug("Table state transition to {} @ {}", state, event);
+      nextEvent.event(tableId, "Table state in zookeeper changed for %s to %s", tableId, state);
+      if (state == TableState.OFFLINE) {
+        clearMigrations(tableId);
+      }
+    }));
 
     tableInformationStatusPool = ThreadPools.getServerThreadPools()
         .createExecutorService(getConfiguration(), Property.MANAGER_STATUS_THREAD_POOL_SIZE, false);
@@ -1708,20 +1714,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       }
     }
   }
-
-  @Override
-  public void stateChanged(TableId tableId, TableState state) {
-    nextEvent.event(tableId, "Table state in zookeeper changed for %s to %s", tableId, state);
-    if (state == TableState.OFFLINE) {
-      clearMigrations(tableId);
-    }
-  }
-
-  @Override
-  public void initialize() {}
-
-  @Override
-  public void sessionExpired() {}
 
   public Set<TableId> onlineTables() {
     Set<TableId> result = new HashSet<>();
