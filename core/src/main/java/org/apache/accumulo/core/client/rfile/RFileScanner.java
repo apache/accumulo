@@ -31,6 +31,7 @@ import java.util.SortedSet;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
@@ -66,19 +68,24 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
-
+  private static final String errorMsg =
+      "This scanner is unrelated to any table or accumulo instance;"
+          + " it operates directly on files. Therefore, it can not support this operation.";
   private Range range;
   private BlockCacheManager blockCacheManager = null;
   private BlockCache dataCache = null;
@@ -311,6 +318,12 @@ class RFileScanner extends ScannerOptions implements Scanner {
   }
 
   private class IterEnv implements IteratorEnvironment {
+    private final Supplier<ServiceEnvironment> serviceEnvironment;
+
+    private IterEnv() {
+      this.serviceEnvironment = Suppliers.memoize(this::createServiceEnv);
+    }
+
     @Override
     public IteratorScope getIteratorScope() {
       return IteratorScope.scan;
@@ -318,7 +331,14 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     @Override
     public boolean isFullMajorCompaction() {
-      return false;
+      throw new IllegalStateException(
+          "Asked about major compaction type when scope is " + getIteratorScope());
+    }
+
+    @Override
+    public boolean isUserCompaction() {
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
     }
 
     @Override
@@ -334,6 +354,70 @@ class RFileScanner extends ScannerOptions implements Scanner {
     @Override
     public SamplerConfiguration getSamplerConfiguration() {
       return RFileScanner.this.getSamplerConfiguration();
+    }
+
+    /**
+     * This method only exists to be used as described in {@link IteratorEnvironment#getPluginEnv()}
+     * so the table config can be obtained. This simply returns null since a table id does not make
+     * sense in the context of scanning RFiles, but is needed to obtain the table configuration.
+     *
+     * @return null
+     */
+    @Override
+    public TableId getTableId() {
+      return null;
+    }
+
+    @Override
+    @Deprecated(since = "2.0.0")
+    public AccumuloConfiguration getConfig() {
+      return tableConf;
+    }
+
+    @Override
+    @Deprecated(since = "2.1.0")
+    public ServiceEnvironment getServiceEnv() {
+      return serviceEnvironment.get();
+    }
+
+    @Override
+    public PluginEnvironment getPluginEnv() {
+      return serviceEnvironment.get();
+    }
+
+    private ServiceEnvironment createServiceEnv() {
+      return new ServiceEnvironment() {
+        @Override
+        public <T> T instantiate(TableId tableId, String className, Class<T> base)
+            throws ReflectiveOperationException {
+          return instantiate(className, base);
+        }
+
+        @Override
+        public <T> T instantiate(String className, Class<T> base)
+            throws ReflectiveOperationException {
+          return this.getClass().getClassLoader().loadClass(className).asSubclass(base)
+              .getDeclaredConstructor().newInstance();
+        }
+
+        @Override
+        public String getTableName(TableId tableId) {
+          throw new UnsupportedOperationException(errorMsg);
+        }
+
+        @Override
+        public Configuration getConfiguration(TableId tableId) {
+          Preconditions.checkArgument(tableId == getTableId(),
+              "Expected tableId obtained from IteratorEnvironment.getTableId() but got " + tableId
+                  + " when requesting the table config");
+          return new ConfigurationImpl(tableConf);
+        }
+
+        @Override
+        public Configuration getConfiguration() {
+          throw new UnsupportedOperationException(errorMsg);
+        }
+      };
     }
   }
 
