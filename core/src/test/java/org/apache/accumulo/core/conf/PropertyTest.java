@@ -135,9 +135,14 @@ public class PropertyTest {
   }
 
   @Test
+  @SuppressWarnings("deprecation")
   public void testPropertyValidation() {
 
     for (Property property : Property.values()) {
+      if (property == Property.MANAGER_FATE_THREADPOOL_SIZE) {
+        // deprecated and unused property, no need to test
+        continue;
+      }
       PropertyType propertyType = property.getType();
       String invalidValue, validValue = property.getDefaultValue();
       LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);

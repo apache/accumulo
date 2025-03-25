@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -767,6 +767,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
       @Override
       public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
+      }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
         return Optional.empty();
       }
     };

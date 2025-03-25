@@ -128,6 +128,8 @@ public interface ReadOnlyFateStore<T> {
     Optional<FateStore.FateReservation> getFateReservation();
 
     TStatus getStatus();
+
+    Optional<Fate.FateOperation> getFateOperation();
   }
 
   /**
@@ -161,7 +163,7 @@ public interface ReadOnlyFateStore<T> {
    * is found or until the keepWaiting parameter is false. It will return once all runnable ids
    * found were passed to the consumer.
    */
-  void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer);
+  void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer);
 
   /**
    * Returns true if the deferred map was cleared and if deferred executions are currently disabled
