@@ -54,27 +54,34 @@ public class BlockCacheMetrics implements MetricsProducer {
     ToDoubleFunction<BlockCache> getRequestCount = cache -> cache.getStats().requestCount();
     ToDoubleFunction<BlockCache> getEvictionCount = cache -> cache.getStats().evictionCount();
 
-    FunctionCounter.builder(BLOCKCACHE_INDEX_HITCOUNT.getName(), indexCache, getHitCount)
-        .description(BLOCKCACHE_INDEX_HITCOUNT.getDescription()).register(registry);
-    FunctionCounter.builder(BLOCKCACHE_INDEX_REQUESTCOUNT.getName(), indexCache, getRequestCount)
-        .description(BLOCKCACHE_INDEX_REQUESTCOUNT.getDescription()).register(registry);
-    FunctionCounter.builder(BLOCKCACHE_INDEX_EVICTIONCOUNT.getName(), indexCache, getEvictionCount)
-        .description(BLOCKCACHE_INDEX_EVICTIONCOUNT.getDescription()).register(registry);
+    if (indexCache != null) {
+      FunctionCounter.builder(BLOCKCACHE_INDEX_HITCOUNT.getName(), indexCache, getHitCount)
+          .description(BLOCKCACHE_INDEX_HITCOUNT.getDescription()).register(registry);
+      FunctionCounter.builder(BLOCKCACHE_INDEX_REQUESTCOUNT.getName(), indexCache, getRequestCount)
+          .description(BLOCKCACHE_INDEX_REQUESTCOUNT.getDescription()).register(registry);
+      FunctionCounter
+          .builder(BLOCKCACHE_INDEX_EVICTIONCOUNT.getName(), indexCache, getEvictionCount)
+          .description(BLOCKCACHE_INDEX_EVICTIONCOUNT.getDescription()).register(registry);
+    }
 
-    FunctionCounter.builder(BLOCKCACHE_DATA_HITCOUNT.getName(), dataCache, getHitCount)
-        .description(BLOCKCACHE_DATA_HITCOUNT.getDescription()).register(registry);
-    FunctionCounter.builder(BLOCKCACHE_DATA_REQUESTCOUNT.getName(), dataCache, getRequestCount)
-        .description(BLOCKCACHE_DATA_REQUESTCOUNT.getDescription()).register(registry);
-    FunctionCounter.builder(BLOCKCACHE_DATA_EVICTIONCOUNT.getName(), dataCache, getEvictionCount)
-        .description(BLOCKCACHE_DATA_EVICTIONCOUNT.getDescription()).register(registry);
+    if (dataCache != null) {
+      FunctionCounter.builder(BLOCKCACHE_DATA_HITCOUNT.getName(), dataCache, getHitCount)
+          .description(BLOCKCACHE_DATA_HITCOUNT.getDescription()).register(registry);
+      FunctionCounter.builder(BLOCKCACHE_DATA_REQUESTCOUNT.getName(), dataCache, getRequestCount)
+          .description(BLOCKCACHE_DATA_REQUESTCOUNT.getDescription()).register(registry);
+      FunctionCounter.builder(BLOCKCACHE_DATA_EVICTIONCOUNT.getName(), dataCache, getEvictionCount)
+          .description(BLOCKCACHE_DATA_EVICTIONCOUNT.getDescription()).register(registry);
+    }
 
-    FunctionCounter.builder(BLOCKCACHE_SUMMARY_HITCOUNT.getName(), summaryCache, getHitCount)
-        .description(BLOCKCACHE_SUMMARY_HITCOUNT.getDescription()).register(registry);
-    FunctionCounter
-        .builder(BLOCKCACHE_SUMMARY_REQUESTCOUNT.getName(), summaryCache, getRequestCount)
-        .description(BLOCKCACHE_SUMMARY_REQUESTCOUNT.getDescription()).register(registry);
-    FunctionCounter
-        .builder(BLOCKCACHE_SUMMARY_EVICTIONCOUNT.getName(), summaryCache, getEvictionCount)
-        .description(BLOCKCACHE_SUMMARY_EVICTIONCOUNT.getDescription()).register(registry);
+    if (summaryCache != null) {
+      FunctionCounter.builder(BLOCKCACHE_SUMMARY_HITCOUNT.getName(), summaryCache, getHitCount)
+          .description(BLOCKCACHE_SUMMARY_HITCOUNT.getDescription()).register(registry);
+      FunctionCounter
+          .builder(BLOCKCACHE_SUMMARY_REQUESTCOUNT.getName(), summaryCache, getRequestCount)
+          .description(BLOCKCACHE_SUMMARY_REQUESTCOUNT.getDescription()).register(registry);
+      FunctionCounter
+          .builder(BLOCKCACHE_SUMMARY_EVICTIONCOUNT.getName(), summaryCache, getEvictionCount)
+          .description(BLOCKCACHE_SUMMARY_EVICTIONCOUNT.getDescription()).register(registry);
+    }
   }
 }
