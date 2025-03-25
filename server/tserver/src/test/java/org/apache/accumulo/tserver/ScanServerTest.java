@@ -45,7 +45,6 @@ import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletscan.thrift.TSamplerConfiguration;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
@@ -62,7 +61,7 @@ import com.google.common.net.HostAndPort;
 
 public class ScanServerTest {
 
-  public class TestScanServer extends ScanServer implements ServerProcessService.Iface {
+  public class TestScanServer extends ScanServer {
 
     private KeyExtent extent;
     private TabletResolver resolver;

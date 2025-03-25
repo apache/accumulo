@@ -21,10 +21,12 @@ package org.apache.accumulo.server.util.checkCommand;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ZooStore;
-import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
@@ -52,12 +54,12 @@ public class TableLocksCheckRunner implements CheckRunner {
 
   private static Admin.CheckCommand.CheckStatus checkTableLocks(ServerContext context,
       Admin.CheckCommand.CheckStatus status) throws Exception {
-    final AdminUtil<Admin> admin = new AdminUtil<>(true);
-    final String zkRoot = context.getZooKeeperRoot();
-    final var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
-    final String fateZkPath = zkRoot + Constants.ZFATE;
+    final AdminUtil<Admin> admin = new AdminUtil<>();
+    final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     final var zk = context.getZooSession();
-    final ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
+    final MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, null, null);
+    final UserFateStore<Admin> ufs =
+        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
 
     log.trace("Ensuring table and namespace locks are valid...");
 
@@ -84,17 +86,19 @@ public class TableLocksCheckRunner implements CheckRunner {
     log.trace("Ensuring table and namespace locks are associated with a FATE op...");
 
     if (locksExist) {
-      final var fateStatus = admin.getStatus(zs, zk, zTableLocksPath, null, null);
+      final var fateStatus =
+          admin.getStatus(Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs), zk,
+              zTableLocksPath, null, null, null);
       if (!fateStatus.getDanglingHeldLocks().isEmpty()
           || !fateStatus.getDanglingWaitingLocks().isEmpty()) {
         status = Admin.CheckCommand.CheckStatus.FAILED;
         log.warn("The following locks did not have an associated FATE operation\n");
-        for (Map.Entry<String,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet()) {
-          log.warn("txid: " + entry.getKey() + " locked: " + entry.getValue());
+        for (Map.Entry<FateId,List<String>> entry : fateStatus.getDanglingHeldLocks().entrySet()) {
+          log.warn("fateId: " + entry.getKey() + " locked: " + entry.getValue());
         }
-        for (Map.Entry<String,List<String>> entry : fateStatus.getDanglingWaitingLocks()
+        for (Map.Entry<FateId,List<String>> entry : fateStatus.getDanglingWaitingLocks()
             .entrySet()) {
-          log.warn("txid: " + entry.getKey() + " locking: " + entry.getValue());
+          log.warn("fateId: " + entry.getKey() + " locking: " + entry.getValue());
         }
       } else {
         log.trace("...locks are valid");

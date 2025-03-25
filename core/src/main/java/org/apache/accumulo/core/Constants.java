@@ -43,8 +43,7 @@ public class Constants {
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
-  public static final String ZTABLE_COMPACT_ID = "/compact-id";
-  public static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+
   public static final String ZTABLE_NAMESPACE = "/namespace";
 
   public static final String ZNAMESPACES = "/namespaces";
@@ -67,15 +66,13 @@ public class Constants {
 
   public static final String ZSSERVERS = "/sservers";
 
-  public static final String ZCOMPACTORS = "/compactors";
+  // tracks config for running compactions
+  public static final String ZCOMPACTIONS = "/compactions";
 
-  public static final String ZCOORDINATOR = "/coordinators";
-  public static final String ZCOORDINATOR_LOCK = ZCOORDINATOR + "/lock";
+  public static final String ZCOMPACTORS = "/compactors";
 
   public static final String ZDEAD = "/dead";
   public static final String ZDEADTSERVERS = ZDEAD + "/tservers";
-
-  public static final String BULK_ARBITRATOR_TYPE = "bulkTx";
 
   public static final String ZFATE = "/fate";
 
@@ -84,12 +81,17 @@ public class Constants {
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
   public static final String ZRECOVERY = "/recovery";
 
+  public static final String ZUPGRADE_PROGRESS = "/upgrade_progress";
+
   /**
    * Base znode for storing secret keys that back delegation tokens
    */
   public static final String ZDELEGATION_TOKEN_KEYS = "/delegation_token_keys";
 
   public static final String ZTABLE_LOCKS = "/table_locks";
+  public static final String ZMINI_LOCK = "/mini";
+  public static final String ZADMIN_LOCK = "/admin/lock";
+  public static final String ZTEST_LOCK = "/test/lock";
 
   public static final String BULK_PREFIX = "b-";
   public static final String BULK_RENAME_FILE = "renames.json";
@@ -119,5 +121,7 @@ public class Constants {
   public static final String HDFS_TABLES_DIR = "/tables";
 
   public static final int DEFAULT_VISIBILITY_CACHE_SIZE = 1000;
+
+  public static final String DEFAULT_RESOURCE_GROUP_NAME = "default";
   public static final String DEFAULT_COMPACTION_SERVICE_NAME = "default";
 }

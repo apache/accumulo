@@ -329,7 +329,7 @@ public class TableDiskUsage {
 
   static class Opts extends ServerUtilOpts {
     @Parameter(description = " <table> { <table> ... } ")
-    List<String> tables = new ArrayList<>();
+    final List<String> tables = new ArrayList<>();
   }
 
   public static void main(String[] args) throws Exception {

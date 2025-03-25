@@ -38,7 +38,7 @@ import org.apache.thrift.transport.TTransportException;
  * Lifted from Apache Hive 0.14
  */
 public class UGIAssumingTransport extends FilterTransport {
-  protected UserGroupInformation ugi;
+  protected final UserGroupInformation ugi;
 
   public UGIAssumingTransport(TTransport wrapped, UserGroupInformation ugi) {
     super(wrapped);

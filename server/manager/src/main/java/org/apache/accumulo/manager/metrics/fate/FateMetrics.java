@@ -18,27 +18,23 @@
  */
 package org.apache.accumulo.manager.metrics.fate;
 
-import static org.apache.accumulo.core.metrics.Metric.FATE_ERRORS;
 import static org.apache.accumulo.core.metrics.Metric.FATE_OPS;
-import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_ACTIVITY;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TX;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 
 import java.util.EnumMap;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
-import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
-import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +43,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tags;
 
-public class FateMetrics implements MetricsProducer {
+public abstract class FateMetrics<T extends FateMetricValues> implements MetricsProducer {
 
   private static final Logger log = LoggerFactory.getLogger(FateMetrics.class);
 
@@ -56,47 +52,33 @@ public class FateMetrics implements MetricsProducer {
 
   private static final String OP_TYPE_TAG = "op.type";
 
-  private final ServerContext context;
-  private final ReadOnlyTStore<FateMetrics> zooStore;
-  private final String fateRootPath;
-  private final long refreshDelay;
+  protected final ServerContext context;
+  protected final ReadOnlyFateStore<FateMetrics<T>> readOnlyFateStore;
+  protected final long refreshDelay;
 
-  private final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
-  private final AtomicLong totalOpsCount = new AtomicLong(0);
-  private final AtomicLong fateErrorsCount = new AtomicLong(0);
+  protected final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
   private final EnumMap<TStatus,AtomicLong> txStatusCounters = new EnumMap<>(TStatus.class);
 
   public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
-
     this.context = context;
-    this.fateRootPath = context.getZooKeeperRoot() + Constants.ZFATE;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
-
-    try {
-      this.zooStore = new ZooStore<>(fateRootPath, context.getZooSession());
-    } catch (KeeperException ex) {
-      throw new IllegalStateException(
-          "FATE Metrics - Failed to create zoo store - metrics unavailable", ex);
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(
-          "FATE Metrics - Interrupt received while initializing zoo store");
-    }
+    this.readOnlyFateStore = Objects.requireNonNull(buildReadOnlyStore(context));
 
     for (TStatus status : TStatus.values()) {
       txStatusCounters.put(status, new AtomicLong(0));
     }
-
   }
 
-  private void update() {
+  protected abstract ReadOnlyFateStore<FateMetrics<T>> buildReadOnlyStore(ServerContext context);
 
-    FateMetricValues metricValues =
-        FateMetricValues.getFromZooKeeper(context, fateRootPath, zooStore);
+  protected abstract T getMetricValues();
 
+  protected void update() {
+    update(getMetricValues());
+  }
+
+  protected void update(T metricValues) {
     totalCurrentOpsCount.set(metricValues.getCurrentFateOps());
-    totalOpsCount.set(metricValues.getZkFateChildOpsTotal());
-    fateErrorsCount.set(metricValues.getZkConnectionErrors());
 
     for (Entry<TStatus,Long> entry : metricValues.getTxStateCounters().entrySet()) {
       AtomicLong counter = txStatusCounters.get(entry.getKey());
@@ -113,31 +95,32 @@ public class FateMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
+    String type = readOnlyFateStore.type().name().toLowerCase();
+
     Gauge.builder(FATE_OPS.getName(), totalCurrentOpsCount, AtomicLong::get)
         .description(FATE_OPS.getDescription()).register(registry);
-    Gauge.builder(FATE_OPS_ACTIVITY.getName(), totalOpsCount, AtomicLong::get)
-        .description(FATE_OPS_ACTIVITY.getDescription()).register(registry);
-    Gauge.builder(FATE_ERRORS.getName(), fateErrorsCount, AtomicLong::get)
-        .description(FATE_ERRORS.getDescription()).tags("type", "zk.connection").register(registry);
 
     txStatusCounters.forEach((status, counter) -> Gauge
         .builder(FATE_TX.getName(), counter, AtomicLong::get).description(FATE_TX.getDescription())
-        .tags("state", status.name().toLowerCase()).register(registry));
-
-    update();
+        .tags("state", status.name().toLowerCase(), "instanceType", type).register(registry));
 
     // get fate status is read only operation - no reason to be nice on shutdown.
-    ScheduledExecutorService scheduler =
-        ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "fateMetricsPoller");
+    ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
+        .createScheduledExecutorService(1, type + "FateMetricsPoller");
     Runtime.getRuntime().addShutdownHook(new Thread(scheduler::shutdownNow));
 
+    // Only update as part of the scheduler thread.
+    // We have to call update() in a new thread because this method to
+    // register metrics is called on start up in the Manager before it's finished
+    // initializing, so we can't scan the User fate store until after startup is done.
+    // If we called update() here in this method directly we would get stuck forever.
     ScheduledFuture<?> future = scheduler.scheduleAtFixedRate(() -> {
       try {
         update();
       } catch (Exception ex) {
-        log.info("Failed to update fate metrics due to exception", ex);
+        log.info("Failed to update {}fate metrics due to exception", type, ex);
       }
-    }, refreshDelay, refreshDelay, TimeUnit.MILLISECONDS);
+    }, 0, refreshDelay, TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 

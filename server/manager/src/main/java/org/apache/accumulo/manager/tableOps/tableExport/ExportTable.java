@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.tableExport;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -40,18 +41,19 @@ public class ExportTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
-    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(), tid);
+  public long isReady(FateId fateId, Manager environment) throws Exception {
+    return Utils.reserveHdfsDirectory(environment, new Path(tableInfo.exportDir).toString(),
+        fateId);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) {
+  public Repo<Manager> call(FateId fateId, Manager env) {
     return new WriteExportFiles(tableInfo);
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
-    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), tid);
+  public void undo(FateId fateId, Manager env) throws Exception {
+    Utils.unreserveHdfsDirectory(env, new Path(tableInfo.exportDir).toString(), fateId);
   }
 
   /**

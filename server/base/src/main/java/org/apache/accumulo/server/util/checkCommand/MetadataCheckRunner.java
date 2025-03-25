@@ -49,9 +49,15 @@ public interface MetadataCheckRunner extends CheckRunner {
 
   TableId tableId();
 
-  Set<ColumnFQ> requiredColFQs();
+  default Set<ColumnFQ> requiredColFQs() {
+    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
+  }
 
-  Set<Text> requiredColFams();
+  default Set<Text> requiredColFams() {
+    return Set.of(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+  }
 
   default String scanning() {
     return String.format("%s (%s) table", tableName(), tableId());

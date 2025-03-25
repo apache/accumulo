@@ -123,6 +123,22 @@ public class MetricsInfoImpl implements MetricsInfo {
       return;
     }
 
+    var userTags = context.getConfiguration().get(Property.GENERAL_MICROMETER_USER_TAGS);
+    if (!userTags.isEmpty()) {
+      tags = new ArrayList<>(tags);
+      String[] userTagList = userTags.split(",");
+      for (String userTag : userTagList) {
+        String[] tagParts = userTag.split("=");
+        if (tagParts.length == 2) {
+          Tag tag = Tag.of(tagParts[0], tagParts[1]);
+          tags.add(tag);
+        } else {
+          LOG.warn("Malformed user metric tag: {} in property {}", userTag,
+              Property.GENERAL_MICROMETER_USER_TAGS.getKey());
+        }
+      }
+    }
+
     commonTags = List.copyOf(tags);
 
     LOG.info("Metrics initialization. common tags: {}", commonTags);

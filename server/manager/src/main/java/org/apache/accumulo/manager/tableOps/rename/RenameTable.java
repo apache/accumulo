@@ -28,6 +28,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -47,9 +48,10 @@ public class RenameTable extends ManagerRepo {
   private final String newTableName;
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true, TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, tid, LockType.WRITE, true, TableOperation.RENAME);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+        TableOperation.RENAME)
+        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,
@@ -61,7 +63,7 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     Pair<String,String> qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
     Pair<String,String> qualifiedNewTableName = TableNameUtil.qualify(newTableName);
 
@@ -77,14 +79,13 @@ public class RenameTable extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      Utils.checkTableNameDoesNotExist(manager.getContext(), newTableName, tableId,
+      Utils.checkTableNameDoesNotExist(manager.getContext(), newTableName, namespaceId, tableId,
           TableOperation.RENAME);
 
       final String newName = qualifiedNewTableName.getSecond();
       final String oldName = qualifiedOldTableName.getSecond();
 
-      final String tap = manager.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId
-          + Constants.ZTABLE_NAME;
+      final String tap = Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME;
 
       zoo.mutateExisting(tap, current -> {
         final String currentName = new String(current, UTF_8);
@@ -101,8 +102,8 @@ public class RenameTable extends ManagerRepo {
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
-      Utils.unreserveTable(manager, tableId, tid, LockType.WRITE);
-      Utils.unreserveNamespace(manager, namespaceId, tid, LockType.READ);
+      Utils.unreserveTable(manager, tableId, fateId, LockType.WRITE);
+      Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.READ);
     }
 
     LoggerFactory.getLogger(RenameTable.class).debug("Renamed table {} {} {}", tableId,
@@ -112,9 +113,9 @@ public class RenameTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, LockType.WRITE);
-    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
   }
 
 }

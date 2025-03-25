@@ -20,19 +20,28 @@ package org.apache.accumulo.server;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
+import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.process.thrift.MetricResponse;
+import org.apache.accumulo.core.process.thrift.MetricSource;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -41,21 +50,28 @@ import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
+import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
+import com.google.flatbuffers.FlatBufferBuilder;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Metrics;
 
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
+  private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
-  private final String hostname;
+  private String hostname;
+  private final String resourceGroup;
   private final Logger log;
   private final ProcessMetrics processMetrics;
   protected final long idleReportingPeriodMillis;
@@ -65,17 +81,20 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
-  protected AbstractServer(String appName, ConfigOpts opts, String[] args) {
-    this.applicationName = appName;
-    opts.parseArgs(appName, args);
+  protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
+      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+    this.applicationName = serverType.name();
+    opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
     this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
+    this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
+    ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
-    context = new ServerContext(siteConfig);
+    context = serverContextFactory.apply(siteConfig);
     log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
-    context.init(appName);
+    context.init(applicationName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     TraceUtil.initializeTracer(context.getConfiguration());
     if (context.getSaslParams() != null) {
@@ -90,6 +109,28 @@ public abstract class AbstractServer
     processMetrics = new ProcessMetrics(context);
     idleReportingPeriodMillis =
         context.getConfiguration().getTimeInMillis(Property.GENERAL_IDLE_PROCESS_INTERVAL);
+    switch (serverType) {
+      case COMPACTOR:
+        metricSource = MetricSource.COMPACTOR;
+        break;
+      case GARBAGE_COLLECTOR:
+        metricSource = MetricSource.GARBAGE_COLLECTOR;
+        break;
+      case MANAGER:
+        metricSource = MetricSource.MANAGER;
+        break;
+      case MONITOR:
+        metricSource = null;
+        break;
+      case SCAN_SERVER:
+        metricSource = MetricSource.SCAN_SERVER;
+        break;
+      case TABLET_SERVER:
+        metricSource = MetricSource.TABLET_SERVER;
+        break;
+      default:
+        throw new IllegalArgumentException("Unhandled server type: " + serverType);
+    }
   }
 
   /**
@@ -117,6 +158,14 @@ public abstract class AbstractServer
       processMetrics.setIdleValue(true);
       idlePeriodTimer = null;
     }
+  }
+
+  protected String getResourceGroupPropertyValue(SiteConfiguration conf) {
+    return Constants.DEFAULT_RESOURCE_GROUP_NAME;
+  }
+
+  public String getResourceGroup() {
+    return resourceGroup;
   }
 
   @Override
@@ -208,10 +257,15 @@ public abstract class AbstractServer
     if (processMetrics != null) {
       processMetrics.registerMetrics(registry);
     }
+    getContext().setMeterRegistry(registry);
   }
 
   public String getHostname() {
     return hostname;
+  }
+
+  public void setHostname(HostAndPort address) {
+    hostname = address.toString();
   }
 
   public ServerContext getContext() {
@@ -224,6 +278,47 @@ public abstract class AbstractServer
 
   public String getApplicationName() {
     return applicationName;
+  }
+
+  @Override
+  public MetricResponse getMetrics(TInfo tinfo, TCredentials credentials) throws TException {
+
+    if (!context.getSecurityOperation().authenticateUser(credentials, credentials)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
+    final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
+    final MetricResponseWrapper response = new MetricResponseWrapper(builder);
+
+    if (getHostname().startsWith(Property.GENERAL_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      log.error("Host is not set, this should have been done after starting the Thrift service.");
+      return response;
+    }
+
+    if (metricSource == null) {
+      // Metrics not reported for Monitor type
+      return response;
+    }
+
+    response.setServerType(metricSource);
+    response.setServer(getHostname());
+    response.setResourceGroup(getResourceGroup());
+    response.setTimestamp(System.currentTimeMillis());
+
+    if (context.getMetricsInfo().isMetricsEnabled()) {
+      Metrics.globalRegistry.getMeters().forEach(m -> {
+        if (m.getId().getName().startsWith("accumulo.")) {
+          m.match(response::writeMeter, response::writeMeter, response::writeTimer,
+              response::writeDistributionSummary, response::writeLongTaskTimer,
+              response::writeMeter, response::writeMeter, response::writeFunctionTimer,
+              response::writeMeter);
+        }
+      });
+    }
+
+    builder.clear();
+    return response;
   }
 
   /**
@@ -275,5 +370,12 @@ public abstract class AbstractServer
 
   @Override
   public void close() {}
+
+  protected void waitForUpgrade() throws InterruptedException {
+    while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {
+      log.info("Waiting for upgrade to complete.");
+      Thread.sleep(1000);
+    }
+  }
 
 }

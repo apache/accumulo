@@ -63,9 +63,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
-import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.Stat;
@@ -82,7 +82,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -356,22 +355,25 @@ public class CollectTabletStats {
       String tableName, SortedMap<KeyExtent,String> tabletLocations) throws Exception {
 
     TableId tableId = context.getTableId(tableName);
-    MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();
 
     List<KeyExtent> candidates = new ArrayList<>();
 
-    for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
-      String loc = entry.getValue();
-      if (loc != null) {
-        boolean isLocal =
-            HostAndPort.fromString(entry.getValue()).getHost().equals(localaddress.getHostName());
+    try (var tabletsMeta = context.getAmple().readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.LOCATION).checkConsistency().build()) {
+      for (var tabletMeta : tabletsMeta) {
+        var loc = tabletMeta.getLocation();
+        if (loc != null && loc.getType() == TabletMetadata.LocationType.CURRENT) {
+          boolean isLocal = loc.getHost().equals(localaddress.getHostName());
 
-        if (selectLocalTablets && isLocal) {
-          candidates.add(entry.getKey());
-        } else if (!selectLocalTablets && !isLocal) {
-          candidates.add(entry.getKey());
+          if (selectLocalTablets && isLocal) {
+            candidates.add(tabletMeta.getExtent());
+            tabletLocations.put(tabletMeta.getExtent(), loc.getHostPort());
+          } else if (!selectLocalTablets && !isLocal) {
+            candidates.add(tabletMeta.getExtent());
+            tabletLocations.put(tabletMeta.getExtent(), loc.getHostPort());
+          }
         }
       }
     }

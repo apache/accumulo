@@ -26,7 +26,6 @@ import java.util.Set;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
@@ -46,18 +45,6 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
   @Override
   public TableId tableId() {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  public Set<ColumnFQ> requiredColFQs() {
-    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
-  }
-
-  @Override
-  public Set<Text> requiredColFams() {
-    return Set.of(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
   }
 
   @Override
@@ -83,10 +70,10 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     status = checkRequiredColumns(context, status);
 
     log.trace("********** Looking for invalid columns **********");
-    final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
+    final String json =
+        new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
-    status = checkColumns(context, rtm.toKeyValues().iterator(), status);
+    status = checkColumns(context, rtm.getKeyValues().iterator(), status);
 
     printCompleted(status);
     return status;
@@ -95,15 +82,15 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
   @Override
   public Admin.CheckCommand.CheckStatus checkRequiredColumns(ServerContext context,
       Admin.CheckCommand.CheckStatus status) throws Exception {
-    final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
+    final String json =
+        new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
     final Set<Text> rowsSeen = new HashSet<>();
     final Set<ColumnFQ> requiredColFQs = new HashSet<>(requiredColFQs());
     final Set<Text> requiredColFams = new HashSet<>(requiredColFams());
 
     log.trace("Scanning the {} for missing required columns...\n", scanning());
-    rtm.toKeyValues().forEach(e -> {
+    rtm.getKeyValues().forEach(e -> {
       var key = e.getKey();
       rowsSeen.add(key.getRow());
       boolean removed =

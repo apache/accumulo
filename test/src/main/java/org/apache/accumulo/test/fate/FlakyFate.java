@@ -22,8 +22,9 @@ import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.fate.TStore;
 
 import com.google.common.base.Preconditions;
 
@@ -32,21 +33,21 @@ import com.google.common.base.Preconditions;
  */
 public class FlakyFate<T> extends Fate<T> {
 
-  public FlakyFate(T environment, TStore<T> store, Function<Repo<T>,String> toLogStrFunc,
+  public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
-    super(environment, store, toLogStrFunc, conf);
+    super(environment, store, false, toLogStrFunc, conf);
   }
 
   @Override
-  protected Repo<T> executeCall(Long tid, Repo<T> repo) throws Exception {
+  protected Repo<T> executeCall(FateId fateId, Repo<T> repo) throws Exception {
     /*
      * This function call assumes that isRead was already called once. So it runs
      * call(),isReady(),call() to simulate a situation like isReady(), call(), fault, isReady()
      * again, call() again.
      */
-    var next1 = super.executeCall(tid, repo);
-    Preconditions.checkState(super.executeIsReady(tid, repo) == 0);
-    var next2 = super.executeCall(tid, repo);
+    var next1 = super.executeCall(fateId, repo);
+    Preconditions.checkState(super.executeIsReady(fateId, repo) == 0);
+    var next2 = super.executeCall(fateId, repo);
     // do some basic checks to ensure similar things were returned
     if (next1 == null) {
       Preconditions.checkState(next2 == null);

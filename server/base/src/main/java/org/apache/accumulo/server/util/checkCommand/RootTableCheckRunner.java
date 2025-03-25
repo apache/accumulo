@@ -19,20 +19,16 @@
 package org.apache.accumulo.server.util.checkCommand;
 
 import java.util.AbstractMap;
-import java.util.Set;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.server.util.FindOfflineTablets;
-import org.apache.hadoop.io.Text;
 
 public class RootTableCheckRunner implements MetadataCheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.ROOT_TABLE;
@@ -45,18 +41,6 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
   @Override
   public TableId tableId() {
     return AccumuloTable.ROOT.tableId();
-  }
-
-  @Override
-  public Set<ColumnFQ> requiredColFQs() {
-    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
-  }
-
-  @Override
-  public Set<Text> requiredColFams() {
-    return Set.of(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
   }
 
   @Override

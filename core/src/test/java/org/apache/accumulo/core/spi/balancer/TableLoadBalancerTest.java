@@ -23,6 +23,8 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,10 +36,12 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -141,13 +145,17 @@ public class TableLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     TableLoadBalancer tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut, DataLevel.USER));
+    tls.balance(
+        new BalanceParamsImpl(state, Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, state.keySet()),
+            migrations, migrationsOut, DataLevel.USER, tableIdMap));
     assertEquals(0, migrationsOut.size());
 
     state.put(mkts("10.0.0.2", 2345, "0x02030405"), status());
     tls = new TableLoadBalancer();
     tls.init(environment);
-    tls.balance(new BalanceParamsImpl(state, migrations, migrationsOut, DataLevel.USER));
+    tls.balance(
+        new BalanceParamsImpl(state, Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, state.keySet()),
+            migrations, migrationsOut, DataLevel.USER, tableIdMap));
     int count = 0;
     Map<TableId,Integer> movedByTable = new HashMap<>();
     movedByTable.put(TableId.of(t1Id), 0);
@@ -164,6 +172,95 @@ public class TableLoadBalancerTest {
     for (Integer moved : movedByTable.values()) {
       assertEquals(5, moved.intValue());
     }
+  }
+
+  private static class TestCurrAssignment implements TabletBalancer.CurrentAssignment {
+
+    private final TabletIdImpl tablet;
+    private final String resourceGroup;
+
+    TestCurrAssignment(TableId tid, String rg) {
+      this.tablet = new TabletIdImpl(new KeyExtent(tid, null, null));
+      this.resourceGroup = rg;
+    }
+
+    @Override
+    public TabletId getTablet() {
+      return tablet;
+    }
+
+    @Override
+    public TabletServerId getTabletServer() {
+      return null;
+    }
+
+    @Override
+    public String getResourceGroup() {
+      return resourceGroup;
+    }
+  }
+
+  @Test
+  public void testNeedsReassignment() {
+
+    var table1Config = ServiceEnvironment.Configuration
+        .from(Map.of(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY, "G1"), false);
+    var table2Config = ServiceEnvironment.Configuration
+        .from(Map.of(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY, "G2"), false);
+    var table3Config = ServiceEnvironment.Configuration.from(Map.of(), false);
+
+    var tid1 = TableId.of("1");
+    var tid2 = TableId.of("2");
+    var tid3 = TableId.of("3");
+
+    BalancerEnvironment environment = createMock(BalancerEnvironment.class);
+    expect(environment.getConfiguration(tid1)).andReturn(table1Config).anyTimes();
+    expect(environment.getConfiguration(tid2)).andReturn(table2Config).anyTimes();
+    expect(environment.getConfiguration(tid3)).andReturn(table3Config).anyTimes();
+    replay(environment);
+
+    var tls = new TableLoadBalancer() {
+      @Override
+      protected TabletBalancer getBalancerForTable(TableId tableId) {
+        TabletBalancer balancer = createMock(TabletBalancer.class);
+        expect(balancer.needsReassignment(anyObject())).andReturn(false);
+        replay(balancer);
+        return balancer;
+      }
+    };
+    tls.init(environment);
+
+    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid1, "G1")));
+    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid1, "G2")));
+
+    assertFalse(tls.needsReassignment(new TestCurrAssignment(tid2, "G2")));
+    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid2, "G1")));
+
+    assertFalse(
+        tls.needsReassignment(new TestCurrAssignment(tid3, Constants.DEFAULT_RESOURCE_GROUP_NAME)));
+    assertTrue(tls.needsReassignment(new TestCurrAssignment(tid3, "G1")));
+
+    // test when the delegated table balancer returns true for one table and false for others
+    var tls2 = new TableLoadBalancer() {
+      @Override
+      protected TabletBalancer getBalancerForTable(TableId tableId) {
+        TabletBalancer balancer = createMock(TabletBalancer.class);
+        expect(balancer.needsReassignment(anyObject())).andReturn(tableId.equals(tid1));
+        replay(balancer);
+        return balancer;
+      }
+    };
+    tls2.init(environment);
+
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid1, "G1")));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid1, "G2")));
+
+    assertFalse(tls2.needsReassignment(new TestCurrAssignment(tid2, "G2")));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid2, "G1")));
+
+    assertFalse(tls2
+        .needsReassignment(new TestCurrAssignment(tid3, Constants.DEFAULT_RESOURCE_GROUP_NAME)));
+    assertTrue(tls2.needsReassignment(new TestCurrAssignment(tid3, "G1")));
   }
 
 }

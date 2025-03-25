@@ -27,7 +27,6 @@ Services:
   monitor                Accumulo monitor
   manager                Accumulo manager
   tserver                Accumulo tserver
-  compaction-coordinator Accumulo compaction coordinator (experimental)
   compactor              Accumulo compactor (experimental)
   sserver                Accumulo scan server (experimental)
 
@@ -275,7 +274,7 @@ function main() {
   fi
 
   case "$service_type" in
-    gc | manager | monitor | tserver | compaction-coordinator | compactor | sserver)
+    gc | manager | monitor | tserver | compactor | sserver)
       if [[ -z $command_name ]]; then
         invalid_args "<command> cannot be empty"
       fi

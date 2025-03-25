@@ -122,4 +122,8 @@ public final class MetadataTime implements Comparable<MetadataTime> {
     }
   }
 
+  @Override
+  public String toString() {
+    return encode();
+  }
 }

@@ -30,6 +30,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -85,7 +86,7 @@ public class ChaoticLoadBalancerTest {
         if (tabletId.getTable().equals(table)) {
           KeyExtent extent =
               new KeyExtent(tabletId.getTable(), tabletId.getEndRow(), tabletId.getPrevEndRow());
-          TabletStats tstats = new TabletStats(extent.toThrift(), null, null, null, 0L, 0., 0., 0);
+          TabletStats tstats = new TabletStats(extent.toThrift(), null, 0L, 0., 0.);
           result.add(new TabletStatisticsImpl(tstats));
         }
       }
@@ -116,8 +117,9 @@ public class ChaoticLoadBalancerTest {
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
 
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    balancer.getAssignments(
-        new AssignmentParamsImpl(getAssignments(servers), metadataTable, assignments));
+    balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
+        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, servers.keySet()), metadataTable,
+        assignments));
 
     assertEquals(assignments.size(), metadataTable.size());
   }
@@ -158,8 +160,10 @@ public class ChaoticLoadBalancerTest {
     // amount, or even expected amount
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
-      balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER));
+      SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
+      balancer.balance(new BalanceParamsImpl(current,
+          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
+          migrationsOut, DataLevel.USER, Map.of()));
     }
   }
 

@@ -24,11 +24,10 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.log.WalStateManager;
@@ -36,10 +35,6 @@ import org.apache.accumulo.server.util.Admin;
 
 public class SystemConfigCheckRunner implements CheckRunner {
   private static final Admin.CheckCommand.Check check = Admin.CheckCommand.Check.SYSTEM_CONFIG;
-
-  public enum ServerProcess {
-    MANAGER, GC, TSERVER, COMPACTION_COORDINATOR, COMPACTOR, MONITOR, SCAN_SERVER
-  }
 
   @Override
   public Admin.CheckCommand.CheckStatus runCheck(ServerContext context, ServerUtilOpts opts,
@@ -65,77 +60,69 @@ public class SystemConfigCheckRunner implements CheckRunner {
 
   private static Admin.CheckCommand.CheckStatus checkZKLocks(ServerContext context,
       Admin.CheckCommand.CheckStatus status) throws Exception {
-    final ServerProcess[] serverProcesses = ServerProcess.values();
-    final String zkRoot = context.getZooKeeperRoot();
-    final var zs = context.getZooSession();
+    final ServerId.Type[] serverTypes = ServerId.Type.values();
 
     log.trace("Checking ZooKeeper locks for Accumulo server processes...");
 
     // check that essential server processes have a ZK lock failing otherwise
     // check that nonessential server processes have a ZK lock only if they are running. If they are
     // not running, alerts the user that the process is not running which may or may not be expected
-    for (ServerProcess proc : serverProcesses) {
-      log.trace("Looking for {} lock(s)...", proc);
-      switch (proc) {
+    for (ServerId.Type serverType : serverTypes) {
+      log.trace("Looking for {} lock(s)...", serverType);
+      var servers = context.instanceOperations().getServers(serverType);
+
+      switch (serverType) {
         case MANAGER:
           // essential process
-          status = checkLock(zkRoot + Constants.ZMANAGER_LOCK, proc, true, zs, status);
-          break;
-        case GC:
+        case GARBAGE_COLLECTOR:
           // essential process
-          status = checkLock(zkRoot + Constants.ZGC_LOCK, proc, true, zs, status);
-          break;
-        case TSERVER:
-          // essential process(es)
-          final var tservers = TabletMetadata.getLiveTServers(context);
-          if (tservers.isEmpty()) {
-            log.warn("Did not find any running tablet servers!");
+          if (servers.size() != 1) {
+            log.warn("Expected 1 server to be found for {} but found {}", serverType,
+                servers.size());
             status = Admin.CheckCommand.CheckStatus.FAILED;
-          }
-          break;
-        case COMPACTION_COORDINATOR:
-          // nonessential process
-          status = checkLock(zkRoot + Constants.ZCOORDINATOR_LOCK, proc, false, zs, status);
-          break;
-        case COMPACTOR:
-          // nonessential process(es)
-          final var compactors = context.instanceOperations().getCompactors();
-          if (compactors.isEmpty()) {
-            log.debug("No compactors appear to be running... This may or may not be expected");
+          } else {
+            // no exception and 1 server found
+            log.trace("Verified ZooKeeper lock for {}", servers);
           }
           break;
         case MONITOR:
           // nonessential process
-          status = checkLock(zkRoot + Constants.ZMONITOR_LOCK, proc, false, zs, status);
+          if (servers.isEmpty()) {
+            log.debug("No {} appears to be running. This may or may not be expected", serverType);
+          } else if (servers.size() > 1) {
+            log.warn("More than 1 {} was found running. This is not expected", serverType);
+            status = Admin.CheckCommand.CheckStatus.FAILED;
+          } else {
+            // no exception and 1 server found
+            log.trace("Verified ZooKeeper lock for {}", servers);
+          }
+          break;
+        case TABLET_SERVER:
+          // essential process(es)
+        case COMPACTOR:
+          // essential process(es)
+          if (servers.isEmpty()) {
+            log.warn("No {} appear to be running. This is not expected.", serverType);
+            status = Admin.CheckCommand.CheckStatus.FAILED;
+          } else {
+            // no exception and >= 1 server found
+            log.trace("Verified ZooKeeper lock(s) for {}", servers);
+          }
           break;
         case SCAN_SERVER:
           // nonessential process(es)
-          final var sservers = context.instanceOperations().getScanServers();
-          if (sservers.isEmpty()) {
-            log.debug("No scan servers appear to be running... This may or may not be expected");
+          if (servers.isEmpty()) {
+            log.debug("No {} appear to be running. This may or may not be expected.", serverType);
+          } else {
+            // no exception and >= 1 server found
+            log.trace("Verified ZooKeeper lock(s) for {}", servers);
           }
           break;
         default:
-          throw new IllegalStateException("Unhandled case: " + proc);
+          throw new IllegalStateException("Unhandled case: " + serverType);
       }
     }
 
-    return status;
-  }
-
-  private static Admin.CheckCommand.CheckStatus checkLock(String path, ServerProcess proc,
-      boolean requiredProc, ZooSession zs, Admin.CheckCommand.CheckStatus status) throws Exception {
-    log.trace("Checking ZooKeeper lock at path {}", path);
-
-    ServiceLock.ServiceLockPath slp = ServiceLock.path(path);
-    var opData = ServiceLock.getLockData(zs, slp);
-    if (requiredProc && opData.isEmpty()) {
-      log.warn("No ZooKeeper lock found for {} at {}! The process may not be running.", proc, path);
-      status = Admin.CheckCommand.CheckStatus.FAILED;
-    } else if (!requiredProc && opData.isEmpty()) {
-      log.debug("No ZooKeeper lock found for {} at {}. The process may not be running. "
-          + "This may or may not be expected.", proc, path);
-    }
     return status;
   }
 
@@ -144,7 +131,6 @@ public class SystemConfigCheckRunner implements CheckRunner {
     log.trace("Checking ZooKeeper table nodes...");
 
     final var zrw = context.getZooSession().asReaderWriter();
-    final var zkRoot = context.getZooKeeperRoot();
     final var tableNameToId = context.tableOperations().tableIdMap();
     final Map<String,String> systemTableNameToId = new HashMap<>();
     for (var accumuloTable : AccumuloTable.values()) {
@@ -159,7 +145,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     }
     for (var nameToId : tableNameToId.entrySet()) {
-      var tablePath = zkRoot + Constants.ZTABLES + "/" + nameToId.getValue();
+      var tablePath = Constants.ZTABLES + "/" + nameToId.getValue();
       // expect the table path to exist and some data to exist
       if (!zrw.exists(tablePath) || zrw.getChildren(tablePath).isEmpty()) {
         log.warn("Failed to find table ({}) info at expected path {}", nameToId, tablePath);
@@ -172,10 +158,9 @@ public class SystemConfigCheckRunner implements CheckRunner {
 
   private static Admin.CheckCommand.CheckStatus checkZKWALsMetadata(ServerContext context,
       Admin.CheckCommand.CheckStatus status) throws Exception {
-    final String zkRoot = context.getZooKeeperRoot();
     final var zs = context.getZooSession();
     final var zrw = zs.asReaderWriter();
-    final var rootWalsDir = zkRoot + WalStateManager.ZWALS;
+    final var rootWalsDir = WalStateManager.ZWALS;
     final Set<TServerInstance> tserverInstances = TabletMetadata.getLiveTServers(context);
     final Set<TServerInstance> seenTServerInstancesAtWals = new HashSet<>();
 

@@ -25,7 +25,7 @@ import org.apache.hadoop.io.BinaryComparable;
  */
 public class ComparableBytes extends BinaryComparable {
 
-  public byte[] data;
+  public final byte[] data;
 
   /**
    * Creates a new byte wrapper. The given byte array is used directly as a backing array, so later

@@ -48,7 +48,7 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.setProperty(Property.GENERAL_VOLUME_CHOOSER, DelegatingChooser.class.getName());
       cfg.setProperty("general.custom.volume.chooser.default",
           PreferredVolumeChooser.class.getName());

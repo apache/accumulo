@@ -38,8 +38,8 @@ public abstract class ScanTask<T> implements Runnable {
   protected final TabletHostingServer server;
   protected AtomicBoolean interruptFlag;
   protected ArrayBlockingQueue<Object> resultQueue;
-  protected AtomicInteger state;
-  private AtomicReference<ScanRunState> runState;
+  protected final AtomicInteger state;
+  private final AtomicReference<ScanRunState> runState;
 
   private Thread scanThread = null;
   private final Lock scanThreadLock = new ReentrantLock();

@@ -376,8 +376,8 @@ public class RFile {
   }
 
   private static class SampleEntry {
-    Key key;
-    Value val;
+    final Key key;
+    final Value val;
 
     SampleEntry(Key key, Value val) {
       this.key = new Key(key);
@@ -1185,14 +1185,14 @@ public class RFile {
     private final LocalityGroupContext lgContext;
     private LocalityGroupSeekCache lgCache;
 
-    private final List<Reader> deepCopies;
+    private List<Reader> deepCopies;
     private boolean deepCopy = false;
 
     private AtomicBoolean interruptFlag;
 
     private SamplerConfigurationImpl samplerConfig = null;
 
-    private final int rfileVersion;
+    private int rfileVersion;
 
     public Reader(CachableBlockFile.Reader rdr) throws IOException {
       this.reader = rdr;

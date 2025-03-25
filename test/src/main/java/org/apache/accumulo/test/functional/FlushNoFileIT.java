@@ -26,6 +26,7 @@ import java.time.Duration;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.OptionalLong;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -35,6 +36,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -42,10 +44,12 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -87,7 +91,21 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
 
       FunctionalTestUtils.checkRFiles(c, tableName, 3, 3, 0, 0);
 
-      long flushId = FunctionalTestUtils.checkFlushId((ClientContext) c, tableId, 0);
+      Map<KeyExtent,OptionalLong> flushIds =
+          FunctionalTestUtils.getFlushIds((ClientContext) c, tableId);
+      assertEquals(3, flushIds.size());
+      // There are three tablets in this table, but the batchWriter above only wrote to
+      // one of the tablets. The table is using the default tablet availability (ONDEMAND),
+      // so only one of the tablets was hosted and flushed. The other two tablets won't
+      // have a flushId.
+      KeyExtent extentWithData = new KeyExtent(tableId, new Text("s"), new Text("a"));
+      flushIds.forEach((k, v) -> {
+        if (k.equals(extentWithData)) {
+          assertEquals(1, v.getAsLong());
+        } else {
+          assertTrue(v.isEmpty());
+        }
+      });
 
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         Mutation m = new Mutation(new Text("r2"));
@@ -99,8 +117,31 @@ public class FlushNoFileIT extends AccumuloClusterHarness {
 
       FunctionalTestUtils.checkRFiles(c, tableName, 3, 3, 0, 0);
 
-      long secondFlushId = FunctionalTestUtils.checkFlushId((ClientContext) c, tableId, flushId);
-      assertTrue(secondFlushId > flushId, "Flush ID did not change");
+      flushIds = FunctionalTestUtils.getFlushIds((ClientContext) c, tableId);
+      assertEquals(3, flushIds.size());
+      flushIds.forEach((k, v) -> {
+        if (k.equals(extentWithData)) {
+          assertEquals(2, v.getAsLong());
+        } else {
+          assertTrue(v.isEmpty());
+        }
+      });
+
+      // Host all tablets
+      c.tableOperations().setTabletAvailability(tableName, new Range(), TabletAvailability.HOSTED);
+      // Wait for all tablets to be hosted
+      Wait.waitFor(() -> ManagerAssignmentIT.countTabletsWithLocation(c, tableId) == 3);
+
+      // Flush and validate that all flushIds are the same
+      c.tableOperations().flush(tableName, null, null, true);
+
+      FunctionalTestUtils.checkRFiles(c, tableName, 3, 3, 0, 0);
+
+      flushIds = FunctionalTestUtils.getFlushIds((ClientContext) c, tableId);
+      assertEquals(3, flushIds.size());
+      flushIds.forEach((k, v) -> {
+        assertEquals(3, v.getAsLong());
+      });
 
       try (Scanner scanner = c.createScanner(tableName)) {
         assertEquals(0, Iterables.size(scanner), "Expected 0 Entries in table");

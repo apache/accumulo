@@ -66,14 +66,26 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.FileMetadataUtil;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
-public class SampleIT extends AccumuloClusterHarness {
+public class SampleIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   private static final Map<String,String> OPTIONS_1 =
       Map.of("hasher", "murmur3_32", "modulus", "1009");
@@ -162,8 +174,9 @@ public class SampleIT extends AccumuloClusterHarness {
         // Fence off the data to a Range that is a subset of the original data
         Range fenced = new Range(new Text(String.format("r_%06d", 2999)), false,
             new Text(String.format("r_%06d", 6000)), true);
-        FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, Set.of(fenced));
-        assertEquals(1, countFiles(getServerContext(), tableName));
+        FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), tableName,
+            Set.of(fenced));
+        assertEquals(1, countFiles(getCluster().getServerContext(), tableName));
 
         // Build the map of expected values to be seen by filtering out keys not in the fenced range
         TreeMap<Key,Value> fenceExpected =
@@ -222,8 +235,9 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // Split files into ranged files if provided
         if (!fileRanges.isEmpty()) {
-          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges);
-          assertEquals(fileRanges.size(), countFiles(getServerContext(), tableName));
+          FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), tableName,
+              fileRanges);
+          assertEquals(fileRanges.size(), countFiles(getCluster().getServerContext(), tableName));
         }
 
         Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);
@@ -430,8 +444,9 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // Split files into ranged files if provided
         if (!fileRanges.isEmpty()) {
-          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges);
-          assertEquals(fileRanges.size(), countFiles(getServerContext(), tableName));
+          FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), tableName,
+              fileRanges);
+          assertEquals(fileRanges.size(), countFiles(getCluster().getServerContext(), tableName));
         }
 
         oScanner = newOfflineScanner(client, tableName, clone, null);
@@ -524,8 +539,9 @@ public class SampleIT extends AccumuloClusterHarness {
 
         // Split files into ranged files if provided
         if (!fileRanges.isEmpty()) {
-          FileMetadataUtil.splitFilesIntoRanges(getServerContext(), tableName, fileRanges);
-          assertEquals(fileRanges.size(), countFiles(getServerContext(), tableName));
+          FileMetadataUtil.splitFilesIntoRanges(getCluster().getServerContext(), tableName,
+              fileRanges);
+          assertEquals(fileRanges.size(), countFiles(getCluster().getServerContext(), tableName));
         }
 
         Scanner oScanner = newOfflineScanner(client, tableName, clone, SC1);

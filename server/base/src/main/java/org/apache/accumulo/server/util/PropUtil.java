@@ -37,26 +37,25 @@ public final class PropUtil {
    *         or other failure to read properties from the cache / backend store
    * @throws IllegalArgumentException if a provided property is not valid
    */
-  public static void setProperties(final ServerContext context, final PropStoreKey<?> propStoreKey,
+  public static void setProperties(final ServerContext context, final PropStoreKey propStoreKey,
       final Map<String,String> properties) throws IllegalArgumentException {
     PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().putAll(propStoreKey, properties);
   }
 
-  public static void removeProperties(final ServerContext context,
-      final PropStoreKey<?> propStoreKey, final Collection<String> propertyNames) {
+  public static void removeProperties(final ServerContext context, final PropStoreKey propStoreKey,
+      final Collection<String> propertyNames) {
     context.getPropStore().removeProperties(propStoreKey, propertyNames);
   }
 
-  public static void replaceProperties(final ServerContext context,
-      final PropStoreKey<?> propStoreKey, final long version, final Map<String,String> properties)
-      throws IllegalArgumentException {
+  public static void replaceProperties(final ServerContext context, final PropStoreKey propStoreKey,
+      final long version, final Map<String,String> properties) throws IllegalArgumentException {
     PropUtil.validateProperties(context, propStoreKey, properties);
     context.getPropStore().replaceAll(propStoreKey, version, properties);
   }
 
   protected static void validateProperties(final ServerContext context,
-      final PropStoreKey<?> propStoreKey, final Map<String,String> properties)
+      final PropStoreKey propStoreKey, final Map<String,String> properties)
       throws IllegalArgumentException {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {

@@ -26,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -41,7 +42,7 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -73,7 +74,6 @@ public class SecurityOperation {
   private final PermissionHandler permHandle;
   private final boolean isKerberos;
   private final Supplier<String> rootUserName;
-  private final String zkUserPath;
 
   protected final ServerContext context;
 
@@ -102,9 +102,8 @@ public class SecurityOperation {
   protected SecurityOperation(ServerContext context, Authorizor author, Authenticator authent,
       PermissionHandler pm) {
     this.context = context;
-    zkUserPath = context.zkUserPath();
     rootUserName =
-        Suppliers.memoize(() -> new String(context.getZooCache().get(zkUserPath), UTF_8));
+        Suppliers.memoize(() -> new String(context.getZooCache().get(Constants.ZUSERS), UTF_8));
     authorizor = author;
     authenticator = authent;
     permHandle = pm;
@@ -522,7 +521,7 @@ public class SecurityOperation {
         || hasTablePermission(c, tableId, namespaceId, TablePermission.DROP_TABLE, false);
   }
 
-  public boolean canOnlineOfflineTable(TCredentials c, TableId tableId, FateOperation op,
+  public boolean canChangeTableState(TCredentials c, TableId tableId, TFateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     authenticate(c);
     return hasSystemPermissionWithNamespaceId(c, SystemPermission.SYSTEM, namespaceId, false)

@@ -39,8 +39,8 @@ public class SummaryWriter implements FileSKVWriter {
   static final String METASTORE_INDEX = "accumulo.summaries.index";
 
   // echo "accumulo summarize" | sha1sum | head -c 8
-  static long MAGIC = 0x15ea283ec03e4c49L;
-  static byte VER = 1;
+  static final long MAGIC = 0x15ea283ec03e4c49L;
+  static final byte VER = 1;
 
   private final FileSKVWriter writer;
   private final SummarySerializer.Builder[] summaryStores;

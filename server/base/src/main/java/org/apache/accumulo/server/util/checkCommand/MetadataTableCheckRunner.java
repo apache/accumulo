@@ -24,9 +24,7 @@ import java.util.Set;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
@@ -45,13 +43,6 @@ public class MetadataTableCheckRunner implements MetadataCheckRunner {
   @Override
   public TableId tableId() {
     return AccumuloTable.METADATA.tableId();
-  }
-
-  @Override
-  public Set<ColumnFQ> requiredColFQs() {
-    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
-        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
   }
 
   @Override

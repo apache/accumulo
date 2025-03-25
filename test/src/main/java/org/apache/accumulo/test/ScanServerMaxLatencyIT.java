@@ -39,10 +39,11 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.Timer;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
@@ -57,52 +58,45 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
     cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "2s");
   }
 
-  @SuppressWarnings("deprecation")
-  private static Property IDLE_MINC_PROP = Property.TABLE_MINC_COMPACT_IDLETIME;
-
   @Test
   public void testMaxLatency() throws Exception {
-    final String[] tables = this.getUniqueNames(4);
+    final String[] tables = this.getUniqueNames(3);
     final String table1 = tables[0];
     final String table2 = tables[1];
     final String table3 = tables[2];
-    final String table4 = tables[3];
-
-    getCluster().getConfig().setNumScanServers(1);
-    getCluster().getClusterControl().startAllServers(ServerType.SCAN_SERVER);
 
     ExecutorService executor = Executors.newCachedThreadPool();
     try (var client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      Wait.waitFor(() -> !client.instanceOperations().getScanServers().isEmpty());
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
 
       var ntc = new NewTableConfiguration();
       ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_MAXAGE.getKey(), "2s"));
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
       client.tableOperations().create(table1, ntc);
-      client.tableOperations().create(table2);
       ntc = new NewTableConfiguration();
-      ntc.setProperties(Map.of(IDLE_MINC_PROP.getKey(), "2s"));
-      client.tableOperations().create(table3, ntc);
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      client.tableOperations().create(table2, ntc);
       ntc = new NewTableConfiguration();
       ntc.setProperties(Map.of(Property.TABLE_MINC_COMPACT_MAXAGE.getKey(), "3s"));
-      client.tableOperations().create(table4, ntc);
+      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
+      client.tableOperations().create(table3, ntc);
 
       Timer timer = Timer.startNew();
 
       // Write to table4 once, this is different than the other tables that are continually being
       // written to. table4 should minor compact 3 seconds after this write.
-      writeElapsed(new SecureRandom(), client, table4, timer);
+      writeElapsed(new SecureRandom(), client, table3, timer);
       boolean sawDataInTable4 = false;
 
       List<Future<Void>> futures = new ArrayList<>();
       futures.add(executor.submit(createWriterTask(client, table1, timer)));
       futures.add(executor.submit(createWriterTask(client, table2, timer)));
-      futures.add(executor.submit(createWriterTask(client, table3, timer)));
 
       // wait for some data to be written
       Wait.waitFor(() -> readMaxElapsed(client, IMMEDIATE, table1) > 0
-          && readMaxElapsed(client, IMMEDIATE, table2) > 0
-          && readMaxElapsed(client, IMMEDIATE, table3) > 0);
+          && readMaxElapsed(client, IMMEDIATE, table2) > 0);
 
       long lastMaxSeen = -1;
       int changes = 0;
@@ -129,13 +123,13 @@ public class ScanServerMaxLatencyIT extends ConfigurableMacBase {
         // The other table does not have the setting to minor compact based on age, so should never
         // see any data for it from the scan server.
         assertEquals(-1, readMaxElapsed(client, EVENTUAL, table2));
-        // The background thread is writing to this table every 100ms so it should not be considered
-        // idle and therefor should not minor compact.
-        assertEquals(-1, readMaxElapsed(client, EVENTUAL, table3));
 
-        if (!sawDataInTable4 && readMaxElapsed(client, EVENTUAL, table4) != -1) {
-          assertTrue(timer.elapsed(TimeUnit.MILLISECONDS) > 3000
-              && timer.elapsed(TimeUnit.MILLISECONDS) < 6000);
+        if (!sawDataInTable4 && readMaxElapsed(client, EVENTUAL, table3) != -1) {
+
+          assertTrue(
+              timer.elapsed(TimeUnit.MILLISECONDS) > 3000
+                  && timer.elapsed(TimeUnit.MILLISECONDS) < 6000,
+              "elapsed:" + timer.elapsed(TimeUnit.MILLISECONDS));
           sawDataInTable4 = true;
         }
       }

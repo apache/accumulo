@@ -37,7 +37,8 @@ public interface CryptoService {
 
   /**
    * Initialize the FileEncrypter for the environment and return. This will get called once per
-   * R-File or Write Ahead Log. FileEncrypter implementation must be thread safe.
+   * R-File or Write Ahead Log. FileEncrypter implementation is not expected be called by multiple
+   * threads.
    */
   FileEncrypter getFileEncrypter(CryptoEnvironment environment);
 

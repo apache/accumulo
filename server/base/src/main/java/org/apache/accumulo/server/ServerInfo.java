@@ -38,8 +38,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -122,7 +120,6 @@ public class ServerInfo implements ClientInfo {
   private ServerInfo(SiteConfiguration siteConfig, Function<ServerInfo,String> zkHostsFunction,
       ToIntFunction<ServerInfo> zkTimeoutFunction, Function<ServerInfo,String> instanceNameFunction,
       Function<ServerInfo,InstanceId> instanceIdFunction) {
-    SingletonManager.setMode(Mode.SERVER);
     this.siteConfig = requireNonNull(siteConfig);
     requireNonNull(zkHostsFunction);
     requireNonNull(zkTimeoutFunction);

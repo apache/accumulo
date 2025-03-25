@@ -93,7 +93,7 @@ public class RandomWriter {
     @Parameter(names = "--count", description = "number of mutations to write", required = true)
     long count;
     @Parameter(names = "--table", description = "table to use")
-    String tableName = "test_write_table";
+    final String tableName = "test_write_table";
   }
 
   public static void main(String[] args) throws Exception {

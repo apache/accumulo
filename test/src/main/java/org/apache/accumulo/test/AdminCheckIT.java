@@ -43,7 +43,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -349,10 +349,9 @@ public class AdminCheckIT extends ConfigurableMacBase {
       // test a failing case
       // write an invalid table lock
       final var context = getCluster().getServerContext();
-      final var zkRoot = context.getZooKeeperRoot();
       final var zrw = context.getZooSession().asReaderWriter();
-      final var path = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS + "/foo");
-      zrw.putPersistentData(path.toString(), new byte[0], ZooUtil.NodeExistsPolicy.FAIL);
+      final var path = new ServiceLockPaths(context.getZooCache()).createTableLocksPath();
+      zrw.putPersistentData(path.toString() + "/foo", new byte[0], ZooUtil.NodeExistsPolicy.FAIL);
       p = getCluster().exec(Admin.class, "check", "run", tableLocksCheck.name());
       assertEquals(0, p.getProcess().waitFor());
       out = p.readStdOut();
@@ -458,16 +457,15 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // test a failing case
     // delete a required column for the metadata of the root tablet
     final var context = getCluster().getServerContext();
-    final String rootTabletMetaPath = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
     final var zrw = context.getZooSession().asReaderWriter();
-    var json = new String(zrw.getData(rootTabletMetaPath), UTF_8);
+    var json = new String(zrw.getData(RootTable.ZROOT_TABLET), UTF_8);
     var rtm = new RootTabletMetadata(json);
-    var tablet = rtm.toKeyValues().findFirst().orElseThrow().getKey().getRow();
+    var tablet = rtm.toKeyValues().firstKey().getRow();
     var mut = new Mutation(tablet);
     mut.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
         MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
     rtm.update(mut);
-    zrw.putPersistentData(rootTabletMetaPath, rtm.toJson().getBytes(UTF_8),
+    zrw.putPersistentData(RootTable.ZROOT_TABLET, rtm.toJson().getBytes(UTF_8),
         ZooUtil.NodeExistsPolicy.OVERWRITE);
 
     p = getCluster().exec(Admin.class, "check", "run", rootMetaCheck.name());
@@ -568,8 +566,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // delete the ZK data for the metadata table
     var context = getCluster().getServerContext();
     var zrw = context.getZooSession().asReaderWriter();
-    zrw.recursiveDelete(
-        context.getZooKeeperRoot() + Constants.ZTABLES + "/" + AccumuloTable.METADATA.tableId(),
+    zrw.recursiveDelete(Constants.ZTABLES + "/" + AccumuloTable.METADATA.tableId(),
         ZooUtil.NodeMissingPolicy.FAIL);
 
     p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());
@@ -627,7 +624,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       Admin.CheckCommand dummyCheckCommand = new DummyCheckCommand(checksPass);
       cl.addCommand("check", dummyCheckCommand);
       cl.parse(args);
-      Admin.executeCheckCommand(getServerContext(), dummyCheckCommand, opts);
+      Admin.executeCheckCommand(getCluster().getServerContext(), dummyCheckCommand, opts);
       return null;
     });
     EasyMock.replay(admin);

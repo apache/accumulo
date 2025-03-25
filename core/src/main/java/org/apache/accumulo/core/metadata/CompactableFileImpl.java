@@ -31,6 +31,8 @@ public class CompactableFileImpl implements CompactableFile {
   private final DataFileValue dataFileValue;
 
   public CompactableFileImpl(URI uri, long size, long entries) {
+    // TODO this normalizes the path passing it through URI defeating the purpose of
+    // StoredTabletFile
     this.storedTabletFile = StoredTabletFile.of(uri);
     this.dataFileValue = new DataFileValue(size, entries);
   }

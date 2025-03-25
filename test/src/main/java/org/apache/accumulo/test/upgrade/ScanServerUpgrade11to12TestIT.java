@@ -76,7 +76,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(0);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
     }
   }
 

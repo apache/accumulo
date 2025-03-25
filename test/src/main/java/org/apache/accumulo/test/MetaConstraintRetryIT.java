@@ -33,8 +33,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.upgrade.SplitRecovery12to13;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.junit.jupiter.api.Test;
 
 public class MetaConstraintRetryIT extends AccumuloClusterHarness {
@@ -58,7 +58,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
       var iae = assertThrows(IllegalArgumentException.class,
-          () -> MetadataTableUtil.update(context, null, m, extent));
+          () -> SplitRecovery12to13.update(context, null, m, extent));
       assertEquals(MutationsRejectedException.class, iae.getCause().getClass());
       var mre = (MutationsRejectedException) iae.getCause();
       assertFalse(mre.getConstraintViolationSummaries().isEmpty());

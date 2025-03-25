@@ -20,36 +20,57 @@
 -->
       <script>
         /**
-         * Creates participating Tservers initial table, passes the tableID from the template
+         * Creates participating Tservers initial table, passes the tableId from the template
          */
         $(function () {
-          initTableServerTable('${tableID}');
+          initTableServerTable('${tableId}');
         });
       </script>
       <div class="row">
         <div class="col-xs-12">
-          <h3>${title}</h3>
+          <h3>Details for table ${table} <small>(ID: ${tableId})</small></h3>
         </div>
       </div>
       <div class="row">
         <div class="col-xs-12">
           <table id="participatingTServers" class="table caption-top table-bordered table-striped table-condensed">
-            <caption><span class="table-caption">${table}</span></caption>
+            <caption><span class="table-caption">Table Summary</span></caption>
             <thead>
               <tr>
-                <th>Server&nbsp;</th>
-                <th class="big-num">Hosted<br />Tablets&nbsp;</th>
-                <th class="duration">Last&nbsp;Contact&nbsp;</th>
-                <th class="big-num" title="Key/value pairs over each instance, table or tablet.">Entries&nbsp;</th>
-                <th class="big-num" title="The number of Key/Value pairs inserted. (Note that deletes are considered inserted)">Ingest&nbsp;</th>
-                <th class="big-num" title="The number of key/value pairs returned to clients. (Not the number of scans)">Query&nbsp;</th>
-                <th class="duration" title="The amount of time live ingest operations (mutations, batch writes) have been waiting for the tserver to free up memory.">Hold&nbsp;Time&nbsp;</th>
-                <th title="Information about the scans threads. Shows how many threads are running and, in parentheses, how much work is queued for the threads.">Scans&nbsp;</th>
-                <th title="The action of flushing memory to disk. Multiple tablets can be compacted simultaneously, but sometimes they must wait for resources to be available. The number of tablets waiting for compaction is in parentheses.">Minor&nbsp;Compactions&nbsp;</th>
-                <th title="The action of gathering up many small files and rewriting them as one larger file. The number of queued major compactions is in parentheses.">Major&nbsp;Compactions&nbsp;</th>
-                <th class="percent" title="The recent index cache hit rate.">Index Cache<br />Hit Rate&nbsp;</th>
-                <th class="percent" title="The recent data cache hit rate.">Data Cache<br />Hit Rate&nbsp;</th>
-                <th class="big-num" title="The Unix one minute load average. The average number of processes in the run queue over a one minute interval.">OS&nbsp;Load&nbsp;</th>
+                <th class="big-num">Entry Count</th>
+                <th class="big-size">Size on disk</th>
+                <th class="big-num">File Count</th>
+                <th class="big-num">WAL Count</th>
+                <th class="big-num">Total Tablet Count</th>
+                <th class="big-num">Always Hosted Count</th>
+                <th class="big-num">On Demand Count</th>
+                <th class="big-num">Never Hosted Count</th>
+                <th class="big-num">Assigned Count</th>
+                <th class="big-num">Assigned To Dead Server Tablets</th>
+                <th class="big-num">Hosted Tablets</th>
+                <th class="big-num">Suspended Tablets</th>
+                <th class="big-num">Unassigned Tablets</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <br><br>
+      <!-- Section for tablets details DataTable -->
+      <div class="row">
+        <div class="col-xs-12">
+          <table id="tabletsList" class="table caption-top table-bordered table-striped table-condensed">
+            <caption><span class="table-caption">Tablet Details</span></caption>
+            <thead>
+              <tr>
+                <th>Tablet ID</th>
+                <th class="big-size">Estimated Size</th>
+                <th class="big-num">Estimated Entries</th>
+                <th>Availability</th>
+                <th class="big-num">Files</th>
+                <th class="big-num">WALs</th>
+                <th>Location</th>
               </tr>
             </thead>
             <tbody></tbody>

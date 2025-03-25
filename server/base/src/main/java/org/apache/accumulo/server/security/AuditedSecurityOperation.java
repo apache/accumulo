@@ -38,7 +38,7 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -685,18 +685,18 @@ public class AuditedSecurityOperation extends SecurityOperation {
       "action: %s; targetTable: %s:%s";
 
   @Override
-  public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,
+  public boolean canChangeTableState(TCredentials credentials, TableId tableId, TFateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     String operation = null;
-    if (op == FateOperation.TABLE_ONLINE) {
+    if (op == TFateOperation.TABLE_ONLINE) {
       operation = "onlineTable";
     }
-    if (op == FateOperation.TABLE_OFFLINE) {
+    if (op == TFateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
     }
     try {
-      boolean result = super.canOnlineOfflineTable(credentials, tableId, op, namespaceId);
+      boolean result = super.canChangeTableState(credentials, tableId, op, namespaceId);
       audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,
           tableId);
       return result;

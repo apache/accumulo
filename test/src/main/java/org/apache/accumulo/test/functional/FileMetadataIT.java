@@ -73,6 +73,7 @@ public class FileMetadataIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+    cfg.setProperty(Property.TSERV_MAXMEM, "80M");
   }
 
   // private static final Logger log = LoggerFactory.getLogger(FileMetadataIT.class);
@@ -374,6 +375,10 @@ public class FileMetadataIT extends AccumuloClusterHarness {
       ingest(accumuloClient, rows, COLS, 10, 1, tableName);
       accumuloClient.tableOperations().flush(tableName, null, null, true);
       verify(accumuloClient, rows, COLS, 10, 1, tableName);
+
+      // Its possible that multiple minor compactions happen, but the test expects one file. Force a
+      // compaction to ensure there is one file.
+      accumuloClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
 
       // Bring tablet offline so we can modify file metadata
       accumuloClient.tableOperations().offline(tableName, true);
