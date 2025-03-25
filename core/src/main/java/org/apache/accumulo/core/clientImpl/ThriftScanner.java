@@ -775,8 +775,8 @@ public class ThriftScanner {
                 e.getCause() != null && e.getCause().getClass().equals(InterruptedIOException.class)
                     && scanState.closeInitiated;
             if (!wasInterruptedAfterClose) {
-              ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
-                  addr.serverAddress);
+              ClientTabletCache.getInstance(context, scanState.tableId)
+                  .invalidateCache(addr.getExtent());
             }
           }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()

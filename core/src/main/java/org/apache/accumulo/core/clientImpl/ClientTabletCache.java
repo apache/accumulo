@@ -179,11 +179,6 @@ public abstract class ClientTabletCache {
    */
   public abstract void invalidateCache();
 
-  /**
-   * Invalidate all metadata entries that point to server
-   */
-  public abstract void invalidateCache(ClientContext context, String server);
-
   public static synchronized void clearInstances(ClientContext context) {
     final var instances = context.tabletCaches();
     for (ClientTabletCache locator : instances.values()) {

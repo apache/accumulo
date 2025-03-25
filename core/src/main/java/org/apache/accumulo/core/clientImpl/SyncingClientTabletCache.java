@@ -111,9 +111,4 @@ public class SyncingClientTabletCache extends ClientTabletCache {
   public void invalidateCache() {
     syncLocator().invalidateCache();
   }
-
-  @Override
-  public void invalidateCache(ClientContext context, String server) {
-    syncLocator().invalidateCache(context, server);
-  }
 }

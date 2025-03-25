@@ -147,7 +147,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       if (log.isTraceEnabled()) {
         log.trace("{} lookup failed", src.getExtent().tableId(), e);
       }
-      parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
+      parent.invalidateCache(src.getExtent());
     }
 
     return null;
@@ -209,7 +209,7 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       }
     } catch (IOException e) {
       log.trace("lookupTablets failed server={}", tserver, e);
-      parent.invalidateCache(context, tserver);
+      parent.invalidateCache(tabletsRanges.keySet());
     } catch (AccumuloServerException e) {
       log.trace("lookupTablets failed server={}", tserver, e);
       throw e;

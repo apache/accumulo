@@ -521,7 +521,7 @@ public class ClientTabletCacheImplTest {
           tservers.get(src.getTserverLocation().orElseThrow());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
+        parent.invalidateCache(src.getExtent());
         return null;
       }
 
@@ -552,7 +552,7 @@ public class ClientTabletCacheImplTest {
       Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(tserver);
 
       if (tablets == null) {
-        parent.invalidateCache(context, tserver);
+        parent.invalidateCache(map.keySet());
         return list;
       }
 
@@ -619,10 +619,6 @@ public class ClientTabletCacheImplTest {
       return new CachedTablet(RootTable.EXTENT, rootTabletLoc, "1", TabletAvailability.HOSTED,
           false);
     }
-
-    @Override
-    public void invalidateCache(ClientContext context, String server) {}
-
   }
 
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
@@ -784,7 +780,7 @@ public class ClientTabletCacheImplTest {
 
     // simulate a server failure
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e21, "tserver9");
-    tab1TabletCache.invalidateCache(context, "tserver8");
+    tab1TabletCache.invalidateCache(tab1e21);
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver9");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
@@ -792,9 +788,9 @@ public class ClientTabletCacheImplTest {
     // simulate all servers failing
     deleteServer(tservers, "tserver1");
     deleteServer(tservers, "tserver2");
-    tab1TabletCache.invalidateCache(context, "tserver4");
-    tab1TabletCache.invalidateCache(context, "tserver6");
-    tab1TabletCache.invalidateCache(context, "tserver9");
+    tab1TabletCache.invalidateCache(tab1e22);
+    tab1TabletCache.invalidateCache(tab1e21);
+    tab1TabletCache.invalidateCache(tab1e1);
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
     locateTabletTest(tab1TabletCache, "h", null, null);
@@ -849,7 +845,7 @@ public class ClientTabletCacheImplTest {
 
     // simulate metadata and regular server down and the reassigned
     deleteServer(tservers, "tserver5");
-    tab1TabletCache.invalidateCache(context, "tserver7");
+    tab1TabletCache.invalidateCache(tab1e1);
     locateTabletTest(tab1TabletCache, "a", null, null);
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
@@ -861,7 +857,7 @@ public class ClientTabletCacheImplTest {
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
-    tab1TabletCache.invalidateCache(context, "tserver7");
+    tab1TabletCache.invalidateCache(tab1e1);
     setLocation(tservers, "tserver10", mte1, tab1e1, "tserver2");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver2");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
