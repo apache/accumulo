@@ -922,7 +922,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
           mutationBatch.keySet().stream().collect(Collectors.groupingBy(KeyExtent::tableId))
               .forEach((k, v) -> getLocator(k).invalidateCache(v));
-          }
 
           failedMutations.add(tsm);
         } finally {
@@ -986,7 +985,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           // the write completed successfully so no need to close the session
           sessionCloser.clearSession();
 
-          // @formatter:off
+        // @formatter:off
             Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
@@ -994,7 +993,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             // @formatter:on
           updatedConstraintViolations(updateErrors.violationSummaries.stream()
               .map(ConstraintViolationSummary::new).collect(toList()));
-          // @formatter:off
+        // @formatter:off
             updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
