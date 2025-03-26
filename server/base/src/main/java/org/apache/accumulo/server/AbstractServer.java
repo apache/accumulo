@@ -93,7 +93,7 @@ public abstract class AbstractServer
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
 
-    final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
+    final String upgradePrepNode = Constants.ZPREPARE_FOR_UPGRADE;
     try {
       if (context.getZooSession().asReader().exists(upgradePrepNode)) {
         throw new IllegalStateException(

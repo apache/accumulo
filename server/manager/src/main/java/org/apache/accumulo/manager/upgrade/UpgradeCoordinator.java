@@ -226,10 +226,12 @@ public class UpgradeCoordinator {
           // if the current version is 10, then the code above will get the Upgrader for version
           // 10 from the upgraders map. It will run the Upgrader10to11 code, which means that the
           // current version of ZooKeeper after running the upgrade is 11.
-          progressTracker.updateZooKeeperVersion(upgradeVersion + 1);
+          final int nextVersion = upgradeVersion + 1;
+          progressTracker.updateZooKeeperVersion(nextVersion);
+          log.info("ZooKeeper upgrade from version {} to version {} complete.", upgradeVersion,
+              nextVersion);
         }
       }
-
       setStatus(UpgradeStatus.UPGRADED_ZOOKEEPER, eventCoordinator);
     } catch (Exception e) {
       handleFailure(e);
@@ -270,7 +272,10 @@ public class UpgradeCoordinator {
                 // if the current version is 10, then the code above will get the Upgrader for
                 // version 10 from the upgraders map. It will run the Upgrader10to11 code, which
                 // means that the current version of ZooKeeper after running the upgrade is 11.
-                progressTracker.updateRootVersion(upgradeVersion + 1);
+                final int nextVersion = upgradeVersion + 1;
+                progressTracker.updateRootVersion(nextVersion);
+                log.info("Root upgrade from version {} to version {} complete.", upgradeVersion,
+                    nextVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_ROOT, eventCoordinator);
 
@@ -293,7 +298,10 @@ public class UpgradeCoordinator {
                 // if the current version is 10, then the code above will get the Upgrader for
                 // version 10 from the upgraders map. It will run the Upgrader10to11 code, which
                 // means that the current version of ZooKeeper after running the upgrade is 11.
-                progressTracker.updateMetadataVersion(upgradeVersion + 1);
+                final int nextVersion = upgradeVersion + 1;
+                progressTracker.updateMetadataVersion(nextVersion);
+                log.info("Metadata upgrade from version {} to version {} complete.", upgradeVersion,
+                    nextVersion);
               }
               setStatus(UpgradeStatus.UPGRADED_METADATA, eventCoordinator);
 
@@ -390,8 +398,7 @@ public class UpgradeCoordinator {
       // as tablets are not assigned when this is called. The Fate code is not used to read from
       // zookeeper below because the serialization format changed in zookeeper, that is why a direct
       // read is performed.
-      if (!context.getZooSession().asReader()
-          .getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
+      if (!context.getZooSession().asReader().getChildren(Constants.ZFATE).isEmpty()) {
         throw new AccumuloException("Aborting upgrade because there are"
             + " outstanding FATE transactions from a previous Accumulo version."
             + " You can start the tservers and then use the shell to delete completed "

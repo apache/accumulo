@@ -34,6 +34,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.Optional;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -45,7 +46,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateStoreIT;
-import org.apache.accumulo.test.fate.FateStoreUtil;
+import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -58,23 +59,21 @@ public class MetaFateStoreFateIT extends FateStoreIT {
 
   @BeforeAll
   public static void setup() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
+    FateTestUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.teardown();
+    FateTestUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
     ServerContext sctx = createMock(ServerContext.class);
-    expect(sctx.getZooKeeperRoot()).andReturn(FateStoreUtil.MetaFateZKSetup.getZkRoot()).anyTimes();
-    expect(sctx.getZooSession()).andReturn(FateStoreUtil.MetaFateZKSetup.getZk()).anyTimes();
+    expect(sctx.getZooSession()).andReturn(FateTestUtil.MetaFateZKSetup.getZk()).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store = new MetaFateStore<>(
-        FateStoreUtil.MetaFateZKSetup.getZkFatePath(), FateStoreUtil.MetaFateZKSetup.getZk(),
+    MetaFateStore<TestEnv> store = new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZk(),
         createDummyLockID(), null, maxDeferred, fateIdGenerator);
 
     // Check that the store has no transactions before and after each test
@@ -112,10 +111,9 @@ public class MetaFateStoreFateIT extends FateStoreIT {
 
       // Gather the existing fields, create a new FateData object with those existing fields
       // (excluding the FateKey in the new object), and replace the zk node with this new FateData
-      String txPath =
-          FateStoreUtil.MetaFateZKSetup.getZkFatePath() + "/tx_" + fateId.getTxUUIDStr();
+      String txPath = Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
       Object currentNode = serializedCons.newInstance(
-          new Object[] {FateStoreUtil.MetaFateZKSetup.getZk().asReader().getData(txPath)});
+          new Object[] {FateTestUtil.MetaFateZKSetup.getZk().asReader().getData(txPath)});
       TStatus currentStatus = (TStatus) status.get(currentNode);
       Optional<FateStore.FateReservation> currentReservation =
           getCurrentReservation(reservation, currentNode);
@@ -127,7 +125,7 @@ public class MetaFateStoreFateIT extends FateStoreIT {
       Object newNode = fateDataCons.newInstance(currentStatus, currentReservation.orElse(null),
           null, currentRepoDeque, currentTxInfo);
 
-      FateStoreUtil.MetaFateZKSetup.getZk().asReaderWriter().putPersistentData(txPath,
+      FateTestUtil.MetaFateZKSetup.getZk().asReaderWriter().putPersistentData(txPath,
           (byte[]) nodeSerialize.invoke(newNode), NodeExistsPolicy.OVERWRITE);
     } catch (Exception e) {
       throw new IllegalStateException(e);

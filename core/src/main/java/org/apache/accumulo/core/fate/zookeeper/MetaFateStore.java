@@ -46,6 +46,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
@@ -77,18 +78,16 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);
   private static final FateInstanceType fateInstanceType = FateInstanceType.META;
-  private String path;
   private ZooSession zk;
   private ZooReaderWriter zrw;
 
   private String getTXPath(FateId fateId) {
-    return path + "/tx_" + fateId.getTxUUIDStr();
+    return Constants.ZFATE + "/tx_" + fateId.getTxUUIDStr();
   }
 
   /**
    * Constructs a MetaFateStore
    *
-   * @param path the path in ZK where the fate data will reside
    * @param zk the {@link ZooSession}
    * @param lockID the {@link ZooUtil.LockID} held by the process creating this store. Should be
    *        null if this store will be used as read-only (will not be used to reserve transactions)
@@ -96,21 +95,20 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
    *        time of invocation. If the store is used for a {@link Fate} which runs a dead
    *        reservation cleaner, this should be non-null, otherwise null is fine
    */
-  public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
-      Predicate<ZooUtil.LockID> isLockHeld) throws KeeperException, InterruptedException {
-    this(path, zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
+  public MetaFateStore(ZooSession zk, ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld)
+      throws KeeperException, InterruptedException {
+    this(zk, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
   }
 
   @VisibleForTesting
-  public MetaFateStore(String path, ZooSession zk, ZooUtil.LockID lockID,
-      Predicate<ZooUtil.LockID> isLockHeld, int maxDeferred, FateIdGenerator fateIdGenerator)
+  public MetaFateStore(ZooSession zk, ZooUtil.LockID lockID, Predicate<ZooUtil.LockID> isLockHeld,
+      int maxDeferred, FateIdGenerator fateIdGenerator)
       throws KeeperException, InterruptedException {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
-    this.path = path;
     this.zk = zk;
     this.zrw = zk.asReaderWriter();
 
-    this.zrw.putPersistentData(path, new byte[0], NodeExistsPolicy.SKIP);
+    this.zrw.putPersistentData(Constants.ZFATE, new byte[0], NodeExistsPolicy.SKIP);
   }
 
   @Override
@@ -579,7 +577,7 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   @Override
   protected Stream<FateIdStatus> getTransactions(EnumSet<TStatus> statuses) {
     try {
-      Stream<FateIdStatus> stream = zrw.getChildren(path).stream().map(strTxid -> {
+      Stream<FateIdStatus> stream = zrw.getChildren(Constants.ZFATE).stream().map(strTxid -> {
         String txUUIDStr = strTxid.split("_")[1];
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         // Memoizing for two reasons. First the status or reservation may never be requested, so
@@ -595,6 +593,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
           @Override
           public Optional<FateReservation> getFateReservation() {
             return nodeSupplier.get().reservation;
+          }
+
+          @Override
+          public Optional<Fate.FateOperation> getFateOperation() {
+            var fateOp = (Fate.FateOperation) nodeSupplier.get().txInfo.get(TxInfo.FATE_OP);
+            return Optional.ofNullable(fateOp);
           }
         };
       });

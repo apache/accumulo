@@ -50,6 +50,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
@@ -227,19 +228,17 @@ public class GCRun implements GarbageCollectionEnvironment {
 
   @Override
   public Map<TableId,TableState> getTableIDs() throws InterruptedException {
-    final String tablesPath = context.getZooKeeperRoot() + Constants.ZTABLES;
     final ZooReader zr = context.getZooSession().asReader();
     int retries = 1;
     IllegalStateException ioe = null;
     while (retries <= 10) {
       try {
-        zr.sync(tablesPath);
+        zr.sync(Constants.ZTABLES);
         final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(tablesPath)) {
+        for (String table : zr.getChildren(Constants.ZTABLES)) {
           TableId tableId = TableId.of(table);
           TableState tableState = null;
-          String statePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/"
-              + tableId.canonical() + Constants.ZTABLE_STATE;
+          String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
           try {
             byte[] state = zr.getData(statePath);
             if (state == null) {
@@ -267,11 +266,11 @@ public class GCRun implements GarbageCollectionEnvironment {
   }
 
   @Override
-  public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes)
-      throws TableNotFoundException {
+  public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes) {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
-        ? context.getZooKeeperRoot() + " for " + AccumuloTable.ROOT.tableName() : level.metaTable();
+        ? ZooUtil.getRoot(context.getInstanceID()) + " for " + AccumuloTable.ROOT.tableName()
+        : level.metaTable();
 
     if (inSafeMode()) {
       System.out.println("SAFEMODE: There are " + confirmedDeletes.size()
@@ -342,7 +341,6 @@ public class GCRun implements GarbageCollectionEnvironment {
               if (parts.length > 2) {
                 TableId tableId = TableId.of(parts[1]);
                 String tabletDir = parts[2];
-                context.getTableManager().updateTableStateCache(tableId);
                 TableState tableState = context.getTableManager().getTableState(tableId);
                 if (tableState != null && tableState != TableState.DELETING) {
                   // clone directories don't always exist

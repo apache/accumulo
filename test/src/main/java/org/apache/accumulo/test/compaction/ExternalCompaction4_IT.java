@@ -20,22 +20,31 @@ package org.apache.accumulo.test.compaction;
 
 import static org.apache.accumulo.core.conf.Property.TABLE_FILE_MAX;
 import static org.apache.accumulo.core.conf.Property.TABLE_MAJC_RATIO;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionCompleted;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.confirmCompactionRunning;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.waitForCompactionStartAndReturnEcids;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.writeData;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
+import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -43,6 +52,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ErrorThrowingIterator;
 import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
@@ -130,6 +140,43 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
 
     }
 
+  }
+
+  @Test
+  public void testDeleteTableCancelsSleepingExternalCompaction() throws Exception {
+
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      createTable(client, table1, "cs4"); // TODO which service
+      TableId tid = getCluster().getServerContext().getTableId(table1);
+      writeData(client, table1);
+
+      // The purpose of this test to ensure the sleeping thread is interrupted. The only way the
+      // compactor can cancel this compaction is if it interrupts the sleeping thread.
+      IteratorSetting iteratorSetting = new IteratorSetting(100, SlowIterator.class);
+      // Sleep so long that the test would timeout if the thread is not interrupted.
+      SlowIterator.setSleepTime(iteratorSetting, 600000);
+      SlowIterator.setSeekSleepTime(iteratorSetting, 600000);
+
+      client.tableOperations().compact(table1,
+          new CompactionConfig().setIterators(List.of(iteratorSetting)).setWait(false));
+
+      // Wait for the compaction to start by waiting for 1 external compaction column
+      Set<ExternalCompactionId> ecids =
+          waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
+
+      // Confirm that this ECID shows up in RUNNING set
+      int matches = confirmCompactionRunning(getCluster().getServerContext(), ecids);
+      assertTrue(matches > 0);
+
+      client.tableOperations().delete(table1);
+
+      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
+          TCompactionState.CANCELLED);
+
+    }
   }
 
 }

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -45,7 +45,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -703,9 +702,8 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooSession.class, ZooUtil.LockID.class, Predicate.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession(), null, null)
-          .addMockedMethod(listMethod).createMock();
+          .withConstructor(ZooSession.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx.getZooSession(), null, null).addMockedMethod(listMethod).createMock();
     }
 
     // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that
@@ -769,6 +767,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
       @Override
       public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
+      }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
         return Optional.empty();
       }
     };

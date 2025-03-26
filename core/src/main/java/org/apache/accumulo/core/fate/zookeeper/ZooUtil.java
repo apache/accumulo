@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.TreeMap;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
@@ -44,6 +45,9 @@ import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 public class ZooUtil {
 
@@ -67,8 +71,37 @@ public class ZooUtil {
     public final long eid;
     public final String path;
     public final String node;
+    private final Supplier<String> serialized;
 
-    public LockID(String root, String serializedLID) {
+    public LockID(String path, String node, long eid) {
+      // path must start with a '/', must not end with one, and must not contain '$'. These chars
+      // would cause problems for serialization.
+      Preconditions.checkArgument(
+          path != null && !path.contains("$") && path.startsWith("/") && !path.endsWith("/"),
+          "Illegal path %s", path);
+      // node must not contain '$' or '/' because these chars would cause problems for
+      // serialization.
+      Preconditions.checkArgument(
+          node != null && !node.contains("$") && !node.contains("/") && !node.isEmpty(),
+          "Illegal node name %s", node);
+      this.path = path;
+      this.node = node;
+      this.eid = eid;
+      this.serialized = Suppliers.memoize(() -> path + "/" + node + "$" + Long.toHexString(eid));
+    }
+
+    /**
+     * Returns serialized form of this object that can be deserialized using
+     * {@link #deserialize(String)}
+     */
+    public String serialize() {
+      return serialized.get();
+    }
+
+    /**
+     * Deserializes a lock id created by {@link #serialize()}
+     */
+    public static LockID deserialize(String serializedLID) {
       String[] sa = serializedLID.split("\\$");
       int lastSlash = sa[0].lastIndexOf('/');
 
@@ -76,23 +109,8 @@ public class ZooUtil {
         throw new IllegalArgumentException("Malformed serialized lock id " + serializedLID);
       }
 
-      if (lastSlash == 0) {
-        path = root;
-      } else {
-        path = root + "/" + sa[0].substring(0, lastSlash);
-      }
-      node = sa[0].substring(lastSlash + 1);
-      eid = Long.parseUnsignedLong(sa[1], 16);
-    }
-
-    public LockID(String path, String node, long eid) {
-      this.path = path;
-      this.node = node;
-      this.eid = eid;
-    }
-
-    public String serialize(String root) {
-      return path.substring(root.length()) + "/" + node + "$" + Long.toHexString(eid);
+      return new LockID(sa[0].substring(0, lastSlash), sa[0].substring(lastSlash + 1),
+          Long.parseUnsignedLong(sa[1], 16));
     }
 
     @Override
@@ -134,7 +152,7 @@ public class ZooUtil {
   }
 
   public static String getRoot(final InstanceId instanceId) {
-    return Constants.ZROOT + "/" + instanceId;
+    return Constants.ZROOT + "/" + instanceId.canonical();
   }
 
   /**

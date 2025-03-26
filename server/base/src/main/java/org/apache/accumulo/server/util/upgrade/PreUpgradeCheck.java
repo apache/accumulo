@@ -68,7 +68,7 @@ public class PreUpgradeCheck implements KeywordExecutable {
 
     final ZooSession zs = context.getZooSession();
     final ZooReader zr = zs.asReader();
-    final String prepUpgradePath = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
+    final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
 
     if (!zr.exists(prepUpgradePath)) {
       LOG.info("{} node not found in ZooKeeper, 'ZooZap -prepare-for-upgrade' was likely"
@@ -77,7 +77,7 @@ public class PreUpgradeCheck implements KeywordExecutable {
 
       try {
         // Adapted from UpgradeCoordinator.abortIfFateTransactions
-        if (!zr.getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
+        if (!zr.getChildren(Constants.ZFATE).isEmpty()) {
           throw new IllegalStateException("Cannot continue pre-upgrade checks"
               + " because FATE transactions exist. You can start a tserver, but"
               + " not the Manager, with the old version of Accumulo then use "

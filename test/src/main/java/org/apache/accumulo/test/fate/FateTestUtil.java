@@ -23,14 +23,16 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.File;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -46,13 +48,12 @@ import org.junit.jupiter.api.io.TempDir;
 import com.google.common.collect.MoreCollectors;
 
 /**
- * A class with utilities for testing {@link org.apache.accumulo.core.fate.user.UserFateStore} and
- * {@link org.apache.accumulo.core.fate.zookeeper.MetaFateStore}
+ * A class with utilities for testing FATE
  */
-public class FateStoreUtil {
-  // A FateOperation for testing purposes when a FateOperation is needed but whose value doesn't
-  // matter
-  public static final Fate.FateOperation TEST_FATE_OP = Fate.FateOperation.TABLE_CREATE;
+public class FateTestUtil {
+  // A FateOperation for testing purposes when a FateOperation is needed and whose value needs to
+  // be a FateOperation workable by USER and META FATEs
+  public static final Fate.FateOperation TEST_FATE_OP = Fate.FateOperation.TABLE_COMPACT;
 
   /**
    * Create the fate table with the exact configuration as the real Fate user instance table
@@ -78,9 +79,6 @@ public class FateStoreUtil {
     assertEquals(fateTableProps, testFateTableProps);
   }
 
-  // For now just process one at a time as the current impl completes
-  // each seed transaction individually. In future versions we can test
-  // batching multiple seeding atempts together.
   public static <T> Optional<FateId> seedTransaction(FateStore<T> store, Fate.FateOperation fateOp,
       FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
     CompletableFuture<Optional<FateId>> fateIdFuture;
@@ -95,6 +93,22 @@ public class FateStoreUtil {
   }
 
   /**
+   * Returns a config with all FATE operations assigned to a single pool of size numThreads for both
+   * USER and META FATE operations
+   */
+  public static ConfigurationCopy createTestFateConfig(int numThreads) {
+    ConfigurationCopy config = new ConfigurationCopy();
+    // this value isn't important, just needs to be set
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
+        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
+        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
+    return config;
+  }
+
+  /**
    * Contains the necessary utilities for setting up (and shutting down) a ZooKeeper instance for
    * use in testing MetaFateStore
    */
@@ -102,8 +116,6 @@ public class FateStoreUtil {
   public static class MetaFateZKSetup {
     private static ZooKeeperTestingServer szk;
     private static ZooSession zk;
-    private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID();
-    private static String ZK_FATE_PATH;
 
     /**
      * Sets up the ZooKeeper instance and creates the paths needed for testing MetaFateStore
@@ -111,10 +123,9 @@ public class FateStoreUtil {
     public static void setup(@TempDir File tempDir) throws Exception {
       szk = new ZooKeeperTestingServer(tempDir);
       zk = szk.newClient();
-      ZK_FATE_PATH = ZK_ROOT + Constants.ZFATE;
       var zrw = zk.asReaderWriter();
-      zrw.mkdirs(ZK_FATE_PATH);
-      zrw.mkdirs(ZK_ROOT + Constants.ZTABLE_LOCKS);
+      zrw.mkdirs(Constants.ZFATE);
+      zrw.mkdirs(Constants.ZTABLE_LOCKS);
     }
 
     /**
@@ -124,16 +135,9 @@ public class FateStoreUtil {
       szk.close();
     }
 
-    public static String getZkRoot() {
-      return ZK_ROOT;
-    }
-
     public static ZooSession getZk() {
       return zk;
     }
 
-    public static String getZkFatePath() {
-      return ZK_FATE_PATH;
-    }
   }
 }

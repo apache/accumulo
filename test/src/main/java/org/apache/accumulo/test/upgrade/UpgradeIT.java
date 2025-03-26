@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -36,8 +37,10 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
 
 public class UpgradeIT extends AccumuloClusterHarness {
@@ -63,6 +66,11 @@ public class UpgradeIT extends AccumuloClusterHarness {
     return Duration.ofMinutes(5);
   }
 
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
+  }
+
   @Test
   public void testServersWontStart() throws Exception {
     // Constants.ZPREPARE_FOR_UPGRADE is created by 'ZooZap -prepare-for-upgrade'
@@ -73,9 +81,8 @@ public class UpgradeIT extends AccumuloClusterHarness {
     // MAC.
 
     final ZooSession zs = getServerContext().getZooSession();
-    final String zkRoot = getServerContext().getZooKeeperRoot();
     final ZooReaderWriter zrw = zs.asReaderWriter();
-    final String upgradePath = zkRoot + Constants.ZPREPARE_FOR_UPGRADE;
+    final String upgradePath = Constants.ZPREPARE_FOR_UPGRADE;
     zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
 
     getCluster().stop();
@@ -83,20 +90,20 @@ public class UpgradeIT extends AccumuloClusterHarness {
     getCluster().getClusterControl().startAllServers(ServerType.ZOOKEEPER);
 
     final ZooReader zr = zs.asReader();
-    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZCOMPACTORS).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZGC_LOCK).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZMANAGER_LOCK).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZSSERVERS).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(zkRoot + Constants.ZTSERVERS).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(Constants.ZCOMPACTORS).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(Constants.ZGC_LOCK).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(Constants.ZSSERVERS).isEmpty());
+    Wait.waitFor(() -> zr.getChildren(Constants.ZTSERVERS).isEmpty());
 
     assertThrows(IllegalStateException.class,
         () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
 
-    assertTrue(zr.getChildren(zkRoot + Constants.ZCOMPACTORS).isEmpty());
-    assertTrue(zr.getChildren(zkRoot + Constants.ZGC_LOCK).isEmpty());
-    assertTrue(zr.getChildren(zkRoot + Constants.ZMANAGER_LOCK).isEmpty());
-    assertTrue(zr.getChildren(zkRoot + Constants.ZSSERVERS).isEmpty());
-    assertTrue(zr.getChildren(zkRoot + Constants.ZTSERVERS).isEmpty());
+    assertTrue(zr.getChildren(Constants.ZCOMPACTORS).isEmpty());
+    assertTrue(zr.getChildren(Constants.ZGC_LOCK).isEmpty());
+    assertTrue(zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
+    assertTrue(zr.getChildren(Constants.ZSSERVERS).isEmpty());
+    assertTrue(zr.getChildren(Constants.ZTSERVERS).isEmpty());
 
     // Validate the exception from the servers
     List<String> args = new ArrayList<>();

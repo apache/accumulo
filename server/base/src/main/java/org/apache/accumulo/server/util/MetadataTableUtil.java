@@ -93,8 +93,7 @@ public class MetadataTableUtil {
   private MetadataTableUtil() {}
 
   public static void putLockID(ServerContext context, ServiceLock zooLock, Mutation m) {
-    ServerColumnFamily.LOCK_COLUMN.put(m,
-        new Value(zooLock.getLockID().serialize(context.getZooKeeperRoot() + "/")));
+    ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID().serialize()));
   }
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,

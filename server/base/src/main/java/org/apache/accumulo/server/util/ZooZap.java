@@ -34,10 +34,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
-import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -99,19 +96,17 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public void execute(String[] args) throws Exception {
-    try {
-      var siteConf = SiteConfiguration.auto();
+    var siteConf = SiteConfiguration.auto();
+    try (var context = new ServerContext(siteConf)) {
       // Login as the server on secure HDFS
       if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
         SecurityUtil.serverLogin(siteConf);
       }
-      zap(siteConf, args);
-    } finally {
-      SingletonManager.setMode(Mode.CLOSED);
+      zap(context, args);
     }
   }
 
-  public void zap(SiteConfiguration siteConf, String... args) {
+  public void zap(ServerContext context, String... args) {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
@@ -120,144 +115,144 @@ public class ZooZap implements KeywordExecutable {
       return;
     }
 
-    try (var zk = new ZooSession(getClass().getSimpleName(), siteConf)) {
-      // Login as the server on secure HDFS
-      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
-        SecurityUtil.serverLogin(siteConf);
+    var zrw = context.getZooSession().asReaderWriter();
+    if (opts.zapManager) {
+      ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
+      try {
+        zapDirectory(zrw, managerLockPath, opts);
+      } catch (KeeperException | InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+
+    if (opts.upgrade) {
+      final String volDir =
+          VolumeConfiguration.getVolumeUris(context.getSiteConfiguration()).iterator().next();
+      final Path instanceDir = new Path(volDir, "instance_id");
+      final InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
+      final String zkRoot = ZooUtil.getRoot(iid);
+      final String upgradePath = zkRoot + Constants.ZPREPARE_FOR_UPGRADE;
+
+      try {
+        if (zrw.exists(upgradePath)) {
+          if (!opts.forceUpgradePrep) {
+            throw new IllegalStateException(
+                "'ZooZap -prepare-for-upgrade' must have already been run."
+                    + " To run again use the 'ZooZap -prepare-for-upgrade -force'");
+          } else {
+            zrw.delete(upgradePath);
+          }
+        }
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Error creating or checking for " + upgradePath
+            + " node in zookeeper: " + e.getMessage(), e);
       }
 
-      try (var context = new ServerContext(siteConf)) {
-        final ZooReaderWriter zrw = context.getZooSession().asReaderWriter();
+      log.info("Upgrade specified, validating that Manager is stopped");
+      if (context.getServerPaths().getManager(true) != null) {
+        throw new IllegalStateException(
+            "Manager is running, shut it down and retry this operation");
+      }
 
-        if (opts.upgrade) {
-          final String volDir = VolumeConfiguration.getVolumeUris(siteConf).iterator().next();
-          final Path instanceDir = new Path(volDir, "instance_id");
-          final InstanceId iid =
-              VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
-          final String zkRoot = ZooUtil.getRoot(iid);
-          final String upgradePath = zkRoot + Constants.ZPREPARE_FOR_UPGRADE;
-
-          try {
-            if (zrw.exists(upgradePath)) {
-              if (!opts.forceUpgradePrep) {
-                throw new IllegalStateException(
-                    "'ZooZap -prepare-for-upgrade' must have already been run."
-                        + " To run again use the 'ZooZap -prepare-for-upgrade -force'");
-              } else {
-                zrw.delete(upgradePath);
-              }
-            }
-          } catch (KeeperException | InterruptedException e) {
-            throw new IllegalStateException("Error creating or checking for " + upgradePath
-                + " node in zookeeper: " + e.getMessage(), e);
-          }
-
-          log.info("Upgrade specified, validating that Manager is stopped");
-          if (context.getServerPaths().getManager(true) != null) {
-            throw new IllegalStateException(
-                "Manager is running, shut it down and retry this operation");
-          }
-
-          log.info("Checking for existing fate transactions");
-          try {
-            // Adapted from UpgradeCoordinator.abortIfFateTransactions
-            if (!zrw.getChildren(context.getZooKeeperRoot() + Constants.ZFATE).isEmpty()) {
-              throw new IllegalStateException("Cannot complete upgrade preparation"
-                  + " because FATE transactions exist. You can start a tserver, but"
-                  + " not the Manager, then use the shell to delete completed"
-                  + " transactions and fail pending or in-progress transactions."
-                  + " Once all of the FATE transactions have been removed you can"
-                  + " retry this operation.");
-            }
-          } catch (KeeperException | InterruptedException e) {
-            throw new IllegalStateException("Error checking for existing FATE transactions", e);
-          }
-
-          log.info("Creating {} node in zookeeper, servers will be prevented from"
-              + " starting while this node exists", upgradePath);
-          try {
-            zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
-          } catch (KeeperException | InterruptedException e) {
-            throw new IllegalStateException("Error creating " + upgradePath
-                + " node in zookeeper. Check for any issues and retry.", e);
-          }
-          log.info("Instance {} prepared for upgrade. Server processes will not start while"
-              + " in this state. To undo this state and abort upgrade preparations delete"
-              + " the zookeeper node: {}", iid.canonical(), upgradePath);
-
-          log.info("Forcing removal of all server locks");
-          // modify the options to remove all locks
-          opts.zapCompactors = true;
-          opts.zapManager = true;
-          opts.zapScanServers = true;
-          opts.zapTservers = true;
+      log.info("Checking for existing fate transactions");
+      try {
+        // Adapted from UpgradeCoordinator.abortIfFateTransactions
+        if (!zrw.getChildren(Constants.ZFATE).isEmpty()) {
+          throw new IllegalStateException("Cannot complete upgrade preparation"
+              + " because FATE transactions exist. You can start a tserver, but"
+              + " not the Manager, then use the shell to delete completed"
+              + " transactions and fail pending or in-progress transactions."
+              + " Once all of the FATE transactions have been removed you can"
+              + " retry this operation.");
         }
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Error checking for existing FATE transactions", e);
+      }
 
-        if (opts.zapManager) {
-          ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
-          try {
-            zapDirectory(zrw, managerLockPath, opts);
-          } catch (KeeperException | InterruptedException e) {
-            e.printStackTrace();
-          }
+      log.info("Creating {} node in zookeeper, servers will be prevented from"
+          + " starting while this node exists", upgradePath);
+      try {
+        zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException(
+            "Error creating " + upgradePath + " node in zookeeper. Check for any issues and retry.",
+            e);
+      }
+      log.info("Instance {} prepared for upgrade. Server processes will not start while"
+          + " in this state. To undo this state and abort upgrade preparations delete"
+          + " the zookeeper node: {}", iid.canonical(), upgradePath);
+
+      log.info("Forcing removal of all server locks");
+      // modify the options to remove all locks
+      opts.zapCompactors = true;
+      opts.zapManager = true;
+      opts.zapScanServers = true;
+      opts.zapTservers = true;
+    }
+
+    if (opts.zapManager) {
+      ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
+      try {
+        zapDirectory(zrw, managerLockPath, opts);
+      } catch (KeeperException | InterruptedException e) {
+        e.printStackTrace();
+      }
+    }
+
+    ResourceGroupPredicate rgp;
+    if (!opts.resourceGroup.isEmpty()) {
+      rgp = rg -> rg.equals(opts.resourceGroup);
+    } else {
+      rgp = rg -> true;
+    }
+
+    if (opts.zapTservers) {
+      try {
+        Set<ServiceLockPath> tserverLockPaths =
+            context.getServerPaths().getTabletServer(rgp, AddressSelector.all(), false);
+        Set<String> tserverResourceGroupPaths = new HashSet<>();
+        tserverLockPaths.forEach(p -> tserverResourceGroupPaths
+            .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
+        for (String group : tserverResourceGroupPaths) {
+          message("Deleting tserver " + group + " from zookeeper", opts);
+          zrw.recursiveDelete(group.toString(), NodeMissingPolicy.SKIP);
         }
+      } catch (KeeperException | InterruptedException e) {
+        log.error("{}", e.getMessage(), e);
+      }
+    }
 
-        ResourceGroupPredicate rgp;
-        if (!opts.resourceGroup.isEmpty()) {
-          rgp = rg -> rg.equals(opts.resourceGroup);
-        } else {
-          rgp = rg -> true;
+    if (opts.zapCompactors) {
+      Set<ServiceLockPath> compactorLockPaths =
+          context.getServerPaths().getCompactor(rgp, AddressSelector.all(), false);
+      Set<String> compactorResourceGroupPaths = new HashSet<>();
+      compactorLockPaths.forEach(p -> compactorResourceGroupPaths
+          .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
+      try {
+        for (String group : compactorResourceGroupPaths) {
+          message("Deleting compactor " + group + " from zookeeper", opts);
+          zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
         }
+      } catch (KeeperException | InterruptedException e) {
+        log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
+      }
 
-        if (opts.zapTservers) {
-          try {
-            Set<ServiceLockPath> tserverLockPaths =
-                context.getServerPaths().getTabletServer(rgp, AddressSelector.all(), false);
-            Set<String> tserverResourceGroupPaths = new HashSet<>();
-            tserverLockPaths.forEach(p -> tserverResourceGroupPaths
-                .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
-            for (String group : tserverResourceGroupPaths) {
-              message("Deleting tserver " + group + " from zookeeper", opts);
-              zrw.recursiveDelete(group.toString(), NodeMissingPolicy.SKIP);
-            }
-          } catch (KeeperException | InterruptedException e) {
-            log.error("{}", e.getMessage(), e);
-          }
+    }
+
+    if (opts.zapScanServers) {
+      Set<ServiceLockPath> sserverLockPaths =
+          context.getServerPaths().getScanServer(rgp, AddressSelector.all(), false);
+      Set<String> sserverResourceGroupPaths = new HashSet<>();
+      sserverLockPaths.forEach(p -> sserverResourceGroupPaths
+          .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
+
+      try {
+        for (String group : sserverResourceGroupPaths) {
+          message("Deleting sserver " + group + " from zookeeper", opts);
+          zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
         }
-
-        if (opts.zapCompactors) {
-          Set<ServiceLockPath> compactorLockPaths =
-              context.getServerPaths().getCompactor(rgp, AddressSelector.all(), false);
-          Set<String> compactorResourceGroupPaths = new HashSet<>();
-          compactorLockPaths.forEach(p -> compactorResourceGroupPaths
-              .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
-          try {
-            for (String group : compactorResourceGroupPaths) {
-              message("Deleting compactor " + group + " from zookeeper", opts);
-              zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
-            }
-          } catch (KeeperException | InterruptedException e) {
-            log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
-          }
-
-        }
-
-        if (opts.zapScanServers) {
-          Set<ServiceLockPath> sserverLockPaths =
-              context.getServerPaths().getScanServer(rgp, AddressSelector.all(), false);
-          Set<String> sserverResourceGroupPaths = new HashSet<>();
-          sserverLockPaths.forEach(p -> sserverResourceGroupPaths
-              .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
-
-          try {
-            for (String group : sserverResourceGroupPaths) {
-              message("Deleting sserver " + group + " from zookeeper", opts);
-              zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
-            }
-          } catch (KeeperException | InterruptedException e) {
-            log.error("{}", e.getMessage(), e);
-          }
-        }
+      } catch (KeeperException | InterruptedException e) {
+        log.error("{}", e.getMessage(), e);
       }
     }
   }
