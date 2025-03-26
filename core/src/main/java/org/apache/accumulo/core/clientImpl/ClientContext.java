@@ -93,6 +93,7 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
@@ -138,7 +139,7 @@ public class ClientContext implements AccumuloClient {
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration accumuloConf;
   private final Configuration hadoopConf;
-  private final Map<TableId,ClientTabletCache> tabletLocationCache = new ConcurrentHashMap<>();
+  private final Map<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>> tabletLocationCache;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -231,6 +232,12 @@ public class ClientContext implements AccumuloClient {
       UncaughtExceptionHandler ueh) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
+
+    var tabletCache = new HashMap<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>>();
+    for (DataLevel level : DataLevel.values()) {
+      tabletCache.put(level, new ConcurrentHashMap<>());
+    }
+    this.tabletLocationCache = Map.copyOf(tabletCache); // make it immutable
 
     this.zooSession = memoize(() -> {
       var zk =
@@ -1093,31 +1100,41 @@ public class ClientContext implements AccumuloClient {
 
   public ClientTabletCache getTabletLocationCache(TableId tableId) {
     ensureOpen();
-    synchronized (tabletLocationCache) {
-      return tabletLocationCache.computeIfAbsent(tableId, (TableId key) -> {
-        var lockChecker = getTServerLockChecker();
-        if (AccumuloTable.ROOT.tableId().equals(tableId)) {
-          return new RootClientTabletCache(lockChecker);
-        }
-        var mlo = new MetadataCachedTabletObtainer();
-        if (AccumuloTable.METADATA.tableId().equals(tableId)) {
-          return new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
-              getTabletLocationCache(AccumuloTable.ROOT.tableId()), mlo, lockChecker);
-        } else {
-          return new ClientTabletCacheImpl(tableId,
-              getTabletLocationCache(AccumuloTable.METADATA.tableId()), mlo, lockChecker);
-        }
-      });
-    }
+    return tabletLocationCache.get(DataLevel.of(tableId)).computeIfAbsent(tableId,
+        (TableId key) -> {
+          var lockChecker = getTServerLockChecker();
+          if (AccumuloTable.ROOT.tableId().equals(tableId)) {
+            return new RootClientTabletCache(lockChecker);
+          }
+          var mlo = new MetadataCachedTabletObtainer();
+          if (AccumuloTable.METADATA.tableId().equals(tableId)) {
+            return new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
+                getTabletLocationCache(AccumuloTable.ROOT.tableId()), mlo, lockChecker);
+          } else {
+            return new ClientTabletCacheImpl(tableId,
+                getTabletLocationCache(AccumuloTable.METADATA.tableId()), mlo, lockChecker);
+          }
+        });
   }
 
+  /**
+   * Clear the currently cached tablet locations. The use of ConcurrentHashMap ensures this is
+   * thread-safe. However, since the ConcurrentHashMap iterator is weakly consistent, it does not
+   * block new locations from being cached. If new locations are added while this is executing, they
+   * may be immediately invalidated by this code. Multiple calls to this method in different threads
+   * may cause some location caches to be invalidated multiple times. That is okay, because cache
+   * invalidation is idempotent.
+   */
   public void clearTabletLocationCache() {
-    synchronized (tabletLocationCache) {
-      for (ClientTabletCache cache : tabletLocationCache.values()) {
-        cache.invalidate();
+    tabletLocationCache.forEach((dataLevel, map) -> {
+      // use iter.remove() instead of calling clear() on the map, to prevent clearing entries that
+      // may not have been invalidated
+      var iter = map.values().iterator();
+      while (iter.hasNext()) {
+        iter.next().invalidate();
+        iter.remove();
       }
-      tabletLocationCache.clear();
-    }
+    });
   }
 
   private static Set<String> createPersistentWatcherPaths() {
