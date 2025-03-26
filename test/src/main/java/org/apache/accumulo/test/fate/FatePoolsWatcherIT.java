@@ -714,7 +714,7 @@ public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
     }
   }
 
-  public static class PoolResizeTestEnv extends TestEnv {
+  public static class PoolResizeTestEnv extends FateTestRunner.TestEnv {
     private final AtomicInteger numWorkers = new AtomicInteger(0);
     private final CountDownLatch isReadyLatch = new CountDownLatch(1);
   }
