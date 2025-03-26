@@ -82,7 +82,6 @@ import org.apache.accumulo.monitor.rest.compactions.external.ExternalCompactionI
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactions;
 import org.apache.accumulo.monitor.rest.compactions.external.RunningCompactorDetails;
 import org.apache.accumulo.server.AbstractServer;
-import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.transport.TTransportException;
@@ -109,7 +108,7 @@ import com.google.common.net.HostAndPort;
 /**
  * Serve manager statistics with an embedded web server.
  */
-public class Monitor extends AbstractServer implements HighlyAvailableService, Connection.Listener {
+public class Monitor extends AbstractServer implements Connection.Listener {
 
   private static final Logger log = LoggerFactory.getLogger(Monitor.class);
   private static final int REFRESH_TIME = 5;
@@ -140,7 +139,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
   private long totalHoldTime = 0;
   private long totalLookups = 0;
   private int totalTables = 0;
-  private final AtomicBoolean monitorInitialized = new AtomicBoolean(false);
 
   private EventCounter lookupRateTracker = new EventCounter();
   private EventCounter indexCacheHitTracker = new EventCounter();
@@ -429,8 +427,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
       }
     }).start();
     Threads.createThread("Metric Fetcher Thread", fetcher).start();
-
-    monitorInitialized.set(true);
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {
@@ -823,11 +819,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService, C
 
   public double getLookupRate() {
     return lookupRateTracker.calculateRate();
-  }
-
-  @Override
-  public boolean isActiveService() {
-    return monitorInitialized.get();
   }
 
   public Optional<HostAndPort> getCoordinatorHost() {

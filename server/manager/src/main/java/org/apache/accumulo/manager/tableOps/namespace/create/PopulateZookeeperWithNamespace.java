@@ -28,7 +28,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.PropUtil;
 
 class PopulateZookeeperWithNamespace extends ManagerRepo {
@@ -55,7 +54,7 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
       var context = manager.getContext();
       NamespaceMapping.put(context.getZooSession().asReaderWriter(), namespaceInfo.namespaceId,
           namespaceInfo.namespaceName);
-      TableManager.prepareNewNamespaceState(context, namespaceInfo.namespaceId,
+      context.getTableManager().prepareNewNamespaceState(namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
       PropUtil.setProperties(context, NamespacePropKey.of(namespaceInfo.namespaceId),

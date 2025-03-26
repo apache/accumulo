@@ -411,10 +411,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
-        processor, this.getClass().getSimpleName(), "Thrift Client Server",
-        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK);
+    ServerAddress sp =
+        TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT, processor,
+            this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+            Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sp.startThriftServer("Thrift Client Server");
     this.server = sp.server;
     return sp.address;
   }

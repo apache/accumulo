@@ -28,30 +28,30 @@ import java.io.File;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FatePoolResizeIT;
-import org.apache.accumulo.test.fate.FateStoreUtil;
+import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
+import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
-public class MetaFatePoolResizeIT extends FatePoolResizeIT {
+public class MetaFatePoolsWatcherIT extends FatePoolsWatcherIT {
   @TempDir
   private static File tempDir;
 
   @BeforeAll
   public static void setup() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.setup(tempDir);
+    FateTestUtil.MetaFateZKSetup.setup(tempDir);
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    FateStoreUtil.MetaFateZKSetup.teardown();
+    FateTestUtil.MetaFateZKSetup.teardown();
   }
 
   @Override
   public void executeTest(FateTestExecutor<PoolResizeTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    var zk = FateStoreUtil.MetaFateZKSetup.getZk();
+    var zk = FateTestUtil.MetaFateZKSetup.getZk();
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
