@@ -488,7 +488,7 @@ public abstract class GroupBalancer implements TabletBalancer {
     }
 
     ArrayList<Pair<String,TabletServerId>> serversGroupsToRemove = new ArrayList<>();
-    ArrayList<TabletServerId> serversToRemove = new ArrayList<>();
+    HashSet<TabletServerId> serversToRemove = new HashSet<>();
 
     for (TserverGroupInfo destTgi : tservers.values()) {
       if (surplusExtra.isEmpty()) {
