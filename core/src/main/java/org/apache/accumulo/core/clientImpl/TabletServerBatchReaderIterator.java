@@ -115,7 +115,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   private final Map<String,TimeoutTracker> timeoutTrackers;
   private final Set<String> timedoutServers;
-  private final Duration retryTimeout;
+  private final long retryTimeout;
 
   private final ClientTabletCache locator;
 
@@ -127,7 +127,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
   public TabletServerBatchReaderIterator(ClientContext context, TableId tableId, String tableName,
       Authorizations authorizations, ArrayList<Range> ranges, int numThreads,
-      ExecutorService queryThreadPool, ScannerOptions scannerOptions, Duration retryTimeout) {
+      ExecutorService queryThreadPool, ScannerOptions scannerOptions, long retryTimeout) {
 
     this.context = context;
     this.tableId = tableId;
@@ -138,7 +138,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     this.options = new ScannerOptions(scannerOptions);
     resultsQueue = new ArrayBlockingQueue<>(numThreads);
 
-    this.locator = new TimeoutClientTabletCache(retryTimeout.toMillis(), context, tableId);
+    this.locator = new TimeoutClientTabletCache(retryTimeout, context, tableId);
 
     timeoutTrackers = Collections.synchronizedMap(new HashMap<>());
     timedoutServers = Collections.synchronizedSet(new HashSet<>());
@@ -263,7 +263,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     ScanServerData ssd;
 
-    CountDownTimer retryCountDownTimer = CountDownTimer.startNew(retryTimeout);
+    CountDownTimer retryCountDownTimer = CountDownTimer.startNew(retryTimeout, MILLISECONDS);
 
     while (true) {
 
@@ -800,46 +800,46 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     String server;
     Set<String> badServers;
-    final Duration timeOut;
-    CountDownTimer timeoutCountDownTimer;
-    CountDownTimer errorTimer = null;
+    final long timeOut;
+    long activityTime;
+    Long firstErrorTime = null;
 
-    TimeoutTracker(String server, Set<String> badServers, Duration timeOut) {
+    TimeoutTracker(String server, Set<String> badServers, long timeOut) {
       this(timeOut);
       this.server = server;
       this.badServers = badServers;
     }
 
-    TimeoutTracker(Duration timeOut) {
+    TimeoutTracker(long timeOut) {
       this.timeOut = timeOut;
-      this.timeoutCountDownTimer = CountDownTimer.startNew(timeOut);
     }
 
     void startingScan() {
-      timeoutCountDownTimer.restart();
+      activityTime = System.currentTimeMillis();
     }
 
     void check() throws IOException {
-      if (timeoutCountDownTimer.isExpired()) {
+      if (System.currentTimeMillis() - activityTime > timeOut) {
         badServers.add(server);
-        throw new IOException("Time exceeded " + timeOut.toMillis() + "ms for server " + server);
+        throw new IOException(
+            "Time exceeded " + (System.currentTimeMillis() - activityTime) + " " + server);
       }
     }
 
     void madeProgress() {
-      timeoutCountDownTimer.restart();
-      errorTimer = null;
+      activityTime = System.currentTimeMillis();
+      firstErrorTime = null;
     }
 
     void errorOccured() {
-      if (errorTimer == null) {
-        errorTimer = CountDownTimer.startNew(timeOut);
-      } else if (errorTimer.isExpired()) {
+      if (firstErrorTime == null) {
+        firstErrorTime = activityTime;
+      } else if (System.currentTimeMillis() - firstErrorTime > timeOut) {
         badServers.add(server);
       }
     }
 
-    public Duration getTimeOut() {
+    public long getTimeOut() {
       return timeOut;
     }
   }
@@ -850,7 +850,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       ScannerOptions options, Authorizations authorizations)
       throws IOException, AccumuloSecurityException, AccumuloServerException {
     doLookup(context, server, requested, failures, unscanned, receiver, columns, options,
-        authorizations, new TimeoutTracker(Duration.ofMillis(Long.MAX_VALUE)), 0L);
+        authorizations, new TimeoutTracker(Long.MAX_VALUE), 0L);
   }
 
   static void doLookup(ClientContext context, String server, Map<KeyExtent,List<Range>> requested,
@@ -876,9 +876,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
     try {
       final HostAndPort parsedServer = HostAndPort.fromString(server);
       final TabletScanClientService.Client client;
-      if (timeoutTracker.getTimeOut().toMillis() < context.getClientTimeoutInMillis()) {
+      if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis()) {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context,
-            timeoutTracker.getTimeOut().toMillis());
+            timeoutTracker.getTimeOut());
       } else {
         client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
       }
