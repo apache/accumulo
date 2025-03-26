@@ -99,7 +99,7 @@ public abstract class AbstractServer
         throw new IllegalStateException(
             "Instance has been prepared for upgrade, no servers can be started."
                 + " To undo this state and abort upgrade preparations delete the zookeeper node: "
-                + upgradePrepNode);
+                + upgradePrepNode + " for instance: " + context.getInstanceID());
       }
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(

@@ -66,7 +66,7 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Utility for removing Zookeeper locks and other data";
+    return "Utility for removing Zookeeper locks and preparing an instance for upgrade";
   }
 
   static class Opts extends Help {
