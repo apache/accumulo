@@ -67,7 +67,7 @@ import com.google.common.collect.Iterators;
 public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
     implements FateTestRunner<FateExecutionOrderIT.FeoTestEnv> {
 
-  public static class FeoTestEnv extends TestEnv {
+  public static class FeoTestEnv extends FateTestRunner.TestEnv {
     private final AccumuloClient client;
 
     public FeoTestEnv(AccumuloClient client) {

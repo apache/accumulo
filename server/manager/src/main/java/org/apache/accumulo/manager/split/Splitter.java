@@ -105,6 +105,7 @@ public class Splitter {
     if (!splits.isEmpty()) {
       try (var seeder = manager.fate(instanceType).beginSeeding()) {
         for (KeyExtent extent : splits.values()) {
+          @SuppressWarnings("unused")
           var unused = seeder.attemptToSeedTransaction(Fate.FateOperation.SYSTEM_SPLIT,
               FateKey.forSplit(extent), new FindSplits(extent), true);
         }
