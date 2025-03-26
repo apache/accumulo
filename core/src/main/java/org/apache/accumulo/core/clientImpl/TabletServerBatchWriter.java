@@ -920,10 +920,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
         } catch (IOException e) {
           log.debug("failed to send mutations to {}", location, e);
 
-          Map<TableId,List<KeyExtent>> perTableExtents =
-              mutationBatch.keySet().stream().collect(Collectors.groupingBy(KeyExtent::tableId));
-          for (var entry : perTableExtents.entrySet()) {
-            getLocator(entry.getKey()).invalidateCache(entry.getValue());
+          mutationBatch.keySet().stream().collect(Collectors.groupingBy(KeyExtent::tableId))
+              .forEach((k, v) -> getLocator(k).invalidateCache(v));
           }
 
           failedMutations.add(tsm);
