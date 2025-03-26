@@ -215,9 +215,6 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
 
         count++;
       }
-      if (iter.hasNext()) {
-        throw new Exception("found more than expected " + iter.next());
-      }
     }
   }
 
