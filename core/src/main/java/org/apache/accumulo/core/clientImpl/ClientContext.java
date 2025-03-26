@@ -31,6 +31,7 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -233,11 +234,12 @@ public class ClientContext implements AccumuloClient {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
 
-    var tabletCache = new HashMap<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>>();
+    var tabletCache =
+        new EnumMap<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>>(DataLevel.class);
     for (DataLevel level : DataLevel.values()) {
       tabletCache.put(level, new ConcurrentHashMap<>());
     }
-    this.tabletLocationCache = Map.copyOf(tabletCache); // make it immutable
+    this.tabletLocationCache = Collections.unmodifiableMap(tabletCache);
 
     this.zooSession = memoize(() -> {
       var zk =
