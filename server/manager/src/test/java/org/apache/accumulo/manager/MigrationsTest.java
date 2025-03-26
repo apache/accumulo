@@ -42,8 +42,6 @@ public class MigrationsTest {
       new TServerInstance(HostAndPort.fromParts("server1", 9997), "s001");
   private final TServerInstance TS2 =
       new TServerInstance(HostAndPort.fromParts("server2", 1234), "s002");
-  private final TServerInstance TS3 =
-      new TServerInstance(HostAndPort.fromParts("server3", 6789), "s002");
 
   private final TableId TID1 = TableId.of("1");
   private final TableId TID2 = TableId.of("2");

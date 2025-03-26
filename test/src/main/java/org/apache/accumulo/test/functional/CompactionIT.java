@@ -859,9 +859,8 @@ public class CompactionIT extends AccumuloClusterHarness {
 
       assertEquals(2, client.instanceOperations().getTabletServers().size());
 
-      var ctx = (ClientContext) client;
-      var tableId1 = ctx.getTableId(tables[0]);
-      var tableId2 = ctx.getTableId(tables[1]);
+      var tableId1 = ((ClientContext) client).getTableId(tables[0]);
+      var tableId2 = ((ClientContext) client).getTableId(tables[1]);
 
       Wait.waitFor(() -> {
         var runningCompactions = client.instanceOperations().getActiveCompactions().stream()
@@ -881,8 +880,9 @@ public class CompactionIT extends AccumuloClusterHarness {
       });
 
       Wait.waitFor(() -> {
-        try (var tablets = ctx.getAmple().readTablets().forLevel(Ample.DataLevel.USER)
-            .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
+        try (var tablets =
+            ((ClientContext) client).getAmple().readTablets().forLevel(Ample.DataLevel.USER)
+                .fetch(ColumnType.LOCATION, ColumnType.PREV_ROW).build()) {
           Map<String,Long> counts = new HashMap<>();
           for (var tablet : tablets) {
             if (!tablet.getTableId().equals(tableId1) && !tablet.getTableId().equals(tableId2)) {

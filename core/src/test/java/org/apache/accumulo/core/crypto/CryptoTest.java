@@ -583,7 +583,7 @@ public class CryptoTest {
     assertTrue(ce.getMessage().contains("closing previous"));
 
     es1.close();
-    var es2 = encrypter.encryptStream(out2);
+    assertNotNull(encrypter.encryptStream(out2));
   }
 
   private ArrayList<Key> testData() {
