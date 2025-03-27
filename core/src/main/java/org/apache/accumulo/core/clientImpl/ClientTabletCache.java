@@ -180,11 +180,6 @@ public abstract class ClientTabletCache {
    */
   public abstract void invalidateCache();
 
-  /**
-   * Invalidate all metadata entries that point to server
-   */
-  public abstract void invalidateCache(ClientContext context, String server);
-
   public long getTabletHostingRequestCount() {
     return 0L;
   }
