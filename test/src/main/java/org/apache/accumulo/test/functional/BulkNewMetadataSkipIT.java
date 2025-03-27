@@ -129,7 +129,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
     ntc.withSplits(splits);
 
     final Map<String,Set<String>> hashes = new HashMap<>();
-    IntStream.rangeClosed(0, 1000).forEach(i -> hashes.put(row(i) + "", new HashSet<>()));
+    IntStream.rangeClosed(0, 1000).forEach(i -> hashes.put(row(i), new HashSet<>()));
     hashes.put("null", new HashSet<>());
 
     String h1 = writeData(fs, dir + "/f1.", aconf, 0, 11);
