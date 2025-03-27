@@ -40,7 +40,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -102,7 +101,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   private final TabletServerLockChecker lockChecker;
   protected final Text lastTabletRow;
 
-  private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final AtomicLong tabletHostingRequestCount = new AtomicLong(0);
 
   public interface CachedTabletObtainer {
@@ -456,26 +454,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     keySet.forEach(extent -> removeOverlapping(metaCache, extent));
     if (log.isTraceEnabled()) {
       log.trace("Invalidated {} cache entries for table {}", keySet.size(), tableId);
-    }
-  }
-
-  @Override
-  public void invalidateCache(ClientContext context, String server) {
-    var iter = metaCache.values().iterator();
-    int removed = 0;
-    while (iter.hasNext()) {
-      var cachedTablet = iter.next();
-      if (cachedTablet.getTserverLocation().isPresent()
-          && cachedTablet.getTserverLocation().orElseThrow().equals(server)) {
-        iter.remove();
-        removed++;
-      }
-    }
-
-    lockChecker.invalidateCache(server);
-
-    if (log.isTraceEnabled()) {
-      log.trace("invalidated {} cache entries for table={} server={}", removed, tableId, server);
     }
   }
 

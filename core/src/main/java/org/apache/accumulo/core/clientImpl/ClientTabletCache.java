@@ -36,10 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.util.Interner;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -59,6 +56,10 @@ public abstract class ClientTabletCache {
 
   boolean isValid() {
     return isValid;
+  }
+
+  void invalidate() {
+    isValid = false;
   }
 
   /**
@@ -179,44 +180,8 @@ public abstract class ClientTabletCache {
    */
   public abstract void invalidateCache();
 
-  /**
-   * Invalidate all metadata entries that point to server
-   */
-  public abstract void invalidateCache(ClientContext context, String server);
-
-  public static synchronized void clearInstances(ClientContext context) {
-    final var instances = context.tabletCaches();
-    for (ClientTabletCache locator : instances.values()) {
-      locator.isValid = false;
-    }
-    instances.clear();
-  }
-
   public long getTabletHostingRequestCount() {
     return 0L;
-  }
-
-  public static synchronized ClientTabletCache getInstance(ClientContext context, TableId tableId) {
-    final var caches = context.tabletCaches();
-    ClientTabletCache tl = caches.get(tableId);
-    if (tl == null) {
-      MetadataCachedTabletObtainer mlo = new MetadataCachedTabletObtainer();
-
-      if (AccumuloTable.ROOT.tableId().equals(tableId)) {
-        tl = new RootClientTabletCache(context.getTServerLockChecker());
-      } else if (AccumuloTable.METADATA.tableId().equals(tableId)) {
-        tl = new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
-            getInstance(context, AccumuloTable.ROOT.tableId()), mlo,
-            context.getTServerLockChecker());
-      } else {
-        tl = new ClientTabletCacheImpl(tableId,
-            getInstance(context, AccumuloTable.METADATA.tableId()), mlo,
-            context.getTServerLockChecker());
-      }
-      caches.put(tableId, tl);
-    }
-
-    return tl;
   }
 
   public static class CachedTablets {
