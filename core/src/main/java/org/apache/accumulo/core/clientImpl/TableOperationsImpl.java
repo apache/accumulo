@@ -1511,15 +1511,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     switch (newState) {
       case OFFLINE:
         op = TFateOperation.TABLE_OFFLINE;
-        if (tableName.equals(AccumuloTable.METADATA.tableName())
-            || tableName.equals(AccumuloTable.ROOT.tableName())) {
-          throw new AccumuloException("Cannot set table to offline state");
-        }
+        NOT_BUILTIN_TABLE.validate(tableName);
         break;
       case ONLINE:
         op = TFateOperation.TABLE_ONLINE;
-        if (tableName.equals(AccumuloTable.METADATA.tableName())
-            || tableName.equals(AccumuloTable.ROOT.tableName())) {
+        try {
+          NOT_BUILTIN_TABLE.validate(tableName);
+        } catch (IllegalArgumentException e) {
           // Don't submit a Fate operation for this, these tables can only be online.
           return;
         }
