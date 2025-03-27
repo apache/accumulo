@@ -932,8 +932,7 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
-      File outputDirectory)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+      File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
       writer.write(createTableFormat.format(new String[] {tableName}));
@@ -956,7 +955,8 @@ public class Admin implements KeywordExecutable {
 
   // Fate Operations
   private void executeFateOpsCommand(ServerContext context, FateOpsCommand fateOpsCommand)
-      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
+      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException,
+      NamespaceNotFoundException {
 
     validateFateUserInput(fateOpsCommand);
 
@@ -1105,7 +1105,8 @@ public class Admin implements KeywordExecutable {
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
       Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
-      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
+      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException,
+      NamespaceNotFoundException {
 
     var zk = context.getZooSession();
     var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);

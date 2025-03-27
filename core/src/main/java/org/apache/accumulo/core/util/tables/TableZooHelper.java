@@ -125,7 +125,13 @@ public class TableZooHelper implements AutoCloseable {
   }
 
   private TableMap getCachedTableMap() {
-    return instanceToMapCache.get(this, k -> new TableMap(context));
+    return instanceToMapCache.get(this, k -> {
+      try {
+        return new TableMap(context);
+      } catch (NamespaceNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    });
   }
 
   public boolean tableNodeExists(TableId tableId) {

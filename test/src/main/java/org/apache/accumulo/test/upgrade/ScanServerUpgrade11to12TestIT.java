@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -107,7 +108,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     // Remove the scan server table metadata in zk
     try {
       ctx.getTableManager().removeTable(AccumuloTable.SCAN_REF.tableId());
-    } catch (KeeperException | InterruptedException e) {
+    } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
       throw new RuntimeException("Removal of scan ref table failed" + e);
     }
 

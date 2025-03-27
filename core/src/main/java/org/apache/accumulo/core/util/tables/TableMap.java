@@ -18,16 +18,13 @@
  */
 package org.apache.accumulo.core.util.tables;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -49,56 +46,26 @@ public class TableMap {
   private final ZooCache zooCache;
   private final long updateCount;
 
-  public TableMap(ClientContext context) {
+  public TableMap(ClientContext context) throws NamespaceNotFoundException {
 
     this.zooCache = context.getZooCache();
     // important to read this first
     this.updateCount = zooCache.getUpdateCount();
 
-    List<String> tableIds = zooCache.getChildren(Constants.ZTABLES);
-    Map<NamespaceId,String> namespaceIdToNameMap = new HashMap<>();
     final var tableNameToIdBuilder = ImmutableMap.<String,TableId>builder();
     final var tableIdToNameBuilder = ImmutableMap.<TableId,String>builder();
 
-    // use StringBuilder to construct zPath string efficiently across many tables
-    StringBuilder zPathBuilder = new StringBuilder();
-    zPathBuilder.append(Constants.ZTABLES).append("/");
-    int prefixLength = zPathBuilder.length();
-
-    for (String tableIdStr : tableIds) {
-      // reset StringBuilder to prefix length before appending ID and suffix
-      zPathBuilder.setLength(prefixLength);
-      zPathBuilder.append(tableIdStr).append(Constants.ZTABLE_NAME);
-      byte[] tableName = zooCache.get(zPathBuilder.toString());
-      zPathBuilder.setLength(prefixLength);
-      zPathBuilder.append(tableIdStr).append(Constants.ZTABLE_NAMESPACE);
-      byte[] nId = zooCache.get(zPathBuilder.toString());
-
-      String namespaceName = Namespace.DEFAULT.name();
-      // create fully qualified table name
-      if (nId == null) {
-        namespaceName = null;
-      } else {
-        NamespaceId namespaceId = NamespaceId.of(new String(nId, UTF_8));
-        if (!namespaceId.equals(Namespace.DEFAULT.id())) {
-          try {
-            namespaceName = namespaceIdToNameMap.get(namespaceId);
-            if (namespaceName == null) {
-              namespaceName = Namespaces.getNamespaceName(context, namespaceId);
-              namespaceIdToNameMap.put(namespaceId, namespaceName);
-            }
-          } catch (NamespaceNotFoundException e) {
-            log.error("Table (" + tableIdStr + ") contains reference to namespace (" + namespaceId
-                + ") that doesn't exist", e);
-            continue;
-          }
-        }
-      }
-      if (tableName != null && namespaceName != null) {
-        String tableNameStr = TableNameUtil.qualified(new String(tableName, UTF_8), namespaceName);
-        TableId tableId = TableId.of(tableIdStr);
-        tableNameToIdBuilder.put(tableNameStr, tableId);
-        tableIdToNameBuilder.put(tableId, tableNameStr);
+    List<String> namespaceIds = zooCache.getChildren(Constants.ZNAMESPACES);
+    for (String namespaceId : namespaceIds) {
+      byte[] rawTableMap =
+          zooCache.get(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES);
+      Map<String,String> tableMap = NamespaceMapping.deserialize(rawTableMap);
+      for (Map.Entry<String,String> entry : tableMap.entrySet()) {
+        String fullyQualifiedName = TableNameUtil.qualified(entry.getValue(),
+            Namespaces.getNamespaceName(context, NamespaceId.of(namespaceId)));
+        TableId tableId = TableId.of(entry.getKey());
+        tableNameToIdBuilder.put(fullyQualifiedName, tableId);
+        tableIdToNameBuilder.put(tableId, fullyQualifiedName);
       }
     }
     tableNameToIdMap = tableNameToIdBuilder.build();

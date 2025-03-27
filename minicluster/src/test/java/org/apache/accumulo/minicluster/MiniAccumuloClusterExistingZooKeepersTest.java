@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.minicluster;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -29,6 +28,7 @@ import java.util.Map;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -76,14 +76,13 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
         Map<String,String> tableIds = client.tableOperations().tableIdMap();
         assertTrue(tableIds.containsKey(tableName));
 
-        String zkTablePath = String.format("%s%s/%s/name",
-            ZooUtil.getRoot(client.instanceOperations().getInstanceId()), Constants.ZTABLES,
-            tableIds.get(tableName));
         try (CuratorFramework curatorClient =
             CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
           curatorClient.start();
-          assertNotNull(curatorClient.checkExists().forPath(zkTablePath));
-          assertEquals(tableName, new String(curatorClient.getData().forPath(zkTablePath), UTF_8));
+          assertNotNull(curatorClient.checkExists()
+              .forPath(String.format("%s%s/%s/tables",
+                  ZooUtil.getRoot(client.instanceOperations().getInstanceId()),
+                  Constants.ZNAMESPACES, Namespace.DEFAULT.id())));
         }
       }
     }

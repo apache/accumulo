@@ -289,8 +289,7 @@ public class TableManager {
         case NodeDeleted:
           if (zPath != null && tableId != null
               && (zPath.equals(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE)
-                  || zPath.equals(Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG)
-                  || zPath.equals(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAME))) {
+                  || zPath.equals(Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG))) {
             tableStateCache.remove(tableId);
           }
           break;

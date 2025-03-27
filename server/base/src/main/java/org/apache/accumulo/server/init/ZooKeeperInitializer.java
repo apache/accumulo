@@ -111,14 +111,13 @@ public class ZooKeeperInitializer {
 
     zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.DEFAULT.id()),
         NamespaceMapping.serialize(Map.of()), ZooUtil.NodeExistsPolicy.FAIL);
-    zrwChroot
-        .putPersistentData(TableMapping.getZTableMapPath(Namespace.ACCUMULO.id()),
-            NamespaceMapping.serialize(Map.of(AccumuloTable.ROOT.tableId().canonical(),
-                AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableId().canonical(),
-                AccumuloTable.METADATA.tableName(), AccumuloTable.SCAN_REF.tableId().canonical(),
-                AccumuloTable.SCAN_REF.tableName(), AccumuloTable.FATE.tableId().canonical(),
-                AccumuloTable.FATE.tableName())),
-            ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.ACCUMULO.id()),
+        NamespaceMapping.serialize(Map.of(AccumuloTable.ROOT.tableId().canonical(),
+            AccumuloTable.ROOT.simpleTableName(), AccumuloTable.METADATA.tableId().canonical(),
+            AccumuloTable.METADATA.simpleTableName(), AccumuloTable.SCAN_REF.tableId().canonical(),
+            AccumuloTable.SCAN_REF.simpleTableName(), AccumuloTable.FATE.tableId().canonical(),
+            AccumuloTable.FATE.simpleTableName())),
+        ZooUtil.NodeExistsPolicy.FAIL);
 
     TableManager.prepareNewTableState(context, AccumuloTable.ROOT.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,
