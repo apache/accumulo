@@ -66,14 +66,33 @@ public class ThriftUtil {
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
-   * An instance of {@link AccumuloProtocolFactory}
+   * Returns the client-side Accumulo protocol factory used for RPC.
+   * <p>
+   * This protocol factory creates protocol instances that:
+   * <ul>
+   * <li>Prepend a custom header with magic number and protocol version</li>
+   * <li>Support tracing context propagation</li>
+   * <li>Handle client-side span creation and management</li>
+   * </ul>
    *
-   * @return The default Thrift TProtocolFactory for RPC
+   * @return The client-side Accumulo TProtocolFactory for RPC
    */
   public static TProtocolFactory clientProtocolFactory() {
     return clientAccumuloProtocolFactory;
   }
 
+  /**
+   * Returns the server-side Accumulo protocol factory used for RPC.
+   * <p>
+   * This protocol factory creates protocol instances that:
+   * <ul>
+   * <li>Validate the custom header (magic number and protocol version)</li>
+   * <li>Extract OpenTelemetry trace context from incoming requests</li>
+   * <li>Create server-side spans for request handling</li>
+   * </ul>
+   *
+   * @return The server-side {@link AccumuloProtocolFactory.AccumuloProtocol} for RPC
+   */
   public static TProtocolFactory serverProtocolFactory() {
     return serverAccumuloProtocolFactory;
   }

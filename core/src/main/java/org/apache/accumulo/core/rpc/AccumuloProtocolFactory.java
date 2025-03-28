@@ -27,6 +27,7 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.StatusCode;
@@ -107,7 +108,11 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         traceHeaders.clear();
 
         W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
-            (headers, key, value) -> headers.put(key, value));
+            (headers, key, value) -> {
+              if (headers != null) {
+                headers.put(key, value);
+              }
+            });
 
         super.writeI32(traceHeaders.size());
 
@@ -157,10 +162,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       }
 
       final byte version = super.readByte();
-      if (!isCompatibleVersion(version)) {
-        throw new TException("Incompatible protocol version. Client version: " + version
-            + ", Server version: " + PROTOCOL_VERSION);
-      }
+      validateProtocolVersion(version);
 
       final boolean hasTrace = super.readBool();
 
@@ -178,12 +180,12 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
           Context extractedContext = W3CTraceContextPropagator.getInstance()
               .extract(Context.current(), headers, new TextMapGetter<>() {
                 @Override
-                public Iterable<String> keys(Map<String,String> carrier) {
+                public Iterable<String> keys(@NonNull Map<String,String> carrier) {
                   return carrier.keySet();
                 }
 
                 @Override
-                public String get(Map<String,String> carrier, String key) {
+                public String get(Map<String,String> carrier, @NonNull String key) {
                   return carrier.get(key);
                 }
               });
@@ -197,10 +199,13 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     }
 
     /**
-     * Checks if the given version is compatible with the current protocol version
+     * @throws TException if the given protocol version is incompatible with the current version
      */
-    private boolean isCompatibleVersion(byte version) {
-      return version == PROTOCOL_VERSION;
+    private void validateProtocolVersion(byte protocolVersion) throws TException {
+      if (protocolVersion != PROTOCOL_VERSION) {
+        throw new TException("Incompatible protocol version. Version seen: " + protocolVersion
+            + ", expected version: " + PROTOCOL_VERSION);
+      }
     }
 
   }
