@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -37,7 +38,7 @@ public class PeekingIteratorTest {
 
   @Test
   public void testEmpty() {
-    var iter = new PeekingIterator<>(List.of().iterator());
+    var iter = new PeekingIterator<>(Collections.emptyIterator());
     assertFalse(iter.hasNext());
     assertNull(iter.peek());
     assertThrows(NoSuchElementException.class, iter::next);
