@@ -627,11 +627,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String dir = getDir("/testManyTablets-");
-      writeData(dir + "/f1.", aconf, 0, 199);
-      writeData(dir + "/f2.", aconf, 200, 399);
-      writeData(dir + "/f3.", aconf, 400, 599);
-      writeData(dir + "/f4.", aconf, 600, 799);
-      writeData(dir + "/f5.", aconf, 800, 999);
+      writeData(fs, dir + "/f1.", aconf, 0, 199);
+      writeData(fs, dir + "/f2.", aconf, 200, 399);
+      writeData(fs, dir + "/f3.", aconf, 400, 599);
+      writeData(fs, dir + "/f4.", aconf, 600, 799);
+      writeData(fs, dir + "/f5.", aconf, 800, 999);
 
       var splits = IntStream.range(1, 1000).mapToObj(BulkNewIT::row).map(Text::new)
           .collect(Collectors.toCollection(TreeSet::new));
