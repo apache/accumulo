@@ -1055,6 +1055,18 @@ public enum Property {
       "1.3.5"),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type.", "1.3.5"),
+  TABLE_BULK_SKIP_THRESHOLD("table.bulk.metadata.skip.distance", "0", PropertyType.COUNT,
+      "When performing bulk v2 imports to a table, the Manager iterates over the tables metadata"
+          + " tablets sequentially. When importing files into a small table or into all or a majority"
+          + " of tablets of a large table then the tablet metadata information for most tablets will be needed."
+          + " However, when importing files into a small number of non-contiguous tablets in a large table, then"
+          + " the Manager will look at each tablets metadata when it could be skipped. The value of this"
+          + " property tells the Manager if, and when, it should set up a new scanner over the metadata"
+          + " table instead of just iterating over tablet metadata to find the matching tablet. Setting up"
+          + " a new scanner is analogous to performing a seek in an iterator, but it has a cost. A value of zero (default) disables"
+          + " this feature. A non-zero value enables this feature and the Manager will setup a new scanner"
+          + " when the tablet metadata distance is above the supplied value.",
+      "2.1.4"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
