@@ -109,7 +109,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
   }
 
   @ParameterizedTest
-  @ValueSource(ints = {0, 0, 2, 4, 8, 16, 32, 64, 128})
+  @ValueSource(ints = {0, 1, 2, 4, 8, 16, 32, 64, 128})
   public void test(int skipDistance) throws Exception {
 
     final String tableName = getUniqueNames(1)[0] + "_" + skipDistance;
@@ -153,6 +153,15 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
       hashes.get(row(i)).add(h4);
     }
 
+    // create data that skips 0,1,2,..,9 tablets
+    int[] h5Rows = new int[] {50, 50 + 1, 50 + 1 + 2, 50 + 1 + 2 + 3, 50 + 1 + 2 + 3 + 4,
+        50 + 1 + 2 + 3 + 4 + 5, 50 + 1 + 2 + 3 + 4 + 5 + 6, 50 + 1 + 2 + 3 + 4 + 5 + 6 + 7,
+        50 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8, 50 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9};
+    String h5 = writeNonContiguousData(fs, dir + "/f5.", aconf, h5Rows);
+    for (int i : h5Rows) {
+      hashes.get(row(i)).add(h5);
+    }
+
     final LoadPlan loadPlan =
         LoadPlan.builder().loadFileTo("f1.rf", RangeType.FILE, row(0), row(11))
             .loadFileTo("f2.rf", RangeType.TABLE, row(10), row(11))
@@ -163,7 +172,23 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
             .loadFileTo("f3.rf", RangeType.FILE, row(272), row(273))
             .loadFileTo("f4.rf", RangeType.FILE, row(300), row(301))
             .loadFileTo("f4.rf", RangeType.TABLE, row(671), row(672))
-            .loadFileTo("f4.rf", RangeType.TABLE, row(997), row(998)).build();
+            .loadFileTo("f4.rf", RangeType.TABLE, row(997), row(998))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49), row(50))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1), row(50 + 1))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2), row(50 + 1 + 2))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3), row(50 + 1 + 2 + 3))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3 + 4), row(50 + 1 + 2 + 3 + 4))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3 + 4 + 5),
+                row(50 + 1 + 2 + 3 + 4 + 5))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3 + 4 + 5 + 6),
+                row(50 + 1 + 2 + 3 + 4 + 5 + 6))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3 + 4 + 5 + 6 + 7),
+                row(50 + 1 + 2 + 3 + 4 + 5 + 6 + 7))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8),
+                row(50 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8))
+            .loadFileTo("f5.rf", RangeType.TABLE, row(49 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9),
+                row(50 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9))
+            .build();
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -183,8 +208,13 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
 
       c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
 
-      verifyData(c, tableName, new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 199, 200, 204,
-          272, 273, 300, 301, 672, 998}, false);
+      verifyData(c, tableName,
+          new int[] {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 13, 50, 50 + 1, 50 + 1 + 2,
+              50 + 1 + 2 + 3, 50 + 1 + 2 + 3 + 4, 50 + 1 + 2 + 3 + 4 + 5,
+              50 + 1 + 2 + 3 + 4 + 5 + 6, 50 + 1 + 2 + 3 + 4 + 5 + 6 + 7,
+              50 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8, 50 + 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9, 199, 200,
+              204, 272, 273, 300, 301, 672, 998},
+          false);
       verifyMetadata(c, tableName, hashes);
     }
   }
@@ -217,5 +247,4 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
       }
     }
   }
-
 }
