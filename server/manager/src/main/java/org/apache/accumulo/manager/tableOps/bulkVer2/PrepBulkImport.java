@@ -106,6 +106,7 @@ public class PrepBulkImport extends ManagerRepo {
   interface TabletIterFactory extends AutoCloseable {
     Iterator<KeyExtent> newTabletIter(Text startRow);
 
+    @Override
     void close();
   }
 
