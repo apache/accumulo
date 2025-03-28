@@ -30,7 +30,6 @@ import org.apache.thrift.transport.TTransport;
 import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
@@ -81,9 +80,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
           super.writeMessageBegin(message);
         } catch (TException e) {
           if (span != null) {
-            span.recordException(e);
-            span.setAttribute("error.type", e.getClass().getCanonicalName());
-            span.setStatus(StatusCode.ERROR, e.getMessage());
+            TraceUtil.setException(span, e, false);
           }
           if (scope != null) {
             scope.close();
