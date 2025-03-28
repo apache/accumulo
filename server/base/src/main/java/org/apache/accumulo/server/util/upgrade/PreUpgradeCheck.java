@@ -36,9 +36,17 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.Parameter;
+
 public class PreUpgradeCheck implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(PreUpgradeCheck.class);
+
+  static class Opts extends ServerUtilOpts {
+
+    @Parameter(names = "--force", description = "if true, will force pre-upgrade to run")
+    boolean force = false;
+  }
 
   @Override
   public String keyword() {
@@ -54,7 +62,7 @@ public class PreUpgradeCheck implements KeywordExecutable {
   @Override
   public void execute(String[] args) throws Exception {
 
-    ServerUtilOpts opts = new ServerUtilOpts();
+    Opts opts = new Opts();
     opts.parseArgs(PreUpgradeCheck.class.getName(), args);
 
     final ServerContext context = opts.getServerContext();
@@ -71,9 +79,16 @@ public class PreUpgradeCheck implements KeywordExecutable {
     final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
 
     if (!zr.exists(prepUpgradePath)) {
-      LOG.info("{} node not found in ZooKeeper, 'ZooZap -prepare-for-upgrade' was likely"
-          + " not run after shutting down instance for upgrade. Removing"
-          + " server locks and checking for fate transactions.", prepUpgradePath);
+
+      if (opts.force) {
+        LOG.info("{} node not found in ZooKeeper, 'ZooZap -prepare-for-upgrade' was likely"
+            + " not run after shutting down instance for upgrade. Removing"
+            + " server locks and checking for fate transactions.", prepUpgradePath);
+      } else {
+        throw new IllegalStateException(prepUpgradePath + " node not found in ZooKeeper indicating"
+            + " that ZooZap -prepare-for-upgrade was not run after shutting down the instance. If"
+            + " you wish to continue, then run this command using the --force option.");
+      }
 
       try {
         // Adapted from UpgradeCoordinator.abortIfFateTransactions
@@ -117,8 +132,6 @@ public class PreUpgradeCheck implements KeywordExecutable {
         }
       }
     }
-
-    // TODO: Add 3.1 pre-upgrade steps
 
     // Initialize the UpgradeProgress object in ZooKeeper
     new UpgradeProgressTracker(context).initialize();

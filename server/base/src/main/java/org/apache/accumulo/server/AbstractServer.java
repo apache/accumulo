@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -99,7 +100,7 @@ public abstract class AbstractServer
         throw new IllegalStateException(
             "Instance has been prepared for upgrade, no servers can be started."
                 + " To undo this state and abort upgrade preparations delete the zookeeper node: "
-                + upgradePrepNode + " for instance: " + context.getInstanceID());
+                + ZooUtil.getRoot(context.getInstanceID()) + upgradePrepNode);
       }
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(
