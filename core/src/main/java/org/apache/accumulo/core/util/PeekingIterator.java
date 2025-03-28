@@ -61,6 +61,10 @@ public class PeekingIterator<E> implements Iterator<E> {
     return this;
   }
 
+  /**
+   * @return If this iterator has a next this will return what calling next() would return otherwise
+   *         returns null.
+   */
   public E peek() {
     if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
