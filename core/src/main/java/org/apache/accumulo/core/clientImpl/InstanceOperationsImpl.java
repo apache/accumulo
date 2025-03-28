@@ -563,7 +563,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-            if (addressSelector.getPredicate().test(location)) {
+            if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
               results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
                   hp.getPort()));
@@ -578,7 +578,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.NONE);
-            if (addressSelector.getPredicate().test(location)) {
+            if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
               results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
                   hp.getPort()));
@@ -593,7 +593,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
           String location = null;
           if (sld.isPresent()) {
             location = sld.orElseThrow().getAddressString(ThriftService.GC);
-            if (addressSelector.getPredicate().test(location)) {
+            if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
               results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
                   hp.getPort()));

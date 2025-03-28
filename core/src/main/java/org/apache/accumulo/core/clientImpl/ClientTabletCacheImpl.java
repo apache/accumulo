@@ -100,7 +100,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   protected final Text lastTabletRow;
 
   private final TreeSet<KeyExtent> badExtents = new TreeSet<>();
-  private final HashSet<String> badServers = new HashSet<>();
   private final ReentrantReadWriteLock rwLock = new ReentrantReadWriteLock();
   private final Lock rLock = rwLock.readLock();
   private final Lock wLock = rwLock.writeLock();
@@ -503,23 +502,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   @Override
-  public void invalidateCache(ClientContext context, String server) {
-
-    wLock.lock();
-    try {
-      badServers.add(server);
-    } finally {
-      wLock.unlock();
-    }
-
-    lockChecker.invalidateCache(server);
-
-    if (log.isTraceEnabled()) {
-      log.trace("queued invalidation for table={} server={}", tableId, server);
-    }
-  }
-
-  @Override
   public void invalidateCache() {
     int invalidatedCount;
     wLock.lock();
@@ -917,7 +899,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       throws AccumuloSecurityException, AccumuloException, TableNotFoundException,
       InvalidTabletHostingRequestException {
 
-    if (badExtents.isEmpty() && badServers.isEmpty()) {
+    if (badExtents.isEmpty()) {
       return;
     }
 
@@ -926,7 +908,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       if (!writeLockHeld) {
         rLock.unlock();
         wLock.lock();
-        if (badExtents.isEmpty() && badServers.isEmpty()) {
+        if (badExtents.isEmpty()) {
           return;
         }
       }
@@ -936,27 +918,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       for (KeyExtent be : badExtents) {
         lookups.add(be.toMetaRange());
         removeOverlapping(metaCache, be);
-      }
-
-      if (!badServers.isEmpty()) {
-        int removedCount = 0;
-        var locationIterator = metaCache.values().iterator();
-        while (locationIterator.hasNext()) {
-          var cacheEntry = locationIterator.next();
-          if (cacheEntry.getTserverLocation().isPresent()
-              && badServers.contains(cacheEntry.getTserverLocation().orElseThrow())) {
-            locationIterator.remove();
-            lookups.add(cacheEntry.getExtent().toMetaRange());
-            removedCount++;
-          }
-        }
-
-        if (log.isTraceEnabled()) {
-          log.trace("Invalidated {} cache entries for table {} related to servers {}", removedCount,
-              tableId, badServers);
-        }
-
-        badServers.clear();
       }
 
       lookups = Range.mergeOverlapping(lookups);

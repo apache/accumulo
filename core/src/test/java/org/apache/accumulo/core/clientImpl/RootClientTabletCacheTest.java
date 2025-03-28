@@ -51,7 +51,6 @@ public class RootClientTabletCacheTest {
   public void testInvalidateCache_Noop() {
     var rtl = new RootClientTabletCache(lockChecker);
     // it's not expected that any of the validate functions will do anything with the mock objects
-    rtl.invalidateCache(context, "server");
     rtl.invalidateCache(RootTable.EXTENT);
     rtl.invalidateCache();
     rtl.invalidateCache(List.of(RootTable.EXTENT));

@@ -441,7 +441,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
             failures.putAll(unscanned);
           }
 
-          locator.invalidateCache(context, tsLocation);
+          locator.invalidateCache(tabletsRanges.keySet());
         }
         log.debug("IOException thrown", e);
 
