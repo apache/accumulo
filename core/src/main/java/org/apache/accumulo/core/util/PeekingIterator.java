@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.util;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import com.google.common.base.Preconditions;
@@ -28,15 +29,10 @@ public class PeekingIterator<E> implements Iterator<E> {
   boolean isInitialized;
   Iterator<E> source;
   E top;
+  boolean hasNext;
 
   public PeekingIterator(Iterator<E> source) {
-    this.source = source;
-    if (source.hasNext()) {
-      top = source.next();
-    } else {
-      top = null;
-    }
-    isInitialized = true;
+    initialize(source);
   }
 
   /**
@@ -54,8 +50,10 @@ public class PeekingIterator<E> implements Iterator<E> {
     this.source = source;
     if (source.hasNext()) {
       top = source.next();
+      hasNext = true;
     } else {
       top = null;
+      hasNext = false;
     }
     isInitialized = true;
     return this;
@@ -73,11 +71,17 @@ public class PeekingIterator<E> implements Iterator<E> {
     if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
     }
+    if (!hasNext) {
+      throw new NoSuchElementException();
+    }
+
     E lastPeeked = top;
     if (source.hasNext()) {
       top = source.next();
+      hasNext = true;
     } else {
       top = null;
+      hasNext = false;
     }
     return lastPeeked;
   }
@@ -92,7 +96,7 @@ public class PeekingIterator<E> implements Iterator<E> {
     if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
     }
-    return top != null;
+    return hasNext;
   }
 
   /**

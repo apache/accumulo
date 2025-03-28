@@ -24,12 +24,78 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.Test;
 
 public class PeekingIteratorTest {
+
+  @Test
+  public void testEmpty() {
+    var iter = new PeekingIterator<>(Collections.emptyIterator());
+    assertFalse(iter.hasNext());
+    assertNull(iter.peek());
+    assertThrows(NoSuchElementException.class, iter::next);
+  }
+
+  @Test
+  public void testNotInitialized() {
+    var iter = new PeekingIterator<>();
+    assertThrows(IllegalStateException.class, iter::hasNext);
+    assertThrows(IllegalStateException.class, iter::next);
+    assertThrows(IllegalStateException.class, iter::peek);
+  }
+
+  @Test
+  public void testNull() {
+    List<String> list = new ArrayList<>();
+
+    list.add("a");
+    list.add(null);
+    list.add("b");
+
+    var iter = new PeekingIterator<>(list.iterator());
+
+    assertTrue(iter.hasNext());
+    assertEquals("a", iter.peek());
+    assertEquals("a", iter.next());
+    assertThrows(UnsupportedOperationException.class, iter::remove);
+    assertTrue(iter.hasNext());
+    assertNull(iter.peek());
+    assertNull(iter.next());
+    assertTrue(iter.hasNext());
+    assertEquals("b", iter.peek());
+    assertEquals("b", iter.next());
+    assertFalse(iter.hasNext());
+    assertThrows(NoSuchElementException.class, iter::next);
+
+    iter = new PeekingIterator<>(list.iterator());
+    iter.findWithin(Objects::isNull, 3);
+    assertTrue(iter.hasNext());
+    assertNull(iter.peek());
+    assertNull(iter.next());
+    assertTrue(iter.hasNext());
+    assertEquals("b", iter.peek());
+    assertEquals("b", iter.next());
+    assertFalse(iter.hasNext());
+    assertThrows(NoSuchElementException.class, iter::next);
+
+    iter = new PeekingIterator<>(list.iterator());
+    iter.findWithin(e -> Objects.equals(e, "b"), 3);
+    assertTrue(iter.hasNext());
+    assertEquals("b", iter.peek());
+    assertEquals("b", iter.next());
+    assertFalse(iter.hasNext());
+    assertThrows(NoSuchElementException.class, iter::next);
+
+    assertEquals(3, list.size());
+  }
 
   @Test
   public void testPeek() {
@@ -49,7 +115,7 @@ public class PeekingIteratorTest {
     }
 
     assertFalse(peek.hasNext());
-    assertNull(peek.next());
+    assertThrows(NoSuchElementException.class, peek::next);
   }
 
   @Test
@@ -81,7 +147,15 @@ public class PeekingIteratorTest {
     // Try to advance past the end
     assertFalse(peek.findWithin((x) -> x != null && x == 7, 3));
     assertFalse(peek.hasNext());
-    assertNull(peek.next());
+    assertNull(peek.peek());
+    assertThrows(NoSuchElementException.class, peek::next);
+
+    // test finding that exhaust iterator w/o finding anything
+    var peek2 = new PeekingIterator<>(ints);
+    peek2.findWithin(x -> Objects.equals(x, 100), 50);
+    assertFalse(peek2.hasNext());
+    assertNull(peek2.peek());
+    assertThrows(NoSuchElementException.class, peek2::next);
 
   }
 
