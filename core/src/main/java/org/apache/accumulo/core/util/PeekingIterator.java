@@ -106,8 +106,7 @@ public class PeekingIterator<E> implements Iterator<E> {
    *
    * @param predicate condition that we are looking for, parameter could be null, so the Predicate
    *        implementation needs to handle this.
-   * @param limit number of times that we should look for a match, parameter must be a positive
-   *        int
+   * @param limit number of times that we should look for a match, parameter must be a positive int
    * @return true if an element matched the predicate or false otherwise. When true hasNext() will
    *         return true and peek() and next() will return the matching element. When false
    *         hasNext() may return false if the end has been reached, or hasNext() may return true in
