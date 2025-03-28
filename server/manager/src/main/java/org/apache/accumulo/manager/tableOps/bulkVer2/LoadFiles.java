@@ -378,7 +378,7 @@ class LoadFiles extends ManagerRepo {
         // at the next skipDistance tablets before recreating the iterator
         if (skipDistance > 0) {
           final KeyExtent loadMapKey = loadMapEntry.getKey();
-          if (!pi.advanceTo(
+          if (!pi.findWithin(
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
             log.debug(

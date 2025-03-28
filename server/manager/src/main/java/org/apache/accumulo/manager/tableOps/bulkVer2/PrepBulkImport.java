@@ -156,8 +156,8 @@ public class PrepBulkImport extends ManagerRepo {
         if (!equals(KeyExtent::prevEndRow, currTablet, currRange.getKey()) && skip > 0
             && currRange.getKey().prevEndRow() != null) {
           final KeyExtent search = currRange.getKey();
-          if (!pi.advanceTo((ke) -> Objects.equals(ke.prevEndRow(), search.prevEndRow()), skip)) {
-            log.warn(
+          if (!pi.findWithin((ke) -> Objects.equals(ke.prevEndRow(), search.prevEndRow()), skip)) {
+            log.debug(
                 "Tablet metadata for prevEndRow {} not found in {} tablets from current tablet {}, recreating TabletMetadata to jump ahead",
                 search.prevEndRow(), skip, currTablet);
             tabletIterFactory.close();
