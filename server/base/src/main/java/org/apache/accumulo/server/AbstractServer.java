@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -54,6 +55,7 @@ import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +93,20 @@ public abstract class AbstractServer
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
+
+    final String upgradePrepNode = Constants.ZPREPARE_FOR_UPGRADE;
+    try {
+      if (context.getZooSession().asReader().exists(upgradePrepNode)) {
+        throw new IllegalStateException(
+            "Instance has been prepared for upgrade, no servers can be started."
+                + " To undo this state and abort upgrade preparations delete the zookeeper node: "
+                + ZooUtil.getRoot(context.getInstanceID()) + upgradePrepNode);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(
+          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper", e);
+    }
+
     log = LoggerFactory.getLogger(getClass());
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
