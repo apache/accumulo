@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps;
 
 import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -36,12 +35,10 @@ public class TraceRepo<T> implements Repo<T> {
 
   private static final long serialVersionUID = 1L;
 
-  final TInfo tinfo;
   final Repo<T> repo;
 
   public TraceRepo(Repo<T> repo) {
     this.repo = repo;
-    tinfo = TraceUtil.traceInfo();
   }
 
   private static void setAttributes(FateId fateId, Span span) {
@@ -52,7 +49,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public long isReady(FateId fateId, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), "isReady", tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), "isReady");
     try (Scope scope = span.makeCurrent()) {
       setAttributes(fateId, span);
       var delay = repo.isReady(fateId, environment);
@@ -70,7 +67,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public Repo<T> call(FateId fateId, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), "call", tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), "call");
     try (Scope scope = span.makeCurrent()) {
       setAttributes(fateId, span);
       Repo<T> result = repo.call(fateId, environment);
@@ -88,7 +85,7 @@ public class TraceRepo<T> implements Repo<T> {
 
   @Override
   public void undo(FateId fateId, T environment) throws Exception {
-    Span span = TraceUtil.startFateSpan(repo.getClass(), "undo", tinfo);
+    Span span = TraceUtil.startFateSpan(repo.getClass(), "undo");
     try (Scope scope = span.makeCurrent()) {
       setAttributes(fateId, span);
       repo.undo(fateId, environment);

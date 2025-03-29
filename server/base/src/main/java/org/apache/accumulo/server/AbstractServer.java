@@ -32,7 +32,6 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -281,7 +280,7 @@ public abstract class AbstractServer
   }
 
   @Override
-  public MetricResponse getMetrics(TInfo tinfo, TCredentials credentials) throws TException {
+  public MetricResponse getMetrics(TCredentials credentials) throws TException {
 
     if (!context.getSecurityOperation().authenticateUser(credentials, credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),

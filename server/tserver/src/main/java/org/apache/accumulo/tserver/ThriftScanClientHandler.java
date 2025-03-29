@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.TabletType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
@@ -127,8 +126,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   }
 
   @Override
-  public InitialScan startScan(TInfo tinfo, TCredentials credentials, TKeyExtent textent,
-      TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
+  public InitialScan startScan(TCredentials credentials, TKeyExtent textent, TRange range,
+      List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration tSamplerConfig,
       long batchTimeOut, String contextArg, Map<String,String> executionHints, long busyTimeout)
@@ -145,13 +144,13 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       @Override
       public void close() {}
     };
-    return this.startScan(tinfo, credentials, extent, range, columns, batchSize, ssiList, ssio,
+    return this.startScan(credentials, extent, range, columns, batchSize, ssiList, ssio,
         authorizations, waitForWrites, isolated, readaheadThreshold, tSamplerConfig, batchTimeOut,
         contextArg, executionHints, resolver, busyTimeout);
   }
 
-  public InitialScan startScan(TInfo tinfo, TCredentials credentials, KeyExtent extent,
-      TRange range, List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
+  public InitialScan startScan(TCredentials credentials, KeyExtent extent, TRange range,
+      List<TColumn> columns, int batchSize, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       boolean isolated, long readaheadThreshold, TSamplerConfiguration tSamplerConfig,
       long batchTimeOut, String contextArg, Map<String,String> executionHints,
@@ -218,7 +217,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     ScanResult scanResult;
     try {
-      scanResult = continueScan(tinfo, sid, scanSession, busyTimeout);
+      scanResult = continueScan(sid, scanSession, busyTimeout);
     } catch (NoSuchScanIDException e) {
       log.error("The impossible happened", e);
       throw new RuntimeException();
@@ -230,10 +229,9 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   }
 
   @Override
-  public ScanResult continueScan(TInfo tinfo, long scanID, long busyTimeout)
-      throws NoSuchScanIDException, NotServingTabletException,
-      org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException, TSampleNotPresentException,
-      ScanServerBusyException {
+  public ScanResult continueScan(long scanID, long busyTimeout) throws NoSuchScanIDException,
+      NotServingTabletException, org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException,
+      TSampleNotPresentException, ScanServerBusyException {
     SingleScanSession scanSession =
         (SingleScanSession) server.getSessionManager().reserveSession(scanID);
     if (scanSession == null) {
@@ -241,14 +239,14 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     }
 
     try {
-      return continueScan(tinfo, scanID, scanSession, busyTimeout);
+      return continueScan(scanID, scanSession, busyTimeout);
     } finally {
       server.getSessionManager().unreserveSession(scanSession);
     }
   }
 
-  protected ScanResult continueScan(TInfo tinfo, long scanID, SingleScanSession scanSession,
-      long busyTimeout) throws NoSuchScanIDException, NotServingTabletException,
+  protected ScanResult continueScan(long scanID, SingleScanSession scanSession, long busyTimeout)
+      throws NoSuchScanIDException, NotServingTabletException,
       org.apache.accumulo.core.tabletscan.thrift.TooManyFilesException, TSampleNotPresentException,
       ScanServerBusyException {
 
@@ -319,14 +317,14 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     }
 
     if (!scanResult.more) {
-      closeScan(tinfo, scanID);
+      closeScan(scanID);
     }
 
     return scanResult;
   }
 
   @Override
-  public void closeScan(TInfo tinfo, long scanID) {
+  public void closeScan(long scanID) {
 
     server.getScanMetrics().incrementCloseScan();
 
@@ -347,7 +345,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   }
 
   @Override
-  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
+  public InitialMultiScan startMultiScan(TCredentials credentials,
       Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
@@ -367,13 +365,13 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       @Override
       public void close() {}
     };
-    return this.startMultiScan(tinfo, credentials, tcolumns, ssiList, batch, ssio, authorizations,
+    return this.startMultiScan(credentials, tcolumns, ssiList, batch, ssio, authorizations,
         waitForWrites, tSamplerConfig, batchTimeOut, contextArg, executionHints, resolver,
         busyTimeout);
   }
 
-  public InitialMultiScan startMultiScan(TInfo tinfo, TCredentials credentials,
-      List<TColumn> tcolumns, List<IterInfo> ssiList, Map<KeyExtent,List<TRange>> tbatch,
+  public InitialMultiScan startMultiScan(TCredentials credentials, List<TColumn> tcolumns,
+      List<IterInfo> ssiList, Map<KeyExtent,List<TRange>> tbatch,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations, boolean waitForWrites,
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
       Map<String,String> executionHints, ScanSession.TabletResolver tabletResolver,
@@ -455,7 +453,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   }
 
   @Override
-  public MultiScanResult continueMultiScan(TInfo tinfo, long scanID, long busyTimeout)
+  public MultiScanResult continueMultiScan(long scanID, long busyTimeout)
       throws NoSuchScanIDException, TSampleNotPresentException, ScanServerBusyException {
 
     MultiScanSession session = (MultiScanSession) server.getSessionManager().reserveSession(scanID);
@@ -520,7 +518,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   }
 
   @Override
-  public void closeMultiScan(TInfo tinfo, long scanID) throws NoSuchScanIDException {
+  public void closeMultiScan(long scanID) throws NoSuchScanIDException {
 
     server.getScanMetrics().incrementCloseScan();
 
@@ -542,7 +540,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   }
 
   @Override
-  public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
+  public List<ActiveScan> getActiveScans(TCredentials credentials)
       throws ThriftSecurityException, TException {
     try {
       TabletClientHandler.checkPermission(security, context, server, credentials, null, "getScans");

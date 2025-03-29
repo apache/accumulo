@@ -78,7 +78,6 @@ service CompactionCoordinatorService {
    * Called by Compactor on successful completion of compaction job
    */
   void compactionCompleted(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials  
     3:string externalCompactionId
     4:data.TKeyExtent extent
@@ -89,7 +88,6 @@ service CompactionCoordinatorService {
    * Called by Compactor to get the next compaction job
    */
   TNextCompactionJob getCompactionJob(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string groupName
     4:string compactor
@@ -100,7 +98,6 @@ service CompactionCoordinatorService {
    * Called by Compactor to update the Coordinator with the state of the compaction
    */
   void updateCompactionStatus(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:TCompactionStatusUpdate status
@@ -111,7 +108,6 @@ service CompactionCoordinatorService {
    * Called by Compactor on unsuccessful completion of compaction job
    */
   void compactionFailed(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
     4:data.TKeyExtent extent
@@ -121,7 +117,6 @@ service CompactionCoordinatorService {
    * Called by the Monitor to get progress information
    */
   TExternalCompactionMap getRunningCompactions(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
 
@@ -130,7 +125,6 @@ service CompactionCoordinatorService {
    * a map of group name to size-limited list of the oldest compactions, oldest first.
    */
   map<string,TExternalCompactionList> getLongRunningCompactions(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
 
@@ -138,12 +132,10 @@ service CompactionCoordinatorService {
    * Called by the Monitor to get progress information
    */
   TExternalCompactionMap getCompletedCompactions(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
 
   void cancel(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
   )
@@ -153,28 +145,24 @@ service CompactionCoordinatorService {
 service CompactorService {
 
   tabletserver.TExternalCompactionJob getRunningCompaction(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   string getRunningCompactionId(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   list<tabletserver.ActiveCompaction> getActiveCompactions(
-    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   void cancel(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string externalCompactionId
   )
