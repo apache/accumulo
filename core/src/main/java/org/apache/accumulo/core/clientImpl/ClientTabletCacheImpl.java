@@ -32,14 +32,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NavigableMap;
-import java.util.Objects;
 import java.util.SortedMap;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -59,6 +55,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.LockMap;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
@@ -70,6 +67,50 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
+/**
+ * This class has two concurrency goals. First when a thread request data that is currently present
+ * in the cache, it should never block. Second when a thread request data that is not in the cache
+ * only one lookup per metadata tablet will happen concurrently. The purpose of this second goal is
+ * to avoid redundant concurrent metadata lookups in a client process.
+ *
+ * <p>
+ * The first goal is achieved by using a ConcurrentSkipListMap to store the caches data making it
+ * safe for multiple threads to read and write to the map. The second goal is achieved by using a
+ * {@link LockMap} keyed on metadata table extents when doing metadata table lookups.
+ *
+ * <p>
+ * Below is an example of how this cache is intended to work.
+ *
+ * <ol>
+ * <li>Thread_1 lookups up row A that is not currently present in the cache.
+ * <li>Thread_2 lookups up row C that is not currently present in the cache.
+ * <li>Thread_3 lookups up row Q that is not currently present in the cache.
+ * <li>Thread_1 finds metadata tablet MT1 stores information on row A and locks the extent for MT1.
+ * <li>Thread_2 finds metadata tablet MT1 stores information on row C and locks the extent for MT1.
+ * <li>Thread_3 finds metadata tablet MT2 stores information on row Q and locks the extent for MT2.
+ * <li>Thread_1 acquires the lock for MT1
+ * <li>Thread_2 blocks waiting to lock MT1
+ * <li>Thread_3 acquires the lock for MT2
+ * <li>Thread_4 finds row Z in the cache and immediately returns its user tablet information. If
+ * this data was not cached, it would have needed to read metadata tablet MT2 which is currently
+ * locked and would have blocked.
+ * <li>Thread_1 reads user_tablet_1_metadata that contains row A from MT1 and adds it to the cache.
+ * It also opportunistically reads a few more user tablets metadata from MT1 after the first user
+ * tablet adds them the cache.
+ * <li>Thread_3 reads user_tablet_10_metadata that contains row Q from MT2 and adds it to the cache.
+ * <li>Thread_1 finds user_tablet_1_metadata in the cache and returns it as the tablet for row A.
+ * <li>Thread_1 unlocks the lock for MT1
+ * <li>Thread_3 finds user_tablet_10_metadata in the cache and returns it as the tablet for row Q.
+ * <li>Thread_3 unlocks the lock for MT2
+ * <li>Thread_2 acquires the lock for MT1
+ * <li>Thread_2 checks the cache and finds the information it needs is now present in the cache
+ * because it was found by Thread_1. No metadata lookup is done, the information from the cache is
+ * returned.
+ * <li>Thread_2 unlocks the lock for MT1
+ * </ol>
+ *
+ *
+ */
 public class ClientTabletCacheImpl extends ClientTabletCache {
 
   private static final Logger log = LoggerFactory.getLogger(ClientTabletCacheImpl.class);
@@ -102,6 +143,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   protected final Text lastTabletRow;
 
   private final AtomicLong tabletHostingRequestCount = new AtomicLong(0);
+
+  private final LockMap<KeyExtent> lookupLocks = new LockMap<>();
 
   public interface CachedTabletObtainer {
     /**
@@ -640,51 +683,6 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
   }
 
-  private static class ReferenceCountedLock {
-    final Lock lock = new ReentrantLock();
-    int refCount;
-
-    ReferenceCountedLock(int refCount) {
-      this.refCount = refCount;
-    }
-  }
-
-  // This class relies on the atomic nature of the maps compute function. Not all concurrent map
-  // impls have an atomic compute function.
-  private final ConcurrentHashMap<KeyExtent,ReferenceCountedLock> locks = new ConcurrentHashMap<>();
-
-  private ReferenceCountedLock getLock(CachedTablet src) {
-    // Create a lock for extents as needed. Assuming only one thread will execute the compute
-    // function per extent.
-    var rcl = locks.compute(src.getExtent(), (k, v) -> {
-      if (v == null) {
-        return new ReferenceCountedLock(1);
-      } else {
-        Preconditions.checkState(v.refCount > 0);
-        v.refCount++;
-        return v;
-      }
-    });
-    return rcl;
-  }
-
-  private void returnLock(CachedTablet src, ReferenceCountedLock rcl) {
-    // Dispose of the lock if nothing else is using it. Assuming only one thread will execute the
-    // compute function per extent.
-    locks.compute(src.getExtent(), (k, v) -> {
-      Objects.requireNonNull(v);
-      Preconditions.checkState(v.refCount > 0);
-      // while the ref count was >0 the lock ref should not have changed in the map
-      Preconditions.checkState(v == rcl);
-      v.refCount--;
-      if (v.refCount == 0) {
-        return null;
-      } else {
-        return v;
-      }
-    });
-  }
-
   private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
       InvalidTabletHostingRequestException {
@@ -697,21 +695,20 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       // Only allow a single lookup at time per parent tablet. For example if a tables tablets are
       // all stored in three metadata tablets, then that table could have up to three concurrent
       // metadata lookups.
-      var refCountedLock = getLock(ptl);
       Timer timer = Timer.startNew();
-      refCountedLock.lock.lock();
-      try {
-        // see if entry was added to cache by another thread while we were waiting on the lock
+      try (var unused = lookupLocks.lock(ptl.getExtent())) {
+        // See if entry was added to cache by another thread while we were waiting on the lock
         var cached = findTabletInCache(row);
         if (cached != null && cached.getCreationTimer().startedAfter(timer)) {
           // This cache entry was added after we started waiting on the lock so lets use it and not
-          // go to the metadata table.
+          // go to the metadata table. This means another thread was holding the lock and doing
+          // metadata lookups when we requested the lock.
           return;
         }
+        // Lookup tablets in metadata table and update cache. Also updating the cache while holding
+        // the lock is important as it ensures other threads that are waiting on the lock will see
+        // what this thread found and may be able to avoid metadata lookups.
         lookupTablet(context, lcSession, ptl, metadataRow);
-      } finally {
-        refCountedLock.lock.unlock();
-        returnLock(ptl, refCountedLock);
       }
     }
   }
