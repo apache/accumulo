@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -37,12 +38,13 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
@@ -105,10 +107,13 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
   private void deleteScanServerRefTable() throws InterruptedException {
     ServerContext ctx = getCluster().getServerContext();
+    ZooReaderWriter zoo = ctx.getZooSession().asReaderWriter();
+    String zPath = Constants.ZTABLES + "/" + AccumuloTable.SCAN_REF.tableId();
     // Remove the scan server table metadata in zk
     try {
-      ctx.getTableManager().removeTable(AccumuloTable.SCAN_REF.tableId());
-    } catch (KeeperException | InterruptedException | AcceptableThriftTableOperationException e) {
+      zoo.recursiveDelete(zPath + Constants.ZTABLE_STATE, ZooUtil.NodeMissingPolicy.SKIP);
+      zoo.recursiveDelete(zPath, ZooUtil.NodeMissingPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Removal of scan ref table failed" + e);
     }
 
