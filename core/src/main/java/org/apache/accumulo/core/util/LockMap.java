@@ -45,6 +45,8 @@ public class LockMap<T> {
 
   private class PerKeyLockImpl implements PerKeyLock {
     private final Lock lock = new ReentrantLock();
+    // This variable is only read or written inside synchronized blocks inside ConcurrentHashMap and
+    // therefore does not need to be volatile for visibility between threads.
     private int refCount = 1;
     private final T key;
 
