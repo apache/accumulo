@@ -37,7 +37,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
+import com.google.auto.service.AutoService;
 
+@AutoService(KeywordExecutable.class)
 public class PreUpgradeCheck implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(PreUpgradeCheck.class);
