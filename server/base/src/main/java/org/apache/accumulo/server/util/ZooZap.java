@@ -28,7 +28,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -110,7 +109,8 @@ public class ZooZap implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.zapManager && !opts.zapTservers && !opts.zapCompactors && !opts.zapScanServers) {
+    if (!opts.zapManager && !opts.zapTservers && !opts.zapCompactors && !opts.zapScanServers
+        && !opts.upgrade) {
       new JCommander(opts).usage();
       return;
     }
@@ -130,22 +130,20 @@ public class ZooZap implements KeywordExecutable {
           VolumeConfiguration.getVolumeUris(context.getSiteConfiguration()).iterator().next();
       final Path instanceDir = new Path(volDir, "instance_id");
       final InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
-      final String zkRoot = ZooUtil.getRoot(iid);
-      final String upgradePath = zkRoot + Constants.ZPREPARE_FOR_UPGRADE;
 
       try {
-        if (zrw.exists(upgradePath)) {
+        if (zrw.exists(Constants.ZPREPARE_FOR_UPGRADE)) {
           if (!opts.forceUpgradePrep) {
             throw new IllegalStateException(
                 "'ZooZap -prepare-for-upgrade' must have already been run."
                     + " To run again use the 'ZooZap -prepare-for-upgrade -force'");
           } else {
-            zrw.delete(upgradePath);
+            zrw.delete(Constants.ZPREPARE_FOR_UPGRADE);
           }
         }
       } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException("Error creating or checking for " + upgradePath
-            + " node in zookeeper: " + e.getMessage(), e);
+        throw new IllegalStateException("Error creating or checking for "
+            + Constants.ZPREPARE_FOR_UPGRADE + " node in zookeeper: " + e.getMessage(), e);
       }
 
       log.info("Upgrade specified, validating that Manager is stopped");
@@ -170,17 +168,16 @@ public class ZooZap implements KeywordExecutable {
       }
 
       log.info("Creating {} node in zookeeper, servers will be prevented from"
-          + " starting while this node exists", upgradePath);
+          + " starting while this node exists", Constants.ZPREPARE_FOR_UPGRADE);
       try {
-        zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
+        zrw.putPersistentData(Constants.ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
       } catch (KeeperException | InterruptedException e) {
-        throw new IllegalStateException(
-            "Error creating " + upgradePath + " node in zookeeper. Check for any issues and retry.",
-            e);
+        throw new IllegalStateException("Error creating " + Constants.ZPREPARE_FOR_UPGRADE
+            + " node in zookeeper. Check for any issues and retry.", e);
       }
       log.info("Instance {} prepared for upgrade. Server processes will not start while"
           + " in this state. To undo this state and abort upgrade preparations delete"
-          + " the zookeeper node: {}", iid.canonical(), upgradePath);
+          + " the zookeeper node: {}", iid.canonical(), Constants.ZPREPARE_FOR_UPGRADE);
 
       log.info("Forcing removal of all server locks");
       // modify the options to remove all locks
