@@ -127,7 +127,9 @@ class LoadFiles extends ManagerRepo {
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
           .fetch(fetchCols.toArray(new ColumnType[0])).build();
 
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, fateId);
+      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, fateId, skip);
     }
   }
 
@@ -392,7 +394,7 @@ class LoadFiles extends ManagerRepo {
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
       LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager,
-      FateId fateId) throws Exception {
+      FateId fateId, int skipDistance) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
@@ -405,18 +407,33 @@ class LoadFiles extends ManagerRepo {
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
-    try (TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow)) {
 
-      // The tablet iterator and load mapping iterator are both iterating over data that is sorted
-      // in the same way. The two iterators are each independently advanced to find common points in
-      // the sorted data.
-      Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
+    TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
+    try {
+      PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
+        // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
+        // at the next skipDistance tablets before recreating the iterator
+        if (skipDistance > 0) {
+          final KeyExtent loadMapKey = loadMapEntry.getKey();
+          if (!pi.findWithin(
+              tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
+              skipDistance)) {
+            log.debug(
+                "Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                loadMapKey.prevEndRow(), skipDistance);
+            tabletsMetadata.close();
+            tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
+            pi = new PeekingIterator<>(tabletsMetadata.iterator());
+          }
+        }
         List<TabletMetadata> tablets =
-            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
+            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
         loader.load(tablets, loadMapEntry.getValue());
       }
+    } finally {
+      tabletsMetadata.close();
     }
     Duration totalProcessingTime = timer.elapsed();
 
