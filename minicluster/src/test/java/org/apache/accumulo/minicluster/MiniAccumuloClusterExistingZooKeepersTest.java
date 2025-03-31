@@ -79,14 +79,14 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
         assertNotNull(tableId);
 
         String zkTableMapPath = String.format("%s%s/%s/tables",
-                ZooUtil.getRoot(client.instanceOperations().getInstanceId()),
-                Constants.ZNAMESPACES, Namespace.DEFAULT.id());
+            ZooUtil.getRoot(client.instanceOperations().getInstanceId()), Constants.ZNAMESPACES,
+            Namespace.DEFAULT.id());
         try (CuratorFramework curatorClient =
             CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
           curatorClient.start();
-          assertNotNull(curatorClient.checkExists()
-              .forPath(zkTableMapPath));
-          assertEquals(tableName, NamespaceMapping.deserializeMap(curatorClient.getData().forPath(zkTableMapPath)).get(tableId));
+          assertNotNull(curatorClient.checkExists().forPath(zkTableMapPath));
+          assertEquals(tableName, NamespaceMapping
+              .deserializeMap(curatorClient.getData().forPath(zkTableMapPath)).get(tableId));
         }
       }
     }

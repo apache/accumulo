@@ -75,7 +75,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
-import org.apache.accumulo.manager.split.SeedSplitTask;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -607,7 +606,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       final boolean needsSplit = actions.contains(ManagementAction.NEEDS_SPLITTING);
       if (needsSplit) {
         LOG.debug("{} may need splitting.", tm.getExtent());
-        manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
+        manager.getSplitter().initiateSplit(tm.getExtent());
       }
 
       if (actions.contains(ManagementAction.NEEDS_COMPACTING) && compactionGenerator != null) {

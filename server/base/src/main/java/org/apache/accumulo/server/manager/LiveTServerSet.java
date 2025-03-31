@@ -91,7 +91,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     }
 
     private String lockString(ServiceLock mlock) {
-      return mlock.getLockID().serialize(context.getServerPaths().createManagerPath().toString());
+      return mlock.getLockID().serialize();
     }
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,

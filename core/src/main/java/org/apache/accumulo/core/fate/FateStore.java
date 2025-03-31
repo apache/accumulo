@@ -56,10 +56,6 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
      * Attempts to seed a transaction with the given repo if it does not exist. A fateId will be
      * derived from the fateKey. If seeded, sets the following data for the fateId in the store.
      *
-     * TODO: Support completing futures later in close method The current version will always return
-     * with a CompleteableFuture that is already completed. Future version will process will
-     * complete in the close() method for the User store.
-     *
      * <ul>
      * <li>Set the fate op</li>
      * <li>Set the status to SUBMITTED</li>
@@ -76,15 +72,12 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     CompletableFuture<Optional<FateId>> attemptToSeedTransaction(Fate.FateOperation fateOp,
         FateKey fateKey, Repo<T> repo, boolean autoCleanUp);
 
-    // TODO: Right now all implementations do nothing
-    // Eventually this would check the status of all added conditional mutations,
-    // retry unknown, and then close the conditional writer.
     @Override
     void close();
   }
 
-  // Creates a conditional writer for the user fate store. For Zookeeper all this code will probably
-  // do the same thing its currently doing as zookeeper does not support multi-node operations.
+  // Creates a conditional writer for the user fate store. For Zookeeper this will be a no-op
+  // because currently zookeeper does not support multi-node operations.
   Seeder<T> beginSeeding();
 
   /**
@@ -208,7 +201,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     private static byte[] serialize(ZooUtil.LockID lockID, UUID reservationUUID) {
       try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
           DataOutputStream dos = new DataOutputStream(baos)) {
-        dos.writeUTF(lockID.serialize("/"));
+        dos.writeUTF(lockID.serialize());
         dos.writeUTF(reservationUUID.toString());
         dos.close();
         return baos.toByteArray();
@@ -220,7 +213,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
     public static FateReservation deserialize(byte[] serialized) {
       try (DataInputBuffer buffer = new DataInputBuffer()) {
         buffer.reset(serialized, serialized.length);
-        ZooUtil.LockID lockID = new ZooUtil.LockID("", buffer.readUTF());
+        ZooUtil.LockID lockID = ZooUtil.LockID.deserialize(buffer.readUTF());
         UUID reservationUUID = UUID.fromString(buffer.readUTF());
         return new FateReservation(lockID, reservationUUID);
       } catch (IOException e) {
@@ -230,7 +223,7 @@ public interface FateStore<T> extends ReadOnlyFateStore<T> {
 
     @Override
     public String toString() {
-      return lockID.serialize("/") + ":" + reservationUUID;
+      return lockID.serialize() + ":" + reservationUUID;
     }
 
     @Override

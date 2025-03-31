@@ -26,7 +26,6 @@ import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -96,9 +95,9 @@ public class Upgrader12to13Test {
             .andReturn(mockNamespaces.get(namespaceId)).once();
         mockTableMap.put(tableId, parts[1]);
       }
-      expect(
-          zrw.putPersistentData(eq(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES),
-              aryEq(NamespaceMapping.serializeMap(mockTableMap)), eq(ZooUtil.NodeExistsPolicy.FAIL)))
+      expect(zrw.putPersistentData(
+          eq(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES),
+          aryEq(NamespaceMapping.serializeMap(mockTableMap)), eq(ZooUtil.NodeExistsPolicy.FAIL)))
           .andReturn(true).once();
     }
 

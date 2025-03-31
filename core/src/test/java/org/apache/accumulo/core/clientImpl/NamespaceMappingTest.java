@@ -37,7 +37,8 @@ class NamespaceMappingTest {
   void testSerialize() {
     assertThrows(NullPointerException.class, () -> NamespaceMapping.serializeMap(null));
     assertEquals("{}", new String(NamespaceMapping.serializeMap(Map.of()), UTF_8));
-    assertEquals("{\"a\":\"b\"}", new String(NamespaceMapping.serializeMap(Map.of("a", "b")), UTF_8));
+    assertEquals("{\"a\":\"b\"}",
+        new String(NamespaceMapping.serializeMap(Map.of("a", "b")), UTF_8));
     assertEquals("{\"a\":\"b\",\"c\":\"d\"}",
         new String(NamespaceMapping.serializeMap(Map.of("a", "b", "c", "d")), UTF_8));
   }
@@ -48,7 +49,8 @@ class NamespaceMappingTest {
     assertEquals(null, NamespaceMapping.deserializeMap(new byte[0]));
     assertTrue(NamespaceMapping.deserializeMap("{}".getBytes(UTF_8)) instanceof TreeMap);
     assertEquals(Map.of(), NamespaceMapping.deserializeMap("{}".getBytes(UTF_8)));
-    assertEquals(Map.of("a", "b"), NamespaceMapping.deserializeMap("{\"a\":\"b\"}".getBytes(UTF_8)));
+    assertEquals(Map.of("a", "b"),
+        NamespaceMapping.deserializeMap("{\"a\":\"b\"}".getBytes(UTF_8)));
     assertEquals(Map.of("a", "b", "c", "d"),
         NamespaceMapping.deserializeMap("{\"a\":\"b\",\"c\":\"d\"}".getBytes(UTF_8)));
 
