@@ -386,6 +386,15 @@ service TabletClientService {
     6:bool setTime
   )
 
+  void loadFilesV2(
+    1:trace.TInfo tinfo
+    2:security.TCredentials credentials
+    3:i64 tid
+    4:string dir
+    5:map<data.TKeyExtent, map<string, data.MapFileInfo>> files
+    6:bool setTime
+  )
+
   void splitTablet(
     4:trace.TInfo tinfo
     1:security.TCredentials credentials

@@ -19,21 +19,20 @@
 package org.apache.accumulo.core.util;
 
 import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.function.Predicate;
+
+import com.google.common.base.Preconditions;
 
 public class PeekingIterator<E> implements Iterator<E> {
 
   boolean isInitialized;
   Iterator<E> source;
   E top;
+  boolean hasNext;
 
   public PeekingIterator(Iterator<E> source) {
-    this.source = source;
-    if (source.hasNext()) {
-      top = source.next();
-    } else {
-      top = null;
-    }
-    isInitialized = true;
+    initialize(source);
   }
 
   /**
@@ -51,8 +50,10 @@ public class PeekingIterator<E> implements Iterator<E> {
     this.source = source;
     if (source.hasNext()) {
       top = source.next();
+      hasNext = true;
     } else {
       top = null;
+      hasNext = false;
     }
     isInitialized = true;
     return this;
@@ -70,11 +71,17 @@ public class PeekingIterator<E> implements Iterator<E> {
     if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
     }
+    if (!hasNext) {
+      throw new NoSuchElementException();
+    }
+
     E lastPeeked = top;
     if (source.hasNext()) {
       top = source.next();
+      hasNext = true;
     } else {
       top = null;
+      hasNext = false;
     }
     return lastPeeked;
   }
@@ -89,6 +96,40 @@ public class PeekingIterator<E> implements Iterator<E> {
     if (!isInitialized) {
       throw new IllegalStateException("Iterator has not yet been initialized");
     }
-    return top != null;
+    return hasNext;
+  }
+
+  /**
+   * Advances the underlying iterator looking for a match, inspecting up to {@code limit} elements
+   * from the iterator. If this method finds a match to the predicate, then it will return true and
+   * will be positioned before the matching element (peek() and next() will return the matching
+   * element). If this method does not find a match because the underlying iterator ended before
+   * {@code limit}, then it will return false and hasNext will also return false. Otherwise, if this
+   * method does not find a match, then it will return false and be positioned before the limit
+   * element (peek() and next() will return the {@code limit} element).
+   *
+   * @param predicate condition that we are looking for, parameter could be null, so the Predicate
+   *        implementation needs to handle this.
+   * @param limit number of times that we should look for a match, parameter must be a positive int
+   * @return true if an element matched the predicate or false otherwise. When true hasNext() will
+   *         return true and peek() and next() will return the matching element. When false
+   *         hasNext() may return false if the end has been reached, or hasNext() may return true in
+   *         which case peek() and next() will return the element {@code limit} positions ahead of
+   *         where this iterator was before this method was called.
+   */
+  public boolean findWithin(Predicate<E> predicate, int limit) {
+    Preconditions.checkArgument(limit > 0);
+    for (int i = 0; i < limit; i++) {
+      if (predicate.test(peek())) {
+        return true;
+      } else if (i < (limit - 1)) {
+        if (hasNext()) {
+          next();
+        } else {
+          return false;
+        }
+      }
+    }
+    return false;
   }
 }

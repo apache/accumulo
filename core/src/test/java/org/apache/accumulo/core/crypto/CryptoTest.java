@@ -562,6 +562,30 @@ public class CryptoTest {
     }
   }
 
+  @Test
+  public void testOverlappingWrites() throws Exception {
+    testOverlappingWrites(WAL);
+    testOverlappingWrites(TABLE);
+  }
+
+  private void testOverlappingWrites(Scope scope) throws Exception {
+    AESCryptoService cs = new AESCryptoService();
+    cs.init(getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON));
+    CryptoEnvironment encEnv = new CryptoEnvironmentImpl(scope, null, null);
+    FileEncrypter encrypter = cs.getFileEncrypter(encEnv);
+
+    ByteArrayOutputStream out1 = new ByteArrayOutputStream();
+    var es1 = encrypter.encryptStream(out1);
+
+    // try to create a new encryption stream w/o closing the previous one
+    ByteArrayOutputStream out2 = new ByteArrayOutputStream();
+    var ce = assertThrows(CryptoException.class, () -> encrypter.encryptStream(out2));
+    assertTrue(ce.getMessage().contains("closing previous"));
+
+    es1.close();
+    assertNotNull(encrypter.encryptStream(out2));
+  }
+
   private ArrayList<Key> testData() {
     ArrayList<Key> keys = new ArrayList<>();
     keys.add(new Key("a", "cf", "cq"));
