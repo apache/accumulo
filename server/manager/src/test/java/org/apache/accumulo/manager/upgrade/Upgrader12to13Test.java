@@ -98,7 +98,7 @@ public class Upgrader12to13Test {
       }
       expect(
           zrw.putPersistentData(eq(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES),
-              aryEq(NamespaceMapping.serialize(mockTableMap)), eq(ZooUtil.NodeExistsPolicy.FAIL)))
+              aryEq(NamespaceMapping.serializeMap(mockTableMap)), eq(ZooUtil.NodeExistsPolicy.FAIL)))
           .andReturn(true).once();
     }
 

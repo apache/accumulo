@@ -102,7 +102,7 @@ public class Upgrader12to13 implements Upgrader {
           }
         }
         zrw.putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES,
-            NamespaceMapping.serialize(newTableMap), ZooUtil.NodeExistsPolicy.FAIL);
+            NamespaceMapping.serializeMap(newTableMap), ZooUtil.NodeExistsPolicy.FAIL);
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();

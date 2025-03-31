@@ -29,8 +29,6 @@ import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.zookeeper.ZooCache;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.ImmutableMap;
 
@@ -38,8 +36,6 @@ import com.google.common.collect.ImmutableMap;
  * Used for thread safe caching of immutable table ID maps. See ACCUMULO-4778.
  */
 public class TableMap {
-  private static final Logger log = LoggerFactory.getLogger(TableMap.class);
-
   private final Map<String,TableId> tableNameToIdMap;
   private final Map<TableId,String> tableIdToNameMap;
 
@@ -59,7 +55,7 @@ public class TableMap {
     for (String namespaceId : namespaceIds) {
       byte[] rawTableMap =
           zooCache.get(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES);
-      Map<String,String> tableMap = NamespaceMapping.deserialize(rawTableMap);
+      Map<String,String> tableMap = NamespaceMapping.deserializeMap(rawTableMap);
       for (Map.Entry<String,String> entry : tableMap.entrySet()) {
         String fullyQualifiedName = TableNameUtil.qualified(entry.getValue(),
             Namespaces.getNamespaceName(context, NamespaceId.of(namespaceId)));

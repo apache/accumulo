@@ -20,8 +20,8 @@ package org.apache.accumulo.core.util.tables;
 
 import static java.util.Collections.emptySortedMap;
 import static java.util.Objects.requireNonNull;
-import static org.apache.accumulo.core.clientImpl.NamespaceMapping.deserialize;
-import static org.apache.accumulo.core.clientImpl.NamespaceMapping.serialize;
+import static org.apache.accumulo.core.clientImpl.NamespaceMapping.deserializeMap;
+import static org.apache.accumulo.core.clientImpl.NamespaceMapping.serializeMap;
 
 import java.util.Map;
 import java.util.Objects;
@@ -69,7 +69,7 @@ public class TableMapping {
       throw new AssertionError("Putting built-in tables in map should not be possible after init");
     }
     zoo.mutateExisting(zTableMapPath, data -> {
-      var tables = deserialize(data);
+      var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
       if (tableName.equals(currentName)) {
         return null; // mapping already exists; operation is idempotent, so no change needed
@@ -83,7 +83,7 @@ public class TableMapping {
             TableOperationExceptionType.EXISTS, "Table name already exists");
       }
       tables.put(tableId.canonical(), tableName);
-      return serialize(tables);
+      return serializeMap(tables);
     });
   }
 
@@ -94,14 +94,14 @@ public class TableMapping {
       throw new AssertionError("Removing built-in tables in map should not be possible");
     }
     zoo.mutateExisting(getZTableMapPath(getNamespaceOfTableId(zoo, tableId)), data -> {
-      var tables = deserialize(data);
+      var tables = deserializeMap(data);
       if (!tables.containsKey(tableId.canonical())) {
         throw new AcceptableThriftTableOperationException(null, tableId.canonical(),
             TableOperation.DELETE, TableOperationExceptionType.NOTFOUND,
             "Table already removed while processing");
       }
       tables.remove(tableId.canonical());
-      return serialize(tables);
+      return serializeMap(tables);
     });
   }
 
@@ -117,7 +117,7 @@ public class TableMapping {
       throw new AssertionError("Renaming built-in tables in map should not be possible");
     }
     zoo.mutateExisting(zTableMapPath, current -> {
-      var tables = deserialize(current);
+      var tables = deserializeMap(current);
       final String currentName = tables.get(tableId.canonical());
       if (newName.equals(currentName)) {
         return null; // assume in this case the operation is running again, so we are done
@@ -131,7 +131,7 @@ public class TableMapping {
             TableOperationExceptionType.EXISTS, "Table name already exists");
       }
       tables.put(namespaceId.canonical(), newName);
-      return serialize(tables);
+      return serializeMap(tables);
     });
   }
 
@@ -145,7 +145,7 @@ public class TableMapping {
       if (data == null) {
         throw new IllegalStateException(zTableMapPath + " node should not be null");
       } else {
-        Map<String,String> idToName = deserialize(data);
+        Map<String,String> idToName = deserializeMap(data);
         if (namespaceId == Namespace.ACCUMULO.id() && AccumuloTable.builtInTableIds().stream()
             .anyMatch(bitid -> !idToName.containsKey(bitid.canonical()))) {
           throw new IllegalStateException("Built-in tables are not present in map");

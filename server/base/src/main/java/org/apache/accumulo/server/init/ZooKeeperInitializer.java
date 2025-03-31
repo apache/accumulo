@@ -100,7 +100,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZNAMESPACES,
         NamespaceMapping
-            .serialize(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
+            .serializeMap(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
                 Namespace.ACCUMULO.id().canonical(), Namespace.ACCUMULO.name())),
         ZooUtil.NodeExistsPolicy.FAIL);
 
@@ -110,9 +110,9 @@ public class ZooKeeperInitializer {
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
     zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.DEFAULT.id()),
-        NamespaceMapping.serialize(Map.of()), ZooUtil.NodeExistsPolicy.FAIL);
+        NamespaceMapping.serializeMap(Map.of()), ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.ACCUMULO.id()),
-        NamespaceMapping.serialize(Map.of(AccumuloTable.ROOT.tableId().canonical(),
+        NamespaceMapping.serializeMap(Map.of(AccumuloTable.ROOT.tableId().canonical(),
             AccumuloTable.ROOT.simpleTableName(), AccumuloTable.METADATA.tableId().canonical(),
             AccumuloTable.METADATA.simpleTableName(), AccumuloTable.SCAN_REF.tableId().canonical(),
             AccumuloTable.SCAN_REF.simpleTableName(), AccumuloTable.FATE.tableId().canonical(),

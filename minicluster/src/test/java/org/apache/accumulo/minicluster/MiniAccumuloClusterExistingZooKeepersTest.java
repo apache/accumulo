@@ -29,6 +29,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -74,15 +75,18 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
         String tableName = "foo";
         client.tableOperations().create(tableName);
         Map<String,String> tableIds = client.tableOperations().tableIdMap();
-        assertTrue(tableIds.containsKey(tableName));
+        String tableId = tableIds.get(tableName);
+        assertNotNull(tableId);
 
+        String zkTableMapPath = String.format("%s%s/%s/tables",
+                ZooUtil.getRoot(client.instanceOperations().getInstanceId()),
+                Constants.ZNAMESPACES, Namespace.DEFAULT.id());
         try (CuratorFramework curatorClient =
             CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
           curatorClient.start();
           assertNotNull(curatorClient.checkExists()
-              .forPath(String.format("%s%s/%s/tables",
-                  ZooUtil.getRoot(client.instanceOperations().getInstanceId()),
-                  Constants.ZNAMESPACES, Namespace.DEFAULT.id())));
+              .forPath(zkTableMapPath));
+          assertEquals(tableName, NamespaceMapping.deserializeMap(curatorClient.getData().forPath(zkTableMapPath)).get(tableId));
         }
       }
     }

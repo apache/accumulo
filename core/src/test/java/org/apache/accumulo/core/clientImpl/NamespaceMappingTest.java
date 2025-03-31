@@ -35,38 +35,38 @@ class NamespaceMappingTest {
 
   @Test
   void testSerialize() {
-    assertThrows(NullPointerException.class, () -> NamespaceMapping.serialize(null));
-    assertEquals("{}", new String(NamespaceMapping.serialize(Map.of()), UTF_8));
-    assertEquals("{\"a\":\"b\"}", new String(NamespaceMapping.serialize(Map.of("a", "b")), UTF_8));
+    assertThrows(NullPointerException.class, () -> NamespaceMapping.serializeMap(null));
+    assertEquals("{}", new String(NamespaceMapping.serializeMap(Map.of()), UTF_8));
+    assertEquals("{\"a\":\"b\"}", new String(NamespaceMapping.serializeMap(Map.of("a", "b")), UTF_8));
     assertEquals("{\"a\":\"b\",\"c\":\"d\"}",
-        new String(NamespaceMapping.serialize(Map.of("a", "b", "c", "d")), UTF_8));
+        new String(NamespaceMapping.serializeMap(Map.of("a", "b", "c", "d")), UTF_8));
   }
 
   @Test
   void testDeserialize() {
-    assertThrows(NullPointerException.class, () -> NamespaceMapping.deserialize(null));
-    assertEquals(null, NamespaceMapping.deserialize(new byte[0]));
-    assertTrue(NamespaceMapping.deserialize("{}".getBytes(UTF_8)) instanceof TreeMap);
-    assertEquals(Map.of(), NamespaceMapping.deserialize("{}".getBytes(UTF_8)));
-    assertEquals(Map.of("a", "b"), NamespaceMapping.deserialize("{\"a\":\"b\"}".getBytes(UTF_8)));
+    assertThrows(NullPointerException.class, () -> NamespaceMapping.deserializeMap(null));
+    assertEquals(null, NamespaceMapping.deserializeMap(new byte[0]));
+    assertTrue(NamespaceMapping.deserializeMap("{}".getBytes(UTF_8)) instanceof TreeMap);
+    assertEquals(Map.of(), NamespaceMapping.deserializeMap("{}".getBytes(UTF_8)));
+    assertEquals(Map.of("a", "b"), NamespaceMapping.deserializeMap("{\"a\":\"b\"}".getBytes(UTF_8)));
     assertEquals(Map.of("a", "b", "c", "d"),
-        NamespaceMapping.deserialize("{\"a\":\"b\",\"c\":\"d\"}".getBytes(UTF_8)));
+        NamespaceMapping.deserializeMap("{\"a\":\"b\",\"c\":\"d\"}".getBytes(UTF_8)));
 
     // check malformed json
     assertThrows(JsonSyntaxException.class,
-        () -> NamespaceMapping.deserialize("-".getBytes(UTF_8)));
+        () -> NamespaceMapping.deserializeMap("-".getBytes(UTF_8)));
     // check incorrect json type for string value
     assertThrows(JsonSyntaxException.class,
-        () -> NamespaceMapping.deserialize("{\"a\":{}}".getBytes(UTF_8)));
+        () -> NamespaceMapping.deserializeMap("{\"a\":{}}".getBytes(UTF_8)));
     // check valid json, but not a map
     assertThrows(JsonSyntaxException.class,
-        () -> NamespaceMapping.deserialize("\"[\"a\"]\"".getBytes(UTF_8)));
+        () -> NamespaceMapping.deserializeMap("\"[\"a\"]\"".getBytes(UTF_8)));
 
     // strange edge case because empty json array can be converted into an empty map; we don't ever
     // expect this to be found, but there's no easy way to check for this edge case that is worth
     // the effort
-    assertTrue(NamespaceMapping.deserialize("[]".getBytes(UTF_8)) instanceof SortedMap);
-    assertEquals(Map.of(), NamespaceMapping.deserialize("[]".getBytes(UTF_8)));
+    assertTrue(NamespaceMapping.deserializeMap("[]".getBytes(UTF_8)) instanceof SortedMap);
+    assertEquals(Map.of(), NamespaceMapping.deserializeMap("[]".getBytes(UTF_8)));
   }
 
 }
