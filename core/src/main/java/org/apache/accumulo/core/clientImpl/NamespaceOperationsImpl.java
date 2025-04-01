@@ -136,6 +136,11 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     }
   }
 
+  // This constant is used to pass information between server and client. When changing this
+  // consider the implication of the client and server processes running slightly different versions
+  // of software. This could cause the server processes to have different values for this constant.
+  public static final String TABLES_EXISTS_IN_NAMESPACE_INDICATOR = "TABLES_PRESENT_IN_NAMESPACE";
+
   @Override
   public void delete(String namespace) throws AccumuloException, AccumuloSecurityException,
       NamespaceNotFoundException, NamespaceNotEmptyException {
@@ -158,6 +163,12 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       doNamespaceFateOperation(FateOperation.NAMESPACE_DELETE, args, opts, namespace);
+    } catch (AccumuloException ae) {
+      if (ae.getMessage().contains(TABLES_EXISTS_IN_NAMESPACE_INDICATOR)) {
+        throw new NamespaceNotEmptyException(namespaceId.canonical(), namespace, null, ae);
+      } else {
+        throw ae;
+      }
     } catch (NamespaceExistsException e) {
       // should not happen
       throw new AssertionError(e);
