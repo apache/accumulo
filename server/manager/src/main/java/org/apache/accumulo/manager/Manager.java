@@ -573,23 +573,25 @@ public class Manager extends AbstractServer
         try {
           // - Remove any migrations for tablets of offline tables, as the migration can never
           // succeed because no tablet server will load the tablet
-          // - Remove any migrations to tablets that are not live
+          // - Remove any migrations to tablet servers that are not live
           var ample = getContext().getAmple();
-          try (var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
-            for (DataLevel dl : DataLevel.values()) {
-              // prev row needed for the extent
-              try (var tabletsMetadata = ample.readTablets().forLevel(dl)
-                  .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION)
-                  .build()) {
-                for (var tabletMetadata : tabletsMetadata) {
-                  var tableState =
-                      getContext().getTableManager().getTableState(tabletMetadata.getTableId());
-                  var migration = tabletMetadata.getMigration();
-                  if (migration != null && (tableState == TableState.OFFLINE
-                      || !onlineTabletServers().contains(migration))) {
-                    tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
-                        .requireMigration(migration).deleteMigration().submit(tm -> false);
-                  }
+          for (DataLevel dl : DataLevel.values()) {
+            // prev row needed for the extent
+            try (
+                var tabletsMetadata =
+                    ample.readTablets().forLevel(dl)
+                        .fetch(TabletMetadata.ColumnType.PREV_ROW,
+                            TabletMetadata.ColumnType.MIGRATION)
+                        .build();
+                var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
+              for (var tabletMetadata : tabletsMetadata) {
+                var tableState =
+                    getContext().getTableManager().getTableState(tabletMetadata.getTableId());
+                var migration = tabletMetadata.getMigration();
+                if (migration != null && (tableState == TableState.OFFLINE
+                    || !onlineTabletServers().contains(migration))) {
+                  tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
+                      .requireMigration(migration).deleteMigration().submit(tm -> false);
                 }
               }
             }
@@ -928,43 +930,44 @@ public class Manager extends AbstractServer
       final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = partitionMigrations();
       int levelsCompleted = 0;
 
-      try (var tabletsMutator = getContext().getAmple().mutateTablets()) {
-        for (DataLevel dl : DataLevel.values()) {
-          if (dl == DataLevel.USER && tabletsNotHosted > 0) {
-            log.debug("not balancing user tablets because there are {} unhosted tablets",
-                tabletsNotHosted);
-            continue;
-          }
+      for (DataLevel dl : DataLevel.values()) {
+        if (dl == DataLevel.USER && tabletsNotHosted > 0) {
+          log.debug("not balancing user tablets because there are {} unhosted tablets",
+              tabletsNotHosted);
+          continue;
+        }
 
-          if ((dl == DataLevel.METADATA || dl == DataLevel.USER)
-              && !partitionedMigrations.get(DataLevel.ROOT).isEmpty()) {
-            log.debug("Not balancing {} because {} has migrations", dl, DataLevel.ROOT);
-            continue;
-          }
+        if ((dl == DataLevel.METADATA || dl == DataLevel.USER)
+            && !partitionedMigrations.get(DataLevel.ROOT).isEmpty()) {
+          log.debug("Not balancing {} because {} has migrations", dl, DataLevel.ROOT);
+          continue;
+        }
 
-          if (dl == DataLevel.USER && !partitionedMigrations.get(DataLevel.METADATA).isEmpty()) {
-            log.debug("Not balancing {} because {} has migrations", dl, DataLevel.METADATA);
-            continue;
-          }
+        if (dl == DataLevel.USER && !partitionedMigrations.get(DataLevel.METADATA).isEmpty()) {
+          log.debug("Not balancing {} because {} has migrations", dl, DataLevel.METADATA);
+          continue;
+        }
 
-          // Create a view of the tserver status such that it only contains the tables
-          // for this level in the tableMap.
-          SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
-              createTServerStatusView(dl, tserverStatus);
-          // Construct the Thrift variant of the map above for the BalancerParams
-          final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel =
-              new TreeMap<>();
-          tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
-              .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
+        // Create a view of the tserver status such that it only contains the tables
+        // for this level in the tableMap.
+        SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
+            createTServerStatusView(dl, tserverStatus);
+        // Construct the Thrift variant of the map above for the BalancerParams
+        final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel =
+            new TreeMap<>();
+        tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
+            .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
 
-          log.debug("Balancing for tables at level {}", dl);
+        log.debug("Balancing for tables at level {}", dl);
 
-          SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
-              tserverStatusForBalancerLevel;
-          params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tServerGroupingForBalancer,
-              tserverStatusForLevel, partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
-          wait = Math.max(tabletBalancer.balance(params), wait);
-          long migrationsOutForLevel = 0;
+        SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
+            tserverStatusForBalancerLevel;
+        params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tServerGroupingForBalancer,
+            tserverStatusForLevel, partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
+        wait = Math.max(tabletBalancer.balance(params), wait);
+        long migrationsOutForLevel = 0;
+        try (
+            var tabletsMutator = getContext().getAmple().conditionallyMutateTablets(result -> {})) {
           for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
               params.migrationsOut(), dl)) {
             final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
@@ -973,15 +976,16 @@ public class Manager extends AbstractServer
               continue;
             }
             migrationsOutForLevel++;
-            tabletsMutator.mutateTablet(ke)
-                .putMigration(TabletServerIdImpl.toThrift(m.getNewTabletServer())).mutate();
+            tabletsMutator.mutateTablet(ke).requireAbsentOperation()
+                .putMigration(TabletServerIdImpl.toThrift(m.getNewTabletServer()))
+                .submit(tm -> false);
             log.debug("migration {}", m);
           }
-          totalMigrationsOut += migrationsOutForLevel;
-
-          // increment this at end of loop to signal complete run w/o any continue
-          levelsCompleted++;
         }
+        totalMigrationsOut += migrationsOutForLevel;
+
+        // increment this at end of loop to signal complete run w/o any continue
+        levelsCompleted++;
       }
       final long totalMigrations =
           totalMigrationsOut + partitionedMigrations.values().stream().mapToLong(Set::size).sum();
@@ -1196,6 +1200,8 @@ public class Manager extends AbstractServer
     Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
     statusThread.start();
 
+    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+
     tserverSet.startListeningForTabletServerChanges();
 
     Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
@@ -1262,9 +1268,6 @@ public class Manager extends AbstractServer
     for (TabletGroupWatcher watcher : watchers) {
       watcher.start();
     }
-
-    // This thread scans metadata which cannot be read until after TabletGroupWatchers are started
-    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
     // Once we are sure the upgrade is complete, we can safely allow fate use.
     try {
