@@ -58,7 +58,7 @@ import org.apache.hadoop.io.Text;
 public class ScanCommand extends Command {
 
   private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, formatterOpt,
-      interpreterOpt, formatterInterpeterOpt, outputFileOpt, scanOptCf, scanOptCq;
+      interpreterOpt, formatterInterpreterOpt, outputFileOpt, scanOptCf, scanOptCq;
 
   protected Option showFewOpt;
   protected Option timestampOpt;
@@ -104,7 +104,7 @@ public class ScanCommand extends Command {
 
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
       @SuppressWarnings("deprecation")
-      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpreter =
           getInterpreter(cl, tableName, shellState);
 
       String classLoaderContext = null;
@@ -121,11 +121,11 @@ public class ScanCommand extends Command {
       addScanIterators(shellState, cl, scanner, tableName);
 
       // handle remaining optional arguments
-      scanner.setRange(getRange(cl, interpeter));
+      scanner.setRange(getRange(cl, interpreter));
 
       // handle columns
-      fetchColumns(cl, scanner, interpeter);
-      fetchColumsWithCFAndCQ(cl, scanner, interpeter);
+      fetchColumns(cl, scanner, interpreter);
+      fetchColumsWithCFAndCQ(cl, scanner, interpreter);
 
       // set timeout
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
@@ -244,11 +244,11 @@ public class ScanCommand extends Command {
 
         clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(interpreterOpt.getOpt()),
             org.apache.accumulo.core.util.interpret.ScanInterpreter.class);
-      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+      } else if (cl.hasOption(formatterInterpreterOpt.getOpt())) {
         Shell.log
             .warn("Scan Interpreter option is deprecated and will be removed in a future version.");
 
-        clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()),
+        clazz = ClassLoaderUtil.loadClass(cl.getOptionValue(formatterInterpreterOpt.getOpt()),
             org.apache.accumulo.core.util.interpret.ScanInterpreter.class);
       }
     } catch (ClassNotFoundException e) {
@@ -275,11 +275,11 @@ public class ScanCommand extends Command {
 
         return shellState.getClassLoader(cl, shellState)
             .loadClass(cl.getOptionValue(formatterOpt.getOpt())).asSubclass(Formatter.class);
-      } else if (cl.hasOption(formatterInterpeterOpt.getOpt())) {
+      } else if (cl.hasOption(formatterInterpreterOpt.getOpt())) {
         Shell.log.warn("Formatter option is deprecated and will be removed in a future version.");
 
         return shellState.getClassLoader(cl, shellState)
-            .loadClass(cl.getOptionValue(formatterInterpeterOpt.getOpt()))
+            .loadClass(cl.getOptionValue(formatterInterpreterOpt.getOpt()))
             .asSubclass(Formatter.class);
       }
     } catch (Exception e) {
@@ -323,7 +323,7 @@ public class ScanCommand extends Command {
   }
 
   protected void fetchColumsWithCFAndCQ(CommandLine cl, ScannerBase scanner,
-      @SuppressWarnings("deprecation") org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter) {
+      @SuppressWarnings("deprecation") org.apache.accumulo.core.util.interpret.ScanInterpreter interpreter) {
     String cf = "";
     String cq = "";
     if (cl.hasOption(scanOptCf.getOpt())) {
@@ -339,14 +339,14 @@ public class ScanCommand extends Command {
       throw new IllegalArgumentException(formattedString);
     } else if (!cf.isEmpty() && cq.isEmpty()) {
       @SuppressWarnings("deprecation")
-      var interprettedCF = interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      var interprettedCF = interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
       scanner.fetchColumnFamily(interprettedCF);
     } else if (!cf.isEmpty() && !cq.isEmpty()) {
       @SuppressWarnings("deprecation")
-      var interprettedCF = interpeter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      var interprettedCF = interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
       @SuppressWarnings("deprecation")
       var interprettedCQ =
-          interpeter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
+          interpreter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
       scanner.fetchColumn(interprettedCF, interprettedCQ);
 
     }
@@ -436,7 +436,7 @@ public class ScanCommand extends Command {
         new Option("fm", "formatter", true, "fully qualified name of the formatter class to use");
     interpreterOpt = new Option("i", "interpreter", true,
         "fully qualified name of the interpreter class to use");
-    formatterInterpeterOpt = new Option("fi", "fmt-interpreter", true,
+    formatterInterpreterOpt = new Option("fi", "fmt-interpreter", true,
         "fully qualified name of a class that is a formatter and interpreter");
     timeoutOption = new Option(null, "timeout", true,
         "time before scan should fail if no data is returned. If no unit is"
@@ -483,7 +483,7 @@ public class ScanCommand extends Command {
     o.addOption(OptUtil.tableOpt("table to be scanned"));
     o.addOption(formatterOpt);
     o.addOption(interpreterOpt);
-    o.addOption(formatterInterpeterOpt);
+    o.addOption(formatterInterpreterOpt);
     o.addOption(timeoutOption);
     if (Arrays.asList(ScanCommand.class.getName(), GrepCommand.class.getName(),
         EGrepCommand.class.getName()).contains(this.getClass().getName())) {
