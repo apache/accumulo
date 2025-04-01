@@ -105,6 +105,7 @@ import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -150,6 +151,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private final Supplier<ServiceLockPaths> serverPaths;
   private final NamespaceMapping namespaces;
+  private final ConcurrentHashMap<NamespaceId,TableMapping> tableMappings;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
@@ -278,6 +280,7 @@ public class ClientContext implements AccumuloClient {
       }
     }
     this.namespaces = new NamespaceMapping(this);
+    this.tableMappings = new ConcurrentHashMap<>();
   }
 
   public Ample getAmple() {
@@ -1098,6 +1101,11 @@ public class ClientContext implements AccumuloClient {
   public NamespaceMapping getNamespaces() {
     ensureOpen();
     return namespaces;
+  }
+
+  public TableMapping getTableMapping(NamespaceId namespaceId) {
+    ensureOpen();
+    return tableMappings.computeIfAbsent(namespaceId, nsId -> new TableMapping(this, nsId));
   }
 
   public ClientTabletCache getTabletLocationCache(TableId tableId) {
