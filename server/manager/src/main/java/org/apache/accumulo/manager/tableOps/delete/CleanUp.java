@@ -132,7 +132,7 @@ class CleanUp extends ManagerRepo {
 
     // remove table from zookeeper
     try {
-      manager.getTableManager().removeTable(tableId);
+      manager.getTableManager().removeTable(tableId, namespaceId);
       manager.getContext().clearTableListCache();
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);

@@ -29,7 +29,6 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -75,7 +74,7 @@ public class RenameTable extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      TableMapping.rename(context.getZooSession().asReaderWriter(), tableId, namespaceId,
+      context.getTableMapping(namespaceId).rename(context, tableId,
           qualifiedOldTableName.getSecond(), qualifiedNewTableName.getSecond());
 
       context.clearTableListCache();

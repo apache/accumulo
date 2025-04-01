@@ -57,9 +57,10 @@ public class TableMapping {
     this.namespaceId = namespaceId;
   }
 
-  public static void put(final ZooReaderWriter zoo, TableId tableId, NamespaceId namespaceId,
-      String tableName, TableOperation operation)
+  public void put(final ClientContext context, TableId tableId, String tableName,
+      TableOperation operation)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    var zoo = context.getZooSession().asReaderWriter();
     Stream.of(zoo, tableId, namespaceId, tableName).forEach(Objects::requireNonNull);
     String zTableMapPath = getZTableMapPath(namespaceId);
     if (!zoo.exists(zTableMapPath)) {
@@ -87,8 +88,9 @@ public class TableMapping {
     });
   }
 
-  public static void remove(final ZooReaderWriter zoo, final TableId tableId)
+  public void remove(final ClientContext context, final TableId tableId)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    var zoo = context.getZooSession().asReaderWriter();
     Stream.of(zoo, tableId).forEach(Objects::requireNonNull);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Removing built-in tables in map should not be possible");
@@ -105,9 +107,10 @@ public class TableMapping {
     });
   }
 
-  public static void rename(final ZooReaderWriter zoo, final TableId tableId,
-      final NamespaceId namespaceId, final String oldName, final String newName)
+  public void rename(final ClientContext context, final TableId tableId, final String oldName,
+      final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    var zoo = context.getZooSession().asReaderWriter();
     Stream.of(zoo, tableId, namespaceId, oldName, newName).forEach(Objects::requireNonNull);
     String zTableMapPath = getZTableMapPath(namespaceId);
     if (!zoo.exists(zTableMapPath)) {

@@ -30,7 +30,6 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -83,8 +82,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
       NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
-      TableMapping.put(context.getZooSession().asReaderWriter(), tableInfo.tableId, namespaceId,
-          tableInfo.tableName, TableOperation.IMPORT);
+      context.getTableMapping(namespaceId).put(context, tableInfo.tableId, tableInfo.tableName,
+          TableOperation.IMPORT);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
 
       context.clearTableListCache();
@@ -107,8 +106,10 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    env.getTableManager().removeTable(tableInfo.tableId);
+    var context = env.getContext();
+    env.getTableManager().removeTable(tableInfo.tableId,
+        Namespaces.getNamespaceId(context, TableNameUtil.qualify(tableInfo.tableName).getFirst()));
     Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
-    env.getContext().clearTableListCache();
+    context.clearTableListCache();
   }
 }

@@ -35,7 +35,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -173,10 +172,10 @@ public class TableManager {
     PropUtil.removeProperties(context, TablePropKey.of(tableId), propertiesToExclude);
   }
 
-  public void removeTable(TableId tableId)
+  public void removeTable(TableId tableId, NamespaceId namespaceId)
       throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
     try {
-      TableMapping.remove(zoo, tableId);
+      context.getTableMapping(namespaceId).remove(context, tableId);
     } catch (AcceptableThriftTableOperationException e) {
       // ignore not found, because that's what we're trying to do anyway
       if (e.getType() != TableOperationExceptionType.NOTFOUND) {

@@ -24,7 +24,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
@@ -56,8 +55,8 @@ class PopulateZookeeper extends ManagerRepo {
     try {
       var context = manager.getContext();
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      TableMapping.put(context.getZooSession().asReaderWriter(), tableInfo.getTableId(),
-          tableInfo.getNamespaceId(), tableInfo.getTableName(), TableOperation.CREATE);
+      context.getTableMapping(tableInfo.getNamespaceId()).put(context, tableInfo.getTableId(),
+          tableInfo.getTableName(), TableOperation.CREATE);
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
@@ -80,7 +79,7 @@ class PopulateZookeeper extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager manager) throws Exception {
-    manager.getTableManager().removeTable(tableInfo.getTableId());
+    manager.getTableManager().removeTable(tableInfo.getTableId(), tableInfo.getNamespaceId());
     Utils.unreserveTable(manager, tableInfo.getTableId(), fateId, LockType.WRITE);
     manager.getContext().clearTableListCache();
   }
