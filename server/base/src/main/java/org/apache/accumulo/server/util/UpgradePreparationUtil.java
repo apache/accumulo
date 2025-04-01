@@ -47,11 +47,13 @@ public class UpgradePreparationUtil implements KeywordExecutable {
   private static final Logger LOG = LoggerFactory.getLogger(UpgradePreparationUtil.class);
 
   static class Opts extends Help {
-    @Parameter(names = "-prepare-for-upgrade",
-        description = "prepare a recently shutdown instance for an upgrade to the next non-bugfix release")
-    boolean upgrade = false;
-    @Parameter(names = "-force", description = "allow prepare-for-upgrade to run again")
-    boolean forceUpgradePrep = false;
+    @Parameter(names = "--prepare-for-upgrade",
+        description = "prepare an older version instance for an upgrade to a newer non-bugfix release."
+            + " This command should be run using the older version of software after the instance is shut down.")
+    boolean postShutdownUpgradeCheck = false;
+
+    @Parameter(names = "--force", description = "allow --prepare-for-upgrade to run again")
+    boolean force = false;
   }
 
   @Override
@@ -69,7 +71,7 @@ public class UpgradePreparationUtil implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.upgrade) {
+    if (!opts.postShutdownUpgradeCheck) {
       new JCommander(opts).usage();
       return;
     }
@@ -85,11 +87,11 @@ public class UpgradePreparationUtil implements KeywordExecutable {
     InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
     ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
-    if (opts.upgrade) {
+    if (opts.postShutdownUpgradeCheck) {
       final String zUpgradepath = Constants.ZROOT + "/" + iid + Constants.ZPREPARE_FOR_UPGRADE;
       try {
         if (zoo.exists(zUpgradepath)) {
-          if (!opts.forceUpgradePrep) {
+          if (!opts.force) {
             throw new IllegalStateException(
                 "'ZooZap -prepare-for-upgrade' must have already been run."
                     + " To run again use the 'ZooZap -prepare-for-upgrade -force'");
@@ -137,13 +139,15 @@ public class UpgradePreparationUtil implements KeywordExecutable {
         throw new IllegalStateException("Error creating " + zUpgradepath
             + " node in zookeeper. Check for any issues and retry.", e);
       }
-      LOG.info("Instance {} prepared for upgrade. Server processes will not start while"
-          + " in this state. To undo this state and abort upgrade preparations delete"
-          + " the zookeeper node: {}", iid.canonical(), zUpgradepath);
 
       LOG.info("Forcing removal of all server locks");
       new ZooZap().zap(siteConf, "-manager", "-compaction-coordinators", "-tservers", "-compactors",
           "-sservers");
+
+      LOG.info("Instance {} prepared for upgrade. Server processes will not start while"
+          + " in this state. To undo this state and abort upgrade preparations delete"
+          + " the zookeeper node: {}. If you abort and restart the instance, then you "
+          + " should re-run this utility before upgrading.", iid.canonical(), zUpgradepath);
     }
 
   }
