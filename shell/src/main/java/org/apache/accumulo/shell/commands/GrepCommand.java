@@ -99,6 +99,7 @@ public class GrepCommand extends ScanCommand {
       try {
         // handle columns
         fetchColumns(cl, scanner, interpeter);
+        fetchColumsWithCFAndCQ(cl, scanner, interpeter);
 
         // output the records
         printRecords(cl, shellState, config, scanner, formatter, printFile);

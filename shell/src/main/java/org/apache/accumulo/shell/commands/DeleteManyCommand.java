@@ -63,6 +63,7 @@ public class DeleteManyCommand extends ScanCommand {
 
     // handle columns
     fetchColumns(cl, scanner, interpeter);
+    fetchColumsWithCFAndCQ(cl, scanner, interpeter);
 
     // output / delete the records
     final BatchWriter writer = shellState.getAccumuloClient().createBatchWriter(tableName,

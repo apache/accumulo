@@ -322,7 +322,7 @@ public class ScanCommand extends Command {
     }
   }
 
-  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner,
+  protected void fetchColumsWithCFAndCQ(CommandLine cl, ScannerBase scanner,
       @SuppressWarnings("deprecation") org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter) {
     String cf = "";
     String cq = "";
