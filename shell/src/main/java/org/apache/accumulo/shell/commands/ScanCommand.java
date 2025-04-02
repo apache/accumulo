@@ -125,7 +125,6 @@ public class ScanCommand extends Command {
 
       // handle columns
       fetchColumns(cl, scanner, interpreter);
-      fetchColumsWithCFAndCQ(cl, scanner, interpreter);
 
       // set timeout
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
@@ -290,67 +289,52 @@ public class ScanCommand extends Command {
   }
 
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner,
-      @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter formatter)
+      @SuppressWarnings("deprecation") final org.apache.accumulo.core.util.interpret.ScanInterpreter interpreter)
       throws UnsupportedEncodingException {
 
-    if ((cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt()))
-        && cl.hasOption(scanOptColumns.getOpt())) {
+    if (cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt())) {
+      if (cl.hasOption(scanOptColumns.getOpt())) {
+        String formattedString =
+            String.format("Option -%s is mutually exclusive with options -%s and -%s.",
+                scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
+        throw new IllegalArgumentException(formattedString);
+      }
+      String cf = cl.getOptionValue(scanOptCf.getOpt(), "");
+      String cq = cl.getOptionValue(scanOptCq.getOpt(), "");
 
-      String formattedString =
-          String.format("Option -%s is mutually exclusive with options -%s and -%s.",
-              scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
-      throw new IllegalArgumentException(formattedString);
-    }
-
-    if (cl.hasOption(scanOptColumns.getOpt())) {
+      if (!cq.isEmpty()) {
+        if (cf.isEmpty()) {
+          String formattedString = String.format("Option -%s is required when using -%s.",
+              scanOptCf.getOpt(), scanOptCq.getOpt());
+          throw new IllegalArgumentException(formattedString);
+        } else {
+          var interprettedCF =
+              interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+          var interprettedCQ =
+              interpreter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
+          scanner.fetchColumn(interprettedCF, interprettedCQ);
+        }
+      } else if (!cf.isEmpty()) {
+        var interprettedCF =
+            interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+        scanner.fetchColumnFamily(interprettedCF);
+      }
+    } else if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
-          @SuppressWarnings("deprecation")
-          var interprettedCF = formatter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
+          var interprettedCF =
+              interpreter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
           scanner.fetchColumnFamily(interprettedCF);
         } else {
-          @SuppressWarnings("deprecation")
           var interprettedCF =
-              formatter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET)));
-          @SuppressWarnings("deprecation")
+              interpreter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET)));
           var interprettedCQ =
-              formatter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET)));
+              interpreter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET)));
           scanner.fetchColumn(interprettedCF, interprettedCQ);
         }
       }
     }
-  }
-
-  protected void fetchColumsWithCFAndCQ(CommandLine cl, ScannerBase scanner,
-      @SuppressWarnings("deprecation") org.apache.accumulo.core.util.interpret.ScanInterpreter interpreter) {
-    String cf = "";
-    String cq = "";
-    if (cl.hasOption(scanOptCf.getOpt())) {
-      cf = cl.getOptionValue(scanOptCf.getOpt());
-    }
-    if (cl.hasOption(scanOptCq.getOpt())) {
-      cq = cl.getOptionValue(scanOptCq.getOpt());
-    }
-
-    if (cf.isEmpty() && !cq.isEmpty()) {
-      String formattedString = String.format("Option -%s is required when using -%s.",
-          scanOptCf.getOpt(), scanOptCq.getOpt());
-      throw new IllegalArgumentException(formattedString);
-    } else if (!cf.isEmpty() && cq.isEmpty()) {
-      @SuppressWarnings("deprecation")
-      var interprettedCF = interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
-      scanner.fetchColumnFamily(interprettedCF);
-    } else if (!cf.isEmpty() && !cq.isEmpty()) {
-      @SuppressWarnings("deprecation")
-      var interprettedCF = interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
-      @SuppressWarnings("deprecation")
-      var interprettedCQ =
-          interpreter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
-      scanner.fetchColumn(interprettedCF, interprettedCQ);
-
-    }
-
   }
 
   protected Range getRange(final CommandLine cl,
