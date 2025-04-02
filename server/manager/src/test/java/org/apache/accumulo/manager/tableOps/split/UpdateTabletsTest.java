@@ -68,6 +68,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.ConditionalTabletMutatorImpl;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
@@ -205,7 +206,7 @@ public class UpdateTabletsTest {
 
     var flid1 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     var flid2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
-    var loaded = Map.of(loaded1, flid1, loaded2, flid2);
+    var loaded = List.of(Triple.of(loaded1, flid1, 123L), Triple.of(loaded2, flid2, 1236L));
 
     var dfv1 = new DataFileValue(1000, 100, 20);
     var dfv2 = new DataFileValue(500, 50, 20);

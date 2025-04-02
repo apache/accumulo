@@ -229,7 +229,8 @@ public class UpdateTablets extends ManagerRepo {
             "Null TabletMergeability for extent %s is unexpected", newExtent);
         mutator.putTabletMergeability(
             TabletMergeabilityMetadata.toMetadata(mergeability, manager.getSteadyTime()));
-        tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
+        tabletMetadata.getLoaded()
+            .forEach((t) -> mutator.putBulkFile(t.getLeft().getTabletFile(), t.getMiddle()));
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);
 

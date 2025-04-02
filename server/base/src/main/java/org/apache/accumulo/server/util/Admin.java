@@ -1243,7 +1243,7 @@ public class Admin implements KeywordExecutable {
    */
   private static void getAllFateIds(TabletMetadata tabletMetadata,
       Consumer<FateId> fateIdConsumer) {
-    tabletMetadata.getLoaded().values().forEach(fateIdConsumer);
+    tabletMetadata.getLoaded().stream().map(triple -> triple.getMiddle()).forEach(fateIdConsumer);
     if (tabletMetadata.getSelectedFiles() != null) {
       fateIdConsumer.accept(tabletMetadata.getSelectedFiles().getFateId());
     }

@@ -49,7 +49,8 @@ public class RefreshTablets extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
     TabletRefresher.refresh(manager, fateId, bulkInfo.tableId, bulkInfo.firstSplit,
-        bulkInfo.lastSplit, tabletMetadata -> tabletMetadata.getLoaded().containsValue(fateId));
+        bulkInfo.lastSplit, tabletMetadata -> tabletMetadata.getLoaded().stream()
+            .anyMatch(triple -> triple.getMiddle().equals(fateId)));
 
     return new CleanUpBulkImport(bulkInfo);
   }

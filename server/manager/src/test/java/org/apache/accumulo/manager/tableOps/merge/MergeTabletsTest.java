@@ -193,7 +193,7 @@ public class MergeTabletsTest {
     EasyMock.expect(lastTabletMeta.getTime()).andReturn(tabletTime).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getFlushId()).andReturn(flushID).anyTimes();
     EasyMock.expect(lastTabletMeta.getTabletAvailability()).andReturn(availability).atLeastOnce();
-    EasyMock.expect(lastTabletMeta.getLoaded()).andReturn(Map.of()).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getLoaded()).andReturn(List.of()).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getHostingRequested()).andReturn(true).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getSuspend()).andReturn(suspendingTServer).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();

@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.PluginEnvironment.Configuration;
@@ -42,11 +43,13 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
@@ -59,6 +62,7 @@ import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.split.SplitUtils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,6 +156,18 @@ public class TabletManagementIterator extends WholeRowIterator {
         return state != TabletState.UNASSIGNED;
       default:
         throw new IllegalStateException("unknown goal state " + goalState);
+    }
+  }
+
+  private static void shouldReturnDueToFateOperations(TabletMetadata tm,
+      Set<ManagementAction> reasonsToReturnThisTablet) {
+    if (!tm.getLoaded().isEmpty()) {
+      for (Triple<StoredTabletFile,FateId,Long> t : tm.getLoaded()) {
+        long age = System.currentTimeMillis() - t.getRight();
+        if (TimeUnit.MILLISECONDS.toHours(age) > 24) {
+          reasonsToReturnThisTablet.add(ManagementAction.FATE_OLD_BULK_IMPORT);
+        }
+      }
     }
   }
 
@@ -315,6 +331,8 @@ public class TabletManagementIterator extends WholeRowIterator {
             tm.getExtent());
       }
     }
+
+    shouldReturnDueToFateOperations(tm, reasonsToReturnThisTablet);
   }
 
   private static final Set<CompactionKind> ALL_COMPACTION_KINDS =

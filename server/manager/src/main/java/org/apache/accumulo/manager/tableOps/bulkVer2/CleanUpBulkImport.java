@@ -21,7 +21,6 @@ package org.apache.accumulo.manager.tableOps.bulkVer2;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.Map;
 import java.util.Optional;
 
 import org.apache.accumulo.core.Constants;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -105,12 +105,11 @@ public class CleanUpBulkImport extends ManagerRepo {
           var tabletsMutator = ample.conditionallyMutateTablets()) {
 
         for (var tablet : tablets) {
-          if (tablet.getLoaded().values().stream()
-              .anyMatch(loadedFateId -> loadedFateId.equals(fateId))) {
+          if (tablet.getLoaded().stream().anyMatch(triple -> triple.getMiddle().equals(fateId))) {
             var tabletMutator =
                 tabletsMutator.mutateTablet(tablet.getExtent()).requireAbsentOperation();
-            tablet.getLoaded().entrySet().stream().filter(entry -> entry.getValue().equals(fateId))
-                .map(Map.Entry::getKey).forEach(tabletMutator::deleteBulkFile);
+            tablet.getLoaded().stream().filter(entry -> entry.getMiddle().equals(fateId))
+                .map(Triple::getLeft).forEach(tabletMutator::deleteBulkFile);
             tabletMutator.submit(tm -> false, () -> "remove bulk load entries " + fateId);
           }
         }

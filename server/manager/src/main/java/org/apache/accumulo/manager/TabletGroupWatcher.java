@@ -34,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -55,6 +56,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
@@ -63,6 +66,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -94,6 +98,7 @@ import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
@@ -541,6 +546,25 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (actions.contains(ManagementAction.NEEDS_RECOVERY) && goal != TabletGoalState.HOSTED) {
         LOG.warn("Tablet has wals, but goal is not hosted. Tablet: {}, goal:{}", tm.getExtent(),
             goal);
+      }
+
+      if (actions.contains(ManagementAction.FATE_OLD_BULK_IMPORT)) {
+        if (!tm.getLoaded().isEmpty()) {
+          for (Triple<StoredTabletFile,FateId,Long> t : tm.getLoaded()) {
+            long age = System.currentTimeMillis() - t.getRight();
+            if (TimeUnit.MILLISECONDS.toHours(age) > 24) {
+              try {
+                @SuppressWarnings("unused")
+                var unused = manager.fate(FateInstanceType.fromTableId(tm.getTableId()))
+                    .getReturn(t.getMiddle());
+              } catch (NoSuchElementException e) {
+                LOG.warn(
+                    "Tablet has bulk import Fate transaction that has not completed in over 24 hours. Tablet: {}, FateId: {}",
+                    tm.getExtent(), t.getMiddle());
+              }
+            }
+          }
+        }
       }
 
       if (actions.contains(ManagementAction.NEEDS_VOLUME_REPLACEMENT)) {

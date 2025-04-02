@@ -109,6 +109,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -1798,7 +1799,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
     assertEquals(Set.of(stf1, stf2), context.getAmple().readTablet(e1).getFiles());
-    assertEquals(Map.of(stf1, fateId1, stf2, fateId1),
+    assertEquals(List.of(Triple.of(stf1, fateId1, 0L), Triple.of(stf2, fateId1, 0L)),
         context.getAmple().readTablet(e1).getLoaded());
 
     FateId fateId2 = FateId.from(FateInstanceType.USER, UUID.randomUUID());
@@ -1810,8 +1811,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
     assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
-    assertEquals(Map.of(stf1, fateId1, stf2, fateId1, stf3, fateId2),
-        context.getAmple().readTablet(e1).getLoaded());
+    assertEquals(List.of(Triple.of(stf1, fateId1, 0L), Triple.of(stf2, fateId1, 0L),
+        Triple.of(stf3, fateId2, 0L)), context.getAmple().readTablet(e1).getLoaded());
 
     // should fail because the loaded markers are present
     try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
@@ -1832,8 +1833,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
     }
 
     assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
-    assertEquals(Map.of(stf1, fateId1, stf2, fateId1, stf3, fateId2),
-        context.getAmple().readTablet(e1).getLoaded());
+    assertEquals(List.of(Triple.of(stf1, fateId1, 0L), Triple.of(stf2, fateId1, 0L),
+        Triple.of(stf3, fateId2, 0L)), context.getAmple().readTablet(e1).getLoaded());
     assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
   }
 

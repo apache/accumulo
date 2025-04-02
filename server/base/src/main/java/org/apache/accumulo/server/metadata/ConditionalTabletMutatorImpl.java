@@ -37,6 +37,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -263,7 +264,9 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
         }
         break;
       case LOADED: {
-        Condition c = SetEncodingIterator.createCondition(tabletMetadata.getLoaded().keySet(),
+        Condition c = SetEncodingIterator.createCondition(
+            tabletMetadata.getLoaded().stream().map(triple -> triple.getLeft())
+                .collect(Collectors.toSet()),
             stf -> stf.getMetadata().getBytes(UTF_8), BulkFileColumnFamily.NAME);
         mutation.addCondition(c);
       }

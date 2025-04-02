@@ -52,6 +52,7 @@ public class TabletManagement {
 
   public static enum ManagementAction {
     BAD_STATE,
+    FATE_OLD_BULK_IMPORT,
     NEEDS_COMPACTING,
     NEEDS_LOCATION_UPDATE,
     NEEDS_RECOVERY,

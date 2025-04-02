@@ -94,6 +94,7 @@ import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -118,7 +119,7 @@ public class TabletMetadata {
   private final Location location;
   private final Map<StoredTabletFile,DataFileValue> files;
   private final List<StoredTabletFile> scans;
-  private final Map<StoredTabletFile,FateId> loadedFiles;
+  private final List<Triple<StoredTabletFile,FateId,Long>> loadedFiles;
   private final SelectedFiles selectedFiles;
   private final EnumSet<ColumnType> fetchedCols;
   private final Supplier<KeyExtent> extent;
@@ -501,7 +502,7 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Map<StoredTabletFile,FateId> getLoaded() {
+  public List<Triple<StoredTabletFile,FateId,Long>> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -733,8 +734,8 @@ public class TabletMetadata {
           tmBuilder.file(new StoredTabletFile(qual), new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
-          tmBuilder.loadedFile(new StoredTabletFile(qual),
-              BulkFileColumnFamily.getBulkLoadTid(val));
+          tmBuilder.loadedFile(new StoredTabletFile(qual), BulkFileColumnFamily.getBulkLoadTid(val),
+              key.getTimestamp());
           break;
         case CurrentLocationColumnFamily.STR_NAME:
           tmBuilder.location(val, qual, LocationType.CURRENT, suppressLocationError);
@@ -840,8 +841,10 @@ public class TabletMetadata {
     private final ImmutableMap.Builder<StoredTabletFile,DataFileValue> files =
         ImmutableMap.builder();
     private final ImmutableList.Builder<StoredTabletFile> scans = ImmutableList.builder();
-    private final ImmutableMap.Builder<StoredTabletFile,FateId> loadedFiles =
-        ImmutableMap.builder();
+    private final ImmutableList.Builder<Triple<StoredTabletFile,FateId,Long>> loadedFiles =
+        ImmutableList.builder();
+    // private final ImmutableMap.Builder<StoredTabletFile,FateId> loadedFiles =
+    // ImmutableMap.builder();
     private SelectedFiles selectedFiles;
     private EnumSet<ColumnType> fetchedCols;
     private Location last;
@@ -901,8 +904,8 @@ public class TabletMetadata {
       this.files.put(stf, dfv);
     }
 
-    void loadedFile(StoredTabletFile stf, FateId fateId) {
-      this.loadedFiles.put(stf, fateId);
+    void loadedFile(StoredTabletFile stf, FateId fateId, Long timestamp) {
+      this.loadedFiles.add(Triple.of(stf, fateId, timestamp));
     }
 
     void selectedFiles(SelectedFiles selectedFiles) {

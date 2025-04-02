@@ -52,7 +52,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
-import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -177,8 +176,8 @@ class LoadFiles extends ManagerRepo {
 
       // remove any tablets that already have loaded flags
       tablets = tablets.stream().filter(tabletMeta -> {
-        Set<ReferencedTabletFile> loaded = tabletMeta.getLoaded().keySet().stream()
-            .map(StoredTabletFile::getTabletFile).collect(Collectors.toSet());
+        Set<ReferencedTabletFile> loaded = tabletMeta.getLoaded().stream()
+            .map(triple -> triple.getLeft().getTabletFile()).collect(Collectors.toSet());
         boolean containsAll = loaded.containsAll(toLoad.keySet());
         // The tablet should either contain all loaded files or none. It should never contain a
         // subset. Loaded files are written in single mutation to accumulo, either all changes in a

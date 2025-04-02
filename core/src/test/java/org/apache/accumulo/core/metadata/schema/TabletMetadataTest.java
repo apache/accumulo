@@ -93,6 +93,7 @@ import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.commons.lang3.tuple.Triple;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -183,8 +184,8 @@ public class TabletMetadataTest {
     SortedMap<Key,Value> actualRowMap = tm.getKeyValues().stream().collect(
         Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new));
     assertEquals(rowMap, actualRowMap);
-    assertEquals(Map.of(new StoredTabletFile(bf1), fateId1, new StoredTabletFile(bf2), fateId2),
-        tm.getLoaded());
+    assertEquals(List.of(Triple.of(new StoredTabletFile(bf1), fateId1, 0L),
+        Triple.of(new StoredTabletFile(bf2), fateId2, 0L)), tm.getLoaded());
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
@@ -398,8 +399,8 @@ public class TabletMetadataTest {
     assertTrue(tm.getScans().isEmpty());
     assertThrows(UnsupportedOperationException.class, () -> tm.getScans().add(stf));
     assertTrue(tm.getLoaded().isEmpty());
-    assertThrows(UnsupportedOperationException.class,
-        () -> tm.getLoaded().put(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID())));
+    assertThrows(UnsupportedOperationException.class, () -> tm.getLoaded()
+        .add(Triple.of(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()), 123L)));
     assertThrows(IllegalStateException.class, tm::getKeyValues);
     assertTrue(tm.getCompacted().isEmpty());
     assertThrows(UnsupportedOperationException.class,
@@ -413,7 +414,7 @@ public class TabletMetadataTest {
     b.file(stf, new DataFileValue(0, 0, 0));
     b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
     b.scan(stf);
-    b.loadedFile(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
+    b.loadedFile(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()), 1234L);
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.userCompactionsRequested(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
@@ -433,8 +434,8 @@ public class TabletMetadataTest {
     assertEquals(1, tm2.getScans().size());
     assertThrows(UnsupportedOperationException.class, () -> tm2.getScans().add(stf));
     assertEquals(1, tm2.getLoaded().size());
-    assertThrows(UnsupportedOperationException.class,
-        () -> tm2.getLoaded().put(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID())));
+    assertThrows(UnsupportedOperationException.class, () -> tm2.getLoaded()
+        .add(Triple.of(stf, FateId.from(FateInstanceType.USER, UUID.randomUUID()), 1235L)));
     assertEquals(1, tm2.getKeyValues().size());
     assertThrows(UnsupportedOperationException.class, () -> tm2.getKeyValues().remove(null));
     assertEquals(1, tm2.getCompacted().size());
@@ -655,7 +656,8 @@ public class TabletMetadataTest {
     assertEquals(Map.of(sf1, dfv1, sf2, dfv2), tm.getFilesMap());
     assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
         tm.getFileSize());
-    assertEquals(Map.of(rf1.insert(), loadedFateId1, rf2.insert(), loadedFateId2), tm.getLoaded());
+    assertEquals(List.of(Triple.of(rf1.insert(), loadedFateId1, 0L),
+        Triple.of(rf2.insert(), loadedFateId2, 0L)), tm.getLoaded());
     assertEquals("dir1", tm.getDirName());
     assertEquals(Set.of(sf3, sf4), Set.copyOf(tm.getScans()));
     assertEquals(Set.of(), tm.getExternalCompactions().keySet());
