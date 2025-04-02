@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.rpc;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -53,6 +54,8 @@ public class AccumuloProtocolTest {
           .serverFactory().getProtocol(transport);
 
       assertDoesNotThrow(serverProtocol::validateHeader);
+
+      assertEquals(0, transport.read(new byte[10], 0, 10), "Expected all data to be consumed");
     }
   }
 
