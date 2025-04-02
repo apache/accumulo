@@ -513,6 +513,12 @@ public class ShellIT extends SharedMiniClusterBase {
         case PATH:
         case PREFIX:
         case STRING:
+        case FATE_THREADPOOL_SIZE:
+          // deprecated value
+        case FATE_META_CONFIG:
+          // json based type
+        case FATE_USER_CONFIG:
+          // json based type
         case JSON:
           Shell.log.debug("Skipping " + propertyType + " Property Types");
           continue;

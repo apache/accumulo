@@ -1172,6 +1172,49 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testManyTablets() throws Exception {
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testManyTablets-");
+      writeData(fs, dir + "/f1.", aconf, 0, 199);
+      writeData(fs, dir + "/f2.", aconf, 200, 399);
+      writeData(fs, dir + "/f3.", aconf, 400, 599);
+      writeData(fs, dir + "/f4.", aconf, 600, 799);
+      writeData(fs, dir + "/f5.", aconf, 800, 999);
+
+      var splits = IntStream.range(1, 1000).mapToObj(BulkNewIT::row).map(Text::new)
+          .collect(Collectors.toCollection(TreeSet::new));
+
+      // faster to create a table w/ lots of splits
+      c.tableOperations().delete(tableName);
+      var props = Map.of(Property.TABLE_BULK_MAX_TABLETS.getKey(), "500");
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits)
+          .withInitialTabletAvailability(TabletAvailability.HOSTED).setProperties(props));
+
+      var lpBuilder = LoadPlan.builder();
+      lpBuilder.loadFileTo("f1.rf", RangeType.TABLE, null, row(1));
+      IntStream.range(2, 200)
+          .forEach(i -> lpBuilder.loadFileTo("f1.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(200, 400)
+          .forEach(i -> lpBuilder.loadFileTo("f2.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(400, 600)
+          .forEach(i -> lpBuilder.loadFileTo("f3.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(600, 800)
+          .forEach(i -> lpBuilder.loadFileTo("f4.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(800, 1000)
+          .forEach(i -> lpBuilder.loadFileTo("f5.rf", RangeType.TABLE, row(i - 1), row(i)));
+
+      var loadPlan = lpBuilder.build();
+
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+
+      verifyData(c, tableName, 0, 999, false);
+
+    }
+
+  }
+
   private void addSplits(AccumuloClient client, String tableName, String splitString)
       throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
