@@ -26,6 +26,7 @@
 #                                and addresses to override the default lookups
 #
 
+# TODO add prune help
 function print_usage() {
   cat <<EOF
 $(cyan Usage): $(green accumulo-cluster) <$(yellow command)> [<$(yellow option)> ...]
@@ -652,6 +653,50 @@ function control_services() {
 
 }
 
+function prune(){
+  trap 'rm -f "$SERVICE_JSON"' EXIT
+  SERVICE_JSON=$(mktemp --tmpdir "accumulo-services-XXXXXXXX.json") || exit 1
+  "$accumulo_cmd" admin serviceStatus --json > $SERVICE_JSON 2>/dev/null 
+
+  declare -A actual_counts
+  declare -A expected_counts
+
+  local var_name
+  local hosts
+
+  for group in $(cat $SERVICE_JSON | jq -r '.summaries.COMPACTOR.resourceGroups | .[] '); do
+	# TODO what is the behavior when this group is not defined in config
+	var_name="COMPACTORS_PER_HOST_$group"
+	local expected=${!var_name:-0}
+
+	expected_counts=()
+
+        hosts="COMPACTOR_HOSTS_$group"
+        for compactor in ${!hosts}; do
+          expected_counts[$compactor]=$expected
+	done
+
+	actual_counts=()
+
+	# TODO what if the line does not have exactly two fields?
+	while read count host; do
+		# TODO check size of fields it 2
+		actual_counts["$host"]="$count"
+	done < <(cat $SERVICE_JSON | jq -r ".summaries.COMPACTOR.serviceByGroups.$group | .[] " | sed -E 's/:[0-9]+$//' | sort | uniq -c)
+
+
+	for host in ${!actual_counts[@]}; do
+		local actual_count=${actual_counts[$host]}
+		local expected_count=${expected_counts[$host]:-0}
+
+		if (( $actual_count > $expected_count )); then
+			echo "group: $group host: $host extra:$(( $actual_count - $expected_count ))"
+		fi
+	done
+
+   done
+}
+
 function main() {
 
   checkTerminalSupportsColor && COLOR_ENABLED=1 || COLOR_ENABLED=0
@@ -758,6 +803,10 @@ EOF
       control_services stop
       control_services kill
       ;;
+    prune)
+       parse_config
+       prune
+       ;;
     start-non-tservers)
       echo "'$ARG_CMD' is deprecated. Please specify the servers you wish to start instead"
       parse_config
