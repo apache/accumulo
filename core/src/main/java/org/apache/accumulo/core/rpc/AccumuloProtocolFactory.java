@@ -100,25 +100,26 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       super.writeI32(MAGIC_NUMBER);
       super.writeByte(PROTOCOL_VERSION);
 
-      if (this.isClient && span != null && span.getSpanContext().isValid()) {
-        super.writeBool(HEADER_HAS_TRACE);
-        traceHeaders.clear();
+      if (span == null || !span.getSpanContext().isValid()) {
+        super.writeBool(!HEADER_HAS_TRACE);
+        return;
+      }
 
-        W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
-            (headers, key, value) -> {
-              if (headers != null) {
-                headers.put(key, value);
-              }
-            });
+      super.writeBool(HEADER_HAS_TRACE);
+      traceHeaders.clear();
 
-        super.writeI32(traceHeaders.size());
+      W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
+          (headers, key, value) -> {
+            if (headers != null) {
+              headers.put(key, value);
+            }
+          });
 
-        for (Map.Entry<String,String> entry : traceHeaders.entrySet()) {
-          super.writeString(entry.getKey());
-          super.writeString(entry.getValue());
-        }
-      } else {
-        super.writeBool(false);
+      super.writeI32(traceHeaders.size());
+
+      for (Map.Entry<String,String> entry : traceHeaders.entrySet()) {
+        super.writeString(entry.getKey());
+        super.writeString(entry.getValue());
       }
     }
 
