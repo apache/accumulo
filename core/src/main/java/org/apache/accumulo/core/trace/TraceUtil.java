@@ -28,6 +28,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ClassUtil;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +41,9 @@ import io.opentelemetry.api.trace.SpanBuilder;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
+import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.propagation.TextMapGetter;
 
 public class TraceUtil {
 
@@ -121,6 +124,39 @@ public class TraceUtil {
       attributes.forEach(builder::setAttribute);
     }
     return builder.startSpan();
+  }
+
+  /**
+   * Inject the current trace context into the given map.
+   */
+  public static void injectTraceContext(Map<String,String> traceHeaders) {
+    W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
+        (headers, key, value) -> {
+          if (headers != null) {
+            headers.put(key, value);
+          }
+        });
+  }
+
+  /**
+   * Extract the trace context from the given map.
+   *
+   * @param headers the map containing the trace context
+   * @return the extracted trace context
+   */
+  public static Context extractTraceContext(Map<String,String> headers) {
+    return W3CTraceContextPropagator.getInstance().extract(Context.current(), headers,
+        new TextMapGetter<>() {
+          @Override
+          public Iterable<String> keys(@NonNull Map<String,String> carrier) {
+            return carrier.keySet();
+          }
+
+          @Override
+          public String get(Map<String,String> carrier, @NonNull String key) {
+            return carrier.get(key);
+          }
+        });
   }
 
   /**

@@ -27,13 +27,10 @@ import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
-import org.checkerframework.checker.nullness.qual.NonNull;
 
 import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
 import io.opentelemetry.context.Scope;
-import io.opentelemetry.context.propagation.TextMapGetter;
 
 /**
  * Factory for creating instances of the AccumuloProtocol.
@@ -108,12 +105,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       super.writeBool(HEADER_HAS_TRACE);
       traceHeaders.clear();
 
-      W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
-          (headers, key, value) -> {
-            if (headers != null) {
-              headers.put(key, value);
-            }
-          });
+      TraceUtil.injectTraceContext(traceHeaders);
 
       super.writeI32(traceHeaders.size());
 
@@ -175,18 +167,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         }
 
         if (!headers.isEmpty()) {
-          Context extractedContext = W3CTraceContextPropagator.getInstance()
-              .extract(Context.current(), headers, new TextMapGetter<>() {
-                @Override
-                public Iterable<String> keys(@NonNull Map<String,String> carrier) {
-                  return carrier.keySet();
-                }
-
-                @Override
-                public String get(Map<String,String> carrier, @NonNull String key) {
-                  return carrier.get(key);
-                }
-              });
+          Context extractedContext = TraceUtil.extractTraceContext(headers);
 
           // Create server span with extracted context as parent
           span = TraceUtil.startServerRpcSpanFromContext(this.getClass(), "handleMessage",
