@@ -109,7 +109,6 @@ import com.google.common.base.Preconditions;
  * <li>Thread_2 unlocks the lock for MT1
  * </ol>
  *
- *
  */
 public class ClientTabletCacheImpl extends ClientTabletCache {
 
