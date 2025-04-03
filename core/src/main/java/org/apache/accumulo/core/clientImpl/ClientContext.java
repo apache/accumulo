@@ -21,8 +21,7 @@ package org.apache.accumulo.core.clientImpl;
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Suppliers.memoizeWithExpiration;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.SECONDS;
+import static java.util.concurrent.TimeUnit.*;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.CONDITIONAL_WRITER_CLEANUP_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ_AHEAD_POOL;
 
@@ -115,6 +114,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.base.Suppliers;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -150,7 +150,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private final Supplier<ServiceLockPaths> serverPaths;
   private final NamespaceMapping namespaces;
-  private final ConcurrentHashMap<NamespaceId,TableMapping> tableMappings;
+  private final Cache<NamespaceId,TableMapping> tableMappings;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
@@ -279,7 +279,10 @@ public class ClientContext implements AccumuloClient {
       }
     }
     this.namespaces = new NamespaceMapping(this);
-    this.tableMappings = new ConcurrentHashMap<>();
+    this.tableMappings =
+        this.getCaches().createNewBuilder(Caches.CacheName.TABLE_MAPPING_CACHE, true)
+            .expireAfterAccess(10, MINUTES).build();
+    ;
   }
 
   public Ample getAmple() {
@@ -1096,7 +1099,12 @@ public class ClientContext implements AccumuloClient {
 
   public TableMapping getTableMapping(NamespaceId namespaceId) {
     ensureOpen();
-    return tableMappings.computeIfAbsent(namespaceId, nsId -> new TableMapping(this, nsId));
+    TableMapping tableMapping = tableMappings.getIfPresent(namespaceId);
+    if (tableMapping == null) {
+      tableMapping = new TableMapping(this, namespaceId);
+      tableMappings.put(namespaceId, tableMapping);
+    }
+    return tableMapping;
   }
 
   public ClientTabletCache getTabletLocationCache(TableId tableId) {

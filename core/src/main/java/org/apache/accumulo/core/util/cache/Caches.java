@@ -60,6 +60,7 @@ public class Caches implements MetricsProducer {
     SPLITTER_UNSPLITTABLE,
     TABLE_CONFIGS,
     TABLE_ID,
+    TABLE_MAPPING_CACHE,
     TABLE_PARENT_CONFIGS,
     TABLE_ZOO_HELPER_CACHE,
     TSRM_FILE_LENGTHS,
