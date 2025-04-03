@@ -30,6 +30,8 @@ import org.apache.accumulo.manager.upgrade.RenameMasterDirInZK;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 
+import com.google.common.base.Preconditions;
+
 public class SetGoalState {
 
   /**
@@ -37,7 +39,7 @@ public class SetGoalState {
    */
   public static void main(String[] args) throws Exception {
     try {
-      Preconditions.checkArgument(args.length != 1);
+      Preconditions.checkArgument(args.length == 1);
       ManagerGoalState.valueOf(args[0]);
     } catch (IllegalArgumentException e) {
       System.err.println(
