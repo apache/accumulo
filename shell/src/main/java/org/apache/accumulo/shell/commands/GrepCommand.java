@@ -65,7 +65,7 @@ public class GrepCommand extends ScanCommand {
       }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
       @SuppressWarnings("deprecation")
-      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpeter =
+      final org.apache.accumulo.core.util.interpret.ScanInterpreter interpreter =
           getInterpreter(cl, tableName, shellState);
 
       // handle first argument, if present, the authorizations list to
@@ -83,7 +83,7 @@ public class GrepCommand extends ScanCommand {
       final Authorizations auths = getAuths(cl, shellState);
       final BatchScanner scanner =
           shellState.getAccumuloClient().createBatchScanner(tableName, auths, numThreads);
-      scanner.setRanges(Collections.singletonList(getRange(cl, interpeter)));
+      scanner.setRanges(Collections.singletonList(getRange(cl, interpreter)));
 
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
 
@@ -98,7 +98,7 @@ public class GrepCommand extends ScanCommand {
       }
       try {
         // handle columns
-        fetchColumns(cl, scanner, interpeter);
+        fetchColumns(cl, scanner, interpreter);
 
         // output the records
         printRecords(cl, shellState, config, scanner, formatter, printFile);
