@@ -20,11 +20,10 @@ package org.apache.accumulo.core.util.tables;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 
-import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -36,23 +35,17 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.util.cache.Caches.CacheName;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 
-import com.github.benmanes.caffeine.cache.Cache;
+import com.google.common.collect.ImmutableMap;
 
-public class TableZooHelper implements AutoCloseable {
+public class TableZooHelper {
 
   private final ClientContext context;
-  // Per instance cache will expire after 10 minutes in case we
-  // encounter an instance not used frequently
-  private final Cache<TableZooHelper,TableMap> instanceToMapCache;
 
   public TableZooHelper(ClientContext context) {
     this.context = Objects.requireNonNull(context);
-    instanceToMapCache =
-        this.context.getCaches().createNewBuilder(CacheName.TABLE_ZOO_HELPER_CACHE, true)
-            .expireAfterAccess(10, MINUTES).build();
   }
 
   /**
@@ -62,88 +55,81 @@ public class TableZooHelper implements AutoCloseable {
    *         getCause() of NamespaceNotFoundException
    */
   public TableId getTableId(String tableName) throws TableNotFoundException {
-    for (AccumuloTable systemTable : AccumuloTable.values()) {
-      if (systemTable.tableName().equals(tableName)) {
-        return systemTable.tableId();
-      }
+    Pair<String,String> qualified = TableNameUtil.qualify(tableName);
+    NamespaceId nid = context.getNamespaces().getNameToIdMap().get(qualified.getFirst());
+    if (nid == null) {
+      throw new TableNotFoundException(tableName, new NamespaceNotFoundException(null,
+          qualified.getFirst(), "No mapping found for namespace"));
     }
-    try {
-      return _getTableIdDetectNamespaceNotFound(EXISTING_TABLE_NAME.validate(tableName));
-    } catch (NamespaceNotFoundException e) {
-      throw new TableNotFoundException(tableName, e);
+    TableId tid = context.getTableMapping(nid).getNameToIdMap().get(qualified.getSecond());
+    if (tid == null) {
+      throw new TableNotFoundException(null, tableName,
+          "No entry for this table found in the given namespace mapping");
     }
-  }
-
-  /**
-   * Lookup table ID in ZK. If not found, clears cache and tries again.
-   */
-  public TableId _getTableIdDetectNamespaceNotFound(String tableName)
-      throws NamespaceNotFoundException, TableNotFoundException {
-    TableId tableId = getTableMap().getNameToIdMap().get(tableName);
-    if (tableId == null) {
-      // maybe the table exist, but the cache was not updated yet...
-      // so try to clear the cache and check again
-      clearTableListCache();
-      tableId = getTableMap().getNameToIdMap().get(tableName);
-      if (tableId == null) {
-        String namespace = TableNameUtil.qualify(tableName).getFirst();
-        if (Namespaces.getNameToIdMap(context).containsKey(namespace)) {
-          throw new TableNotFoundException(null, tableName, null);
-        } else {
-          throw new NamespaceNotFoundException(null, namespace, null);
-        }
-      }
-    }
-    return tableId;
+    return tid;
   }
 
   public String getTableName(TableId tableId) throws TableNotFoundException {
-    for (AccumuloTable systemTable : AccumuloTable.values()) {
-      if (systemTable.tableId().equals(tableId)) {
-        return systemTable.tableName();
+    Map<NamespaceId,String> namespaceMapping = context.getNamespaces().getIdToNameMap();
+    for (NamespaceId namespaceId : namespaceMapping.keySet()) {
+      var tableIdToNameMap = context.getTableMapping(namespaceId).getIdToNameMap();
+      if (tableIdToNameMap.containsKey(tableId)) {
+        return TableNameUtil.qualified(tableIdToNameMap.get(tableId),
+            namespaceMapping.get(namespaceId));
       }
     }
-    String tableName = getTableMap().getIdtoNameMap().get(tableId);
-    if (tableName == null) {
-      throw new TableNotFoundException(tableId.canonical(), null, null);
-    }
-    return tableName;
+    throw new TableNotFoundException(tableId.canonical(), null,
+        "No entry for this table Id found in table mappings");
   }
 
-  /**
-   * Get the TableMap from the cache. A new one will be populated when needed. Cache is cleared
-   * manually by calling {@link #clearTableListCache()}
-   */
-  public TableMap getTableMap() {
-    final ZooCache zc = context.getZooCache();
-    TableMap map = getCachedTableMap();
-    if (!map.isCurrent(zc)) {
-      instanceToMapCache.invalidateAll();
-      map = getCachedTableMap();
-    }
-    return map;
-  }
-
-  private TableMap getCachedTableMap() {
-    return instanceToMapCache.get(this, k -> {
-      try {
-        return new TableMap(context);
-      } catch (NamespaceNotFoundException e) {
-        throw new RuntimeException(e);
+  private Map<String,String> loadQualifiedTableMapping(boolean reverse) {
+    final var builder = ImmutableMap.<String,String>builder();
+    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
+      for (Map.Entry<TableId,String> entry : context.getTableMapping(namespaceId).getIdToNameMap()
+          .entrySet()) {
+        String fullyQualifiedName;
+        try {
+          fullyQualifiedName = TableNameUtil.qualified(entry.getValue(),
+              Namespaces.getNamespaceName(context, namespaceId));
+        } catch (NamespaceNotFoundException e) {
+          throw new RuntimeException(
+              "getNamespaceName() failed to find namespace for namespaceId: " + namespaceId, e);
+        }
+        if (reverse) {
+          builder.put(fullyQualifiedName, entry.getKey().canonical());
+        } else {
+          builder.put(entry.getKey().canonical(), fullyQualifiedName);
+        }
       }
-    });
+    }
+    return builder.build();
+  }
+
+  public Map<String,TableId> getQualifiedNameToIdMap() {
+    return loadQualifiedTableMapping(true).entrySet().stream()
+        .collect(Collectors.toMap(Map.Entry::getKey, e -> TableId.of(e.getValue())));
+  }
+
+  public Map<TableId,String> getIdtoQualifiedNameMap() {
+    return loadQualifiedTableMapping(false).entrySet().stream()
+        .collect(Collectors.toMap(e -> TableId.of(e.getKey()), Map.Entry::getValue));
   }
 
   public boolean tableNodeExists(TableId tableId) {
-    ZooCache zc = context.getZooCache();
-    List<String> tableIds = zc.getChildren(Constants.ZTABLES);
-    return tableIds.contains(tableId.canonical());
+    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
+      for (Map.Entry<TableId,String> entry : context.getTableMapping(namespaceId).getIdToNameMap()
+          .entrySet()) {
+        if (entry.getKey().equals(tableId)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   public void clearTableListCache() {
     context.getZooCache().clear(Constants.ZTABLES);
     context.getZooCache().clear(Constants.ZNAMESPACES);
-    instanceToMapCache.invalidateAll();
   }
 
   public String getPrintableTableInfoFromId(TableId tableId) {
@@ -179,7 +165,6 @@ public class TableZooHelper implements AutoCloseable {
     String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
     if (clearCachedState) {
       context.getZooCache().clear(statePath);
-      instanceToMapCache.invalidateAll();
     }
     ZooCache zc = context.getZooCache();
     byte[] state = zc.get(statePath);
@@ -204,17 +189,15 @@ public class TableZooHelper implements AutoCloseable {
       return Namespace.ACCUMULO.id();
     }
 
-    ZooCache zc = context.getZooCache();
-    byte[] n = zc.get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE);
-    // We might get null out of ZooCache if this tableID doesn't exist
-    if (n == null) {
-      throw new TableNotFoundException(tableId.canonical(), null, null);
+    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
+      for (Map.Entry<TableId,String> entry : context.getTableMapping(namespaceId).getIdToNameMap()
+          .entrySet()) {
+        if (entry.getKey().equals(tableId)) {
+          return namespaceId;
+        }
+      }
     }
-    return NamespaceId.of(new String(n, UTF_8));
-  }
-
-  @Override
-  public void close() {
-    instanceToMapCache.invalidateAll();
+    throw new TableNotFoundException(tableId.canonical(), null,
+        "No namespace found containing the given table ID " + tableId);
   }
 }

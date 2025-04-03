@@ -64,7 +64,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -560,17 +559,12 @@ public class ClientContext implements AccumuloClient {
     return tableZooHelper().getTableId(tableName);
   }
 
-  public TableId _getTableIdDetectNamespaceNotFound(String tableName)
-      throws NamespaceNotFoundException, TableNotFoundException {
-    return tableZooHelper()._getTableIdDetectNamespaceNotFound(tableName);
-  }
-
   public String getTableName(TableId tableId) throws TableNotFoundException {
     return tableZooHelper().getTableName(tableId);
   }
 
   public Map<String,TableId> getTableNameToIdMap() {
-    return tableZooHelper().getTableMap().getNameToIdMap();
+    return tableZooHelper().getQualifiedNameToIdMap();
   }
 
   public Map<NamespaceId,String> getNamespaceIdToNameMap() {
@@ -579,7 +573,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public Map<TableId,String> getTableIdToNameMap() {
-    return tableZooHelper().getTableMap().getIdtoNameMap();
+    return tableZooHelper().getIdtoQualifiedNameMap();
   }
 
   public boolean tableNodeExists(TableId tableId) {
@@ -807,9 +801,6 @@ public class ClientContext implements AccumuloClient {
       }
       if (thriftTransportPool != null) {
         thriftTransportPool.shutdown();
-      }
-      if (tableZooHelper != null) {
-        tableZooHelper.close();
       }
       if (scannerReadaheadPool != null) {
         scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down

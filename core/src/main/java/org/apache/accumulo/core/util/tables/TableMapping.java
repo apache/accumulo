@@ -188,12 +188,12 @@ public class TableMapping {
         "TableId " + tableId.canonical() + " does not exist in ZooKeeper");
   }
 
-  public SortedMap<TableId,String> getIdToNameMap(NamespaceId namespaceId) {
+  public SortedMap<TableId,String> getIdToNameMap() {
     update(namespaceId);
     return currentTableMap;
   }
 
-  public SortedMap<String,TableId> getNameToIdMap(NamespaceId namespaceId) {
+  public SortedMap<String,TableId> getNameToIdMap() {
     update(namespaceId);
     return currentTableReverseMap;
   }
