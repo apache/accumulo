@@ -42,19 +42,20 @@ class CloneMetadata extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     LoggerFactory.getLogger(CloneMetadata.class)
-        .info(String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName,
-            cloneInfo.tableId, cloneInfo.srcTableId));
+        .info(String.format("Cloning %s with tableId %s from srcTableId %s",
+            cloneInfo.getTableName(), cloneInfo.getTableId(), cloneInfo.getSrcTableId()));
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
+    MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
         environment.getManagerLock());
-    MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.srcTableId, cloneInfo.tableId);
+    MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.getSrcTableId(),
+        cloneInfo.getTableId());
     return new FinishCloneTable(cloneInfo);
   }
 
   @Override
   public void undo(FateId fateId, Manager environment) throws Exception {
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
+    MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
         environment.getManagerLock());
   }
 
