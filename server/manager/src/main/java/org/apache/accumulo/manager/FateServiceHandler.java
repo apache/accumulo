@@ -313,12 +313,21 @@ class FateServiceHandler implements FateService.Iface {
           keepOffline = Boolean.parseBoolean(ByteBufferUtil.toString(arguments.get(2)));
         }
 
+        NamespaceId srcNamespaceId;
+        try {
+          srcNamespaceId = manager.getContext().getNamespaceId(srcTableId);
+        } catch (TableNotFoundException e) {
+          // could happen if the table was deleted while processing this request
+          throw new ThriftTableOperationException(srcTableId.canonical(), null, tableOp,
+              TableOperationExceptionType.NOTFOUND, "");
+        }
+
         NamespaceId namespaceId;
         try {
           namespaceId = Namespaces.getNamespaceId(manager.getContext(),
               TableNameUtil.qualify(tableName).getFirst());
         } catch (NamespaceNotFoundException e) {
-          // shouldn't happen, but possible once cloning between namespaces is supported
+          // dest namespace does not exist yet, needs to be created
           throw new ThriftTableOperationException(null, tableName, tableOp,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
         }
@@ -326,7 +335,7 @@ class FateServiceHandler implements FateService.Iface {
         final boolean canCloneTable;
         try {
           canCloneTable =
-              manager.security.canCloneTable(c, srcTableId, tableName, namespaceId, namespaceId);
+              manager.security.canCloneTable(c, srcTableId, tableName, namespaceId, srcNamespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, srcTableId, null, TableOperation.CLONE);
           throw e;
@@ -363,9 +372,9 @@ class FateServiceHandler implements FateService.Iface {
           goalMessage += " and keep offline.";
         }
 
-        manager.fate(type).seedTransaction(
-            op, fateId, new TraceRepo<>(new CloneTable(c.getPrincipal(), namespaceId, srcTableId,
-                tableName, propertiesToSet, propertiesToExclude, keepOffline)),
+        manager.fate(type).seedTransaction(op, fateId,
+            new TraceRepo<>(new CloneTable(c.getPrincipal(), srcNamespaceId, srcTableId,
+                namespaceId, tableName, propertiesToSet, propertiesToExclude, keepOffline)),
             autoCleanup, goalMessage);
 
         break;
