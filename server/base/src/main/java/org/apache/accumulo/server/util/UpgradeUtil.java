@@ -42,18 +42,15 @@ import com.beust.jcommander.Parameter;
 import com.google.auto.service.AutoService;
 
 @AutoService(KeywordExecutable.class)
-public class UpgradePreparationUtil implements KeywordExecutable {
+public class UpgradeUtil implements KeywordExecutable {
 
-  private static final Logger LOG = LoggerFactory.getLogger(UpgradePreparationUtil.class);
+  private static final Logger LOG = LoggerFactory.getLogger(UpgradeUtil.class);
 
   static class Opts extends Help {
-    @Parameter(names = "--prepare-for-upgrade",
+    @Parameter(names = "--prepare",
         description = "prepare an older version instance for an upgrade to a newer non-bugfix release."
             + " This command should be run using the older version of software after the instance is shut down.")
-    boolean postShutdownUpgradeCheck = false;
-
-    @Parameter(names = "--force", description = "allow --prepare-for-upgrade to run again")
-    boolean force = false;
+    boolean prepare = false;
   }
 
   @Override
@@ -63,7 +60,7 @@ public class UpgradePreparationUtil implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "utility used to prepare an instance for a minor or major version upgrade";
+    return "utility used to perform various upgrade steps for an Accumulo instance";
   }
 
   @Override
@@ -71,7 +68,7 @@ public class UpgradePreparationUtil implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.postShutdownUpgradeCheck) {
+    if (!opts.prepare) {
       new JCommander(opts).usage();
       return;
     }
@@ -87,17 +84,11 @@ public class UpgradePreparationUtil implements KeywordExecutable {
     InstanceId iid = VolumeManager.getInstanceIDFromHdfs(instanceDir, new Configuration());
     ZooReaderWriter zoo = new ZooReaderWriter(siteConf);
 
-    if (opts.postShutdownUpgradeCheck) {
+    if (opts.prepare) {
       final String zUpgradepath = Constants.ZROOT + "/" + iid + Constants.ZPREPARE_FOR_UPGRADE;
       try {
         if (zoo.exists(zUpgradepath)) {
-          if (!opts.force) {
-            throw new IllegalStateException(
-                "'accumulo upgrade --prepare-for-upgrade' must have already been run."
-                    + " To run again use 'accumulo upgrade --prepare-for-upgrade --force'");
-          } else {
-            zoo.delete(zUpgradepath);
-          }
+          zoo.delete(zUpgradepath);
         }
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating or checking for " + zUpgradepath
