@@ -37,20 +37,24 @@ class CloneZookeeper extends ManagerRepo {
   public CloneZookeeper(CloneInfo cloneInfo, ClientContext context)
       throws NamespaceNotFoundException {
     this.cloneInfo = cloneInfo;
-    this.cloneInfo.namespaceId = Namespaces.getNamespaceId(context,
-        TableNameUtil.qualify(this.cloneInfo.tableName).getFirst());
+    if (this.cloneInfo.getNamespaceId() == null) {
+      // Prior to 2.1.4 the namespaceId was calculated in this
+      // step and set on the cloneInfo object here. If for some
+      // reason we are processing a pre-2.1.3 CloneTable operation,
+      // then we need to continue to set this here as it will be
+      // null in the deserialized CloneInfo object.
+      //
+      // TODO: Remove this check in 3.1 as Fate operations
+      // need to be cleaned up before a major upgrade.
+      this.cloneInfo.setNamespaceId(Namespaces.getNamespaceId(context,
+          TableNameUtil.qualify(this.cloneInfo.getTableName()).getFirst()));
+    }
   }
 
   @Override
   public long isReady(long tid, Manager environment) throws Exception {
-    long val = 0;
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      val += Utils.reserveNamespace(environment, cloneInfo.namespaceId, tid, false, true,
-          TableOperation.CLONE);
-    }
-    val +=
-        Utils.reserveTable(environment, cloneInfo.tableId, tid, true, false, TableOperation.CLONE);
-    return val;
+    return Utils.reserveTable(environment, cloneInfo.getTableId(), tid, true, false,
+        TableOperation.CLONE);
   }
 
   @Override
@@ -59,12 +63,12 @@ class CloneZookeeper extends ManagerRepo {
     try {
       // write tableName & tableId to zookeeper
 
-      Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.tableName,
-          cloneInfo.namespaceId, cloneInfo.tableId, TableOperation.CLONE);
+      Utils.checkTableNameDoesNotExist(environment.getContext(), cloneInfo.getTableName(),
+          cloneInfo.getNamespaceId(), cloneInfo.getTableId(), TableOperation.CLONE);
 
-      environment.getTableManager().cloneTable(cloneInfo.srcTableId, cloneInfo.tableId,
-          cloneInfo.tableName, cloneInfo.namespaceId, cloneInfo.propertiesToSet,
-          cloneInfo.propertiesToExclude);
+      environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
+          cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
+          cloneInfo.getPropertiesToExclude());
       environment.getContext().clearTableListCache();
 
       return new CloneMetadata(cloneInfo);
@@ -75,11 +79,8 @@ class CloneZookeeper extends ManagerRepo {
 
   @Override
   public void undo(long tid, Manager environment) throws Exception {
-    environment.getTableManager().removeTable(cloneInfo.tableId);
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, tid, false);
-    }
-    Utils.unreserveTable(environment, cloneInfo.tableId, tid, true);
+    environment.getTableManager().removeTable(cloneInfo.getTableId());
+    Utils.unreserveTable(environment, cloneInfo.getTableId(), tid, true);
     environment.getContext().clearTableListCache();
   }
 

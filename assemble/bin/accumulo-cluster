@@ -361,17 +361,17 @@ function parse_config() {
   for group in $SSERVER_GROUPS; do
     var_name="NUM_SSERVERS_$group"
     if [[ -n ${!var_name} ]]; then
-      declare "SSERVERS_PER_HOST_$group"="${!var_name}"
+      declare -g "SSERVERS_PER_HOST_$group"="${!var_name}"
     else
-      declare "SSERVERS_PER_HOST_$group"="${NUM_SSERVERS:-1}"
+      declare -g "SSERVERS_PER_HOST_$group"="${NUM_SSERVERS:-1}"
     fi
   done
   for group in $COMPACTOR_GROUPS; do
     var_name="NUM_COMPACTORS_$group"
     if [[ -n ${!var_name} ]]; then
-      declare "COMPACTORS_PER_HOST_$group"="${!var_name}"
+      declare -g "COMPACTORS_PER_HOST_$group"="${!var_name}"
     else
-      declare "COMPACTORS_PER_HOST_$group"="${NUM_COMPACTORS:-1}"
+      declare -g "COMPACTORS_PER_HOST_$group"="${NUM_COMPACTORS:-1}"
     fi
   done
 
