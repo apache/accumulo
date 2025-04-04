@@ -38,6 +38,7 @@ import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -68,6 +69,19 @@ public abstract class AbstractServer
     var siteConfig = opts.getSiteConfiguration();
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
+    final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
+    try {
+      if (context.getZooReader().exists(upgradePrepNode)) {
+        throw new IllegalStateException(
+            "Instance has been prepared for upgrade to a minor or major version greater than "
+                + Constants.VERSION + ", no servers can be started."
+                + " To undo this state and abort upgrade preparations delete the zookeeper node: "
+                + upgradePrepNode);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(
+          "Error checking for upgrade preparation node (" + upgradePrepNode + ") in zookeeper", e);
+    }
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(appName);

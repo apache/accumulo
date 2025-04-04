@@ -94,6 +94,8 @@ public class Constants {
   public static final String ZHDFS_RESERVATIONS = "/hdfs_reservations";
   public static final String ZRECOVERY = "/recovery";
 
+  public static final String ZPREPARE_FOR_UPGRADE = "/upgrade_ready";
+
   /**
    * Base znode for storing secret keys that back delegation tokens
    */
