@@ -21,10 +21,8 @@ package org.apache.accumulo.core.metadata;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -36,18 +34,13 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablets;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.CachedTabletObtainer;
-import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
-import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator;
-import org.apache.accumulo.core.clientImpl.TabletServerBatchReaderIterator.ResultReceiver;
 import org.apache.accumulo.core.clientImpl.ThriftScanner;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
@@ -71,7 +64,6 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
   private static final Logger log = LoggerFactory.getLogger(MetadataCachedTabletObtainer.class);
 
   private final SortedSet<Column> locCols;
-  private final ArrayList<Column> columns;
 
   public MetadataCachedTabletObtainer() {
 
@@ -80,12 +72,11 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
     locCols.add(TabletColumnFamily.PREV_ROW_COLUMN.toColumn());
     locCols.add(TabletColumnFamily.AVAILABILITY_COLUMN.toColumn());
     locCols.add(TabletColumnFamily.REQUESTED_COLUMN.toColumn());
-    columns = new ArrayList<>(locCols);
   }
 
   @Override
-  public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row, Text stopRow,
-      ClientTabletCache parent) throws AccumuloSecurityException, AccumuloException {
+  public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row, Text stopRow)
+      throws AccumuloSecurityException, AccumuloException {
 
     try {
 
@@ -147,7 +138,6 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
       if (log.isTraceEnabled()) {
         log.trace("{} lookup failed", src.getExtent().tableId(), e);
       }
-      parent.invalidateCache(src.getExtent());
     }
 
     return null;
@@ -162,60 +152,6 @@ public class MetadataCachedTabletObtainer implements CachedTabletObtainer {
         throw new AccumuloException(e);
       }
     }
-  }
-
-  private static class SettableScannerOptions extends ScannerOptions {
-    public ScannerOptions setColumns(SortedSet<Column> locCols) {
-      this.fetchedColumns = locCols;
-      // see comment in lookupTablet about why iterator is used
-      addScanIterator(new IteratorSetting(10000, "WRI", WholeRowIterator.class.getName()));
-      return this;
-    }
-  }
-
-  @Override
-  public List<CachedTablet> lookupTablets(ClientContext context, String tserver,
-      Map<KeyExtent,List<Range>> tabletsRanges, ClientTabletCache parent)
-      throws AccumuloSecurityException, AccumuloException {
-
-    final TreeMap<Key,Value> results = new TreeMap<>();
-
-    ResultReceiver rr = entries -> {
-      for (Entry<Key,Value> entry : entries) {
-        try {
-          results.putAll(WholeRowIterator.decodeRow(entry.getKey(), entry.getValue()));
-        } catch (IOException e) {
-          throw new UncheckedIOException(e);
-        }
-      }
-    };
-
-    ScannerOptions opts = null;
-    try (SettableScannerOptions unsetOpts = new SettableScannerOptions()) {
-      opts = unsetOpts.setColumns(locCols);
-    }
-
-    Map<KeyExtent,List<Range>> unscanned = new HashMap<>();
-    Map<KeyExtent,List<Range>> failures = new HashMap<>();
-    try {
-      TabletServerBatchReaderIterator.doLookup(context, tserver, tabletsRanges, failures, unscanned,
-          rr, columns, opts, Authorizations.EMPTY);
-      if (!failures.isEmpty()) {
-        // invalidate extents in parents cache
-        if (log.isTraceEnabled()) {
-          log.trace("lookupTablets failed for {} extents", failures.size());
-        }
-        parent.invalidateCache(failures.keySet());
-      }
-    } catch (IOException e) {
-      log.trace("lookupTablets failed server={}", tserver, e);
-      parent.invalidateCache(tabletsRanges.keySet());
-    } catch (AccumuloServerException e) {
-      log.trace("lookupTablets failed server={}", tserver, e);
-      throw e;
-    }
-
-    return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getCachedTablets();
   }
 
   public static CachedTablets getMetadataLocationEntries(SortedMap<Key,Value> entries) {
