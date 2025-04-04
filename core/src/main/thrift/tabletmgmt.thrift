@@ -34,14 +34,12 @@ enum TUnloadTabletGoal {
 service TabletManagementClientService {
 
   oneway void loadTablet(
-    5:client.TInfo tinfo
     1:security.TCredentials credentials
     4:string lock
     2:data.TKeyExtent extent
   )
 
   oneway void unloadTablet(
-    5:client.TInfo tinfo
     1:security.TCredentials credentials
     4:string lock
     2:data.TKeyExtent extent
@@ -50,7 +48,6 @@ service TabletManagementClientService {
   )
 
   oneway void flushTablet(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string lock
     4:data.TKeyExtent extent
