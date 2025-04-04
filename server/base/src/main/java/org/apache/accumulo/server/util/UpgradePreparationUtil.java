@@ -93,8 +93,8 @@ public class UpgradePreparationUtil implements KeywordExecutable {
         if (zoo.exists(zUpgradepath)) {
           if (!opts.force) {
             throw new IllegalStateException(
-                "'ZooZap -prepare-for-upgrade' must have already been run."
-                    + " To run again use the 'ZooZap -prepare-for-upgrade -force'");
+                "'accumulo upgrade --prepare-for-upgrade' must have already been run."
+                    + " To run again use 'accumulo upgrade --prepare-for-upgrade --force'");
           } else {
             zoo.delete(zUpgradepath);
           }
