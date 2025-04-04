@@ -73,7 +73,8 @@ public abstract class AbstractServer
     try {
       if (context.getZooReader().exists(upgradePrepNode)) {
         throw new IllegalStateException(
-            "Instance has been prepared for upgrade, no servers can be started."
+            "Instance has been prepared for upgrade to a minor or major version greater than "
+                + Constants.VERSION + ", no servers can be started."
                 + " To undo this state and abort upgrade preparations delete the zookeeper node: "
                 + upgradePrepNode);
       }
