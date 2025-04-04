@@ -21,7 +21,7 @@ package org.apache.accumulo.server.util;
 import static org.apache.accumulo.core.Constants.ZFATE;
 import static org.apache.accumulo.core.Constants.ZPREPARE_FOR_UPGRADE;
 
-import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -43,7 +43,7 @@ public class UpgradeUtil implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(UpgradeUtil.class);
 
-  static class Opts extends Help {
+  static class Opts extends ConfigOpts {
     @Parameter(names = "--prepare",
         description = "prepare an older version instance for an upgrade to a newer non-bugfix release."
             + " This command should be run using the older version of software after the instance is shut down.")
