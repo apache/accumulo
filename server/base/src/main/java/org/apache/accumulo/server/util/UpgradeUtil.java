@@ -19,7 +19,7 @@
 package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.cli.Help;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
@@ -46,7 +46,7 @@ public class UpgradeUtil implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(UpgradeUtil.class);
 
-  static class Opts extends Help {
+  static class Opts extends ConfigOpts {
     @Parameter(names = "--prepare",
         description = "prepare an older version instance for an upgrade to a newer non-bugfix release."
             + " This command should be run using the older version of software after the instance is shut down.")
@@ -110,7 +110,7 @@ public class UpgradeUtil implements KeywordExecutable {
       LOG.info("Checking for existing fate transactions");
       try {
         // Adapted from UpgradeCoordinator.abortIfFateTransactions
-        if (!zoo.getChildren(Constants.ZFATE).isEmpty()) {
+        if (!zoo.getChildren(Constants.ZROOT + "/" + iid + Constants.ZFATE).isEmpty()) {
           throw new IllegalStateException("Cannot complete upgrade preparation"
               + " because FATE transactions exist. You can start a tserver, but"
               + " not the Manager, then use the shell to delete completed"
