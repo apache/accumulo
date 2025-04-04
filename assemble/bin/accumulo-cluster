@@ -656,37 +656,60 @@ function control_services() {
 
 function prune_group(){
   local service_type=$1
-  local json_service_type=$2
-  local group=$3
-  local expectedCount=$4
-  shift 4
+  local group=$2
+  local expectedCount=$3
+  shift 3
   local hosts=("$@")
 
-  declare -A actual_counts
-  declare -A expected_counts
 
+  echo "$service_type $group $expectedCount"
+
+  # TODO setup removal of file.. not done because multiple files are created
+  EXCLUDE_FILE=$(mktemp --tmpdir "accumulo-zoozap-exclude-XXXXXXXX.txt") || exit 1
+
+  # Determine the host:ports known by the accumulo cluster script, these should be kept
   for host in $hosts; do
-    expected_counts[$host]=$expectedCount
+    #TODO this assumes one port per process, currently true
+    #TODO need to ssh 
+    #TODO sketchy method of removing first line using grep -v
+    #TODO may not be handling the expected count in the best way
+    $bin/accumulo-service $service_type list | grep "$group" | grep -v "Currently running" | awk '{print "'"$host"':" $3}' | head -n $expectedCount >> $EXCLUDE_FILE
   done
 
-  # TODO what if the line does not have exactly two fields?
-  while read count host; do
-    # TODO check size of fields it 2
-    actual_counts["$host"]="$count"
-  done < <(cat $SERVICE_JSON | jq -r ".summaries.$json_service_type.serviceByGroups.$group | .[] " | sed -E 's/:[0-9]+$//' | sort | uniq -c)
+  echo $EXCLUDE_FILE
+  cat $EXCLUDE_FILE
 
-  for host in ${!actual_counts[@]}; do
-    local actual_count=${actual_counts[$host]}
-    local expected_count=${expected_counts[$host]:-0}
+  local lockTypeOpt
+  case $service_type in
+    manager)
+     lockTypeOpt="-manager"
+     ;;
+    compaction-coordinator)
+     lockTypeOpt="-compaction-coordinators"
+     ;;
+    compactor)
+     lockTypeOpt="-compactors"
+     ;;
+    tserver)
+     lockTypeOpt="-tservers"
+     ;;
+    sserver)
+     lockTypeOpt="-sservers"
+     ;;
+    *)
+     echo "Prune does not support $service_type"
+    return 0
+    ;; 
+  esac # TODO default case
 
-    if (( $actual_count > $expected_count )); then
-      echo "type: $service_type group: $group host: $host extra:$(( $actual_count - $expected_count))"
-    fi
-  done
 
+  "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose -include-groups "$group" -exclude-host-ports "$EXCLUDE_FILE"
+
+  rm $EXCLUDE_FILE
 }
 
 function prune(){
+	set -x
   trap 'rm -f "$SERVICE_JSON"' EXIT
   SERVICE_JSON=$(mktemp --tmpdir "accumulo-services-XXXXXXXX.json") || exit 1
   "$accumulo_cmd" admin serviceStatus --json > $SERVICE_JSON 2>/dev/null || exit 1
@@ -699,25 +722,25 @@ function prune(){
   local manager
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
     #TODO when passing array to function, is there anything special that needs to be done
-    prune_group "manager" "MANAGER" "NO_GROUP" "1" $MANAGER_HOSTS
+    prune_group "manager" "default" "1" $MANAGER_HOSTS
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
-    prune_group "gc" "GC" "NO_GROUP" "1" $GC_HOSTS
+    prune_group "gc" "default" "1" $GC_HOSTS
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_MONITOR == 1 ]]; then
-    prune_group "monitor" "MONITOR" "NO_GROUP" "1" $MONITOR_HOSTS
+    prune_group "monitor" "default" "1" $MONITOR_HOSTS
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_COORDINATOR == 1 ]]; then
-    prune_group "coordinator" "COORDINATOR" "NO_GROUP" "1" $COORDINATOR_HOSTS
+    prune_group "compaction-coordinator" "default" "1" $COORDINATOR_HOSTS
   fi
 
 
   if [[ $ARG_ALL == 1 || $ARG_TSERVER == 1 ]]; then
     #TODO in main need to adapt to having RGs for tservers
-    prune_group "tserver" "T_SERVER" "NO_GROUP" $TSERVERS_PER_HOST_default $TSERVER_HOSTS_default
+    prune_group "tserver" "default" $TSERVERS_PER_HOST_default $TSERVER_HOSTS_default
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
@@ -732,7 +755,7 @@ function prune(){
       local expected=${!var_name:-0}
 
       hosts="SSERVER_HOSTS_$group"
-      prune_group "sserver" "S_SERVER" $group $expected ${!hosts}
+      prune_group "sserver" $group $expected ${!hosts}
     done
 
   fi
@@ -749,7 +772,7 @@ function prune(){
       local expected=${!var_name:-0}
 
       hosts="COMPACTOR_HOSTS_$group"
-      prune_group "compactor" "COMPACTOR" $group $expected ${!hosts}
+      prune_group "compactor" $group $expected ${!hosts}
     done
   fi
 }
@@ -862,6 +885,7 @@ EOF
       ;;
     prune)
        parse_config
+       # TODO this command will not work --local option, need to error if its set
        prune
        ;;
     start-non-tservers)
