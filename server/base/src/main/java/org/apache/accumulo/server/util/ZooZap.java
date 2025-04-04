@@ -18,7 +18,15 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.util.Arrays;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.Help;
@@ -82,6 +90,17 @@ public class ZooZap implements KeywordExecutable {
     boolean zapScanServers = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
+    // TODO add exxlude groups
+    @Parameter(names = "-include-groups",
+        description = "Comma seperated list of resource groups to include")
+    String includeGroups;
+    // TODO add include host ports
+    @Parameter(names = "-exclude-host-ports",
+        description = "File with list of host and ports to exclude from removal")
+    String hostPortExcludeFile;
+    @Parameter(names = "-dry-run",
+        description = "Only print changes that would be made w/o actually making any change")
+    boolean dryRun = false;
   }
 
   public static void main(String[] args) throws Exception {
@@ -106,7 +125,32 @@ public class ZooZap implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers) {
+    final Predicate<String> groupPredicate;
+    final Predicate<String> hostPortPredicate;
+
+    if (opts.hostPortExcludeFile != null) {
+      try {
+        // TODO validate files contents using regex for each line like [^:]+:[0-9]+
+        var hostPorts = Files.lines(java.nio.file.Path.of(opts.hostPortExcludeFile))
+            .map(String::trim).collect(Collectors.toSet());
+        hostPortPredicate = hp -> !hostPorts.contains(hp);
+      } catch (IOException e) {
+        throw new UncheckedIOException(e);
+      }
+    } else {
+      hostPortPredicate = hp -> true;
+    }
+
+    if (opts.includeGroups != null) {
+      var groups = Arrays.stream(opts.includeGroups.split(",")).map(String::trim)
+          .collect(Collectors.toSet());
+      groupPredicate = g -> groups.contains(g);
+    } else {
+      groupPredicate = g -> true;
+    }
+
+    if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers && !opts.zapCompactors
+        && !opts.zapCoordinators && !opts.zapScanServers) {
       new JCommander(opts).usage();
       return;
     }
@@ -123,32 +167,18 @@ public class ZooZap implements KeywordExecutable {
       String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
 
       try {
-        zapDirectory(zoo, managerLockPath, opts);
+        removeSingletonLock(zoo, managerLockPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
-        e.printStackTrace();
+        log.error("Error deleting manager lock", e);
       }
     }
 
     if (opts.zapTservers) {
       String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
       try {
-        List<String> children = zoo.getChildren(tserversPath);
-        for (String child : children) {
-          message("Deleting " + tserversPath + "/" + child + " from zookeeper", opts);
-
-          if (opts.zapManager || opts.zapMaster) {
-            zoo.recursiveDelete(tserversPath + "/" + child, NodeMissingPolicy.SKIP);
-          } else {
-            var zLockPath = ServiceLock.path(tserversPath + "/" + child);
-            if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
-              try {
-                ServiceLock.deleteLock(zoo, zLockPath);
-              } catch (RuntimeException e) {
-                message("Did not delete " + tserversPath + "/" + child, opts);
-              }
-            }
-          }
-        }
+        // TODO this code used to do different things depending on wether or not the manager was
+        // being zapped... need to circle back and see why it was doing that
+        removeLocks(zoo, tserversPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
         log.error("{}", e.getMessage(), e);
       }
@@ -166,9 +196,7 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapCoordinators) {
       final String coordinatorPath = Constants.ZROOT + "/" + iid + Constants.ZCOORDINATOR_LOCK;
       try {
-        if (zoo.exists(coordinatorPath)) {
-          zapDirectory(zoo, coordinatorPath, opts);
-        }
+        removeSingletonLock(zoo, coordinatorPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting coordinator from zookeeper, {}", e.getMessage(), e);
       }
@@ -177,13 +205,7 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapCompactors) {
       String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
       try {
-        if (zoo.exists(compactorsBasepath)) {
-          List<String> queues = zoo.getChildren(compactorsBasepath);
-          for (String queue : queues) {
-            message("Deleting " + compactorsBasepath + "/" + queue + " from zookeeper", opts);
-            zoo.recursiveDelete(compactorsBasepath + "/" + queue, NodeMissingPolicy.SKIP);
-          }
-        }
+        removeGroupedLocks(zoo, compactorsBasepath, groupPredicate, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting compactors from zookeeper, {}", e.getMessage(), e);
       }
@@ -193,22 +215,14 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapScanServers) {
       String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
       try {
-        if (zoo.exists(sserversPath)) {
-          List<String> children = zoo.getChildren(sserversPath);
-          for (String child : children) {
-            message("Deleting " + sserversPath + "/" + child + " from zookeeper", opts);
-
-            var zLockPath = ServiceLock.path(sserversPath + "/" + child);
-            if (!zoo.getChildren(zLockPath.toString()).isEmpty()) {
-              ServiceLock.deleteLock(zoo, zLockPath);
-            }
-          }
-        }
+        removeGroupedLocks(zoo, sserversPath, groupPredicate, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
-        log.error("{}", e.getMessage(), e);
+        log.error("{}", e.getMessage(), e); // TODO standardize exceptions.. maybe move into remove
+                                            // lock functions
       }
     }
 
+    // TODO what about the GC and monitor???
   }
 
   private static void zapDirectory(ZooReaderWriter zoo, String path, Opts opts)
@@ -216,7 +230,48 @@ public class ZooZap implements KeywordExecutable {
     List<String> children = zoo.getChildren(path);
     for (String child : children) {
       message("Deleting " + path + "/" + child + " from zookeeper", opts);
-      zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
+      if (!opts.dryRun) {
+        zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
+      }
     }
   }
+
+  private static void removeGroupedLocks(ZooReaderWriter zoo, String path,
+      Predicate<String> groupPredicate, Predicate<String> hostPortPredicate, Opts opts)
+      throws KeeperException, InterruptedException {
+    if (zoo.exists(path)) {
+      List<String> groups = zoo.getChildren(path);
+      for (String group : groups) {
+        if (groupPredicate.test(group)) {
+          removeLocks(zoo, path + "/" + group, hostPortPredicate, opts);
+        }
+      }
+    }
+  }
+
+  private static void removeLocks(ZooReaderWriter zoo, String path,
+      Predicate<String> hostPortPredicate, Opts opts) throws KeeperException, InterruptedException {
+    if (zoo.exists(path)) {
+      List<String> children = zoo.getChildren(path);
+      for (String child : children) {
+        if (hostPortPredicate.test(child)) {
+          message("Deleting " + path + "/" + child + " from zookeeper", opts);
+          if (!opts.dryRun) {
+            // TODO not sure this is the correct way to delete this lock.. the code was deleting
+            // locks in multiple different ways for diff servers types.
+            zoo.recursiveDelete(path + "/" + child, NodeMissingPolicy.SKIP);
+          }
+        }
+      }
+    }
+  }
+
+  private static void removeSingletonLock(ZooReaderWriter zoo, String path,
+      Predicate<String> hostPortPredicate, Opts ops) throws KeeperException, InterruptedException {
+    var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
+    if (lockData != null && hostPortPredicate.test(new String(lockData, UTF_8))) {
+      zapDirectory(zoo, path, ops);
+    }
+  }
+
 }
