@@ -22,6 +22,7 @@ import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Suppliers.memoizeWithExpiration;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.CONDITIONAL_WRITER_CLEANUP_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ_AHEAD_POOL;
@@ -64,7 +65,6 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.MultiTableBatchWriter;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -105,6 +105,7 @@ import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -115,6 +116,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.common.base.Suppliers;
 
 import io.micrometer.core.instrument.MeterRegistry;
@@ -150,6 +152,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
   private final Supplier<ServiceLockPaths> serverPaths;
   private final NamespaceMapping namespaces;
+  private final Cache<NamespaceId,TableMapping> tableMappings;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
@@ -278,6 +281,10 @@ public class ClientContext implements AccumuloClient {
       }
     }
     this.namespaces = new NamespaceMapping(this);
+    this.tableMappings =
+        this.getCaches().createNewBuilder(Caches.CacheName.TABLE_MAPPING_CACHE, true)
+            .expireAfterAccess(10, MINUTES).build();
+    ;
   }
 
   public Ample getAmple() {
@@ -557,17 +564,12 @@ public class ClientContext implements AccumuloClient {
     return tableZooHelper().getTableId(tableName);
   }
 
-  public TableId _getTableIdDetectNamespaceNotFound(String tableName)
-      throws NamespaceNotFoundException, TableNotFoundException {
-    return tableZooHelper()._getTableIdDetectNamespaceNotFound(tableName);
-  }
-
   public String getTableName(TableId tableId) throws TableNotFoundException {
     return tableZooHelper().getTableName(tableId);
   }
 
   public Map<String,TableId> getTableNameToIdMap() {
-    return tableZooHelper().getTableMap().getNameToIdMap();
+    return tableZooHelper().getQualifiedNameToIdMap();
   }
 
   public Map<NamespaceId,String> getNamespaceIdToNameMap() {
@@ -576,7 +578,7 @@ public class ClientContext implements AccumuloClient {
   }
 
   public Map<TableId,String> getTableIdToNameMap() {
-    return tableZooHelper().getTableMap().getIdtoNameMap();
+    return tableZooHelper().getIdtoQualifiedNameMap();
   }
 
   public boolean tableNodeExists(TableId tableId) {
@@ -804,9 +806,6 @@ public class ClientContext implements AccumuloClient {
       }
       if (thriftTransportPool != null) {
         thriftTransportPool.shutdown();
-      }
-      if (tableZooHelper != null) {
-        tableZooHelper.close();
       }
       if (scannerReadaheadPool != null) {
         scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
@@ -1098,6 +1097,16 @@ public class ClientContext implements AccumuloClient {
   public NamespaceMapping getNamespaces() {
     ensureOpen();
     return namespaces;
+  }
+
+  public TableMapping getTableMapping(NamespaceId namespaceId) {
+    ensureOpen();
+    TableMapping tableMapping = tableMappings.getIfPresent(namespaceId);
+    if (tableMapping == null) {
+      tableMapping = new TableMapping(this, namespaceId);
+      tableMappings.put(namespaceId, tableMapping);
+    }
+    return tableMapping;
   }
 
   public ClientTabletCache getTabletLocationCache(TableId tableId) {

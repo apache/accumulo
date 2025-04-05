@@ -36,10 +36,15 @@ public enum AccumuloTable {
   SCAN_REF("scanref", "+scanref");
 
   private final String name;
+  private final String simpleName;
   private final TableId tableId;
 
   public String tableName() {
     return name;
+  }
+
+  public String simpleTableName() {
+    return simpleName;
   }
 
   public TableId tableId() {
@@ -48,13 +53,22 @@ public enum AccumuloTable {
 
   AccumuloTable(String name, String id) {
     this.name = Namespace.ACCUMULO.name() + "." + name;
+    this.simpleName = name;
     this.tableId = TableId.of(id);
   }
 
   private static final Set<TableId> ALL_IDS =
       Arrays.stream(values()).map(AccumuloTable::tableId).collect(Collectors.toUnmodifiableSet());
 
+  private static final Set<TableId> BUILT_IN_IDS =
+      Set.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId(),
+          AccumuloTable.SCAN_REF.tableId(), AccumuloTable.FATE.tableId());
+
   public static Set<TableId> allTableIds() {
     return ALL_IDS;
+  }
+
+  public static Set<TableId> builtInTableIds() {
+    return BUILT_IN_IDS;
   }
 }

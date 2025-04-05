@@ -35,8 +35,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -78,14 +76,10 @@ public class TableManager {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
-    tableName = qualifiedTableName.getSecond();
     String zTablePath = Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
         namespaceId.canonical().getBytes(UTF_8), existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAME, tableName.getBytes(UTF_8),
-        existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
@@ -178,7 +172,16 @@ public class TableManager {
     PropUtil.removeProperties(context, TablePropKey.of(tableId), propertiesToExclude);
   }
 
-  public void removeTable(TableId tableId) throws KeeperException, InterruptedException {
+  public void removeTable(TableId tableId, NamespaceId namespaceId)
+      throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
+    try {
+      context.getTableMapping(namespaceId).remove(context, tableId);
+    } catch (AcceptableThriftTableOperationException e) {
+      // ignore not found, because that's what we're trying to do anyway
+      if (e.getType() != TableOperationExceptionType.NOTFOUND) {
+        throw e;
+      }
+    }
     zoo.recursiveDelete(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
         NodeMissingPolicy.SKIP);
     zoo.recursiveDelete(Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
