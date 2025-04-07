@@ -22,7 +22,6 @@ import static org.apache.accumulo.core.Constants.ZFATE;
 import static org.apache.accumulo.core.Constants.ZPREPARE_FOR_UPGRADE;
 
 import java.util.List;
-import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -33,8 +32,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
@@ -158,6 +155,10 @@ public class UpgradeUtil implements KeywordExecutable {
           + " has already been upgraded to version " + thisVersion);
     }
 
+    if (context.getServerPaths().getManager(true) != null) {
+      throw new IllegalStateException("Cannot run this command with the Manager running.");
+    }
+
     final ZooSession zs = context.getZooSession();
     final ZooReader zr = zs.asReader();
     final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
@@ -199,42 +200,22 @@ public class UpgradeUtil implements KeywordExecutable {
       }
       LOG.info("No FATE transactions found");
 
-      // Forcefully delete all server locks
-      Set<ServiceLockPath> serviceLockPaths =
-          context.getServerPaths().getCompactor((g) -> true, AddressSelector.all(), true);
-      serviceLockPaths.addAll(
-          context.getServerPaths().getTabletServer((g) -> true, AddressSelector.all(), true));
-      serviceLockPaths
-          .addAll(context.getServerPaths().getScanServer((g) -> true, AddressSelector.all(), true));
-      var mgrPath = context.getServerPaths().getManager(true);
-      if (mgrPath != null) {
-        serviceLockPaths.add(mgrPath);
-      }
-      var gcPath = context.getServerPaths().getGarbageCollector(true);
-      if (gcPath != null) {
-        serviceLockPaths.add(gcPath);
-      }
-      var monitorPath = context.getServerPaths().getMonitor(true);
-      if (monitorPath != null) {
-        serviceLockPaths.add(monitorPath);
-      }
-
-      for (ServiceLockPath slp : serviceLockPaths) {
-        LOG.info("Deleting all zookeeper entries under {}", slp);
+      // In the case where the user passes the '--force' option, then it's possible
+      // that some server processes could be running because the Constants.ZPREPARE_FOR_UPGRADE
+      // node was not created in ZooKeeper. Server paths in ZooKeeper could be
+      // from the prior version or this one. Delete all paths in ZooKeeper that
+      // represent server locks.
+      for (String topLevelServerPath : List.of(Constants.ZTSERVERS, Constants.ZCOMPACTORS,
+          Constants.ZSSERVERS, Constants.ZGC_LOCK, Constants.ZMANAGER_LOCK,
+          Constants.ZMONITOR_LOCK)) {
         try {
-          List<String> children = zr.getChildren(slp.toString());
-          for (String child : children) {
-            LOG.debug("Performing recursive delete on node:  {}", child);
-            ZooUtil.recursiveDelete(zs, slp + "/" + child, NodeMissingPolicy.SKIP);
+          var children = zs.getChildren(topLevelServerPath, null);
+          for (var child : children) {
+            ZooUtil.recursiveDelete(zs, topLevelServerPath + "/" + child, NodeMissingPolicy.SKIP);
           }
-        } catch (KeeperException.NoNodeException e) {
-          LOG.warn("{} path does not exist in zookeeper", slp);
-        } catch (KeeperException e) {
+        } catch (KeeperException | InterruptedException e) {
           throw new IllegalStateException(
-              "Error performing recursive delete on children under node: " + slp.toString(), e);
-        } catch (InterruptedException e) {
-          throw new IllegalStateException("Interrupted while trying to find"
-              + " and delete children of zookeeper node: " + slp);
+              "Error deleting server locks under node: " + topLevelServerPath, e);
         }
       }
     }

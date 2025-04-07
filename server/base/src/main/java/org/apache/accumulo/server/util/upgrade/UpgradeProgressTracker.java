@@ -78,8 +78,8 @@ public class UpgradeProgressTracker {
       progress = oldProgress;
       znodeVersion = stat.getVersion();
     } catch (KeeperException.NoNodeException e) {
-      throw new IllegalStateException(
-          "initialize not called, " + Constants.ZUPGRADE_PROGRESS + " node does not exist");
+      throw new IllegalStateException("initialize not called, " + Constants.ZUPGRADE_PROGRESS
+          + " node does not exist. Did you run 'accumulo upgrade --check'?");
     } catch (KeeperException e) {
       throw new IllegalStateException("Error initializing upgrade progress", e);
     } catch (InterruptedException e) {

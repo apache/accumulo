@@ -132,9 +132,25 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void testCheckFailsManagerRunning() throws Exception {
+    downgradePersistentVersion(getServerContext());
+
+    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    IllegalStateException ise = assertThrows(IllegalStateException.class,
+        () -> new UpgradeUtil().execute(new String[] {"--check"}));
+    assertTrue(ise.getMessage().equals("Cannot run this command with the Manager running."));
+  }
+
+  @Test
   public void testCheckFailsPrepareMissing() throws Exception {
 
-    downgradePersistentVersion(getServerContext());
+    ServerContext ctx = getCluster().getServerContext();
+
+    downgradePersistentVersion(ctx);
+
+    ZooReader zr = ctx.getZooSession().asReader();
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
@@ -145,11 +161,15 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
   @Test
   public void testCheckFailsDueToFateTransactions() throws Exception {
+
     ServerContext ctx = getCluster().getServerContext();
 
     downgradePersistentVersion(ctx);
 
     ZooReader zr = ctx.getZooSession().asReader();
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
+
     ZooReaderWriter zrw = ctx.getZooSession().asReaderWriter();
 
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
@@ -173,6 +193,9 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     downgradePersistentVersion(ctx);
 
     ZooReader zr = ctx.getZooSession().asReader();
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
+
     ZooReaderWriter zrw = ctx.getZooSession().asReaderWriter();
 
     zrw.putPersistentData(Constants.ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
@@ -194,6 +217,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     downgradePersistentVersion(ctx);
 
     ZooReader zr = ctx.getZooSession().asReader();
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
 
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
 
