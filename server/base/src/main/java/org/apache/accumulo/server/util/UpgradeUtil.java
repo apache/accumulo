@@ -36,6 +36,7 @@ import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
@@ -57,12 +58,15 @@ public class UpgradeUtil implements KeywordExecutable {
             + " This command should be run using the older version of software after the instance is shut down.")
     boolean prepare = false;
 
-    @Parameter(names = "--check",
-        description = "check that 'accumulo upgrade --prepare' was run on the instance after it was shut down.")
-    boolean check = false;
+    @Parameter(names = "--start",
+        description = "Start an upgrade of an Accumulo instance. This will check that 'accumulo upgrade --prepare'"
+            + " was run on the instance after it was shut down, perform pre-upgrade validation, and perform any"
+            + " upgrade steps that need to occur before the Manager is started. Finally it creates a mandatory"
+            + " marker in ZooKeeper that enables the Manager to perform an upgrade.")
+    boolean start = false;
 
     @Parameter(names = "--force",
-        description = "Continue with 'check' processing if 'prepare' has not been run on the instance.")
+        description = "Continue with 'start' processing if 'prepare' had not been run on the instance.")
     boolean force = false;
   }
 
@@ -75,11 +79,11 @@ public class UpgradeUtil implements KeywordExecutable {
   public String description() {
     return "utility used to perform various upgrade steps for an Accumulo instance. The 'prepare'"
         + " step is intended to be run using the old version of software after an instance has"
-        + " been shut down. The 'check' step is intended to be run on the instance with the new"
+        + " been shut down. The 'start' step is intended to be run on the instance with the new"
         + " version of software. Server processes should fail to start after the 'prepare' step"
-        + " has been run due to the existence of a node in ZooKeeper. When the 'check' step"
+        + " has been run due to the existence of a node in ZooKeeper. When the 'start' step"
         + " completes successfully it will remove this node allowing the user to start the"
-        + " Manager to begin the instance upgrade process.";
+        + " Manager to complete the instance upgrade process.";
   }
 
   private void prepare(final ServerContext context) {
@@ -147,7 +151,7 @@ public class UpgradeUtil implements KeywordExecutable {
         context.getInstanceID(), ZPREPARE_FOR_UPGRADE);
   }
 
-  private void check(ServerContext context, boolean force) {
+  private void start(ServerContext context, boolean force) {
     final int persistentVersion = AccumuloDataVersion.getCurrentVersion(context);
     final int thisVersion = AccumuloDataVersion.get();
     if (persistentVersion == thisVersion) {
@@ -163,15 +167,15 @@ public class UpgradeUtil implements KeywordExecutable {
     final ZooReader zr = zs.asReader();
     final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
 
-    boolean nodeExists = false;
+    boolean prepareNodeExists = false;
     try {
-      nodeExists = zr.exists(prepUpgradePath);
+      prepareNodeExists = zr.exists(prepUpgradePath);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Error checking for existence of node: " + prepUpgradePath,
           e);
     }
 
-    if (!nodeExists) {
+    if (!prepareNodeExists) {
 
       if (force) {
         LOG.info("{} node not found in ZooKeeper, 'accumulo upgrade --prepare' was likely"
@@ -180,7 +184,9 @@ public class UpgradeUtil implements KeywordExecutable {
       } else {
         throw new IllegalStateException(prepUpgradePath + " node not found in ZooKeeper indicating"
             + " that 'accumulo upgrade --prepare' was not run after shutting down the instance. If"
-            + " you wish to continue, then run this command using the --force option.");
+            + " you wish to continue, then run this command using the --force option. If you wish"
+            + " to cancel, delete, or let your Fate transactions complete, then restart the instance"
+            + " with the old version of software.");
       }
 
       try {
@@ -220,15 +226,22 @@ public class UpgradeUtil implements KeywordExecutable {
       }
     }
 
+    // Run the PreUpgradeValidation code to validate the ZooKeeper ACLs
+    try {
+      new PreUpgradeValidation().validate(context);
+    } catch (RuntimeException e) {
+      throw new IllegalStateException("PreUpgradeValidation failure", e);
+    }
+
     // Initialize the UpgradeProgress object in ZooKeeper. If the node exists, maybe
-    // because the 'check' command is being re-run, delete it.
+    // because the 'start' command is being re-run, delete it.
     try {
       if (zr.exists(Constants.ZUPGRADE_PROGRESS)) {
         ZooUtil.recursiveDelete(zs, Constants.ZUPGRADE_PROGRESS, NodeMissingPolicy.FAIL);
       }
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(Constants.ZUPGRADE_PROGRESS + " node exists"
-          + " in ZooKeeper implying the 'check' command is being re-run. Deleting"
+          + " in ZooKeeper implying the 'start' command is being re-run. Deleting"
           + " this node has failed. Delete it manually before retrying.", e);
     }
     new UpgradeProgressTracker(context).initialize();
@@ -243,8 +256,7 @@ public class UpgradeUtil implements KeywordExecutable {
           prepUpgradePath, e);
     }
 
-    LOG.info("Upgrade preparation completed, start Manager to continue upgrade to version: {}",
-        thisVersion);
+    LOG.info("Upgrade started, start the instance to continue upgrade to version: {}", thisVersion);
 
   }
 
@@ -253,13 +265,13 @@ public class UpgradeUtil implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.prepare && !opts.check) {
+    if (!opts.prepare && !opts.start) {
       new JCommander(opts).usage();
       return;
     }
 
-    if (opts.prepare && opts.check) {
-      throw new IllegalArgumentException("prepare and check options are mutually exclusive");
+    if (opts.prepare && opts.start) {
+      throw new IllegalArgumentException("prepare and start options are mutually exclusive");
     }
 
     var siteConf = SiteConfiguration.auto();
@@ -271,8 +283,8 @@ public class UpgradeUtil implements KeywordExecutable {
     try (var context = new ServerContext(siteConf)) {
       if (opts.prepare) {
         prepare(context);
-      } else if (opts.check) {
-        check(context, opts.force);
+      } else if (opts.start) {
+        start(context, opts.force);
       }
     }
 

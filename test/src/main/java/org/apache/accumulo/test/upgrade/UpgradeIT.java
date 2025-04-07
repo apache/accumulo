@@ -73,7 +73,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
   @Test
   public void testServersWontStart() throws Exception {
-    // Constants.ZPREPARE_FOR_UPGRADE is created by 'ZooZap -prepare-for-upgrade'
+    // Constants.ZPREPARE_FOR_UPGRADE is created by 'accumulo upgrade --prepare'
     // which is run when the user wants to shutdown an instance in preparation
     // to upgrade it. When this node exists, no servers should start. There is
     // no ability to create this node in ZooKeeper before MAC starts for this
@@ -112,7 +112,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
     IllegalStateException ise = assertThrows(IllegalStateException.class,
         () -> new ServerThatWontStart(args.toArray(new String[0])));
     assertTrue(ise.getMessage()
-        .startsWith("Instance has been prepared for upgrade, no servers can be started."));
+        .startsWith("Instance has been prepared for upgrade to a minor or major version"));
 
   }
 

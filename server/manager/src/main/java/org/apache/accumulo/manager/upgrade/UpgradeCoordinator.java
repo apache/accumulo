@@ -48,6 +48,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.hadoop.fs.Path;

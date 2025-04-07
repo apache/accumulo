@@ -119,30 +119,30 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
   public void testExclusiveOptionsFail() {
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalArgumentException ise = assertThrows(IllegalArgumentException.class,
-        () -> new UpgradeUtil().execute(new String[] {"--prepare", "--check"}));
-    assertTrue(ise.getMessage().equals("prepare and check options are mutually exclusive"));
+        () -> new UpgradeUtil().execute(new String[] {"--prepare", "--start"}));
+    assertTrue(ise.getMessage().equals("prepare and start options are mutually exclusive"));
   }
 
   @Test
-  public void testCheckFailsNotNeeded() throws Exception {
+  public void testStartFailsNotNeeded() throws Exception {
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
-        () -> new UpgradeUtil().execute(new String[] {"--check"}));
+        () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage().startsWith("Running this utility is unnecessary"));
   }
 
   @Test
-  public void testCheckFailsManagerRunning() throws Exception {
+  public void testStartFailsManagerRunning() throws Exception {
     downgradePersistentVersion(getServerContext());
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
-        () -> new UpgradeUtil().execute(new String[] {"--check"}));
+        () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage().equals("Cannot run this command with the Manager running."));
   }
 
   @Test
-  public void testCheckFailsPrepareMissing() throws Exception {
+  public void testStartFailsPrepareMissing() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
 
@@ -154,13 +154,13 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
-        () -> new UpgradeUtil().execute(new String[] {"--check"}));
+        () -> new UpgradeUtil().execute(new String[] {"--start"}));
     assertTrue(ise.getMessage()
         .startsWith(Constants.ZPREPARE_FOR_UPGRADE + " node not found in ZooKeeper"));
   }
 
   @Test
-  public void testCheckFailsDueToFateTransactions() throws Exception {
+  public void testStartFailsDueToFateTransactions() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
 
@@ -180,14 +180,14 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
     IllegalStateException ise = assertThrows(IllegalStateException.class,
-        () -> new UpgradeUtil().execute(new String[] {"--check", "--force"}));
+        () -> new UpgradeUtil().execute(new String[] {"--start", "--force"}));
     assertTrue(ise.getMessage()
         .startsWith("Cannot continue pre-upgrade checks because FATE transactions exist."));
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
   }
 
   @Test
-  public void testCheckSucceedsWithPrepare() throws Exception {
+  public void testStartSucceedsWithPrepare() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
 
     downgradePersistentVersion(ctx);
@@ -205,13 +205,13 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     // won't be done and server locks won't be deleted.
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
-    new UpgradeUtil().execute(new String[] {"--check"});
+    new UpgradeUtil().execute(new String[] {"--start"});
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
     assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
   }
 
   @Test
-  public void testCheckSucceedsWithoutPrepare() throws Exception {
+  public void testStartSucceedsWithoutPrepare() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
 
     downgradePersistentVersion(ctx);
@@ -226,7 +226,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     // will be done and server locks will be deleted.
 
     System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
-    new UpgradeUtil().execute(new String[] {"--check", "--force"});
+    new UpgradeUtil().execute(new String[] {"--start", "--force"});
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
     assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
   }
