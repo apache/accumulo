@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -37,12 +38,23 @@ import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.util.UpgradeUtil;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.CreateMode;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class UpgradeUtilIT extends AccumuloClusterHarness {
+
+  @BeforeEach
+  public void beforeTest() throws Exception {
+    var zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
+    zrw.delete(Constants.ZPREPARE_FOR_UPGRADE);
+    zrw.delete(Constants.ZUPGRADE_PROGRESS);
+
+  }
 
   private void downgradePersistentVersion(ServerContext context) throws IOException {
     ServerDirs serverDirs = context.getServerDirs();
@@ -229,6 +241,71 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     new UpgradeUtil().execute(new String[] {"--start", "--force"});
     assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
     assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
+  }
+
+  @Test
+  public void testStartRerunWithNoProgress() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+
+    downgradePersistentVersion(ctx);
+
+    ZooReader zr = ctx.getZooSession().asReader();
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
+
+    ZooReaderWriter zrw = ctx.getZooSession().asReaderWriter();
+
+    zrw.putPersistentData(Constants.ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
+    assertTrue(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
+
+    // Create an UpgradeProgressTracker to simulate start being re-run
+    UpgradeProgress newProgress =
+        new UpgradeProgress(AccumuloDataVersion.get() - 1, AccumuloDataVersion.get());
+    ctx.getZooSession().create(Constants.ZUPGRADE_PROGRESS, newProgress.toJsonBytes(),
+        ZooUtil.PUBLIC, CreateMode.PERSISTENT);
+
+    // The prepare node exists in ZooKeeper, so checks for Fate transactions
+    // won't be done and server locks won't be deleted.
+
+    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    new UpgradeUtil().execute(new String[] {"--start"});
+    assertFalse(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
+    assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
+  }
+
+  @Test
+  public void testStartRerunWithProgress() throws Exception {
+    ServerContext ctx = getCluster().getServerContext();
+
+    downgradePersistentVersion(ctx);
+
+    ZooReader zr = ctx.getZooSession().asReader();
+    getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
+
+    ZooReaderWriter zrw = ctx.getZooSession().asReaderWriter();
+
+    zrw.putPersistentData(Constants.ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
+    assertTrue(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
+
+    // Create an UpgradeProgressTracker to simulate start being re-run, but increment
+    // the state to simulate the Manager running some upgrade tasks
+    UpgradeProgress newProgress =
+        new UpgradeProgress(AccumuloDataVersion.get() - 1, AccumuloDataVersion.get());
+    newProgress.setZooKeeperVersion(AccumuloDataVersion.get());
+    zrw.putPersistentData(Constants.ZUPGRADE_PROGRESS, newProgress.toJsonBytes(),
+        NodeExistsPolicy.OVERWRITE);
+
+    // The prepare node exists in ZooKeeper, so checks for Fate transactions
+    // won't be done and server locks won't be deleted.
+
+    System.setProperty("accumulo.properties", "file://" + getCluster().getAccumuloPropertiesPath());
+    IllegalStateException ise = assertThrows(IllegalStateException.class,
+        () -> new UpgradeUtil().execute(new String[] {"--start"}));
+    assertTrue(ise.getMessage().startsWith("It appears that an upgrade is in progress."));
+    assertTrue(zr.exists(Constants.ZPREPARE_FOR_UPGRADE));
+    assertTrue(zr.exists(Constants.ZUPGRADE_PROGRESS));
+
   }
 
 }

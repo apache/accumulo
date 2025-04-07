@@ -37,9 +37,11 @@ import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,8 +167,31 @@ public class UpgradeUtil implements KeywordExecutable {
 
     final ZooSession zs = context.getZooSession();
     final ZooReader zr = zs.asReader();
-    final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
 
+    // Check to see if the 'start' command has successfully run before. If it has,
+    // and the Manager made any progress in upgrading, then fail.
+    try {
+      if (zr.exists(Constants.ZUPGRADE_PROGRESS)) {
+        int persistedVersion = AccumuloDataVersion.getCurrentVersion(context);
+        byte[] bytes = zr.getData(Constants.ZUPGRADE_PROGRESS, new Stat());
+        UpgradeProgress progress = UpgradeProgress.fromJsonBytes(bytes);
+        if (progress.getZooKeeperVersion() != persistedVersion
+            || progress.getRootVersion() != persistedVersion
+            || progress.getMetadataVersion() != persistedVersion) {
+          throw new IllegalStateException(
+              "It appears that an upgrade is in progress. 'accumulo upgrade --start'"
+                  + " cannot be run again");
+        } else {
+          ZooUtil.recursiveDelete(zs, Constants.ZUPGRADE_PROGRESS, NodeMissingPolicy.FAIL);
+        }
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(Constants.ZUPGRADE_PROGRESS + " node exists"
+          + " in ZooKeeper implying the 'start' command is being re-run. Deleting"
+          + " this node has failed. Delete it manually before retrying.", e);
+    }
+
+    final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
     boolean prepareNodeExists = false;
     try {
       prepareNodeExists = zr.exists(prepUpgradePath);
@@ -233,17 +258,7 @@ public class UpgradeUtil implements KeywordExecutable {
       throw new IllegalStateException("PreUpgradeValidation failure", e);
     }
 
-    // Initialize the UpgradeProgress object in ZooKeeper. If the node exists, maybe
-    // because the 'start' command is being re-run, delete it.
-    try {
-      if (zr.exists(Constants.ZUPGRADE_PROGRESS)) {
-        ZooUtil.recursiveDelete(zs, Constants.ZUPGRADE_PROGRESS, NodeMissingPolicy.FAIL);
-      }
-    } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException(Constants.ZUPGRADE_PROGRESS + " node exists"
-          + " in ZooKeeper implying the 'start' command is being re-run. Deleting"
-          + " this node has failed. Delete it manually before retrying.", e);
-    }
+    // Initialize the UpgradeProgress object in ZooKeeper.
     new UpgradeProgressTracker(context).initialize();
 
     // Delete the upgrade preparation node
