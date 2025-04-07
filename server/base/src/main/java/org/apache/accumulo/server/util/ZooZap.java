@@ -58,7 +58,7 @@ public class ZooZap implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "Utility for removing Zookeeper locks and preparing an instance for upgrade";
+    return "Utility for zapping Zookeeper locks";
   }
 
   static class Opts extends Help {
@@ -103,15 +103,6 @@ public class ZooZap implements KeywordExecutable {
     }
 
     var zrw = context.getZooSession().asReaderWriter();
-    if (opts.zapManager) {
-      ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
-      try {
-        zapDirectory(zrw, managerLockPath, opts);
-      } catch (KeeperException | InterruptedException e) {
-        e.printStackTrace();
-      }
-    }
-
     if (opts.zapManager) {
       ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
       try {
