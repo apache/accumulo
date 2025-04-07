@@ -89,35 +89,8 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromRootTabletMetadata(context);
     LOG.info("Adding compactions node to zookeeper");
     addCompactionsNode(context);
-
-    var zrw = context.getZooSession().asReaderWriter();
-    try {
-      Map<String,String> newTableMap = new HashMap<>();
-      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
-      List<String> namespaceIds = zrw.getChildren(Constants.ZNAMESPACES);
-
-      for (String namespaceId : namespaceIds) {
-        for (String tableId : tableIds) {
-          String tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId), UTF_8);
-          String[] parts = tableName.split("\\.");
-          if (parts.length == 2 && parts[0]
-              .equals(Namespaces.getNamespaceName(context, NamespaceId.of(namespaceId)))) {
-            newTableMap.put(tableId, parts[1]);
-          }
-        }
-        zrw.putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES,
-            NamespaceMapping.serializeMap(newTableMap), ZooUtil.NodeExistsPolicy.FAIL);
-      }
-    } catch (InterruptedException ex) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
-          ex);
-    } catch (KeeperException ex) {
-      throw new IllegalStateException(
-          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
-    } catch (NamespaceNotFoundException ex) {
-      throw new RuntimeException("Namespace not found in ZooKeeper", ex);
-    }
+    LOG.info("Adding table mappings to zookeeper");
+    addTableMappingsToZooKeeper(context);
   }
 
   @Override
@@ -150,6 +123,37 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
     removeBulkFileColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+  }
+
+  void addTableMappingsToZooKeeper(ServerContext context) {
+    var zrw = context.getZooSession().asReaderWriter();
+    try {
+      Map<String,String> newTableMap = new HashMap<>();
+      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
+      List<String> namespaceIds = zrw.getChildren(Constants.ZNAMESPACES);
+
+      for (String namespaceId : namespaceIds) {
+        var namespaceName = Namespaces.getNamespaceName(context, NamespaceId.of(namespaceId));
+        for (String tableId : tableIds) {
+          var tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId), UTF_8);
+          String[] parts = tableName.split("\\.");
+          if (parts.length == 2 && parts[0].equals(namespaceName)) {
+            newTableMap.put(tableId, parts[1]);
+          }
+        }
+        zrw.putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES,
+                NamespaceMapping.serializeMap(newTableMap), ZooUtil.NodeExistsPolicy.FAIL);
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
+              ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+              "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
+    } catch (NamespaceNotFoundException ex) {
+      throw new RuntimeException("Namespace not found in ZooKeeper", ex);
+    }
   }
 
   private static void addCompactionsNode(ServerContext context) {
