@@ -231,8 +231,7 @@ public class UpgradeUtil implements KeywordExecutable {
           LOG.warn("{} path does not exist in zookeeper", slp);
         } catch (KeeperException e) {
           throw new IllegalStateException(
-              "Error performing recursive delete on" + " children under node: " + slp.toString(),
-              e);
+              "Error performing recursive delete on children under node: " + slp.toString(), e);
         } catch (InterruptedException e) {
           throw new IllegalStateException("Interrupted while trying to find"
               + " and delete children of zookeeper node: " + slp);
@@ -257,8 +256,9 @@ public class UpgradeUtil implements KeywordExecutable {
     try {
       ZooUtil.recursiveDelete(zs, prepUpgradePath, NodeMissingPolicy.SKIP);
     } catch (KeeperException | InterruptedException e) {
-      LOG.warn("Error deleting {} from ZooKeeper. Instance ready for "
-          + "upgrade, but servers will not start while this node exists." + " Delete it manually.",
+      LOG.warn(
+          "Error deleting {} from ZooKeeper. Instance ready for "
+              + "upgrade, but servers will not start while this node exists. Delete it manually.",
           prepUpgradePath, e);
     }
 
