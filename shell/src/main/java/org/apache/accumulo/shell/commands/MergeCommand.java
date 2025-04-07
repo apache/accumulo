@@ -95,8 +95,9 @@ public class MergeCommand extends Command {
         new Option("s", "size", true, "merge tablets to the given size over the entire table");
     forceOpt = new Option("f", "force", false,
         "merge small tablets to large tablets, even if it goes over the given size");
-    allOpt = new Option("a", "all", false, "allow an entire table to be merged into one tablet without prompting"
-        + " the user for confirmation");
+    allOpt = new Option("a", "all", false,
+        "allow an entire table to be merged into one tablet without prompting"
+            + " the user for confirmation");
     o.addOption(OptUtil.startRowOpt());
     o.addOption(OptUtil.endRowOpt());
     o.addOption(OptUtil.tableOpt("table to be merged"));
