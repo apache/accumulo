@@ -26,7 +26,6 @@
 #                                and addresses to override the default lookups
 #
 
-# TODO add prune help
 function print_usage() {
   cat <<EOF
 $(cyan Usage): $(green accumulo-cluster) <$(yellow command)> [<$(yellow option)> ...]
@@ -55,6 +54,7 @@ $(cyan Commands):
   $(green stop)                       Stops Accumulo cluster services
   $(green restart)                    Restarts Accumulo cluster services
   $(green kill)                       Kills Accumulo cluster services
+  $(green prune)                      Reomves zookeeper locks of extra processes
 
   $(cyan Deprecated commands):
     $(green start-non-tservers)       $(yellow Deprecated). Alias for "start --no-tservers"
@@ -74,6 +74,8 @@ $(cyan Examples):
   $(purple 'accumulo-cluster start --sservers=group1')            $(blue '# start all group1 sservers')
   $(purple 'accumulo-cluster start --sservers="group1 group2"')   $(blue '# start all group1 and group2 sservers')
   $(purple 'accumulo-cluster start --local --manager --tservers') $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster prune --compactors')                 $(blue '# prune all extra compactors across all groups')
+  $(purple 'accumulo-cluster prune --compactors="group1"')        $(blue '# prune extra compactors running in group1')
 
 EOF
 }
@@ -664,7 +666,7 @@ function prune_group(){
 
   echo "$service_type $group $expectedCount"
 
-  # TODO setup removal of file.. not done because multiple files are created
+  # TODO setup removal of file.. not done because multiple files are created as this function is called multiple times
   EXCLUDE_FILE=$(mktemp --tmpdir "accumulo-zoozap-exclude-XXXXXXXX.txt") || exit 1
 
   # Determine the host:ports known by the accumulo cluster script, these should be kept
@@ -704,9 +706,9 @@ function prune_group(){
      ;;
     *)
      echo "Prune does not support $service_type"
-    return 0
+     exit 1
     ;; 
-  esac # TODO default case
+  esac
 
   "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose -include-groups "$group" -exclude-host-ports "$EXCLUDE_FILE"
 
@@ -924,7 +926,6 @@ EOF
       ;;
     prune)
        parse_config
-       # TODO this command will not work --local option, need to error if its set
        prune
        ;;
     start-non-tservers)
