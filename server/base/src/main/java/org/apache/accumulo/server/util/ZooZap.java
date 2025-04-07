@@ -88,15 +88,17 @@ public class ZooZap implements KeywordExecutable {
     boolean zapCompactors = false;
     @Parameter(names = "-sservers", description = "remove scan server locks")
     boolean zapScanServers = false;
+    @Parameter(names = "-gc", description = "remove gc server locks")
+    boolean zapGc = false;
+    @Parameter(names = "-monitor", description = "remove monitor server locks")
+    boolean zapMonitor = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
-    // TODO add exxlude groups
     @Parameter(names = "-include-groups",
         description = "Comma seperated list of resource groups to include")
     String includeGroups;
-    // TODO add include host ports
     @Parameter(names = "-exclude-host-ports",
-        description = "File with list of host and ports to exclude from removal")
+        description = "File with lines of <host>:<port> to exclude from removal")
     String hostPortExcludeFile;
     @Parameter(names = "-dry-run",
         description = "Only print changes that would be made w/o actually making any change")
@@ -150,7 +152,7 @@ public class ZooZap implements KeywordExecutable {
     }
 
     if (!opts.zapMaster && !opts.zapManager && !opts.zapTservers && !opts.zapCompactors
-        && !opts.zapCoordinators && !opts.zapScanServers) {
+        && !opts.zapCoordinators && !opts.zapScanServers && !opts.zapGc && !opts.zapMonitor) {
       new JCommander(opts).usage();
       return;
     }
@@ -168,6 +170,24 @@ public class ZooZap implements KeywordExecutable {
 
       try {
         removeSingletonLock(zoo, managerLockPath, hostPortPredicate, opts);
+      } catch (KeeperException | InterruptedException e) {
+        log.error("Error deleting manager lock", e);
+      }
+    }
+
+    if(opts.zapGc){
+      String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
+      try {
+        removeSingletonLock(zoo, gcLockPath, hostPortPredicate, opts);
+      } catch (KeeperException | InterruptedException e) {
+        log.error("Error deleting manager lock", e);
+      }
+    }
+
+    if(opts.zapMonitor){
+      String monitorLockPath = Constants.ZROOT + "/" + iid + Constants.ZMONITOR_LOCK;
+      try {
+        removeSingletonLock(zoo, monitorLockPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting manager lock", e);
       }
@@ -221,8 +241,6 @@ public class ZooZap implements KeywordExecutable {
                                             // lock functions
       }
     }
-
-    // TODO what about the GC and monitor???
   }
 
   private static void zapDirectory(ZooReaderWriter zoo, String path, Opts opts)

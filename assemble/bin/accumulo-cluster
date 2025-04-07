@@ -672,7 +672,7 @@ function prune_group(){
     #TODO this assumes one port per process, currently true
     #TODO need to ssh 
     #TODO sketchy method of removing first line using grep -v
-    #TODO may not be handling the expected count in the best way
+    #TODO may not be handling the expected count in the best way (using head -n)
     $bin/accumulo-service $service_type list | grep "$group" | grep -v "Currently running" | awk '{print "'"$host"':" $3}' | head -n $expectedCount >> $EXCLUDE_FILE
   done
 
@@ -696,20 +696,53 @@ function prune_group(){
     sserver)
      lockTypeOpt="-sservers"
      ;;
+    gc)
+     lockTypeOpt="-gc"
+     ;;
+    monitor)
+     lockTypeOpt="-monitor"
+     ;;
     *)
      echo "Prune does not support $service_type"
     return 0
     ;; 
   esac # TODO default case
 
-
   "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose -include-groups "$group" -exclude-host-ports "$EXCLUDE_FILE"
 
   rm $EXCLUDE_FILE
 }
 
+# Kills extra server processes that are not needed according to the
+# cluster.yaml file.  Conceptually this code is trying to reconcile the
+# following three sets of servers.
+#
+#  1. The notional goal set of servers specified by cluster.yaml
+#  2. The set of servers processes seen in zookeeper
+#  3. The set of server processes known to the accumulo-cluster script.  This
+#     is derived from pid files on hosts in set 1.
+#
+# This function attempts to find extra servers in set 2 that are not specified
+# by set 1.  When it does find extra servers it removes their zookeeper locks
+# avoiding removing locks of servers in set 3. The following are different
+# situations the code will see and handle.
+#
+#  * When a host is not cluster.yaml but has some processes listed in
+#    zookeeper.  For this case all of the process with that host can be killed.
+#  * When a resource group is not in cluster.yaml by has some processes listed
+#    in zookeeper.  For this case all of the processes with that resource group
+#    can be killed.
+#  * When a host is in cluster.yaml with a target of 3 processes but has 6
+#    processes listed in zookeeper.  For this case want to kill 3 processes that
+#    do not have pid files on the host.
+#
 function prune(){
-	set -x
+  if [[ $ARG_LOCAL == 1 ]]; then
+     # Currently the code is structured to remove all extra servers in a single resource group.  Finer granularity is not supported.
+     echo "Prune does not support running locally"
+     exit 1
+  fi
+
   trap 'rm -f "$SERVICE_JSON"' EXIT
   SERVICE_JSON=$(mktemp --tmpdir "accumulo-services-XXXXXXXX.json") || exit 1
   "$accumulo_cmd" admin serviceStatus --json > $SERVICE_JSON 2>/dev/null || exit 1
@@ -744,13 +777,16 @@ function prune(){
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
-     groups=()
-    readarray -t groups < <(cat $SERVICE_JSON | jq -r ".summaries.S_SERVER.resourceGroups | .[] ")
-
-    # TODO intersect with groups from command line if present
+    groups=()
+    if [[ -n $ARG_SSERVER_GROUP ]]; then
+      read -a groups <<< "$ARG_SSERVER_GROUP"
+    else
+      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
+      readarray -t groups < <(cat $SERVICE_JSON | jq -r ".summaries.S_SERVER.resourceGroups | .[] ")
+    fi
 
     for group in ${groups[@]}; do
-	# TODO what is the behavior when this group is not defined in config
+      # TODO what is the behavior when this group is not defined in config, want expected to be zero
       var_name="SSERVERS_PER_HOST_$group"
       local expected=${!var_name:-0}
 
@@ -762,12 +798,15 @@ function prune(){
 
   if [[ $ARG_ALL == 1 || $ARG_COMPACTOR == 1 ]]; then
     groups=()
-    readarray -t groups < <(cat $SERVICE_JSON | jq -r ".summaries.COMPACTOR.resourceGroups | .[] ")
-
-    # TODO intersect with groups from command line if present
+    if [[ -n $ARG_COMPACTOR_GROUP ]]; then
+      read -a groups <<< "$ARG_COMPACTOR_GROUP"
+    else
+      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
+      readarray -t groups < <(cat $SERVICE_JSON | jq -r ".summaries.COMPACTOR.resourceGroups | .[] ")
+    fi
 
     for group in ${groups[@]}; do
-	# TODO what is the behavior when this group is not defined in config
+      # TODO what is the behavior when this group is not defined in config, want expected to be zero
       var_name="COMPACTORS_PER_HOST_$group"
       local expected=${!var_name:-0}
 
