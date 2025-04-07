@@ -377,6 +377,7 @@ public class TabletMetadataTest {
     TabletMetadata.Builder builder = new TabletMetadata.Builder();
     builder.table(TableId.of("5"));
     builder.prevEndRow(new Text("a"));
+    builder.sawPrevEndRow(true);
     builder.endRow(new Text("m"));
 
     Range fileRange = new Range(new Text("c\0"), true, new Text("e\0"), false);
@@ -392,6 +393,7 @@ public class TabletMetadataTest {
     TabletMetadata.Builder builder = new TabletMetadata.Builder();
     builder.table(TableId.of("5"));
     builder.prevEndRow(new Text("b"));
+    builder.sawPrevEndRow(true);
     builder.endRow(new Text("d"));
 
     Range emptyRange = new Range();
