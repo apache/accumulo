@@ -21,14 +21,25 @@ package org.apache.accumulo.server.util;
 import static org.apache.accumulo.core.Constants.ZFATE;
 import static org.apache.accumulo.core.Constants.ZPREPARE_FOR_UPGRADE;
 
+import java.util.List;
+import java.util.Set;
+
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
+import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -48,6 +59,14 @@ public class UpgradeUtil implements KeywordExecutable {
         description = "prepare an older version instance for an upgrade to a newer non-bugfix release."
             + " This command should be run using the older version of software after the instance is shut down.")
     boolean prepare = false;
+
+    @Parameter(names = "--check",
+        description = "check that 'accumulo upgrade --prepare' was run on the instance after it was shut down.")
+    boolean check = false;
+
+    @Parameter(names = "--force",
+        description = "Continue with 'check' processing if 'prepare' has not been run on the instance.")
+    boolean force = false;
   }
 
   @Override
@@ -57,7 +76,195 @@ public class UpgradeUtil implements KeywordExecutable {
 
   @Override
   public String description() {
-    return "utility used to perform various upgrade steps for an Accumulo instance";
+    return "utility used to perform various upgrade steps for an Accumulo instance. The 'prepare'"
+        + " step is intended to be run using the old version of software after an instance has"
+        + " been shut down. The 'check' step is intended to be run on the instance with the new"
+        + " version of software. Server processes should fail to start after the 'prepare' step"
+        + " has been run due to the existence of a node in ZooKeeper. When the 'check' step"
+        + " completes successfully it will remove this node allowing the user to start the"
+        + " Manager to begin the instance upgrade process.";
+  }
+
+  private void prepare(final ServerContext context) {
+
+    final int persistentVersion = AccumuloDataVersion.getCurrentVersion(context);
+    final int thisVersion = AccumuloDataVersion.get();
+    if (persistentVersion != thisVersion) {
+      throw new IllegalStateException("It looks like you are running 'prepare' with "
+          + "a different version of software than what the instance was running with."
+          + " The 'prepare' command is intended to be run after an instance is shutdown"
+          + " with the same version of software before trying to upgrade.");
+    }
+
+    final ZooSession zs = context.getZooSession();
+    final ZooReaderWriter zoo = zs.asReaderWriter();
+
+    try {
+      if (zoo.exists(ZPREPARE_FOR_UPGRADE)) {
+        zoo.delete(ZPREPARE_FOR_UPGRADE);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error creating or checking for " + ZPREPARE_FOR_UPGRADE
+          + " node in zookeeper: " + e.getMessage(), e);
+    }
+
+    LOG.info("Upgrade specified, validating that Manager is stopped");
+    if (context.getServerPaths().getManager(true) != null) {
+      throw new IllegalStateException("Manager is running, shut it down and retry this operation");
+    }
+
+    LOG.info("Checking for existing fate transactions");
+    try {
+      // Adapted from UpgradeCoordinator.abortIfFateTransactions
+      // TODO: After the 4.0.0 release this code block needs to be
+      // modified to account for the new Fate table.
+      if (!zoo.getChildren(ZFATE).isEmpty()) {
+        throw new IllegalStateException("Cannot complete upgrade preparation"
+            + " because FATE transactions exist. You can start a tserver, but"
+            + " not the Manager, then use the shell to delete completed"
+            + " transactions and fail pending or in-progress transactions."
+            + " Once all of the FATE transactions have been removed you can"
+            + " retry this operation.");
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error checking for existing FATE transactions", e);
+    }
+
+    LOG.info("Creating {} node in zookeeper, servers will be prevented from"
+        + " starting while this node exists", ZPREPARE_FOR_UPGRADE);
+    try {
+      zoo.putPersistentData(ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error creating " + ZPREPARE_FOR_UPGRADE
+          + " node in zookeeper. Check for any issues and retry.", e);
+    }
+
+    LOG.info("Forcing removal of all server locks");
+    new ZooZap().zap(context, "-manager", "-tservers", "-compactors", "-sservers");
+
+    LOG.info(
+        "Instance {} prepared for upgrade. Server processes will not start while"
+            + " in this state. To undo this state and abort upgrade preparations delete"
+            + " the zookeeper node: {}. If you abort and restart the instance, then you "
+            + " should re-run this utility before upgrading.",
+        context.getInstanceID(), ZPREPARE_FOR_UPGRADE);
+  }
+
+  private void check(ServerContext context, boolean force) {
+    final int persistentVersion = AccumuloDataVersion.getCurrentVersion(context);
+    final int thisVersion = AccumuloDataVersion.get();
+    if (persistentVersion == thisVersion) {
+      throw new IllegalStateException("Running this utility is unnecessary, this instance"
+          + " has already been upgraded to version " + thisVersion);
+    }
+
+    final ZooSession zs = context.getZooSession();
+    final ZooReader zr = zs.asReader();
+    final String prepUpgradePath = Constants.ZPREPARE_FOR_UPGRADE;
+
+    boolean nodeExists = false;
+    try {
+      nodeExists = zr.exists(prepUpgradePath);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error checking for existence of node: " + prepUpgradePath,
+          e);
+    }
+
+    if (!nodeExists) {
+
+      if (force) {
+        LOG.info("{} node not found in ZooKeeper, 'accumulo upgrade --prepare' was likely"
+            + " not run after shutting down instance for upgrade. Removing"
+            + " server locks and checking for fate transactions.", prepUpgradePath);
+      } else {
+        throw new IllegalStateException(prepUpgradePath + " node not found in ZooKeeper indicating"
+            + " that 'accumulo upgrade --prepare' was not run after shutting down the instance. If"
+            + " you wish to continue, then run this command using the --force option.");
+      }
+
+      try {
+        // Adapted from UpgradeCoordinator.abortIfFateTransactions
+        // TODO: After the 4.0.0 release this code block needs to be
+        // modified to account for the new Fate table.
+        if (!zr.getChildren(Constants.ZFATE).isEmpty()) {
+          throw new IllegalStateException("Cannot continue pre-upgrade checks"
+              + " because FATE transactions exist. You can start a tserver, but"
+              + " not the Manager, with the old version of Accumulo then use "
+              + " the shell to delete completed transactions and fail pending"
+              + " or in-progress transactions. Once all of the FATE transactions"
+              + " have been removed you can retry this operation.");
+        }
+      } catch (KeeperException | InterruptedException e) {
+        throw new IllegalStateException("Error checking for existing FATE transactions", e);
+      }
+      LOG.info("No FATE transactions found");
+
+      // Forcefully delete all server locks
+      Set<ServiceLockPath> serviceLockPaths =
+          context.getServerPaths().getCompactor((g) -> true, AddressSelector.all(), true);
+      serviceLockPaths.addAll(
+          context.getServerPaths().getTabletServer((g) -> true, AddressSelector.all(), true));
+      serviceLockPaths
+          .addAll(context.getServerPaths().getScanServer((g) -> true, AddressSelector.all(), true));
+      var mgrPath = context.getServerPaths().getManager(true);
+      if (mgrPath != null) {
+        serviceLockPaths.add(mgrPath);
+      }
+      var gcPath = context.getServerPaths().getGarbageCollector(true);
+      if (gcPath != null) {
+        serviceLockPaths.add(gcPath);
+      }
+      var monitorPath = context.getServerPaths().getMonitor(true);
+      if (monitorPath != null) {
+        serviceLockPaths.add(monitorPath);
+      }
+
+      for (ServiceLockPath slp : serviceLockPaths) {
+        LOG.info("Deleting all zookeeper entries under {}", slp);
+        try {
+          List<String> children = zr.getChildren(slp.toString());
+          for (String child : children) {
+            LOG.debug("Performing recursive delete on node:  {}", child);
+            ZooUtil.recursiveDelete(zs, slp + "/" + child, NodeMissingPolicy.SKIP);
+          }
+        } catch (KeeperException.NoNodeException e) {
+          LOG.warn("{} path does not exist in zookeeper", slp);
+        } catch (KeeperException e) {
+          throw new IllegalStateException(
+              "Error performing recursive delete on" + " children under node: " + slp.toString(),
+              e);
+        } catch (InterruptedException e) {
+          throw new IllegalStateException("Interrupted while trying to find"
+              + " and delete children of zookeeper node: " + slp);
+        }
+      }
+    }
+
+    // Initialize the UpgradeProgress object in ZooKeeper. If the node exists, maybe
+    // because the 'check' command is being re-run, delete it.
+    try {
+      if (zr.exists(Constants.ZUPGRADE_PROGRESS)) {
+        ZooUtil.recursiveDelete(zs, Constants.ZUPGRADE_PROGRESS, NodeMissingPolicy.FAIL);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(Constants.ZUPGRADE_PROGRESS + " node exists"
+          + " in ZooKeeper implying the 'check' command is being re-run. Deleting"
+          + " this node has failed. Delete it manually before retrying.", e);
+    }
+    new UpgradeProgressTracker(context).initialize();
+
+    // Delete the upgrade preparation node
+    try {
+      ZooUtil.recursiveDelete(zs, prepUpgradePath, NodeMissingPolicy.SKIP);
+    } catch (KeeperException | InterruptedException e) {
+      LOG.warn("Error deleting {} from ZooKeeper. Instance ready for "
+          + "upgrade, but servers will not start while this node exists." + " Delete it manually.",
+          prepUpgradePath, e);
+    }
+
+    LOG.info("Upgrade preparation completed, start Manager to continue upgrade to version: {}",
+        thisVersion);
+
   }
 
   @Override
@@ -65,9 +272,13 @@ public class UpgradeUtil implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    if (!opts.prepare) {
+    if (!opts.prepare && !opts.check) {
       new JCommander(opts).usage();
       return;
+    }
+
+    if (opts.prepare && opts.check) {
+      throw new IllegalArgumentException("prepare and check options are mutually exclusive");
     }
 
     var siteConf = SiteConfiguration.auto();
@@ -77,59 +288,10 @@ public class UpgradeUtil implements KeywordExecutable {
     }
 
     try (var context = new ServerContext(siteConf)) {
-      final ZooSession zs = context.getZooSession();
-      final ZooReaderWriter zoo = zs.asReaderWriter();
       if (opts.prepare) {
-        try {
-          if (zoo.exists(ZPREPARE_FOR_UPGRADE)) {
-            zoo.delete(ZPREPARE_FOR_UPGRADE);
-          }
-        } catch (KeeperException | InterruptedException e) {
-          throw new IllegalStateException("Error creating or checking for " + ZPREPARE_FOR_UPGRADE
-              + " node in zookeeper: " + e.getMessage(), e);
-        }
-
-        LOG.info("Upgrade specified, validating that Manager is stopped");
-        if (context.getServerPaths().getManager(true) != null) {
-          throw new IllegalStateException(
-              "Manager is running, shut it down and retry this operation");
-        }
-
-        LOG.info("Checking for existing fate transactions");
-        try {
-          // Adapted from UpgradeCoordinator.abortIfFateTransactions
-          // TODO: After the 4.0.0 release this code block needs to be
-          // modified to account for the new Fate table.
-          if (!zoo.getChildren(ZFATE).isEmpty()) {
-            throw new IllegalStateException("Cannot complete upgrade preparation"
-                + " because FATE transactions exist. You can start a tserver, but"
-                + " not the Manager, then use the shell to delete completed"
-                + " transactions and fail pending or in-progress transactions."
-                + " Once all of the FATE transactions have been removed you can"
-                + " retry this operation.");
-          }
-        } catch (KeeperException | InterruptedException e) {
-          throw new IllegalStateException("Error checking for existing FATE transactions", e);
-        }
-
-        LOG.info("Creating {} node in zookeeper, servers will be prevented from"
-            + " starting while this node exists", ZPREPARE_FOR_UPGRADE);
-        try {
-          zoo.putPersistentData(ZPREPARE_FOR_UPGRADE, new byte[0], NodeExistsPolicy.SKIP);
-        } catch (KeeperException | InterruptedException e) {
-          throw new IllegalStateException("Error creating " + ZPREPARE_FOR_UPGRADE
-              + " node in zookeeper. Check for any issues and retry.", e);
-        }
-
-        LOG.info("Forcing removal of all server locks");
-        new ZooZap().zap(context, "-manager", "-tservers", "-compactors", "-sservers");
-
-        LOG.info(
-            "Instance {} prepared for upgrade. Server processes will not start while"
-                + " in this state. To undo this state and abort upgrade preparations delete"
-                + " the zookeeper node: {}. If you abort and restart the instance, then you "
-                + " should re-run this utility before upgrading.",
-            context.getInstanceID(), ZPREPARE_FOR_UPGRADE);
+        prepare(context);
+      } else if (opts.check) {
+        check(context, opts.force);
       }
     }
 
