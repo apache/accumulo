@@ -46,7 +46,7 @@ public class MergeCommand extends Command {
     if (cl.hasOption(forceOpt.getOpt())) {
       force = true;
     }
-    if (cl.hasOption(allOpt.getLongOpt())) {
+    if (cl.hasOption(allOpt)) {
       all = true;
     }
     if (cl.hasOption(sizeOpt.getOpt())) {
