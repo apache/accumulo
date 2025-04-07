@@ -560,7 +560,7 @@ public class TabletMetadata {
   }
 
   public static void validate(TabletMetadata tm) {
-    if (!tm.fetchedCols.contains(ColumnType.FILES) || !tm.sawPrevEndRow) {
+    if (tm.files.isEmpty() || !tm.sawPrevEndRow) {
       return;
     }
 
