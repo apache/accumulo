@@ -151,7 +151,7 @@ function stop_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if $all_flag; then
+  if [[ $all_flag == 'true' ]]; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -180,7 +180,7 @@ function kill_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if $all_flag; then
+  if [[ $all_flag == 'true' ]]; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
