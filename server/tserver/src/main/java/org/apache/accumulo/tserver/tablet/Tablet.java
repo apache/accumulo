@@ -603,7 +603,11 @@ public class Tablet extends TabletBase {
             logMessage.append(" tabletMemory.memoryReservedForMinC() "
                 + getTabletMemory().memoryReservedForMinC());
           }
-          if (mincReason == MinorCompactionReason.SYSTEM) {
+          if (getTabletMemory() != null && getTabletMemory().getMemTable() != null) {
+            logMessage.append(" tabletMemory.getMemTable().getNumEntries() "
+                + getTabletMemory().getMemTable().getNumEntries());
+          }
+          if (mincReason == MinorCompactionReason.SYSTEM && getDatafiles().size() >= pauseLimit) {
             logMessage.append(" fileCount " + getDatafiles().size());
             logMessage.append(" fileCountPauseLimit " + pauseLimit);
           }

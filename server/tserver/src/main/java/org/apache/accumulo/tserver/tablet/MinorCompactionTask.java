@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -42,8 +41,6 @@ class MinorCompactionTask implements Runnable {
   private final long flushId;
   private final MinorCompactionReason mincReason;
 
-  private final long pauseLimit;
-
   MinorCompactionTask(Tablet tablet, CommitSession commitSession, long flushId,
       MinorCompactionReason mincReason) {
     this.tablet = tablet;
@@ -52,8 +49,6 @@ class MinorCompactionTask implements Runnable {
     this.commitSession = commitSession;
     this.flushId = flushId;
     this.mincReason = mincReason;
-    this.pauseLimit = tablet.getContext().getTableConfiguration(tablet.extent.tableId())
-        .getCount(Property.TABLE_FILE_PAUSE);
   }
 
   @Override
