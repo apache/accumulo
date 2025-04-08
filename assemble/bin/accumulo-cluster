@@ -672,11 +672,12 @@ function prune_group() {
     exit 1
   fi
   local exclude_file="$AC_TMP_DIR/accumulo-zoozap-exclude-$service_type-$group.txt"
+  touch "$exclude_file"
 
   # Determine the host:ports known by the accumulo cluster script, these should be kept
   for host in "${hosts[@]}"; do
     #TODO need to ssh
-    "$bin"/accumulo-service "$service_type" list | grep "$group" | tail -n +2 | awk '{print "'"$host"':" $3}' | head -n "$expectedCount" >>"$exclude_file"
+    "$bin"/accumulo-service "$service_type" list | grep "$group" | tail -n +1 | awk '{print "'"$host"':" $3}' | head -n "$expectedCount" >>"$exclude_file"
   done
 
   # TODO remove or make debug
@@ -712,7 +713,12 @@ function prune_group() {
       ;;
   esac
 
-  "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
+  local dryRunOpt=""
+  if isDebug; then
+    dryRunOpt="--dry-run"
+  fi
+
+  "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt "$dryRunOpt" -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
 }
 
 # Kills extra server processes that are not needed according to the
