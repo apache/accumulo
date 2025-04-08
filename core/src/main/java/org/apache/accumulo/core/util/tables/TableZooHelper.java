@@ -85,20 +85,20 @@ public class TableZooHelper {
   private Map<String,String> loadQualifiedTableMapping(boolean reverse) {
     final var builder = ImmutableMap.<String,String>builder();
     for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
-      for (Map.Entry<TableId,String> entry : context.getTableMapping(namespaceId).getIdToNameMap()
-          .entrySet()) {
+      var idToNameMap = context.getTableMapping(namespaceId).getIdToNameMap();
+      for (TableId tableId : idToNameMap.keySet()) {
         String fullyQualifiedName;
         try {
-          fullyQualifiedName = TableNameUtil.qualified(entry.getValue(),
+          fullyQualifiedName = TableNameUtil.qualified(idToNameMap.get(tableId),
               Namespaces.getNamespaceName(context, namespaceId));
         } catch (NamespaceNotFoundException e) {
           throw new RuntimeException(
               "getNamespaceName() failed to find namespace for namespaceId: " + namespaceId, e);
         }
         if (reverse) {
-          builder.put(fullyQualifiedName, entry.getKey().canonical());
+          builder.put(fullyQualifiedName, tableId.canonical());
         } else {
-          builder.put(entry.getKey().canonical(), fullyQualifiedName);
+          builder.put(tableId.canonical(), fullyQualifiedName);
         }
       }
     }
@@ -116,15 +116,8 @@ public class TableZooHelper {
   }
 
   public boolean tableNodeExists(TableId tableId) {
-    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
-      for (Map.Entry<TableId,String> entry : context.getTableMapping(namespaceId).getIdToNameMap()
-          .entrySet()) {
-        if (entry.getKey().equals(tableId)) {
-          return true;
-        }
-      }
-    }
-    return false;
+    return context.getNamespaces().getIdToNameMap().keySet().stream().anyMatch(
+        namespaceId -> context.getTableMapping(namespaceId).getIdToNameMap().containsKey(tableId));
   }
 
   public void clearTableListCache() {
@@ -188,16 +181,9 @@ public class TableZooHelper {
     if (AccumuloTable.allTableIds().contains(tableId)) {
       return Namespace.ACCUMULO.id();
     }
-
-    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
-      for (Map.Entry<TableId,String> entry : context.getTableMapping(namespaceId).getIdToNameMap()
-          .entrySet()) {
-        if (entry.getKey().equals(tableId)) {
-          return namespaceId;
-        }
-      }
-    }
-    throw new TableNotFoundException(tableId.canonical(), null,
-        "No namespace found containing the given table ID " + tableId);
+    return context.getNamespaces().getIdToNameMap().keySet().stream().filter(
+        namespaceId -> context.getTableMapping(namespaceId).getIdToNameMap().containsKey(tableId))
+        .findFirst().orElseThrow(() -> new TableNotFoundException(tableId.canonical(), null,
+            "No namespace found containing the given table ID " + tableId));
   }
 }

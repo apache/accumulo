@@ -403,7 +403,7 @@ public class Upgrader12to13 implements Upgrader {
       }
     }
   }
-  
+
   void addTableMappingsToZooKeeper(ServerContext context) {
     var zrw = context.getZooSession().asReaderWriter();
     try {
@@ -413,27 +413,27 @@ public class Upgrader12to13 implements Upgrader {
       for (String tableId : tableIds) {
         var tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId), UTF_8);
         var namespaceId = new String(
-                zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+            zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
         mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
-                (tid, existingName) -> {
-                  if (existingName != null) {
-                    throw new IllegalStateException(
-                            "Table id " + tid + " already present in map for namespace id " + namespaceId);
-                  }
-                  return tableName;
-                });
+            (tid, existingName) -> {
+              if (existingName != null) {
+                throw new IllegalStateException(
+                    "Table id " + tid + " already present in map for namespace id " + namespaceId);
+              }
+              return tableName;
+            });
       }
       for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
         zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
-                NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
+            NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
-              ex);
+          ex);
     } catch (KeeperException ex) {
       throw new IllegalStateException(
-              "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
+          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
   }
 }

@@ -63,9 +63,6 @@ public class TableMapping {
     var zoo = context.getZooSession().asReaderWriter();
     Stream.of(zoo, tableId, namespaceId, tableName).forEach(Objects::requireNonNull);
     String zTableMapPath = getZTableMapPath(namespaceId);
-    if (!zoo.exists(zTableMapPath)) {
-      throw new KeeperException.NoNodeException(zTableMapPath + " does not exist in ZooKeeper");
-    }
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Putting built-in tables in map should not be possible after init");
     }
@@ -113,9 +110,6 @@ public class TableMapping {
     var zoo = context.getZooSession().asReaderWriter();
     Stream.of(zoo, tableId, namespaceId, oldName, newName).forEach(Objects::requireNonNull);
     String zTableMapPath = getZTableMapPath(namespaceId);
-    if (!zoo.exists(zTableMapPath)) {
-      throw new KeeperException.NoNodeException(zTableMapPath + " does not exist in ZooKeeper");
-    }
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Renaming built-in tables in map should not be possible");
     }
