@@ -215,15 +215,17 @@ function kill_service() {
 function list_processes() {
   local service_type=$1
   find_processes "$service_type"
-  # TODO update header
-  echo "Currently running ${service_type} processes:"
+  echo "Currently running ${service_type} processes (fields: process pid port):"
   for process in "${RUNNING_PROCESSES[@]}"; do
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
     local pid=$(cat "$pid_file")
-    # TODO could be listening on tcp4 and tcp6, probably not handling that
     local port=$(netstat  -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F  ':' '{print $2}')
-    # TODO handle no port, probably means the process is no longer running... could omit the entire line in this case
-    echo "$process $pid $port"
+    # check that only a single port was seen
+    if (( $(echo "$port" | grep -E '^[0-9]+$' |  wc -l) != 1 )); then
+      echo "ERROR unexpected ports process:$process pid:$pid ports:$port" >&2
+    else
+      echo "$process $pid $port"
+    fi
   done
 }
 

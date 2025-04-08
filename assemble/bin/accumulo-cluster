@@ -676,7 +676,6 @@ function prune_group(){
 
   # Determine the host:ports known by the accumulo cluster script, these should be kept
   for host in $hosts; do
-    #TODO this assumes one port per process, currently true
     #TODO need to ssh 
     $bin/accumulo-service $service_type list | grep "$group" | tail -n +2 | awk '{print "'"$host"':" $3}' | head -n $expectedCount >> $exclude_file
   done
@@ -733,7 +732,7 @@ function prune_group(){
 #
 #  * When a host is not cluster.yaml but has some processes listed in
 #    zookeeper.  For this case all of the process with that host can be killed.
-#  * When a resource group is not in cluster.yaml by has some processes listed
+#  * When a resource group is not in cluster.yaml but has some processes listed
 #    in zookeeper.  For this case all of the processes with that resource group
 #    can be killed.
 #  * When a host is in cluster.yaml with a target of 3 processes but has 6
@@ -751,8 +750,8 @@ function prune(){
 	  echo "AC_TMP_DIR is not set"
 	  exit 1
   fi
-  SERVICE_JSON="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json > $SERVICE_JSON 2>/dev/null || exit 1
+  local service_json="$AC_TMP_DIR/accumulo-service.json"
+  "$accumulo_cmd" admin serviceStatus --json > $service_json 2>/dev/null || exit 1
 
   local var_name
   local hosts
@@ -788,7 +787,7 @@ function prune(){
       read -a groups <<< "$ARG_SSERVER_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
-      readarray -t groups < <(cat $SERVICE_JSON | jq -r ".summaries.S_SERVER.resourceGroups | .[] ")
+      readarray -t groups < <(cat $service_json | jq -r ".summaries.S_SERVER.resourceGroups | .[] ")
     fi
 
     for group in ${groups[@]}; do
@@ -807,7 +806,7 @@ function prune(){
       read -a groups <<< "$ARG_COMPACTOR_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
-      readarray -t groups < <(cat $SERVICE_JSON | jq -r ".summaries.COMPACTOR.resourceGroups | .[] ")
+      readarray -t groups < <(cat $service_json | jq -r ".summaries.COMPACTOR.resourceGroups | .[] ")
     fi
 
     for group in ${groups[@]}; do
