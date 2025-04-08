@@ -674,14 +674,14 @@ function prune_group() {
   local exclude_file="$AC_TMP_DIR/accumulo-zoozap-exclude-$service_type-$group.txt"
 
   # Determine the host:ports known by the accumulo cluster script, these should be kept
-  for host in $hosts; do
+  for host in "${hosts[@]}"; do
     #TODO need to ssh
-    $bin/accumulo-service $service_type list | grep "$group" | tail -n +2 | awk '{print "'"$host"':" $3}' | head -n $expectedCount >>$exclude_file
+    "$bin"/accumulo-service "$service_type" list | grep "$group" | tail -n +2 | awk '{print "'"$host"':" $3}' | head -n "$expectedCount" >>"$exclude_file"
   done
 
   # TODO remove or make debug
-  echo $exclude_file
-  cat $exclude_file
+  echo "$exclude_file"
+  cat "$exclude_file"
 
   local lockTypeOpt
   case $service_type in
@@ -750,7 +750,7 @@ function prune() {
     exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json >$service_json 2>/dev/null || exit 1
+  "$accumulo_cmd" admin serviceStatus --json >"$service_json" 2>/dev/null || exit 1
 
   local var_name
   local hosts
@@ -758,41 +758,41 @@ function prune() {
 
   local manager
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
-    prune_group "manager" "default" "1" $MANAGER_HOSTS
+    prune_group "manager" "default" "1" "$MANAGER_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
-    prune_group "gc" "default" "1" $GC_HOSTS
+    prune_group "gc" "default" "1" "$GC_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_MONITOR == 1 ]]; then
-    prune_group "monitor" "default" "1" $MONITOR_HOSTS
+    prune_group "monitor" "default" "1" "$MONITOR_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_COORDINATOR == 1 ]]; then
-    prune_group "compaction-coordinator" "default" "1" $COORDINATOR_HOSTS
+    prune_group "compaction-coordinator" "default" "1" "$COORDINATOR_HOSTS"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_TSERVER == 1 ]]; then
     #TODO in main need to adapt to having RGs for tservers
-    prune_group "tserver" "default" $TSERVERS_PER_HOST_default $TSERVER_HOSTS_default
+    prune_group "tserver" "default" "$TSERVERS_PER_HOST_default" "$TSERVER_HOSTS_default"
   fi
 
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
     groups=()
     if [[ -n $ARG_SSERVER_GROUP ]]; then
-      read -a groups <<<"$ARG_SSERVER_GROUP"
+      read -r -a groups <<<"$ARG_SSERVER_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
-      readarray -t groups < <(cat $service_json | jq -r ".summaries.S_SERVER.resourceGroups | .[] ")
+      readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | .[] " "$service_json")
     fi
 
-    for group in ${groups[@]}; do
+    for group in "${groups[@]}"; do
       var_name="SSERVERS_PER_HOST_$group"
       local expected=${!var_name:-0}
 
       hosts="SSERVER_HOSTS_$group"
-      prune_group "sserver" $group $expected ${!hosts}
+      prune_group "sserver" "$group" "$expected" "${!hosts}"
     done
 
   fi
@@ -800,18 +800,18 @@ function prune() {
   if [[ $ARG_ALL == 1 || $ARG_COMPACTOR == 1 ]]; then
     groups=()
     if [[ -n $ARG_COMPACTOR_GROUP ]]; then
-      read -a groups <<<"$ARG_COMPACTOR_GROUP"
+      read -r -a groups <<<"$ARG_COMPACTOR_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
-      readarray -t groups < <(cat $service_json | jq -r ".summaries.COMPACTOR.resourceGroups | .[] ")
+      readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | .[] " "$service_json")
     fi
 
-    for group in ${groups[@]}; do
+    for group in "${groups[@]}"; do
       var_name="COMPACTORS_PER_HOST_$group"
       local expected=${!var_name:-0}
 
       hosts="COMPACTOR_HOSTS_$group"
-      prune_group "compactor" $group $expected ${!hosts}
+      prune_group "compactor" "$group" "$expected" "${!hosts}"
     done
   fi
 }
