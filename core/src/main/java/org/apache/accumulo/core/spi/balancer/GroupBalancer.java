@@ -82,6 +82,7 @@ public abstract class GroupBalancer implements TabletBalancer {
    */
   protected abstract Function<TabletId,String> getPartitioner();
 
+  @Deprecated
   public GroupBalancer(TableId tableId) {
     this.tableId = tableId;
   }
