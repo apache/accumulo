@@ -38,6 +38,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -128,13 +129,12 @@ public class ZooZap implements KeywordExecutable {
     opts.parseArgs(keyword(), args);
 
     final Predicate<String> groupPredicate;
-    final Predicate<String> hostPortPredicate;
+    final Predicate<HostAndPort> hostPortPredicate;
 
     if (opts.hostPortExcludeFile != null) {
       try {
-        // TODO validate files contents using regex for each line like [^:]+:[0-9]+
         var hostPorts = Files.lines(java.nio.file.Path.of(opts.hostPortExcludeFile))
-            .map(String::trim).collect(Collectors.toSet());
+            .map(String::trim).map(HostAndPort::fromString).collect(Collectors.toSet());
         hostPortPredicate = hp -> !hostPorts.contains(hp);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
@@ -146,7 +146,7 @@ public class ZooZap implements KeywordExecutable {
     if (opts.includeGroups != null) {
       var groups = Arrays.stream(opts.includeGroups.split(",")).map(String::trim)
           .collect(Collectors.toSet());
-      groupPredicate = g -> groups.contains(g);
+      groupPredicate = groups::contains;
     } else {
       groupPredicate = g -> true;
     }
@@ -175,7 +175,7 @@ public class ZooZap implements KeywordExecutable {
       }
     }
 
-    if(opts.zapGc){
+    if (opts.zapGc) {
       String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
       try {
         removeSingletonLock(zoo, gcLockPath, hostPortPredicate, opts);
@@ -184,7 +184,7 @@ public class ZooZap implements KeywordExecutable {
       }
     }
 
-    if(opts.zapMonitor){
+    if (opts.zapMonitor) {
       String monitorLockPath = Constants.ZROOT + "/" + iid + Constants.ZMONITOR_LOCK;
       try {
         removeSingletonLock(zoo, monitorLockPath, hostPortPredicate, opts);
@@ -255,7 +255,7 @@ public class ZooZap implements KeywordExecutable {
   }
 
   private static void removeGroupedLocks(ZooReaderWriter zoo, String path,
-      Predicate<String> groupPredicate, Predicate<String> hostPortPredicate, Opts opts)
+      Predicate<String> groupPredicate, Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
     if (zoo.exists(path)) {
       List<String> groups = zoo.getChildren(path);
@@ -268,11 +268,12 @@ public class ZooZap implements KeywordExecutable {
   }
 
   private static void removeLocks(ZooReaderWriter zoo, String path,
-      Predicate<String> hostPortPredicate, Opts opts) throws KeeperException, InterruptedException {
+      Predicate<HostAndPort> hostPortPredicate, Opts opts)
+      throws KeeperException, InterruptedException {
     if (zoo.exists(path)) {
       List<String> children = zoo.getChildren(path);
       for (String child : children) {
-        if (hostPortPredicate.test(child)) {
+        if (hostPortPredicate.test(HostAndPort.fromString(child))) {
           message("Deleting " + path + "/" + child + " from zookeeper", opts);
           if (!opts.dryRun) {
             // TODO not sure this is the correct way to delete this lock.. the code was deleting
@@ -285,9 +286,11 @@ public class ZooZap implements KeywordExecutable {
   }
 
   private static void removeSingletonLock(ZooReaderWriter zoo, String path,
-      Predicate<String> hostPortPredicate, Opts ops) throws KeeperException, InterruptedException {
+      Predicate<HostAndPort> hostPortPredicate, Opts ops)
+      throws KeeperException, InterruptedException {
     var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
-    if (lockData != null && hostPortPredicate.test(new String(lockData, UTF_8))) {
+    if (lockData != null
+        && hostPortPredicate.test(HostAndPort.fromString(new String(lockData, UTF_8)))) {
       zapDirectory(zoo, path, ops);
     }
   }
