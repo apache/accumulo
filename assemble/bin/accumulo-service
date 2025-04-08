@@ -219,9 +219,9 @@ function list_processes() {
   for process in "${RUNNING_PROCESSES[@]}"; do
     local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
     local pid=$(cat "$pid_file")
-    local port=$(netstat  -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F  ':' '{print $2}')
+    local port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $2}')
     # check that only a single port was seen
-    if (( $(echo "$port" | grep -E '^[0-9]+$' |  wc -l) != 1 )); then
+    if (($(echo "$port" | grep -E '^[0-9]+$' | wc -l) != 1)); then
       echo "ERROR unexpected ports process:$process pid:$pid ports:$port" >&2
     else
       echo "$process $pid $port"

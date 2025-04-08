@@ -657,8 +657,7 @@ function control_services() {
 
 }
 
-
-function prune_group(){
+function prune_group() {
   local service_type=$1
   local group=$2
   local expectedCount=$3
@@ -669,15 +668,15 @@ function prune_group(){
   echo "$service_type $group $expectedCount"
 
   if [ -z ${AC_TMP_DIR+x} ]; then
-	  echo "AC_TMP_DIR is not set"
-	  exit 1
+    echo "AC_TMP_DIR is not set"
+    exit 1
   fi
   local exclude_file="$AC_TMP_DIR/accumulo-zoozap-exclude-$service_type-$group.txt"
 
   # Determine the host:ports known by the accumulo cluster script, these should be kept
   for host in $hosts; do
-    #TODO need to ssh 
-    $bin/accumulo-service $service_type list | grep "$group" | tail -n +2 | awk '{print "'"$host"':" $3}' | head -n $expectedCount >> $exclude_file
+    #TODO need to ssh
+    $bin/accumulo-service $service_type list | grep "$group" | tail -n +2 | awk '{print "'"$host"':" $3}' | head -n $expectedCount >>$exclude_file
   done
 
   # TODO remove or make debug
@@ -687,30 +686,30 @@ function prune_group(){
   local lockTypeOpt
   case $service_type in
     manager)
-     lockTypeOpt="-manager"
-     ;;
+      lockTypeOpt="-manager"
+      ;;
     compaction-coordinator)
-     lockTypeOpt="-compaction-coordinators"
-     ;;
+      lockTypeOpt="-compaction-coordinators"
+      ;;
     compactor)
-     lockTypeOpt="-compactors"
-     ;;
+      lockTypeOpt="-compactors"
+      ;;
     tserver)
-     lockTypeOpt="-tservers"
-     ;;
+      lockTypeOpt="-tservers"
+      ;;
     sserver)
-     lockTypeOpt="-sservers"
-     ;;
+      lockTypeOpt="-sservers"
+      ;;
     gc)
-     lockTypeOpt="--gc"
-     ;;
+      lockTypeOpt="--gc"
+      ;;
     monitor)
-     lockTypeOpt="--monitor"
-     ;;
+      lockTypeOpt="--monitor"
+      ;;
     *)
-     echo "Prune does not support $service_type"
-     exit 1
-    ;; 
+      echo "Prune does not support $service_type"
+      exit 1
+      ;;
   esac
 
   "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose --include-groups "$group" --exclude-host-ports "$exclude_file"
@@ -739,24 +738,23 @@ function prune_group(){
 #    processes listed in zookeeper.  For this case want to kill 3 processes that
 #    do not have pid files on the host.
 #
-function prune(){
+function prune() {
   if [[ $ARG_LOCAL == 1 ]]; then
-     # Currently the code is structured to remove all extra servers in a single resource group.  Finer granularity is not supported.
-     echo "Prune does not support running locally"
-     exit 1
+    # Currently the code is structured to remove all extra servers in a single resource group.  Finer granularity is not supported.
+    echo "Prune does not support running locally"
+    exit 1
   fi
 
   if [ -z ${AC_TMP_DIR+x} ]; then
-	  echo "AC_TMP_DIR is not set"
-	  exit 1
+    echo "AC_TMP_DIR is not set"
+    exit 1
   fi
   local service_json="$AC_TMP_DIR/accumulo-service.json"
-  "$accumulo_cmd" admin serviceStatus --json > $service_json 2>/dev/null || exit 1
+  "$accumulo_cmd" admin serviceStatus --json >$service_json 2>/dev/null || exit 1
 
   local var_name
   local hosts
   declare -a groups
-
 
   local manager
   if [[ $ARG_ALL == 1 || $ARG_MANAGER == 1 ]]; then
@@ -775,7 +773,6 @@ function prune(){
     prune_group "compaction-coordinator" "default" "1" $COORDINATOR_HOSTS
   fi
 
-
   if [[ $ARG_ALL == 1 || $ARG_TSERVER == 1 ]]; then
     #TODO in main need to adapt to having RGs for tservers
     prune_group "tserver" "default" $TSERVERS_PER_HOST_default $TSERVER_HOSTS_default
@@ -784,7 +781,7 @@ function prune(){
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
     groups=()
     if [[ -n $ARG_SSERVER_GROUP ]]; then
-      read -a groups <<< "$ARG_SSERVER_GROUP"
+      read -a groups <<<"$ARG_SSERVER_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
       readarray -t groups < <(cat $service_json | jq -r ".summaries.S_SERVER.resourceGroups | .[] ")
@@ -803,7 +800,7 @@ function prune(){
   if [[ $ARG_ALL == 1 || $ARG_COMPACTOR == 1 ]]; then
     groups=()
     if [[ -n $ARG_COMPACTOR_GROUP ]]; then
-      read -a groups <<< "$ARG_COMPACTOR_GROUP"
+      read -a groups <<<"$ARG_COMPACTOR_GROUP"
     else
       # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
       readarray -t groups < <(cat $service_json | jq -r ".summaries.COMPACTOR.resourceGroups | .[] ")
@@ -926,9 +923,9 @@ EOF
       control_services kill
       ;;
     prune)
-       parse_config
-       prune
-       ;;
+      parse_config
+      prune
+      ;;
     start-non-tservers)
       echo "'$ARG_CMD' is deprecated. Please specify the servers you wish to start instead"
       parse_config
