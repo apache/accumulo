@@ -792,7 +792,6 @@ function prune(){
     fi
 
     for group in ${groups[@]}; do
-      # TODO what is the behavior when this group is not defined in config, want expected to be zero
       var_name="SSERVERS_PER_HOST_$group"
       local expected=${!var_name:-0}
 
@@ -812,7 +811,6 @@ function prune(){
     fi
 
     for group in ${groups[@]}; do
-      # TODO what is the behavior when this group is not defined in config, want expected to be zero
       var_name="COMPACTORS_PER_HOST_$group"
       local expected=${!var_name:-0}
 
