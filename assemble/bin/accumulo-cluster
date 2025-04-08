@@ -661,8 +661,7 @@ function prune_group() {
   local service_type=$1
   local group=$2
   local expectedCount=$3
-  shift 3
-  local hosts=("$@")
+  local hosts=($4)
 
   # TODO remove or make debug
   echo "$service_type $group $expectedCount"
