@@ -89,19 +89,19 @@ public class ZooZap implements KeywordExecutable {
     boolean zapCompactors = false;
     @Parameter(names = "-sservers", description = "remove scan server locks")
     boolean zapScanServers = false;
-    @Parameter(names = "-gc", description = "remove gc server locks")
+    @Parameter(names = "--gc", description = "remove gc server locks")
     boolean zapGc = false;
-    @Parameter(names = "-monitor", description = "remove monitor server locks")
+    @Parameter(names = "--monitor", description = "remove monitor server locks")
     boolean zapMonitor = false;
     @Parameter(names = "-verbose", description = "print out messages about progress")
     boolean verbose = false;
-    @Parameter(names = "-include-groups",
+    @Parameter(names = "--include-groups",
         description = "Comma seperated list of resource groups to include")
     String includeGroups;
-    @Parameter(names = "-exclude-host-ports",
+    @Parameter(names = "--exclude-host-ports",
         description = "File with lines of <host>:<port> to exclude from removal")
     String hostPortExcludeFile;
-    @Parameter(names = "-dry-run",
+    @Parameter(names = "--dry-run",
         description = "Only print changes that would be made w/o actually making any change")
     boolean dryRun = false;
   }

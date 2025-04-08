@@ -649,7 +649,7 @@ function control_services() {
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     if ! isDebug; then
       echo "Cleaning all server entries in ZooKeeper"
-      "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers
+      "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -manager -tservers -compaction-coordinators -compactors -sservers --gc --monitor
     fi
   fi
 
@@ -699,10 +699,10 @@ function prune_group(){
      lockTypeOpt="-sservers"
      ;;
     gc)
-     lockTypeOpt="-gc"
+     lockTypeOpt="--gc"
      ;;
     monitor)
-     lockTypeOpt="-monitor"
+     lockTypeOpt="--monitor"
      ;;
     *)
      echo "Prune does not support $service_type"
@@ -710,7 +710,7 @@ function prune_group(){
     ;; 
   esac
 
-  "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose -include-groups "$group" -exclude-host-ports "$EXCLUDE_FILE"
+  "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap $lockTypeOpt -verbose --include-groups "$group" --exclude-host-ports "$EXCLUDE_FILE"
 
   rm $EXCLUDE_FILE
 }
