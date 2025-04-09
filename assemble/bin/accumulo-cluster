@@ -751,7 +751,7 @@ function prune() {
     exit 1
   fi
 
-  if [ -z ${AC_TMP_DIR+x} ]; then
+  if [[ -z ${AC_TMP_DIR+x} ]]; then
     echo "AC_TMP_DIR is not set"
     exit 1
   fi
