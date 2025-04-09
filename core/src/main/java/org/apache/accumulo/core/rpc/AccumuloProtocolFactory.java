@@ -153,7 +153,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         Context extractedContext = TraceUtil.deserializeContext(serializedContext);
 
         // Create server span with extracted context as parent
-        span = TraceUtil.startServerRpcSpanFromContext(this.getClass(), "handleMessage",
+        span = TraceUtil.startServerRpcSpanFromContext(this.getClass(), "handleRpcMessage",
             extractedContext);
         scope = span.makeCurrent();
       }
