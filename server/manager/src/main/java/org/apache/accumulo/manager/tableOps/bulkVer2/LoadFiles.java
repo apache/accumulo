@@ -368,7 +368,7 @@ class LoadFiles extends ManagerRepo {
       }
 
       if (locationLess > 0) {
-        sleepTime = Math.max(Math.max(100L, locationLess), sleepTime);
+        sleepTime = Math.max(100L, locationLess);
       }
 
       return sleepTime;
@@ -504,12 +504,15 @@ class LoadFiles extends ManagerRepo {
     }
 
     long sleepTime = loader.finish();
-    if (sleepTime > 0) {
-      log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
-      long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
-      log.trace("{}: Scan time is {}", fmtTid, scanTime);
-      sleepTime = Math.max(sleepTime, scanTime * 2);
+    if (sleepTime <= 1) {
+      log.trace("{}: Sleeping for {}ms", fmtTid, sleepTime);
+      return sleepTime;
     }
+
+    log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
+    long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
+    log.trace("{}: Scan time is {}", fmtTid, scanTime);
+    sleepTime = Math.max(sleepTime, scanTime * 2);
     log.trace("{}: Sleeping for {}ms", fmtTid, sleepTime);
     return sleepTime;
   }
