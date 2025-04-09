@@ -53,6 +53,7 @@ import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +92,18 @@ public abstract class AbstractServer
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
     log = LoggerFactory.getLogger(getClass());
+    try {
+      if (context.getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
+        throw new IllegalStateException(
+            "Instance has been prepared for upgrade to a minor or major version greater than "
+                + Constants.VERSION + ", no servers can be started."
+                + " To undo this state and abort upgrade preparations delete the zookeeper node: "
+                + Constants.ZPREPARE_FOR_UPGRADE);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error checking for upgrade preparation node ("
+          + Constants.ZPREPARE_FOR_UPGRADE + ") in zookeeper", e);
+    }
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(applicationName);
