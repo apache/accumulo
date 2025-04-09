@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import java.util.HashMap;
-import java.util.Map;
-
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -53,7 +50,6 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     private Span span = null;
     private Scope scope = null;
-    private final Map<String,String> traceHeaders = new HashMap<>();
 
     public AccumuloProtocol(TTransport transport, boolean isClient) {
       super(transport);
@@ -101,18 +97,9 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       final boolean headerHasTrace = span != null && span.getSpanContext().isValid();
       super.writeBool(headerHasTrace);
 
-      if (!headerHasTrace) {
-        return;
-      }
-      traceHeaders.clear();
-
-      TraceUtil.injectTraceContext(traceHeaders);
-
-      super.writeI32(traceHeaders.size());
-
-      for (Map.Entry<String,String> entry : traceHeaders.entrySet()) {
-        super.writeString(entry.getKey());
-        super.writeString(entry.getValue());
+      if (headerHasTrace) {
+        String serializedContext = TraceUtil.serializeContext(Context.current());
+        super.writeString(serializedContext);
       }
     }
 
@@ -159,26 +146,16 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       final byte version = super.readByte();
       validateProtocolVersion(version);
 
-      final boolean hasTrace = super.readBool();
+      final boolean headerHasTrace = super.readBool();
 
-      if (hasTrace) {
-        final int numHeaders = super.readI32();
+      if (headerHasTrace) {
+        String serializedContext = super.readString();
+        Context extractedContext = TraceUtil.deserializeContext(serializedContext);
 
-        final Map<String,String> headers = new HashMap<>(numHeaders);
-        for (int i = 0; i < numHeaders; i++) {
-          String key = super.readString();
-          String value = super.readString();
-          headers.put(key, value);
-        }
-
-        if (!headers.isEmpty()) {
-          Context extractedContext = TraceUtil.extractTraceContext(headers);
-
-          // Create server span with extracted context as parent
-          span = TraceUtil.startServerRpcSpanFromContext(this.getClass(), "handleMessage",
-              extractedContext);
-          scope = span.makeCurrent();
-        }
+        // Create server span with extracted context as parent
+        span = TraceUtil.startServerRpcSpanFromContext(this.getClass(), "handleMessage",
+            extractedContext);
+        scope = span.makeCurrent();
       }
     }
 

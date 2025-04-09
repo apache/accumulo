@@ -21,6 +21,7 @@ package org.apache.accumulo.core.trace;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Callable;
 
@@ -127,18 +128,6 @@ public class TraceUtil {
   }
 
   /**
-   * Inject the current trace context into the given map.
-   */
-  public static void injectTraceContext(Map<String,String> traceHeaders) {
-    W3CTraceContextPropagator.getInstance().inject(Context.current(), traceHeaders,
-        (headers, key, value) -> {
-          if (headers != null) {
-            headers.put(key, value);
-          }
-        });
-  }
-
-  /**
    * Extract the trace context from the given map.
    *
    * @param headers the map containing the trace context
@@ -157,6 +146,72 @@ public class TraceUtil {
             return carrier.get(key);
           }
         });
+  }
+
+  /**
+   * @return the serialized String version of the given Context in the format
+   *         "count|key|value|key|value|..."
+   */
+  public static String serializeContext(Context context) {
+    Map<String,String> traceHeaders = new HashMap<>();
+    W3CTraceContextPropagator.getInstance().inject(context, traceHeaders, (headers, key, value) -> {
+      if (headers != null) {
+        headers.put(key, value);
+      }
+    });
+
+    StringBuilder sb = new StringBuilder();
+    sb.append(traceHeaders.size());
+
+    for (var entry : traceHeaders.entrySet()) {
+      sb.append('|').append(entry.getKey()).append('|').append(entry.getValue());
+    }
+
+    return sb.toString();
+  }
+
+  /**
+   * @return the deserialized Context from the given String
+   */
+  public static Context deserializeContext(String serializedContext) {
+    if (serializedContext == null || serializedContext.isEmpty()) {
+      return Context.current();
+    }
+
+    String[] parts = serializedContext.split("\\|");
+    if (parts.length == 0) {
+      LOG.debug("Empty parts array in deserializeContext");
+      return Context.current();
+    }
+
+    int count;
+    try {
+      count = Integer.parseInt(parts[0]);
+    } catch (NumberFormatException e) {
+      LOG.debug("Failed to parse trace header count in context: {}", serializedContext, e);
+      return Context.current();
+    }
+
+    if (count == 0) {
+      LOG.debug("Empty trace context, returning current context");
+      return Context.current();
+    }
+
+    int expectedLength = 1 + (2 * count);
+    if (parts.length < expectedLength) {
+      LOG.debug("Incomplete serialized context. Expected {} parts but found {}", expectedLength,
+          parts.length);
+      return Context.current();
+    }
+
+    Map<String,String> headers = new HashMap<>(count);
+    for (int i = 0; i < count; i++) {
+      int keyIndex = 1 + (i * 2);
+      int valueIndex = keyIndex + 1;
+      headers.put(parts[keyIndex], parts[valueIndex]);
+    }
+
+    return extractTraceContext(headers);
   }
 
   /**
