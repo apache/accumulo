@@ -30,6 +30,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -71,7 +72,7 @@ public class ChangeSecret {
         verifyAccumuloIsDown(context, oldPass);
 
         final InstanceId newInstanceId = InstanceId.of(UUID.randomUUID());
-        updateHdfs(serverDirs, fs, newInstanceId);
+        updateHdfs(serverDirs, fs, new InstanceInfo(context.getInstanceName(), newInstanceId));
         rewriteZooKeeperInstance(context, newInstanceId, oldPass, newPass);
         if (!StringUtils.isBlank(oldPass)) {
           deleteInstance(context, oldPass);
@@ -169,28 +170,31 @@ public class ChangeSecret {
     }
   }
 
-  private static void updateHdfs(ServerDirs serverDirs, VolumeManager fs, InstanceId newInstanceId)
-      throws IOException {
+  private static void updateHdfs(ServerDirs serverDirs, VolumeManager fs,
+      InstanceInfo newInstanceInfo) throws IOException {
     // Need to recreate the instanceId on all of them to keep consistency
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = serverDirs.getInstanceIdLocation(v);
-      if (!v.getFileSystem().delete(instanceId, true)) {
-        throw new IOException("Could not recursively delete " + instanceId);
+      final Path instanceInfoPath = serverDirs.getInstanceInfoLocation(v);
+      if (!v.getFileSystem().delete(instanceInfoPath, true)) {
+        throw new IOException("Could not recursively delete " + instanceInfoPath);
       }
 
-      if (!v.getFileSystem().mkdirs(instanceId)) {
-        throw new IOException("Could not create directory " + instanceId);
+      if (!v.getFileSystem().mkdirs(instanceInfoPath)) {
+        throw new IOException("Could not create directory " + instanceInfoPath);
       }
 
-      v.getFileSystem().create(new Path(instanceId, newInstanceId.canonical())).close();
+      v.getFileSystem().create(new Path(instanceInfoPath,
+          Constants.INSTANCE_ID_PREFIX + newInstanceInfo.getInstanceId().canonical())).close();
+      v.getFileSystem().create(new Path(instanceInfoPath,
+          Constants.INSTANCE_NAME_PREFIX + newInstanceInfo.getInstanceName())).close();
     }
   }
 
   private static void verifyHdfsWritePermission(ServerDirs serverDirs, VolumeManager fs)
       throws Exception {
     for (Volume v : fs.getVolumes()) {
-      final Path instanceId = serverDirs.getInstanceIdLocation(v);
-      FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceId);
+      final Path instanceInfoPath = serverDirs.getInstanceInfoLocation(v);
+      FileStatus fileStatus = v.getFileSystem().getFileStatus(instanceInfoPath);
       checkHdfsAccessPermissions(fileStatus, FsAction.WRITE);
     }
   }

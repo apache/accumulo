@@ -26,8 +26,9 @@ public class Constants {
   public static final String VERSION_DIR = "version";
   public static final String APPNAME = "org.apache.accumulo";
 
-  // important directories
-  public static final String INSTANCE_ID_DIR = "instance_id";
+  public static final String INSTANCE_DIR = "instance";
+  public static final String INSTANCE_ID_PREFIX = "id_";
+  public static final String INSTANCE_NAME_PREFIX = "name_";
   public static final String TABLE_DIR = "tables";
   public static final String RECOVERY_DIR = "recovery";
   public static final String WAL_DIR = "wal";
