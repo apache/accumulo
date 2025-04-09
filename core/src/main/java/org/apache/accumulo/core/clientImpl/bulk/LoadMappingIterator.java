@@ -35,6 +35,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonIOException;
+import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 
 /**
@@ -74,28 +76,30 @@ public class LoadMappingIterator
 
   @Override
   public Map.Entry<KeyExtent,Bulk.Files> next() {
-    if (!hasNext()) {
-      throw new NoSuchElementException();
-    }
+    try {
+      Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
+      if (bm == null) {
+        throw new NoSuchElementException("No more elements in input");
+      }
 
-    Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
-    KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
+      KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
 
-    // Validate sorted order
-    if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
-      throw new IllegalStateException(
-          String.format("KeyExtents are not in sorted order: %s comes after %s", lastKeyExtent,
-              currentKeyExtent));
-    }
+      if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
+        throw new IllegalStateException(
+            String.format("KeyExtents are not in sorted order: %s comes after %s", lastKeyExtent,
+                currentKeyExtent));
+      }
 
-    // Update lasKeyExtent for next iteration
-    lastKeyExtent = currentKeyExtent;
+      lastKeyExtent = currentKeyExtent;
 
-    if (renameMap != null) {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
-          bm.getFiles().mapNames(renameMap));
-    } else {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId), bm.getFiles());
+      if (renameMap != null) {
+        return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles().mapNames(renameMap));
+      } else {
+        return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles());
+      }
+
+    } catch (JsonSyntaxException | JsonIOException e) {
+      throw new NoSuchElementException("Failed to read next mapping: " + e.getMessage());
     }
   }
 
