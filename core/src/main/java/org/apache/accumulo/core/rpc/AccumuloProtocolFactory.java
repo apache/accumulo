@@ -48,7 +48,6 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
     static final int MAGIC_NUMBER = 0x41434355; // "ACCU" in ASCII
     static final byte PROTOCOL_VERSION = 1;
-    private static final boolean HEADER_HAS_TRACE = true;
 
     private final boolean isClient;
 
@@ -73,7 +72,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         scope = span.makeCurrent();
 
         try {
-          this.writeHeader();
+          this.writeClientHeader();
           super.writeMessageBegin(message);
         } catch (TException e) {
           if (span != null) {
@@ -81,9 +80,11 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
           }
           if (scope != null) {
             scope.close();
+            scope = null;
           }
           if (span != null) {
             span.end();
+            span = null;
           }
           throw e;
         }
@@ -93,16 +94,16 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     /**
      * Writes the Accumulo protocol header containing version and identification info
      */
-    private void writeHeader() throws TException {
+    private void writeClientHeader() throws TException {
       super.writeI32(MAGIC_NUMBER);
       super.writeByte(PROTOCOL_VERSION);
 
-      if (span == null || !span.getSpanContext().isValid()) {
-        super.writeBool(!HEADER_HAS_TRACE);
+      final boolean headerHasTrace = span != null && span.getSpanContext().isValid();
+      super.writeBool(headerHasTrace);
+
+      if (!headerHasTrace) {
         return;
       }
-
-      super.writeBool(HEADER_HAS_TRACE);
       traceHeaders.clear();
 
       TraceUtil.injectTraceContext(traceHeaders);
@@ -122,7 +123,11 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       } finally {
         if (scope != null) {
           scope.close();
+          scope = null;
+        }
+        if (span != null) {
           span.end();
+          span = null;
         }
       }
     }
