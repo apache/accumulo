@@ -495,7 +495,7 @@ class LoadFiles extends ManagerRepo {
 
     if (importTimingStats.callCount > 0) {
       log.debug(
-          "Bulk import stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
+          "Load files stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, FateTxId.formatTid(tid), importTimingStats.tabletCount,
           importTimingStats.callCount, totalProcessingTime.toMillis(),
           totalProcessingTime.toNanos(), importTimingStats.wastedIterations,
