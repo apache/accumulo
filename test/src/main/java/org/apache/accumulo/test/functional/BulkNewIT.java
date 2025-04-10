@@ -476,6 +476,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
       final var nonExistentBoundary = importMappingOptions.plan(loadPlan);
       assertThrows(AccumuloException.class, nonExistentBoundary::load);
+
+      // Create an empty load plan
+      loadPlan = LoadPlan.builder().build();
+      final var emptyLoadPlan = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, emptyLoadPlan::load);
     }
   }
 
