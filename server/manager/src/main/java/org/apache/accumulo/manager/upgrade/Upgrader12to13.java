@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -34,6 +35,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -84,6 +86,8 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromRootTabletMetadata(context);
     LOG.info("Adding compactions node to zookeeper");
     addCompactionsNode(context);
+    LOG.info("Adding table mappings to zookeeper");
+    addTableMappingsToZooKeeper(context);
   }
 
   @Override
@@ -397,6 +401,39 @@ public class Upgrader12to13 implements Upgrader {
       } catch (InterruptedException | KeeperException e) {
         throw new IllegalStateException(e);
       }
+    }
+  }
+
+  void addTableMappingsToZooKeeper(ServerContext context) {
+    var zrw = context.getZooSession().asReaderWriter();
+    try {
+      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
+      Map<String,Map<String,String>> mapOfTableMaps = new HashMap<>();
+
+      for (String tableId : tableIds) {
+        var tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId), UTF_8);
+        var namespaceId = new String(
+            zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+        mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
+            (tid, existingName) -> {
+              if (existingName != null) {
+                throw new IllegalStateException(
+                    "Table id " + tid + " already present in map for namespace id " + namespaceId);
+              }
+              return tableName;
+            });
+      }
+      for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
+        zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
+            NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
+          ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
   }
 }

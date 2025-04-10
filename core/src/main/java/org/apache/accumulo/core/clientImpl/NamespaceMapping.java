@@ -64,7 +64,7 @@ public class NamespaceMapping {
           "Putting built-in namespaces in map should not be possible after init");
     }
     zoo.mutateExisting(Constants.ZNAMESPACES, data -> {
-      var namespaces = deserialize(data);
+      var namespaces = deserializeMap(data);
       final String currentName = namespaces.get(namespaceId.canonical());
       if (namespaceName.equals(currentName)) {
         return null; // mapping already exists; operation is idempotent, so no change needed
@@ -80,7 +80,7 @@ public class NamespaceMapping {
             "Namespace name already exists");
       }
       namespaces.put(namespaceId.canonical(), namespaceName);
-      return serialize(namespaces);
+      return serializeMap(namespaces);
     });
   }
 
@@ -94,14 +94,14 @@ public class NamespaceMapping {
       throw new AssertionError("Removing built-in namespaces in map should not be possible");
     }
     zoo.mutateExisting(zPath, data -> {
-      var namespaces = deserialize(data);
+      var namespaces = deserializeMap(data);
       if (!namespaces.containsKey(namespaceId.canonical())) {
         throw new AcceptableThriftTableOperationException(null, namespaceId.canonical(),
             TableOperation.DELETE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
             "Namespace already removed while processing");
       }
       namespaces.remove(namespaceId.canonical());
-      return serialize(namespaces);
+      return serializeMap(namespaces);
     });
   }
 
@@ -116,7 +116,7 @@ public class NamespaceMapping {
       throw new AssertionError("Renaming built-in namespaces in map should not be possible");
     }
     zoo.mutateExisting(Constants.ZNAMESPACES, current -> {
-      var namespaces = deserialize(current);
+      var namespaces = deserializeMap(current);
       final String currentName = namespaces.get(namespaceId.canonical());
       if (newName.equals(currentName)) {
         return null; // mapping already exists; operation is idempotent, so no change needed
@@ -130,15 +130,15 @@ public class NamespaceMapping {
             TableOperationExceptionType.NAMESPACE_EXISTS, "Namespace name already exists");
       }
       namespaces.put(namespaceId.canonical(), newName);
-      return serialize(namespaces);
+      return serializeMap(namespaces);
     });
   }
 
-  public static byte[] serialize(Map<String,String> map) {
+  public static byte[] serializeMap(Map<String,String> map) {
     return GSON.get().toJson(new TreeMap<>(map), MAP_TYPE).getBytes(UTF_8);
   }
 
-  public static Map<String,String> deserialize(byte[] data) {
+  public static Map<String,String> deserializeMap(byte[] data) {
     requireNonNull(data);
     return GSON.get().fromJson(new String(data, UTF_8), MAP_TYPE);
   }
@@ -152,7 +152,7 @@ public class NamespaceMapping {
       if (data == null) {
         throw new IllegalStateException("namespaces node should not be null");
       } else {
-        Map<String,String> idToName = deserialize(data);
+        Map<String,String> idToName = deserializeMap(data);
         if (!idToName.containsKey(Namespace.DEFAULT.id().canonical())
             || !idToName.containsKey(Namespace.ACCUMULO.id().canonical())) {
           throw new IllegalStateException("Built-in namespace is not present in map");

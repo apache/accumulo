@@ -72,19 +72,21 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
+
+    var context = env.getContext();
     // reserve the table name in zookeeper or fail
-
     Utils.getTableNameLock().lock();
-    try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(env.getContext(), tableInfo.tableName, tableInfo.namespaceId,
-          tableInfo.tableId, TableOperation.CREATE);
 
+    try {
+
+      // write tableName & tableId, first to Table Mapping and then to Zookeeper
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
-      NamespaceId namespaceId = Namespaces.getNamespaceId(env.getContext(), namespace);
+      NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
+      context.getTableMapping(namespaceId).put(context, tableInfo.tableId, tableInfo.tableName,
+          TableOperation.IMPORT);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
 
-      env.getContext().clearTableListCache();
+      context.clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();
     }
@@ -92,8 +94,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(env.getContext(), TablePropKey.of(tableInfo.tableId),
-          getExportedProps(volMan));
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId), getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,
@@ -105,8 +106,10 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
-    env.getTableManager().removeTable(tableInfo.tableId);
+    var context = env.getContext();
+    env.getTableManager().removeTable(tableInfo.tableId,
+        Namespaces.getNamespaceId(context, TableNameUtil.qualify(tableInfo.tableName).getFirst()));
     Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
-    env.getContext().clearTableListCache();
+    context.clearTableListCache();
   }
 }

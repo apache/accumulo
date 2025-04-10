@@ -385,7 +385,7 @@ public class Upgrader11to12Test {
       expect(zrw.getData(Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME))
           .andReturn(mockNamespaces.get(ns).getBytes(UTF_8)).once();
     }
-    byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
+    byte[] mapping = NamespaceMapping.serializeMap(mockNamespaces);
     expect(zrw.putPersistentData(eq(Constants.ZNAMESPACES), aryEq(mapping),
         eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
     for (String ns : mockNamespaces.keySet()) {
