@@ -145,7 +145,7 @@ public class UpgradeProgressTrackerIT {
     assertFalse(upgradeNodeExists());
     IllegalStateException ise =
         assertThrows(IllegalStateException.class, () -> progressTracker.continueUpgrade());
-    assertTrue(ise.getMessage().startsWith("initialize not called,"));
+    assertTrue(ise.getMessage().startsWith("Upgrade not started,"));
   }
 
   @Test

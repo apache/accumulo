@@ -144,8 +144,8 @@ public class UpgradeIT extends AccumuloClusterHarness {
     args.add(getCluster().getAccumuloPropertiesPath());
     try (TestManager mgr = new TestManager(args.toArray(new String[0]))) {
       IllegalStateException ise = assertThrows(IllegalStateException.class, () -> mgr.runServer());
-      assertTrue(ise.getMessage().startsWith("initialize not called, "));
-      assertTrue(ise.getMessage().endsWith("Did you run 'accumulo upgrade --start'?"));
+      assertTrue(ise.getMessage().equals("Upgrade not started, " + Constants.ZUPGRADE_PROGRESS
+          + " node does not exist. Did you run 'accumulo upgrade --start'?"));
     }
   }
 
