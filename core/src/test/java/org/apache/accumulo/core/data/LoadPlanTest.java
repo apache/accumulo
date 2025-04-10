@@ -142,6 +142,8 @@ public class LoadPlanTest {
 
   @Test
   public void testIllegalJson() {
+    assertThrows(NullPointerException.class, () -> LoadPlan.fromJson(null));
+
     List<String> illegalJson = new ArrayList<>();
     // Test json with extraneous stuff in it
     illegalJson.add("{'dest':[],'destinations':[]}");
@@ -149,6 +151,7 @@ public class LoadPlanTest {
     illegalJson.add("<destinations></destinations>");
     // try an empty string
     illegalJson.add("");
+    illegalJson.add(" ");
     // try incomplete json
     illegalJson.add("{'destinations':[{'fileName':'f1.rf'");
     // try extra field in the destination

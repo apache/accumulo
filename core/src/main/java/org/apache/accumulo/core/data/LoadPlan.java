@@ -342,13 +342,15 @@ public class LoadPlan {
    * @throws IllegalArgumentException when illegal json is given or legal json that does not follow
    *         the load plan schema is given. The minimal acceptable json is
    *         {@code {"destinations":[]}}.
+   * @throws NullPointerException when json argument is null
    */
   public static LoadPlan fromJson(String json) {
     try {
+      Objects.requireNonNull(json);
+      Preconditions.checkArgument(!json.isBlank(), "Empty json is not accepted.");
       // https://github.com/google/gson/issues/188 Gson does not support failing when extra fields
       // are present. This is custom code to check for extra fields.
       var jsonObj = gson.fromJson(json, JsonObject.class);
-      Preconditions.checkArgument(jsonObj != null, "Empty json is not accepted.");
       Preconditions.checkArgument(jsonObj.keySet().equals(EXPECTED_FIELDS),
           "Expected fields %s and saw %s", EXPECTED_FIELDS, jsonObj.keySet());
       Preconditions.checkArgument(jsonObj.get("destinations") instanceof JsonArray,
