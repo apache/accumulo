@@ -103,7 +103,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(long tid, Manager manager) throws Exception {
-    log.info("Starting bulk import for {} (tid = {})", bulkInfo.sourceDir, FateTxId.formatTid(tid));
+    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, FateTxId.formatTid(tid));
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (tid = "
           + FateTxId.formatTid(tid) + ")");
@@ -455,7 +455,7 @@ class LoadFiles extends ManagerRepo {
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
     String fmtTid = FateTxId.formatTid(tid);
-    log.trace("{}: Starting bulk load at row: {}", fmtTid, startRow);
+    log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
     loader.start(bulkDir, manager, tid, bulkInfo.setTime);
 
@@ -475,8 +475,8 @@ class LoadFiles extends ManagerRepo {
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
             log.debug(
-                "Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
-                loadMapKey.prevEndRow(), skipDistance);
+                "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                fmtTid, loadMapKey.prevEndRow(), skipDistance);
             tabletsMetadata.close();
             tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
             pi = new PeekingIterator<>(tabletsMetadata.iterator());
@@ -495,7 +495,7 @@ class LoadFiles extends ManagerRepo {
 
     if (importTimingStats.callCount > 0) {
       log.debug(
-          "Bulk import stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
+          "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, FateTxId.formatTid(tid), importTimingStats.tabletCount,
           importTimingStats.callCount, totalProcessingTime.toMillis(),
           totalProcessingTime.toNanos(), importTimingStats.wastedIterations,
