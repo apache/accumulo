@@ -363,7 +363,7 @@ public class LoadPlan {
       var dests = gson.fromJson(json, JsonAll.class).destinations.stream()
           .map(JsonDestination::toDestination).collect(Collectors.toUnmodifiableList());
       return new LoadPlan(dests);
-    } catch (IllegalArgumentException e) {
+    } catch (NullPointerException | IllegalArgumentException e) {
       throw e;
     } catch (RuntimeException e) {
       // GSon code can throw a few runtime exceptions, lets not let Gson exceptions escape directly
