@@ -48,7 +48,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerDirs;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgressTracker;
 import org.apache.hadoop.fs.Path;
@@ -138,25 +137,13 @@ public class UpgradeCoordinator {
 
   private final ServerContext context;
   private final UpgradeProgressTracker progressTracker;
-  private final PreUpgradeValidation preUpgradeValidator;
 
   private volatile UpgradeStatus status;
 
   public UpgradeCoordinator(ServerContext context) {
     this.context = context;
     progressTracker = new UpgradeProgressTracker(context);
-    preUpgradeValidator = new PreUpgradeValidation();
     status = UpgradeStatus.INITIAL;
-  }
-
-  public void preUpgradeValidation() {
-    // No need to continue an upgrade if we are at the correct
-    // version
-    if (AccumuloDataVersion.getCurrentVersion(context) == AccumuloDataVersion.get()) {
-      status = UpgradeStatus.COMPLETE;
-      return;
-    }
-    preUpgradeValidator.validate(context);
   }
 
   public void continueUpgrade() {

@@ -63,7 +63,7 @@ public class UpgradeUtil implements KeywordExecutable {
     @Parameter(names = "--start",
         description = "Start an upgrade of an Accumulo instance. This will check that 'accumulo upgrade --prepare'"
             + " was run on the instance after it was shut down, perform pre-upgrade validation, and perform any"
-            + " upgrade steps that need to occur before the Manager is started. Finally it creates a mandatory"
+            + " upgrade steps that need to occur before the Manager is started. Finally, it creates a mandatory"
             + " marker in ZooKeeper that enables the Manager to perform an upgrade.")
     boolean start = false;
 
@@ -103,12 +103,10 @@ public class UpgradeUtil implements KeywordExecutable {
     final ZooReaderWriter zoo = zs.asReaderWriter();
 
     try {
-      if (zoo.exists(ZPREPARE_FOR_UPGRADE)) {
-        zoo.delete(ZPREPARE_FOR_UPGRADE);
-      }
+      zoo.delete(ZPREPARE_FOR_UPGRADE);
     } catch (KeeperException | InterruptedException e) {
-      throw new IllegalStateException("Error creating or checking for " + ZPREPARE_FOR_UPGRADE
-          + " node in zookeeper: " + e.getMessage(), e);
+      throw new IllegalStateException(
+          "Error deleting " + ZPREPARE_FOR_UPGRADE + " node in zookeeper", e);
     }
 
     LOG.info("Upgrade specified, validating that Manager is stopped");
