@@ -552,6 +552,7 @@ class LoadFiles extends ManagerRepo {
       }
 
       // we have found the first tablet in the range, add it to the list
+      log.trace("{}: Adding tablet: {} to overlapping list", fmtTid, currTablet.getExtent());
       tablets.add(currTablet);
 
       // find the remaining tablets within the loadRange by
