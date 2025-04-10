@@ -504,15 +504,13 @@ class LoadFiles extends ManagerRepo {
     }
 
     long sleepTime = loader.finish();
-    if (sleepTime <= 1) {
-      log.trace("{}: Sleeping for {}ms", fmtTid, sleepTime);
-      return sleepTime;
+    // sleepTime of 0 or 1 are success cases where we don't want to sleep anymore
+    if (sleepTime > 1) {
+      log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
+      long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
+      log.trace("{}: Scan time is {}", fmtTid, scanTime);
+      sleepTime = Math.max(sleepTime, scanTime * 2);
     }
-
-    log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
-    long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
-    log.trace("{}: Scan time is {}", fmtTid, scanTime);
-    sleepTime = Math.max(sleepTime, scanTime * 2);
     log.trace("{}: Sleeping for {}ms", fmtTid, sleepTime);
     return sleepTime;
   }
