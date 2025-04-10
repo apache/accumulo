@@ -39,6 +39,8 @@ enum TableOperation {
   IMPORT
   EXPORT
   COMPACT_CANCEL
+  SET_TABLET_AVAILABILITY
+  SPLIT
 }
 
 enum TableOperationExceptionType {
@@ -120,18 +122,13 @@ struct TInfo {
   1:map<string,string> headers
 }
 
+enum TTabletAvailability {
+  HOSTED
+  UNHOSTED
+  ONDEMAND
+}
+
 service ClientService {
-
-  // system management methods
-  string getRootTabletLocation()
-  string getInstanceId()
-  string getZooKeepers()
-
-  // ensures that nobody is working on the transaction id above
-  bool isActive(
-    1:TInfo tinfo
-    2:i64 tid
-  )
 
   void ping(
     2:security.TCredentials credentials

@@ -28,6 +28,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -66,7 +67,7 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
     // Set the max number of WALs that can be referenced
     cfg.setProperty(Property.TSERV_WAL_MAX_REFERENCED, Integer.toString(WAL_MAX_REFERENCED));
     cfg.setProperty(Property.TSERV_MAXMEM, "256M"); // avoid minor compactions via low memory
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
 
     // Use raw local file system so WAL syncs and flushes work as expected
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -81,7 +82,8 @@ public class MaxWalReferencedIT extends ConfigurableMacBase {
       for (int i = 1; i <= 4; i++) {
         splits.add(new Text(String.format("%03d", i)));
       }
-      client.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+      client.tableOperations().create(tableName, new NewTableConfiguration()
+          .withInitialTabletAvailability(TabletAvailability.HOSTED).withSplits(splits));
 
       log.info("Created table {} with splits. Now writing data.", tableName);
 

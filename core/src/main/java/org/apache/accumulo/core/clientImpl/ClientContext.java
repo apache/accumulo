@@ -23,7 +23,6 @@ import static com.google.common.base.Suppliers.memoize;
 import static com.google.common.base.Suppliers.memoizeWithExpiration;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.CONDITIONAL_WRITER_CLEANUP_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCANNER_READ_AHEAD_POOL;
 
@@ -32,19 +31,24 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -72,42 +76,48 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ClientProperty;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache.ZcStat;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.ReadConsistency;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.rpc.SaslConnectionParams;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.tables.TableZooHelper;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Suppliers;
+
+import io.micrometer.core.instrument.MeterRegistry;
 
 /**
  * This class represents any essential configuration and credentials needed to initiate RPC
@@ -130,6 +140,7 @@ public class ClientContext implements AccumuloClient {
   private ConditionalWriterConfig conditionalWriterConfig;
   private final AccumuloConfiguration accumuloConf;
   private final Configuration hadoopConf;
+  private final Map<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>> tabletLocationCache;
 
   // These fields are very frequently accessed (each time a connection is created) and expensive to
   // compute, so cache them.
@@ -137,6 +148,7 @@ public class ClientContext implements AccumuloClient {
   private final Supplier<SaslConnectionParams> saslSupplier;
   private final Supplier<SslConnectionParams> sslSupplier;
   private final Supplier<ScanServerSelector> scanServerSelectorSupplier;
+  private final Supplier<ServiceLockPaths> serverPaths;
   private final NamespaceMapping namespaces;
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
@@ -148,12 +160,14 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  private final SingletonReservation singletonReservation;
   private final ThreadPools clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
+  private MeterRegistry micrometer;
+  private Caches caches;
 
   private final AtomicBoolean zooKeeperOpened = new AtomicBoolean(false);
+  private final AtomicBoolean zooCacheCreated = new AtomicBoolean(false);
   private final Supplier<ZooSession> zooSession;
 
   private void ensureOpen() {
@@ -191,16 +205,16 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> ClientContext.this.getScanServers().entrySet().stream()
-              .map(entry -> new ScanServerInfo() {
+          return () -> getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
+              .stream().map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
-                  return entry.getKey();
+                  return entry.getServer();
                 }
 
                 @Override
                 public String getGroup() {
-                  return entry.getValue().getSecond();
+                  return entry.getResourceGroup();
                 }
               }).collect(Collectors.toSet());
         }
@@ -212,25 +226,34 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * Create a client context with the provided configuration. Legacy client code must provide a
-   * no-op SingletonReservation to preserve behavior prior to 2.x. Clients since 2.x should call
-   * Accumulo.newClient() builder, which will create a client reservation in
-   * {@link ClientBuilderImpl#buildClient}
+   * Create a client context with the provided configuration. Clients should call
+   * Accumulo.newClient() builder
    */
-  public ClientContext(SingletonReservation reservation, ClientInfo info,
-      AccumuloConfiguration serverConf, UncaughtExceptionHandler ueh) {
+  public ClientContext(ClientInfo info, AccumuloConfiguration serverConf,
+      UncaughtExceptionHandler ueh) {
     this.info = info;
     this.hadoopConf = info.getHadoopConf();
 
+    var tabletCache =
+        new EnumMap<DataLevel,ConcurrentHashMap<TableId,ClientTabletCache>>(DataLevel.class);
+    for (DataLevel level : DataLevel.values()) {
+      tabletCache.put(level, new ConcurrentHashMap<>());
+    }
+    this.tabletLocationCache = Collections.unmodifiableMap(tabletCache);
+
     this.zooSession = memoize(() -> {
-      var zk = info
-          .getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")", "")
-          .get();
+      var zk =
+          info.getZooKeeperSupplier(getClass().getSimpleName() + "(" + info.getPrincipal() + ")",
+              ZooUtil.getRoot(getInstanceID())).get();
       zooKeeperOpened.set(true);
       return zk;
     });
 
-    this.zooCache = memoize(() -> new ZooCache(getZooSession()));
+    this.zooCache = memoize(() -> {
+      var zc = new ZooCache(getZooSession(), createPersistentWatcherPaths());
+      zooCacheCreated.set(true);
+      return zc;
+    });
     this.accumuloConf = serverConf;
     timeoutSupplier = memoizeWithExpiration(
         () -> getConfiguration().getTimeInMillis(Property.GENERAL_RPC_TIMEOUT), 100, MILLISECONDS);
@@ -239,9 +262,9 @@ public class ClientContext implements AccumuloClient {
         () -> SaslConnectionParams.from(getConfiguration(), getCredentials().getToken()), 100,
         MILLISECONDS);
     scanServerSelectorSupplier = memoize(this::createScanServerSelector);
-    this.singletonReservation = Objects.requireNonNull(reservation);
     this.tableops = new TableOperationsImpl(this);
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
+    this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this.getZooCache()));
     if (ueh == Threads.UEH) {
       clientThreadPools = ThreadPools.getServerThreadPools();
     } else {
@@ -401,37 +424,38 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * @return map of live scan server addresses to lock uuids.
-   */
-  public Map<String,Pair<UUID,String>> getScanServers() {
-    ensureOpen();
-    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
-    String root = this.getZooKeeperRoot() + Constants.ZSSERVERS;
-    var addrs = this.getZooCache().getChildren(root);
-    for (String addr : addrs) {
-      try {
-        final var zLockPath = ServiceLock.path(root + "/" + addr);
-        ZcStat stat = new ZcStat();
-        Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), zLockPath, stat);
-        if (sld.isPresent()) {
-          UUID uuid = sld.orElseThrow().getServerUUID(ThriftService.TABLET_SCAN);
-          String group = sld.orElseThrow().getGroup(ThriftService.TABLET_SCAN);
-          liveScanServers.put(addr, new Pair<>(uuid, group));
-        }
-      } catch (IllegalArgumentException e) {
-        log.error("Error validating zookeeper scan server node: " + addr, e);
-      }
-    }
-    return liveScanServers;
-  }
-
-  /**
    * @return the scan server selector implementation used for determining which scan servers will be
    *         used when performing an eventually consistent scan
    */
   public ScanServerSelector getScanServerSelector() {
     ensureOpen();
     return scanServerSelectorSupplier.get();
+  }
+
+  /**
+   * @return map of live scan server addresses to lock uuids.
+   */
+  public Map<String,Pair<UUID,String>> getScanServers() {
+    ensureOpen();
+    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    Set<ServiceLockPath> scanServerPaths =
+        getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+    for (ServiceLockPath path : scanServerPaths) {
+      try {
+        ZcStat stat = new ZcStat();
+        Optional<ServiceLockData> sld = ServiceLock.getLockData(getZooCache(), path, stat);
+        if (sld.isPresent()) {
+          final ServiceLockData data = sld.orElseThrow();
+          final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
+          final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
+          final String group = data.getGroup(ThriftService.TABLET_SCAN);
+          liveScanServers.put(addr, new Pair<>(uuid, group));
+        }
+      } catch (IllegalArgumentException e) {
+        log.error("Error validating zookeeper scan server node at path: " + path, e);
+      }
+    }
+    return liveScanServers;
   }
 
   static ConditionalWriterConfig getConditionalWriterConfig(Properties props) {
@@ -477,85 +501,12 @@ public class ClientContext implements AccumuloClient {
   }
 
   /**
-   * Returns the location of the tablet server that is serving the root tablet.
-   *
-   * @return location in "hostname:port" form
-   */
-  public String getRootTabletLocation() {
-    ensureOpen();
-
-    Timer timer = null;
-
-    if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up root tablet location in zookeeper.",
-          Thread.currentThread().getId());
-      timer = Timer.startNew();
-    }
-
-    Location loc =
-        getAmple().readTablet(RootTable.EXTENT, ReadConsistency.EVENTUAL, LOCATION).getLocation();
-
-    if (timer != null) {
-      log.trace("tid={} Found root tablet at {} in {}", Thread.currentThread().getId(), loc,
-          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
-    }
-
-    if (loc == null || loc.getType() != LocationType.CURRENT) {
-      return null;
-    }
-
-    return loc.getHostPort();
-  }
-
-  /**
-   * Returns the location(s) of the accumulo manager and any redundant servers.
-   *
-   * @return a list of locations in "hostname:port" form
-   */
-  public List<String> getManagerLocations() {
-    ensureOpen();
-    var zLockManagerPath = ServiceLock.path(getZooKeeperRoot() + Constants.ZMANAGER_LOCK);
-
-    Timer timer = null;
-
-    if (log.isTraceEnabled()) {
-      log.trace("tid={} Looking up manager location in zookeeper at {}.",
-          Thread.currentThread().getId(), zLockManagerPath);
-      timer = Timer.startNew();
-    }
-
-    Optional<ServiceLockData> sld = getZooCache().getLockData(zLockManagerPath);
-    String location = null;
-    if (sld.isPresent()) {
-      location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
-    }
-
-    if (timer != null) {
-      log.trace("tid={} Found manager at {} in {}", Thread.currentThread().getId(),
-          (location == null ? "null" : location),
-          String.format("%.3f secs", timer.elapsed(MILLISECONDS) / 1000.0));
-    }
-
-    if (location == null) {
-      return Collections.emptyList();
-    }
-
-    return Collections.singletonList(location);
-  }
-
-  /**
    * Returns a unique string that identifies this instance of accumulo.
    *
    * @return a UUID
    */
   public InstanceId getInstanceID() {
-    ensureOpen();
     return info.getInstanceId();
-  }
-
-  public String getZooKeeperRoot() {
-    ensureOpen();
-    return ZooUtil.getRoot(getInstanceID());
   }
 
   /**
@@ -589,7 +540,6 @@ public class ClientContext implements AccumuloClient {
   }
 
   public ZooCache getZooCache() {
-    ensureOpen();
     return zooCache.get();
   }
 
@@ -846,6 +796,9 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
+      if (zooCacheCreated.get()) {
+        zooCache.get().close();
+      }
       if (zooKeeperOpened.get()) {
         zooSession.get().close();
       }
@@ -861,7 +814,6 @@ public class ClientContext implements AccumuloClient {
       if (cleanupThreadPool != null) {
         cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
       }
-      singletonReservation.close();
     }
   }
 
@@ -894,16 +846,10 @@ public class ClientContext implements AccumuloClient {
     }
 
     public static AccumuloClient buildClient(ClientBuilderImpl<AccumuloClient> cbi) {
-      SingletonReservation reservation = SingletonManager.getClientReservation();
-      try {
-        // ClientContext closes reservation unless a RuntimeException is thrown
-        ClientInfo info = cbi.getClientInfo();
-        var config = ClientConfConverter.toAccumuloConf(info.getClientProperties());
-        return new ClientContext(reservation, info, config, cbi.getUncaughtExceptionHandler());
-      } catch (RuntimeException e) {
-        reservation.close();
-        throw e;
-      }
+      // ClientContext closes reservation unless a RuntimeException is thrown
+      ClientInfo info = cbi.getClientInfo();
+      var config = ClientConfConverter.toAccumuloConf(info.getClientProperties());
+      return new ClientContext(info, config, cbi.getUncaughtExceptionHandler());
     }
 
     public static Properties buildProps(ClientBuilderImpl<Properties> cbi) {
@@ -1088,9 +1034,46 @@ public class ClientContext implements AccumuloClient {
   public synchronized ThriftTransportPool getTransportPool() {
     ensureOpen();
     if (thriftTransportPool == null) {
-      thriftTransportPool = ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis);
+      LongSupplier maxAgeSupplier = () -> {
+        try {
+          return getTransportPoolMaxAgeMillis();
+        } catch (IllegalStateException e) {
+          if (closed.get()) {
+            // The transport pool has a background thread that may call this supplier in the middle
+            // of closing. This is here to avoid spurious exceptions from race conditions that
+            // happen when closing a client.
+            return ConfigurationTypeHelper
+                .getTimeInMillis(ClientProperty.RPC_TRANSPORT_IDLE_TIMEOUT.getDefaultValue());
+          }
+          throw e;
+        }
+      };
+      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier);
     }
     return thriftTransportPool;
+  }
+
+  public MeterRegistry getMeterRegistry() {
+    ensureOpen();
+    return micrometer;
+  }
+
+  public void setMeterRegistry(MeterRegistry micrometer) {
+    ensureOpen();
+    this.micrometer = micrometer;
+    getCaches();
+  }
+
+  public synchronized Caches getCaches() {
+    ensureOpen();
+    if (caches == null) {
+      caches = Caches.getInstance();
+      if (micrometer != null
+          && getConfiguration().getBoolean(Property.GENERAL_MICROMETER_CACHE_METRICS_ENABLED)) {
+        caches.registerMetrics(micrometer);
+      }
+    }
+    return caches;
   }
 
   public synchronized ZookeeperLockChecker getTServerLockChecker() {
@@ -1101,16 +1084,70 @@ public class ClientContext implements AccumuloClient {
       // so, it can't rely on being able to continue to use the same client's ZooCache,
       // because that client could be closed, and its ZooSession also closed
       // this needs to be fixed; TODO https://github.com/apache/accumulo/issues/2301
-      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(), "").get();
-      this.zkLockChecker =
-          new ZookeeperLockChecker(new ZooCache(zk), getZooKeeperRoot() + Constants.ZTSERVERS);
+      var zk = info.getZooKeeperSupplier(ZookeeperLockChecker.class.getSimpleName(),
+          ZooUtil.getRoot(getInstanceID())).get();
+      this.zkLockChecker = new ZookeeperLockChecker(new ZooCache(zk, Set.of(Constants.ZTSERVERS)));
     }
     return this.zkLockChecker;
+  }
+
+  public ServiceLockPaths getServerPaths() {
+    return this.serverPaths.get();
   }
 
   public NamespaceMapping getNamespaces() {
     ensureOpen();
     return namespaces;
+  }
+
+  public ClientTabletCache getTabletLocationCache(TableId tableId) {
+    ensureOpen();
+    return tabletLocationCache.get(DataLevel.of(tableId)).computeIfAbsent(tableId,
+        (TableId key) -> {
+          var lockChecker = getTServerLockChecker();
+          if (AccumuloTable.ROOT.tableId().equals(tableId)) {
+            return new RootClientTabletCache(lockChecker);
+          }
+          var mlo = new MetadataCachedTabletObtainer();
+          if (AccumuloTable.METADATA.tableId().equals(tableId)) {
+            return new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
+                getTabletLocationCache(AccumuloTable.ROOT.tableId()), mlo, lockChecker);
+          } else {
+            return new ClientTabletCacheImpl(tableId,
+                getTabletLocationCache(AccumuloTable.METADATA.tableId()), mlo, lockChecker);
+          }
+        });
+  }
+
+  /**
+   * Clear the currently cached tablet locations. The use of ConcurrentHashMap ensures this is
+   * thread-safe. However, since the ConcurrentHashMap iterator is weakly consistent, it does not
+   * block new locations from being cached. If new locations are added while this is executing, they
+   * may be immediately invalidated by this code. Multiple calls to this method in different threads
+   * may cause some location caches to be invalidated multiple times. That is okay, because cache
+   * invalidation is idempotent.
+   */
+  public void clearTabletLocationCache() {
+    tabletLocationCache.forEach((dataLevel, map) -> {
+      // use iter.remove() instead of calling clear() on the map, to prevent clearing entries that
+      // may not have been invalidated
+      var iter = map.values().iterator();
+      while (iter.hasNext()) {
+        iter.next().invalidate();
+        iter.remove();
+      }
+    });
+  }
+
+  private static Set<String> createPersistentWatcherPaths() {
+    Set<String> pathsToWatch = new HashSet<>();
+    for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
+        Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
+        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
+        Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
+      pathsToWatch.add(path);
+    }
+    return pathsToWatch;
   }
 
 }

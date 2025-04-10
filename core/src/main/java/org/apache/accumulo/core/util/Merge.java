@@ -37,7 +37,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.AccumuloTable;
-import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.hadoop.io.Text;
@@ -162,10 +161,8 @@ public class Merge {
           .overRange(new KeyExtent(tableId, end, start).toMetaRange()).fetch(FILES, PREV_ROW)
           .build()) {
 
-        Iterator<Size> sizeIterator = tablets.stream().map(tm -> {
-          long size = tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
-          return new Size(tm.getExtent(), size);
-        }).iterator();
+        Iterator<Size> sizeIterator =
+            tablets.stream().map(tm -> new Size(tm.getExtent(), tm.getFileSize())).iterator();
 
         while (sizeIterator.hasNext()) {
           Size next = sizeIterator.next();

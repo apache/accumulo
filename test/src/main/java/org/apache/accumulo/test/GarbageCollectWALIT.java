@@ -54,7 +54,7 @@ public class GarbageCollectWALIT extends ConfigurableMacBase {
     cfg.setProperty(Property.INSTANCE_ZK_HOST, "5s");
     cfg.setProperty(Property.GC_CYCLE_START, "1s");
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1s");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 

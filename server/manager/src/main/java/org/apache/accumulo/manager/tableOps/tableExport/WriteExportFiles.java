@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -91,11 +92,11 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, LockType.READ, true,
-        TableOperation.EXPORT)
-        + Utils.reserveTable(manager, tableInfo.tableID, tid, LockType.READ, true,
+    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ,
+        true, TableOperation.EXPORT)
+        + Utils.reserveTable(manager, tableInfo.tableID, fateId, LockType.READ, true,
             TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
@@ -134,7 +135,7 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     try {
       exportTable(manager.getVolumeManager(), manager.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
@@ -143,16 +144,16 @@ class WriteExportFiles extends ManagerRepo {
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(manager, tableInfo.namespaceID, tid, LockType.READ);
-    Utils.unreserveTable(manager, tableInfo.tableID, tid, LockType.READ);
-    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(manager, tableInfo.tableID, fateId, LockType.READ);
+    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), fateId);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, LockType.READ);
-    Utils.unreserveTable(env, tableInfo.tableID, tid, LockType.READ);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableInfo.tableID, fateId, LockType.READ);
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
@@ -233,6 +234,7 @@ class WriteExportFiles extends ManagerRepo {
     Scanner metaScanner =
         context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    TabletColumnFamily.AVAILABILITY_COLUMN.fetch(metaScanner);
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
     metaScanner.setRange(new KeyExtent(tableID, null, null).toMetaRange());

@@ -24,9 +24,11 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -47,7 +49,6 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.metadata.RootGcCandidates;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.ZooDefs;
 
@@ -73,13 +74,13 @@ public class ZooKeeperInitializer {
 
       String zkInstanceRoot = ZooUtil.getRoot(instanceId);
       zoo.putPersistentData(zkInstanceRoot, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.SKIP);
-      var sysPropPath = SystemPropKey.of(instanceId).getPath();
+      var sysPropPath = SystemPropKey.of().getPath();
       VersionedProperties vProps = new VersionedProperties();
       // skip if the encoded props node exists
       if (zoo.exists(sysPropPath)) {
         return;
       }
-      var created = zoo.putPrivatePersistentData(sysPropPath,
+      var created = zoo.putPrivatePersistentData(zkInstanceRoot + sysPropPath,
           VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
       if (!created) {
         throw new IllegalStateException(
@@ -90,86 +91,67 @@ public class ZooKeeperInitializer {
     }
   }
 
-  void initialize(final ServerContext context, final boolean clearInstanceName,
-      final String instanceNamePath, final String rootTabletDirName, final String rootTabletFileUri)
-      throws KeeperException, InterruptedException {
-    // setup basic data in zookeeper
-
-    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-    InstanceId instanceId = context.getInstanceID();
-
-    zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
-        ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
-
-    // setup instance name
-    if (clearInstanceName) {
-      zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
-    }
-    zoo.putPersistentData(instanceNamePath, instanceId.canonical().getBytes(UTF_8),
+  void initialize(final ServerContext context, final String rootTabletDirName,
+      final String rootTabletFileUri) throws KeeperException, InterruptedException {
+    ZooReaderWriter zrwChroot = context.getZooSession().asReaderWriter();
+    zrwChroot.putPersistentData(Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
-
-    // setup the instance
-    String zkInstanceRoot = context.getZooKeeperRoot();
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZNAMESPACES,
+    zrwChroot.putPersistentData(Constants.ZNAMESPACES,
         NamespaceMapping
             .serialize(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
                 Namespace.ACCUMULO.id().canonical(), Namespace.ACCUMULO.name())),
         ZooUtil.NodeExistsPolicy.FAIL);
 
-    TableManager.prepareNewNamespaceState(context, Namespace.DEFAULT.id(), Namespace.DEFAULT.name(),
-        ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewNamespaceState(context, Namespace.ACCUMULO.id(),
+    context.getTableManager().prepareNewNamespaceState(Namespace.DEFAULT.id(),
+        Namespace.DEFAULT.name(), ZooUtil.NodeExistsPolicy.FAIL);
+    context.getTableManager().prepareNewNamespaceState(Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
-    TableManager.prepareNewTableState(context, AccumuloTable.ROOT.tableId(),
+    context.getTableManager().prepareNewTableState(AccumuloTable.ROOT.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,
         ZooUtil.NodeExistsPolicy.FAIL);
-    TableManager.prepareNewTableState(context, AccumuloTable.METADATA.tableId(),
+    context.getTableManager().prepareNewTableState(AccumuloTable.METADATA.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.METADATA.tableName(), TableState.ONLINE,
         ZooUtil.NodeExistsPolicy.FAIL);
     // Call this separately so the upgrader code can handle the zk node creation for scan refs
     initScanRefTableState(context);
+    initFateTableState(context);
 
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZTSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET,
+    zrwChroot.putPersistentData(RootTable.ZROOT_TABLET,
         getInitialRootTabletJson(rootTabletDirName, rootTabletFileUri),
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + RootTable.ZROOT_TABLET_GC_CANDIDATES,
+    zrwChroot.putPersistentData(RootTable.ZROOT_TABLET_GC_CANDIDATES,
         new RootGcCandidates().toJson().getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMANAGERS, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZMANAGERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMANAGER_LOCK, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZMANAGER_LOCK, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMANAGER_GOAL_STATE,
+    zrwChroot.putPersistentData(Constants.ZMANAGER_GOAL_STATE,
         ManagerGoalState.NORMAL.toString().getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZGC, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZGC, EMPTY_BYTE_ARRAY, ZooUtil.NodeExistsPolicy.FAIL);
+    zrwChroot.putPersistentData(Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZGC_LOCK, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZTABLE_LOCKS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZTABLE_LOCKS, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZHDFS_RESERVATIONS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZHDFS_RESERVATIONS, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZNEXT_FILE, ZERO_CHAR_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZNEXT_FILE, ZERO_CHAR_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZRECOVERY, ZERO_CHAR_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZRECOVERY, ZERO_CHAR_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZMONITOR, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZMONITOR_LOCK, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + WalStateManager.ZWALS, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZCOMPACTORS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOORDINATOR, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOORDINATOR_LOCK, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZCOMPACTORS, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.FAIL);
-    zoo.putPersistentData(zkInstanceRoot + Constants.ZSSERVERS, EMPTY_BYTE_ARRAY,
+    zrwChroot.putPersistentData(Constants.ZCOMPACTIONS, EMPTY_BYTE_ARRAY,
         ZooUtil.NodeExistsPolicy.FAIL);
   }
 
@@ -189,6 +171,9 @@ public class ZooKeeperInitializer {
     MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.put(mutation,
         new Value(new MetadataTime(0, TimeType.LOGICAL).encode()));
 
+    MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN.put(mutation,
+        TabletAvailabilityUtil.toValue(TabletAvailability.HOSTED));
+
     RootTabletMetadata rootTabletJson = new RootTabletMetadata();
     rootTabletJson.update(mutation);
 
@@ -197,12 +182,38 @@ public class ZooKeeperInitializer {
 
   public void initScanRefTableState(ServerContext context) {
     try {
-      TableManager.prepareNewTableState(context, AccumuloTable.SCAN_REF.tableId(),
+      context.getTableManager().prepareNewTableState(AccumuloTable.SCAN_REF.tableId(),
           Namespace.ACCUMULO.id(), AccumuloTable.SCAN_REF.tableName(), TableState.ONLINE,
           ZooUtil.NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public void initFateTableState(ServerContext context) {
+    try {
+      context.getTableManager().prepareNewTableState(AccumuloTable.FATE.tableId(),
+          Namespace.ACCUMULO.id(), AccumuloTable.FATE.tableName(), TableState.ONLINE,
+          ZooUtil.NodeExistsPolicy.FAIL);
+    } catch (KeeperException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void initInstanceNameAndId(ZooReaderWriter zoo, InstanceId instanceId,
+      final boolean clearInstanceName, final String instanceNamePath)
+      throws InterruptedException, KeeperException {
+
+    // setup basic data in zookeeper
+    zoo.putPersistentData(Constants.ZROOT + Constants.ZINSTANCES, new byte[0],
+        ZooUtil.NodeExistsPolicy.SKIP, ZooDefs.Ids.OPEN_ACL_UNSAFE);
+
+    // setup instance name
+    if (clearInstanceName) {
+      zoo.recursiveDelete(instanceNamePath, ZooUtil.NodeMissingPolicy.SKIP);
+    }
+    zoo.putPersistentData(instanceNamePath, instanceId.canonical().getBytes(UTF_8),
+        ZooUtil.NodeExistsPolicy.FAIL);
   }
 
 }

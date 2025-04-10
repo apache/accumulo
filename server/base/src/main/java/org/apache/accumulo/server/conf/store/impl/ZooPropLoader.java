@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.CacheLoader;
 
-public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedProperties> {
+public class ZooPropLoader implements CacheLoader<PropStoreKey,VersionedProperties> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooPropLoader.class);
 
@@ -53,7 +53,7 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   }
 
   @Override
-  public @Nullable VersionedProperties load(PropStoreKey<?> propStoreKey) {
+  public @Nullable VersionedProperties load(PropStoreKey propStoreKey) {
     try {
       log.trace("load called for {}", propStoreKey);
 
@@ -77,14 +77,14 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   }
 
   @Override
-  public CompletableFuture<? extends VersionedProperties> asyncLoad(PropStoreKey<?> propStoreKey,
+  public CompletableFuture<? extends VersionedProperties> asyncLoad(PropStoreKey propStoreKey,
       Executor executor) throws Exception {
     log.trace("asyncLoad called for key: {}", propStoreKey);
     return CacheLoader.super.asyncLoad(propStoreKey, executor);
   }
 
   @Override
-  public CompletableFuture<VersionedProperties> asyncReload(PropStoreKey<?> propStoreKey,
+  public CompletableFuture<VersionedProperties> asyncReload(PropStoreKey propStoreKey,
       VersionedProperties oldValue, Executor executor) throws Exception {
     log.trace("asyncReload called for key: {}", propStoreKey);
     return CompletableFuture.supplyAsync(() -> loadIfDifferentVersion(propStoreKey, oldValue),
@@ -92,7 +92,7 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
   }
 
   @Override
-  public @Nullable VersionedProperties reload(PropStoreKey<?> propStoreKey,
+  public @Nullable VersionedProperties reload(PropStoreKey propStoreKey,
       VersionedProperties oldValue) throws Exception {
     log.trace("reload called for: {}", propStoreKey);
     return loadIfDifferentVersion(propStoreKey, oldValue);
@@ -110,7 +110,7 @@ public class ZooPropLoader implements CacheLoader<PropStoreKey<?>,VersionedPrope
    * @return versioned properties that match the values stored in ZooKeeper, or null if the
    *         properties cannot be retrieved.
    */
-  private @Nullable VersionedProperties loadIfDifferentVersion(PropStoreKey<?> propCacheId,
+  private @Nullable VersionedProperties loadIfDifferentVersion(PropStoreKey propCacheId,
       VersionedProperties currentValue) {
     requireNonNull(propCacheId, "propCacheId cannot be null");
     try {

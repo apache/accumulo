@@ -466,8 +466,8 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   public abstract boolean isPropertySet(Property prop);
 
   private static class RefCount<T> {
-    T obj;
-    long count;
+    final T obj;
+    final long count;
 
     RefCount(long c, T r) {
       this.count = c;

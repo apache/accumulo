@@ -31,20 +31,20 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.thrift.TApplicationException;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
@@ -79,35 +79,28 @@ public interface TServerClient<C extends TServiceClient> {
     }
 
     final long rpcTimeout = context.getClientTimeoutInMillis();
-    final String tserverZooPath = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-    final String sserverZooPath = context.getZooKeeperRoot() + Constants.ZSSERVERS;
-    final String compactorZooPath = context.getZooKeeperRoot() + Constants.ZCOMPACTORS;
     final ZooCache zc = context.getZooCache();
-
-    final List<String> serverPaths = new ArrayList<>();
+    final List<ServiceLockPath> serverPaths = new ArrayList<>();
     if (type == ThriftClientTypes.CLIENT && debugHost != null) {
       // add all three paths to the set even though they may not be correct.
       // The entire set will be checked in the code below to validate
       // that the path is correct and the lock is held and will return the
       // correct one.
-      serverPaths.add(tserverZooPath + "/" + debugHost);
-      serverPaths.add(sserverZooPath + "/" + debugHost);
-      zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-        serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + debugHost);
-      });
+      HostAndPort hp = HostAndPort.fromString(debugHost);
+      serverPaths.addAll(
+          context.getServerPaths().getCompactor(rg -> true, AddressSelector.exact(hp), true));
+      serverPaths.addAll(
+          context.getServerPaths().getScanServer(rg -> true, AddressSelector.exact(hp), true));
+      serverPaths.addAll(
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hp), true));
     } else {
-      zc.getChildren(tserverZooPath).forEach(tserverAddress -> {
-        serverPaths.add(tserverZooPath + "/" + tserverAddress);
-      });
+      serverPaths.addAll(
+          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false));
       if (type == ThriftClientTypes.CLIENT) {
-        zc.getChildren(sserverZooPath).forEach(sserverAddress -> {
-          serverPaths.add(sserverZooPath + "/" + sserverAddress);
-        });
-        zc.getChildren(compactorZooPath).forEach(compactorGroup -> {
-          zc.getChildren(compactorZooPath + "/" + compactorGroup).forEach(compactorAddress -> {
-            serverPaths.add(compactorZooPath + "/" + compactorGroup + "/" + compactorAddress);
-          });
-        });
+        serverPaths.addAll(
+            context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false));
+        serverPaths.addAll(
+            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false));
       }
       if (serverPaths.isEmpty()) {
         if (warned.compareAndSet(false, true)) {
@@ -121,9 +114,8 @@ public interface TServerClient<C extends TServiceClient> {
 
     Collections.shuffle(serverPaths, RANDOM.get());
 
-    for (String serverPath : serverPaths) {
-      var zLocPath = ServiceLock.path(serverPath);
-      Optional<ServiceLockData> data = zc.getLockData(zLocPath);
+    for (ServiceLockPath path : serverPaths) {
+      Optional<ServiceLockData> data = zc.getLockData(path);
       if (data != null && data.isPresent()) {
         HostAndPort tserverClientAddress = data.orElseThrow().getAddress(service);
         if (tserverClientAddress != null) {

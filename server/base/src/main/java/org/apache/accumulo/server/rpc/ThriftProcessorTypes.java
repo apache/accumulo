@@ -113,19 +113,6 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getCoordinatorTProcessor(
-      ServerProcessService.Iface processHandler, CompactionCoordinatorService.Iface serviceHandler,
-      ServerContext context) {
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
-        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
-            ServerProcessService.Iface.class, processHandler, context));
-    muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
-        COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
-            CompactionCoordinatorService.Iface.class, serviceHandler, context));
-    return muxProcessor;
-  }
-
   public static TMultiplexedProcessor getGcTProcessor(ServerProcessService.Iface processHandler,
       GCMonitorService.Iface serviceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
@@ -139,6 +126,7 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
 
   public static TMultiplexedProcessor getManagerTProcessor(
       ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
+      CompactionCoordinatorService.Iface coordinatorServiceHandler,
       ManagerClientService.Iface managerServiceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
     muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
@@ -146,6 +134,9 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
             ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(FATE.getServiceName(), FATE.getTProcessor(
         FateService.Processor.class, FateService.Iface.class, fateServiceHandler, context));
+    muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
+        COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
+            CompactionCoordinatorService.Iface.class, coordinatorServiceHandler, context));
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));

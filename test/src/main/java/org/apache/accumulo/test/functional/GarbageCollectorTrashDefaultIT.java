@@ -59,7 +59,6 @@ public class GarbageCollectorTrashDefaultIT extends GarbageCollectorTrashBase {
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
     cfg.setProperty(Property.TABLE_MAJC_RATIO, "5.0");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
   }
 
   @Test

@@ -38,7 +38,6 @@ import java.util.Map.Entry;
 import java.util.TreeMap;
 
 import org.apache.accumulo.compactor.CompactorExecutable;
-import org.apache.accumulo.coordinator.CoordinatorExecutable;
 import org.apache.accumulo.core.file.rfile.GenerateSplits;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
 import org.apache.accumulo.core.file.rfile.SplitLarge;
@@ -63,6 +62,7 @@ import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
+import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
@@ -131,7 +131,6 @@ public class KeywordStartIT {
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
     expectSet.put("check-accumulo-properties", CheckAccumuloProperties.class);
-    expectSet.put("compaction-coordinator", CoordinatorExecutable.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("create-token", CreateToken.class);
@@ -151,6 +150,7 @@ public class KeywordStartIT {
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);
+    expectSet.put("upgrade", UpgradeUtil.class);
     expectSet.put("version", Version.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);

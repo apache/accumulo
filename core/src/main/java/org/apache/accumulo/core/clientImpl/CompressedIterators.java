@@ -34,8 +34,8 @@ public class CompressedIterators {
   private final List<String> symbolTable;
 
   public static class IterConfig {
-    public List<IterInfo> ssiList = new ArrayList<>();
-    public Map<String,Map<String,String>> ssio = new HashMap<>();
+    public final List<IterInfo> ssiList = new ArrayList<>();
+    public final Map<String,Map<String,String>> ssio = new HashMap<>();
   }
 
   public CompressedIterators() {

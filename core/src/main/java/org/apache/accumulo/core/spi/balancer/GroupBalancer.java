@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -419,7 +420,7 @@ public abstract class GroupBalancer implements TabletBalancer {
   }
 
   private static class Move {
-    TserverGroupInfo dest;
+    final TserverGroupInfo dest;
     int count;
 
     public Move(TserverGroupInfo dest, int num) {
@@ -489,7 +490,7 @@ public abstract class GroupBalancer implements TabletBalancer {
     }
 
     ArrayList<Pair<String,TabletServerId>> serversGroupsToRemove = new ArrayList<>();
-    ArrayList<TabletServerId> serversToRemove = new ArrayList<>();
+    HashSet<TabletServerId> serversToRemove = new HashSet<>();
 
     for (TserverGroupInfo destTgi : tservers.values()) {
       if (surplusExtra.isEmpty()) {
@@ -613,7 +614,7 @@ public abstract class GroupBalancer implements TabletBalancer {
       }
     }
 
-    ArrayList<TabletServerId> emptyServers = new ArrayList<>();
+    HashSet<TabletServerId> emptyServers = new HashSet<>();
     ArrayList<Pair<String,TabletServerId>> emptyServerGroups = new ArrayList<>();
     for (TserverGroupInfo destTgi : tservers.values()) {
       if (extraSurplus.isEmpty()) {

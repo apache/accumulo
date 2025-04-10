@@ -29,7 +29,7 @@ import org.apache.accumulo.server.util.time.RelativeTime;
 
 public abstract class TabletTime {
 
-  public abstract void useMaxTimeFromWALog(long time);
+  public abstract void updateTimeIfGreater(long time);
 
   public abstract MetadataTime getMetadataTime();
 
@@ -86,7 +86,7 @@ public abstract class TabletTime {
     }
 
     @Override
-    public void useMaxTimeFromWALog(long time) {
+    public void updateTimeIfGreater(long time) {
       if (time > lastTime) {
         lastTime = time;
       }
@@ -148,14 +148,14 @@ public abstract class TabletTime {
   }
 
   static class LogicalTime extends TabletTime {
-    AtomicLong nextTime;
+    final AtomicLong nextTime;
 
     private LogicalTime(Long time) {
       this.nextTime = new AtomicLong(time + 1);
     }
 
     @Override
-    public void useMaxTimeFromWALog(long time) {
+    public void updateTimeIfGreater(long time) {
       time++;
 
       if (this.nextTime.get() < time) {

@@ -36,7 +36,7 @@ import org.apache.hadoop.mapreduce.Job;
 public class FileOutputFormatBuilderImpl<T> implements FileOutputFormatBuilder,
     FileOutputFormatBuilder.PathParams<T>, FileOutputFormatBuilder.OutputOptions<T> {
 
-  Class<?> callingClass;
+  final Class<?> callingClass;
   Path outputPath;
   Optional<String> comp = Optional.empty();
   Optional<Long> dataBlockSize = Optional.empty();

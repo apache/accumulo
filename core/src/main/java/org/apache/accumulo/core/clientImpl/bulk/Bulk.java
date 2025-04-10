@@ -168,7 +168,7 @@ public class Bulk {
   }
 
   public static class Files implements Iterable<FileInfo> {
-    Map<String,FileInfo> files = new HashMap<>();
+    final Map<String,FileInfo> files = new HashMap<>();
 
     public Files(Collection<FileInfo> files) {
       files.forEach(this::add);
