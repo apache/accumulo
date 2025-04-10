@@ -56,7 +56,7 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
 
   }
 
-  private void downgradePersistentVersion(ServerContext context) throws IOException {
+  static void downgradePersistentVersion(ServerContext context) throws IOException {
     ServerDirs serverDirs = context.getServerDirs();
     for (Volume volume : context.getVolumeManager().getVolumes()) {
       final FileSystem fs = volume.getFileSystem();

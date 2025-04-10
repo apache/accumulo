@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,9 +37,11 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.AbstractServer;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.junit.jupiter.api.Test;
@@ -57,6 +60,15 @@ public class UpgradeIT extends AccumuloClusterHarness {
     @Override
     public ServiceLock getLock() {
       return null;
+    }
+
+  }
+
+  // This class exists because Manager constructor is not visible
+  private class TestManager extends Manager {
+
+    protected TestManager(String[] args) throws IOException {
+      super(new ConfigOpts(), (conf) -> getServerContext(), args);
     }
 
   }
@@ -114,6 +126,27 @@ public class UpgradeIT extends AccumuloClusterHarness {
     assertTrue(ise.getMessage()
         .startsWith("Instance has been prepared for upgrade to a minor or major version"));
 
+  }
+
+  @Test
+  public void testUpgradeManagerFailure() throws Exception {
+    // Test that the Manager fails when an upgrade is needed,
+    // but UpgradeProgressTracker.initialize was never called.
+
+    getCluster().stop();
+    getCluster().getClusterControl().startAllServers(ServerType.ZOOKEEPER);
+
+    ServerContext ctx = getCluster().getServerContext();
+    UpgradeUtilIT.downgradePersistentVersion(ctx);
+
+    List<String> args = new ArrayList<>();
+    args.add("--props");
+    args.add(getCluster().getAccumuloPropertiesPath());
+    try (TestManager mgr = new TestManager(args.toArray(new String[0]))) {
+      IllegalStateException ise = assertThrows(IllegalStateException.class, () -> mgr.runServer());
+      assertTrue(ise.getMessage().startsWith("initialize not called, "));
+      assertTrue(ise.getMessage().endsWith("Did you run 'accumulo upgrade --start'?"));
+    }
   }
 
 }
