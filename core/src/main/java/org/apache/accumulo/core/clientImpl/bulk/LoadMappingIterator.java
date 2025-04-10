@@ -99,7 +99,7 @@ public class LoadMappingIterator
       }
 
     } catch (JsonSyntaxException | JsonIOException e) {
-      throw new NoSuchElementException("Failed to read next mapping: " + e.getMessage());
+      throw new NoSuchElementException("Failed to read next mapping: " + e);
     }
   }
 
