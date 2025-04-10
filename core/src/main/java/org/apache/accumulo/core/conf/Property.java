@@ -498,7 +498,7 @@ public enum Property {
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
   @Experimental
-  SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
+  SSERV_MINTHREADS("sserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
   SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -1522,7 +1522,7 @@ public enum Property {
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers.", "2.1.0"),
   @Experimental
-  COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
+  COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -1545,7 +1545,7 @@ public enum Property {
       "The port used for handling Thrift client connections on the compaction coordinator server.",
       "2.1.0"),
   @Experimental
-  COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "1",
+  COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "20",
       PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests.",
       "2.1.0"),
   @Experimental
