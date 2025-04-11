@@ -160,7 +160,7 @@ class LoadFiles extends ManagerRepo {
     abstract long finish() throws Exception;
   }
 
-  private static class OnlineLoader extends Loader {
+  static class OnlineLoader extends Loader {
 
     private final int maxConnections;
     long timeInMillis;
@@ -302,7 +302,7 @@ class LoadFiles extends ManagerRepo {
       }
     }
 
-    private void addToQueue(HostAndPort server, KeyExtent extent,
+    protected void addToQueue(HostAndPort server, KeyExtent extent,
         Map<String,MapFileInfo> thriftImports) {
       if (!thriftImports.isEmpty()) {
         tabletsAdded++;
@@ -325,29 +325,33 @@ class LoadFiles extends ManagerRepo {
         // send files to tablet sever
         // ideally there should only be one tablet location to send all the files
 
-        Location location = tablet.getLocation();
-        HostAndPort server = null;
-        if (location == null) {
-          locationLess++;
-          continue;
-        } else {
-          server = location.getHostAndPort();
-        }
-
         Set<TabletFile> loadedFiles = tablet.getLoaded().keySet();
+
+        Location location = tablet.getLocation();
 
         Map<String,MapFileInfo> thriftImports = new HashMap<>();
 
+        boolean needToLoad = false;
         for (final Bulk.FileInfo fileInfo : files) {
           Path fullPath = new Path(bulkDir, fileInfo.getFileName());
           TabletFile bulkFile = new TabletFile(fullPath);
 
           if (!loadedFiles.contains(bulkFile)) {
-            thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
+            if (location == null) {
+              needToLoad = true;
+              break;
+            } else {
+              thriftImports.put(fileInfo.getFileName(), new MapFileInfo(fileInfo.getEstFileSize()));
+            }
           }
         }
 
-        addToQueue(server, tablet.getExtent(), thriftImports);
+        if (location != null) {
+          addToQueue(location.getHostAndPort(), tablet.getExtent(), thriftImports);
+        } else if (needToLoad) {
+          // tablet has no location and files need to be loaded so need to wait tablet
+          locationLess++;
+        } // else tablet has no location but all files are already loaded for it so nothing to do
       }
 
       sendQueued(4 * 1024 * 1024);
