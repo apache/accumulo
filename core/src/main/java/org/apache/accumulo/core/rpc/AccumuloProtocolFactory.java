@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.rpc;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -93,6 +94,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     private void writeClientHeader() throws TException {
       super.writeI32(MAGIC_NUMBER);
       super.writeByte(PROTOCOL_VERSION);
+      super.writeString(Constants.VERSION);
 
       final boolean headerHasTrace = span != null && span.getSpanContext().isValid();
       super.writeBool(headerHasTrace);
@@ -143,8 +145,11 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
             + Integer.toHexString(MAGIC_NUMBER) + ", got: 0x" + Integer.toHexString(magic));
       }
 
-      final byte version = super.readByte();
-      validateProtocolVersion(version);
+      final byte clientProtocolVersion = super.readByte();
+      validateProtocolVersion(clientProtocolVersion);
+
+      final String clientAccumuloVersion = super.readString();
+      validateAccumuloVersion(clientAccumuloVersion);
 
       final boolean headerHasTrace = super.readBool();
 
@@ -167,6 +172,35 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
         throw new TException("Incompatible protocol version. Version seen: " + protocolVersion
             + ", expected version: " + PROTOCOL_VERSION);
       }
+    }
+
+    /**
+     * @throws TException if the given Accumulo version (client) is incompatible with the current
+     *         version (server)
+     */
+    private void validateAccumuloVersion(String clientAccumuloVersion) throws TException {
+      final String serverAccumuloVersion = Constants.VERSION;
+
+      // Extract major.minor version components
+      final String serverMajorMinor = extractMajorMinorVersion(serverAccumuloVersion);
+      final String clientMajorMinor = extractMajorMinorVersion(clientAccumuloVersion);
+
+      if (!serverMajorMinor.equals(clientMajorMinor)) {
+        throw new TException("Incompatible Accumulo versions. Client version: "
+            + clientAccumuloVersion + ", Server version: " + serverAccumuloVersion
+            + ". Major.minor versions must match.");
+      }
+    }
+
+    /**
+     * @return the major.minor portion from a version string (e.g., "4.0.0-SNAPSHOT" → "4.0")
+     */
+    private String extractMajorMinorVersion(String version) throws TException {
+      final int lastDotIndex = version.lastIndexOf('.');
+      if (lastDotIndex == -1) {
+        throw new TException("Invalid version format: " + version);
+      }
+      return version.substring(0, lastDotIndex);
     }
 
   }

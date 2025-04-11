@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryBuffer;
@@ -34,9 +35,9 @@ public class AccumuloProtocolTest {
   private static final int VALID_MAGIC_NUMBER =
       AccumuloProtocolFactory.AccumuloProtocol.MAGIC_NUMBER;
   private static final int INVALID_MAGIC_NUMBER = 0x12345678;
-  private static final byte VALID_VERSION =
+  private static final byte VALID_PROTOCOL_VERSION =
       AccumuloProtocolFactory.AccumuloProtocol.PROTOCOL_VERSION;
-  private static final byte INVALID_VERSION = 99;
+  private static final byte INVALID_PROTOCOL_VERSION = 99;
 
   /**
    * Test that a valid header does not throw an exception
@@ -47,7 +48,8 @@ public class AccumuloProtocolTest {
 
       TCompactProtocol protocol = new TCompactProtocol(transport);
       protocol.writeI32(VALID_MAGIC_NUMBER);
-      protocol.writeByte(VALID_VERSION);
+      protocol.writeByte(VALID_PROTOCOL_VERSION);
+      protocol.writeString(Constants.VERSION);
       protocol.writeBool(false);
 
       var serverProtocol = (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory
@@ -67,9 +69,9 @@ public class AccumuloProtocolTest {
     try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
 
       TCompactProtocol protocol = new TCompactProtocol(transport);
+
+      // only need to write the magic number since its checked first
       protocol.writeI32(INVALID_MAGIC_NUMBER);
-      protocol.writeByte(VALID_VERSION);
-      protocol.writeBool(false);
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
           (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory.serverFactory()
@@ -82,16 +84,16 @@ public class AccumuloProtocolTest {
   }
 
   /**
-   * Test that an incompatible version number throws an exception
+   * Test that an incompatible protocol version number throws an exception
    */
   @Test
-  public void testIncompatibleVersion() throws TException {
+  public void testIncompatibleProtocolVersion() throws TException {
     try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
 
       TCompactProtocol protocol = new TCompactProtocol(transport);
       protocol.writeI32(VALID_MAGIC_NUMBER);
-      protocol.writeByte(INVALID_VERSION);
-      protocol.writeBool(false);
+      protocol.writeByte(INVALID_PROTOCOL_VERSION);
+      // don't need to write the other header parts since it should fail before reading them
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
           (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory.serverFactory()
@@ -99,6 +101,59 @@ public class AccumuloProtocolTest {
 
       TException exception = assertThrows(TException.class, serverProtocol::validateHeader);
       assertTrue(exception.getMessage().contains("Incompatible protocol version"),
+          "Expected incompatible version msg. Got: " + exception.getMessage());
+    }
+  }
+
+  /**
+   * Test that compatible accumulo version (same major.minor) passes validation
+   */
+  @Test
+  public void testCompatibleVersions() throws TException {
+    try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
+      TCompactProtocol protocol = new TCompactProtocol(transport);
+      protocol.writeI32(VALID_MAGIC_NUMBER);
+      protocol.writeByte(VALID_PROTOCOL_VERSION);
+
+      // Write current version but with different patch version
+      String serverMajorMinor = Constants.VERSION.substring(0, Constants.VERSION.lastIndexOf('.'));
+      String clientVersion = serverMajorMinor + ".999";
+
+      protocol.writeString(clientVersion);
+      protocol.writeBool(false);
+
+      AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
+          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory.serverFactory()
+              .getProtocol(transport);
+
+      assertDoesNotThrow(serverProtocol::validateHeader,
+          "Expected compatible version to pass validation");
+    }
+  }
+
+  /**
+   * Test that incompatible accumulo version (different major.minor) throws an exception
+   */
+  @Test
+  public void testIncompatibleVersions() throws TException {
+    try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
+      TCompactProtocol protocol = new TCompactProtocol(transport);
+      protocol.writeI32(VALID_MAGIC_NUMBER);
+      protocol.writeByte(VALID_PROTOCOL_VERSION);
+
+      // increment major version number so it is incompatible
+      String[] parts = Constants.VERSION.split("\\.");
+      String incompatibleVersion = (Integer.parseInt(parts[0]) + 1) + ".0.0";
+
+      protocol.writeString(incompatibleVersion);
+      protocol.writeBool(false);
+
+      AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
+          (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory.serverFactory()
+              .getProtocol(transport);
+
+      TException exception = assertThrows(TException.class, serverProtocol::validateHeader);
+      assertTrue(exception.getMessage().contains("Incompatible Accumulo versions"),
           "Expected incompatible version msg. Got: " + exception.getMessage());
     }
   }
