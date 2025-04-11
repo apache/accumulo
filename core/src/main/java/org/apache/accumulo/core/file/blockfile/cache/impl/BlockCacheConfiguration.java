@@ -54,6 +54,11 @@ public class BlockCacheConfiguration implements Configuration {
         Property.SSERV_DEFAULT_BLOCKSIZE);
   }
 
+  public static BlockCacheConfiguration forCompactor(AccumuloConfiguration conf) {
+    return new BlockCacheConfiguration(conf, Property.COMPACTOR_PREFIX,
+        Property.COMPACTOR_DATACACHE_SIZE, Property.COMPACTOR_DEFAULT_BLOCKSIZE);
+  }
+
   private BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
       Property indexCacheSizeProperty, Property dataCacheSizeProperty,
       Property summaryCacheSizeProperty, Property defaultBlockSizeProperty) {
@@ -64,6 +69,17 @@ public class BlockCacheConfiguration implements Configuration {
     this.dataMaxSize = conf.getAsBytes(dataCacheSizeProperty);
     this.summaryMaxSize = conf.getAsBytes(summaryCacheSizeProperty);
     this.blockSize = conf.getAsBytes(defaultBlockSizeProperty);
+  }
+
+  private BlockCacheConfiguration(AccumuloConfiguration conf, Property serverPrefix,
+      Property dataCacheSizeProperty, Property defaultBlockSizeProperty) {
+    this.serverPrefix = serverPrefix;
+    this.genProps = conf.getAllPropertiesWithPrefix(serverPrefix);
+    this.indexMaxSize = 0L;
+    this.dataMaxSize = conf.getAsBytes(dataCacheSizeProperty);
+    this.summaryMaxSize = 0L;
+    this.blockSize = conf.getAsBytes(defaultBlockSizeProperty);
+
   }
 
   @Override
@@ -87,7 +103,7 @@ public class BlockCacheConfiguration implements Configuration {
 
   @Override
   public String toString() {
-    return "indexMaxSize: " + indexMaxSize + "dataMaxSize: " + dataMaxSize + "summaryMaxSize: "
+    return "indexMaxSize: " + indexMaxSize + " dataMaxSize: " + dataMaxSize + " summaryMaxSize: "
         + summaryMaxSize + ", blockSize: " + getBlockSize();
   }
 
