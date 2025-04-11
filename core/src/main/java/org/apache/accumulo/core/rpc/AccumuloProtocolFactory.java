@@ -219,7 +219,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     }
 
     /**
-     * @return the major.minor portion from a version string (e.g., "4.0.0-SNAPSHOT" → "4.0")
+     * @return the major.minor portion from a version string (e.g., "4.0.0-SNAPSHOT" -> "4.0")
      */
     private String extractMajorMinorVersion(String version) throws TException {
       final int lastDotIndex = version.lastIndexOf('.');
