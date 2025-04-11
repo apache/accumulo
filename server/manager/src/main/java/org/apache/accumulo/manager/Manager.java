@@ -328,8 +328,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
-          upgradeCoordinator.preUpgradeValidation();
-          upgradeCoordinator.startOrContinueUpgrade();
+          upgradeCoordinator.continueUpgrade();
           upgradeCoordinator.upgradeZookeeper(nextEvent);
         }
         break;

@@ -317,8 +317,8 @@ public class ServiceLockPaths {
 
   /**
    * Note that the ServiceLockPath object returned by this method does not populate the server
-   * attribute. To get the location of the GarbageCollector you will need to parse the lock data at
-   * the ZooKeeper path.
+   * attribute. To get the location of the Monitor you will need to parse the lock data at the
+   * ZooKeeper path.
    */
   public ServiceLockPath getMonitor(boolean withLock) {
     Set<ServiceLockPath> results =
