@@ -42,6 +42,7 @@ import java.util.Properties;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.function.Function;
@@ -143,6 +144,7 @@ public class ClientContext implements AccumuloClient {
   private TCredentials rpcCreds;
   private ThriftTransportPool thriftTransportPool;
   private ZookeeperLockChecker zkLockChecker;
+  private final Supplier<ScheduledThreadPoolExecutor> sharedScheduledThreadPool;
 
   private volatile boolean closed = false;
 
@@ -249,6 +251,8 @@ public class ClientContext implements AccumuloClient {
         clientThreadPools = ThreadPools.getClientThreadPools(ueh);
       }
     }
+    sharedScheduledThreadPool =
+        memoize(() -> clientThreadPools.createGeneralScheduledExecutorService(getConfiguration()));
   }
 
   public Ample getAmple() {
@@ -1131,6 +1135,10 @@ public class ClientContext implements AccumuloClient {
       this.zkLockChecker = new ZookeeperLockChecker(this);
     }
     return this.zkLockChecker;
+  }
+
+  public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    return sharedScheduledThreadPool.get();
   }
 
 }
