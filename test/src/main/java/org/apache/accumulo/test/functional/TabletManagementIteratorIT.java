@@ -592,7 +592,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         onlineTables,
         new LiveTServerSet.LiveTServersSnapshot(tservers,
             Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
-        Set.of(), Map.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
+        Set.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
         SteadyTime.from(10000, TimeUnit.NANOSECONDS));
   }
 }

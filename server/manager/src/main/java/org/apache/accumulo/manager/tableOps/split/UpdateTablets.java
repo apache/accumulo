@@ -314,6 +314,14 @@ public class UpdateTablets extends ManagerRepo {
         log.debug("{} deleting unsplittable metadata from {} because of split", fateId, newExtent);
       }
 
+      var migration = tabletMetadata.getMigration();
+      if (migration != null) {
+        // This is no longer the same tablet, so delete the migration
+        mutator.deleteMigration();
+        log.debug("{} deleting migration {} metadata from {} because of split", fateId, migration,
+            newExtent);
+      }
+
       // if the tablet no longer exists (because changed prev end row, then the update was
       // successful.
       mutator.submit(Ample.RejectionHandler.acceptAbsentTablet());
