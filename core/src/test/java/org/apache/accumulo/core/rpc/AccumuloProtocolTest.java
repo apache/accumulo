@@ -27,7 +27,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.transport.TMemoryBuffer;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.Test;
 
 public class AccumuloProtocolTest {
@@ -164,15 +163,20 @@ public class AccumuloProtocolTest {
   @Test
   public void testIncompleteHeader() throws TException {
     try (TMemoryBuffer transport = new TMemoryBuffer(100)) {
-      // write incomplete header. just magic number
+
       TCompactProtocol protocol = new TCompactProtocol(transport);
       protocol.writeI32(VALID_MAGIC_NUMBER);
+      protocol.writeByte(VALID_PROTOCOL_VERSION);
+      // don't write the version string
+      protocol.writeBool(false);
 
       AccumuloProtocolFactory.AccumuloProtocol serverProtocol =
           (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory.serverFactory()
               .getProtocol(transport);
 
-      assertThrows(TTransportException.class, serverProtocol::validateHeader);
+      var e = assertThrows(TException.class, serverProtocol::validateHeader);
+      assertTrue(e.getMessage().contains("Failed to read accumulo version from header"),
+          "Expected incomplete header msg. Got: " + e.getMessage());
     }
   }
 }

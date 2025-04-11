@@ -139,22 +139,48 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
      * @throws TException if the header is invalid or incompatible
      */
     void validateHeader() throws TException {
-      final int magic = super.readI32();
+
+      final int magic;
+      try {
+        magic = super.readI32();
+      } catch (TException e) {
+        throw new TException("Failed to read magic number from header", e);
+      }
       if (magic != MAGIC_NUMBER) {
         throw new TException("Invalid Accumulo protocol: magic number mismatch. Expected: 0x"
             + Integer.toHexString(MAGIC_NUMBER) + ", got: 0x" + Integer.toHexString(magic));
       }
 
-      final byte clientProtocolVersion = super.readByte();
+      final byte clientProtocolVersion;
+      try {
+        clientProtocolVersion = super.readByte();
+      } catch (TException e) {
+        throw new TException("Failed to read protocol version from header", e);
+      }
       validateProtocolVersion(clientProtocolVersion);
 
-      final String clientAccumuloVersion = super.readString();
+      final String clientAccumuloVersion;
+      try {
+        clientAccumuloVersion = super.readString();
+      } catch (TException e) {
+        throw new TException("Failed to read accumulo version from header", e);
+      }
       validateAccumuloVersion(clientAccumuloVersion);
 
-      final boolean headerHasTrace = super.readBool();
+      final boolean headerHasTrace;
+      try {
+        headerHasTrace = super.readBool();
+      } catch (TException e) {
+        throw new TException("Failed to read trace header flag from header", e);
+      }
 
       if (headerHasTrace) {
-        String serializedContext = super.readString();
+        String serializedContext;
+        try {
+          serializedContext = super.readString();
+        } catch (TException e) {
+          throw new TException("Failed to read trace context from header", e);
+        }
         Context extractedContext = TraceUtil.deserializeContext(serializedContext);
 
         // Create server span with extracted context as parent
