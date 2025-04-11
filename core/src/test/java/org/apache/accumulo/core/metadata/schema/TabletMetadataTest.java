@@ -35,6 +35,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -367,6 +368,55 @@ public class TabletMetadataTest {
       // test stream delegates to close on TabletsMetadata
     }
     assertTrue(closeCalled.get());
+  }
+
+  @Test
+  public void testValidateWithNonOverlappingFileRange() {
+    TabletMetadata.Builder builder = new TabletMetadata.Builder();
+
+    builder.table(TableId.of("5"));
+    builder.prevEndRow(new Text("b"));
+    builder.sawPrevEndRow(true);
+    builder.endRow(new Text("d"));
+
+    Range fileRange = new Range(new Text("x\0"), true, new Text("z\0"), false);
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f1.rf"), fileRange);
+
+    builder.file(file, new DataFileValue(0, 0, 0));
+    assertThrows(IllegalStateException.class, () -> builder.build(EnumSet.allOf(ColumnType.class)));
+  }
+
+  @Test
+  public void testValidateWithOverlappingFileRange() {
+    TabletMetadata.Builder builder = new TabletMetadata.Builder();
+    builder.table(TableId.of("5"));
+    builder.prevEndRow(new Text("a"));
+    builder.sawPrevEndRow(true);
+    builder.endRow(new Text("m"));
+
+    Range fileRange = new Range(new Text("c\0"), true, new Text("e\0"), false);
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f2.rf"), fileRange);
+    builder.file(file, new DataFileValue(0, 0, 0));
+
+    assertDoesNotThrow(() -> builder.build(EnumSet.allOf(ColumnType.class)));
+  }
+
+  @Test
+  public void testValidateWithNoFileRange() {
+    TabletMetadata.Builder builder = new TabletMetadata.Builder();
+    builder.table(TableId.of("5"));
+    builder.prevEndRow(new Text("b"));
+    builder.sawPrevEndRow(true);
+    builder.endRow(new Text("d"));
+
+    Range emptyRange = new Range();
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f3.rf"), emptyRange);
+    builder.file(file, new DataFileValue(0, 0, 0));
+
+    assertDoesNotThrow(() -> builder.build(EnumSet.allOf(ColumnType.class)));
   }
 
   @Test
