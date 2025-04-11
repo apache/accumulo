@@ -215,9 +215,20 @@ function kill_service() {
 function list_processes() {
   local service_type=$1
   find_processes "$service_type"
-  echo "Currently running ${service_type} processes:"
+  echo "Currently running ${service_type} processes (fields: process pid port):"
   for process in "${RUNNING_PROCESSES[@]}"; do
-    echo "$process"
+    local pid_file
+    local pid
+    local port
+    pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+    pid=$(cat "$pid_file")
+    port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $2}')
+    # check that only a single port was seen
+    if (($(echo "$port" | grep -c -E '^[0-9]+$') != 1)); then
+      echo "ERROR unexpected ports process:$process pid:$pid ports:$port" >&2
+    else
+      echo "$process $pid $port"
+    fi
   done
 }
 
