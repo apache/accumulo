@@ -46,7 +46,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZcStat;
@@ -134,7 +133,7 @@ public class ExternalCompactionUtil {
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactor, context);
-      return client.getActiveCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+      return client.getActiveCompactions(context.rpcCreds());
     } catch (ThriftSecurityException e) {
       throw e;
     } catch (TException e) {
@@ -158,8 +157,7 @@ public class ExternalCompactionUtil {
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      TExternalCompactionJob job =
-          client.getRunningCompaction(TraceUtil.traceInfo(), context.rpcCreds());
+      TExternalCompactionJob job = client.getRunningCompaction(context.rpcCreds());
       if (job.getExternalCompactionId() != null) {
         LOG.debug("Compactor {} is running {}", compactorAddr, job.getExternalCompactionId());
         return job;
@@ -177,7 +175,7 @@ public class ExternalCompactionUtil {
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      String secid = client.getRunningCompactionId(TraceUtil.traceInfo(), context.rpcCreds());
+      String secid = client.getRunningCompactionId(context.rpcCreds());
       if (!secid.isEmpty()) {
         return ExternalCompactionId.of(secid);
       }
@@ -270,7 +268,7 @@ public class ExternalCompactionUtil {
     CompactorService.Client client = null;
     try {
       client = ThriftUtil.getClient(ThriftClientTypes.COMPACTOR, compactorAddr, context);
-      client.cancel(TraceUtil.traceInfo(), context.rpcCreds(), ecid);
+      client.cancel(context.rpcCreds(), ecid);
     } catch (TException e) {
       LOG.debug("Failed to cancel compactor {} for {}", compactorAddr, ecid, e);
     } finally {
