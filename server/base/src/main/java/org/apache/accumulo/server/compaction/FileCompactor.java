@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +46,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileOperations.ReaderBuilder;
 import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -69,6 +71,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.AccumuloFileType;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -452,6 +455,18 @@ public class FileCompactor implements Callable<CompactionStats> {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
+    String dropCacheExclusionList =
+        acuTableConf.get(Property.TABLE_MINC_INPUT_DROP_CACHE_EXCLUSIONS);
+    EnumSet<AccumuloFileType> exclusions = EnumSet.noneOf(AccumuloFileType.class);
+    if (!dropCacheExclusionList.isBlank()) {
+      Set<AccumuloFileType> set = new HashSet<>();
+      String[] prefixes = dropCacheExclusionList.split(",");
+      for (String p : prefixes) {
+        set.add(AccumuloFileType.fromPrefix(p));
+      }
+      exclusions = EnumSet.copyOf(set);
+    }
+
     for (StoredTabletFile mapFile : filesToCompact.keySet()) {
       try {
 
@@ -459,10 +474,35 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getFileSystemByPath(mapFile.getPath());
         FileSKVIterator reader;
 
-        reader = fileFactory.newReaderBuilder()
+        // Normally you would not want the DataNode to continue to
+        // cache blocks in the page cache for compaction input files
+        // as these files are normally marked for deletion after a
+        // compaction occurs. However there can be cases where the
+        // compaction input files will continue to be used, like in
+        // the case of bulk import files which may be assigned to many
+        // tablets and will still be needed until all of the tablets
+        // have compacted, or in the case of cloned tables where one
+        // of the tables has compacted the input file but the other
+        // has not.
+        boolean dropCacheBehindCompactionInputFile = true;
+        if (!exclusions.isEmpty()) {
+          if (exclusions.contains(AccumuloFileType.ALL)) {
+            dropCacheBehindCompactionInputFile = false;
+          } else {
+            AccumuloFileType type = AccumuloFileType.fromFileName(mapFile.getFileName());
+            if (exclusions.contains(type)) {
+              dropCacheBehindCompactionInputFile = false;
+            }
+          }
+        }
+
+        ReaderBuilder readerBuilder = fileFactory.newReaderBuilder()
             .forFile(mapFile.getPathStr(), fs, fs.getConf(), cryptoService)
-            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter())
-            .dropCachesBehind().build();
+            .withTableConfiguration(acuTableConf).withRateLimiter(env.getReadLimiter());
+        if (dropCacheBehindCompactionInputFile) {
+          readerBuilder.dropCachesBehind();
+        }
+        reader = readerBuilder.build();
 
         readers.add(reader);
 

@@ -97,6 +97,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.CompactionStats;
+import org.apache.accumulo.server.fs.AccumuloFileType;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeUtil;
 import org.apache.accumulo.server.fs.VolumeUtil.TabletFiles;
@@ -264,14 +265,16 @@ public class Tablet extends TabletBase {
     return dirUri;
   }
 
-  TabletFile getNextMapFilename(String prefix) throws IOException {
+  TabletFile getNextMapFilename(AccumuloFileType prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix
-        + context.getUniqueNameAllocator().getNextName() + "." + extension));
+    return new TabletFile(new Path(chooseTabletDir() + "/"
+        + prefix.createFileName(context.getUniqueNameAllocator().getNextName() + "." + extension)));
   }
 
   TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+    AccumuloFileType prefix =
+        !propagateDeletes ? AccumuloFileType.FULL_COMPACTION : AccumuloFileType.COMPACTION;
+    String tmpFileName = getNextMapFilename(prefix).getMetaInsert() + "_tmp";
     return new TabletFile(new Path(tmpFileName));
   }
 

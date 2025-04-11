@@ -33,6 +33,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
+import org.apache.accumulo.server.fs.AccumuloFileType;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.FileStatus;
@@ -86,7 +87,8 @@ class MapImportFileNames extends ManagerRepo {
             extension = Constants.MAPFILE_EXTENSION;
           }
 
-          String newName = "I" + namer.getNextName() + "." + extension;
+          String newName =
+              AccumuloFileType.BULK_IMPORT.createFileName(namer.getNextName() + "." + extension);
 
           mappingsWriter.append(fileName);
           mappingsWriter.append(':');
