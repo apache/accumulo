@@ -30,7 +30,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
@@ -52,17 +51,16 @@ public class SharedRateLimiterFactory {
   private SharedRateLimiterFactory() {}
 
   /** Get the singleton instance of the SharedRateLimiterFactory. */
-  public static synchronized SharedRateLimiterFactory getInstance(AccumuloConfiguration conf) {
+  public static synchronized SharedRateLimiterFactory
+      getInstance(ScheduledThreadPoolExecutor executor) {
     if (instance == null) {
       instance = new SharedRateLimiterFactory();
 
-      ScheduledThreadPoolExecutor svc =
-          ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
-      updateTaskFuture = svc.scheduleWithFixedDelay(Threads
+      updateTaskFuture = executor.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory update polling", instance::updateAll),
           UPDATE_RATE, UPDATE_RATE, MILLISECONDS);
 
-      ScheduledFuture<?> future = svc.scheduleWithFixedDelay(Threads
+      ScheduledFuture<?> future = executor.scheduleWithFixedDelay(Threads
           .createNamedRunnable("SharedRateLimiterFactory report polling", instance::reportAll),
           REPORT_RATE, REPORT_RATE, MILLISECONDS);
       ThreadPools.watchNonCriticalScheduledTask(future);

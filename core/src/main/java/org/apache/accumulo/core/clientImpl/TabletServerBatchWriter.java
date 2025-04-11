@@ -210,8 +210,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.threadPools()
-        .createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor = context.getScheduledExecutor();
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -382,7 +381,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       // make a best effort to release these resources
       writer.binningThreadPool.shutdownNow();
       writer.sendThreadPool.shutdownNow();
-      executor.shutdownNow();
+      failedMutations.close();
     }
   }
 
@@ -653,6 +652,11 @@ public class TabletServerBatchWriter implements AutoCloseable {
             + "  Failed to requeue failed mutations " + t.getMessage(), t);
         executor.remove(task);
       }
+    }
+
+    private void close() {
+      executor.remove(task);
+      future.cancel(true);
     }
   }
 

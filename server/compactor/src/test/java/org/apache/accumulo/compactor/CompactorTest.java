@@ -300,6 +300,10 @@ public class CompactorTest {
       return List.of();
     }
 
+    @Override
+    protected void startCancelChecker(ScheduledThreadPoolExecutor schedExecutor,
+        long timeBetweenChecks) {}
+
   }
 
   public class FailedCompactor extends SuccessfulCompactor implements ServerProcessService.Iface {

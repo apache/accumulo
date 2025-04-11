@@ -40,6 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.Constants;
@@ -235,7 +236,7 @@ public class FateIT {
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
 
-      fate.startTransactionRunners(config);
+      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
@@ -300,7 +301,7 @@ public class FateIT {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
+      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
@@ -376,7 +377,7 @@ public class FateIT {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
+      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
@@ -430,7 +431,7 @@ public class FateIT {
       fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
       assertEquals(SUBMITTED, getTxStatus(zk, txid));
 
-      fate.startTransactionRunners(config);
+      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
 
@@ -469,7 +470,7 @@ public class FateIT {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config);
+      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
 
       // Wait for the transaction runner to be scheduled.
       UtilWaitThread.sleep(3000);
