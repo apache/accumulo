@@ -52,27 +52,29 @@ class FinishCloneTable extends ManagerRepo {
     // that are not used... tablet will create directories as needed
 
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
-    if (cloneInfo.keepOffline) {
-      environment.getTableManager().transitionTableState(cloneInfo.tableId, TableState.OFFLINE,
+    if (cloneInfo.isKeepOffline()) {
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.OFFLINE,
           expectedCurrStates);
     } else {
       // transition clone table state to state of original table
-      TableState ts = environment.getTableManager().getTableState(cloneInfo.srcTableId);
-      environment.getTableManager().transitionTableState(cloneInfo.tableId, ts, expectedCurrStates);
+      TableState ts = environment.getTableManager().getTableState(cloneInfo.getSrcTableId());
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), ts,
+          expectedCurrStates);
     }
 
-    Utils.unreserveNamespace(environment, cloneInfo.srcNamespaceId, fateId, LockType.READ);
-    if (!cloneInfo.srcNamespaceId.equals(cloneInfo.namespaceId)) {
-      Utils.unreserveNamespace(environment, cloneInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveNamespace(environment, cloneInfo.getSrcNamespaceId(), fateId, LockType.READ);
+    if (!cloneInfo.getSrcNamespaceId().equals(cloneInfo.getNamespaceId())) {
+      Utils.unreserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ);
     }
-    Utils.unreserveTable(environment, cloneInfo.srcTableId, fateId, LockType.READ);
-    Utils.unreserveTable(environment, cloneInfo.tableId, fateId, LockType.WRITE);
+    Utils.unreserveTable(environment, cloneInfo.getSrcTableId(), fateId, LockType.READ);
+    Utils.unreserveTable(environment, cloneInfo.getTableId(), fateId, LockType.WRITE);
 
-    environment.getEventCoordinator().event(cloneInfo.tableId, "Cloned table %s from %s",
-        cloneInfo.tableName, cloneInfo.srcTableId);
+    environment.getEventCoordinator().event(cloneInfo.getTableId(), "Cloned table %s from %s",
+        cloneInfo.getTableName(), cloneInfo.getSrcTableId());
 
-    LoggerFactory.getLogger(FinishCloneTable.class).debug("Cloned table " + cloneInfo.srcTableId
-        + " " + cloneInfo.tableId + " " + cloneInfo.tableName);
+    LoggerFactory.getLogger(FinishCloneTable.class)
+        .debug("Cloned table " + cloneInfo.getSrcTableId() + " " + cloneInfo.getTableId() + " "
+            + cloneInfo.getTableName());
 
     return null;
   }

@@ -621,7 +621,8 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // importDirectory for system tables not tested for. Test basic functionality here
     var rootPath = getCluster().getTemporaryPath().toString();
     var dir = rootPath + "/" + getUniqueNames(1)[0];
-    BulkNewIT.writeData(dir + "/f1.", getCluster().getServerContext().getConfiguration(), 0, 5, 0);
+    BulkNewIT.writeData(getCluster().getFileSystem(), dir + "/f1.",
+        getCluster().getServerContext().getConfiguration(), 0, 5, 0);
 
     for (var sysTable : AccumuloTable.values()) {
       assertThrows(Exception.class, () -> ops.importDirectory(dir).to(sysTable.tableName()).load());

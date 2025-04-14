@@ -67,6 +67,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -107,6 +108,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -121,7 +123,9 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "3s");
+    });
   }
 
   @AfterAll
@@ -1058,6 +1062,18 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
     }
     assertEquals(opid.canonical(),
         context.getAmple().readTablet(RootTable.EXTENT).getOperationId().canonical());
+
+    Wait.waitFor(() -> context.getAmple().readTablet(RootTable.EXTENT).getLocation() == null);
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(RootTable.EXTENT).requireOperation(opid).requireAbsentLocation()
+          .putLocation(Location.future(loc.getServerInstance())).deleteOperation()
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(RootTable.EXTENT).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(RootTable.EXTENT).getOperationId());
+    Wait.waitFor(() -> context.getAmple().readTablet(RootTable.EXTENT).getLocation() != null);
+
   }
 
   @Test

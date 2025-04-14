@@ -104,7 +104,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    log.info("Starting bulk import for {} (tid = {})", bulkInfo.sourceDir, fateId);
+    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
           + ")");
@@ -127,7 +127,9 @@ class LoadFiles extends ManagerRepo {
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
           .fetch(fetchCols.toArray(new ColumnType[0])).build();
 
-      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, fateId);
+      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, fateId, skip);
     }
   }
 
@@ -392,31 +394,46 @@ class LoadFiles extends ManagerRepo {
   // visible for testing
   static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
       LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager,
-      FateId fateId) throws Exception {
+      FateId fateId, int skipDistance) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
     String fmtTid = fateId.getTxUUIDStr();
-    log.trace("{}: Starting bulk load at row: {}", fmtTid, startRow);
+    log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
     loader.start(bulkDir, manager, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
     ImportTimingStats importTimingStats = new ImportTimingStats();
     Timer timer = Timer.startNew();
-    try (TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow)) {
 
-      // The tablet iterator and load mapping iterator are both iterating over data that is sorted
-      // in the same way. The two iterators are each independently advanced to find common points in
-      // the sorted data.
-      Iterator<TabletMetadata> tabletIter = tabletsMetadata.iterator();
+    TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
+    try {
+      PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
+        // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
+        // at the next skipDistance tablets before recreating the iterator
+        if (skipDistance > 0) {
+          final KeyExtent loadMapKey = loadMapEntry.getKey();
+          if (!pi.findWithin(
+              tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
+              skipDistance)) {
+            log.debug(
+                "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                fmtTid, loadMapKey.prevEndRow(), skipDistance);
+            tabletsMetadata.close();
+            tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
+            pi = new PeekingIterator<>(tabletsMetadata.iterator());
+          }
+        }
         List<TabletMetadata> tablets =
-            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), tabletIter, importTimingStats);
+            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
         loader.load(tablets, loadMapEntry.getValue());
       }
+    } finally {
+      tabletsMetadata.close();
     }
     Duration totalProcessingTime = timer.elapsed();
 
@@ -424,7 +441,7 @@ class LoadFiles extends ManagerRepo {
 
     if (importTimingStats.callCount > 0) {
       log.debug(
-          "Bulk import stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
+          "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, fateId, importTimingStats.tabletCount, importTimingStats.callCount,
           totalProcessingTime.toMillis(), totalProcessingTime.toNanos(),
           importTimingStats.wastedIterations, importTimingStats.totalWastedTime.toMillis(),

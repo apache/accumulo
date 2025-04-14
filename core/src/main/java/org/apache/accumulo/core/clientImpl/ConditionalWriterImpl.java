@@ -624,7 +624,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     } catch (TApplicationException tae) {
       queueException(location, cmidToCm, new AccumuloServerException(location.toString(), tae));
     } catch (TException e) {
-      locator.invalidateCache(context, location.toString());
+      locator.invalidateCache(mutations.getMutations().keySet());
       invalidateSession(location, cmidToCm, sessionId);
     } catch (Exception e) {
       queueException(location, cmidToCm, e);
@@ -686,10 +686,6 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
     while (true) {
       if (!ServiceLock.isLockHeld(context.getZooCache(), lid)) {
-        // ACCUMULO-1152 added a tserver lock check to the tablet location cache, so this
-        // invalidation prevents future attempts to contact the
-        // tserver even its gone zombie and is still running w/o a lock
-        locator.invalidateCache(context, location.toString());
         log.trace("tablet server {} {} is dead, so no need to invalidate {}", location,
             sessionId.lockId, sessionId.sessionID);
         return;
@@ -705,7 +701,6 @@ public class ConditionalWriterImpl implements ConditionalWriter {
       } catch (TApplicationException tae) {
         throw new AccumuloServerException(location.toString(), tae);
       } catch (TException e) {
-        locator.invalidateCache(context, location.toString());
         log.trace("Failed to invalidate {} at {} {}", sessionId.sessionID, location,
             e.getMessage());
       }
@@ -716,9 +711,7 @@ public class ConditionalWriterImpl implements ConditionalWriter {
 
       sleepUninterruptibly(sleepTime, MILLISECONDS);
       sleepTime = Math.min(2 * sleepTime, MAX_SLEEP);
-
     }
-
   }
 
   private void invalidateSession(long sessionId, HostAndPort location) throws TException {

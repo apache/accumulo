@@ -109,7 +109,7 @@ public class SetIterCommand extends Command {
     }
 
     // Try to get the name provided by the setiter command
-    String name = cl.getOptionValue(nameOpt.getOpt(), null);
+    String name = cl.getOptionValue(nameOpt.getOpt());
 
     // Cannot continue if no name is provided
     if (name == null && configuredName == null) {

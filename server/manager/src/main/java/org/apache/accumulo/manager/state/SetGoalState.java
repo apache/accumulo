@@ -27,13 +27,18 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
 
+import com.google.common.base.Preconditions;
+
 public class SetGoalState {
 
   /**
    * Utility program that will change the goal state for the manager from the command line.
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 1 || ManagerGoalState.valueOf(args[0]) == null) {
+    try {
+      Preconditions.checkArgument(args.length == 1);
+      ManagerGoalState.valueOf(args[0]);
+    } catch (IllegalArgumentException e) {
       System.err.println(
           "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);
