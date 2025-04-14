@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate;
 
 import java.util.Set;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -37,7 +38,7 @@ public class FlakyFate<T> extends Fate<T> {
 
   public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
-    super(environment, store, false, toLogStrFunc, conf);
+    super(environment, store, false, toLogStrFunc, conf, new ScheduledThreadPoolExecutor(2));
   }
 
   @Override
