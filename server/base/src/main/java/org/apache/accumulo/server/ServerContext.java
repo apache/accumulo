@@ -432,7 +432,6 @@ public class ServerContext extends ClientContext {
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  @Override
   public ScheduledThreadPoolExecutor getScheduledExecutor() {
     return sharedScheduledThreadPool.get();
   }
