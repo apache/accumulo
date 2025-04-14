@@ -1271,7 +1271,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "WEAK_MESSAGE_DIGEST_SHA1"},
       justification = "path provided by test; sha-1 is okay for test")
-  private String hash(String filename) {
+  private static String hash(String filename) {
     try {
       byte[] data = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
       byte[] hash = MessageDigest.getInstance("SHA1").digest(data);
@@ -1285,8 +1285,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
     return String.format("%04d", r);
   }
 
-  private String writeData(String file, AccumuloConfiguration aconf, int s, int e, int valueOffset)
-      throws Exception {
+  public static String writeData(String file, AccumuloConfiguration aconf, int s, int e,
+      int valueOffset) throws Exception {
     FileSystem fs = getCluster().getFileSystem();
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()

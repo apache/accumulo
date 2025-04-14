@@ -97,12 +97,13 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testRootTableSplit() {
+  public void testRootTableSplit() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("5"));
       assertThrows(AccumuloException.class,
           () -> client.tableOperations().addSplits(AccumuloTable.ROOT.tableName(), splits));
+      assertTrue(client.tableOperations().listSplits(AccumuloTable.ROOT.tableName()).isEmpty());
     }
   }
 

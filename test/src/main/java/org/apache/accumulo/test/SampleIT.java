@@ -92,7 +92,7 @@ public class SampleIT extends SharedMiniClusterBase {
   private static final Map<String,String> OPTIONS_2 =
       Map.of("hasher", "murmur3_32", "modulus", "997");
 
-  private static final SamplerConfiguration SC1 =
+  public static final SamplerConfiguration SC1 =
       new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_1);
   private static final SamplerConfiguration SC2 =
       new SamplerConfiguration(RowSampler.class.getName()).setOptions(OPTIONS_2);

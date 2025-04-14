@@ -23,6 +23,7 @@ import static org.apache.accumulo.test.functional.ReadWriteIT.ingest;
 import static org.apache.accumulo.test.functional.ReadWriteIT.m;
 import static org.apache.accumulo.test.functional.ReadWriteIT.t;
 import static org.apache.accumulo.test.functional.ReadWriteIT.verify;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
@@ -101,11 +102,23 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
       accumuloClient.tableOperations().create(tableName);
-      Map<String,Set<Text>> groups = new TreeMap<>();
-      groups.put("g1", Collections.singleton(t("colf")));
-      accumuloClient.tableOperations().setLocalityGroups(tableName, groups);
+      createAndSetLocalityGroups(accumuloClient, tableName);
+      verifyLocalityGroupSet(accumuloClient, tableName);
       verifyLocalityGroupsInRFile(accumuloClient, tableName);
     }
+  }
+
+  public static void createAndSetLocalityGroups(AccumuloClient client, String tableName)
+      throws Exception {
+    Map<String,Set<Text>> groups = new TreeMap<>();
+    groups.put("g1", Collections.singleton(t("colf")));
+    client.tableOperations().setLocalityGroups(tableName, groups);
+  }
+
+  public static void verifyLocalityGroupSet(AccumuloClient client, String tableName)
+      throws Exception {
+    assertEquals(Collections.singleton(t("colf")),
+        client.tableOperations().getLocalityGroups(tableName).get("g1"));
   }
 
   /**
