@@ -24,9 +24,7 @@ import static org.apache.accumulo.core.clientImpl.NamespaceMapping.deserializeMa
 import static org.apache.accumulo.core.clientImpl.NamespaceMapping.serializeMap;
 
 import java.util.Map;
-import java.util.Objects;
 import java.util.SortedMap;
-import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -60,12 +58,15 @@ public class TableMapping {
   public void put(final ClientContext context, TableId tableId, String tableName,
       TableOperation operation)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    var zoo = context.getZooSession().asReaderWriter();
-    Stream.of(zoo, tableId, namespaceId, tableName).forEach(Objects::requireNonNull);
-    String zTableMapPath = getZTableMapPath(namespaceId);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Putting built-in tables in map should not be possible after init");
     }
+    var zoo = context.getZooSession().asReaderWriter();
+    requireNonNull(zoo);
+    requireNonNull(tableId);
+    requireNonNull(namespaceId);
+    requireNonNull(tableName);
+    String zTableMapPath = getZTableMapPath(namespaceId);
     zoo.mutateExisting(zTableMapPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
@@ -87,11 +88,12 @@ public class TableMapping {
 
   public void remove(final ClientContext context, final TableId tableId)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    var zoo = context.getZooSession().asReaderWriter();
-    Stream.of(zoo, tableId).forEach(Objects::requireNonNull);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Removing built-in tables in map should not be possible");
     }
+    var zoo = context.getZooSession().asReaderWriter();
+    requireNonNull(zoo);
+    requireNonNull(tableId);
     zoo.mutateExisting(getZTableMapPath(getNamespaceOfTableId(zoo, tableId)), data -> {
       var tables = deserializeMap(data);
       if (!tables.containsKey(tableId.canonical())) {
@@ -107,12 +109,16 @@ public class TableMapping {
   public void rename(final ClientContext context, final TableId tableId, final String oldName,
       final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    var zoo = context.getZooSession().asReaderWriter();
-    Stream.of(zoo, tableId, namespaceId, oldName, newName).forEach(Objects::requireNonNull);
-    String zTableMapPath = getZTableMapPath(namespaceId);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Renaming built-in tables in map should not be possible");
     }
+    var zoo = context.getZooSession().asReaderWriter();
+    requireNonNull(zoo);
+    requireNonNull(tableId);
+    requireNonNull(namespaceId);
+    requireNonNull(oldName);
+    requireNonNull(newName);
+    String zTableMapPath = getZTableMapPath(namespaceId);
     zoo.mutateExisting(zTableMapPath, current -> {
       var tables = deserializeMap(current);
       final String currentName = tables.get(tableId.canonical());
@@ -143,9 +149,12 @@ public class TableMapping {
         throw new IllegalStateException(zTableMapPath + " node should not be null");
       } else {
         Map<String,String> idToName = deserializeMap(data);
-        if (namespaceId == Namespace.ACCUMULO.id() && AccumuloTable.builtInTableIds().stream()
-            .anyMatch(bitid -> !idToName.containsKey(bitid.canonical()))) {
-          throw new IllegalStateException("Built-in tables are not present in map");
+        if (namespaceId.equals(Namespace.ACCUMULO.id())) {
+          for (TableId tid : AccumuloTable.builtInTableIds()) {
+            if (!idToName.containsKey(tid.canonical())) {
+              throw new IllegalStateException("Built-in tables are not present in map");
+            }
+          }
         }
         var converted = ImmutableSortedMap.<TableId,String>naturalOrder();
         var convertedReverse = ImmutableSortedMap.<String,TableId>naturalOrder();

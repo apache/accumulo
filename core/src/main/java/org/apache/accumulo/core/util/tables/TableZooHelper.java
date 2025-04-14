@@ -21,9 +21,9 @@ package org.apache.accumulo.core.util.tables;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
@@ -95,7 +95,7 @@ public class TableZooHelper {
           throw new RuntimeException(
               "getNamespaceName() failed to find namespace for namespaceId: " + namespaceId, e);
         }
-        if (reverse) {
+        if (reverse) { // True: Name to Id. False: Id to Name.
           builder.put(fullyQualifiedName, tableId.canonical());
         } else {
           builder.put(tableId.canonical(), fullyQualifiedName);
@@ -106,18 +106,28 @@ public class TableZooHelper {
   }
 
   public Map<String,TableId> getQualifiedNameToIdMap() {
-    return loadQualifiedTableMapping(true).entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> TableId.of(e.getValue())));
+    var result = new HashMap<String,TableId>();
+    for (var entry : loadQualifiedTableMapping(true).entrySet()) {
+      result.put(entry.getKey(), TableId.of(entry.getValue()));
+    }
+    return result;
   }
 
   public Map<TableId,String> getIdtoQualifiedNameMap() {
-    return loadQualifiedTableMapping(false).entrySet().stream()
-        .collect(Collectors.toMap(e -> TableId.of(e.getKey()), Map.Entry::getValue));
+    var result = new HashMap<TableId,String>();
+    for (var entry : loadQualifiedTableMapping(false).entrySet()) {
+      result.put(TableId.of(entry.getKey()), entry.getValue());
+    }
+    return result;
   }
 
   public boolean tableNodeExists(TableId tableId) {
-    return context.getNamespaces().getIdToNameMap().keySet().stream().anyMatch(
-        namespaceId -> context.getTableMapping(namespaceId).getIdToNameMap().containsKey(tableId));
+    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
+      if (context.getTableMapping(namespaceId).getIdToNameMap().containsKey(tableId)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void clearTableListCache() {
@@ -181,9 +191,12 @@ public class TableZooHelper {
     if (AccumuloTable.allTableIds().contains(tableId)) {
       return Namespace.ACCUMULO.id();
     }
-    return context.getNamespaces().getIdToNameMap().keySet().stream().filter(
-        namespaceId -> context.getTableMapping(namespaceId).getIdToNameMap().containsKey(tableId))
-        .findFirst().orElseThrow(() -> new TableNotFoundException(tableId.canonical(), null,
-            "No namespace found containing the given table ID " + tableId));
+    for (NamespaceId namespaceId : context.getNamespaces().getIdToNameMap().keySet()) {
+      if (context.getTableMapping(namespaceId).getIdToNameMap().containsKey(tableId)) {
+        return namespaceId;
+      }
+    }
+    throw new TableNotFoundException(tableId.canonical(), null,
+        "No namespace found containing the given table ID " + tableId);
   }
 }
