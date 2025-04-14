@@ -1353,7 +1353,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
           HOURS.toMillis(8), System::currentTimeMillis);
 
       Fate<Manager> f = initializeFateInstance(store);
-      f.startTransactionRunners(getConfiguration());
+      f.startTransactionRunners(getConfiguration(), getContext().getScheduledExecutor());
       fateRef.set(f);
       fateReadyLatch.countDown();
 
