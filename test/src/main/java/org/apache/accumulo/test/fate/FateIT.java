@@ -38,6 +38,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -553,7 +554,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
     return new Fate<>(new TestEnv(), store, false, r -> r + "",
-        FateTestUtil.createTestFateConfig(1));
+        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);

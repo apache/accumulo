@@ -33,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -244,10 +245,10 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
     liveLocks.add(lock1);
     liveLocks.add(lock2);
 
-    Fate<SleepingTestEnv> fate1 =
-        new Fate<>(testEnv1, store1, true, Object::toString, DefaultConfiguration.getInstance());
-    Fate<SleepingTestEnv> fate2 =
-        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
+    Fate<SleepingTestEnv> fate1 = new Fate<>(testEnv1, store1, true, Object::toString,
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+    Fate<SleepingTestEnv> fate2 = new Fate<>(testEnv2, store2, false, Object::toString,
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
 
     try {
       for (int i = 0; i < numFateIds; i++) {
@@ -347,7 +348,8 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
 
       // Create the new Fate/start the Fate threads (the work finder and the workers).
       // Don't run another dead reservation cleaner since we already have one running from fate1.
-      fate2 = new Fate<>(testEnv2, store2, false, Object::toString, config);
+      fate2 = new Fate<>(testEnv2, store2, false, Object::toString, config,
+          new ScheduledThreadPoolExecutor(2));
 
       // Wait for the "dead" reservations to be deleted and picked up again (reserved using
       // fate2/store2/lock2 now).

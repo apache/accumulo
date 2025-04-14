@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -193,7 +194,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {
     return new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
-        FateTestUtil.createTestFateConfig(1));
+        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
   }
 
   private static Entry<FateId,String> toIdStep(Entry<Key,Value> e) {
