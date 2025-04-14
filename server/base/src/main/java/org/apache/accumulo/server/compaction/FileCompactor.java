@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FileOperations.ReaderBuilder;
 import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -72,6 +74,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.fs.FileTypePrefix;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
@@ -334,6 +337,21 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
+      // Normally you would not want the DataNode to continue to
+      // cache blocks in the page cache for compaction input files
+      // as these files are normally marked for deletion after a
+      // compaction occurs. However there can be cases where the
+      // compaction input files will continue to be used, like in
+      // the case of bulk import files which may be assigned to many
+      // tablets and will still be needed until all of the tablets
+      // have compacted, or in the case of cloned tables where one
+      // of the tables has compacted the input file but the other
+      // has not.
+      String dropCachePrefixProperty =
+          acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
+      final EnumSet<FileTypePrefix> dropCacheFilePrefixes =
+          FileTypePrefix.typesFromList(dropCachePrefixProperty);
+
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
       final boolean dropCacheBehindOutput =
@@ -359,13 +377,14 @@ public class FileCompactor implements Callable<CompactionStats> {
       if (mfw.supportsLocalityGroups()) {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
           setLocalityGroup(entry.getKey());
-          compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats);
+          compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats,
+              dropCacheFilePrefixes);
           allColumnFamilies.addAll(entry.getValue());
         }
       }
 
       setLocalityGroup("");
-      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats);
+      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFilePrefixes);
 
       long t2 = System.currentTimeMillis();
 
@@ -450,8 +469,9 @@ public class FileCompactor implements Callable<CompactionStats> {
     }
   }
 
-  private List<SortedKeyValueIterator<Key,Value>>
-      openMapDataFiles(ArrayList<FileSKVIterator> readers) throws IOException {
+  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
+      ArrayList<FileSKVIterator> readers, EnumSet<FileTypePrefix> dropCacheFilePrefixes)
+      throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
 
@@ -462,8 +482,23 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getFileSystemByPath(dataFile.getPath());
         FileSKVIterator reader;
 
-        reader = fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
-            .withTableConfiguration(acuTableConf).dropCachesBehind().build();
+        boolean dropCacheBehindCompactionInputFile = false;
+        if (dropCacheFilePrefixes.contains(FileTypePrefix.ALL)) {
+          dropCacheBehindCompactionInputFile = true;
+        } else {
+          FileTypePrefix type = FileTypePrefix.fromFileName(dataFile.getFileName());
+          if (dropCacheFilePrefixes.contains(type)) {
+            dropCacheBehindCompactionInputFile = true;
+          }
+        }
+
+        ReaderBuilder readerBuilder =
+            fileFactory.newReaderBuilder().forFile(dataFile, fs, fs.getConf(), cryptoService)
+                .withTableConfiguration(acuTableConf);
+        if (dropCacheBehindCompactionInputFile) {
+          readerBuilder.dropCachesBehind();
+        }
+        reader = readerBuilder.build();
 
         readers.add(reader);
 
@@ -499,13 +534,15 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
-      boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
+      boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
+      EnumSet<FileTypePrefix> dropCacheFilePrefixes)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
       long entriesCompacted = 0;
-      List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
+      List<SortedKeyValueIterator<Key,Value>> iters =
+          openMapDataFiles(readers, dropCacheFilePrefixes);
 
       if (env.getIteratorScope() == IteratorScope.minc) {
         iters.add(env.getMinCIterator());

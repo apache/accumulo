@@ -237,7 +237,6 @@ public class Tablet extends TabletBase {
 
         if (files == null) {
           log.debug("Tablet {} had no dir, creating {}", extent, path);
-
           getTabletServer().getVolumeManager().mkdirs(path);
         }
         checkedTabletDirs.add(path);

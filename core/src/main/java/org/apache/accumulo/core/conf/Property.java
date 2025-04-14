@@ -887,6 +887,14 @@ public enum Property {
       "1.3.5"),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
+  TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND("table.compaction.input.drop.cache", "*",
+      PropertyType.STRING,
+      "Sets FSDataInputStream.setDropBehind(true) is set on compaction"
+          + " input streams for the specified type of files. The value of this property is a comma-separated list of Accumulo"
+          + " file type prefixes ('A', 'C', 'F', 'I', and 'M'). The value '*' can be used to"
+          + " specify all file types (default). When the input file prefix matches a value in this list,"
+          + " then setDropBehind will not be set on the FSDataInputStream.",
+      "2.1.4"),
   TABLE_MINC_OUTPUT_DROP_CACHE("table.compaction.minor.output.drop.cache", "false",
       PropertyType.BOOLEAN,
       "Setting this property to true will call"
