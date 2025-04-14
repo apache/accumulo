@@ -336,6 +336,30 @@ public class FileCompactor implements Callable<CompactionStats> {
       FileOperations fileFactory = FileOperations.getInstance();
       FileSystem ns = this.fs.getFileSystemByPath(outputFile.getPath());
 
+      // Normally you would not want the DataNode to continue to
+      // cache blocks in the page cache for compaction input files
+      // as these files are normally marked for deletion after a
+      // compaction occurs. However there can be cases where the
+      // compaction input files will continue to be used, like in
+      // the case of bulk import files which may be assigned to many
+      // tablets and will still be needed until all of the tablets
+      // have compacted, or in the case of cloned tables where one
+      // of the tables has compacted the input file but the other
+      // has not.
+      String dropCachePrefixProperty =
+          acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
+      final EnumSet<AccumuloFileType> dropCacheFilePrefixes;
+      if (!dropCachePrefixProperty.isBlank()) {
+        Set<AccumuloFileType> set = new HashSet<>();
+        String[] prefixes = dropCachePrefixProperty.split(",");
+        for (String p : prefixes) {
+          set.add(AccumuloFileType.fromPrefix(p.toUpperCase()));
+        }
+        dropCacheFilePrefixes = EnumSet.copyOf(set);
+      } else {
+        dropCacheFilePrefixes = EnumSet.noneOf(AccumuloFileType.class);
+      }
+
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
       final boolean dropCacheBehindOutput = !RootTable.ID.equals(this.extent.tableId())
@@ -360,13 +384,14 @@ public class FileCompactor implements Callable<CompactionStats> {
       if (mfw.supportsLocalityGroups()) {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
           setLocalityGroup(entry.getKey());
-          compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats);
+          compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats,
+              dropCacheFilePrefixes);
           allColumnFamilies.addAll(entry.getValue());
         }
       }
 
       setLocalityGroup("");
-      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats);
+      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFilePrefixes);
 
       long t2 = System.currentTimeMillis();
 
@@ -450,22 +475,11 @@ public class FileCompactor implements Callable<CompactionStats> {
     }
   }
 
-  private List<SortedKeyValueIterator<Key,Value>>
-      openMapDataFiles(ArrayList<FileSKVIterator> readers) throws IOException {
+  private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
+      ArrayList<FileSKVIterator> readers, EnumSet<AccumuloFileType> dropCacheFilePrefixes)
+      throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
-
-    String dropCacheExclusionList =
-        acuTableConf.get(Property.TABLE_MINC_INPUT_DROP_CACHE_EXCLUSIONS);
-    EnumSet<AccumuloFileType> exclusions = EnumSet.noneOf(AccumuloFileType.class);
-    if (!dropCacheExclusionList.isBlank()) {
-      Set<AccumuloFileType> set = new HashSet<>();
-      String[] prefixes = dropCacheExclusionList.split(",");
-      for (String p : prefixes) {
-        set.add(AccumuloFileType.fromPrefix(p));
-      }
-      exclusions = EnumSet.copyOf(set);
-    }
 
     for (StoredTabletFile mapFile : filesToCompact.keySet()) {
       try {
@@ -474,25 +488,13 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSystem fs = this.fs.getFileSystemByPath(mapFile.getPath());
         FileSKVIterator reader;
 
-        // Normally you would not want the DataNode to continue to
-        // cache blocks in the page cache for compaction input files
-        // as these files are normally marked for deletion after a
-        // compaction occurs. However there can be cases where the
-        // compaction input files will continue to be used, like in
-        // the case of bulk import files which may be assigned to many
-        // tablets and will still be needed until all of the tablets
-        // have compacted, or in the case of cloned tables where one
-        // of the tables has compacted the input file but the other
-        // has not.
-        boolean dropCacheBehindCompactionInputFile = true;
-        if (!exclusions.isEmpty()) {
-          if (exclusions.contains(AccumuloFileType.ALL)) {
-            dropCacheBehindCompactionInputFile = false;
-          } else {
-            AccumuloFileType type = AccumuloFileType.fromFileName(mapFile.getFileName());
-            if (exclusions.contains(type)) {
-              dropCacheBehindCompactionInputFile = false;
-            }
+        boolean dropCacheBehindCompactionInputFile = false;
+        if (dropCacheFilePrefixes.contains(AccumuloFileType.ALL)) {
+          dropCacheBehindCompactionInputFile = true;
+        } else {
+          AccumuloFileType type = AccumuloFileType.fromFileName(mapFile.getFileName());
+          if (dropCacheFilePrefixes.contains(type)) {
+            dropCacheBehindCompactionInputFile = true;
           }
         }
 
@@ -544,13 +546,15 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
-      boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats)
+      boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
+      EnumSet<AccumuloFileType> dropCacheFilePrefixes)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
       long entriesCompacted = 0;
-      List<SortedKeyValueIterator<Key,Value>> iters = openMapDataFiles(readers);
+      List<SortedKeyValueIterator<Key,Value>> iters =
+          openMapDataFiles(readers, dropCacheFilePrefixes);
 
       if (env.getIteratorScope() == IteratorScope.minc) {
         iters.add(env.getMinCIterator());
