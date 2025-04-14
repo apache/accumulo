@@ -51,7 +51,7 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.AccumuloFileType;
+import org.apache.accumulo.server.fs.FileTypePrefix;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -279,7 +279,7 @@ public class PrepBulkImport extends ManagerRepo {
 
     for (FileStatus file : files) {
       // since these are only valid files we know it has an extension
-      String newName = AccumuloFileType.BULK_IMPORT.createFileName(
+      String newName = FileTypePrefix.BULK_IMPORT.createFileName(
           namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName()));
       oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }

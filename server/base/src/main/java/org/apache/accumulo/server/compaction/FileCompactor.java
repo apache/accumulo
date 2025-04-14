@@ -71,7 +71,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.AccumuloFileType;
+import org.apache.accumulo.server.fs.FileTypePrefix;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -348,17 +348,8 @@ public class FileCompactor implements Callable<CompactionStats> {
       // has not.
       String dropCachePrefixProperty =
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
-      final EnumSet<AccumuloFileType> dropCacheFilePrefixes;
-      if (!dropCachePrefixProperty.isBlank()) {
-        Set<AccumuloFileType> set = new HashSet<>();
-        String[] prefixes = dropCachePrefixProperty.split(",");
-        for (String p : prefixes) {
-          set.add(AccumuloFileType.fromPrefix(p.toUpperCase()));
-        }
-        dropCacheFilePrefixes = EnumSet.copyOf(set);
-      } else {
-        dropCacheFilePrefixes = EnumSet.noneOf(AccumuloFileType.class);
-      }
+      final EnumSet<FileTypePrefix> dropCacheFilePrefixes =
+          FileTypePrefix.typesFromList(dropCachePrefixProperty);
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
@@ -476,7 +467,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
-      ArrayList<FileSKVIterator> readers, EnumSet<AccumuloFileType> dropCacheFilePrefixes)
+      ArrayList<FileSKVIterator> readers, EnumSet<FileTypePrefix> dropCacheFilePrefixes)
       throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
@@ -489,10 +480,10 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         boolean dropCacheBehindCompactionInputFile = false;
-        if (dropCacheFilePrefixes.contains(AccumuloFileType.ALL)) {
+        if (dropCacheFilePrefixes.contains(FileTypePrefix.ALL)) {
           dropCacheBehindCompactionInputFile = true;
         } else {
-          AccumuloFileType type = AccumuloFileType.fromFileName(mapFile.getFileName());
+          FileTypePrefix type = FileTypePrefix.fromFileName(mapFile.getFileName());
           if (dropCacheFilePrefixes.contains(type)) {
             dropCacheBehindCompactionInputFile = true;
           }
@@ -547,7 +538,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
-      EnumSet<AccumuloFileType> dropCacheFilePrefixes)
+      EnumSet<FileTypePrefix> dropCacheFilePrefixes)
       throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
