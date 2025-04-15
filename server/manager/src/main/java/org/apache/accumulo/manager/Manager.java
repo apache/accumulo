@@ -328,8 +328,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
-          upgradeCoordinator.preUpgradeValidation();
-          upgradeCoordinator.startOrContinueUpgrade();
+          upgradeCoordinator.continueUpgrade();
           upgradeCoordinator.upgradeZookeeper(nextEvent);
         }
         break;
@@ -1489,8 +1488,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
-    final Fate<Manager> fateInstance =
-        new Fate<>(this, store, true, TraceRepo::toLogString, getConfiguration());
+    final Fate<Manager> fateInstance = new Fate<>(this, store, true, TraceRepo::toLogString,
+        getConfiguration(), context.getScheduledExecutor());
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

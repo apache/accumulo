@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -852,7 +853,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
     return new Fate<>(new LatchTestEnv(), store, false, Object::toString,
-        DefaultConfiguration.getInstance());
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
   }
 
   private boolean wordIsTStatus(String word) {

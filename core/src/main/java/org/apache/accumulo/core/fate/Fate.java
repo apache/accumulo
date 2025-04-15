@@ -73,7 +73,7 @@ public class Fate<T> {
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
 
   private final FateStore<T> store;
-  private final ScheduledThreadPoolExecutor fatePoolsWatcher;
+  private final ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
   private final ExecutorService deadResCleanerExecutor;
 
@@ -245,14 +245,14 @@ public class Fate<T> {
    * @param toLogStrFunc A function that converts Repo to Strings that are suitable for logging
    */
   public Fate(T environment, FateStore<T> store, boolean runDeadResCleaner,
-      Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf) {
+      Function<Repo<T>,String> toLogStrFunc, AccumuloConfiguration conf,
+      ScheduledThreadPoolExecutor genSchedExecutor) {
     this.store = FateLogger.wrap(store, toLogStrFunc, false);
 
-    this.fatePoolsWatcher =
-        ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(conf);
-    ThreadPools.watchCriticalScheduledTask(
-        fatePoolsWatcher.scheduleWithFixedDelay(new FatePoolsWatcher(environment, conf),
-            INITIAL_DELAY.toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS));
+    fatePoolsWatcherFuture =
+        genSchedExecutor.scheduleWithFixedDelay(new FatePoolsWatcher(environment, conf),
+            INITIAL_DELAY.toSeconds(), getPoolWatcherDelay().toSeconds(), SECONDS);
+    ThreadPools.watchCriticalScheduledTask(fatePoolsWatcherFuture);
 
     ScheduledExecutorService deadResCleanerExecutor = null;
     if (runDeadResCleaner) {
@@ -501,7 +501,7 @@ public class Fate<T> {
       if (deadResCleanerExecutor != null) {
         deadResCleanerExecutor.shutdown();
       }
-      fatePoolsWatcher.shutdown();
+      fatePoolsWatcherFuture.cancel(false);
     }
 
     if (timeout > 0) {
@@ -509,15 +509,13 @@ public class Fate<T> {
       try {
         waitForAllFateExecShutdown(start, timeout, timeUnit);
         waitForDeadResCleanerShutdown(start, timeout, timeUnit);
-        waitForFatePoolsWatcherShutdown(start, timeout, timeUnit);
 
-        if (anyFateExecutorIsAlive() || deadResCleanerIsAlive() || fatePoolsWatcherIsAlive()) {
+        if (anyFateExecutorIsAlive() || deadResCleanerIsAlive()) {
           log.warn(
               "Waited for {}ms for all fate {} background threads to stop, but some are still running. "
-                  + "fate executor threads:{} dead reservation cleaner thread:{} "
-                  + "fate pools watcher thread:{}",
+                  + "fate executor threads:{} dead reservation cleaner thread:{} ",
               TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start), store.type(),
-              anyFateExecutorIsAlive(), deadResCleanerIsAlive(), fatePoolsWatcherIsAlive());
+              anyFateExecutorIsAlive(), deadResCleanerIsAlive());
         }
       } catch (InterruptedException e) {
         throw new RuntimeException(e);
@@ -534,7 +532,6 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
-    fatePoolsWatcher.shutdownNow();
   }
 
   private boolean anyFateExecutorIsAlive() {
@@ -545,10 +542,6 @@ public class Fate<T> {
 
   private boolean deadResCleanerIsAlive() {
     return deadResCleanerExecutor != null && !deadResCleanerExecutor.isTerminated();
-  }
-
-  private boolean fatePoolsWatcherIsAlive() {
-    return !fatePoolsWatcher.isTerminated();
   }
 
   private void waitForAllFateExecShutdown(long start, long timeout, TimeUnit timeUnit)
@@ -566,15 +559,6 @@ public class Fate<T> {
       if (deadResCleanerExecutor != null && !deadResCleanerExecutor.awaitTermination(1, SECONDS)) {
         log.debug("Fate {} is waiting for dead reservation cleaner thread to terminate",
             store.type());
-      }
-    }
-  }
-
-  private void waitForFatePoolsWatcherShutdown(long start, long timeout, TimeUnit timeUnit)
-      throws InterruptedException {
-    while (((System.nanoTime() - start) < timeUnit.toNanos(timeout)) && fatePoolsWatcherIsAlive()) {
-      if (!fatePoolsWatcher.awaitTermination(1, SECONDS)) {
-        log.debug("Fate {} is waiting for fate pools watcher thread to terminate", store.type());
       }
     }
   }
