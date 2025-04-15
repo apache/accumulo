@@ -145,6 +145,9 @@ public class ZKAuthorizor implements Authorizor {
 
     for (ByteBuffer auth : auths) {
       if (!userauths.contains(ByteBufferUtil.toBytes(auth))) {
+        log.info(
+            "User {} attempted to use Authorization {} which they do not have assigned to them.",
+            user, new String(auth.array(), UTF_8));
         return false;
       }
     }

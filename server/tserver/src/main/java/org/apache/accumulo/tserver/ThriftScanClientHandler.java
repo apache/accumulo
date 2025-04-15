@@ -401,14 +401,9 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       }
     }
 
-    try {
-      if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.BAD_AUTHORIZATIONS);
-      }
-    } catch (ThriftSecurityException tse) {
-      log.error("{} is not authorized", credentials.getPrincipal(), tse);
-      throw tse;
+    if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.BAD_AUTHORIZATIONS);
     }
 
     // @formatter:off
