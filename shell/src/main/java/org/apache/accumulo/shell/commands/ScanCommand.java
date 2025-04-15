@@ -308,13 +308,16 @@ public class ScanCommand extends Command {
               scanOptCf.getOpt(), scanOptCq.getOpt());
           throw new IllegalArgumentException(formattedString);
         } else {
+          @SuppressWarnings("deprecation")
           var interprettedCF =
               interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+          @SuppressWarnings("deprecation")
           var interprettedCQ =
               interpreter.interpretColumnQualifier(new Text(cq.getBytes(Shell.CHARSET)));
           scanner.fetchColumn(interprettedCF, interprettedCQ);
         }
       } else if (!cf.isEmpty()) {
+        @SuppressWarnings("deprecation")
         var interprettedCF =
             interpreter.interpretColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
         scanner.fetchColumnFamily(interprettedCF);
@@ -323,12 +326,15 @@ public class ScanCommand extends Command {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
+          @SuppressWarnings("deprecation")
           var interprettedCF =
               interpreter.interpretColumnFamily(new Text(a.getBytes(Shell.CHARSET)));
           scanner.fetchColumnFamily(interprettedCF);
         } else {
+          @SuppressWarnings("deprecation")
           var interprettedCF =
               interpreter.interpretColumnFamily(new Text(sa[0].getBytes(Shell.CHARSET)));
+          @SuppressWarnings("deprecation")
           var interprettedCQ =
               interpreter.interpretColumnQualifier(new Text(sa[1].getBytes(Shell.CHARSET)));
           scanner.fetchColumn(interprettedCF, interprettedCQ);
