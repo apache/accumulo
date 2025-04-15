@@ -224,6 +224,10 @@ public class CompactionCoordinatorTest {
     public Collection<Tag> getServiceTags(HostAndPort clientAddr) {
       return List.of();
     }
+
+    @Override
+    protected void waitForUpgrade() throws InterruptedException {}
+
   }
 
   @Test

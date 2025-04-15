@@ -560,7 +560,7 @@ public class CompactableUtils {
   static CompactionStats compact(Tablet tablet, CompactionJob job,
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
       Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
-      throws IOException, CompactionCanceledException {
+      throws IOException, CompactionCanceledException, InterruptedException {
     TableConfiguration tableConf = tablet.getTableConfiguration();
 
     AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,
@@ -576,7 +576,7 @@ public class CompactableUtils {
       }
     };
     final ScheduledFuture<?> future = tablet.getContext().getScheduledExecutor()
-        .scheduleWithFixedDelay(compactionCancellerTask, 10, 10, TimeUnit.SECONDS);
+        .scheduleWithFixedDelay(compactionCancellerTask, 3, 3, TimeUnit.SECONDS);
     try {
       return compactor.call();
     } finally {

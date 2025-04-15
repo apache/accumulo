@@ -363,7 +363,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     KeyExtent oldTablet = KeyExtent.fromThrift(split.oldTablet);
-    if (manager.migrations.remove(oldTablet) != null) {
+    if (manager.migrations.removeExtent(oldTablet) != null) {
       Manager.log.info("Canceled migration of {}", split.oldTablet);
     }
     for (TServerInstance instance : manager.tserverSet.getCurrentServers()) {

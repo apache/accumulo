@@ -326,7 +326,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             switch (state) {
               case HOSTED:
                 if (location.getServerInstance().equals(manager.migrations.get(tls.extent))) {
-                  manager.migrations.remove(tls.extent);
+                  manager.migrations.removeExtent(tls.extent);
                 }
                 break;
               case ASSIGNED_TO_DEAD_SERVER:
@@ -453,7 +453,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         tLists.assignments.add(new Assignment(tablet, dest, unassignedTablet.getLastLocation()));
       } else {
         // get rid of this migration
-        manager.migrations.remove(tablet);
+        manager.migrations.removeExtent(tablet);
         tLists.unassigned.put(tablet, unassignedTablet);
       }
     } else {
@@ -492,7 +492,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       WalStateManager wals) throws WalMarkerException {
     tLists.assignedToDeadServers.add(tls);
     if (location.getServerInstance().equals(manager.migrations.get(tls.extent))) {
-      manager.migrations.remove(tls.extent);
+      manager.migrations.removeExtent(tls.extent);
     }
     TServerInstance tserver = tls.futureOrCurrentServer();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
@@ -504,7 +504,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     TServerInstance dest = manager.migrations.get(extent);
     TableState tableState = manager.getTableManager().getTableState(extent.tableId());
     if (dest != null && tableState == TableState.OFFLINE) {
-      manager.migrations.remove(extent);
+      manager.migrations.removeExtent(extent);
     }
   }
 

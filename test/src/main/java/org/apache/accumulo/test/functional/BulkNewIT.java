@@ -50,6 +50,7 @@ import java.util.TreeSet;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -169,7 +170,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
     String dir = getDir("/testSingleTabletSingleFileNoSplits-");
 
-    String h1 = writeData(dir + "/f1.", aconf, 0, 332);
+    String h1 = writeData(fs, dir + "/f1.", aconf, 0, 332);
 
     c.tableOperations().importDirectory(dir).to(tableName).tableTime(setTime).load();
     // running again with ignoreEmptyDir set to true will not throw an exception
@@ -258,7 +259,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
     String dir = getDir("/testSingleTabletSingleFileNoSplits-");
 
-    String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+    String h1 = writeData(fs, dir + "/f1.", aconf, 0, 333);
 
     c.tableOperations().importDirectory(dir).to(tableName).load();
 
@@ -291,7 +292,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       String dir = getDir("/testBadPermissions-");
 
-      writeData(dir + "/f1.", aconf, 0, 333);
+      writeData(fs, dir + "/f1.", aconf, 0, 333);
 
       Path rFilePath = new Path(dir, "f1." + RFile.EXTENSION);
       FsPermission originalPerms = fs.getFileStatus(rFilePath).getPermission();
@@ -339,21 +340,21 @@ public class BulkNewIT extends SharedMiniClusterBase {
       out.close();
 
       // 1 Tablet 0333-null
-      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      String h1 = writeData(fs, dir + "/f1.", aconf, 0, 333);
       hashes.get("0333").add(h1);
 
       // 2 Tablets 0666-0334, 0999-0667
-      String h2 = writeData(dir + "/f2.", aconf, 334, 999);
+      String h2 = writeData(fs, dir + "/f2.", aconf, 334, 999);
       hashes.get("0666").add(h2);
       hashes.get("0999").add(h2);
 
       // 2 Tablets 1333-1000, 1666-1334
-      String h3 = writeData(dir + "/f3.", aconf, 1000, 1499);
+      String h3 = writeData(fs, dir + "/f3.", aconf, 1000, 1499);
       hashes.get("1333").add(h3);
       hashes.get("1666").add(h3);
 
       // 2 Tablets 1666-1334, >1666
-      String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
+      String h4 = writeData(fs, dir + "/f4.", aconf, 1500, 1999);
       hashes.get("1666").add(h4);
       hashes.get("null").add(h4);
 
@@ -393,21 +394,21 @@ public class BulkNewIT extends SharedMiniClusterBase {
       out.close();
 
       // 1 Tablet 0333-null
-      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      String h1 = writeData(fs, dir + "/f1.", aconf, 0, 333);
       hashes.get("0333").add(h1);
 
       // 3 Tablets 0666-0334, 0999-0667, 1333-1000
-      String h2 = writeData(dir + "/bad-file.", aconf, 334, 1333);
+      String h2 = writeData(fs, dir + "/bad-file.", aconf, 334, 1333);
       hashes.get("0666").add(h2);
       hashes.get("0999").add(h2);
       hashes.get("1333").add(h2);
 
       // 1 Tablet 1666-1334
-      String h3 = writeData(dir + "/f3.", aconf, 1334, 1499);
+      String h3 = writeData(fs, dir + "/f3.", aconf, 1334, 1499);
       hashes.get("1666").add(h3);
 
       // 2 Tablets 1666-1334, >1666
-      String h4 = writeData(dir + "/f4.", aconf, 1500, 1999);
+      String h4 = writeData(fs, dir + "/f4.", aconf, 1500, 1999);
       hashes.get("1666").add(h4);
       hashes.get("null").add(h4);
 
@@ -453,8 +454,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       String dir = getDir("/testBulkFile-");
 
-      writeData(dir + "/f1.", aconf, 0, 333);
-      writeData(dir + "/f2.", aconf, 0, 666);
+      writeData(fs, dir + "/f1.", aconf, 0, 333);
+      writeData(fs, dir + "/f2.", aconf, 0, 666);
 
       final var importMappingOptions = c.tableOperations().importDirectory(dir).to(tableName);
 
@@ -475,6 +476,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
           .loadFileTo("f2.rf", RangeType.TABLE, null, row(555)).build();
       final var nonExistentBoundary = importMappingOptions.plan(loadPlan);
       assertThrows(AccumuloException.class, nonExistentBoundary::load);
+
+      // Create an empty load plan
+      loadPlan = LoadPlan.builder().build();
+      final var emptyLoadPlan = importMappingOptions.plan(loadPlan);
+      assertThrows(IllegalArgumentException.class, emptyLoadPlan::load);
     }
   }
 
@@ -487,12 +493,12 @@ public class BulkNewIT extends SharedMiniClusterBase {
       String dir = getDir("/testBulkFile-");
 
       Map<String,Set<String>> hashes = new HashMap<>();
-      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      String h1 = writeData(fs, dir + "/f1.", aconf, 0, 333);
       hashes.put("0333", new HashSet<>(List.of(h1)));
-      String h2 = writeData(dir + "/f2.", aconf, 0, 666);
+      String h2 = writeData(fs, dir + "/f2.", aconf, 0, 666);
       hashes.get("0333").add(h2);
       hashes.put("0666", new HashSet<>(List.of(h2)));
-      String h3 = writeData(dir + "/f3.", aconf, 334, 700);
+      String h3 = writeData(fs, dir + "/f3.", aconf, 334, 700);
       hashes.get("0666").add(h3);
       hashes.put("0999", new HashSet<>(List.of(h3)));
       hashes.put("1333", Set.of());
@@ -571,7 +577,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       addSplits(c, tableName, "0333");
 
-      var h1 = writeData(dir + "/f1.", aconf, 333, 333);
+      var h1 = writeData(fs, dir + "/f1.", aconf, 333, 333);
 
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
@@ -593,7 +599,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
       String dir = getDir("/testExceptionInMetadataUpdate-");
 
-      String h1 = writeData(dir + "/f1.", aconf, 0, 333);
+      String h1 = writeData(fs, dir + "/f1.", aconf, 0, 333);
 
       var executor = Executors.newSingleThreadExecutor();
       // With the constraint configured that makes tservers throw an exception on bulk import, the
@@ -621,6 +627,47 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
+  @Test
+  public void testManyTablets() throws Exception {
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      String dir = getDir("/testManyTablets-");
+      writeData(fs, dir + "/f1.", aconf, 0, 199);
+      writeData(fs, dir + "/f2.", aconf, 200, 399);
+      writeData(fs, dir + "/f3.", aconf, 400, 599);
+      writeData(fs, dir + "/f4.", aconf, 600, 799);
+      writeData(fs, dir + "/f5.", aconf, 800, 999);
+
+      var splits = IntStream.range(1, 1000).mapToObj(BulkNewIT::row).map(Text::new)
+          .collect(Collectors.toCollection(TreeSet::new));
+
+      // faster to create a table w/ lots of splits
+      c.tableOperations().delete(tableName);
+      c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+
+      var lpBuilder = LoadPlan.builder();
+      lpBuilder.loadFileTo("f1.rf", RangeType.TABLE, null, row(1));
+      IntStream.range(2, 200)
+          .forEach(i -> lpBuilder.loadFileTo("f1.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(200, 400)
+          .forEach(i -> lpBuilder.loadFileTo("f2.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(400, 600)
+          .forEach(i -> lpBuilder.loadFileTo("f3.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(600, 800)
+          .forEach(i -> lpBuilder.loadFileTo("f4.rf", RangeType.TABLE, row(i - 1), row(i)));
+      IntStream.range(800, 1000)
+          .forEach(i -> lpBuilder.loadFileTo("f5.rf", RangeType.TABLE, row(i - 1), row(i)));
+
+      var loadPlan = lpBuilder.build();
+
+      c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
+
+      verifyData(c, tableName, 0, 999, false);
+
+    }
+
+  }
+
   private void addSplits(AccumuloClient client, String tableName, String splitString)
       throws Exception {
     SortedSet<Text> splits = new TreeSet<>();
@@ -630,8 +677,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
     client.tableOperations().addSplits(tableName, splits);
   }
 
-  private void verifyData(AccumuloClient client, String table, int start, int end, boolean setTime)
-      throws Exception {
+  private static void verifyData(AccumuloClient client, String table, int start, int end,
+      boolean setTime) throws Exception {
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
 
       Iterator<Entry<Key,Value>> iter = scanner.iterator();
@@ -664,7 +711,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
-  private void verifyMetadata(AccumuloClient client, String tableName,
+  public static void verifyMetadata(AccumuloClient client, String tableName,
       Map<String,Set<String>> expectedHashes) {
 
     Set<String> endRowsSeen = new HashSet<>();
@@ -691,7 +738,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
 
   @SuppressFBWarnings(value = {"PATH_TRAVERSAL_IN", "WEAK_MESSAGE_DIGEST_SHA1"},
       justification = "path provided by test; sha-1 is okay for test")
-  private String hash(String filename) {
+  public static String hash(String filename) {
     try {
       byte[] data = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
       byte[] hash = MessageDigest.getInstance("SHA1").digest(data);
@@ -701,13 +748,12 @@ public class BulkNewIT extends SharedMiniClusterBase {
     }
   }
 
-  private static String row(int r) {
+  public static String row(int r) {
     return String.format("%04d", r);
   }
 
-  private String writeData(String file, AccumuloConfiguration aconf, int s, int e)
-      throws Exception {
-    FileSystem fs = getCluster().getFileSystem();
+  public static String writeData(FileSystem fs, String file, AccumuloConfiguration aconf, int s,
+      int e) throws Exception {
     String filename = file + RFile.EXTENSION;
     try (FileSKVWriter writer = FileOperations.getInstance().newWriterBuilder()
         .forFile(filename, fs, fs.getConf(), NoCryptoServiceFactory.NONE)
