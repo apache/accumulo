@@ -24,11 +24,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -47,6 +45,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
+import org.apache.accumulo.core.file.blockfile.cache.impl.NoopCache;
 import org.apache.accumulo.core.file.blockfile.impl.BasicCacheProvider;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
@@ -64,7 +63,6 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
-import org.apache.accumulo.core.spi.cache.CacheEntry;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
@@ -97,89 +95,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
     boolean useSystemIterators = true;
     public HashMap<String,String> tableConfig;
     Range bounds;
-  }
-
-  // This cache exist as a hack to avoid leaking decompressors. When the RFile code is not given a
-  // cache it reads blocks directly from the decompressor. However if a user does not read all data
-  // for a scan this can leave a BCFile block open and a decompressor allocated.
-  //
-  // By providing a cache to the RFile code it forces each block to be read into memory. When a
-  // block is accessed the entire thing is read into memory immediately allocating and deallocating
-  // a decompressor. If the user does not read all data, no decompressors are left allocated.
-  private static class NoopCache implements BlockCache {
-
-    @Override
-    public CacheEntry cacheBlock(String blockName, byte[] buf) {
-      return null;
-    }
-
-    @Override
-    public CacheEntry getBlock(String blockName) {
-      return null;
-    }
-
-    @Override
-    public long getMaxHeapSize() {
-      return getMaxSize();
-    }
-
-    @Override
-    public long getMaxSize() {
-      return Integer.MAX_VALUE;
-    }
-
-    @Override
-    public Stats getStats() {
-      return new BlockCache.Stats() {
-        @Override
-        public long hitCount() {
-          return 0L;
-        }
-
-        @Override
-        public long requestCount() {
-          return 0L;
-        }
-      };
-    }
-
-    @Override
-    public CacheEntry getBlock(String blockName, Loader loader) {
-      Map<String,Loader> depLoaders = loader.getDependencies();
-      Map<String,byte[]> depData;
-
-      switch (depLoaders.size()) {
-        case 0:
-          depData = Collections.emptyMap();
-          break;
-        case 1:
-          Entry<String,Loader> entry = depLoaders.entrySet().iterator().next();
-          depData = Collections.singletonMap(entry.getKey(),
-              getBlock(entry.getKey(), entry.getValue()).getBuffer());
-          break;
-        default:
-          depData = new HashMap<>();
-          depLoaders.forEach((k, v) -> depData.put(k, getBlock(k, v).getBuffer()));
-      }
-
-      byte[] data = loader.load(Integer.MAX_VALUE, depData);
-
-      return new CacheEntry() {
-
-        @Override
-        public byte[] getBuffer() {
-          return data;
-        }
-
-        @Override
-        public <T extends Weighable> T getIndex(Supplier<T> supplier) {
-          return null;
-        }
-
-        @Override
-        public void indexWeightChanged() {}
-      };
-    }
   }
 
   RFileScanner(Opts opts) {
