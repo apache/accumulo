@@ -60,15 +60,7 @@ public enum AccumuloTable {
   private static final Set<TableId> ALL_IDS =
       Arrays.stream(values()).map(AccumuloTable::tableId).collect(Collectors.toUnmodifiableSet());
 
-  private static final Set<TableId> BUILT_IN_IDS =
-      Set.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId(),
-          AccumuloTable.SCAN_REF.tableId(), AccumuloTable.FATE.tableId());
-
   public static Set<TableId> allTableIds() {
     return ALL_IDS;
-  }
-
-  public static Set<TableId> builtInTableIds() {
-    return BUILT_IN_IDS;
   }
 }

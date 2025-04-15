@@ -150,7 +150,7 @@ public class TableMapping {
       } else {
         Map<String,String> idToName = deserializeMap(data);
         if (namespaceId.equals(Namespace.ACCUMULO.id())) {
-          for (TableId tid : AccumuloTable.builtInTableIds()) {
+          for (TableId tid : AccumuloTable.allTableIds()) {
             if (!idToName.containsKey(tid.canonical())) {
               throw new IllegalStateException("Built-in tables are not present in map");
             }
@@ -175,7 +175,7 @@ public class TableMapping {
   }
 
   private static boolean isBuiltInZKTable(TableId tableId) {
-    return AccumuloTable.builtInTableIds().contains(tableId);
+    return AccumuloTable.allTableIds().contains(tableId);
   }
 
   private static NamespaceId getNamespaceOfTableId(ZooReaderWriter zoo, TableId tableId)

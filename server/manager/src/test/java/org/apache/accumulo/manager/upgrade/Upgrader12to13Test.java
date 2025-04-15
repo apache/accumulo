@@ -19,13 +19,9 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.easymock.EasyMock.aryEq;
-import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createStrictMock;
-import static org.easymock.EasyMock.eq;
-import static org.easymock.EasyMock.expect;
-import static org.easymock.EasyMock.replay;
-import static org.easymock.EasyMock.verify;
+import static org.apache.accumulo.manager.upgrade.Upgrader11to12.ZNAMESPACE_NAME;
+import static org.apache.accumulo.manager.upgrade.Upgrader12to13.ZTABLE_NAME;
+import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -102,7 +98,7 @@ public class Upgrader12to13Test {
 
     expect(zrw.getChildren(eq(Constants.ZTABLES))).andReturn(mockTableIds).once();
     for (String tableId : mockTableIds) {
-      expect(zrw.getData(Constants.ZTABLES + "/" + tableId))
+      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME))
           .andReturn(mockTables.get(tableId).getBytes(UTF_8)).once();
       expect(zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE))
           .andReturn(mockTableToNamespace.get(tableId).getBytes(UTF_8)).once();
@@ -120,6 +116,11 @@ public class Upgrader12to13Test {
           eq(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES),
           aryEq(NamespaceMapping.serializeMap(entry.getValue())),
           eq(ZooUtil.NodeExistsPolicy.FAIL))).andReturn(true).once();
+    }
+
+    for (String table : mockTables.keySet()) {
+      zrw.delete(Constants.ZTABLES + "/" + table + ZTABLE_NAME);
+      expectLastCall().once();
     }
 
     replay(context, zk, zrw);

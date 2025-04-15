@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.google.common.annotations.VisibleForTesting;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -73,6 +74,9 @@ import com.google.common.base.Preconditions;
 public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
+
+  @VisibleForTesting
+  static final String ZTABLE_NAME = "/name";
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
@@ -411,7 +415,7 @@ public class Upgrader12to13 implements Upgrader {
       Map<String,Map<String,String>> mapOfTableMaps = new HashMap<>();
 
       for (String tableId : tableIds) {
-        var tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId), UTF_8);
+        var tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
         var namespaceId = new String(
             zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
         mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
@@ -426,6 +430,10 @@ public class Upgrader12to13 implements Upgrader {
       for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
         zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
             NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
+      }
+      for (String tableId : tableIds) {
+        String tableNamePath = Constants.ZTABLES + "/" + tableId + ZTABLE_NAME;
+        zrw.delete(tableNamePath);
       }
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
