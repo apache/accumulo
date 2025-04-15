@@ -44,6 +44,7 @@ import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
 import io.opentelemetry.api.trace.propagation.W3CTraceContextPropagator;
 import io.opentelemetry.context.Context;
+import io.opentelemetry.context.Scope;
 import io.opentelemetry.context.propagation.TextMapGetter;
 
 public class TraceUtil {
@@ -249,13 +250,18 @@ public class TraceUtil {
 
   public static <T> T wrapService(final T instance) {
     InvocationHandler handler = (obj, method, args) -> {
-      Span span = Span.current(); // should be set by protocol
-      try {
+      // start a new inner span specific to this method call
+      Span childSpan = TraceUtil.startClientRpcSpan(instance.getClass(), method.getName());
+      try (Scope scope = childSpan.makeCurrent()) {
         return method.invoke(instance, args);
       } catch (Exception e) {
         Throwable t = e instanceof InvocationTargetException ? e.getCause() : e;
-        setException(span, t, true);
+        setException(childSpan, t, true);
         throw t;
+      } finally {
+        if (childSpan != null) {
+          childSpan.end();
+        }
       }
     };
     return wrapRpc(handler, instance);
