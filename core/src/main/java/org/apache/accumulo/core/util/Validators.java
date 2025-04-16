@@ -237,4 +237,14 @@ public class Validators {
     return Validator.OK;
   });
 
+  public static final Validator<TableId> NOT_BUILTIN_TABLE_ID = new Validator<>(id -> {
+    if (id == null) {
+      return Optional.of("Table id must not be null");
+    }
+    if (AccumuloTable.allTableIds().contains(id)) {
+      return Optional.of("Table must not be in the '" + Namespace.ACCUMULO.name() + "' namespace");
+    }
+    return Validator.OK;
+  });
+
 }
