@@ -27,7 +27,7 @@ import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_NAMESPACE;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLE;
-import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLEID;
+import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.NOT_ROOT_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.VALID_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
@@ -383,8 +383,8 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_ONLINE: {
         TableOperation tableOp = TableOperation.ONLINE;
         validateArgumentCount(arguments, tableOp, 1);
-        final var tableId =
-            validateTableIdArgument(arguments.get(0), tableOp, NOT_METADATA_TABLEID);
+        final var tableId = validateTableIdArgument(arguments.get(0), tableOp,
+            NOT_ROOT_TABLE_ID.and(NOT_METADATA_TABLE_ID));
 
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
@@ -413,8 +413,8 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_OFFLINE: {
         TableOperation tableOp = TableOperation.OFFLINE;
         validateArgumentCount(arguments, tableOp, 1);
-        final var tableId =
-            validateTableIdArgument(arguments.get(0), tableOp, NOT_METADATA_TABLEID);
+        final var tableId = validateTableIdArgument(arguments.get(0), tableOp,
+            NOT_ROOT_TABLE_ID.and(NOT_METADATA_TABLE_ID));
 
         NamespaceId namespaceId = getNamespaceIdFromTableId(tableOp, tableId);
 
