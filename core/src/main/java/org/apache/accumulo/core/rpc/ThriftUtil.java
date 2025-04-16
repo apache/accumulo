@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -53,10 +54,6 @@ public class ThriftUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
-  private static final AccumuloProtocolFactory clientAccumuloProtocolFactory =
-      AccumuloProtocolFactory.clientFactory();
-  private static final AccumuloProtocolFactory serverAccumuloProtocolFactory =
-      AccumuloProtocolFactory.serverFactory();
   private static final AccumuloTFramedTransportFactory transportFactory =
       new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
@@ -77,8 +74,8 @@ public class ThriftUtil {
    *
    * @return The client-side Accumulo TProtocolFactory for RPC
    */
-  public static TProtocolFactory clientProtocolFactory() {
-    return clientAccumuloProtocolFactory;
+  public static TProtocolFactory clientProtocolFactory(InstanceId instanceId) {
+    return AccumuloProtocolFactory.clientFactory(instanceId);
   }
 
   /**
@@ -93,8 +90,8 @@ public class ThriftUtil {
    *
    * @return The server-side {@link AccumuloProtocolFactory.AccumuloProtocol} for RPC
    */
-  public static TProtocolFactory serverProtocolFactory() {
-    return serverAccumuloProtocolFactory;
+  public static TProtocolFactory serverProtocolFactory(InstanceId instanceId) {
+    return AccumuloProtocolFactory.serverFactory(instanceId);
   }
 
   /**
@@ -110,8 +107,8 @@ public class ThriftUtil {
    * Create a Thrift client using the given factory and transport
    */
   public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
-      TTransport transport) {
-    return type.getClient(clientProtocolFactory().getProtocol(transport));
+      TTransport transport, InstanceId instanceId) {
+    return type.getClient(clientProtocolFactory(instanceId).getProtocol(transport));
   }
 
   /**
@@ -139,7 +136,7 @@ public class ThriftUtil {
       HostAndPort address, ClientContext context) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(type, address,
         context.getClientTimeoutInMillis(), context, true);
-    return createClient(type, transport);
+    return createClient(type, transport, context.getInstanceID());
   }
 
   /**
@@ -155,7 +152,7 @@ public class ThriftUtil {
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
     TTransport transport =
         context.getTransportPool().getTransport(type, address, timeout, context, true);
-    return createClient(type, transport);
+    return createClient(type, transport, context.getInstanceID());
   }
 
   public static void close(TServiceClient client, ClientContext context) {

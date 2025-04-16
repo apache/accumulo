@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.rpc;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
@@ -41,6 +42,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
   private static final long serialVersionUID = 1L;
 
   private final boolean isClient;
+  private final InstanceId instanceId;
 
   public static class AccumuloProtocol extends TCompactProtocol {
 
@@ -48,12 +50,14 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     static final byte PROTOCOL_VERSION = 1;
 
     private final boolean isClient;
+    private final InstanceId instanceId;
 
     private Span span = null;
     private Scope scope = null;
 
-    public AccumuloProtocol(TTransport transport, boolean isClient) {
+    public AccumuloProtocol(TTransport transport, InstanceId instanceId, boolean isClient) {
       super(transport);
+      this.instanceId = instanceId;
       this.isClient = isClient;
     }
 
@@ -95,6 +99,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       super.writeI32(MAGIC_NUMBER);
       super.writeByte(PROTOCOL_VERSION);
       super.writeString(Constants.VERSION);
+      super.writeString(this.instanceId.canonical());
 
       final boolean headerHasTrace = span != null && span.getSpanContext().isValid();
       super.writeBool(headerHasTrace);
@@ -167,6 +172,14 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       }
       validateAccumuloVersion(clientAccumuloVersion);
 
+      final String clientInstanceId;
+      try {
+        clientInstanceId = super.readString();
+      } catch (TException e) {
+        throw new TException("Failed to read instance id from header", e);
+      }
+      validateInstanceId(clientInstanceId);
+
       final boolean headerHasTrace;
       try {
         headerHasTrace = super.readBool();
@@ -229,34 +242,54 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       return version.substring(0, lastDotIndex);
     }
 
+    /**
+     * @throws TException if the given instance ID (client) does not match the current instance ID
+     *         (server)
+     */
+    private void validateInstanceId(String clientInstanceId) throws TException {
+      InstanceId clientId;
+      try {
+        clientId = InstanceId.of(clientInstanceId);
+      } catch (IllegalArgumentException e) {
+        throw new TException("Invalid instance ID in header: " + clientInstanceId, e);
+      }
+      if (!clientId.equals(this.instanceId)) {
+        throw new TException(
+            "Mismatched instance ID in header. Expected to match server instance ID: "
+                + this.instanceId + ", but got: " + clientId);
+      }
+    }
+
   }
 
   @Override
   public TProtocol getProtocol(TTransport trans) {
-    return new AccumuloProtocol(trans, isClient);
+    return new AccumuloProtocol(trans, this.instanceId, isClient);
   }
 
   /**
    * Creates a factory for producing AccumuloProtocol instances
    *
+   * @param instanceId
    * @param isClient true if this factory produces protocols for the client side, false for the
    *        server side
    */
-  private AccumuloProtocolFactory(boolean isClient) {
+  private AccumuloProtocolFactory(InstanceId instanceId, boolean isClient) {
     this.isClient = isClient;
+    this.instanceId = instanceId;
   }
 
   /**
    * Creates a client-side factory for use in clients making RPC calls
    */
-  public static AccumuloProtocolFactory clientFactory() {
-    return new AccumuloProtocolFactory(true);
+  public static AccumuloProtocolFactory clientFactory(InstanceId instanceId) {
+    return new AccumuloProtocolFactory(instanceId, true);
   }
 
   /**
    * Creates a server-side factory for use in servers receiving RPC calls
    */
-  public static AccumuloProtocolFactory serverFactory() {
-    return new AccumuloProtocolFactory(false);
+  public static AccumuloProtocolFactory serverFactory(InstanceId instanceId) {
+    return new AccumuloProtocolFactory(instanceId, false);
   }
 }

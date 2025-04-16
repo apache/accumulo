@@ -102,8 +102,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
         try (TTransport transport = ThriftUtil.createTransport(address, context)) {
-          TabletManagementClientService.Client client =
-              ThriftUtil.createClient(ThriftClientTypes.TABLET_MGMT, transport);
+          TabletManagementClientService.Client client = ThriftUtil
+              .createClient(ThriftClientTypes.TABLET_MGMT, transport, context.getInstanceID());
           loadTablet(client, lock, extent);
         }
       } else {
@@ -139,8 +139,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       long start = System.currentTimeMillis();
 
       try (TTransport transport = ThriftUtil.createTransport(address, context)) {
-        TabletServerClientService.Client client =
-            ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
+        TabletServerClientService.Client client = ThriftUtil
+            .createClient(ThriftClientTypes.TABLET_SERVER, transport, context.getInstanceID());
         TabletServerStatus status = client.getTabletServerStatus(context.rpcCreds());
         if (status != null) {
           status.setResponseTime(System.currentTimeMillis() - start);
