@@ -270,7 +270,7 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
   /**
    * Creates a factory for producing AccumuloProtocol instances
    *
-   * @param instanceId
+   * @param instanceId the instance ID of the client or server
    * @param isClient true if this factory produces protocols for the client side, false for the
    *        server side
    */
