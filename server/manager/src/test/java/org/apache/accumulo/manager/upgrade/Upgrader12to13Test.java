@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.manager.upgrade.Upgrader11to12.ZNAMESPACE_NAME;
 import static org.apache.accumulo.manager.upgrade.Upgrader12to13.ZTABLE_NAME;
 import static org.easymock.EasyMock.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;

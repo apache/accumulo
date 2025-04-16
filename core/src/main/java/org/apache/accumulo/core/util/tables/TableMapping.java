@@ -147,26 +147,29 @@ public class TableMapping {
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
         throw new IllegalStateException(zTableMapPath + " node should not be null");
-      } else {
-        Map<String,String> idToName = deserializeMap(data);
-        if (namespaceId.equals(Namespace.ACCUMULO.id())) {
-          for (TableId tid : AccumuloTable.allTableIds()) {
-            if (!idToName.containsKey(tid.canonical())) {
-              throw new IllegalStateException("Built-in tables are not present in map");
-            }
+      }
+      Map<String,String> idToName = deserializeMap(data);
+      if (namespaceId.equals(Namespace.ACCUMULO.id())) {
+        for (TableId tid : AccumuloTable.allTableIds()) {
+          if (!idToName.containsKey(tid.canonical())) {
+            throw new IllegalStateException("Built-in tables are not present in map");
           }
         }
-        var converted = ImmutableSortedMap.<TableId,String>naturalOrder();
-        var convertedReverse = ImmutableSortedMap.<String,TableId>naturalOrder();
-        idToName.forEach((idString, name) -> {
-          var id = TableId.of(idString);
-          converted.put(id, name);
-          convertedReverse.put(name, id);
-        });
-        currentTableMap = converted.build();
-        currentTableReverseMap = convertedReverse.build();
       }
+      var converted = ImmutableSortedMap.<TableId,String>naturalOrder();
+      var convertedReverse = ImmutableSortedMap.<String,TableId>naturalOrder();
+      idToName.forEach((idString, name) -> {
+        var id = TableId.of(idString);
+        converted.put(id, name);
+        convertedReverse.put(name, id);
+      });
+      currentTableMap = converted.build();
+      currentTableReverseMap = convertedReverse.build();
+
       lastMzxid = stat.getMzxid();
+    } else if (data == null) { // If namespace happens to be deleted
+      currentTableMap = emptySortedMap();
+      currentTableReverseMap = emptySortedMap();
     }
   }
 

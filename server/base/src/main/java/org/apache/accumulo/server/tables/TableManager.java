@@ -182,8 +182,6 @@ public class TableManager {
         throw e;
       }
     }
-    zoo.recursiveDelete(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE,
-        NodeMissingPolicy.SKIP);
     zoo.recursiveDelete(Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
   }
 

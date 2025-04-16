@@ -1101,7 +1101,8 @@ public class ClientContext implements AccumuloClient {
 
   public TableMapping getTableMapping(NamespaceId namespaceId) {
     ensureOpen();
-    return tableMappings.asMap().computeIfAbsent(namespaceId, id -> new TableMapping(this, id));
+    return tableMappings.asMap().computeIfAbsent(Objects.requireNonNull(namespaceId),
+        id -> new TableMapping(this, id));
   }
 
   public ClientTabletCache getTabletLocationCache(TableId tableId) {

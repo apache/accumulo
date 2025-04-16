@@ -30,7 +30,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -68,6 +67,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 //TODO when removing this class, also remove MetadataSchema.Upgrader12to13
@@ -415,7 +415,8 @@ public class Upgrader12to13 implements Upgrader {
       Map<String,Map<String,String>> mapOfTableMaps = new HashMap<>();
 
       for (String tableId : tableIds) {
-        var tableName = new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
+        var tableName =
+            new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
         var namespaceId = new String(
             zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
         mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
