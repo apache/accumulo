@@ -1463,7 +1463,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     EXISTING_TABLE_NAME.validate(tableName);
 
     TableId tableId = context.getTableId(tableName);
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
     try {
@@ -1510,7 +1510,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return;
     }
 
-    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableName.getBytes(UTF_8)));
+    List<ByteBuffer> args = Arrays.asList(ByteBuffer.wrap(tableId.canonical().getBytes(UTF_8)));
     Map<String,String> opts = new HashMap<>();
 
     try {
