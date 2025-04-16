@@ -125,8 +125,7 @@ public class AccumuloProtocolTest {
           (AccumuloProtocolFactory.AccumuloProtocol) AccumuloProtocolFactory.serverFactory()
               .getProtocol(transport);
 
-      assertDoesNotThrow(serverProtocol::validateHeader,
-          "Expected compatible version to pass validation");
+      serverProtocol.validateHeader();
     }
   }
 
