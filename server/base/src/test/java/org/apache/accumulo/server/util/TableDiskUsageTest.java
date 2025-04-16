@@ -21,7 +21,9 @@ package org.apache.accumulo.server.util;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,20 +33,15 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
-import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.Text;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -75,17 +72,20 @@ public class TableDiskUsageTest {
 
   @Test
   public void testSingleTableMultipleTablets() throws Exception {
-    final ServerContext client = EasyMock.createMock(ServerContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-    mockScan(client, scanner, 1);
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
-    Map<Key,Value> tableEntries = new HashMap<>();
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0002.rf"), 1024);
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName2, "C0003.rf"), 2048);
-    mockTableScan(scanner, tableEntries, tableId1);
+    List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), tableId1, 1024);
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName2, "C0003.rf"), tableId1, 2048);
+    mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
-    EasyMock.replay(client, scanner);
+    EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
@@ -97,25 +97,27 @@ public class TableDiskUsageTest {
     assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
     assertEquals(4096, firstResult.getValue());
 
-    EasyMock.verify(client, scanner);
+    EasyMock.verify(client, mockTabletsMetadata);
   }
 
   @Test
   public void testMultipleVolumes() throws Exception {
-    final ServerContext client = EasyMock.createMock(ServerContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-    mockScan(client, scanner, 1);
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
-    Map<Key,Value> tableEntries = new HashMap<>();
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0002.rf"), 1024);
-    appendFileMetadata(tableEntries, getTabletFile(volume2, tableId1, tabletName2, "C0003.rf"),
-        2048);
-    appendFileMetadata(tableEntries, getTabletFile(volume2, tableId1, tabletName2, "C0004.rf"),
-        10000);
-    mockTableScan(scanner, tableEntries, tableId1);
+    List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), tableId1, 1024);
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume2, tableId1, tabletName2, "C0003.rf"), tableId1, 2048);
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume2, tableId1, tabletName2, "C0004.rf"), tableId1, 10000);
+    mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
-    EasyMock.replay(client, scanner);
+    EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
@@ -126,24 +128,22 @@ public class TableDiskUsageTest {
     assertEquals(1, firstResult.getKey().size());
     assertEquals(14096, firstResult.getValue());
 
-    EasyMock.verify(client, scanner);
+    EasyMock.verify(client, mockTabletsMetadata);
   }
 
   @Test
   public void testMetadataTable() throws Exception {
-    final ServerContext client = EasyMock.createMock(ServerContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-
-    // Expect root table instead to be scanned
-    EasyMock.expect(client.createScanner(RootTable.NAME, Authorizations.EMPTY)).andReturn(scanner);
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, MetadataTable.ID);
 
-    Map<Key,Value> tableEntries = new HashMap<>();
-    appendFileMetadata(tableEntries,
-        getTabletFile(MetadataTable.ID, MetadataTable.NAME, "C0001.rf"), 1024);
-    mockTableScan(scanner, tableEntries, MetadataTable.ID);
+    List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, MetadataTable.ID, MetadataTable.NAME, "C0001.rf"), MetadataTable.ID,
+        1024);
+    mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
-    EasyMock.replay(client, scanner);
+    EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result =
         TableDiskUsage.getDiskUsage(tableSet(MetadataTable.ID), client);
@@ -154,21 +154,23 @@ public class TableDiskUsageTest {
         result.entrySet().stream().findFirst().orElseThrow();
     assertEquals(1024, firstResult.getValue());
 
-    EasyMock.verify(client, scanner);
+    EasyMock.verify(client, mockTabletsMetadata);
   }
 
   @Test
   public void testDuplicateFile() throws Exception {
-    final ServerContext client = EasyMock.createMock(ServerContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-    mockScan(client, scanner, 1);
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
-    Map<Key,Value> tableEntries = new HashMap<>();
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
-    appendFileMetadata(tableEntries, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
-    mockTableScan(scanner, tableEntries, tableId1);
+    List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+    appendFileMetadata(realTabletsMetadata,
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+    mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
-    EasyMock.replay(client, scanner);
+    EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
@@ -180,19 +182,19 @@ public class TableDiskUsageTest {
     assertTrue(firstResult.getKey().contains(getTableName(tableId1)));
     assertEquals(1024, firstResult.getValue());
 
-    EasyMock.verify(client, scanner);
+    EasyMock.verify(client, mockTabletsMetadata);
   }
 
   @Test
   public void testEmptyTable() throws Exception {
-    final ServerContext client = EasyMock.createMock(ServerContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-    mockScan(client, scanner, 1);
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
-    Map<Key,Value> tableEntries = new HashMap<>();
-    mockTableScan(scanner, tableEntries, tableId1);
+    List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
+    mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
-    EasyMock.replay(client, scanner);
+    EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result = TableDiskUsage.getDiskUsage(tableSet(tableId1), client);
 
@@ -203,34 +205,44 @@ public class TableDiskUsageTest {
     assertEquals(1, firstResult.getKey().size());
     assertEquals(0, firstResult.getValue());
 
-    EasyMock.verify(client, scanner);
+    EasyMock.verify(client, mockTabletsMetadata);
   }
 
   @Test
   public void testMultipleTables() throws Exception {
-    final ServerContext client = EasyMock.createMock(ServerContext.class);
-    final Scanner scanner = EasyMock.createMock(Scanner.class);
-    mockScan(client, scanner, 3);
+    final ClientContext client = EasyMock.createMock(ClientContext.class);
+    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
 
-    Map<Key,Value> tableEntries1 = new HashMap<>();
-    appendFileMetadata(tableEntries1, getTabletFile(tableId1, tabletName1, "C0001.rf"), 1024);
-    appendFileMetadata(tableEntries1, getTabletFile(tableId1, tabletName1, "C0002.rf"), 4096);
-    mockTableScan(scanner, tableEntries1, tableId1);
+    final TabletsMetadata mockTabletsMetadata1 = mockTabletsMetadata(client, tableId1);
+    List<TabletMetadata> realTabletsMetadata1 = new ArrayList<>();
+    appendFileMetadata(realTabletsMetadata1,
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+    appendFileMetadata(realTabletsMetadata1,
+        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), tableId1, 4096);
+    mockTabletsMetadataIter(mockTabletsMetadata1, realTabletsMetadata1.iterator());
 
-    Map<Key,Value> tableEntries2 = new HashMap<>();
-    appendFileMetadata(tableEntries2, getTabletFile(tableId2, tabletName2, "C0003.rf"), 2048);
-    appendFileMetadata(tableEntries2, getTabletFile(tableId2, tabletName2, "C0004.rf"), 3000);
-    mockTableScan(scanner, tableEntries2, tableId2);
+    final TabletsMetadata mockTabletsMetadata2 = mockTabletsMetadata(client, tableId2);
+    List<TabletMetadata> realTabletsMetadata2 = new ArrayList<>();
+    appendFileMetadata(realTabletsMetadata2,
+        getTabletFile(volume1, tableId2, tabletName2, "C0003.rf"), tableId2, 2048);
+    appendFileMetadata(realTabletsMetadata2,
+        getTabletFile(volume1, tableId2, tabletName2, "C0004.rf"), tableId2, 3000);
+    mockTabletsMetadataIter(mockTabletsMetadata2, realTabletsMetadata2.iterator());
 
-    Map<Key,Value> tableEntries3 = new HashMap<>();
+    final TabletsMetadata mockTabletsMetadata3 = mockTabletsMetadata(client, tableId3);
+    List<TabletMetadata> realTabletsMetadata3 = new ArrayList<>();
     // shared file
-    appendFileMetadata(tableEntries3, getTabletFile(tableId2, tabletName2, "C0003.rf"), 2048);
-    appendFileMetadata(tableEntries3, getTabletFile(tableId3, tabletName3, "C0005.rf"), 84520);
-    appendFileMetadata(tableEntries3, getTabletFile(tableId3, tabletName3, "C0006.rf"), 3000);
-    appendFileMetadata(tableEntries3, getTabletFile(tableId3, tabletName4, "C0007.rf"), 98456);
-    mockTableScan(scanner, tableEntries3, tableId3);
+    appendFileMetadata(realTabletsMetadata3,
+        getTabletFile(volume1, tableId2, tabletName2, "C0003.rf"), tableId2, 2048);
+    appendFileMetadata(realTabletsMetadata3,
+        getTabletFile(volume1, tableId3, tabletName3, "C0005.rf"), tableId3, 84520);
+    appendFileMetadata(realTabletsMetadata3,
+        getTabletFile(volume1, tableId3, tabletName3, "C0006.rf"), tableId3, 3000);
+    appendFileMetadata(realTabletsMetadata3,
+        getTabletFile(volume1, tableId3, tabletName4, "C0007.rf"), tableId3, 98456);
+    mockTabletsMetadataIter(mockTabletsMetadata3, realTabletsMetadata3.iterator());
 
-    EasyMock.replay(client, scanner);
+    EasyMock.replay(client, mockTabletsMetadata1, mockTabletsMetadata2, mockTabletsMetadata3);
 
     Map<SortedSet<String>,Long> result =
         TableDiskUsage.getDiskUsage(tableSet(tableId1, tableId2, tableId3), client);
@@ -252,7 +264,7 @@ public class TableDiskUsageTest {
     assertEquals(2048, result.get(tableNameSet(tableId2, tableId3)));
     assertEquals(185976, result.get(tableNameSet(tableId3)));
 
-    EasyMock.verify(client, scanner);
+    EasyMock.verify(client, mockTabletsMetadata1, mockTabletsMetadata2, mockTabletsMetadata3);
   }
 
   private static TreeSet<String> tableNameSet(TableId... tableIds) {
@@ -276,36 +288,41 @@ public class TableDiskUsageTest {
     return tableIdToNameMap.get(tableId);
   }
 
-  private static void appendFileMetadata(Map<Key,Value> tableEntries, TabletFile file, long size) {
-    tableEntries.put(
-        new Key(new Text(file.getTableId() + "<"),
-            MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.getMetaInsertText()),
-        new DataFileValue(size, 1).encodeAsValue());
+  private static void appendFileMetadata(List<TabletMetadata> realTabletsMetadata,
+      StoredTabletFile file, TableId id, long size) throws Exception {
+    Map<StoredTabletFile,DataFileValue> files = Map.of(file, new DataFileValue(size, 1));
+    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
+    EasyMock.expect(tm.getFilesMap()).andReturn(files);
+    EasyMock.replay(tm);
+    realTabletsMetadata.add(tm);
   }
 
-  private static TabletFile getTabletFile(String volume, TableId tableId, String tablet,
+  private static StoredTabletFile getTabletFile(String volume, TableId tableId, String tablet,
       String fileName) {
-    return new TabletFile(new Path(
-        volume + Constants.HDFS_TABLES_DIR + "/" + tableId + "/" + tablet + "/" + fileName));
+    return new StoredTabletFile(
+        volume + Constants.HDFS_TABLES_DIR + "/" + tableId + "/" + tablet + "/" + fileName);
   }
 
-  private static TabletFile getTabletFile(TableId tableId, String tablet, String fileName) {
-    return getTabletFile(volume1, tableId, tablet, fileName);
+  private TabletsMetadata mockTabletsMetadata(ClientContext client, TableId tableId)
+      throws Exception {
+    final Ample ample = EasyMock.createMock(Ample.class);
+    final TabletsMetadata.TableOptions tableOptions =
+        EasyMock.createMock(TabletsMetadata.TableOptions.class);
+    final TabletsMetadata.TableRangeOptions tableRangeOptions =
+        EasyMock.createMock(TabletsMetadata.TableRangeOptions.class);
+    final TabletsMetadata tabletsMetadata = EasyMock.createMock(TabletsMetadata.class);
+    EasyMock.expect(client.getAmple()).andReturn(ample);
+    EasyMock.expect(ample.readTablets()).andReturn(tableOptions);
+    EasyMock.expect(tableOptions.forTable(tableId)).andReturn(tableRangeOptions);
+    EasyMock.expect(tableRangeOptions.build()).andReturn(tabletsMetadata);
+    EasyMock.replay(ample, tableOptions, tableRangeOptions);
+    return tabletsMetadata;
   }
 
-  private void mockScan(ServerContext client, Scanner scanner, int times) throws Exception {
-    EasyMock.expect(client.createScanner(MetadataTable.NAME, Authorizations.EMPTY))
-        .andReturn(scanner).times(times);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
-  }
-
-  private void mockTableScan(Scanner scanner, Map<Key,Value> tableEntries, TableId tableId) {
-    scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-    EasyMock.expectLastCall().once();
-    scanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
-    EasyMock.expectLastCall().once();
-    EasyMock.expect(scanner.iterator()).andReturn(tableEntries.entrySet().iterator());
-    scanner.close();
-    EasyMock.expectLastCall().once();
+  private void mockTabletsMetadataIter(TabletsMetadata tabletsMetadata,
+      Iterator<TabletMetadata> tableEntries) {
+    EasyMock.expect(tabletsMetadata.iterator()).andReturn(tableEntries);
+    tabletsMetadata.close();
+    EasyMock.expectLastCall().andAnswer(() -> null);
   }
 }
