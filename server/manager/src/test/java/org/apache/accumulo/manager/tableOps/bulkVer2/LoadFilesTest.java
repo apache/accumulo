@@ -67,7 +67,6 @@ public class LoadFilesTest {
   }
 
   private static class CaptureLoader extends LoadFiles.Loader {
-
     private static class LoadResult {
       private final List<TabletMetadata> tablets;
       private final Files files;
@@ -85,7 +84,6 @@ public class LoadFilesTest {
       public Files getFiles() {
         return files;
       }
-
     }
 
     private final List<LoadResult> results = new ArrayList<>();
@@ -104,6 +102,8 @@ public class LoadFilesTest {
       return 0;
     }
 
+    @Override
+    public void close() {}
   }
 
   private TableId tid = TableId.of("1");
