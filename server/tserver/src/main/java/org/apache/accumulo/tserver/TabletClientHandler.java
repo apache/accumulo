@@ -1143,7 +1143,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
     }
 
     if (!canPerformSystemActions) {
-      log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
+      log.warn("Denied {} request from user: {}", request, credentials.getPrincipal());
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
