@@ -259,9 +259,7 @@ public class TraceUtil {
         setException(childSpan, t, true);
         throw t;
       } finally {
-        if (childSpan != null) {
-          childSpan.end();
-        }
+        childSpan.end();
       }
     };
     return wrapRpc(handler, instance);
