@@ -538,13 +538,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    try {
-      TabletClientHandler.checkPermission(security, context, server, credentials, null, "getScans");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to get active scans", e);
-      throw e;
-    }
-
+    TabletClientHandler.checkPermission(security, context, server, credentials, null, "getScans");
     return server.getSessionManager().getActiveScans();
   }
 

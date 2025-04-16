@@ -1129,13 +1129,9 @@ public class TabletClientHandler implements TabletClientService.Iface {
   static void checkPermission(SecurityOperation security, ServerContext context,
       TabletHostingServer server, TCredentials credentials, String lock, final String request)
       throws ThriftSecurityException {
+    boolean canPerformSystemActions = false;
     try {
-      log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
-      if (!security.canPerformSystemActions(credentials)) {
-        log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      canPerformSystemActions = security.canPerformSystemActions(credentials);
     } catch (ThriftSecurityException e) {
       log.warn("Got {} message from unauthenticatable user: {}", request, e.getUser());
       if (context.getCredentials().getToken().getClass().getName()
@@ -1146,11 +1142,19 @@ public class TabletClientHandler implements TabletClientService.Iface {
       throw e;
     }
 
+    if (!canPerformSystemActions) {
+      log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
     if (server.getLock() == null || !server.getLock().wasLockAcquired()) {
-      log.debug("Got {} message before my lock was acquired, ignoring...", request);
+      log.debug("Got {} message from user {} before my lock was acquired, ignoring...", request,
+          credentials.getPrincipal());
       throw new RuntimeException("Lock not acquired");
     }
 
+    log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
     if (server.getLock() != null && server.getLock().wasLockAcquired()
         && !server.getLock().isLocked()) {
       Halt.halt(1, () -> {
