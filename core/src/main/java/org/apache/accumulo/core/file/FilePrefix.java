@@ -27,17 +27,19 @@ import com.google.common.base.Preconditions;
 
 public enum FilePrefix {
 
-  ALL("*"),
-  MINOR_COMPACTION("F"),
-  BULK_IMPORT("I"),
-  MAJOR_COMPACTION("C"),
-  MAJOR_COMPACTION_ALL_FILES("A"),
-  MERGING_MINOR_COMPACTION("M");
+  ALL("*", false),
+  MINOR_COMPACTION("F", true),
+  BULK_IMPORT("I", true),
+  MAJOR_COMPACTION("C", true),
+  MAJOR_COMPACTION_ALL_FILES("A", true),
+  MERGING_MINOR_COMPACTION("M", false);
 
   final String prefix;
+  final boolean canCreateFiles;
 
-  FilePrefix(String prefix) {
+  FilePrefix(String prefix, boolean canCreateFiles) {
     this.prefix = prefix;
+    this.canCreateFiles = canCreateFiles;
   }
 
   public String toPrefix() {
@@ -47,9 +49,8 @@ public enum FilePrefix {
   public String createFileName(String fileName) {
     Objects.requireNonNull(fileName, "filename must be supplied");
     Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
-    if (this == ALL || this == MERGING_MINOR_COMPACTION) {
-      throw new IllegalStateException(
-          "Unable to create filename with ALL, MERGING_MINOR_COMPACTION, or UNKNOWN prefix");
+    if (!canCreateFiles) {
+      throw new IllegalStateException("Unable to create filename with prefix: " + prefix);
     }
     return prefix + fileName;
   }
@@ -58,20 +59,15 @@ public enum FilePrefix {
     Objects.requireNonNull(prefix, "prefix must be supplied");
     Preconditions.checkArgument(!prefix.isBlank(), "Empty prefix supplied");
     Preconditions.checkArgument(prefix.length() == 1, "Invalid prefix supplied: " + prefix);
-    switch (prefix.toUpperCase()) {
-      case "A":
-        return MAJOR_COMPACTION_ALL_FILES;
-      case "C":
-        return MAJOR_COMPACTION;
-      case "F":
-        return MINOR_COMPACTION;
-      case "I":
-        return BULK_IMPORT;
-      case "M":
-        return MERGING_MINOR_COMPACTION;
-      default:
-        throw new IllegalArgumentException("Unknown prefix type: " + prefix);
+    for (FilePrefix fp : values()) {
+      if (fp == ALL) {
+        continue;
+      }
+      if (fp.prefix.equals(prefix)) {
+        return fp;
+      }
     }
+    throw new IllegalArgumentException("Unknown prefix type: " + prefix);
   }
 
   public static FilePrefix fromFileName(String fileName) {
@@ -86,22 +82,22 @@ public enum FilePrefix {
   }
 
   public static EnumSet<FilePrefix> typesFromList(String list) {
-    final EnumSet<FilePrefix> dropCacheFilePrefixes;
+    final EnumSet<FilePrefix> result;
     if (!list.isBlank()) {
       if (list.contains("*")) {
-        dropCacheFilePrefixes = EnumSet.of(FilePrefix.ALL);
+        result = EnumSet.of(FilePrefix.ALL);
       } else {
         Set<FilePrefix> set = new HashSet<>();
         String[] prefixes = list.trim().split(",");
         for (String p : prefixes) {
           set.add(FilePrefix.fromPrefix(p.trim().toUpperCase()));
         }
-        dropCacheFilePrefixes = EnumSet.copyOf(set);
+        result = EnumSet.copyOf(set);
       }
     } else {
-      dropCacheFilePrefixes = EnumSet.noneOf(FilePrefix.class);
+      result = EnumSet.noneOf(FilePrefix.class);
     }
-    return dropCacheFilePrefixes;
+    return result;
   }
 
 }

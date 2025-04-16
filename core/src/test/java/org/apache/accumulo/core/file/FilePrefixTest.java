@@ -38,15 +38,15 @@ public class FilePrefixTest {
     assertThrows(NullPointerException.class, () -> FilePrefix.fromPrefix(null));
     assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix(""));
     assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix("AB"));
-    assertEquals(MAJOR_COMPACTION, FilePrefix.fromPrefix("c"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix("c"));
     assertEquals(MAJOR_COMPACTION, FilePrefix.fromPrefix("C"));
-    assertEquals(MAJOR_COMPACTION_ALL_FILES, FilePrefix.fromPrefix("a"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix("a"));
     assertEquals(MAJOR_COMPACTION_ALL_FILES, FilePrefix.fromPrefix("A"));
-    assertEquals(MINOR_COMPACTION, FilePrefix.fromPrefix("f"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix("f"));
     assertEquals(MINOR_COMPACTION, FilePrefix.fromPrefix("F"));
-    assertEquals(BULK_IMPORT, FilePrefix.fromPrefix("i"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix("i"));
     assertEquals(BULK_IMPORT, FilePrefix.fromPrefix("I"));
-    assertEquals(MERGING_MINOR_COMPACTION, FilePrefix.fromPrefix("m"));
+    assertThrows(IllegalArgumentException.class, () -> FilePrefix.fromPrefix("m"));
     assertEquals(MERGING_MINOR_COMPACTION, FilePrefix.fromPrefix("M"));
     assertThrows(IllegalArgumentException.class, () -> {
       FilePrefix.fromPrefix("B");
