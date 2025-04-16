@@ -346,10 +346,21 @@ public class FileCompactor implements Callable<CompactionStats> {
       // have compacted, or in the case of cloned tables where one
       // of the tables has compacted the input file but the other
       // has not.
-      String dropCachePrefixProperty =
+      final String dropCachePrefixProperty =
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
-      final EnumSet<FileTypePrefix> dropCacheFilePrefixes =
-          FileTypePrefix.typesFromList(dropCachePrefixProperty);
+      final EnumSet<FileTypePrefix> dropCacheFileTypes;
+      if (dropCachePrefixProperty.equalsIgnoreCase("ALL")) {
+        dropCacheFileTypes = EnumSet.allOf(FileTypePrefix.class);
+      } else if (dropCachePrefixProperty.equalsIgnoreCase("NON-IMPORT")) {
+        dropCacheFileTypes = EnumSet.of(FileTypePrefix.FLUSH, FileTypePrefix.FULL_COMPACTION,
+            FileTypePrefix.COMPACTION, FileTypePrefix.MERGING_MINOR_COMPACTION);
+      } else if (dropCachePrefixProperty.equalsIgnoreCase("NONE")) {
+        dropCacheFileTypes = EnumSet.noneOf(FileTypePrefix.class);
+      } else {
+        throw new IllegalArgumentException("Invalid value for property "
+            + Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND.getKey()
+            + " expected one of ALL, NONE, or NON-IMPORT");
+      }
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
@@ -376,13 +387,13 @@ public class FileCompactor implements Callable<CompactionStats> {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
           setLocalityGroup(entry.getKey());
           compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats,
-              dropCacheFilePrefixes);
+              dropCacheFileTypes);
           allColumnFamilies.addAll(entry.getValue());
         }
       }
 
       setLocalityGroup("");
-      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFilePrefixes);
+      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFileTypes);
 
       long t2 = System.currentTimeMillis();
 
@@ -480,7 +491,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         boolean dropCacheBehindCompactionInputFile = false;
-        if (dropCacheFilePrefixes.contains(FileTypePrefix.ALL)) {
+        if (dropCacheFilePrefixes.containsAll(EnumSet.allOf(FileTypePrefix.class))) {
           dropCacheBehindCompactionInputFile = true;
         } else {
           FileTypePrefix type = FileTypePrefix.fromFileName(mapFile.getFileName());

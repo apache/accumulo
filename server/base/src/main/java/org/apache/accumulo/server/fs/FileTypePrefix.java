@@ -18,27 +18,18 @@
  */
 package org.apache.accumulo.server.fs;
 
-import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public enum FileTypePrefix {
 
-  ALL("*"),
-  FLUSH("F"),
+  FLUSH(
+      "F"),
   BULK_IMPORT("I"),
   COMPACTION("C"),
   FULL_COMPACTION("A"),
-  MERGING_MINOR_COMPACTION("M"),
-  UNKNOWN("?");
-
-  private static final Logger LOG = LoggerFactory.getLogger(FileTypePrefix.class);
+  MERGING_MINOR_COMPACTION("M");
 
   private final String filePrefix;
 
@@ -53,32 +44,22 @@ public enum FileTypePrefix {
   public String createFileName(String fileName) {
     Objects.requireNonNull(fileName, "filename must be supplied");
     Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
-    if (this == ALL || this == MERGING_MINOR_COMPACTION || this == UNKNOWN) {
+    if (this == MERGING_MINOR_COMPACTION) {
       throw new IllegalStateException(
-          "Unable to create filename with ALL, MERGING_MINOR_COMPACTION, or UNKNOWN prefix");
+          "Unable to create filename with MERGING_MINOR_COMPACTION prefix");
     }
     return filePrefix + fileName;
   }
 
   public static FileTypePrefix fromPrefix(String prefix) {
     Objects.requireNonNull(prefix, "prefix must be supplied");
-    Preconditions.checkArgument(!prefix.isBlank(), "Empty prefix supplied");
-    Preconditions.checkArgument(prefix.length() == 1, "Invalid prefix supplied: " + prefix);
-    switch (prefix.toUpperCase()) {
-      case "A":
-        return FULL_COMPACTION;
-      case "C":
-        return COMPACTION;
-      case "F":
-        return FLUSH;
-      case "I":
-        return BULK_IMPORT;
-      case "M":
-        return MERGING_MINOR_COMPACTION;
-      default:
-        LOG.warn("Encountered unknown file prefix for file: {}", prefix);
-        return UNKNOWN;
+    for (FileTypePrefix fp : values()) {
+      if (fp.filePrefix.equals(prefix)) {
+        return fp;
+      }
     }
+    throw new IllegalArgumentException("Unknown prefix type: " + prefix);
+
   }
 
   public static FileTypePrefix fromFileName(String fileName) {
@@ -90,25 +71,6 @@ public enum FileTypePrefix {
           "Expected first character of file name to be upper case, name: " + fileName);
     }
     return fromPrefix(firstChar);
-  }
-
-  public static EnumSet<FileTypePrefix> typesFromList(String list) {
-    final EnumSet<FileTypePrefix> dropCacheFilePrefixes;
-    if (!list.isBlank()) {
-      if (list.contains("*")) {
-        dropCacheFilePrefixes = EnumSet.of(FileTypePrefix.ALL);
-      } else {
-        Set<FileTypePrefix> set = new HashSet<>();
-        String[] prefixes = list.trim().split(",");
-        for (String p : prefixes) {
-          set.add(FileTypePrefix.fromPrefix(p.trim().toUpperCase()));
-        }
-        dropCacheFilePrefixes = EnumSet.copyOf(set);
-      }
-    } else {
-      dropCacheFilePrefixes = EnumSet.noneOf(FileTypePrefix.class);
-    }
-    return dropCacheFilePrefixes;
   }
 
 }

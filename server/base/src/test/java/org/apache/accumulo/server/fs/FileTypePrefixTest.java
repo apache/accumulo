@@ -18,17 +18,13 @@
  */
 package org.apache.accumulo.server.fs;
 
-import static org.apache.accumulo.server.fs.FileTypePrefix.ALL;
 import static org.apache.accumulo.server.fs.FileTypePrefix.BULK_IMPORT;
 import static org.apache.accumulo.server.fs.FileTypePrefix.COMPACTION;
 import static org.apache.accumulo.server.fs.FileTypePrefix.FLUSH;
 import static org.apache.accumulo.server.fs.FileTypePrefix.FULL_COMPACTION;
 import static org.apache.accumulo.server.fs.FileTypePrefix.MERGING_MINOR_COMPACTION;
-import static org.apache.accumulo.server.fs.FileTypePrefix.UNKNOWN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-
-import java.util.EnumSet;
 
 import org.junit.jupiter.api.Test;
 
@@ -38,8 +34,6 @@ public class FileTypePrefixTest {
   public void testCreateFileName() {
     assertThrows(NullPointerException.class, () -> FLUSH.createFileName(null));
     assertThrows(IllegalArgumentException.class, () -> FLUSH.createFileName(""));
-    assertThrows(IllegalStateException.class, () -> ALL.createFileName("file.rf"));
-    assertThrows(IllegalStateException.class, () -> UNKNOWN.createFileName("file.rf"));
     assertThrows(IllegalStateException.class,
         () -> MERGING_MINOR_COMPACTION.createFileName("file.rf"));
     assertEquals("Afile.rf", FULL_COMPACTION.createFileName("file.rf"));
@@ -53,16 +47,16 @@ public class FileTypePrefixTest {
     assertThrows(NullPointerException.class, () -> FileTypePrefix.fromPrefix(null));
     assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix(""));
     assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("AB"));
-    assertEquals(UNKNOWN, FileTypePrefix.fromPrefix("*"));
-    assertEquals(COMPACTION, FileTypePrefix.fromPrefix("c"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("*"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("c"));
     assertEquals(COMPACTION, FileTypePrefix.fromPrefix("C"));
-    assertEquals(FULL_COMPACTION, FileTypePrefix.fromPrefix("a"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("a"));
     assertEquals(FULL_COMPACTION, FileTypePrefix.fromPrefix("A"));
-    assertEquals(FLUSH, FileTypePrefix.fromPrefix("f"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("f"));
     assertEquals(FLUSH, FileTypePrefix.fromPrefix("F"));
-    assertEquals(BULK_IMPORT, FileTypePrefix.fromPrefix("i"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("i"));
     assertEquals(BULK_IMPORT, FileTypePrefix.fromPrefix("I"));
-    assertEquals(MERGING_MINOR_COMPACTION, FileTypePrefix.fromPrefix("m"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("m"));
     assertEquals(MERGING_MINOR_COMPACTION, FileTypePrefix.fromPrefix("M"));
   }
 
@@ -70,7 +64,7 @@ public class FileTypePrefixTest {
   public void fromFileName() {
     assertThrows(NullPointerException.class, () -> FileTypePrefix.fromFileName(null));
     assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromFileName(""));
-    assertEquals(UNKNOWN, FileTypePrefix.fromFileName("*file.rf"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromFileName("*file.rf"));
     assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromFileName("cfile.rf"));
     assertEquals(COMPACTION, FileTypePrefix.fromFileName("Cfile.rf"));
     assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromFileName("afile.rf"));
@@ -82,14 +76,6 @@ public class FileTypePrefixTest {
     assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromFileName("mfile.rf"));
     assertEquals(MERGING_MINOR_COMPACTION, FileTypePrefix.fromFileName("Mfile.rf"));
 
-  }
-
-  @Test
-  public void testFromList() {
-    assertEquals(EnumSet.noneOf(FileTypePrefix.class), FileTypePrefix.typesFromList(""));
-    assertEquals(EnumSet.of(ALL), FileTypePrefix.typesFromList("*"));
-    assertEquals(EnumSet.of(ALL), FileTypePrefix.typesFromList("*, A"));
-    assertEquals(EnumSet.of(COMPACTION, FULL_COMPACTION), FileTypePrefix.typesFromList("C, A"));
   }
 
 }
