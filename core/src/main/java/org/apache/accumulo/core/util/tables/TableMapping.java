@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.clientImpl.NamespaceMapping.serializeMap;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -197,6 +198,12 @@ public class TableMapping {
   public SortedMap<TableId,String> getIdToNameMap() {
     update(namespaceId);
     return currentTableMap;
+  }
+
+  public String idToNameMapToString() {
+    return currentTableMap.entrySet().stream()
+            .map(e -> e.getKey() + " -> " + e.getValue())
+            .collect(Collectors.joining(", ", "{", "}"));
   }
 
   public SortedMap<String,TableId> getNameToIdMap() {
