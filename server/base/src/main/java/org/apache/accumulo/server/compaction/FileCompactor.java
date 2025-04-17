@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -347,10 +348,10 @@ public class FileCompactor implements Callable<CompactionStats> {
       // have compacted, or in the case of cloned tables where one
       // of the tables has compacted the input file but the other
       // has not.
-      String dropCachePrefixProperty =
+      final String dropCachePrefixProperty =
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
-      final EnumSet<FilePrefix> dropCacheFilePrefixes =
-          FilePrefix.typesFromList(dropCachePrefixProperty);
+      final EnumSet<FilePrefix> dropCacheFileTypes =
+          ConfigurationTypeHelper.getDropCacheBehindFilePrefixes(dropCachePrefixProperty);
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
@@ -378,13 +379,13 @@ public class FileCompactor implements Callable<CompactionStats> {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
           setLocalityGroup(entry.getKey());
           compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats,
-              dropCacheFilePrefixes);
+              dropCacheFileTypes);
           allColumnFamilies.addAll(entry.getValue());
         }
       }
 
       setLocalityGroup("");
-      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFilePrefixes);
+      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFileTypes);
 
       long t2 = System.currentTimeMillis();
 
@@ -483,7 +484,7 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         boolean dropCacheBehindCompactionInputFile = false;
-        if (dropCacheFilePrefixes.contains(FilePrefix.ALL)) {
+        if (dropCacheFilePrefixes.containsAll(EnumSet.allOf(FilePrefix.class))) {
           dropCacheBehindCompactionInputFile = true;
         } else {
           FilePrefix type = FilePrefix.fromFileName(dataFile.getFileName());

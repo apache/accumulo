@@ -311,4 +311,10 @@ public class PropertyTypeTest extends WithTestNames {
     // nothing to test, this type is used for a deprecated property and will accept any prop value.
   }
 
+  @Test
+  public void testTypeDROP_CACHE_SELECTION() {
+    valid("all", "ALL", "NON-import", "NON-IMPORT", "non-import", "none", "NONE", "nOnE");
+    invalid(null, "", "AL L", " ALL", "non import", "     ");
+  }
+
 }

@@ -18,52 +18,63 @@
  */
 package org.apache.accumulo.core.file;
 
-import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 
 import com.google.common.base.Preconditions;
 
 public enum FilePrefix {
 
-  ALL("*", false),
-  MINOR_COMPACTION("F", true),
-  BULK_IMPORT("I", true),
-  MAJOR_COMPACTION("C", true),
-  MAJOR_COMPACTION_ALL_FILES("A", true),
-  MERGING_MINOR_COMPACTION("M", false);
+  /**
+   * The prefix used when an RFile is first written from memory as the result of a minor compaction
+   * (a.k.a. 'flush')
+   */
+  FLUSH('F'),
 
-  final String prefix;
-  final boolean canCreateFiles;
+  /**
+   * The prefix for imported files as the result of a bulk import
+   */
+  BULK_IMPORT('I'),
 
-  FilePrefix(String prefix, boolean canCreateFiles) {
-    this.prefix = prefix;
-    this.canCreateFiles = canCreateFiles;
+  /**
+   * The prefix used for files created as the result of a routine major compaction
+   */
+  COMPACTION('C'),
+
+  /**
+   * The prefix used for files created as the result of a major compaction that included all files
+   * for a tablet
+   */
+  FULL_COMPACTION('A'),
+
+  /**
+   * The prefix used for files created as the result of a merging minor compaction (a removed
+   * feature, but files may still be present with the name)
+   */
+  MERGING_MINOR_COMPACTION('M');
+
+  private final char filePrefix;
+
+  private FilePrefix(char prefix) {
+    this.filePrefix = prefix;
   }
 
-  public String toPrefix() {
-    return this.prefix;
+  public char getPrefix() {
+    return filePrefix;
   }
 
-  public String createFileName(String fileName) {
-    Objects.requireNonNull(fileName, "filename must be supplied");
-    Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
-    if (!canCreateFiles) {
-      throw new IllegalStateException("Unable to create filename with prefix: " + prefix);
+  public String createFileName(String fileSuffix) {
+    Objects.requireNonNull(fileSuffix, "fileSuffix must be supplied");
+    Preconditions.checkArgument(!fileSuffix.isBlank(), "Empty fileSuffix supplied");
+    if (this == MERGING_MINOR_COMPACTION) {
+      throw new IllegalStateException(
+          "Unable to create filename for MERGING_MINOR_COMPACTION file type");
     }
-    return prefix + fileName;
+    return filePrefix + fileSuffix;
   }
 
-  public static FilePrefix fromPrefix(String prefix) {
-    Objects.requireNonNull(prefix, "prefix must be supplied");
-    Preconditions.checkArgument(!prefix.isBlank(), "Empty prefix supplied");
-    Preconditions.checkArgument(prefix.length() == 1, "Invalid prefix supplied: " + prefix);
+  public static FilePrefix fromPrefix(char prefix) {
     for (FilePrefix fp : values()) {
-      if (fp == ALL) {
-        continue;
-      }
-      if (fp.prefix.equals(prefix)) {
+      if (fp.filePrefix == prefix) {
         return fp;
       }
     }
@@ -73,31 +84,12 @@ public enum FilePrefix {
   public static FilePrefix fromFileName(String fileName) {
     Objects.requireNonNull(fileName, "file name must be supplied");
     Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
-    String firstChar = fileName.substring(0, 1);
-    if (!firstChar.equals(firstChar.toUpperCase())) {
+    char firstChar = fileName.charAt(0);
+    if (!Character.isUpperCase(firstChar)) {
       throw new IllegalArgumentException(
           "Expected first character of file name to be upper case, name: " + fileName);
     }
     return fromPrefix(firstChar);
-  }
-
-  public static EnumSet<FilePrefix> typesFromList(String list) {
-    final EnumSet<FilePrefix> result;
-    if (!list.isBlank()) {
-      if (list.contains("*")) {
-        result = EnumSet.of(FilePrefix.ALL);
-      } else {
-        Set<FilePrefix> set = new HashSet<>();
-        String[] prefixes = list.trim().split(",");
-        for (String p : prefixes) {
-          set.add(FilePrefix.fromPrefix(p.trim().toUpperCase()));
-        }
-        result = EnumSet.copyOf(set);
-      }
-    } else {
-      result = EnumSet.noneOf(FilePrefix.class);
-    }
-    return result;
   }
 
 }
