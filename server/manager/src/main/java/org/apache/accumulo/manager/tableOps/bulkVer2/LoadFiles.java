@@ -173,8 +173,7 @@ class LoadFiles extends ManagerRepo {
 
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
     // active. The purpose of this map is to group load request by tablet servers in order to do
-    // less
-    // RPCs. Less RPCs will result in less calls to Zookeeper.
+    // less RPCs. Less RPCs will result in less calls to Zookeeper.
     Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>> loadQueue;
     private int queuedDataSize = 0;
     // holds load messages that a background thread is working on sending
@@ -233,12 +232,10 @@ class LoadFiles extends ManagerRepo {
           // side. This allows multiple threads on a single tserver to do metadata writes for this
           // bulk import.
           int neededConnections = Math.min(maxConnections, tabletFiles.size());
-          if (log.isTraceEnabled()) {
-            if (neededConnections == maxConnections) {
-              log.trace(
-                  "{} Hitting max connection limit set by property {}. Desired connection count {}",
-                  fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), tabletFiles.size());
-            }
+          if (log.isTraceEnabled() && tabletFiles.size() > maxConnections) {
+            log.trace(
+                "{} Hitting max connection limit set by property {}. Desired connection count {}",
+                fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), tabletFiles.size());
           }
           List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks = new ArrayList<>(neededConnections);
           for (int i = 0; i < neededConnections; i++) {
@@ -314,6 +311,11 @@ class LoadFiles extends ManagerRepo {
       }
     }
 
+    /**
+     * @param threshold if the amount queued is over this amount then begin asynchronous flush to
+     *        tservers. When this is zero the method will block until all previously queued work is
+     *        done.
+     */
     private void sendQueued(int threshold) {
       if (queuedDataSize > threshold || threshold == 0) {
         if (prevRpcTask != null) {
