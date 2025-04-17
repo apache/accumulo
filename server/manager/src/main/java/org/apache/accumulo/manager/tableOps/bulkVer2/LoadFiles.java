@@ -172,11 +172,12 @@ class LoadFiles extends ManagerRepo {
     private CompletableFuture<Void> prevRpcTask;
 
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
-    // active. The purpose of this map is to group load request by tablet servers inorder to do less
+    // active. The purpose of this map is to group load request by tablet servers in order to do
+    // less
     // RPCs. Less RPCs will result in less calls to Zookeeper.
     Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>> loadQueue;
     private int queuedDataSize = 0;
-    // holds load messages that a backround thread is working on sending
+    // holds load messages that a background thread is working on sending
     final AtomicReference<
         Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>>> backgroundQueue =
             new AtomicReference<>();
@@ -232,6 +233,13 @@ class LoadFiles extends ManagerRepo {
           // side. This allows multiple threads on a single tserver to do metadata writes for this
           // bulk import.
           int neededConnections = Math.min(maxConnections, tabletFiles.size());
+          if (log.isTraceEnabled()) {
+            if (neededConnections == maxConnections) {
+              log.trace(
+                  "{} Hitting max connection limit set by property {}. Desired connection count {}",
+                  fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), tabletFiles.size());
+            }
+          }
           List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks = new ArrayList<>(neededConnections);
           for (int i = 0; i < neededConnections; i++) {
             chunks.add(new HashMap<>());
@@ -306,13 +314,12 @@ class LoadFiles extends ManagerRepo {
       }
     }
 
-    private void sendQueued(int threshhold) {
-      if (queuedDataSize > threshhold || threshhold == 0) {
+    private void sendQueued(int threshold) {
+      if (queuedDataSize > threshold || threshold == 0) {
         if (prevRpcTask != null) {
           // wait for the previous task
           prevRpcTask.join();
         }
-
         Preconditions.checkState(backgroundQueue.compareAndSet(null, loadQueue));
         // used completable future because its join() method does not throw a checked exception
         prevRpcTask = CompletableFuture.runAsync(this::sendBackground, rpcExecutor);
@@ -321,7 +328,7 @@ class LoadFiles extends ManagerRepo {
         loadQueue = new HashMap<>();
         queuedDataSize = 0;
       }
-      if (threshhold == 0) {
+      if (threshold == 0) {
         prevRpcTask.join();
         prevRpcTask = null;
       }
