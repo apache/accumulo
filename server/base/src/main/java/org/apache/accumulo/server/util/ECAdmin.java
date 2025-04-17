@@ -19,7 +19,6 @@
 package org.apache.accumulo.server.util;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -167,7 +166,6 @@ public class ECAdmin implements KeywordExecutable {
 
   private void runningCompactions(ServerContext context, boolean details, boolean json) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    Map<String,TExternalCompaction> runningCompactionsMap = new HashMap<>();
 
     try {
       coordinatorClient = getCoordinatorClient(context);
@@ -181,13 +179,9 @@ public class ECAdmin implements KeywordExecutable {
         return;
       }
 
-      for (Map.Entry<String,TExternalCompaction> entry : running.getCompactions().entrySet()) {
-        runningCompactionsMap.put(entry.getKey(), entry.getValue());
-      }
-
       List<Map<String,Object>> jsonOutput = new ArrayList<>();
 
-      for (Map.Entry<String,TExternalCompaction> entry : runningCompactionsMap.entrySet()) {
+      for (Map.Entry<String,TExternalCompaction> entry : running.getCompactions().entrySet()) {
         TExternalCompaction ec = entry.getValue();
         if (ec == null) {
           continue;
