@@ -225,4 +225,10 @@ public class PropertyTypeTest extends WithTestNames {
     invalid(null, "RF", "map", "", "MAP", "rF", "Rf", " rf ");
   }
 
+  @Test
+  public void testTypeDROP_CACHE_SELECTION() {
+    valid("all", "ALL", "NON-import", "NON-IMPORT", "non-import", "none", "NONE", "nOnE");
+    invalid(null, "", "AL L", " ALL", "non import", "     ");
+  }
+
 }

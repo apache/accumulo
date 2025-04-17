@@ -24,37 +24,56 @@ import com.google.common.base.Preconditions;
 
 public enum FileTypePrefix {
 
-  FLUSH(
-      "F"),
-  BULK_IMPORT("I"),
-  COMPACTION("C"),
-  FULL_COMPACTION("A"),
-  MERGING_MINOR_COMPACTION("M");
+  /**
+   * The prefix used when an RFile is first written from memory as the result of a minor compaction
+   * (a.k.a. 'flush')
+   */
+  FLUSH('F'),
 
-  private final String filePrefix;
+  /**
+   * The prefix for imported files as the result of a bulk import
+   */
+  BULK_IMPORT('I'),
 
-  private FileTypePrefix(String prefix) {
+  /**
+   * The prefix used for files created as the result of a routine major compaction
+   */
+  COMPACTION('C'),
+
+  /**
+   * The prefix used for files created as the result of a major compaction that included all files
+   * for a tablet
+   */
+  FULL_COMPACTION('A'),
+
+  /**
+   * The prefix used for files created as the result of a merging minor compaction (a removed
+   * feature, but files may still be present with the name)
+   */
+  MERGING_MINOR_COMPACTION('M');
+
+  private final char filePrefix;
+
+  private FileTypePrefix(char prefix) {
     this.filePrefix = prefix;
   }
 
-  public String getPrefix() {
+  public char getPrefix() {
     return filePrefix;
   }
 
-  public String createFileName(String fileName) {
-    Objects.requireNonNull(fileName, "filename must be supplied");
-    Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
+  public String createFileName(String fileSuffix) {
+    Objects.requireNonNull(fileSuffix, "fileSuffix must be supplied");
+    Preconditions.checkArgument(!fileSuffix.isBlank(), "Empty fileSuffix supplied");
     if (this == MERGING_MINOR_COMPACTION) {
-      throw new IllegalStateException(
-          "Unable to create filename with MERGING_MINOR_COMPACTION prefix");
+      throw new IllegalStateException("Unable to create filename for " + this.name());
     }
-    return filePrefix + fileName;
+    return filePrefix + fileSuffix;
   }
 
-  public static FileTypePrefix fromPrefix(String prefix) {
-    Objects.requireNonNull(prefix, "prefix must be supplied");
+  public static FileTypePrefix fromPrefix(char prefix) {
     for (FileTypePrefix fp : values()) {
-      if (fp.filePrefix.equals(prefix)) {
+      if (fp.filePrefix == prefix) {
         return fp;
       }
     }
@@ -65,8 +84,8 @@ public enum FileTypePrefix {
   public static FileTypePrefix fromFileName(String fileName) {
     Objects.requireNonNull(fileName, "file name must be supplied");
     Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
-    String firstChar = fileName.substring(0, 1);
-    if (!firstChar.equals(firstChar.toUpperCase())) {
+    char firstChar = fileName.charAt(0);
+    if (!Character.isUpperCase(firstChar)) {
       throw new IllegalArgumentException(
           "Expected first character of file name to be upper case, name: " + fileName);
     }

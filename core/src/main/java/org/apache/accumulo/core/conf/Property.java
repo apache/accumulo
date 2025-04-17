@@ -1064,7 +1064,7 @@ public enum Property {
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
   TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND("table.compaction.input.drop.cache", "ALL",
-      PropertyType.STRING,
+      PropertyType.DROP_CACHE_SELECTION,
       "FSDataInputStream.setDropBehind(true) is set on compaction input streams"
           + " for the specified type of files. This tells the DataNode to advise the OS"
           + " that it does not need to keep blocks for the associated file in the page cache."

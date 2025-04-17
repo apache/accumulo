@@ -44,20 +44,17 @@ public class FileTypePrefixTest {
 
   @Test
   public void testFromPrefix() {
-    assertThrows(NullPointerException.class, () -> FileTypePrefix.fromPrefix(null));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix(""));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("AB"));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("*"));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("c"));
-    assertEquals(COMPACTION, FileTypePrefix.fromPrefix("C"));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("a"));
-    assertEquals(FULL_COMPACTION, FileTypePrefix.fromPrefix("A"));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("f"));
-    assertEquals(FLUSH, FileTypePrefix.fromPrefix("F"));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("i"));
-    assertEquals(BULK_IMPORT, FileTypePrefix.fromPrefix("I"));
-    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix("m"));
-    assertEquals(MERGING_MINOR_COMPACTION, FileTypePrefix.fromPrefix("M"));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix('*'));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix('c'));
+    assertEquals(COMPACTION, FileTypePrefix.fromPrefix('C'));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix('a'));
+    assertEquals(FULL_COMPACTION, FileTypePrefix.fromPrefix('A'));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix('f'));
+    assertEquals(FLUSH, FileTypePrefix.fromPrefix('F'));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix('i'));
+    assertEquals(BULK_IMPORT, FileTypePrefix.fromPrefix('I'));
+    assertThrows(IllegalArgumentException.class, () -> FileTypePrefix.fromPrefix('m'));
+    assertEquals(MERGING_MINOR_COMPACTION, FileTypePrefix.fromPrefix('M'));
   }
 
   @Test
