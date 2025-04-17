@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileOperations.ReaderBuilder;
 import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -71,7 +73,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileTypePrefix;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.problems.ProblemReport;
@@ -348,19 +349,8 @@ public class FileCompactor implements Callable<CompactionStats> {
       // has not.
       final String dropCachePrefixProperty =
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
-      final EnumSet<FileTypePrefix> dropCacheFileTypes;
-      if (dropCachePrefixProperty.equalsIgnoreCase("ALL")) {
-        dropCacheFileTypes = EnumSet.allOf(FileTypePrefix.class);
-      } else if (dropCachePrefixProperty.equalsIgnoreCase("NON-IMPORT")) {
-        dropCacheFileTypes = EnumSet.of(FileTypePrefix.FLUSH, FileTypePrefix.FULL_COMPACTION,
-            FileTypePrefix.COMPACTION, FileTypePrefix.MERGING_MINOR_COMPACTION);
-      } else if (dropCachePrefixProperty.equalsIgnoreCase("NONE")) {
-        dropCacheFileTypes = EnumSet.noneOf(FileTypePrefix.class);
-      } else {
-        throw new IllegalArgumentException("Invalid value for property "
-            + Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND.getKey()
-            + " expected one of ALL, NONE, or NON-IMPORT");
-      }
+      final EnumSet<FilePrefix> dropCacheFileTypes =
+          ConfigurationTypeHelper.getDropCacheBehindFilePrefixes(dropCachePrefixProperty);
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
@@ -478,7 +468,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
-      ArrayList<FileSKVIterator> readers, EnumSet<FileTypePrefix> dropCacheFilePrefixes)
+      ArrayList<FileSKVIterator> readers, EnumSet<FilePrefix> dropCacheFilePrefixes)
       throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
@@ -491,10 +481,10 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         boolean dropCacheBehindCompactionInputFile = false;
-        if (dropCacheFilePrefixes.containsAll(EnumSet.allOf(FileTypePrefix.class))) {
+        if (dropCacheFilePrefixes.containsAll(EnumSet.allOf(FilePrefix.class))) {
           dropCacheBehindCompactionInputFile = true;
         } else {
-          FileTypePrefix type = FileTypePrefix.fromFileName(mapFile.getFileName());
+          FilePrefix type = FilePrefix.fromFileName(mapFile.getFileName());
           if (dropCacheFilePrefixes.contains(type)) {
             dropCacheBehindCompactionInputFile = true;
           }
@@ -549,8 +539,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
-      EnumSet<FileTypePrefix> dropCacheFilePrefixes)
-      throws IOException, CompactionCanceledException {
+      EnumSet<FilePrefix> dropCacheFilePrefixes) throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.fs;
+package org.apache.accumulo.core.file;
 
 import java.util.Objects;
 
 import com.google.common.base.Preconditions;
 
-public enum FileTypePrefix {
+public enum FilePrefix {
 
   /**
    * The prefix used when an RFile is first written from memory as the result of a minor compaction
@@ -54,7 +54,7 @@ public enum FileTypePrefix {
 
   private final char filePrefix;
 
-  private FileTypePrefix(char prefix) {
+  private FilePrefix(char prefix) {
     this.filePrefix = prefix;
   }
 
@@ -66,13 +66,14 @@ public enum FileTypePrefix {
     Objects.requireNonNull(fileSuffix, "fileSuffix must be supplied");
     Preconditions.checkArgument(!fileSuffix.isBlank(), "Empty fileSuffix supplied");
     if (this == MERGING_MINOR_COMPACTION) {
-      throw new IllegalStateException("Unable to create filename for " + this.name());
+      throw new IllegalStateException(
+          "Unable to create filename for MERGING_MINOR_COMPACTION file type");
     }
     return filePrefix + fileSuffix;
   }
 
-  public static FileTypePrefix fromPrefix(char prefix) {
-    for (FileTypePrefix fp : values()) {
+  public static FilePrefix fromPrefix(char prefix) {
+    for (FilePrefix fp : values()) {
       if (fp.filePrefix == prefix) {
         return fp;
       }
@@ -81,7 +82,7 @@ public enum FileTypePrefix {
 
   }
 
-  public static FileTypePrefix fromFileName(String fileName) {
+  public static FilePrefix fromFileName(String fileName) {
     Objects.requireNonNull(fileName, "file name must be supplied");
     Preconditions.checkArgument(!fileName.isBlank(), "Empty filename supplied");
     char firstChar = fileName.charAt(0);
