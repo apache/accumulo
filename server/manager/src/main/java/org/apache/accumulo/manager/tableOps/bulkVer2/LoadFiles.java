@@ -234,8 +234,8 @@ class LoadFiles extends ManagerRepo {
           int neededConnections = Math.min(maxConnections, tabletFiles.size());
           if (log.isTraceEnabled() && tabletFiles.size() > maxConnections) {
             log.trace(
-                "{} Hitting max connection limit set by property {}. Desired connection count {}",
-                fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), tabletFiles.size());
+                "{} Hitting max connection limit set by property {} for {}. Desired connection count {}",
+                fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), server, tabletFiles.size());
           }
           List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks = new ArrayList<>(neededConnections);
           for (int i = 0; i < neededConnections; i++) {
