@@ -1103,7 +1103,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     var mapping = tableMappings.asMap().computeIfAbsent(Objects.requireNonNull(namespaceId),
         id -> new TableMapping(this, id));
-    log.trace("Created new TableMapping for {}: {}", namespaceId, mapping.idToNameMapToString());
+    log.trace("Got table mapping for namespaceId {}: {}", namespaceId, mapping);
     return mapping;
   }
 

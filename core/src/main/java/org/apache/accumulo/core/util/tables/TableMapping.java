@@ -25,7 +25,6 @@ import static org.apache.accumulo.core.clientImpl.NamespaceMapping.serializeMap;
 
 import java.util.Map;
 import java.util.SortedMap;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class TableMapping {
@@ -134,7 +134,7 @@ public class TableMapping {
         throw new AcceptableThriftTableOperationException(null, newName, TableOperation.RENAME,
             TableOperationExceptionType.EXISTS, "Table name already exists");
       }
-      tables.put(namespaceId.canonical(), newName);
+      tables.put(tableId.canonical(), newName);
       return serializeMap(tables);
     });
   }
@@ -200,15 +200,15 @@ public class TableMapping {
     return currentTableMap;
   }
 
-  public String idToNameMapToString() {
-    return currentTableMap.entrySet().stream()
-            .map(e -> e.getKey() + " -> " + e.getValue())
-            .collect(Collectors.joining(", ", "{", "}"));
-  }
-
   public SortedMap<String,TableId> getNameToIdMap() {
     update(namespaceId);
     return currentTableReverseMap;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(getClass()).add("namespaceId", namespaceId)
+        .add("currentTableMap", currentTableMap).toString();
   }
 
 }
