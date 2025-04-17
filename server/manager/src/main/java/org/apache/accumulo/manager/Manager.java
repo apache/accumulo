@@ -133,7 +133,7 @@ import org.apache.accumulo.server.rpc.HighlyAvailableServiceWrapper;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
@@ -182,7 +182,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   private final Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
-  final SecurityOperation security;
+  final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
@@ -1423,7 +1423,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     ThreadPools.watchNonCriticalScheduledTask(future);
 
     // checking stored user hashes if any of them uses an outdated algorithm
-    security.validateStoredUserCreditentials();
+    security.validateStoredUserCredentials();
 
     // The manager is fully initialized. Clients are allowed to connect now.
     managerInitialized.set(true);

@@ -18,8 +18,9 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.util.Collections.singletonList;
+
 import java.nio.ByteBuffer;
-import java.util.Collections;
 
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -28,7 +29,6 @@ import org.apache.accumulo.core.security.AuthorizationContainer;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
-import org.apache.accumulo.server.security.SecurityOperation;
 
 @SuppressWarnings("deprecation")
 public class TservConstraintEnv
@@ -36,12 +36,10 @@ public class TservConstraintEnv
 
   private final ServerContext context;
   private final TCredentials credentials;
-  private final SecurityOperation security;
   private KeyExtent ke;
 
-  TservConstraintEnv(ServerContext context, SecurityOperation secOp, TCredentials credentials) {
+  TservConstraintEnv(ServerContext context, TCredentials credentials) {
     this.context = context;
-    this.security = secOp;
     this.credentials = credentials;
   }
 
@@ -66,8 +64,8 @@ public class TservConstraintEnv
 
   @Override
   public AuthorizationContainer getAuthorizationsContainer() {
-    return auth -> security.authenticatedUserHasAuthorizations(credentials, Collections
-        .singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
+    return auth -> context.getSecurityOperation().authenticatedUserHasAuthorizations(credentials,
+        singletonList(ByteBuffer.wrap(auth.getBackingArray(), auth.offset(), auth.length())));
   }
 
   @Override
