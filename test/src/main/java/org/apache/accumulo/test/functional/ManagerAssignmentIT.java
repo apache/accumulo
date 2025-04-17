@@ -121,24 +121,12 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   @Test
   public void test() throws Exception {
     // Confirm that the system tables are hosted
-    Locations rootLocations = client.tableOperations().locate(AccumuloTable.ROOT.tableName(),
-        Collections.singletonList(new Range()));
-    rootLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(rootLocations.getTabletLocation(tid)));
 
-    Locations metadataLocations = client.tableOperations()
-        .locate(AccumuloTable.METADATA.tableName(), Collections.singletonList(new Range()));
-    metadataLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(metadataLocations.getTabletLocation(tid)));
-
-    Locations fateLocations = client.tableOperations().locate(AccumuloTable.FATE.tableName(),
-        Collections.singletonList(new Range()));
-    fateLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(fateLocations.getTabletLocation(tid)));
-
-    Locations scanRef = client.tableOperations().locate(AccumuloTable.SCAN_REF.tableName(),
-        Collections.singletonList(new Range()));
-    scanRef.groupByTablet().keySet().forEach(tid -> assertNotNull(scanRef.getTabletLocation(tid)));
+    for (AccumuloTable t : AccumuloTable.values()) {
+      Locations locs =
+          client.tableOperations().locate(t.tableName(), Collections.singletonList(new Range()));
+      locs.groupByTablet().keySet().forEach(tid -> assertNotNull(locs.getTabletLocation(tid)));
+    }
 
     String tableName = super.getUniqueNames(1)[0];
     client.tableOperations().create(tableName);

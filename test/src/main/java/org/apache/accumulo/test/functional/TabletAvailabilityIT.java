@@ -55,7 +55,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       for (AccumuloTable t : AccumuloTable.values()) {
         assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
-            .setTabletAvailability(t.tableName(), new Range(), HOSTED));
+            .setTabletAvailability(t.tableName(), new Range(), UNHOSTED));
       }
     }
   }
