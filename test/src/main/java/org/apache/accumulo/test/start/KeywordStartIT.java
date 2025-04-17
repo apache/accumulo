@@ -66,6 +66,7 @@ import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
+import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
@@ -155,6 +156,7 @@ public class KeywordStartIT {
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);
+    expectSet.put("upgrade", UpgradeUtil.class);
     expectSet.put("version", Version.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);

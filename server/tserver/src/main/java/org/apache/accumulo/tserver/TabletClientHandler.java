@@ -249,6 +249,13 @@ public class TabletClientHandler implements TabletClientService.Iface {
   }
 
   @Override
+  public void loadFilesV2(TInfo tinfo, TCredentials credentials, long tid, String dir,
+      Map<TKeyExtent,Map<String,MapFileInfo>> tabletImports, boolean setTime)
+      throws ThriftSecurityException {
+    loadFiles(tinfo, credentials, tid, dir, tabletImports, setTime);
+  }
+
+  @Override
   public long startUpdate(TInfo tinfo, TCredentials credentials, TDurability tdurabilty)
       throws ThriftSecurityException {
     // Make sure user is real

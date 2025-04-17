@@ -31,6 +31,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -86,7 +87,8 @@ class MapImportFileNames extends ManagerRepo {
             extension = Constants.MAPFILE_EXTENSION;
           }
 
-          String newName = "I" + namer.getNextName() + "." + extension;
+          String newName =
+              FilePrefix.BULK_IMPORT.createFileName(namer.getNextName() + "." + extension);
 
           mappingsWriter.append(fileName);
           mappingsWriter.append(':');

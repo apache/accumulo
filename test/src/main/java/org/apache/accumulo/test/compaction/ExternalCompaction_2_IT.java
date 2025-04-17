@@ -38,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -48,6 +49,8 @@ import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.conf.Property;
@@ -60,6 +63,7 @@ import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -284,6 +288,46 @@ public class ExternalCompaction_2_IT extends SharedMiniClusterBase {
       TableId tid = getCluster().getServerContext().getTableId(table1);
       writeData(client, table1);
       compact(client, table1, 2, QUEUE4, false);
+
+      // Wait for the compaction to start by waiting for 1 external compaction column
+      Set<ExternalCompactionId> ecids =
+          waitForCompactionStartAndReturnEcids(getCluster().getServerContext(), tid);
+
+      // Confirm that this ECID shows up in RUNNING set
+      int matches = confirmCompactionRunning(getCluster().getServerContext(), ecids);
+      assertTrue(matches > 0);
+
+      client.tableOperations().delete(table1);
+
+      confirmCompactionCompleted(getCluster().getServerContext(), ecids,
+          TCompactionState.CANCELLED);
+
+    }
+  }
+
+  @Test
+  public void testDeleteTableCancelsSleepingExternalCompaction() throws Exception {
+    getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
+    getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE4);
+
+    String table1 = this.getUniqueNames(1)[0];
+    try (AccumuloClient client =
+        Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
+
+      createTable(client, table1, "cs4");
+      TableId tid = getCluster().getServerContext().getTableId(table1);
+      writeData(client, table1);
+
+      // The purpose of this test to ensure the sleeping thread is interrupted. The only way the
+      // compactor can cancel this compaction is if it interrupts the sleeping thread.
+      IteratorSetting iteratorSetting = new IteratorSetting(100, SlowIterator.class);
+      // Sleep so long that the test would timeout if the thread is not interrupted.
+      SlowIterator.setSleepTime(iteratorSetting, 600000);
+      SlowIterator.setSeekSleepTime(iteratorSetting, 600000);
+      SlowIterator.sleepUninterruptibly(iteratorSetting, false);
+
+      client.tableOperations().compact(table1,
+          new CompactionConfig().setIterators(List.of(iteratorSetting)).setWait(false));
 
       // Wait for the compaction to start by waiting for 1 external compaction column
       Set<ExternalCompactionId> ecids =

@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -74,7 +75,7 @@ class MinorCompactionTask implements Runnable {
           while (true) {
             try {
               if (newFile == null) {
-                newFile = tablet.getNextMapFilename("F");
+                newFile = tablet.getNextMapFilename(FilePrefix.FLUSH);
                 tmpFile = new TabletFile(new Path(newFile.getPathStr() + "_tmp"));
               }
               /*

@@ -1132,5 +1132,4 @@ public class ClientContext implements AccumuloClient {
     }
     return this.zkLockChecker;
   }
-
 }

@@ -26,11 +26,13 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,5 +224,28 @@ public class ConfigurationTypeHelper {
       nThreads = Integer.parseInt(threads);
     }
     return nThreads;
+  }
+
+  /**
+   * Convert the value of the TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND property to a set of
+   * FilePrefix.
+   */
+  public static EnumSet<FilePrefix> getDropCacheBehindFilePrefixes(String propertyValue) {
+    final EnumSet<FilePrefix> filePrefixes;
+    if (propertyValue.equalsIgnoreCase("ALL")) {
+      filePrefixes = EnumSet.allOf(FilePrefix.class);
+    } else if (propertyValue.equalsIgnoreCase("NON-IMPORT")) {
+      filePrefixes = EnumSet.of(FilePrefix.FLUSH, FilePrefix.FULL_COMPACTION, FilePrefix.COMPACTION,
+          FilePrefix.MERGING_MINOR_COMPACTION);
+    } else if (propertyValue.equalsIgnoreCase("NONE")) {
+      filePrefixes = EnumSet.noneOf(FilePrefix.class);
+    } else {
+      // This should not happen, PropertyType.DROP_CACHE_SELECTION should
+      // catch an invalid property value before anything can call this code.
+      throw new IllegalArgumentException(
+          "Invalid value for property " + Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND.getKey()
+              + " expected one of ALL, NONE, or NON-IMPORT");
+    }
+    return filePrefixes;
   }
 }

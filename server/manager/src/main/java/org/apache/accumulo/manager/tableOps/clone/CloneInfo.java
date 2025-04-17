@@ -29,14 +29,73 @@ class CloneInfo implements Serializable {
 
   private static final long serialVersionUID = 1L;
 
-  TableId srcTableId;
-  String tableName;
-  TableId tableId;
-  NamespaceId namespaceId;
-  NamespaceId srcNamespaceId;
-  Map<String,String> propertiesToSet;
-  Set<String> propertiesToExclude;
-  boolean keepOffline;
+  private final TableId srcTableId;
+  private final String tableName;
+  private TableId tableId;
+  // TODO: Make final in 3.1
+  private NamespaceId namespaceId;
+  private final NamespaceId srcNamespaceId;
+  private final Map<String,String> propertiesToSet;
+  private final Set<String> propertiesToExclude;
+  private final boolean keepOffline;
+  private final String user;
 
-  public String user;
+  public CloneInfo(NamespaceId srcNamespaceId, TableId srcTableId, NamespaceId dstNamespaceId,
+      String dstTableName, Map<String,String> propertiesToSet, Set<String> propertiesToExclude,
+      boolean keepOffline, String user) {
+    super();
+    this.srcNamespaceId = srcNamespaceId;
+    this.srcTableId = srcTableId;
+    this.tableName = dstTableName;
+    this.namespaceId = dstNamespaceId;
+    this.propertiesToSet = propertiesToSet;
+    this.propertiesToExclude = propertiesToExclude;
+    this.keepOffline = keepOffline;
+    this.user = user;
+  }
+
+  public TableId getSrcTableId() {
+    return srcTableId;
+  }
+
+  public String getTableName() {
+    return tableName;
+  }
+
+  public void setTableId(TableId dstTableId) {
+    this.tableId = dstTableId;
+  }
+
+  public TableId getTableId() {
+    return tableId;
+  }
+
+  public NamespaceId getNamespaceId() {
+    return namespaceId;
+  }
+
+  public void setNamespaceId(NamespaceId nid) {
+    this.namespaceId = nid;
+  }
+
+  public NamespaceId getSrcNamespaceId() {
+    return srcNamespaceId;
+  }
+
+  public Map<String,String> getPropertiesToSet() {
+    return propertiesToSet;
+  }
+
+  public Set<String> getPropertiesToExclude() {
+    return propertiesToExclude;
+  }
+
+  public boolean isKeepOffline() {
+    return keepOffline;
+  }
+
+  public String getUser() {
+    return user;
+  }
+
 }

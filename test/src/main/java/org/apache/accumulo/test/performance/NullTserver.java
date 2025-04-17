@@ -55,7 +55,6 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
 import org.apache.accumulo.core.master.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -127,6 +126,10 @@ public class NullTserver {
 
     @Override
     public void loadFiles(TInfo tinfo, TCredentials credentials, long tid, String dir,
+        Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
+
+    @Override
+    public void loadFilesV2(TInfo tinfo, TCredentials credentials, long tid, String dir,
         Map<TKeyExtent,Map<String,MapFileInfo>> fileMap, boolean setTime) {}
 
     @Override
@@ -355,7 +358,7 @@ public class NullTserver {
     // read the locations for the table
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     List<Assignment> assignments = new ArrayList<>();
-    try (var s = new MetaDataTableScanner(context, tableRange, MetadataTable.NAME)) {
+    try (var s = new MetaDataTableScanner(context, tableRange, DataLevel.of(tableId))) {
       long randomSessionID = opts.port;
       TServerInstance instance = new TServerInstance(addr, randomSessionID);
 

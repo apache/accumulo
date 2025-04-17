@@ -67,6 +67,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
@@ -264,14 +265,15 @@ public class Tablet extends TabletBase {
     return dirUri;
   }
 
-  TabletFile getNextMapFilename(String prefix) throws IOException {
+  TabletFile getNextMapFilename(FilePrefix prefix) throws IOException {
     String extension = FileOperations.getNewFileExtension(tableConfiguration);
-    return new TabletFile(new Path(chooseTabletDir() + "/" + prefix
-        + context.getUniqueNameAllocator().getNextName() + "." + extension));
+    return new TabletFile(new Path(chooseTabletDir() + "/"
+        + prefix.createFileName(context.getUniqueNameAllocator().getNextName() + "." + extension)));
   }
 
   TabletFile getNextMapFilenameForMajc(boolean propagateDeletes) throws IOException {
-    String tmpFileName = getNextMapFilename(!propagateDeletes ? "A" : "C").getMetaInsert() + "_tmp";
+    FilePrefix prefix = !propagateDeletes ? FilePrefix.FULL_COMPACTION : FilePrefix.COMPACTION;
+    String tmpFileName = getNextMapFilename(prefix).getMetaInsert() + "_tmp";
     return new TabletFile(new Path(tmpFileName));
   }
 

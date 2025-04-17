@@ -25,9 +25,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.EnumSet;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.file.FilePrefix;
 import org.junit.jupiter.api.Test;
 
 public class ConfigurationTypeHelperTest {
@@ -131,5 +133,20 @@ public class ConfigurationTypeHelperTest {
   @Test
   public void testGetFractionFailureCase3() {
     assertThrows(IllegalArgumentException.class, () -> ConfigurationTypeHelper.getFraction(".%"));
+  }
+
+  @Test
+  public void testGetDropCacheBehindFilePrefixes() {
+    assertEquals(EnumSet.noneOf(FilePrefix.class),
+        ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("NONE"));
+    assertEquals(EnumSet.allOf(FilePrefix.class),
+        ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("ALL"));
+    assertEquals(
+        EnumSet.of(FilePrefix.FLUSH, FilePrefix.FULL_COMPACTION, FilePrefix.COMPACTION,
+            FilePrefix.MERGING_MINOR_COMPACTION),
+        ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("NON-IMPORT"));
+    assertThrows(IllegalArgumentException.class,
+        () -> ConfigurationTypeHelper.getDropCacheBehindFilePrefixes("A"));
+
   }
 }

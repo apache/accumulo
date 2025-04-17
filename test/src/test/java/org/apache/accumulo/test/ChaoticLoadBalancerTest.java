@@ -159,7 +159,7 @@ public class ChaoticLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
       balancer.balance(new BalanceParamsImpl(getAssignments(servers), migrations, migrationsOut,
-          DataLevel.USER));
+          DataLevel.USER.name(), Map.of()));
     }
   }
 

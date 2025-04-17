@@ -374,6 +374,11 @@ public enum Property {
       "2.1.0"),
   MANAGER_BULK_TIMEOUT("manager.bulk.timeout", "5m", PropertyType.TIMEDURATION,
       "The time to wait for a tablet server to process a bulk import request.", "1.4.3"),
+  MANAGER_BULK_MAX_CONNECTIONS("manager.bulk.connections.max", "8", PropertyType.COUNT,
+      "The maximum number of connections the manager can make to a single tablet server for bulkv2 "
+          + "load request.  For the case where a single tablet server has a lot of tablets for a bulk import "
+          + "increasing this may help lower the time it takes to load those tablets.",
+      "2.1.4"),
   MANAGER_RENAME_THREADS("manager.rename.threadpool.size", "20", PropertyType.COUNT,
       "The number of threads to use when renaming user files during table import or bulk ingest.",
       "2.1.0"),
@@ -493,7 +498,7 @@ public enum Property {
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
   @Experimental
-  SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
+  SSERV_MINTHREADS("sserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
   SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -940,8 +945,10 @@ public enum Property {
       "1.3.5"),
   GC_PORT("gc.port.client", "9998", PropertyType.PORT,
       "The listening port for the garbage collector's monitor service.", "1.3.5"),
+  GC_DELETE_WAL_THREADS("gc.threads.delete.wal", "4", PropertyType.COUNT,
+      "The number of threads used to delete write-ahead logs and recovery files.", "2.1.4"),
   GC_DELETE_THREADS("gc.threads.delete", "16", PropertyType.COUNT,
-      "The number of threads used to delete RFiles and write-ahead logs.", "1.3.5"),
+      "The number of threads used to delete RFiles.", "1.3.5"),
   @Experimental
   GC_REMOVE_IN_USE_CANDIDATES("gc.remove.in.use.candidates", "false", PropertyType.BOOLEAN,
       "GC will remove deletion candidates that are in-use from the metadata location. "
@@ -1056,6 +1063,17 @@ public enum Property {
       "1.3.5"),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
+  TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND("table.compaction.input.drop.cache", "ALL",
+      PropertyType.DROP_CACHE_SELECTION,
+      "FSDataInputStream.setDropBehind(true) is set on compaction input streams"
+          + " for the specified type of files. This tells the DataNode to advise the OS"
+          + " that it does not need to keep blocks for the associated file in the page cache."
+          + " 'ALL', the default, will call setDropBehind on all file types. 'NONE' will call"
+          + " setDropBehind on none of the files, which can be useful when a table is cloned."
+          + " 'NON-IMPORT' will call setDropBehind on all file types except those that are"
+          + " bulk imported, which is useful when bulk import files are mapped to many tablets"
+          + " and will be compacted at different times.",
+      "2.1.4"),
   TABLE_MINC_OUTPUT_DROP_CACHE("table.compaction.minor.output.drop.cache", "false",
       PropertyType.BOOLEAN,
       "Setting this property to true will call"
@@ -1218,6 +1236,18 @@ public enum Property {
       "The maximum number of tablets allowed for one bulk import file. Value of 0 is Unlimited. "
           + "This property is only enforced in the new bulk import API.",
       "2.1.0"),
+  TABLE_BULK_SKIP_THRESHOLD("table.bulk.metadata.skip.distance", "0", PropertyType.COUNT,
+      "When performing bulk v2 imports to a table, the Manager iterates over the tables metadata"
+          + " tablets sequentially. When importing files into a small table or into all or a majority"
+          + " of tablets of a large table then the tablet metadata information for most tablets will be needed."
+          + " However, when importing files into a small number of non-contiguous tablets in a large table, then"
+          + " the Manager will look at each tablets metadata when it could be skipped. The value of this"
+          + " property tells the Manager if, and when, it should set up a new scanner over the metadata"
+          + " table instead of just iterating over tablet metadata to find the matching tablet. Setting up"
+          + " a new scanner is analogous to performing a seek in an iterator, but it has a cost. A value of zero (default) disables"
+          + " this feature. A non-zero value enables this feature and the Manager will setup a new scanner"
+          + " when the tablet metadata distance is above the supplied value.",
+      "2.1.4"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
@@ -1503,7 +1533,7 @@ public enum Property {
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers.", "2.1.0"),
   @Experimental
-  COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
+  COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -1526,7 +1556,7 @@ public enum Property {
       "The port used for handling Thrift client connections on the compaction coordinator server.",
       "2.1.0"),
   @Experimental
-  COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "1",
+  COMPACTION_COORDINATOR_MINTHREADS("compaction.coordinator.threads.minimum", "20",
       PropertyType.COUNT, "The minimum number of threads to use to handle incoming requests.",
       "2.1.0"),
   @Experimental
