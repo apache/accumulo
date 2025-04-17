@@ -22,6 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -32,7 +33,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
@@ -66,6 +70,7 @@ import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.PeekingIterator;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -112,20 +117,14 @@ class LoadFiles extends ManagerRepo {
     VolumeManager fs = manager.getVolumeManager();
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
-    try (LoadMappingIterator lmi =
-        BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-
-      Loader loader;
-      if (bulkInfo.tableState == TableState.ONLINE) {
-        loader = new OnlineLoader(manager.getConfiguration());
-      } else {
-        loader = new OfflineLoader();
-      }
-
+    try (
+        LoadMappingIterator lmi =
+            BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open);
+        Loader loader = (bulkInfo.tableState == TableState.ONLINE
+            ? new OnlineLoader(manager.getConfiguration()) : new OfflineLoader())) {
       TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(manager.getContext())
           .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
           .fetch(PREV_ROW, LOCATION, LOADED).build();
-
       int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
           .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
       return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, tid, skip);
@@ -142,7 +141,7 @@ class LoadFiles extends ManagerRepo {
   }
 
   // visible for testing
-  public abstract static class Loader {
+  public abstract static class Loader implements AutoCloseable {
     protected Path bulkDir;
     protected Manager manager;
     protected long tid;
@@ -169,11 +168,18 @@ class LoadFiles extends ManagerRepo {
 
     int tabletsAdded;
 
+    private ExecutorService rpcExecutor;
+    private CompletableFuture<Void> prevRpcTask;
+
     // Each RPC to a tablet server needs to check in zookeeper to see if the transaction is still
-    // active. The purpose of this map is to group load request by tablet servers inorder to do less
-    // RPCs. Less RPCs will result in less calls to Zookeeper.
+    // active. The purpose of this map is to group load request by tablet servers in order to do
+    // less RPCs. Less RPCs will result in less calls to Zookeeper.
     Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>> loadQueue;
     private int queuedDataSize = 0;
+    // holds load messages that a background thread is working on sending
+    final AtomicReference<
+        Map<HostAndPort,Map<TKeyExtent,Map<String,MapFileInfo>>>> backgroundQueue =
+            new AtomicReference<>();
 
     public OnlineLoader(AccumuloConfiguration configuration) {
       super();
@@ -190,6 +196,9 @@ class LoadFiles extends ManagerRepo {
       tabletsAdded = 0;
 
       loadQueue = new HashMap<>();
+      this.rpcExecutor = ThreadPools.getServerThreadPools()
+          .getPoolBuilder(ACCUMULO_POOL_PREFIX.poolName + "bulk.rpc." + fmtTid).numCoreThreads(1)
+          .numMaxThreads(1).enableThreadPoolMetrics(false).build();
     }
 
     private static class Client {
@@ -202,104 +211,131 @@ class LoadFiles extends ManagerRepo {
       }
     }
 
-    private void sendQueued(int threshhold) {
-      if (queuedDataSize > threshhold || threshhold == 0) {
+    private void sendBackground() {
+      var queue = this.backgroundQueue.get();
+      List<Client> clients = new ArrayList<>();
+
+      try {
         var sendTimer = Timer.startNew();
 
-        List<Client> clients = new ArrayList<>();
-        try {
+        // Send load messages to tablet servers spinning up work, but do not wait on results.
+        queue.forEach((server, tabletFiles) -> {
 
-          // Send load messages to tablet servers spinning up work, but do not wait on results.
-          loadQueue.forEach((server, tabletFiles) -> {
+          if (log.isTraceEnabled()) {
+            log.trace("{} asking {} to bulk import {} files for {} tablets", fmtTid, server,
+                tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
+          }
 
-            if (log.isTraceEnabled()) {
-              log.trace("{} asking {} to bulk import {} files for {} tablets", fmtTid, server,
-                  tabletFiles.values().stream().mapToInt(Map::size).sum(), tabletFiles.size());
-            }
+          // Tablet servers process tablets serially and perform a single metadata table write for
+          // each tablet. Break the work into per-tablet chunks so it can be sent over multiple
+          // connections to the tserver, allowing each chunk to be run in parallel on the server
+          // side. This allows multiple threads on a single tserver to do metadata writes for this
+          // bulk import.
+          int neededConnections = Math.min(maxConnections, tabletFiles.size());
+          if (log.isTraceEnabled() && tabletFiles.size() > maxConnections) {
+            log.trace(
+                "{} Hitting max connection limit set by property {} for {}. Desired connection count {}",
+                fmtTid, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), server, tabletFiles.size());
+          }
+          List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks = new ArrayList<>(neededConnections);
+          for (int i = 0; i < neededConnections; i++) {
+            chunks.add(new HashMap<>());
+          }
 
-            // Tablet servers process tablets serially and perform a single metadata table write for
-            // each tablet. Break the work into per-tablet chunks so it can be sent over multiple
-            // connections to the tserver, allowing each chunk to be run in parallel on the server
-            // side. This allows multiple threads on a single tserver to do metadata writes for this
-            // bulk import.
-            int neededConnections = Math.min(maxConnections, tabletFiles.size());
-            List<Map<TKeyExtent,Map<String,MapFileInfo>>> chunks =
-                new ArrayList<>(neededConnections);
-            for (int i = 0; i < neededConnections; i++) {
-              chunks.add(new HashMap<>());
-            }
+          int nextConnection = 0;
+          for (var entry : tabletFiles.entrySet()) {
+            chunks.get(nextConnection++ % chunks.size()).put(entry.getKey(), entry.getValue());
+          }
 
-            int nextConnection = 0;
-            for (var entry : tabletFiles.entrySet()) {
-              chunks.get(nextConnection++ % chunks.size()).put(entry.getKey(), entry.getValue());
-            }
-
-            for (var chunk : chunks) {
-              try {
-                var client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
-                    manager.getContext(), timeInMillis);
-                // add client to list before calling send in case there is an exception, this makes
-                // sure its returned in the finally
-                clients.add(new Client(server, client));
-                client.send_loadFilesV2(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
-                    bulkDir.toString(), chunk, setTime);
-              } catch (TException ex) {
-                log.debug("rpc send failed server: {}, {}", server, fmtTid, ex);
-              }
-            }
-          });
-
-          long sendTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
-          sendTimer.restart();
-
-          int outdatedTservers = 0;
-
-          // wait for all the tservers to complete processing
-          for (var client : clients) {
+          for (var chunk : chunks) {
             try {
-              client.service.recv_loadFilesV2();
+              var client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server,
+                  manager.getContext(), timeInMillis);
+              // add client to list before calling send in case there is an exception, this makes
+              // sure its returned in the finally
+              clients.add(new Client(server, client));
+              client.send_loadFilesV2(TraceUtil.traceInfo(), manager.getContext().rpcCreds(), tid,
+                  bulkDir.toString(), chunk, setTime);
             } catch (TException ex) {
-              String additionalInfo = "";
-              if (ex instanceof TApplicationException && ((TApplicationException) ex).getType()
-                  == TApplicationException.UNKNOWN_METHOD) {
-                // A new RPC method was added in 2.1.4, a tserver running 2.1.3 or earlier will
-                // not have this RPC. This should not kill the fate operation, it can wait until
-                // all tablet servers are upgraded.
-                outdatedTservers++;
-                additionalInfo = " (tserver may be running older version)";
-              }
-              log.debug("rpc recv failed server{}: {}, {}", additionalInfo, client.server, fmtTid,
-                  ex);
+              log.debug("rpc send failed server: {}, {}", server, fmtTid, ex);
             }
           }
+        });
 
-          if (outdatedTservers > 0) {
-            log.warn(
-                "{} can not proceed with bulk import because {} tablet servers are likely running "
-                    + "an older version. Please update tablet servers to same patch level as manager.",
-                fmtTid, outdatedTservers);
-          }
+        long sendTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
+        sendTimer.restart();
 
-          if (log.isDebugEnabled()) {
-            var recvTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
-            var tabletStats = loadQueue.values().stream().mapToInt(Map::size).summaryStatistics();
-            log.debug(
-                "{} sent {} messages to {} tablet servers for {} tablets (min:{} max:{} avg:{} "
-                    + "tablets per tserver), send time:{}ms recv time:{}ms {}:{}",
-                fmtTid, clients.size(), loadQueue.size(), tabletStats.getSum(),
-                tabletStats.getMin(), tabletStats.getMax(), tabletStats.getAverage(), sendTime,
-                recvTime, Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), maxConnections);
-          }
+        int outdatedTservers = 0;
 
-          loadQueue.clear();
-          queuedDataSize = 0;
-
-        } finally {
-          for (var client : clients) {
-            ThriftUtil.returnClient(client.service, manager.getContext());
+        // wait for all the tservers to complete processing
+        for (var client : clients) {
+          try {
+            client.service.recv_loadFilesV2();
+          } catch (TException ex) {
+            String additionalInfo = "";
+            if (ex instanceof TApplicationException
+                && ((TApplicationException) ex).getType() == TApplicationException.UNKNOWN_METHOD) {
+              // A new RPC method was added in 2.1.4, a tserver running 2.1.3 or earlier will
+              // not have this RPC. This should not kill the fate operation, it can wait until
+              // all tablet servers are upgraded.
+              outdatedTservers++;
+              additionalInfo = " (tserver may be running older version)";
+            }
+            log.debug("rpc recv failed server{}: {}, {}", additionalInfo, client.server, fmtTid,
+                ex);
           }
         }
+
+        if (outdatedTservers > 0) {
+          log.warn(
+              "{} can not proceed with bulk import because {} tablet servers are likely running "
+                  + "an older version. Please update tablet servers to same patch level as manager.",
+              fmtTid, outdatedTservers);
+        }
+
+        if (log.isDebugEnabled()) {
+          var recvTime = sendTimer.elapsed(TimeUnit.MILLISECONDS);
+          var tabletStats = queue.values().stream().mapToInt(Map::size).summaryStatistics();
+          log.debug(
+              "{} sent {} messages to {} tablet servers for {} tablets (min:{} max:{} avg:{} "
+                  + "tablets per tserver), send time:{}ms recv time:{}ms {}:{}",
+              fmtTid, clients.size(), queue.size(), tabletStats.getSum(), tabletStats.getMin(),
+              tabletStats.getMax(), tabletStats.getAverage(), sendTime, recvTime,
+              Property.MANAGER_BULK_MAX_CONNECTIONS.getKey(), maxConnections);
+        }
+      } finally {
+        Preconditions.checkState(backgroundQueue.compareAndSet(queue, null));
+        for (var client : clients) {
+          ThriftUtil.returnClient(client.service, manager.getContext());
+        }
       }
+    }
+
+    /**
+     * @param threshold if the amount queued is over this amount then begin asynchronous flush to
+     *        tservers. When this is zero the method will block until all previously queued work is
+     *        done.
+     */
+    private void sendQueued(int threshold) {
+      if (queuedDataSize > threshold || threshold == 0) {
+        if (prevRpcTask != null) {
+          // wait for the previous task
+          prevRpcTask.join();
+        }
+        Preconditions.checkState(backgroundQueue.compareAndSet(null, loadQueue));
+        // used completable future because its join() method does not throw a checked exception
+        prevRpcTask = CompletableFuture.runAsync(this::sendBackground, rpcExecutor);
+        // create a new map to buffer new load rpcs this thread finds while the background thread
+        // works on sending the previous batch
+        loadQueue = new HashMap<>();
+        queuedDataSize = 0;
+      }
+      if (threshold == 0) {
+        // no more work is queued so wait for the current task.
+        prevRpcTask.join();
+        prevRpcTask = null;
+      }
+
     }
 
     protected void addToQueue(HostAndPort server, KeyExtent extent,
@@ -378,6 +414,10 @@ class LoadFiles extends ManagerRepo {
       return sleepTime;
     }
 
+    @Override
+    public void close() {
+      rpcExecutor.shutdownNow();
+    }
   }
 
   private static class OfflineLoader extends Loader {
@@ -431,6 +471,9 @@ class LoadFiles extends ManagerRepo {
 
       return sleepTime;
     }
+
+    @Override
+    public void close() {}
   }
 
   /**
