@@ -329,6 +329,7 @@ class LoadFiles extends ManagerRepo {
         queuedDataSize = 0;
       }
       if (threshold == 0) {
+        // no more work is queued so wait for the current task.
         prevRpcTask.join();
         prevRpcTask = null;
       }
