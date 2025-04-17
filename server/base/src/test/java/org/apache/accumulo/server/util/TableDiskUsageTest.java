@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -49,6 +48,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -296,9 +296,8 @@ public class TableDiskUsageTest {
 
   private static void appendFileMetadata(List<TabletMetadata> realTabletsMetadata,
       StoredTabletFile file, long size) {
-    Key key = new Key((file.getTableId() + "<").getBytes(UTF_8),
-        MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME.getBytes(UTF_8),
-        file.getMetaInsert().getBytes(UTF_8), 123L);
+    Key key = new Key(new Text(file.getTableId() + "<"),
+        MetadataSchema.TabletsSection.DataFileColumnFamily.NAME, file.getMetaInsertText());
     Value val = new DataFileValue(size, 1).encodeAsValue();
     SortedMap<Key,Value> map = new TreeMap<>();
     map.put(key, val);
