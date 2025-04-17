@@ -18,28 +18,35 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.easymock.EasyMock;
@@ -78,11 +85,11 @@ public class TableDiskUsageTest {
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), 1024);
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName2, "C0003.rf"), tableId1, 2048);
+        getTabletFile(volume1, tableId1, tabletName2, "C0003.rf"), 2048);
     mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata);
@@ -108,13 +115,13 @@ public class TableDiskUsageTest {
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), 1024);
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume2, tableId1, tabletName2, "C0003.rf"), tableId1, 2048);
+        getTabletFile(volume2, tableId1, tabletName2, "C0003.rf"), 2048);
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume2, tableId1, tabletName2, "C0004.rf"), tableId1, 10000);
+        getTabletFile(volume2, tableId1, tabletName2, "C0004.rf"), 10000);
     mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata);
@@ -139,8 +146,7 @@ public class TableDiskUsageTest {
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, MetadataTable.ID, MetadataTable.NAME, "C0001.rf"), MetadataTable.ID,
-        1024);
+        getTabletFile(volume1, MetadataTable.ID, MetadataTable.NAME, "C0001.rf"), 1024);
     mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata);
@@ -165,9 +171,9 @@ public class TableDiskUsageTest {
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(realTabletsMetadata,
-        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), 1024);
     mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata);
@@ -216,30 +222,30 @@ public class TableDiskUsageTest {
     final TabletsMetadata mockTabletsMetadata1 = mockTabletsMetadata(client, tableId1);
     List<TabletMetadata> realTabletsMetadata1 = new ArrayList<>();
     appendFileMetadata(realTabletsMetadata1,
-        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), tableId1, 1024);
+        getTabletFile(volume1, tableId1, tabletName1, "C0001.rf"), 1024);
     appendFileMetadata(realTabletsMetadata1,
-        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), tableId1, 4096);
+        getTabletFile(volume1, tableId1, tabletName1, "C0002.rf"), 4096);
     mockTabletsMetadataIter(mockTabletsMetadata1, realTabletsMetadata1.iterator());
 
     final TabletsMetadata mockTabletsMetadata2 = mockTabletsMetadata(client, tableId2);
     List<TabletMetadata> realTabletsMetadata2 = new ArrayList<>();
     appendFileMetadata(realTabletsMetadata2,
-        getTabletFile(volume1, tableId2, tabletName2, "C0003.rf"), tableId2, 2048);
+        getTabletFile(volume1, tableId2, tabletName2, "C0003.rf"), 2048);
     appendFileMetadata(realTabletsMetadata2,
-        getTabletFile(volume1, tableId2, tabletName2, "C0004.rf"), tableId2, 3000);
+        getTabletFile(volume1, tableId2, tabletName2, "C0004.rf"), 3000);
     mockTabletsMetadataIter(mockTabletsMetadata2, realTabletsMetadata2.iterator());
 
     final TabletsMetadata mockTabletsMetadata3 = mockTabletsMetadata(client, tableId3);
     List<TabletMetadata> realTabletsMetadata3 = new ArrayList<>();
     // shared file
     appendFileMetadata(realTabletsMetadata3,
-        getTabletFile(volume1, tableId2, tabletName2, "C0003.rf"), tableId2, 2048);
+        getTabletFile(volume1, tableId2, tabletName2, "C0003.rf"), 2048);
     appendFileMetadata(realTabletsMetadata3,
-        getTabletFile(volume1, tableId3, tabletName3, "C0005.rf"), tableId3, 84520);
+        getTabletFile(volume1, tableId3, tabletName3, "C0005.rf"), 84520);
     appendFileMetadata(realTabletsMetadata3,
-        getTabletFile(volume1, tableId3, tabletName3, "C0006.rf"), tableId3, 3000);
+        getTabletFile(volume1, tableId3, tabletName3, "C0006.rf"), 3000);
     appendFileMetadata(realTabletsMetadata3,
-        getTabletFile(volume1, tableId3, tabletName4, "C0007.rf"), tableId3, 98456);
+        getTabletFile(volume1, tableId3, tabletName4, "C0007.rf"), 98456);
     mockTabletsMetadataIter(mockTabletsMetadata3, realTabletsMetadata3.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata1, mockTabletsMetadata2, mockTabletsMetadata3);
@@ -268,7 +274,7 @@ public class TableDiskUsageTest {
   }
 
   private static TreeSet<String> tableNameSet(TableId... tableIds) {
-    return Set.of(tableIds).stream().map(tableId -> getTableName(tableId))
+    return Set.of(tableIds).stream().map(TableDiskUsageTest::getTableName)
         .collect(Collectors.toCollection(TreeSet::new));
   }
 
@@ -281,7 +287,7 @@ public class TableDiskUsageTest {
   private static Long getTotalUsage(Map<SortedSet<String>,Long> result, TableId tableId) {
     return result.entrySet().stream()
         .filter(entry -> entry.getKey().contains(getTableName(tableId)))
-        .mapToLong(entry -> entry.getValue()).sum();
+        .mapToLong(Map.Entry::getValue).sum();
   }
 
   private static String getTableName(TableId tableId) {
@@ -289,11 +295,16 @@ public class TableDiskUsageTest {
   }
 
   private static void appendFileMetadata(List<TabletMetadata> realTabletsMetadata,
-      StoredTabletFile file, TableId id, long size) throws Exception {
-    Map<StoredTabletFile,DataFileValue> files = Map.of(file, new DataFileValue(size, 1));
-    TabletMetadata tm = EasyMock.createMock(TabletMetadata.class);
-    EasyMock.expect(tm.getFilesMap()).andReturn(files);
-    EasyMock.replay(tm);
+      StoredTabletFile file, long size) {
+    Key key = new Key((file.getTableId() + "<").getBytes(UTF_8),
+        MetadataSchema.TabletsSection.DataFileColumnFamily.STR_NAME.getBytes(UTF_8),
+        file.getMetaInsert().getBytes(UTF_8), 123L);
+    Value val = new DataFileValue(size, 1).encodeAsValue();
+    SortedMap<Key,Value> map = new TreeMap<>();
+    map.put(key, val);
+
+    TabletMetadata tm = TabletMetadata.convertRow(map.entrySet().iterator(),
+        EnumSet.of(TabletMetadata.ColumnType.FILES), true);
     realTabletsMetadata.add(tm);
   }
 
@@ -303,25 +314,26 @@ public class TableDiskUsageTest {
         volume + Constants.HDFS_TABLES_DIR + "/" + tableId + "/" + tablet + "/" + fileName);
   }
 
-  private TabletsMetadata mockTabletsMetadata(ClientContext client, TableId tableId)
-      throws Exception {
+  private TabletsMetadata mockTabletsMetadata(ClientContext client, TableId tableId) {
     final Ample ample = EasyMock.createMock(Ample.class);
     final TabletsMetadata.TableOptions tableOptions =
         EasyMock.createMock(TabletsMetadata.TableOptions.class);
     final TabletsMetadata.TableRangeOptions tableRangeOptions =
         EasyMock.createMock(TabletsMetadata.TableRangeOptions.class);
+    final TabletsMetadata.Options options = EasyMock.createMock(TabletsMetadata.Options.class);
     final TabletsMetadata tabletsMetadata = EasyMock.createMock(TabletsMetadata.class);
     EasyMock.expect(client.getAmple()).andReturn(ample);
     EasyMock.expect(ample.readTablets()).andReturn(tableOptions);
     EasyMock.expect(tableOptions.forTable(tableId)).andReturn(tableRangeOptions);
-    EasyMock.expect(tableRangeOptions.build()).andReturn(tabletsMetadata);
-    EasyMock.replay(ample, tableOptions, tableRangeOptions);
+    EasyMock.expect(tableRangeOptions.fetch(TabletMetadata.ColumnType.FILES)).andReturn(options);
+    EasyMock.expect(options.build()).andReturn(tabletsMetadata);
+    EasyMock.replay(ample, tableOptions, tableRangeOptions, options);
     return tabletsMetadata;
   }
 
   private void mockTabletsMetadataIter(TabletsMetadata tabletsMetadata,
-      Iterator<TabletMetadata> tableEntries) {
-    EasyMock.expect(tabletsMetadata.iterator()).andReturn(tableEntries);
+      Iterator<TabletMetadata> realTabletsMetadata) {
+    EasyMock.expect(tabletsMetadata.iterator()).andReturn(realTabletsMetadata);
     tabletsMetadata.close();
     EasyMock.expectLastCall().andAnswer(() -> null);
   }

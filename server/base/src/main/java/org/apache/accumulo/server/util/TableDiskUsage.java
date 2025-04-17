@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -196,8 +198,8 @@ public class TableDiskUsage {
     // For each table ID
     for (TableId tableId : tableIds) {
       // read the metadata
-      try (var tabletsMetadata =
-          ((ClientContext) client).getAmple().readTablets().forTable(tableId).build()) {
+      try (var tabletsMetadata = ((ClientContext) client).getAmple().readTablets().forTable(tableId)
+          .fetch(FILES).build()) {
         final Set<StoredTabletFile> allFiles = new HashSet<>();
 
         for (var tm : tabletsMetadata) {
