@@ -372,7 +372,7 @@ class LoadFiles extends ManagerRepo {
       }
 
       if (locationLess > 0) {
-        sleepTime = Math.max(Math.max(100L, locationLess), sleepTime);
+        sleepTime = Math.max(100L, locationLess);
       }
 
       return sleepTime;
@@ -508,7 +508,10 @@ class LoadFiles extends ManagerRepo {
     }
 
     long sleepTime = loader.finish();
-    if (sleepTime > 0) {
+    // sleepTime of 0 indicates success. sleepTime of 1 indicates all rpcs to tservers have
+    // completed but a final scan of the metadata table is required to verify success.
+    // This is accomplished by running this step again and finally returning a sleepTime of 0.
+    if (sleepTime > 1) {
       log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
       long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
       log.trace("{}: Scan time is {}", fmtTid, scanTime);
