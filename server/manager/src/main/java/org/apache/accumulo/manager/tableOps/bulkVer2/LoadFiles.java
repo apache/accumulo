@@ -504,7 +504,9 @@ class LoadFiles extends ManagerRepo {
     }
 
     long sleepTime = loader.finish();
-    // sleepTime of 0 or 1 are success cases where we don't want to sleep anymore
+    // sleepTime of 0 indicates success. sleepTime of 1 indicates all rpcs to tservers have
+    // completed but a final scan of the metadata table is required to verify success.
+    // This is accomplished by running this step again and finally returning a sleepTime of 0.
     if (sleepTime > 1) {
       log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
       long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
