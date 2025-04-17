@@ -112,6 +112,9 @@ public enum PropertyType {
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
+  DROP_CACHE_SELECTION("drop cache option", in(false, "NONE", "ALL", "NON-IMPORT"),
+      "One of 'ALL', 'NONE', or 'NON-IMPORT'"),
+
   // VFS_CLASSLOADER_CACHE_DIR's default value is a special case, for documentation purposes
   @SuppressWarnings("removal")
   ABSOLUTEPATH("absolute path",
