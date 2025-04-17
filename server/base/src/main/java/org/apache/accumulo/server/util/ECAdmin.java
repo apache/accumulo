@@ -23,7 +23,6 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
@@ -73,9 +72,8 @@ public class ECAdmin implements KeywordExecutable {
         description = "display details about the running compactions")
     boolean details = false;
 
-    @Parameter(names = {"-f", "--format"},
-        description = "output format: plain (default), csv, json")
-    String format = "plain";
+    @Parameter(names = {"-j", "--json"}, description = "format the output as json")
+    boolean jsonOutput = false;
   }
 
   @Parameters(commandDescription = "list all compactors in zookeeper")
@@ -130,7 +128,7 @@ public class ECAdmin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("cancel")) {
         cancelCompaction(context, cancelOps.ecid);
       } else if (cl.getParsedCommand().equals("running")) {
-        runningCompactions(context, runningOpts.details, runningOpts.format);
+        runningCompactions(context, runningOpts.details, runningOpts.jsonOutput);
       } else {
         log.error("Unknown command {}", cl.getParsedCommand());
         cl.usage();
@@ -167,21 +165,9 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private void runningCompactions(ServerContext context, boolean details, String format) {
+  private void runningCompactions(ServerContext context, boolean details, boolean json) {
     CompactionCoordinatorService.Client coordinatorClient = null;
     Map<String,TExternalCompaction> runningCompactionsMap = new HashMap<>();
-
-    // Default to "plain" format if null or empty
-    if (format == null || format.trim().isEmpty()) {
-      format = "plain";
-    } else {
-      // Validate format
-      Set<String> validFormats = Set.of("plain", "csv", "json");
-      if (!validFormats.contains(format.toLowerCase())) {
-        throw new IllegalArgumentException(
-            "Invalid format: " + format + ". Expected: plain, csv, or json.");
-      }
-    }
 
     try {
       coordinatorClient = getCoordinatorClient(context);
@@ -201,27 +187,23 @@ public class ECAdmin implements KeywordExecutable {
 
       List<Map<String,Object>> jsonOutput = new ArrayList<>();
 
-      if ("csv".equalsIgnoreCase(format)) {
-        System.out.println(
-            "ECID,Compactor,Kind,Queue,TableId,Status,LastUpdate,Duration,NumFiles,Progress");
-      }
-
       for (Map.Entry<String,TExternalCompaction> entry : runningCompactionsMap.entrySet()) {
         TExternalCompaction ec = entry.getValue();
         if (ec == null) {
           continue;
         }
 
-        var runningCompaction = new RunningCompaction(ec);
-        String ecid = runningCompaction.getJob().getExternalCompactionId();
-        var addr = runningCompaction.getCompactorAddress();
-        var kind = runningCompaction.getJob().kind;
-        var queueName = runningCompaction.getQueueName();
-        var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
-        String tableId = ke.tableId().canonical();
+        final var runningCompaction = new RunningCompaction(ec);
+        final String ecid = runningCompaction.getJob().getExternalCompactionId();
+        final var addr = runningCompaction.getCompactorAddress();
+        final var kind = runningCompaction.getJob().kind;
+        final var queueName = runningCompaction.getQueueName();
+        final var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
+        final String tableId = ke.tableId().canonical();
 
         String status = "";
-        long lastUpdate = 0, duration = 0;
+        long lastUpdate = 0;
+        long duration = 0;
         int numFiles = 0;
         double progress = 0.0;
 
@@ -234,39 +216,31 @@ public class ECAdmin implements KeywordExecutable {
           progress = runningCompactionInfo.progress;
         }
 
-        switch (format.toLowerCase()) {
-          case "plain":
-            System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
-            if (details) {
-              System.out.format(
-                  "  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n", status,
-                  lastUpdate, duration, numFiles, progress);
-            }
-            break;
-          case "csv":
-            System.out.printf("%s,%s,%s,%s,%s,%s,%d,%d,%d,%.2f\n", ecid, addr, kind, queueName,
-                tableId, status, lastUpdate, duration, numFiles, progress);
-            break;
-          case "json":
-            Map<String,Object> jsonEntry = new LinkedHashMap<>();
-            jsonEntry.put("ecid", ecid);
-            jsonEntry.put("compactor", addr);
-            jsonEntry.put("kind", kind);
-            jsonEntry.put("queue", queueName);
-            jsonEntry.put("tableId", tableId);
-            if (details) {
-              jsonEntry.put("status", status);
-              jsonEntry.put("lastUpdate", lastUpdate);
-              jsonEntry.put("duration", duration);
-              jsonEntry.put("numFiles", numFiles);
-              jsonEntry.put("progress", progress);
-            }
-            jsonOutput.add(jsonEntry);
-            break;
+        if (json) {
+          Map<String,Object> jsonEntry = new LinkedHashMap<>();
+          jsonEntry.put("ecid", ecid);
+          jsonEntry.put("compactor", addr);
+          jsonEntry.put("kind", kind);
+          jsonEntry.put("queue", queueName);
+          jsonEntry.put("tableId", tableId);
+          if (details) {
+            jsonEntry.put("status", status);
+            jsonEntry.put("lastUpdate", lastUpdate);
+            jsonEntry.put("duration", duration);
+            jsonEntry.put("numFiles", numFiles);
+            jsonEntry.put("progress", progress);
+          }
+          jsonOutput.add(jsonEntry);
+        } else {
+          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
+          if (details) {
+            System.out.format("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n",
+                status, lastUpdate, duration, numFiles, progress);
+          }
         }
       }
 
-      if ("json".equalsIgnoreCase(format)) {
+      if (json) {
         try {
           Gson gson = new GsonBuilder().setPrettyPrinting().create();
           System.out.println(gson.toJson(jsonOutput));
