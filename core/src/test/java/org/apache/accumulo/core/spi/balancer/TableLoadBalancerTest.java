@@ -101,6 +101,7 @@ public class TableLoadBalancerTest {
 
   public static class TestSimpleLoadBalancer extends SimpleLoadBalancer {
 
+    @SuppressWarnings("deprecation")
     public TestSimpleLoadBalancer(TableId table) {
       super(table);
     }
