@@ -48,7 +48,6 @@ import org.apache.accumulo.core.process.thrift.MetricResponse;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
@@ -125,7 +124,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), ctx);
         try {
-          MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(), ctx.rpcCreds());
+          MetricResponse response = metricsClient.getMetrics(ctx.rpcCreds());
           summary.processResponse(server, response);
         } finally {
           ThriftUtil.returnClient(metricsClient, ctx);
@@ -189,7 +188,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
         CompactionCoordinatorService.Client client =
             ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
         try {
-          return client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+          return client.getLongRunningCompactions(ctx.rpcCreds());
         } catch (Exception e) {
           throw new IllegalStateException("Unable to get running compactions from " + hp, e);
         } finally {

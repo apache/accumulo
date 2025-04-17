@@ -29,21 +29,21 @@ public class TabletManagementClientService {
 
   public interface Iface {
 
-    public void loadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
+    public void loadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
 
-    public void unloadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException;
+    public void unloadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException;
 
-    public void flushTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
+    public void flushTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException;
 
   }
 
   public interface AsyncIface {
 
-    public void loadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void loadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void unloadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void unloadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void flushTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void flushTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -70,15 +70,14 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void loadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
+    public void loadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
     {
-      send_loadTablet(tinfo, credentials, lock, extent);
+      send_loadTablet(credentials, lock, extent);
     }
 
-    public void send_loadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
+    public void send_loadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
     {
       loadTablet_args args = new loadTablet_args();
-      args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setLock(lock);
       args.setExtent(extent);
@@ -86,15 +85,14 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void unloadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException
+    public void unloadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException
     {
-      send_unloadTablet(tinfo, credentials, lock, extent, goal, requestTime);
+      send_unloadTablet(credentials, lock, extent, goal, requestTime);
     }
 
-    public void send_unloadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException
+    public void send_unloadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime) throws org.apache.thrift.TException
     {
       unloadTablet_args args = new unloadTablet_args();
-      args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setLock(lock);
       args.setExtent(extent);
@@ -104,15 +102,14 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void flushTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
+    public void flushTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
     {
-      send_flushTablet(tinfo, credentials, lock, extent);
+      send_flushTablet(credentials, lock, extent);
     }
 
-    public void send_flushTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
+    public void send_flushTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent) throws org.apache.thrift.TException
     {
       flushTablet_args args = new flushTablet_args();
-      args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setLock(lock);
       args.setExtent(extent);
@@ -139,21 +136,19 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void loadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void loadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      loadTablet_call method_call = new loadTablet_call(tinfo, credentials, lock, extent, resultHandler, this, ___protocolFactory, ___transport);
+      loadTablet_call method_call = new loadTablet_call(credentials, lock, extent, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class loadTablet_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String lock;
       private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent;
-      public loadTablet_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public loadTablet_call(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
-        this.tinfo = tinfo;
         this.credentials = credentials;
         this.lock = lock;
         this.extent = extent;
@@ -163,7 +158,6 @@ public class TabletManagementClientService {
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("loadTablet", org.apache.thrift.protocol.TMessageType.ONEWAY, 0));
         loadTablet_args args = new loadTablet_args();
-        args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setLock(lock);
         args.setExtent(extent);
@@ -183,23 +177,21 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void unloadTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void unloadTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      unloadTablet_call method_call = new unloadTablet_call(tinfo, credentials, lock, extent, goal, requestTime, resultHandler, this, ___protocolFactory, ___transport);
+      unloadTablet_call method_call = new unloadTablet_call(credentials, lock, extent, goal, requestTime, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class unloadTablet_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String lock;
       private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent;
       private TUnloadTabletGoal goal;
       private long requestTime;
-      public unloadTablet_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public unloadTablet_call(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, TUnloadTabletGoal goal, long requestTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
-        this.tinfo = tinfo;
         this.credentials = credentials;
         this.lock = lock;
         this.extent = extent;
@@ -211,7 +203,6 @@ public class TabletManagementClientService {
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("unloadTablet", org.apache.thrift.protocol.TMessageType.ONEWAY, 0));
         unloadTablet_args args = new unloadTablet_args();
-        args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setLock(lock);
         args.setExtent(extent);
@@ -233,21 +224,19 @@ public class TabletManagementClientService {
     }
 
     @Override
-    public void flushTablet(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void flushTablet(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      flushTablet_call method_call = new flushTablet_call(tinfo, credentials, lock, extent, resultHandler, this, ___protocolFactory, ___transport);
+      flushTablet_call method_call = new flushTablet_call(credentials, lock, extent, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
     public static class flushTablet_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String lock;
       private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent;
-      public flushTablet_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      public flushTablet_call(org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String lock, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, true);
-        this.tinfo = tinfo;
         this.credentials = credentials;
         this.lock = lock;
         this.extent = extent;
@@ -257,7 +246,6 @@ public class TabletManagementClientService {
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
         prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("flushTablet", org.apache.thrift.protocol.TMessageType.ONEWAY, 0));
         flushTablet_args args = new flushTablet_args();
-        args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setLock(lock);
         args.setExtent(extent);
@@ -317,7 +305,7 @@ public class TabletManagementClientService {
 
       @Override
       public org.apache.thrift.TBase getResult(I iface, loadTablet_args args) throws org.apache.thrift.TException {
-        iface.loadTablet(args.tinfo, args.credentials, args.lock, args.extent);
+        iface.loadTablet(args.credentials, args.lock, args.extent);
         return null;
       }
     }
@@ -344,7 +332,7 @@ public class TabletManagementClientService {
 
       @Override
       public org.apache.thrift.TBase getResult(I iface, unloadTablet_args args) throws org.apache.thrift.TException {
-        iface.unloadTablet(args.tinfo, args.credentials, args.lock, args.extent, args.goal, args.requestTime);
+        iface.unloadTablet(args.credentials, args.lock, args.extent, args.goal, args.requestTime);
         return null;
       }
     }
@@ -371,7 +359,7 @@ public class TabletManagementClientService {
 
       @Override
       public org.apache.thrift.TBase getResult(I iface, flushTablet_args args) throws org.apache.thrift.TException {
-        iface.flushTablet(args.tinfo, args.credentials, args.lock, args.extent);
+        iface.flushTablet(args.credentials, args.lock, args.extent);
         return null;
       }
     }
@@ -431,7 +419,7 @@ public class TabletManagementClientService {
 
       @Override
       public void start(I iface, loadTablet_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.loadTablet(args.tinfo, args.credentials, args.lock, args.extent,resultHandler);
+        iface.loadTablet(args.credentials, args.lock, args.extent,resultHandler);
       }
     }
 
@@ -471,7 +459,7 @@ public class TabletManagementClientService {
 
       @Override
       public void start(I iface, unloadTablet_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.unloadTablet(args.tinfo, args.credentials, args.lock, args.extent, args.goal, args.requestTime,resultHandler);
+        iface.unloadTablet(args.credentials, args.lock, args.extent, args.goal, args.requestTime,resultHandler);
       }
     }
 
@@ -511,7 +499,7 @@ public class TabletManagementClientService {
 
       @Override
       public void start(I iface, flushTablet_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.flushTablet(args.tinfo, args.credentials, args.lock, args.extent,resultHandler);
+        iface.flushTablet(args.credentials, args.lock, args.extent,resultHandler);
       }
     }
 
@@ -521,7 +509,6 @@ public class TabletManagementClientService {
   public static class loadTablet_args implements org.apache.thrift.TBase<loadTablet_args, loadTablet_args._Fields>, java.io.Serializable, Cloneable, Comparable<loadTablet_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("loadTablet_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField LOCK_FIELD_DESC = new org.apache.thrift.protocol.TField("lock", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -529,14 +516,12 @@ public class TabletManagementClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new loadTablet_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new loadTablet_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String lock; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)4, "lock"),
       EXTENT((short)2, "extent");
@@ -555,8 +540,6 @@ public class TabletManagementClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 5: // TINFO
-            return TINFO;
           case 1: // CREDENTIALS
             return CREDENTIALS;
           case 4: // LOCK
@@ -609,8 +592,6 @@ public class TabletManagementClientService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.LOCK, new org.apache.thrift.meta_data.FieldMetaData("lock", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -625,13 +606,11 @@ public class TabletManagementClientService {
     }
 
     public loadTablet_args(
-      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String lock,
       org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent)
     {
       this();
-      this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
       this.extent = extent;
@@ -641,9 +620,6 @@ public class TabletManagementClientService {
      * Performs a deep copy on <i>other</i>.
      */
     public loadTablet_args(loadTablet_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
-      }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
@@ -662,35 +638,9 @@ public class TabletManagementClientService {
 
     @Override
     public void clear() {
-      this.tinfo = null;
       this.credentials = null;
       this.lock = null;
       this.extent = null;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public loadTablet_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -771,14 +721,6 @@ public class TabletManagementClientService {
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
-        }
-        break;
-
       case CREDENTIALS:
         if (value == null) {
           unsetCredentials();
@@ -810,9 +752,6 @@ public class TabletManagementClientService {
     @Override
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
       case CREDENTIALS:
         return getCredentials();
 
@@ -834,8 +773,6 @@ public class TabletManagementClientService {
       }
 
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
       case LOCK:
@@ -858,15 +795,6 @@ public class TabletManagementClientService {
         return false;
       if (this == that)
         return true;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
 
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
@@ -902,10 +830,6 @@ public class TabletManagementClientService {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
-      if (isSetTinfo())
-        hashCode = hashCode * 8191 + tinfo.hashCode();
-
       hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
@@ -929,16 +853,6 @@ public class TabletManagementClientService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
@@ -993,14 +907,6 @@ public class TabletManagementClientService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("loadTablet_args(");
       boolean first = true;
 
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
       sb.append("credentials:");
       if (this.credentials == null) {
         sb.append("null");
@@ -1031,9 +937,6 @@ public class TabletManagementClientService {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
       if (credentials != null) {
         credentials.validate();
       }
@@ -1078,15 +981,6 @@ public class TabletManagementClientService {
             break;
           }
           switch (schemeField.id) {
-            case 5: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
@@ -1144,11 +1038,6 @@ public class TabletManagementClientService {
           oprot.writeString(struct.lock);
           oprot.writeFieldEnd();
         }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -1168,22 +1057,16 @@ public class TabletManagementClientService {
       public void write(org.apache.thrift.protocol.TProtocol prot, loadTablet_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTinfo()) {
+        if (struct.isSetCredentials()) {
           optionals.set(0);
         }
-        if (struct.isSetCredentials()) {
+        if (struct.isSetLock()) {
           optionals.set(1);
         }
-        if (struct.isSetLock()) {
+        if (struct.isSetExtent()) {
           optionals.set(2);
         }
-        if (struct.isSetExtent()) {
-          optionals.set(3);
-        }
-        oprot.writeBitSet(optionals, 4);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
@@ -1198,22 +1081,17 @@ public class TabletManagementClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, loadTablet_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(4);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
           struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
-        if (incoming.get(2)) {
+        if (incoming.get(1)) {
           struct.lock = iprot.readString();
           struct.setLockIsSet(true);
         }
-        if (incoming.get(3)) {
+        if (incoming.get(2)) {
           struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
           struct.extent.read(iprot);
           struct.setExtentIsSet(true);
@@ -1230,7 +1108,6 @@ public class TabletManagementClientService {
   public static class unloadTablet_args implements org.apache.thrift.TBase<unloadTablet_args, unloadTablet_args._Fields>, java.io.Serializable, Cloneable, Comparable<unloadTablet_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("unloadTablet_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)5);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField LOCK_FIELD_DESC = new org.apache.thrift.protocol.TField("lock", org.apache.thrift.protocol.TType.STRING, (short)4);
     private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
@@ -1240,7 +1117,6 @@ public class TabletManagementClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new unloadTablet_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new unloadTablet_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String lock; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
@@ -1253,7 +1129,6 @@ public class TabletManagementClientService {
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)5, "tinfo"),
       CREDENTIALS((short)1, "credentials"),
       LOCK((short)4, "lock"),
       EXTENT((short)2, "extent"),
@@ -1278,8 +1153,6 @@ public class TabletManagementClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 5: // TINFO
-            return TINFO;
           case 1: // CREDENTIALS
             return CREDENTIALS;
           case 4: // LOCK
@@ -1338,8 +1211,6 @@ public class TabletManagementClientService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.LOCK, new org.apache.thrift.meta_data.FieldMetaData("lock", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -1358,7 +1229,6 @@ public class TabletManagementClientService {
     }
 
     public unloadTablet_args(
-      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String lock,
       org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent,
@@ -1366,7 +1236,6 @@ public class TabletManagementClientService {
       long requestTime)
     {
       this();
-      this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
       this.extent = extent;
@@ -1380,9 +1249,6 @@ public class TabletManagementClientService {
      */
     public unloadTablet_args(unloadTablet_args other) {
       __isset_bitfield = other.__isset_bitfield;
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
-      }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
@@ -1405,38 +1271,12 @@ public class TabletManagementClientService {
 
     @Override
     public void clear() {
-      this.tinfo = null;
       this.credentials = null;
       this.lock = null;
       this.extent = null;
       this.goal = null;
       setRequestTimeIsSet(false);
       this.requestTime = 0;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public unloadTablet_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -1573,14 +1413,6 @@ public class TabletManagementClientService {
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
-        }
-        break;
-
       case CREDENTIALS:
         if (value == null) {
           unsetCredentials();
@@ -1628,9 +1460,6 @@ public class TabletManagementClientService {
     @Override
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
       case CREDENTIALS:
         return getCredentials();
 
@@ -1658,8 +1487,6 @@ public class TabletManagementClientService {
       }
 
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
       case LOCK:
@@ -1686,15 +1513,6 @@ public class TabletManagementClientService {
         return false;
       if (this == that)
         return true;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
 
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
@@ -1748,10 +1566,6 @@ public class TabletManagementClientService {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
-      if (isSetTinfo())
-        hashCode = hashCode * 8191 + tinfo.hashCode();
-
       hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
@@ -1781,16 +1595,6 @@ public class TabletManagementClientService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
@@ -1865,14 +1669,6 @@ public class TabletManagementClientService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("unloadTablet_args(");
       boolean first = true;
 
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
       sb.append("credentials:");
       if (this.credentials == null) {
         sb.append("null");
@@ -1915,9 +1711,6 @@ public class TabletManagementClientService {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
       if (credentials != null) {
         credentials.validate();
       }
@@ -1964,15 +1757,6 @@ public class TabletManagementClientService {
             break;
           }
           switch (schemeField.id) {
-            case 5: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             case 1: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
@@ -2046,11 +1830,6 @@ public class TabletManagementClientService {
           oprot.writeString(struct.lock);
           oprot.writeFieldEnd();
         }
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.goal != null) {
           oprot.writeFieldBegin(GOAL_FIELD_DESC);
           oprot.writeI32(struct.goal.getValue());
@@ -2078,28 +1857,22 @@ public class TabletManagementClientService {
       public void write(org.apache.thrift.protocol.TProtocol prot, unloadTablet_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTinfo()) {
+        if (struct.isSetCredentials()) {
           optionals.set(0);
         }
-        if (struct.isSetCredentials()) {
+        if (struct.isSetLock()) {
           optionals.set(1);
         }
-        if (struct.isSetLock()) {
+        if (struct.isSetExtent()) {
           optionals.set(2);
         }
-        if (struct.isSetExtent()) {
+        if (struct.isSetGoal()) {
           optionals.set(3);
         }
-        if (struct.isSetGoal()) {
+        if (struct.isSetRequestTime()) {
           optionals.set(4);
         }
-        if (struct.isSetRequestTime()) {
-          optionals.set(5);
-        }
-        oprot.writeBitSet(optionals, 6);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
+        oprot.writeBitSet(optionals, 5);
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
@@ -2120,31 +1893,26 @@ public class TabletManagementClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, unloadTablet_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(6);
+        java.util.BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
           struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
-        if (incoming.get(2)) {
+        if (incoming.get(1)) {
           struct.lock = iprot.readString();
           struct.setLockIsSet(true);
         }
-        if (incoming.get(3)) {
+        if (incoming.get(2)) {
           struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
           struct.extent.read(iprot);
           struct.setExtentIsSet(true);
         }
-        if (incoming.get(4)) {
+        if (incoming.get(3)) {
           struct.goal = org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal.findByValue(iprot.readI32());
           struct.setGoalIsSet(true);
         }
-        if (incoming.get(5)) {
+        if (incoming.get(4)) {
           struct.requestTime = iprot.readI64();
           struct.setRequestTimeIsSet(true);
         }
@@ -2160,7 +1928,6 @@ public class TabletManagementClientService {
   public static class flushTablet_args implements org.apache.thrift.TBase<flushTablet_args, flushTablet_args._Fields>, java.io.Serializable, Cloneable, Comparable<flushTablet_args>   {
     private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("flushTablet_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField LOCK_FIELD_DESC = new org.apache.thrift.protocol.TField("lock", org.apache.thrift.protocol.TType.STRING, (short)3);
     private static final org.apache.thrift.protocol.TField EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("extent", org.apache.thrift.protocol.TType.STRUCT, (short)4);
@@ -2168,14 +1935,12 @@ public class TabletManagementClientService {
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new flushTablet_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new flushTablet_argsTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String lock; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
       LOCK((short)3, "lock"),
       EXTENT((short)4, "extent");
@@ -2194,8 +1959,6 @@ public class TabletManagementClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // TINFO
-            return TINFO;
           case 2: // CREDENTIALS
             return CREDENTIALS;
           case 3: // LOCK
@@ -2248,8 +2011,6 @@ public class TabletManagementClientService {
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
       tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.LOCK, new org.apache.thrift.meta_data.FieldMetaData("lock", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -2264,13 +2025,11 @@ public class TabletManagementClientService {
     }
 
     public flushTablet_args(
-      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
       java.lang.String lock,
       org.apache.accumulo.core.dataImpl.thrift.TKeyExtent extent)
     {
       this();
-      this.tinfo = tinfo;
       this.credentials = credentials;
       this.lock = lock;
       this.extent = extent;
@@ -2280,9 +2039,6 @@ public class TabletManagementClientService {
      * Performs a deep copy on <i>other</i>.
      */
     public flushTablet_args(flushTablet_args other) {
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
-      }
       if (other.isSetCredentials()) {
         this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
       }
@@ -2301,35 +2057,9 @@ public class TabletManagementClientService {
 
     @Override
     public void clear() {
-      this.tinfo = null;
       this.credentials = null;
       this.lock = null;
       this.extent = null;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public flushTablet_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -2410,14 +2140,6 @@ public class TabletManagementClientService {
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
-        }
-        break;
-
       case CREDENTIALS:
         if (value == null) {
           unsetCredentials();
@@ -2449,9 +2171,6 @@ public class TabletManagementClientService {
     @Override
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case TINFO:
-        return getTinfo();
-
       case CREDENTIALS:
         return getCredentials();
 
@@ -2473,8 +2192,6 @@ public class TabletManagementClientService {
       }
 
       switch (field) {
-      case TINFO:
-        return isSetTinfo();
       case CREDENTIALS:
         return isSetCredentials();
       case LOCK:
@@ -2497,15 +2214,6 @@ public class TabletManagementClientService {
         return false;
       if (this == that)
         return true;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
 
       boolean this_present_credentials = true && this.isSetCredentials();
       boolean that_present_credentials = true && that.isSetCredentials();
@@ -2541,10 +2249,6 @@ public class TabletManagementClientService {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
-      if (isSetTinfo())
-        hashCode = hashCode * 8191 + tinfo.hashCode();
-
       hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
       if (isSetCredentials())
         hashCode = hashCode * 8191 + credentials.hashCode();
@@ -2568,16 +2272,6 @@ public class TabletManagementClientService {
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
       lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
       if (lastComparison != 0) {
         return lastComparison;
@@ -2632,14 +2326,6 @@ public class TabletManagementClientService {
       java.lang.StringBuilder sb = new java.lang.StringBuilder("flushTablet_args(");
       boolean first = true;
 
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
       sb.append("credentials:");
       if (this.credentials == null) {
         sb.append("null");
@@ -2670,9 +2356,6 @@ public class TabletManagementClientService {
     public void validate() throws org.apache.thrift.TException {
       // check for required fields
       // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
       if (credentials != null) {
         credentials.validate();
       }
@@ -2717,15 +2400,6 @@ public class TabletManagementClientService {
             break;
           }
           switch (schemeField.id) {
-            case 1: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
             case 2: // CREDENTIALS
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
@@ -2768,11 +2442,6 @@ public class TabletManagementClientService {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.credentials != null) {
           oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
           struct.credentials.write(oprot);
@@ -2807,22 +2476,16 @@ public class TabletManagementClientService {
       public void write(org.apache.thrift.protocol.TProtocol prot, flushTablet_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTinfo()) {
+        if (struct.isSetCredentials()) {
           optionals.set(0);
         }
-        if (struct.isSetCredentials()) {
+        if (struct.isSetLock()) {
           optionals.set(1);
         }
-        if (struct.isSetLock()) {
+        if (struct.isSetExtent()) {
           optionals.set(2);
         }
-        if (struct.isSetExtent()) {
-          optionals.set(3);
-        }
-        oprot.writeBitSet(optionals, 4);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetCredentials()) {
           struct.credentials.write(oprot);
         }
@@ -2837,22 +2500,17 @@ public class TabletManagementClientService {
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, flushTablet_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(4);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
           struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
           struct.credentials.read(iprot);
           struct.setCredentialsIsSet(true);
         }
-        if (incoming.get(2)) {
+        if (incoming.get(1)) {
           struct.lock = iprot.readString();
           struct.setLockIsSet(true);
         }
-        if (incoming.get(3)) {
+        if (incoming.get(2)) {
           struct.extent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
           struct.extent.read(iprot);
           struct.setExtentIsSet(true);
