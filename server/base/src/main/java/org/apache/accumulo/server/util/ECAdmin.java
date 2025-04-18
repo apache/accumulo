@@ -18,7 +18,13 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -26,6 +32,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.singletons.SingletonManager;
 import org.apache.accumulo.core.singletons.SingletonManager.Mode;
+import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
@@ -41,6 +48,8 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -49,6 +58,111 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  */
 @AutoService(KeywordExecutable.class)
 public class ECAdmin implements KeywordExecutable {
+
+  public static class RunningCompactionSummary {
+    private final String ecid;
+    private final String addr;
+    private final TCompactionKind kind;
+    private final String queueName;
+    private final String ke;
+    private final String tableId;
+    private String status = "";
+    private long lastUpdate = 0;
+    private long duration = 0;
+    private int numFiles = 0;
+    private double progress = 0.0;
+
+    public RunningCompactionSummary(RunningCompaction runningCompaction,
+        RunningCompactionInfo runningCompactionInfo) {
+      super();
+      ecid = runningCompaction.getJob().getExternalCompactionId();
+      addr = runningCompaction.getCompactorAddress();
+      kind = runningCompaction.getJob().kind;
+      queueName = runningCompaction.getQueueName();
+      KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().extent);
+      ke = extent.obscured();
+      tableId = extent.tableId().canonical();
+      if (runningCompactionInfo != null) {
+        status = runningCompactionInfo.status;
+        lastUpdate = runningCompactionInfo.lastUpdate;
+        duration = runningCompactionInfo.duration;
+        numFiles = runningCompactionInfo.numFiles;
+        progress = runningCompactionInfo.progress;
+      }
+
+    }
+
+    public String getStatus() {
+      return status;
+    }
+
+    public void setStatus(String status) {
+      this.status = status;
+    }
+
+    public long getLastUpdate() {
+      return lastUpdate;
+    }
+
+    public void setLastUpdate(long lastUpdate) {
+      this.lastUpdate = lastUpdate;
+    }
+
+    public long getDuration() {
+      return duration;
+    }
+
+    public void setDuration(long duration) {
+      this.duration = duration;
+    }
+
+    public int getNumFiles() {
+      return numFiles;
+    }
+
+    public void setNumFiles(int numFiles) {
+      this.numFiles = numFiles;
+    }
+
+    public double getProgress() {
+      return progress;
+    }
+
+    public void setProgress(double progress) {
+      this.progress = progress;
+    }
+
+    public String getEcid() {
+      return ecid;
+    }
+
+    public String getAddr() {
+      return addr;
+    }
+
+    public TCompactionKind getKind() {
+      return kind;
+    }
+
+    public String getQueueName() {
+      return queueName;
+    }
+
+    public String getKe() {
+      return ke;
+    }
+
+    public String getTableId() {
+      return tableId;
+    }
+
+    public void print(PrintStream out) {
+      out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queueName, tableId);
+      out.format("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n", status,
+          lastUpdate, duration, numFiles, progress);
+    }
+  }
+
   private static final Logger log = LoggerFactory.getLogger(ECAdmin.class);
 
   @Parameters(commandDescription = "cancel the external compaction with given ECID")
@@ -62,6 +176,9 @@ public class ECAdmin implements KeywordExecutable {
     @Parameter(names = {"-d", "--details"},
         description = "display details about the running compactions")
     boolean details = false;
+
+    @Parameter(names = {"-j", "--json"}, description = "format the output as json")
+    boolean jsonOutput = false;
   }
 
   @Parameters(commandDescription = "list all compactors in zookeeper")
@@ -116,7 +233,18 @@ public class ECAdmin implements KeywordExecutable {
       } else if (cl.getParsedCommand().equals("cancel")) {
         cancelCompaction(context, cancelOps.ecid);
       } else if (cl.getParsedCommand().equals("running")) {
-        runningCompactions(context, runningOpts.details);
+        List<RunningCompactionSummary> compactions =
+            runningCompactions(context, runningOpts.details);
+        if (runningOpts.jsonOutput) {
+          try {
+            Gson gson = new GsonBuilder().setPrettyPrinting().create();
+            System.out.println(gson.toJson(compactions));
+          } catch (Exception e) {
+            log.error("Error generating JSON output", e);
+          }
+        } else {
+          compactions.forEach(c -> c.print(System.out));
+        }
       } else {
         log.error("Unknown command {}", cl.getParsedCommand());
         cl.usage();
@@ -130,7 +258,7 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private void cancelCompaction(ServerContext context, String ecid) {
+  protected void cancelCompaction(ServerContext context, String ecid) {
     CompactionCoordinatorService.Client coordinatorClient = null;
     ecid = ExternalCompactionId.from(ecid).canonical();
     try {
@@ -144,7 +272,7 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private void listCompactorsByQueue(ServerContext context) {
+  protected void listCompactorsByQueue(ServerContext context) {
     var queueToCompactorsMap = ExternalCompactionUtil.getCompactorAddrs(context);
     if (queueToCompactorsMap.isEmpty()) {
       System.out.println("No Compactors found.");
@@ -153,43 +281,37 @@ public class ECAdmin implements KeywordExecutable {
     }
   }
 
-  private void runningCompactions(ServerContext context, boolean details) {
+  protected List<RunningCompactionSummary> runningCompactions(ServerContext context,
+      boolean details) {
     CompactionCoordinatorService.Client coordinatorClient = null;
-    TExternalCompactionList running;
+
     try {
       coordinatorClient = getCoordinatorClient(context);
-      running = coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
-      if (running == null) {
+
+      // Fetch running compactions as a list and convert to a map
+      TExternalCompactionList running =
+          coordinatorClient.getRunningCompactions(TraceUtil.traceInfo(), context.rpcCreds());
+
+      List<RunningCompactionSummary> results = new ArrayList<>();
+
+      if (running == null || running.getCompactions() == null
+          || running.getCompactions().isEmpty()) {
         System.out.println("No running compactions found.");
-        return;
+        return results;
       }
-      var ecidMap = running.getCompactions();
-      if (ecidMap == null) {
-        System.out.println("No running compactions found.");
-        return;
-      }
-      ecidMap.forEach((ecid, ec) -> {
-        if (ec != null) {
-          var runningCompaction = new RunningCompaction(ec);
-          var addr = runningCompaction.getCompactorAddress();
-          var kind = runningCompaction.getJob().kind;
-          var queue = runningCompaction.getQueueName();
-          var ke = KeyExtent.fromThrift(runningCompaction.getJob().extent);
-          System.out.format("%s %s %s %s TableId: %s\n", ecid, addr, kind, queue, ke.tableId());
-          if (details) {
-            var runningCompactionInfo = new RunningCompactionInfo(ec);
-            var status = runningCompactionInfo.status;
-            var last = runningCompactionInfo.lastUpdate;
-            var duration = runningCompactionInfo.duration;
-            var numFiles = runningCompactionInfo.numFiles;
-            var progress = runningCompactionInfo.progress;
-            System.out.format("  %s Last Update: %dms Duration: %dms Files: %d Progress: %.2f%%\n",
-                status, last, duration, numFiles, progress);
-          }
+
+      for (Map.Entry<String,TExternalCompaction> entry : running.getCompactions().entrySet()) {
+        TExternalCompaction ec = entry.getValue();
+        if (ec == null) {
+          continue;
         }
-      });
+        var summary = new RunningCompactionSummary(new RunningCompaction(ec),
+            details ? new RunningCompactionInfo(ec) : null);
+        results.add(summary);
+      }
+      return results;
     } catch (Exception e) {
-      throw new RuntimeException("Unable to get running compactions.", e);
+      throw new IllegalStateException("Unable to get running compactions.", e);
     } finally {
       ThriftUtil.returnClient(coordinatorClient, context);
     }
