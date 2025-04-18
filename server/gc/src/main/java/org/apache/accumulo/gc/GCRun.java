@@ -337,7 +337,7 @@ public class GCRun implements GarbageCollectionEnvironment {
               // this failure, we still want to remove the metadata entry
               removeFlag = true;
               errors++;
-              String[] parts = pathToDel.toString().split(Constants.ZTABLES)[1].split("/");
+              String[] parts = pathToDel.toString().split(Constants.HDFS_TABLES_DIR)[1].split("/");
               if (parts.length > 2) {
                 TableId tableId = TableId.of(parts[1]);
                 String tabletDir = parts[2];

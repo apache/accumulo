@@ -60,7 +60,7 @@ public class TableMapping {
   public void put(TableId tableId, String tableName, TableOperation operation)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     requireNonNull(tableId);
-    requireNonNull(tableName);
+    var rawTableName = TableNameUtil.qualify(requireNonNull(tableName)).getSecond();
     requireNonNull(operation);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Putting built-in tables in map should not be possible after init");
@@ -68,18 +68,18 @@ public class TableMapping {
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
-      if (tableName.equals(currentName)) {
+      if (rawTableName.equals(currentName)) {
         return null; // mapping already exists; operation is idempotent, so no change needed
       }
       if (currentName != null) {
-        throw new AcceptableThriftTableOperationException(null, tableId.canonical(), operation,
+        throw new AcceptableThriftTableOperationException(tableId.canonical(), null, operation,
             TableOperationExceptionType.EXISTS, "Table Id already exists");
       }
-      if (tables.containsValue(tableName)) {
-        throw new AcceptableThriftTableOperationException(null, tableId.canonical(), operation,
+      if (tables.containsValue(rawTableName)) {
+        throw new AcceptableThriftTableOperationException(tableId.canonical(), tableName, operation,
             TableOperationExceptionType.EXISTS, "Table name already exists");
       }
-      tables.put(tableId.canonical(), tableName);
+      tables.put(tableId.canonical(), rawTableName);
       return serializeMap(tables);
     });
   }
@@ -105,26 +105,26 @@ public class TableMapping {
   public void rename(final TableId tableId, final String oldName, final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     requireNonNull(tableId);
-    requireNonNull(oldName);
-    requireNonNull(newName);
+    var rawOldName = TableNameUtil.qualify(requireNonNull(oldName)).getSecond();
+    var rawNewName = TableNameUtil.qualify(requireNonNull(newName)).getSecond();
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Renaming built-in tables in map should not be possible");
     }
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
-      if (newName.equals(currentName)) {
+      if (rawNewName.equals(currentName)) {
         return null; // assume in this case the operation is running again, so we are done
       }
-      if (!oldName.equals(currentName)) {
+      if (!rawOldName.equals(currentName)) {
         throw new AcceptableThriftTableOperationException(null, oldName, TableOperation.RENAME,
             TableOperationExceptionType.NOTFOUND, "Name changed while processing");
       }
-      if (tables.containsValue(newName)) {
+      if (tables.containsValue(rawNewName)) {
         throw new AcceptableThriftTableOperationException(null, newName, TableOperation.RENAME,
             TableOperationExceptionType.EXISTS, "Table name already exists");
       }
-      tables.put(tableId.canonical(), newName);
+      tables.put(tableId.canonical(), rawNewName);
       return serializeMap(tables);
     });
   }
