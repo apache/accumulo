@@ -28,13 +28,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
 import java.time.Duration;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
@@ -49,9 +50,11 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -182,6 +185,23 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     expected.add(userTable);
     assertEquals(expected, ops.list());
     assertEquals(expected, ops.tableIdMap().keySet());
+    for (Map.Entry<String,String> entry : ops.tableIdMap().entrySet()) {
+      var tableName = entry.getKey();
+      var tableId = TableId.of(entry.getValue());
+      if (tableName.equals(AccumuloTable.ROOT.tableName())) {
+        assertEquals(AccumuloTable.ROOT.tableId(), tableId);
+      } else if (tableName.equals(AccumuloTable.METADATA.tableName())) {
+        assertEquals(AccumuloTable.METADATA.tableId(), tableId);
+      } else if (tableName.equals(AccumuloTable.FATE.tableName())) {
+        assertEquals(AccumuloTable.FATE.tableId(), tableId);
+      } else if (tableName.equals(AccumuloTable.SCAN_REF.tableName())) {
+        assertEquals(AccumuloTable.SCAN_REF.tableId(), tableId);
+      } else if (tableName.equals(userTable)) {
+        assertFalse(AccumuloTable.allTableIds().contains(tableId));
+      } else {
+        throw new IllegalStateException("Unrecognized table: " + tableName);
+      }
+    }
   }
 
   @Test
@@ -233,59 +253,43 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
       // not offline, can't export
       assertThrows(IllegalStateException.class,
           () -> ops.exportTable(sysTable.tableName(), exportDir.toString()));
-
-      switch (sysTable) {
-        case ROOT:
-        case METADATA:
-          // can't offline, so will never be able to export
-          assertThrows(AccumuloException.class, () -> ops.offline(sysTable.tableName(), true));
-          assertThrows(AccumuloException.class,
-              () -> ops.importTable(sysTable.tableName(), exportUserDir.toString()));
-          break;
-        case FATE:
-        case SCAN_REF:
-          ops.offline(sysTable.tableName(), true);
-          try {
-            assertThrows(AccumuloException.class,
-                () -> ops.exportTable(sysTable.tableName(), exportDir.toString()));
-            assertThrows(AccumuloException.class,
-                () -> ops.importTable(sysTable.tableName(), exportUserDir.toString()));
-          } finally {
-            ops.online(sysTable.tableName(), true);
-          }
-          break;
-        default:
-          throw new IllegalStateException("Unrecognized table: " + sysTable);
-      }
+      // can't offline, so will never be able to export
+      assertThrows(AccumuloException.class, () -> ops.offline(sysTable.tableName(), true));
+      assertThrows(AccumuloException.class,
+          () -> ops.importTable(sysTable.tableName(), exportUserDir.toString()));
     }
   }
 
   @Test
   public void test_addSplits_putSplits_listSplits_splitRangeByTablets() throws Exception {
-    // note that addSplits and putSplits are implemented the same, just take different args. No
-    // need to test both
-
-    // addSplits, listSplits tested elsewhere for METADATA, ROOT, and user tables, but testing here
-    // as well since this setup is needed to test for splitRangeByTablets anyway, which is untested
-    // elsewhere
+    // addSplits,listSplits,putSplits tested elsewhere for METADATA, ROOT, and user tables, but
+    // testing here as well since this setup is needed to test for splitRangeByTablets anyway,
+    // which is untested elsewhere
 
     userTable = getUniqueNames(1)[0];
     ops.create(userTable);
     // system and user tables
-    var allTables = new ArrayList<>(ops.list());
+    var allTables = ops.list();
 
-    for (int i = 0; i < allTables.size(); i++) {
-      SortedSet<Text> splits = new TreeSet<>();
-      splits.add(new Text(i + ""));
-      String table = allTables.get(i);
+    for (String table : allTables) {
+      SortedSet<Text> splits1 = new TreeSet<>();
+      splits1.add(new Text("split1"));
+      SortedSet<Text> splits2 = new TreeSet<>();
+      splits2.add(new Text("split2"));
+      SortedMap<Text,TabletMergeability> splits2Map =
+          TabletMergeabilityUtil.userDefaultSplits(splits2);
 
       if (table.equals(AccumuloTable.ROOT.tableName())) {
         // cannot add splits to ROOT
-        assertThrows(AccumuloException.class, () -> ops.addSplits(table, splits));
+        assertThrows(AccumuloException.class, () -> ops.addSplits(table, splits1));
+        assertThrows(AccumuloException.class, () -> ops.putSplits(table, splits2Map));
         assertEquals(0, ops.listSplits(table).size());
       } else {
-        ops.addSplits(table, splits);
-        assertTrue(ops.listSplits(table).containsAll(splits));
+        ops.addSplits(table, splits1);
+        ops.putSplits(table, splits2Map);
+        var listSplits = ops.listSplits(table);
+        assertTrue(listSplits.containsAll(splits1));
+        assertTrue(listSplits.containsAll(splits2));
       }
 
       assertEquals(ops.splitRangeByTablets(table, new Range(), 99).size(),
@@ -526,8 +530,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     for (int i = 0; i < sysTables.length; i++) {
       var sysTable = sysTables[i];
       var tableName = tableNames[i];
-      assertThrows(AccumuloException.class,
-          () -> client.tableOperations().rename(sysTable.tableName(), tableName));
+      assertThrows(AccumuloException.class, () -> ops.rename(sysTable.tableName(), tableName));
     }
   }
 
@@ -635,26 +638,10 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     assertDoesNotThrow(() -> Class.forName(ComprehensiveBaseIT.class.getName()));
     // offline,online,isOnline not tested for system tables. Test basic functionality here
     for (var sysTable : AccumuloTable.values()) {
-      switch (sysTable) {
-        case ROOT:
-        case METADATA:
-          assertTrue(client.tableOperations().isOnline(sysTable.tableName()));
-          assertThrows(AccumuloException.class,
-              () -> client.tableOperations().offline(sysTable.tableName(), true));
-          assertTrue(client.tableOperations().isOnline(sysTable.tableName()));
-          client.tableOperations().online(sysTable.tableName(), true);
-          break;
-        case SCAN_REF:
-        case FATE:
-          assertTrue(client.tableOperations().isOnline(sysTable.tableName()));
-          client.tableOperations().offline(sysTable.tableName(), true);
-          assertFalse(client.tableOperations().isOnline(sysTable.tableName()));
-          client.tableOperations().online(sysTable.tableName(), true);
-          assertTrue(client.tableOperations().isOnline(sysTable.tableName()));
-          break;
-        default:
-          throw new IllegalStateException("Unrecognized table: " + sysTable);
-      }
+      assertTrue(ops.isOnline(sysTable.tableName()));
+      assertThrows(AccumuloException.class, () -> ops.offline(sysTable.tableName(), true));
+      assertTrue(ops.isOnline(sysTable.tableName()));
+      ops.online(sysTable.tableName(), true);
     }
   }
 
@@ -665,7 +652,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     var clientContext = (ClientContext) client;
     userTable = getUniqueNames(1)[0];
 
-    client.tableOperations().create(userTable);
+    ops.create(userTable);
     ReadWriteIT.ingest(clientContext, 5, 5, 5, 0, userTable);
     assertTrue(clientContext.getTabletLocationCache(TableId.of(ops.tableIdMap().get(userTable)))
         .getTabletHostingRequestCount() > 0);
@@ -753,9 +740,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
       assertEquals(1, diskUsageList.size());
       var diskUsage = diskUsageList.get(0);
       log.info("table : {}, disk usage : {}", sysTable.tableName(), diskUsage.getUsage());
-      if (!sysTable.equals(AccumuloTable.ROOT)) {
-        assertTrue(diskUsage.getUsage() > 0);
-      }
+      assertTrue(diskUsage.getUsage() > 0);
     }
   }
 
@@ -855,7 +840,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
 
     // start a very slow compaction to create a FATE op that will linger in the FATE table until
     // cancelled
-    client.tableOperations().compact(table, null, null, true, false);
+    ops.compact(table, null, null, true, false);
 
     Set<Text> rowsSeenAfterNewOp = new HashSet<>();
     try (var scanner = client.createScanner(AccumuloTable.FATE.tableName())) {
