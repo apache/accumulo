@@ -82,7 +82,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
       NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
-      context.getTableMapping(namespaceId).put(context, tableInfo.tableId, tableInfo.tableName,
+      context.getTableMapping(namespaceId).put(tableInfo.tableId, tableInfo.tableName,
           TableOperation.IMPORT);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
 

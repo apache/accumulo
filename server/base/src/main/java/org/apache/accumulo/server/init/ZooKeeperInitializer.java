@@ -108,15 +108,13 @@ public class ZooKeeperInitializer {
     context.getTableManager().prepareNewNamespaceState(Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
-    zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.DEFAULT.id()),
-        NamespaceMapping.serializeMap(Map.of()), ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.ACCUMULO.id()),
         NamespaceMapping.serializeMap(Map.of(AccumuloTable.ROOT.tableId().canonical(),
             AccumuloTable.ROOT.simpleTableName(), AccumuloTable.METADATA.tableId().canonical(),
             AccumuloTable.METADATA.simpleTableName(), AccumuloTable.SCAN_REF.tableId().canonical(),
             AccumuloTable.SCAN_REF.simpleTableName(), AccumuloTable.FATE.tableId().canonical(),
             AccumuloTable.FATE.simpleTableName())),
-        ZooUtil.NodeExistsPolicy.FAIL);
+        ZooUtil.NodeExistsPolicy.OVERWRITE);
 
     context.getTableManager().prepareNewTableState(AccumuloTable.ROOT.tableId(),
         Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,

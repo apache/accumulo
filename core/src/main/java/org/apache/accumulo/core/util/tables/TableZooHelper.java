@@ -185,7 +185,6 @@ public class TableZooHelper {
    * @throws IllegalArgumentException if the table doesn't exist in ZooKeeper
    */
   public NamespaceId getNamespaceId(TableId tableId) throws TableNotFoundException {
-    checkArgument(context != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
     if (AccumuloTable.allTableIds().contains(tableId)) {

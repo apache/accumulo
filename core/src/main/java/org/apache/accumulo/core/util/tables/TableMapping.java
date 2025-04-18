@@ -34,7 +34,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
@@ -47,28 +46,26 @@ public class TableMapping {
 
   private final ClientContext context;
   private final NamespaceId namespaceId;
+  private final String mappingPath;
   private volatile SortedMap<TableId,String> currentTableMap = emptySortedMap();
   private volatile SortedMap<String,TableId> currentTableReverseMap = emptySortedMap();
   private volatile long lastMzxid;
 
   public TableMapping(ClientContext context, NamespaceId namespaceId) {
-    this.context = context;
-    this.namespaceId = namespaceId;
+    this.context = requireNonNull(context);
+    this.namespaceId = requireNonNull(namespaceId);
+    this.mappingPath = getZTableMapPath(namespaceId);
   }
 
-  public void put(final ClientContext context, TableId tableId, String tableName,
-      TableOperation operation)
+  public void put(TableId tableId, String tableName, TableOperation operation)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    requireNonNull(tableId);
+    requireNonNull(tableName);
+    requireNonNull(operation);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Putting built-in tables in map should not be possible after init");
     }
-    var zoo = context.getZooSession().asReaderWriter();
-    requireNonNull(zoo);
-    requireNonNull(tableId);
-    requireNonNull(namespaceId);
-    requireNonNull(tableName);
-    String zTableMapPath = getZTableMapPath(namespaceId);
-    zoo.mutateExisting(zTableMapPath, data -> {
+    context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
       if (tableName.equals(currentName)) {
@@ -87,15 +84,13 @@ public class TableMapping {
     });
   }
 
-  public void remove(final ClientContext context, final TableId tableId)
+  public void remove(final TableId tableId)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    requireNonNull(tableId);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Removing built-in tables in map should not be possible");
     }
-    var zoo = context.getZooSession().asReaderWriter();
-    requireNonNull(zoo);
-    requireNonNull(tableId);
-    zoo.mutateExisting(getZTableMapPath(getNamespaceOfTableId(zoo, tableId)), data -> {
+    context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       if (!tables.containsKey(tableId.canonical())) {
         throw new AcceptableThriftTableOperationException(null, tableId.canonical(),
@@ -107,21 +102,16 @@ public class TableMapping {
     });
   }
 
-  public void rename(final ClientContext context, final TableId tableId, final String oldName,
-      final String newName)
+  public void rename(final TableId tableId, final String oldName, final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    requireNonNull(tableId);
+    requireNonNull(oldName);
+    requireNonNull(newName);
     if (isBuiltInZKTable(tableId)) {
       throw new AssertionError("Renaming built-in tables in map should not be possible");
     }
-    var zoo = context.getZooSession().asReaderWriter();
-    requireNonNull(zoo);
-    requireNonNull(tableId);
-    requireNonNull(namespaceId);
-    requireNonNull(oldName);
-    requireNonNull(newName);
-    String zTableMapPath = getZTableMapPath(namespaceId);
-    zoo.mutateExisting(zTableMapPath, current -> {
-      var tables = deserializeMap(current);
+    context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
+      var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
       if (newName.equals(currentName)) {
         return null; // assume in this case the operation is running again, so we are done
@@ -139,15 +129,14 @@ public class TableMapping {
     });
   }
 
-  private synchronized void update(NamespaceId namespaceId) {
+  private synchronized void update() {
     final ZooCache zc = context.getZooCache();
     final ZcStat stat = new ZcStat();
-    final String zTableMapPath = getZTableMapPath(namespaceId);
 
-    byte[] data = zc.get(zTableMapPath, stat);
+    byte[] data = zc.get(mappingPath, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
-        throw new IllegalStateException(zTableMapPath + " node should not be null");
+        throw new IllegalStateException(mappingPath + " node should not be null");
       }
       Map<String,String> idToName = deserializeMap(data);
       if (namespaceId.equals(Namespace.ACCUMULO.id())) {
@@ -182,26 +171,13 @@ public class TableMapping {
     return AccumuloTable.allTableIds().contains(tableId);
   }
 
-  private static NamespaceId getNamespaceOfTableId(ZooReaderWriter zoo, TableId tableId)
-      throws IllegalArgumentException, InterruptedException, KeeperException {
-    for (String nid : zoo.getChildren(Constants.ZNAMESPACES)) {
-      for (String tid : zoo.getChildren(Constants.ZNAMESPACES + "/" + nid)) {
-        if (TableId.of(tid).equals(tableId)) {
-          return NamespaceId.of(nid);
-        }
-      }
-    }
-    throw new KeeperException.NoNodeException(
-        "TableId " + tableId.canonical() + " does not exist in ZooKeeper");
-  }
-
   public SortedMap<TableId,String> getIdToNameMap() {
-    update(namespaceId);
+    update();
     return currentTableMap;
   }
 
   public SortedMap<String,TableId> getNameToIdMap() {
-    update(namespaceId);
+    update();
     return currentTableReverseMap;
   }
 

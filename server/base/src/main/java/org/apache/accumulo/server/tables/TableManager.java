@@ -35,6 +35,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
@@ -64,6 +65,8 @@ public class TableManager {
     final PropStore propStore = context.getPropStore();
     log.debug("Creating ZooKeeper entries for new namespace {} (ID: {})", namespace, namespaceId);
     zoo.putPersistentData(Constants.ZNAMESPACES + "/" + namespaceId, new byte[0], existsPolicy);
+    zoo.putPersistentData(TableMapping.getZTableMapPath(namespaceId),
+        NamespaceMapping.serializeMap(Map.of()), existsPolicy);
     var propKey = NamespacePropKey.of(namespaceId);
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
@@ -175,7 +178,7 @@ public class TableManager {
   public void removeTable(TableId tableId, NamespaceId namespaceId)
       throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
     try {
-      context.getTableMapping(namespaceId).remove(context, tableId);
+      context.getTableMapping(namespaceId).remove(tableId);
     } catch (AcceptableThriftTableOperationException e) {
       // ignore not found, because that's what we're trying to do anyway
       if (e.getType() != TableOperationExceptionType.NOTFOUND) {

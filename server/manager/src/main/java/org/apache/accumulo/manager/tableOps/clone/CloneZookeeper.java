@@ -57,7 +57,7 @@ class CloneZookeeper extends ManagerRepo {
     try {
       var context = environment.getContext();
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      context.getTableMapping(cloneInfo.getNamespaceId()).put(context, cloneInfo.getTableId(),
+      context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
           cloneInfo.getTableName(), TableOperation.CLONE);
       environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
           cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),

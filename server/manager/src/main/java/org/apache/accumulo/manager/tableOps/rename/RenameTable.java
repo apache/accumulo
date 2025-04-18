@@ -74,8 +74,8 @@ public class RenameTable extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      context.getTableMapping(namespaceId).rename(context, tableId,
-          qualifiedOldTableName.getSecond(), qualifiedNewTableName.getSecond());
+      context.getTableMapping(namespaceId).rename(tableId, qualifiedOldTableName.getSecond(),
+          qualifiedNewTableName.getSecond());
 
       context.clearTableListCache();
     } finally {

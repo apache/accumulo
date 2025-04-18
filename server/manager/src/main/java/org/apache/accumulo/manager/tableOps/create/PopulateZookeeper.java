@@ -55,7 +55,7 @@ class PopulateZookeeper extends ManagerRepo {
     try {
       var context = manager.getContext();
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      context.getTableMapping(tableInfo.getNamespaceId()).put(context, tableInfo.getTableId(),
+      context.getTableMapping(tableInfo.getNamespaceId()).put(tableInfo.getTableId(),
           tableInfo.getTableName(), TableOperation.CREATE);
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
