@@ -88,7 +88,7 @@ import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -131,7 +131,7 @@ public class CompactionCoordinator extends AbstractServer implements
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
-  protected SecurityOperation security;
+  protected AuditedSecurityOperation security;
   protected final AccumuloConfiguration aconf;
   protected CompactionFinalizer compactionFinalizer;
   protected LiveTServerSet tserverSet;

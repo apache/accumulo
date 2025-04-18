@@ -53,8 +53,8 @@ public class ReplicationServicerHandler implements Iface {
       throws TException {
     TableId tableId = TableId.of(tableIdStr);
     log.debug("Got replication request to tableID {} with {} edits", tableId, data.getEditsSize());
-    tabletServer.getSecurityOperation().authenticateUser(tabletServer.getContext().rpcCreds(),
-        tcreds);
+    tabletServer.getContext().getSecurityOperation()
+        .authenticateUser(tabletServer.getContext().rpcCreds(), tcreds);
 
     String tableName;
 

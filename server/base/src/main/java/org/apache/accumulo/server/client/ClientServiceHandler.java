@@ -65,7 +65,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
@@ -77,7 +77,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final TransactionWatcher transactionWatcher;
   protected final ServerContext context;
-  protected final SecurityOperation security;
+  protected final AuditedSecurityOperation security;
   private final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
   public ClientServiceHandler(ServerContext context, TransactionWatcher transactionWatcher) {

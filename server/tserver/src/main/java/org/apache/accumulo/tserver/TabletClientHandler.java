@@ -110,7 +110,7 @@ import org.apache.accumulo.server.data.ServerMutation;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.zookeeper.TransactionWatcher;
 import org.apache.accumulo.tserver.ConditionCheckerContext.ConditionChecker;
 import org.apache.accumulo.tserver.RowLocks.RowLock;
@@ -144,7 +144,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   private final TabletServer server;
   protected final TransactionWatcher watcher;
   protected final ServerContext context;
-  protected final SecurityOperation security;
+  protected final AuditedSecurityOperation security;
   private final WriteTracker writeTracker;
   private final RowLocks rowLocks = new RowLocks();
 
@@ -263,23 +263,22 @@ public class TabletClientHandler implements TabletClientService.Iface {
     security.authenticateUser(credentials, credentials);
     server.updateMetrics.addPermissionErrors(0);
 
-    UpdateSession us =
-        new UpdateSession(new TservConstraintEnv(server.getContext(), security, credentials),
-            credentials, durability) {
-          @Override
-          public boolean cleanup() {
-            // This is called when a client abandons a session. When this happens need to decrement
-            // any queued mutations.
-            if (queuedMutationSize > 0) {
-              log.trace(
-                  "cleaning up abandoned update session, decrementing totalQueuedMutationSize by {}",
-                  queuedMutationSize);
-              server.updateTotalQueuedMutationSize(-queuedMutationSize);
-              queuedMutationSize = 0;
-            }
-            return true;
-          }
-        };
+    UpdateSession us = new UpdateSession(new TservConstraintEnv(server.getContext(), credentials),
+        credentials, durability) {
+      @Override
+      public boolean cleanup() {
+        // This is called when a client abandons a session. When this happens need to decrement
+        // any queued mutations.
+        if (queuedMutationSize > 0) {
+          log.trace(
+              "cleaning up abandoned update session, decrementing totalQueuedMutationSize by {}",
+              queuedMutationSize);
+          server.updateTotalQueuedMutationSize(-queuedMutationSize);
+          queuedMutationSize = 0;
+        }
+        return true;
+      }
+    };
     return server.sessionManager.createSession(us, false);
   }
 
@@ -688,7 +687,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       Span span = TraceUtil.startSpan(this.getClass(), "update::prep");
       try (Scope scope = span.makeCurrent()) {
         prepared = tablet.prepareMutationsForCommit(
-            new TservConstraintEnv(server.getContext(), security, credentials), mutations);
+            new TservConstraintEnv(server.getContext(), credentials), mutations);
       } catch (Exception e) {
         TraceUtil.setException(span, e, true);
         throw e;
@@ -820,7 +819,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
           if (!mutations.isEmpty()) {
 
             PreparedMutations prepared = tablet.prepareMutationsForCommit(
-                new TservConstraintEnv(server.getContext(), security, sess.credentials), mutations);
+                new TservConstraintEnv(server.getContext(), sess.credentials), mutations);
 
             if (prepared.tabletClosed()) {
               addMutationsAsTCMResults(results, mutations, TCMStatus.IGNORED);
@@ -1126,16 +1125,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
     return result;
   }
 
-  static void checkPermission(SecurityOperation security, ServerContext context,
-      TabletHostingServer server, TCredentials credentials, String lock, final String request)
-      throws ThriftSecurityException {
+  static void checkPermission(ServerContext context, TabletHostingServer server,
+      TCredentials credentials, String lock, final String request) throws ThriftSecurityException {
+    boolean canPerformSystemActions = false;
     try {
-      log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
-      if (!security.canPerformSystemActions(credentials)) {
-        log.warn("Got {} message from user: {}", request, credentials.getPrincipal());
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.PERMISSION_DENIED);
-      }
+      canPerformSystemActions = context.getSecurityOperation().canPerformSystemActions(credentials);
     } catch (ThriftSecurityException e) {
       log.warn("Got {} message from unauthenticatable user: {}", request, e.getUser());
       if (context.getCredentials().getToken().getClass().getName()
@@ -1146,11 +1140,19 @@ public class TabletClientHandler implements TabletClientService.Iface {
       throw e;
     }
 
+    if (!canPerformSystemActions) {
+      log.warn("Denied {} request from user: {}", request, credentials.getPrincipal());
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.PERMISSION_DENIED);
+    }
+
     if (server.getLock() == null || !server.getLock().wasLockAcquired()) {
-      log.debug("Got {} message before my lock was acquired, ignoring...", request);
+      log.debug("Got {} message from user {} before my lock was acquired, ignoring...", request,
+          credentials.getPrincipal());
       throw new RuntimeException("Lock not acquired");
     }
 
+    log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
     if (server.getLock() != null && server.getLock().wasLockAcquired()
         && !server.getLock().isLocked()) {
       Halt.halt(1, () -> {
@@ -1186,7 +1188,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       final TKeyExtent textent) {
 
     try {
-      checkPermission(security, context, server, credentials, lock, "loadTablet");
+      checkPermission(context, server, credentials, lock, "loadTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to load a tablet", e);
       throw new RuntimeException(e);
@@ -1269,7 +1271,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void unloadTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent,
       TUnloadTabletGoal goal, long requestTime) {
     try {
-      checkPermission(security, context, server, credentials, lock, "unloadTablet");
+      checkPermission(context, server, credentials, lock, "unloadTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to unload a tablet", e);
       throw new RuntimeException(e);
@@ -1285,7 +1287,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void flush(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {
-      checkPermission(security, context, server, credentials, lock, "flush");
+      checkPermission(context, server, credentials, lock, "flush");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to flush a table", e);
       throw new RuntimeException(e);
@@ -1318,7 +1320,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public void flushTablet(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
     try {
-      checkPermission(security, context, server, credentials, lock, "flushTablet");
+      checkPermission(context, server, credentials, lock, "flushTablet");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to flush a tablet", e);
       throw new RuntimeException(e);
@@ -1340,7 +1342,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void halt(TInfo tinfo, TCredentials credentials, String lock)
       throws ThriftSecurityException {
 
-    checkPermission(security, context, server, credentials, lock, "halt");
+    checkPermission(context, server, credentials, lock, "halt");
 
     Halt.halt(0, () -> {
       log.info("Manager requested tablet server halt");
@@ -1371,7 +1373,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   @Override
   public void chop(TInfo tinfo, TCredentials credentials, String lock, TKeyExtent textent) {
     try {
-      checkPermission(security, context, server, credentials, lock, "chop");
+      checkPermission(context, server, credentials, lock, "chop");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to chop extent", e);
       throw new RuntimeException(e);
@@ -1389,7 +1391,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public void compact(TInfo tinfo, TCredentials credentials, String lock, String tableId,
       ByteBuffer startRow, ByteBuffer endRow) {
     try {
-      checkPermission(security, context, server, credentials, lock, "compact");
+      checkPermission(context, server, credentials, lock, "compact");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to compact a table", e);
       throw new RuntimeException(e);
@@ -1421,7 +1423,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
   public List<ActiveCompaction> getActiveCompactions(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
     try {
-      checkPermission(security, context, server, credentials, null, "getActiveCompactions");
+      checkPermission(context, server, credentials, null, "getActiveCompactions");
     } catch (ThriftSecurityException e) {
       log.error("Caller doesn't have permission to get active compactions", e);
       throw e;
