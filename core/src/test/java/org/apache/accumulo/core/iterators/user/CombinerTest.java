@@ -37,10 +37,10 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.Combiner.ValueIterator;
 import org.apache.accumulo.core.iterators.CombinerTestUtil;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.LongCombiner;
@@ -59,29 +59,8 @@ public class CombinerTest {
 
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
 
-  static class CombinerIteratorEnvironment extends DefaultIteratorEnvironment {
-
-    private IteratorScope scope;
-    private boolean isFullMajc;
-
-    CombinerIteratorEnvironment(IteratorScope scope, boolean isFullMajc) {
-      this.scope = scope;
-      this.isFullMajc = isFullMajc;
-    }
-
-    @Override
-    public IteratorScope getIteratorScope() {
-      return scope;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return isFullMajc;
-    }
-  }
-
   static final IteratorEnvironment SCAN_IE =
-      new CombinerIteratorEnvironment(IteratorScope.scan, false);
+      new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build();
 
   static Key newKey(int row, int colf, int colq, long ts, boolean deleted) {
     Key k = newKey(row, colf, colq, ts);
@@ -884,8 +863,10 @@ public class CombinerTest {
 
     TreeMap<Key,Value> input = new TreeMap<>();
 
-    IteratorEnvironment paritalMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, false);
-    IteratorEnvironment fullMajcIe = new CombinerIteratorEnvironment(IteratorScope.majc, true);
+    IteratorEnvironment paritalMajcIe =
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.majc).build();
+    IteratorEnvironment fullMajcIe = new ClientIteratorEnvironment.Builder()
+        .withScope(IteratorScope.majc).isFullMajorCompaction().build();
 
     // keys that aggregate
     newKeyValue(input, 1, 1, 1, 1, false, 4L, encoder);

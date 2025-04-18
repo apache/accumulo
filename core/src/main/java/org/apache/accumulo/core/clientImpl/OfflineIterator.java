@@ -34,7 +34,6 @@ import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
-import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -51,6 +50,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -66,7 +66,6 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.conf.Configuration;
@@ -74,105 +73,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
-
-  static class OfflineIteratorEnvironment implements IteratorEnvironment {
-
-    private final Authorizations authorizations;
-    private final AccumuloConfiguration conf;
-    private final boolean useSample;
-    private final SamplerConfiguration sampleConf;
-    private final ClientContext context;
-    private final TableId tableId;
-
-    public OfflineIteratorEnvironment(ClientContext context, TableId tableId, Authorizations auths,
-        AccumuloConfiguration acuTableConf, boolean useSample, SamplerConfiguration samplerConf) {
-      this.context = context;
-      this.tableId = tableId;
-      this.authorizations = auths;
-      this.conf = acuTableConf;
-      this.useSample = useSample;
-      this.sampleConf = samplerConf;
-    }
-
-    @Deprecated(since = "2.0.0")
-    @Override
-    public AccumuloConfiguration getConfig() {
-      return conf;
-    }
-
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return false;
-    }
-
-    @Override
-    public boolean isUserCompaction() {
-      return false;
-    }
-
-    private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators =
-        new ArrayList<>();
-
-    @Deprecated(since = "2.0.0")
-    @Override
-    public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-      topLevelIterators.add(iter);
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return authorizations;
-    }
-
-    SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-      if (topLevelIterators.isEmpty()) {
-        return iter;
-      }
-      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
-      allIters.add(iter);
-      return new MultiIterator(allIters, false);
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return useSample;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return sampleConf;
-    }
-
-    @Override
-    public IteratorEnvironment cloneWithSamplingEnabled() {
-      if (sampleConf == null) {
-        throw new SampleNotPresentException();
-      }
-      return new OfflineIteratorEnvironment(context, tableId, authorizations, conf, true,
-          sampleConf);
-    }
-
-    @Deprecated(since = "2.1.0")
-    @Override
-    public ServiceEnvironment getServiceEnv() {
-      return new ClientServiceEnvironmentImpl(context);
-    }
-
-    @Override
-    public PluginEnvironment getPluginEnv() {
-      return new ClientServiceEnvironmentImpl(context);
-    }
-
-    @Override
-    public TableId getTableId() {
-      return tableId;
-    }
-  }
 
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
@@ -345,9 +245,13 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv =
-        new OfflineIteratorEnvironment(context, tableId, authorizations, tableCC, false,
-            samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
+    ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
+        .withAuthorizations(authorizations).withScope(IteratorScope.scan).withTableId(tableId)
+        .withServiceEnvironment(new ClientServiceEnvironmentImpl(context));
+    if (scannerSamplerConfig != null) {
+      iterEnvBuilder.withSamplerConfiguration(scannerSamplerConfig);
+    }
+    IteratorEnvironment iterEnv = iterEnvBuilder.build();
 
     byte[] defaultSecurityLabel;
     ColumnVisibility cv =
@@ -360,8 +264,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     var iteratorBuilderEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan,
         options.serverSideIteratorList, options.serverSideIteratorOptions, tableCC);
     var iteratorBuilder = iteratorBuilderEnv.env(iterEnv).build();
-    return iterEnv
-        .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
+    return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
   }
 
   @Override

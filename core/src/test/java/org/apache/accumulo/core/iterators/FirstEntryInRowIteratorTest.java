@@ -41,9 +41,8 @@ public class FirstEntryInRowIteratorTest {
     SortedMapIterator source = new SortedMapIterator(sourceMap);
     CountingIterator counter = new CountingIterator(source);
     FirstEntryInRowIterator feiri = new FirstEntryInRowIterator();
-    IteratorEnvironment env = new DefaultIteratorEnvironment();
 
-    feiri.init(counter, iteratorSetting.getOptions(), env);
+    feiri.init(counter, iteratorSetting.getOptions(), ClientIteratorEnvironment.DEFAULT);
 
     feiri.seek(range, Set.of(), false);
     while (feiri.hasTop()) {

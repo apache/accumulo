@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
+import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -86,70 +86,6 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
   private final Supplier<ClientContext> context;
   private final Supplier<TableId> tableId;
-
-  private class ClientSideIteratorEnvironment implements IteratorEnvironment {
-
-    private final SamplerConfiguration samplerConfig;
-    private final boolean sampleEnabled;
-
-    ClientSideIteratorEnvironment(boolean sampleEnabled, SamplerConfiguration samplerConfig) {
-      this.sampleEnabled = sampleEnabled;
-      this.samplerConfig = samplerConfig;
-    }
-
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      // The javadocs state this method will throw an ISE when scope is not majc
-      throw new IllegalStateException(
-          "Asked about major compaction type when scope is " + getIteratorScope());
-    }
-
-    @Override
-    public boolean isUserCompaction() {
-      return false;
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return ClientSideIteratorScanner.this.getAuthorizations();
-    }
-
-    @Override
-    public IteratorEnvironment cloneWithSamplingEnabled() {
-      return new ClientSideIteratorEnvironment(true, samplerConfig);
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return sampleEnabled;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return samplerConfig;
-    }
-
-    @Deprecated(since = "2.1.0")
-    @Override
-    public ServiceEnvironment getServiceEnv() {
-      return new ClientServiceEnvironmentImpl(context.get());
-    }
-
-    @Override
-    public PluginEnvironment getPluginEnv() {
-      return new ClientServiceEnvironmentImpl(context.get());
-    }
-
-    @Override
-    public TableId getTableId() {
-      return tableId.get();
-    }
-  }
 
   /**
    * A class that wraps a Scanner in a SortedKeyValueIterator so that other accumulo iterators can
@@ -295,9 +231,11 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      IteratorEnvironment iterEnv = new ClientSideIteratorEnvironment(
-          getSamplerConfiguration() != null, getIteratorSamplerConfigurationInternal());
-
+      IteratorEnvironment iterEnv = new ClientIteratorEnvironment.Builder()
+          .withServiceEnvironment(new ClientServiceEnvironmentImpl(context.get()))
+          .withAuthorizations(getAuthorizations()).withScope(IteratorScope.scan)
+          .withTableId(tableId.get())
+          .withSamplerConfiguration(getIteratorSamplerConfigurationInternal()).build();
       IteratorBuilder ib =
           IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
 

@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
+import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -45,7 +45,7 @@ public class IntersectingIteratorTest {
 
   private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
-  private static IteratorEnvironment env = new DefaultIteratorEnvironment();
+  private static IteratorEnvironment env = ClientIteratorEnvironment.DEFAULT;
 
   HashSet<Text> docs = new HashSet<>();
   Text[] columnFamilies;
