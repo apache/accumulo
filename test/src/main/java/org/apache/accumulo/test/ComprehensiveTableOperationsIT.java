@@ -137,9 +137,10 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   public void afterEach() throws Exception {
     // ensure none of the FATE or SCAN_REF data we created persists between tests. Also ensure the
     // user table does not persist between tests
-    if (userTable != null && ops.exists(userTable)) {
+    if (userTable != null) {
       cleanupFateTable();
       ops.delete(userTable);
+      userTable = null;
     }
     cleanupScanRefTable();
     client.close();
@@ -147,21 +148,14 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
 
   @Test
   public void testAllTested() {
-    var allTableOps = Arrays.stream(TableOperations.class.getDeclaredMethods()).map(Method::getName)
-        .collect(Collectors.toSet());
+    var allTableOps =
+        Arrays.stream(TableOperations.class.getDeclaredMethods()).map(Method::getName);
     var testMethodNames = Arrays.stream(ComprehensiveTableOperationsIT.class.getDeclaredMethods())
         .map(Method::getName).collect(Collectors.toSet());
-    var allTableOpsIter = allTableOps.iterator();
-    while (allTableOpsIter.hasNext()) {
-      var tableOp = allTableOpsIter.next();
-      for (var testMethodName : testMethodNames) {
-        if (testMethodName.contains(tableOp)) {
-          allTableOpsIter.remove();
-          break;
-        }
-      }
-    }
-    assertTrue(allTableOps.isEmpty(), "The table operations " + allTableOps + " are untested");
+    var untestedOps =
+        allTableOps.filter(op -> testMethodNames.stream().noneMatch(test -> test.contains(op)))
+            .collect(Collectors.toSet());
+    assertTrue(untestedOps.isEmpty(), "The table operations " + untestedOps + " are untested");
   }
 
   @Test
@@ -219,7 +213,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void test_create() throws Exception {
+  public void test_create() {
     // Creating user tables is thoroughly tested. Make sure we can't create any of the already
     // existing system tables, though.
     for (var systemTable : AccumuloTable.values()) {
@@ -504,7 +498,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void test_delete() throws Exception {
+  public void test_delete() {
     // delete for user tables is tested in TableOperationsIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(TableOperationsIT.class.getName()));
     // delete not tested for system tables. Test basic functionality here
@@ -514,13 +508,13 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void test_clone() throws Exception {
+  public void test_clone() {
     // cloning user and system tables is tested in CloneTestIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(CloneTestIT.class.getName()));
   }
 
   @Test
-  public void test_rename() throws Exception {
+  public void test_rename() {
     // rename for user tables is tested in RenameIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(RenameIT.class.getName()));
     // rename not tested for system tables. Test basic functionality here
@@ -919,7 +913,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     return propFound;
   }
 
-  private Set<StoredTabletFile> getStoredTabFiles(AccumuloTable sysTable) throws Exception {
+  private Set<StoredTabletFile> getStoredTabFiles(AccumuloTable sysTable) {
     var clientContext = (ClientContext) client;
     Set<StoredTabletFile> storedTabFiles = new HashSet<>();
     try (TabletsMetadata tabletsMetadata =
