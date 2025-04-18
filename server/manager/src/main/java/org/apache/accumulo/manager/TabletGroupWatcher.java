@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Math.min;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -397,13 +398,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     var tServersSnapshot = manager.tserversSnapshot();
 
-    var tabletMgmtParams =
-        new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
-            manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
-            store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
-            lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-                : Map.of(),
-            manager.getSteadyTime());
+    var tabletMgmtParams = new TabletManagementParameters(manager.getManagerState(),
+        parentLevelUpgrade, manager.onlineTables(), tServersSnapshot, shutdownServers,
+        store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
+        lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
+            : Map.of(),
+        manager.getSteadyTime());
 
     if (LOG.isTraceEnabled()) {
       // Log the json that will be passed to iterators to make tablet filtering decisions.
@@ -643,9 +643,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
           }
           switch (state) {
             case HOSTED:
-              if (location.getServerInstance().equals(manager.migrations.get(tm.getExtent()))) {
-                manager.migrations.remove(tm.getExtent());
-              }
+              manager.conditionallyDeleteMigration(tm.getExtent(), location.getServerInstance());
               break;
             case ASSIGNED_TO_DEAD_SERVER:
               hostDeadTablet(tLists, tm, location);
@@ -834,14 +832,15 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void hostUnassignedTablet(TabletLists tLists, KeyExtent tablet,
       UnassignedTablet unassignedTablet) {
     // maybe it's a finishing migration
-    TServerInstance dest = manager.migrations.get(tablet);
+    TServerInstance dest =
+        manager.getContext().getAmple().readTablet(tablet, MIGRATION).getMigration();
     if (dest != null) {
       // if destination is still good, assign it
       if (tLists.destinations.containsKey(dest)) {
         tLists.assignments.add(new Assignment(tablet, dest, unassignedTablet.getLastLocation()));
       } else {
         // get rid of this migration
-        manager.migrations.remove(tablet);
+        manager.getContext().getAmple().mutateTablet(tablet).deleteMigration().mutate();
         tLists.unassigned.put(tablet, unassignedTablet);
       }
     } else {
@@ -879,9 +878,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void hostDeadTablet(TabletLists tLists, TabletMetadata tm, Location location)
       throws WalMarkerException {
     tLists.assignedToDeadServers.add(tm);
-    if (location.getServerInstance().equals(manager.migrations.get(tm.getExtent()))) {
-      manager.migrations.remove(tm.getExtent());
-    }
+    manager.conditionallyDeleteMigration(tm.getExtent(), location.getServerInstance());
     TServerInstance tserver = tm.getLocation().getServerInstance();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
       tLists.logsForDeadServers.put(tserver, walStateManager.getWalsInUse(tserver));
@@ -889,10 +886,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   }
 
   private void cancelOfflineTableMigrations(KeyExtent extent) {
-    TServerInstance dest = manager.migrations.get(extent);
     TableState tableState = manager.getTableManager().getTableState(extent.tableId());
-    if (dest != null && tableState == TableState.OFFLINE) {
-      manager.migrations.remove(extent);
+    if (tableState == TableState.OFFLINE) {
+      manager.getContext().getAmple().mutateTablet(extent).deleteMigration().mutate();
     }
   }
 

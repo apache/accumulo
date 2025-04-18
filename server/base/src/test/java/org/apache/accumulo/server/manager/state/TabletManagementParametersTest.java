@@ -26,7 +26,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -51,7 +50,6 @@ public class TabletManagementParametersTest {
         new LiveTServerSet.LiveTServersSnapshot(tservers,
             Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers));
     final Set<TServerInstance> serversToShutdown = Set.of();
-    final Map<KeyExtent,TServerInstance> migrations = Map.of();
     final Ample.DataLevel dataLevel = Ample.DataLevel.USER;
     final Map<FateId,Map<String,String>> compactionHints = Map.of();
     final boolean canSuspendTablets = true;
@@ -60,7 +58,7 @@ public class TabletManagementParametersTest {
     final SteadyTime steadyTime = SteadyTime.from(100_000, TimeUnit.NANOSECONDS);
 
     final TabletManagementParameters tmp = new TabletManagementParameters(managerState,
-        parentUpgradeMap, onlineTables, serverSnapshot, serversToShutdown, migrations, dataLevel,
+        parentUpgradeMap, onlineTables, serverSnapshot, serversToShutdown, dataLevel,
         compactionHints, canSuspendTablets, replacements, steadyTime);
 
     String jsonString = tmp.serialize();
@@ -71,7 +69,6 @@ public class TabletManagementParametersTest {
     assertEquals(onlineTables, tmp2.getOnlineTables());
     assertEquals(tservers, tmp2.getOnlineTsevers());
     assertEquals(serversToShutdown, tmp2.getServersToShutdown());
-    assertEquals(migrations, tmp2.getMigrations());
     assertEquals(dataLevel, tmp2.getLevel());
     assertEquals(compactionHints, tmp2.getCompactionHints());
     assertEquals(canSuspendTablets, tmp2.canSuspendTablets());
