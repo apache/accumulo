@@ -145,7 +145,6 @@ import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
 import org.apache.accumulo.server.security.delegation.ZooAuthenticationKeyDistributor;
 import org.apache.accumulo.server.tables.TableManager;
@@ -195,7 +194,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private final Object balancedNotifier = new Object();
   final LiveTServerSet tserverSet;
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
-  final SecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
@@ -328,8 +326,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       case HAVE_LOCK:
         if (isUpgrading()) {
-          upgradeCoordinator.preUpgradeValidation();
-          upgradeCoordinator.startOrContinueUpgrade();
+          upgradeCoordinator.continueUpgrade();
           upgradeCoordinator.upgradeZookeeper(nextEvent);
         }
         break;
@@ -467,8 +464,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     timeKeeper = new ManagerTime(this, aconf);
     tserverSet = new LiveTServerSet(context, this);
     initializeBalancer();
-
-    this.security = context.getSecurityOperation();
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
@@ -1136,7 +1131,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // Start the Manager's Fate Service
     fateServiceHandler = new FateServiceHandler(this);
     managerClientHandler = new ManagerClientServiceHandler(this);
-    compactionCoordinator = new CompactionCoordinator(context, security, fateRefs, this);
+    compactionCoordinator = new CompactionCoordinator(this, fateRefs);
 
     ServerAddress sa;
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
@@ -1489,8 +1484,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
 
-    final Fate<Manager> fateInstance =
-        new Fate<>(this, store, true, TraceRepo::toLogString, getConfiguration());
+    final Fate<Manager> fateInstance = new Fate<>(this, store, true, TraceRepo::toLogString,
+        getConfiguration(), context.getScheduledExecutor());
 
     var fateCleaner = new FateCleaner<>(store, Duration.ofHours(8), this::getSteadyTime);
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()

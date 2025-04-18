@@ -120,16 +120,13 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
   @Test
   public void test() throws Exception {
-    // Confirm that the root and metadata tables are hosted
-    Locations rootLocations = client.tableOperations().locate(AccumuloTable.ROOT.tableName(),
-        Collections.singletonList(new Range()));
-    rootLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(rootLocations.getTabletLocation(tid)));
+    // Confirm that the system tables are hosted
 
-    Locations metadataLocations = client.tableOperations()
-        .locate(AccumuloTable.METADATA.tableName(), Collections.singletonList(new Range()));
-    metadataLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(metadataLocations.getTabletLocation(tid)));
+    for (AccumuloTable t : AccumuloTable.values()) {
+      Locations locs =
+          client.tableOperations().locate(t.tableName(), Collections.singletonList(new Range()));
+      locs.groupByTablet().keySet().forEach(tid -> assertNotNull(locs.getTabletLocation(tid)));
+    }
 
     String tableName = super.getUniqueNames(1)[0];
     client.tableOperations().create(tableName);

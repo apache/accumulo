@@ -887,6 +887,17 @@ public enum Property {
       "1.3.5"),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
+  TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND("table.compaction.input.drop.cache", "ALL",
+      PropertyType.DROP_CACHE_SELECTION,
+      "FSDataInputStream.setDropBehind(true) is set on compaction input streams"
+          + " for the specified type of files. This tells the DataNode to advise the OS"
+          + " that it does not need to keep blocks for the associated file in the page cache."
+          + " 'ALL', the default, will call setDropBehind on all file types. 'NONE' will call"
+          + " setDropBehind on none of the files, which can be useful when a table is cloned."
+          + " 'NON-IMPORT' will call setDropBehind on all file types except those that are"
+          + " bulk imported, which is useful when bulk import files are mapped to many tablets"
+          + " and will be compacted at different times.",
+      "2.1.4"),
   TABLE_MINC_OUTPUT_DROP_CACHE("table.compaction.minor.output.drop.cache", "false",
       PropertyType.BOOLEAN,
       "Setting this property to true will call"
