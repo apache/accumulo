@@ -28,6 +28,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.LongCombiner;
@@ -36,7 +37,6 @@ import org.apache.accumulo.iteratortest.IteratorTestBase;
 import org.apache.accumulo.iteratortest.IteratorTestInput;
 import org.apache.accumulo.iteratortest.IteratorTestOutput;
 import org.apache.accumulo.iteratortest.IteratorTestParameters;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
 
 /**
  * Iterator test harness tests for SummingCombiner
@@ -48,14 +48,8 @@ public class SummingCombinerTest extends IteratorTestBase {
 
   @Override
   protected Stream<IteratorTestParameters> parameters() {
-    var env = new SimpleIteratorEnvironment() {
-      @Override
-      public IteratorScope getIteratorScope() {
-        return IteratorScope.majc;
-      }
-    };
-    var input =
-        new IteratorTestInput(SummingCombiner.class, createOpts(), new Range(), INPUT_DATA, env);
+    var input = new IteratorTestInput(SummingCombiner.class, createOpts(), new Range(), INPUT_DATA,
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.majc).build());
     var expectedOutput = new IteratorTestOutput(OUTPUT_DATA);
     return builtinTestCases().map(test -> test.toParameters(input, expectedOutput));
   }

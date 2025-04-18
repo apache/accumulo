@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -235,5 +236,10 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public TableId getTableId() {
     return tableId;
+  }
+
+  @Override
+  public PluginEnvironment getPluginEnv() {
+    return serviceEnvironment;
   }
 }

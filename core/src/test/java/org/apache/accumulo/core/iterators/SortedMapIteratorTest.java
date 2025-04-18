@@ -33,16 +33,9 @@ public class SortedMapIteratorTest {
   @Test
   public void testSampleNotPresent() {
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
-    assertThrows(SampleNotPresentException.class, () -> smi.deepCopy(new IteratorEnvironment() {
-      @Override
-      public boolean isSamplingEnabled() {
-        return true;
-      }
-
-      @Override
-      public SamplerConfiguration getSamplerConfiguration() {
-        return new SamplerConfiguration(RowSampler.class.getName());
-      }
-    }));
+    assertThrows(SampleNotPresentException.class,
+        () -> smi.deepCopy(new ClientIteratorEnvironment.Builder()
+            .withSamplerConfiguration(new SamplerConfiguration(RowSampler.class.getName()))
+            .build()));
   }
 }
