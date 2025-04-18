@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -36,18 +38,12 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -201,47 +197,44 @@ public class TableDiskUsage {
 
     // For each table ID
     for (TableId tableId : tableIds) {
-      // if the table to compute usage is for the metadata table itself then we need to scan the
-      // root table, else we scan the metadata table
-      try (Scanner mdScanner = tableId.equals(AccumuloTable.METADATA.tableId())
-          ? client.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)
-          : client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
-        mdScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
-        mdScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
+      // read the metadata
+      try (var tabletsMetadata = ((ClientContext) client).getAmple().readTablets().forTable(tableId)
+          .fetch(FILES).build()) {
+        final Set<StoredTabletFile> allFiles = new HashSet<>();
 
-        final Set<StoredTabletFile> files = new HashSet<>();
+        for (var tm : tabletsMetadata) {
+          final Map<StoredTabletFile,DataFileValue> tmFiles = tm.getFilesMap();
 
-        // Read each file referenced by that table
-        for (Map.Entry<Key,Value> entry : mdScanner) {
-          final StoredTabletFile file =
-              new StoredTabletFile(entry.getKey().getColumnQualifier().toString());
+          for (var file : tmFiles.entrySet()) {
+            final var stf = file.getKey();
+            final var dataFileValue = file.getValue();
 
-          // get the table referenced by the file which may not be the same as the current
-          // table we are scanning if the file is shared between multiple tables
-          final TableId fileTableRef = file.getTableId();
+            // get the table referenced by the file which may not be the same as the current
+            // table we are scanning if the file is shared between multiple tables
+            final TableId fileTableRef = stf.getTableId();
 
-          // if this is a ref to a different table than the one we are scanning then we need
-          // to make sure the table is also linked for this shared file if the table is
-          // part of the set of tables we are running du on so we can track shared usages
-          if (!fileTableRef.equals(tableId) && tableIds.contains(fileTableRef)) {
-            // link the table and the shared file for computing shared sizes
-            tdu.linkFileAndTable(fileTableRef, file.getFileName());
-          }
+            // if this is a ref to a different table than the one we are scanning then we need
+            // to make sure the table is also linked for this shared file if the table is
+            // part of the set of tables we are running du on so we can track shared usages
+            if (!fileTableRef.equals(tableId) && tableIds.contains(fileTableRef)) {
+              // link the table and the shared file for computing shared sizes
+              tdu.linkFileAndTable(fileTableRef, stf.getFileName());
+            }
 
-          // link the file to the table we are scanning for
-          tdu.linkFileAndTable(tableId, file.getFileName());
+            // link the file to the table we are scanning for
+            tdu.linkFileAndTable(tableId, stf.getFileName());
 
-          // add the file size for the table if not already seen for this scan
-          if (files.add(file)) {
-            // This tracks the file size for individual files for computing shared file statistics
-            // later
-            tdu.addFileSize(file.getFileName(),
-                new DataFileValue(entry.getValue().get()).getSize());
+            // add the file size for the table if not already seen for this scan
+            if (allFiles.add(stf)) {
+              // This tracks the file size for individual files for computing shared file statistics
+              // later
+              tdu.addFileSize(stf.getFileName(), dataFileValue.getSize());
+            }
           }
         }
 
         // Track tables that are empty with no metadata
-        if (files.isEmpty()) {
+        if (allFiles.isEmpty()) {
           emptyTableIds.add(tableId);
         }
       }
