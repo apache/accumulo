@@ -632,7 +632,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     // System tables should always be hosted
-    if (AccumuloTable.ROOT.tableId() == tableId || AccumuloTable.METADATA.tableId() == tableId) {
+    if (AccumuloTable.allTableIds().contains(tableId)) {
       return;
     }
 
