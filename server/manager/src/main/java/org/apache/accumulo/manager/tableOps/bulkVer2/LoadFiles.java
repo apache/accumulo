@@ -104,7 +104,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    log.info("Starting bulk import for {} (tid = {})", bulkInfo.sourceDir, fateId);
+    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
           + ")");
@@ -401,7 +401,7 @@ class LoadFiles extends ManagerRepo {
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
     String fmtTid = fateId.getTxUUIDStr();
-    log.trace("{}: Starting bulk load at row: {}", fmtTid, startRow);
+    log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
     loader.start(bulkDir, manager, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
@@ -421,8 +421,8 @@ class LoadFiles extends ManagerRepo {
               tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
               skipDistance)) {
             log.debug(
-                "Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
-                loadMapKey.prevEndRow(), skipDistance);
+                "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                fmtTid, loadMapKey.prevEndRow(), skipDistance);
             tabletsMetadata.close();
             tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
             pi = new PeekingIterator<>(tabletsMetadata.iterator());
@@ -441,7 +441,7 @@ class LoadFiles extends ManagerRepo {
 
     if (importTimingStats.callCount > 0) {
       log.debug(
-          "Bulk import stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
+          "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
           bulkInfo.sourceDir, fateId, importTimingStats.tabletCount, importTimingStats.callCount,
           totalProcessingTime.toMillis(), totalProcessingTime.toNanos(),
           importTimingStats.wastedIterations, importTimingStats.totalWastedTime.toMillis(),
@@ -498,6 +498,7 @@ class LoadFiles extends ManagerRepo {
       }
 
       // we have found the first tablet in the range, add it to the list
+      log.trace("{}: Adding tablet: {} to overlapping list", fmtTid, currTablet.getExtent());
       tablets.add(currTablet);
 
       // find the remaining tablets within the loadRange by

@@ -688,8 +688,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     metricsInfo.init(getServiceTags(clientAddress));
 
     var watcher = new CompactionWatcher(getConfiguration());
-    var schedExecutor = ThreadPools.getServerThreadPools()
-        .createGeneralScheduledExecutorService(getConfiguration());
+    var schedExecutor = getContext().getScheduledExecutor();
+
     startCancelChecker(schedExecutor,
         getConfiguration().getTimeInMillis(Property.COMPACTOR_CANCEL_CHECK_INTERVAL));
 

@@ -1156,5 +1156,4 @@ public class ClientContext implements AccumuloClient {
     }
     return pathsToWatch;
   }
-
 }

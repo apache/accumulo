@@ -21,6 +21,7 @@ package org.apache.accumulo.core.data;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.URI;
 import java.nio.file.Paths;
 import java.util.Arrays;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.SortedSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -45,6 +47,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.primitives.UnsignedBytes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -139,7 +143,7 @@ public class LoadPlan {
               "Start row is greater than or equal to end row : " + srs + " " + ers);
         }
       } else {
-        throw new IllegalStateException();
+        throw new IllegalStateException("Unknown range type : " + rangeType);
       }
 
     }
@@ -325,15 +329,49 @@ public class LoadPlan {
     return gson.toJson(new JsonAll(destinations));
   }
 
+  private static final Set<String> EXPECTED_FIELDS = Arrays
+      .stream(JsonAll.class.getDeclaredFields()).map(Field::getName).collect(Collectors.toSet());
+  private static final Set<String> EXPECTED_DEST_FIELDS =
+      Arrays.stream(JsonDestination.class.getDeclaredFields()).map(Field::getName)
+          .collect(Collectors.toSet());
+
   /**
    * Deserializes json to a load plan.
    *
    * @param json produced by {@link #toJson()}
+   * @throws IllegalArgumentException when illegal json is given or legal json that does not follow
+   *         the load plan schema is given. The minimal acceptable json is
+   *         {@code {"destinations":[]}}.
+   * @throws NullPointerException when json argument is null
    */
   public static LoadPlan fromJson(String json) {
-    var dests = gson.fromJson(json, JsonAll.class).destinations.stream()
-        .map(JsonDestination::toDestination).collect(Collectors.toUnmodifiableList());
-    return new LoadPlan(dests);
+    try {
+      Objects.requireNonNull(json);
+      Preconditions.checkArgument(!json.isBlank(), "Empty json is not accepted.");
+      // https://github.com/google/gson/issues/188 Gson does not support failing when extra fields
+      // are present. This is custom code to check for extra fields.
+      var jsonObj = gson.fromJson(json, JsonObject.class);
+      Preconditions.checkArgument(jsonObj.keySet().equals(EXPECTED_FIELDS),
+          "Expected fields %s and saw %s", EXPECTED_FIELDS, jsonObj.keySet());
+      Preconditions.checkArgument(jsonObj.get("destinations") instanceof JsonArray,
+          "Expected value of destinations field to be array");
+      var destinations = jsonObj.getAsJsonArray("destinations");
+      destinations.forEach(dest -> {
+        var keySet = dest.getAsJsonObject().keySet();
+        Preconditions.checkArgument(keySet.equals(EXPECTED_DEST_FIELDS),
+            "Expected fields %s and saw %s", EXPECTED_DEST_FIELDS, keySet);
+      });
+
+      var dests = gson.fromJson(json, JsonAll.class).destinations.stream()
+          .map(JsonDestination::toDestination).collect(Collectors.toUnmodifiableList());
+      return new LoadPlan(dests);
+    } catch (NullPointerException | IllegalArgumentException e) {
+      throw e;
+    } catch (RuntimeException e) {
+      // GSon code can throw a few runtime exceptions, lets not let Gson exceptions escape directly
+      // so that its easier to change the implementation away from gson in the future.
+      throw new IllegalArgumentException(e);
+    }
   }
 
   /**
