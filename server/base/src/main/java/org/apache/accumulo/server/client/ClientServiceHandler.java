@@ -82,9 +82,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       TableOperation operation) throws ThriftTableOperationException {
     TableOperationExceptionType reason = null;
     try {
-      return context._getTableIdDetectNamespaceNotFound(tableName);
-    } catch (NamespaceNotFoundException e) {
-      reason = TableOperationExceptionType.NAMESPACE_NOTFOUND;
+      return context.getTableId(tableName);
     } catch (TableNotFoundException e) {
       reason = TableOperationExceptionType.NOTFOUND;
     }

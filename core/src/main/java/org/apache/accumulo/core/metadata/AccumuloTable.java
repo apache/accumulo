@@ -36,10 +36,15 @@ public enum AccumuloTable {
   SCAN_REF("scanref", "+scanref");
 
   private final String name;
+  private final String simpleName;
   private final TableId tableId;
 
   public String tableName() {
     return name;
+  }
+
+  public String simpleTableName() {
+    return simpleName;
   }
 
   public TableId tableId() {
@@ -48,6 +53,7 @@ public enum AccumuloTable {
 
   AccumuloTable(String name, String id) {
     this.name = Namespace.ACCUMULO.name() + "." + name;
+    this.simpleName = name;
     this.tableId = TableId.of(id);
   }
 
