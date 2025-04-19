@@ -80,6 +80,7 @@ import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ByteBufferUtil;
+import org.apache.accumulo.core.util.CountDownTimer;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.thrift.TApplicationException;
@@ -262,7 +263,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
 
     ScanServerData ssd;
 
-    Timer startTime = Timer.startNew();
+    CountDownTimer retryCountDownTimer = CountDownTimer.startNew(retryTimeout, MILLISECONDS);
 
     while (true) {
 
@@ -274,7 +275,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
         failures = clientTabletCache.binRanges(context, ranges, binnedRanges);
         ssd = new ScanServerData();
       } else if (options.getConsistencyLevel().equals(ConsistencyLevel.EVENTUAL)) {
-        ssd = binRangesForScanServers(clientTabletCache, ranges, binnedRanges, startTime);
+        ssd = binRangesForScanServers(clientTabletCache, ranges, binnedRanges, retryCountDownTimer);
         failures = ssd.failures;
       } else {
         throw new IllegalStateException();
@@ -299,7 +300,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
               failures.size(), tableId);
         }
 
-        if (startTime.elapsed(MILLISECONDS) > retryTimeout) {
+        if (retryCountDownTimer.isExpired()) {
           // TODO exception used for timeout is inconsistent
           throw new TimedOutException(
               "Failed to find servers to process scans before timeout was exceeded.");
@@ -650,9 +651,9 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
   }
 
   private ScanServerData binRangesForScanServers(ClientTabletCache clientTabletCache,
-      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges, Timer startTime)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
-      InvalidTabletHostingRequestException {
+      List<Range> ranges, Map<String,Map<KeyExtent,List<Range>>> binnedRanges,
+      CountDownTimer countDownTimer) throws AccumuloException, TableNotFoundException,
+      AccumuloSecurityException, InvalidTabletHostingRequestException {
 
     ScanServerSelector ecsm = context.getScanServerSelector();
 
@@ -697,7 +698,7 @@ public class TabletServerBatchReaderIterator implements Iterator<Entry<Key,Value
       @Override
       public <T> Optional<T> waitUntil(Supplier<Optional<T>> condition, Duration maxWaitTime,
           String description) {
-        Duration timeoutLeft = Duration.ofMillis(retryTimeout - startTime.elapsed(MILLISECONDS));
+        Duration timeoutLeft = countDownTimer.timeLeft();
         return ThriftScanner.waitUntil(condition, maxWaitTime, description, timeoutLeft, context,
             tableId, log);
       }
