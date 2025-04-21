@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -77,6 +78,16 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Preconditions;
 
 class RFileScanner extends ScannerOptions implements Scanner {
+
+  private static class RFileScannerIteratorEnvironmentBuilder
+      extends ClientIteratorEnvironment.Builder {
+
+    public ClientIteratorEnvironment.Builder withEnvironment(ClientServiceEnvironmentImpl env) {
+      this.env = Optional.of(env);
+      return this;
+    }
+
+  }
 
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
@@ -301,8 +312,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       };
 
-      ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
-          .withAuthorizations(opts.auths).withScope(IteratorScope.scan).withEnvironment(senv);
+      ClientIteratorEnvironment.Builder iterEnvBuilder =
+          new RFileScannerIteratorEnvironmentBuilder().withEnvironment(senv)
+              .withAuthorizations(opts.auths).withScope(IteratorScope.scan);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
       }

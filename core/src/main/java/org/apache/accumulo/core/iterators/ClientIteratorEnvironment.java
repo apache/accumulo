@@ -21,9 +21,11 @@ package org.apache.accumulo.core.iterators;
 import java.io.IOException;
 import java.util.Optional;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
@@ -45,7 +47,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     private boolean isUserCompaction = false;
     private Optional<TableId> tableId = Optional.empty();
     private Optional<SamplerConfiguration> samplerConfig = Optional.empty();
-    private Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
+    protected Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
 
     public Builder withScope(IteratorScope scope) {
       this.scope = Optional.of(scope);
@@ -77,8 +79,8 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
       return this;
     }
 
-    public Builder withEnvironment(ClientServiceEnvironmentImpl env) {
-      this.env = Optional.of(env);
+    public Builder withClient(AccumuloClient client) {
+      this.env = Optional.of(new ClientServiceEnvironmentImpl((ClientContext) client));
       return this;
     }
 

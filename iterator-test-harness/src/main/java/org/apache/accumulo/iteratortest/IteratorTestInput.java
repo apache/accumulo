@@ -49,7 +49,7 @@ public class IteratorTestInput {
   private final IteratorEnvironment iteratorEnvironment;
 
   /**
-   * Construct an instance of the test input, using {@link TestIteratorEnvironment}.
+   * Construct an instance of the test input, using {@link ClientIteratorEnvironment}.
    *
    * @param iteratorClass The class for the iterator to test.
    * @param iteratorOptions Options, if any, to provide to the iterator ({@link IteratorSetting}'s
@@ -93,7 +93,7 @@ public class IteratorTestInput {
    * @param families Column families passed to {@link SortedKeyValueIterator#seek}.
    * @param inclusive Whether the families are inclusive or exclusive.
    * @param iterEnv An optional provided {@link IteratorEnvironment}.
-   *        {@link TestIteratorEnvironment} will be used if null.
+   *        {@link ClientIteratorEnvironment} will be used if null.
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,

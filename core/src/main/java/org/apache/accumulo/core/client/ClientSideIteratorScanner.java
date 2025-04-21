@@ -34,7 +34,6 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.data.ArrayByteSequence;
@@ -232,9 +231,8 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     SortedKeyValueIterator<Key,Value> skvi;
     try {
       IteratorEnvironment iterEnv = new ClientIteratorEnvironment.Builder()
-          .withEnvironment(new ClientServiceEnvironmentImpl(context.get()))
-          .withAuthorizations(getAuthorizations()).withScope(IteratorScope.scan)
-          .withTableId(tableId.get())
+          .withClient(context.get()).withAuthorizations(getAuthorizations())
+          .withScope(IteratorScope.scan).withTableId(tableId.get())
           .withSamplerConfiguration(getIteratorSamplerConfigurationInternal()).build();
       IteratorBuilder ib =
           IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();

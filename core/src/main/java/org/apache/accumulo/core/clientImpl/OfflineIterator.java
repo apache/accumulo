@@ -245,9 +245,9 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
-        .withAuthorizations(authorizations).withScope(IteratorScope.scan).withTableId(tableId)
-        .withEnvironment(new ClientServiceEnvironmentImpl(context));
+    ClientIteratorEnvironment.Builder iterEnvBuilder =
+        new ClientIteratorEnvironment.Builder().withAuthorizations(authorizations)
+            .withScope(IteratorScope.scan).withTableId(tableId).withClient(context);
     if (scannerSamplerConfig != null) {
       iterEnvBuilder.withSamplerConfiguration(scannerSamplerConfig);
     }
