@@ -230,10 +230,13 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
 
     SortedKeyValueIterator<Key,Value> skvi;
     try {
-      IteratorEnvironment iterEnv = new ClientIteratorEnvironment.Builder()
+      ClientIteratorEnvironment.Builder builder = new ClientIteratorEnvironment.Builder()
           .withClient(context.get()).withAuthorizations(getAuthorizations())
-          .withScope(IteratorScope.scan).withTableId(tableId.get())
-          .withSamplerConfiguration(getIteratorSamplerConfigurationInternal()).build();
+          .withScope(IteratorScope.scan).withTableId(tableId.get());
+      if (smi.samplerConfig != null) {
+        builder.withSamplerConfiguration(getIteratorSamplerConfigurationInternal());
+      }
+      IteratorEnvironment iterEnv = builder.build();
       IteratorBuilder ib =
           IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
 

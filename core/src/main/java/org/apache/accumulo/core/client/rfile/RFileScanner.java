@@ -89,6 +89,45 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   }
 
+  private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
+
+    private final Opts opts;
+
+    public RFileScannerEnvironmentImpl(Opts opts) {
+      super(null);
+      this.opts = opts;
+    }
+
+    @Override
+    public String getTableName(TableId tableId) throws TableNotFoundException {
+      throw new IllegalStateException("TableId not known in RFileScanner");
+    }
+
+    @Override
+    public <T> T instantiate(String className, Class<T> base)
+        throws ReflectiveOperationException, IOException {
+      return RFileScanner.class.getClassLoader().loadClass(className).asSubclass(base)
+          .getDeclaredConstructor().newInstance();
+    }
+
+    @Override
+    public <T> T instantiate(TableId tableId, String className, Class<T> base)
+        throws ReflectiveOperationException, IOException {
+      return instantiate(className, base);
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+      return new ConfigurationImpl(new ConfigurationCopy(DefaultConfiguration.getInstance()));
+    }
+
+    @Override
+    public Configuration getConfiguration(TableId tableId) {
+      return new ConfigurationImpl(new ConfigurationCopy(this.opts.tableConfig));
+    }
+
+  }
+
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
 
@@ -280,41 +319,10 @@ class RFileScanner extends ScannerOptions implements Scanner {
             EMPTY_BYTES, tableConf);
       }
 
-      ClientServiceEnvironmentImpl senv = new ClientServiceEnvironmentImpl(null) {
-
-        @Override
-        public String getTableName(TableId tableId) throws TableNotFoundException {
-          throw new IllegalStateException("TableId not known in RFileScanner");
-        }
-
-        @Override
-        public <T> T instantiate(String className, Class<T> base)
-            throws ReflectiveOperationException, IOException {
-          return RFileScanner.class.getClassLoader().loadClass(className).asSubclass(base)
-              .getDeclaredConstructor().newInstance();
-        }
-
-        @Override
-        public <T> T instantiate(TableId tableId, String className, Class<T> base)
-            throws ReflectiveOperationException, IOException {
-          return instantiate(className, base);
-        }
-
-        @Override
-        public Configuration getConfiguration() {
-          return new ConfigurationImpl(new ConfigurationCopy(DefaultConfiguration.getInstance()));
-        }
-
-        @Override
-        public Configuration getConfiguration(TableId tableId) {
-          return new ConfigurationImpl(new ConfigurationCopy(opts.tableConfig));
-        }
-
-      };
-
       ClientIteratorEnvironment.Builder iterEnvBuilder =
-          new RFileScannerIteratorEnvironmentBuilder().withEnvironment(senv)
-              .withAuthorizations(opts.auths).withScope(IteratorScope.scan);
+          new RFileScannerIteratorEnvironmentBuilder()
+              .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
+              .withScope(IteratorScope.scan);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
       }
