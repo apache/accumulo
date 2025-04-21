@@ -196,7 +196,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public PluginEnvironment getPluginEnv() {
-    return getServiceEnv();
+    return env.orElseThrow();
   }
 
   @Override
