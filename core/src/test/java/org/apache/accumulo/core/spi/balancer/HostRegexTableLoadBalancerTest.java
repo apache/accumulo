@@ -202,6 +202,70 @@ public class HostRegexTableLoadBalancerTest extends BaseHostRegexTableLoadBalanc
   }
 
   @Test
+  public void testSplitCurrentByRegexDefineDefaultPool() {
+    HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r01.*");
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + BAR.getTableName(), "r02.*");
+    // Normally the DEFAULT pool would be comprised of the hosts not included in a regex.
+    // Here we are going to define it as also being on rack1
+    props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + DEFAULT_POOL, "r01.*");
+    init(props);
+    Map<String,SortedMap<TabletServerId,TServerStatus>> groups =
+        this.splitCurrentByRegex(createCurrent(15));
+    assertEquals(3, groups.size());
+    assertTrue(groups.containsKey(FOO.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> fooHosts = groups.get(FOO.getTableName());
+    assertEquals(5, fooHosts.size());
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
+    assertTrue(
+        fooHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(BAR.getTableName()));
+    SortedMap<TabletServerId,TServerStatus> barHosts = groups.get(BAR.getTableName());
+    assertEquals(5, barHosts.size());
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.6", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.7", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.8", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.9", 9997, Integer.toHexString(1))));
+    assertTrue(
+        barHosts.containsKey(new TabletServerIdImpl("192.168.0.10", 9997, Integer.toHexString(1))));
+    assertTrue(groups.containsKey(DEFAULT_POOL));
+    SortedMap<TabletServerId,TServerStatus> defHosts = groups.get(DEFAULT_POOL);
+    assertEquals(10, defHosts.size());
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.1", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.2", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.3", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.4", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.5", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.11", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.12", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.13", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.14", 9997, Integer.toHexString(1))));
+    assertTrue(
+        defHosts.containsKey(new TabletServerIdImpl("192.168.0.15", 9997, Integer.toHexString(1))));
+
+  }
+
+  @Test
   public void testSplitCurrentByRegexUsingOverlappingPools() {
     HashMap<String,String> props = new HashMap<>(DEFAULT_TABLE_PROPERTIES);
     props.put(HostRegexTableLoadBalancer.HOST_BALANCER_PREFIX + FOO.getTableName(), "r.*");
