@@ -123,7 +123,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     @Override
     public Configuration getConfiguration(TableId tableId) {
-      return new ConfigurationImpl(new ConfigurationCopy(this.opts.tableConfig));
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      opts.tableConfig.forEach(tableCC::set);
+      return new ConfigurationImpl(tableCC);
     }
 
   }
