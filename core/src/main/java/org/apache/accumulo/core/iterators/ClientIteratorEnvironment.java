@@ -24,6 +24,7 @@ import java.util.Optional;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -44,7 +45,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     private boolean isUserCompaction = false;
     private Optional<TableId> tableId = Optional.empty();
     private Optional<SamplerConfiguration> samplerConfig = Optional.empty();
-    private Optional<ServiceEnvironment> env = Optional.empty();
+    private Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
 
     public Builder withScope(IteratorScope scope) {
       this.scope = Optional.of(scope);
@@ -76,7 +77,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
       return this;
     }
 
-    public Builder withServiceEnvironment(ServiceEnvironment env) {
+    public Builder withEnvironment(ClientServiceEnvironmentImpl env) {
       this.env = Optional.of(env);
       return this;
     }
@@ -98,7 +99,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   private final boolean isUserCompaction;
   private final Optional<TableId> tableId;
   private final Optional<SamplerConfiguration> samplerConfig;
-  private final Optional<ServiceEnvironment> env;
+  private final Optional<ClientServiceEnvironmentImpl> env;
 
   private ClientIteratorEnvironment(Builder builder) {
     this.scope = builder.scope;

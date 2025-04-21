@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
@@ -58,6 +58,7 @@ import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -295,7 +296,9 @@ public class InMemoryMapTest extends WithTestNames {
 
     mutate(imm, "r1", "foo:cq5", 3, "bar5");
 
-    SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(ClientIteratorEnvironment.DEFAULT);
+    SortedKeyValueIterator<Key,Value> dc =
+        ski1.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+            getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
 
     ski1.seek(new Range(newKey("r1", "foo:cq1", 3), null), Set.of(), false);
     testAndCallNext(ski1, "r1", "foo:cq1", 3, "bar1");
@@ -347,8 +350,9 @@ public class InMemoryMapTest extends WithTestNames {
       }
     }
 
-    SortedKeyValueIterator<Key,Value> dc = ski1.deepCopy(ClientIteratorEnvironment.DEFAULT);
-
+    SortedKeyValueIterator<Key,Value> dc =
+        ski1.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+            getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
     if (interleaving == 2) {
       imm.delete(0);
       if (interrupt) {
@@ -499,7 +503,9 @@ public class InMemoryMapTest extends WithTestNames {
     MemoryIterator iter1 = imm.skvIterator(null);
 
     seekLocalityGroups(iter1);
-    SortedKeyValueIterator<Key,Value> dc1 = iter1.deepCopy(ClientIteratorEnvironment.DEFAULT);
+    SortedKeyValueIterator<Key,Value> dc1 =
+        iter1.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+            getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
     seekLocalityGroups(dc1);
 
     assertEquals(10, imm.getNumEntries());
@@ -553,20 +559,26 @@ public class InMemoryMapTest extends WithTestNames {
       MemoryIterator iter1 = imm.skvIterator(sampleConfig);
       MemoryIterator iter2 = imm.skvIterator(null);
       SortedKeyValueIterator<Key,Value> iter0dc1 =
-          iter0.deepCopy(ClientIteratorEnvironment.DEFAULT);
-      SortedKeyValueIterator<Key,Value> iter0dc2 =
-          iter0.deepCopy(new ClientIteratorEnvironment.Builder()
-              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+          iter0.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+              getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
+      SortedKeyValueIterator<Key,
+          Value> iter0dc2 = iter0.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+              IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+              TableId.of("foo"), sampleConfig));
       SortedKeyValueIterator<Key,Value> iter1dc1 =
-          iter1.deepCopy(ClientIteratorEnvironment.DEFAULT);
-      SortedKeyValueIterator<Key,Value> iter1dc2 =
-          iter1.deepCopy(new ClientIteratorEnvironment.Builder()
-              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+          iter1.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+              getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
+      SortedKeyValueIterator<Key,
+          Value> iter1dc2 = iter1.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+              IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+              TableId.of("foo"), sampleConfig));
       SortedKeyValueIterator<Key,Value> iter2dc1 =
-          iter2.deepCopy(ClientIteratorEnvironment.DEFAULT);
-      SortedKeyValueIterator<Key,Value> iter2dc2 =
-          iter2.deepCopy(new ClientIteratorEnvironment.Builder()
-              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+          iter2.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+              getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
+      SortedKeyValueIterator<Key,
+          Value> iter2dc2 = iter2.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+              IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+              TableId.of("foo"), sampleConfig));
 
       assertEquals(expectedNone, readAll(iter0));
       assertEquals(expectedNone, readAll(iter0dc1));
@@ -591,20 +603,26 @@ public class InMemoryMapTest extends WithTestNames {
       assertEquals(expectedSample, readAll(iter2dc2));
 
       SortedKeyValueIterator<Key,Value> iter0dc3 =
-          iter0.deepCopy(ClientIteratorEnvironment.DEFAULT);
-      SortedKeyValueIterator<Key,Value> iter0dc4 =
-          iter0.deepCopy(new ClientIteratorEnvironment.Builder()
-              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+          iter0.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+              getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
+      SortedKeyValueIterator<Key,
+          Value> iter0dc4 = iter0.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+              IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+              TableId.of("foo"), sampleConfig));
       SortedKeyValueIterator<Key,Value> iter1dc3 =
-          iter1.deepCopy(ClientIteratorEnvironment.DEFAULT);
-      SortedKeyValueIterator<Key,Value> iter1dc4 =
-          iter1.deepCopy(new ClientIteratorEnvironment.Builder()
-              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+          iter1.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+              getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
+      SortedKeyValueIterator<Key,
+          Value> iter1dc4 = iter1.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+              IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+              TableId.of("foo"), sampleConfig));
       SortedKeyValueIterator<Key,Value> iter2dc3 =
-          iter2.deepCopy(ClientIteratorEnvironment.DEFAULT);
-      SortedKeyValueIterator<Key,Value> iter2dc4 =
-          iter2.deepCopy(new ClientIteratorEnvironment.Builder()
-              .withSamplerConfiguration(sampleConfig.toSamplerConfiguration()).build());
+          iter2.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+              getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo")));
+      SortedKeyValueIterator<Key,
+          Value> iter2dc4 = iter2.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+              IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+              TableId.of("foo"), sampleConfig));
 
       assertEquals(expectedNone, readAll(iter0dc3));
       assertEquals(expectedNone, readAll(iter0dc4));
@@ -661,8 +679,9 @@ public class InMemoryMapTest extends WithTestNames {
     }
 
     if (deepCopy) {
-      iter = iter.deepCopy(new ClientIteratorEnvironment.Builder()
-          .withSamplerConfiguration(sampleConfig1.toSamplerConfiguration()).build());
+      iter = iter.deepCopy(new TabletIteratorEnvironment(getServerContext(), IteratorScope.scan,
+          getServerContext().getTableConfiguration(TableId.of("foo")), TableId.of("foo"),
+          sampleConfig1));
     }
 
     if (delete && dcAfterDelete) {
@@ -763,8 +782,10 @@ public class InMemoryMapTest extends WithTestNames {
     iter.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(iter));
 
-    SortedKeyValueIterator<Key,Value> dc = iter.deepCopy(new ClientIteratorEnvironment.Builder()
-        .withSamplerConfiguration(sampleConfig2.toSamplerConfiguration()).build());
+    SortedKeyValueIterator<Key,
+        Value> dc = iter.deepCopy(new TabletIteratorEnvironment(getServerContext(),
+            IteratorScope.scan, getServerContext().getTableConfiguration(TableId.of("foo")),
+            TableId.of("foo"), sampleConfig2));
     dc.seek(new Range(), Set.of(), false);
     assertEquals(expectedSample, readAll(dc));
 

@@ -232,7 +232,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     SortedKeyValueIterator<Key,Value> skvi;
     try {
       IteratorEnvironment iterEnv = new ClientIteratorEnvironment.Builder()
-          .withServiceEnvironment(new ClientServiceEnvironmentImpl(context.get()))
+          .withEnvironment(new ClientServiceEnvironmentImpl(context.get()))
           .withAuthorizations(getAuthorizations()).withScope(IteratorScope.scan)
           .withTableId(tableId.get())
           .withSamplerConfiguration(getIteratorSamplerConfigurationInternal()).build();

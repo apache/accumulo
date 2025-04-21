@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
+import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -66,7 +67,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
-import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.ConfigurationImpl;
@@ -269,7 +269,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
             EMPTY_BYTES, tableConf);
       }
 
-      ServiceEnvironment senv = new ServiceEnvironment() {
+      ClientServiceEnvironmentImpl senv = new ClientServiceEnvironmentImpl(null) {
 
         @Override
         public String getTableName(TableId tableId) throws TableNotFoundException {
@@ -277,14 +277,15 @@ class RFileScanner extends ScannerOptions implements Scanner {
         }
 
         @Override
-        public <T> T instantiate(String className, Class<T> base) throws Exception {
+        public <T> T instantiate(String className, Class<T> base)
+            throws ReflectiveOperationException, IOException {
           return RFileScanner.class.getClassLoader().loadClass(className).asSubclass(base)
               .getDeclaredConstructor().newInstance();
         }
 
         @Override
         public <T> T instantiate(TableId tableId, String className, Class<T> base)
-            throws Exception {
+            throws ReflectiveOperationException, IOException {
           return instantiate(className, base);
         }
 
@@ -300,9 +301,8 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       };
 
-      ClientIteratorEnvironment.Builder iterEnvBuilder =
-          new ClientIteratorEnvironment.Builder().withAuthorizations(opts.auths)
-              .withScope(IteratorScope.scan).withServiceEnvironment(senv);
+      ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
+          .withAuthorizations(opts.auths).withScope(IteratorScope.scan).withEnvironment(senv);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
       }
