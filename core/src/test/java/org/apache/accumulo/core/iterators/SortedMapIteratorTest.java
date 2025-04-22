@@ -36,6 +36,6 @@ public class SortedMapIteratorTest {
     assertThrows(SampleNotPresentException.class,
         () -> smi.deepCopy(new ClientIteratorEnvironment.Builder()
             .withSamplerConfiguration(new SamplerConfiguration(RowSampler.class.getName()))
-            .build()));
+            .withSamplingEnabled().build()));
   }
 }

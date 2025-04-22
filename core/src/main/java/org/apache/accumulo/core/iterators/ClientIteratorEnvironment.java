@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -47,6 +48,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     private boolean isUserCompaction = false;
     private Optional<TableId> tableId = Optional.empty();
     private Optional<SamplerConfiguration> samplerConfig = Optional.empty();
+    private boolean samplingEnabled = false;
     protected Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
 
     public Builder withScope(IteratorScope scope) {
@@ -74,8 +76,13 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
       return this;
     }
 
+    public Builder withSamplingEnabled() {
+      this.samplingEnabled = true;
+      return this;
+    }
+
     public Builder withSamplerConfiguration(SamplerConfiguration sc) {
-      this.samplerConfig = Optional.of(sc);
+      this.samplerConfig = Optional.ofNullable(sc);
       return this;
     }
 
@@ -90,9 +97,6 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   }
 
-  private static final UnsupportedOperationException UOE =
-      new UnsupportedOperationException("Feature not supported");
-
   public static final IteratorEnvironment DEFAULT = new Builder().build();
 
   private final Optional<IteratorScope> scope;
@@ -101,6 +105,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   private final boolean isUserCompaction;
   private final Optional<TableId> tableId;
   private final Optional<SamplerConfiguration> samplerConfig;
+  private final boolean samplingEnabled;
   private final Optional<ClientServiceEnvironmentImpl> env;
 
   private ClientIteratorEnvironment(Builder builder) {
@@ -111,18 +116,21 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     this.tableId = builder.tableId;
     this.samplerConfig = builder.samplerConfig;
     this.env = builder.env;
+    this.samplingEnabled = builder.samplingEnabled;
   }
 
+  /**
+   * Copy constructor used for enabling sample. Only called from {@link cloneWithSamplingEnabled}.
+   */
   private ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
-    this.scope = copy.scope.isPresent() ? Optional.of(copy.scope.orElseThrow()) : Optional.empty();
+    this.scope = copy.scope;
     this.isFullMajorCompaction = copy.isFullMajorCompaction;
-    this.auths = copy.auths.isPresent() ? Optional.of(copy.auths.orElseThrow()) : Optional.empty();
+    this.auths = copy.auths;
     this.isUserCompaction = copy.isUserCompaction;
-    this.tableId =
-        copy.tableId.isPresent() ? Optional.of(copy.tableId.orElseThrow()) : Optional.empty();
-    this.samplerConfig = copy.samplerConfig.isPresent()
-        ? Optional.of(copy.samplerConfig.orElseThrow()) : Optional.empty();
-    this.env = copy.env.isPresent() ? Optional.of(copy.env.orElseThrow()) : Optional.empty();
+    this.tableId = copy.tableId;
+    this.samplerConfig = copy.samplerConfig;
+    this.env = copy.env;
+    this.samplingEnabled = true;
   }
 
   @Override
@@ -150,20 +158,22 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   @Override
   @Deprecated(since = "2.0.0")
   public void registerSideChannel(SortedKeyValueIterator<Key,Value> iter) {
-    throw UOE;
+    throw new UnsupportedOperationException("Feature not supported");
   }
 
   @Override
   public Authorizations getAuthorizations() {
     if (getIteratorScope() != IteratorScope.scan) {
-      throw new IllegalStateException("Iterator scope is not majc");
+      throw new IllegalStateException("Iterator scope is not scan");
     }
     return auths.orElseThrow();
   }
 
   @Override
   public IteratorEnvironment cloneWithSamplingEnabled() {
-    if (!isSamplingEnabled()) {
+    String samplerClass =
+        getPluginEnv().getConfiguration(getTableId()).get(Property.TABLE_SAMPLER.getKey());
+    if (samplerClass == null || samplerClass.isBlank()) {
       throw new SampleNotPresentException();
     }
     return new ClientIteratorEnvironment(this);
@@ -171,12 +181,15 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public boolean isSamplingEnabled() {
-    return this.samplerConfig.isPresent();
+    return this.samplingEnabled;
   }
 
   @Override
   public SamplerConfiguration getSamplerConfiguration() {
-    return samplerConfig.orElse(null);
+    if (!isSamplingEnabled()) {
+      return null;
+    }
+    return samplerConfig.orElseThrow();
   }
 
   @Override

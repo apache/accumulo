@@ -232,9 +232,10 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
     try {
       ClientIteratorEnvironment.Builder builder = new ClientIteratorEnvironment.Builder()
           .withClient(context.get()).withAuthorizations(getAuthorizations())
-          .withScope(IteratorScope.scan).withTableId(tableId.get());
-      if (smi.samplerConfig != null) {
-        builder.withSamplerConfiguration(getIteratorSamplerConfigurationInternal());
+          .withScope(IteratorScope.scan).withTableId(tableId.get())
+          .withSamplerConfiguration(getIteratorSamplerConfigurationInternal());
+      if (getSamplerConfiguration() != null) {
+        builder.withSamplingEnabled();
       }
       IteratorEnvironment iterEnv = builder.build();
       IteratorBuilder ib =

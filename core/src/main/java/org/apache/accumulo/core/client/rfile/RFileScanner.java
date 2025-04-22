@@ -327,6 +327,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
               .withScope(IteratorScope.scan);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
+        iterEnvBuilder.withSamplingEnabled();
       }
       IteratorEnvironment iterEnv = iterEnvBuilder.build();
       try {
