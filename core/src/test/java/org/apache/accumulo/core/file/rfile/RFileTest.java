@@ -2056,11 +2056,8 @@ public class RFileTest {
 
         assertEquals(expectedDataHash, hash(trf.reader));
 
-        ClientIteratorEnvironment.Builder builder = new ClientIteratorEnvironment.Builder();
-        if (sc != null) {
-          builder.withSamplerConfiguration(sc.toSamplerConfiguration()).withSamplingEnabled();
-        }
-        IteratorEnvironment ie = builder.build();
+        IteratorEnvironment ie = new ClientIteratorEnvironment.Builder()
+            .withSamplerConfiguration(sc.toSamplerConfiguration()).withSamplingEnabled().build();
 
         for (int i = 0; i < 3; i++) {
           // test opening and closing deep copies a few times.
