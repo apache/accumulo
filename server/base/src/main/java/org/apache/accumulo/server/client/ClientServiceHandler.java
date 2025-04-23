@@ -84,7 +84,8 @@ public class ClientServiceHandler implements ClientService.Iface {
     try {
       return context.getTableId(tableName);
     } catch (TableNotFoundException e) {
-      reason = TableOperationExceptionType.NOTFOUND;
+      reason = e.getCause() instanceof NamespaceNotFoundException
+          ? TableOperationExceptionType.NAMESPACE_NOTFOUND : TableOperationExceptionType.NOTFOUND;
     }
     throw new ThriftTableOperationException(null, tableName, operation, reason, null);
   }
