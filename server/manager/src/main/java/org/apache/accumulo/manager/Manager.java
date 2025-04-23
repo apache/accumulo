@@ -526,17 +526,6 @@ public class Manager extends AbstractServer
     }
   }
 
-  public void clearMigrations(TableId tableId) {
-    var ample = getContext().getAmple();
-    // prev row needed for the extent
-    try (var tabletsMetadata = ample.readTablets().forTable(tableId)
-        .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
-      for (TabletMetadata tabletMetadata : tabletsMetadata) {
-        ample.mutateTablet(tabletMetadata.getExtent()).deleteMigration().mutate();
-      }
-    }
-  }
-
   private Splitter splitter;
 
   public Splitter getSplitter() {
@@ -574,6 +563,8 @@ public class Manager extends AbstractServer
           // - Remove any migrations for tablets of offline tables, as the migration can never
           // succeed because no tablet server will load the tablet
           // - Remove any migrations to tablet servers that are not live
+          // - Remove any migrations where the tablets current location equals the migration
+          // (the migration has completed)
           var ample = getContext().getAmple();
           for (DataLevel dl : DataLevel.values()) {
             // prev row needed for the extent
@@ -585,11 +576,8 @@ public class Manager extends AbstractServer
                         .build();
                 var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
               for (var tabletMetadata : tabletsMetadata) {
-                var tableState =
-                    getContext().getTableManager().getTableState(tabletMetadata.getTableId());
                 var migration = tabletMetadata.getMigration();
-                if (migration != null && (tableState == TableState.OFFLINE
-                    || !onlineTabletServers().contains(migration))) {
+                if (migration != null && shouldCleanupMigration(tabletMetadata)) {
                   tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
                       .requireMigration(migration).deleteMigration().submit(tm -> false);
                 }
@@ -602,6 +590,15 @@ public class Manager extends AbstractServer
         sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
       }
     }
+  }
+
+  private boolean shouldCleanupMigration(TabletMetadata tabletMetadata) {
+    var tableState = getContext().getTableManager().getTableState(tabletMetadata.getTableId());
+    var migration = tabletMetadata.getMigration();
+    Preconditions.checkState(migration != null,
+        "This method should only be called if there is a migration");
+    return tableState == TableState.OFFLINE || !onlineTabletServers().contains(migration)
+        || tabletMetadata.getLocation().getServerInstance().equals(migration);
   }
 
   private class ScanServerZKCleaner implements Runnable {
@@ -652,33 +649,19 @@ public class Manager extends AbstractServer
    */
   private Map<DataLevel,Set<KeyExtent>> partitionMigrations() {
     final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = new EnumMap<>(DataLevel.class);
-    // populate to prevent NPE
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
       try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
           .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
-        for (var tabletMetadata : tabletsMetadata) {
-          if (tabletMetadata.getMigration() != null) {
-            extents.add(tabletMetadata.getExtent());
-          }
-        }
+        // filter out migrations that are awaiting cleanup
+        tabletsMetadata.stream()
+            .filter(tm -> tm.getMigration() != null && !shouldCleanupMigration(tm))
+            .forEach(tm -> extents.add(tm.getExtent()));
       }
       partitionedMigrations.put(dl, extents);
     }
     return partitionedMigrations;
-  }
-
-  /**
-   * Delete the migration, if present, for the given extent if the migration destination is the
-   * provided tserver
-   */
-  void conditionallyDeleteMigration(KeyExtent extent, TServerInstance tserver) {
-    try (var mutator = getContext().getAmple().conditionallyMutateTablets()) {
-      mutator.mutateTablet(extent).requireAbsentOperation().requireMigration(tserver)
-          .deleteMigration().submit(tm -> false);
-      mutator.process();
-    }
   }
 
   private class StatusThread implements Runnable {
@@ -976,8 +959,9 @@ public class Manager extends AbstractServer
               continue;
             }
             migrationsOutForLevel++;
+            var migration = TabletServerIdImpl.toThrift(m.getNewTabletServer());
             tabletsMutator.mutateTablet(ke).requireAbsentOperation()
-                .putMigration(TabletServerIdImpl.toThrift(m.getNewTabletServer()))
+                .requireCurrentLocationNotEqualTo(migration).putMigration(migration)
                 .submit(tm -> false);
             log.debug("migration {}", m);
           }
@@ -1637,9 +1621,6 @@ public class Manager extends AbstractServer
   @Override
   public void stateChanged(TableId tableId, TableState state) {
     nextEvent.event(tableId, "Table state in zookeeper changed for %s to %s", tableId, state);
-    if (state == TableState.OFFLINE) {
-      clearMigrations(tableId);
-    }
   }
 
   @Override

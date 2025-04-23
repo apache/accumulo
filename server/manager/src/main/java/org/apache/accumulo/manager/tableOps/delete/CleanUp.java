@@ -65,9 +65,6 @@ class CleanUp extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) {
-
-    manager.clearMigrations(tableId);
-
     int refCount = 0;
 
     try {

@@ -70,6 +70,7 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.iterators.ColumnFamilySizeLimitIterator;
+import org.apache.accumulo.server.metadata.iterators.CurrentLocationNotEqualToIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
@@ -164,6 +165,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     mutation.addCondition(condition1);
     mutation.addCondition(condition2);
 
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireCurrentLocationNotEqualTo(TServerInstance tsi) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = CurrentLocationNotEqualToIterator.createCondition(tsi);
+    mutation.addCondition(c);
     return this;
   }
 

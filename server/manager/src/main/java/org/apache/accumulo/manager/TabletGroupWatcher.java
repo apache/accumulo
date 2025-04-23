@@ -60,7 +60,6 @@ import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -643,9 +642,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             continue;
           }
           switch (state) {
-            case HOSTED:
-              manager.conditionallyDeleteMigration(tm.getExtent(), location.getServerInstance());
-              break;
             case ASSIGNED_TO_DEAD_SERVER:
               hostDeadTablet(tLists, tm, location);
               break;
@@ -661,7 +657,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               tLists.assigned.add(new Assignment(tm.getExtent(),
                   future != null ? future.getServerInstance() : null, tm.getLast()));
               break;
-            default:
+            case HOSTED:
               break;
           }
         } else {
@@ -669,10 +665,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             case SUSPENDED:
               // Request a move to UNASSIGNED, so as to allow balancing to continue.
               tLists.suspendedToGoneServers.add(tm);
-              cancelOfflineTableMigrations(tm.getExtent());
-              break;
-            case UNASSIGNED:
-              cancelOfflineTableMigrations(tm.getExtent());
               break;
             case ASSIGNED_TO_DEAD_SERVER:
               unassignDeadTablet(tLists, tm);
@@ -692,6 +684,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               }
               break;
             case ASSIGNED:
+            case UNASSIGNED:
               break;
           }
         }
@@ -840,8 +833,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (tLists.destinations.containsKey(dest)) {
         tLists.assignments.add(new Assignment(tablet, dest, unassignedTablet.getLastLocation()));
       } else {
-        // get rid of this migration
-        manager.getContext().getAmple().mutateTablet(tablet).deleteMigration().mutate();
         tLists.unassigned.put(tablet, unassignedTablet);
       }
     } else {
@@ -879,17 +870,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void hostDeadTablet(TabletLists tLists, TabletMetadata tm, Location location)
       throws WalMarkerException {
     tLists.assignedToDeadServers.add(tm);
-    manager.conditionallyDeleteMigration(tm.getExtent(), location.getServerInstance());
     TServerInstance tserver = tm.getLocation().getServerInstance();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
       tLists.logsForDeadServers.put(tserver, walStateManager.getWalsInUse(tserver));
-    }
-  }
-
-  private void cancelOfflineTableMigrations(KeyExtent extent) {
-    TableState tableState = manager.getTableManager().getTableState(extent.tableId());
-    if (tableState == TableState.OFFLINE) {
-      manager.getContext().getAmple().mutateTablet(extent).deleteMigration().mutate();
     }
   }
 

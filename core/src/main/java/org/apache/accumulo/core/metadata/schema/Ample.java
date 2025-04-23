@@ -504,6 +504,8 @@ public interface Ample {
      */
     ConditionalTabletMutator requireLocation(Location location);
 
+    ConditionalTabletMutator requireCurrentLocationNotEqualTo(TServerInstance tsi);
+
     /**
      * Requires the tablet to have the specified tablet availability before any changes are made.
      */
