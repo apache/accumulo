@@ -108,7 +108,7 @@ public class TableMapping {
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     if (namespaceId == Namespace.ACCUMULO.id()) {
       throw new AssertionError(
-          "Renaming tables in the Accumulo namespace table map should not be possible");
+          "Renaming built-in tables in the Accumulo namespace table map should not be possible");
     }
     requireNonNull(tableId);
     var rawOldName = TableNameUtil.qualify(requireNonNull(oldName)).getSecond();
