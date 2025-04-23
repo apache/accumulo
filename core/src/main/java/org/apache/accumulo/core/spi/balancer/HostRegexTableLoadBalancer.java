@@ -395,9 +395,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     Map<String,SortedMap<TabletServerId,TServerStatus>> currentGrouped =
         splitCurrentByRegex(params.currentStatus());
 
-    if ((now
-        - this.lastOOBCheckTimes.getOrDefault(params.partitionName(), System.currentTimeMillis()))
-        > myConf.oobCheckMillis) {
+    if ((now - this.lastOOBCheckTimes.computeIfAbsent(params.partitionName(),
+        (p) -> System.currentTimeMillis())) > myConf.oobCheckMillis) {
       try {
         // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
         for (String table : tableIdMap.keySet()) {
