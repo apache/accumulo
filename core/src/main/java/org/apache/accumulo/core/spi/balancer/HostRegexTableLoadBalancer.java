@@ -157,7 +157,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     private final Map<String,Pattern> poolNameToRegexPattern;
 
     HrtlbConf(PluginEnvironment.Configuration conf) {
-      System.out.println("building hrtlb conf");
+      LOG.info("Building conf");
       String oobProperty = conf.get(HOST_BALANCER_OOB_CHECK_KEY);
       if (oobProperty != null) {
         oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
@@ -396,7 +396,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         splitCurrentByRegex(params.currentStatus());
     final DataLevel currentLevel = DataLevel.valueOf(params.currentLevel());
 
-    if ((now - this.lastOOBCheckTimes.getOrDefault(currentLevel, System.currentTimeMillis()))
+    if ((now
+        - this.lastOOBCheckTimes.computeIfAbsent(currentLevel, (l) -> System.currentTimeMillis()))
         > myConf.oobCheckMillis) {
       try {
         // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.

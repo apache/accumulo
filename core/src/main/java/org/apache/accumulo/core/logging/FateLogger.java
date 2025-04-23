@@ -21,18 +21,22 @@ package org.apache.accumulo.core.logging;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.FateStore.Seeder;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
@@ -136,7 +140,7 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+      public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
         store.runnable(keepWaiting, idConsumer);
       }
 
@@ -150,19 +154,8 @@ public class FateLogger {
       }
 
       @Override
-      public Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey,
-          Repo<T> repo, boolean autoCleanUp) {
-        var optional = store.seedTransaction(fateOp, fateKey, repo, autoCleanUp);
-        if (storeLog.isTraceEnabled()) {
-          optional.ifPresentOrElse(fateId -> {
-            storeLog.trace("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
-                autoCleanUp);
-          }, () -> {
-            storeLog.trace("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
-                autoCleanUp);
-          });
-        }
-        return optional;
+      public Seeder<T> beginSeeding() {
+        return new SeederLogger<>(store, toLogString);
       }
 
       @Override
@@ -201,5 +194,42 @@ public class FateLogger {
         store.deleteDeadReservations();
       }
     };
+  }
+
+  public static class SeederLogger<T> implements Seeder<T> {
+    private final FateStore<T> store;
+    private final Seeder<T> seeder;
+    private final Function<Repo<T>,String> toLogString;
+
+    public SeederLogger(FateStore<T> store, Function<Repo<T>,String> toLogString) {
+      this.store = Objects.requireNonNull(store);
+      this.seeder = store.beginSeeding();
+      this.toLogString = Objects.requireNonNull(toLogString);
+    }
+
+    @Override
+    public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+        FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+      var future = this.seeder.attemptToSeedTransaction(fateOp, fateKey, repo, autoCleanUp);
+      return future.whenComplete((optional, throwable) -> {
+        if (storeLog.isTraceEnabled()) {
+          optional.ifPresentOrElse(fateId -> {
+            storeLog.trace("{} seeded {} {} {}", fateId, fateKey, toLogString.apply(repo),
+                autoCleanUp);
+          }, () -> {
+            storeLog.trace("Possibly unable to seed {} {} {}", fateKey, toLogString.apply(repo),
+                autoCleanUp);
+          });
+        }
+      });
+    }
+
+    @Override
+    public void close() {
+      seeder.close();
+      if (storeLog.isTraceEnabled()) {
+        storeLog.trace("attempted to close seeder for {}", store.type());
+      }
+    }
   }
 }

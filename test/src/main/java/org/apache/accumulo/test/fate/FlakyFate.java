@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.test.fate;
 
+import java.util.Set;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
@@ -35,26 +38,42 @@ public class FlakyFate<T> extends Fate<T> {
 
   public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
-    super(environment, store, false, toLogStrFunc, conf);
+    super(environment, store, false, toLogStrFunc, conf, new ScheduledThreadPoolExecutor(2));
   }
 
   @Override
-  protected Repo<T> executeCall(FateId fateId, Repo<T> repo) throws Exception {
-    /*
-     * This function call assumes that isRead was already called once. So it runs
-     * call(),isReady(),call() to simulate a situation like isReady(), call(), fault, isReady()
-     * again, call() again.
-     */
-    var next1 = super.executeCall(fateId, repo);
-    Preconditions.checkState(super.executeIsReady(fateId, repo) == 0);
-    var next2 = super.executeCall(fateId, repo);
-    // do some basic checks to ensure similar things were returned
-    if (next1 == null) {
-      Preconditions.checkState(next2 == null);
-    } else {
-      Preconditions.checkState(next2 != null);
-      Preconditions.checkState(next1.getClass().equals(next2.getClass()));
+  protected void startFateExecutors(T environment, AccumuloConfiguration conf,
+      Set<FateExecutor<T>> fateExecutors) {
+    for (var poolConfig : getPoolConfigurations(conf).entrySet()) {
+      fateExecutors.add(
+          new FlakyFateExecutor<>(this, environment, poolConfig.getKey(), poolConfig.getValue()));
     }
-    return next2;
+  }
+
+  private static class FlakyFateExecutor<T> extends FateExecutor<T> {
+    private FlakyFateExecutor(Fate<T> fate, T environment, Set<FateOperation> fateOps,
+        int poolSize) {
+      super(fate, environment, fateOps, poolSize);
+    }
+
+    @Override
+    protected Repo<T> executeCall(FateId fateId, Repo<T> repo) throws Exception {
+      /*
+       * This function call assumes that isReady was already called once. So it runs
+       * call(),isReady(),call() to simulate a situation like isReady(), call(), fault, isReady()
+       * again, call() again.
+       */
+      var next1 = super.executeCall(fateId, repo);
+      Preconditions.checkState(super.executeIsReady(fateId, repo) == 0);
+      var next2 = super.executeCall(fateId, repo);
+      // do some basic checks to ensure similar things were returned
+      if (next1 == null) {
+        Preconditions.checkState(next2 == null);
+      } else {
+        Preconditions.checkState(next2 != null);
+        Preconditions.checkState(next1.getClass().equals(next2.getClass()));
+      }
+      return next2;
+    }
   }
 }

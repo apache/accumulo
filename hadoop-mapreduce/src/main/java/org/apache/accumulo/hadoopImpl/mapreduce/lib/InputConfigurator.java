@@ -717,7 +717,7 @@ public class InputConfigurator extends ConfiguratorBase {
   public static ClientTabletCache getTabletLocator(Class<?> implementingClass, Configuration conf,
       TableId tableId) {
     try (AccumuloClient client = createClient(implementingClass, conf)) {
-      return ClientTabletCache.getInstance((ClientContext) client, tableId);
+      return ((ClientContext) client).getTabletLocationCache(tableId);
     }
   }
 

@@ -33,7 +33,6 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
@@ -52,20 +51,18 @@ public class Upgrader12to13Test {
     ZooSession zk = createStrictMock(ZooSession.class);
     ZooReader zr = createStrictMock(ZooReader.class);
     ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
-    final var zkRoot = ZooUtil.getRoot(iid);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooSession()).andReturn(zk).anyTimes();
     expect(zk.asReader()).andReturn(zr).anyTimes();
     expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
 
-    expect(zr.getChildren(zkRoot + Constants.ZCOMPACTORS)).andReturn(List.of());
-    expect(zr.getChildren(zkRoot + Constants.ZSSERVERS)).andReturn(List.of("localhost:9996"));
-    expect(zr.getChildren(zkRoot + Constants.ZSSERVERS + "/localhost:9996")).andReturn(List.of());
-    zrw.recursiveDelete(zkRoot + Constants.ZSSERVERS + "/localhost:9996", NodeMissingPolicy.SKIP);
-    expect(zr.getChildren(zkRoot + Constants.ZTSERVERS)).andReturn(List.of("localhost:9997"));
-    expect(zr.getChildren(zkRoot + Constants.ZTSERVERS + "/localhost:9997"))
+    expect(zr.getChildren(Constants.ZCOMPACTORS)).andReturn(List.of());
+    expect(zr.getChildren(Constants.ZSSERVERS)).andReturn(List.of("localhost:9996"));
+    expect(zr.getChildren(Constants.ZSSERVERS + "/localhost:9996")).andReturn(List.of());
+    zrw.recursiveDelete(Constants.ZSSERVERS + "/localhost:9996", NodeMissingPolicy.SKIP);
+    expect(zr.getChildren(Constants.ZTSERVERS)).andReturn(List.of("localhost:9997"));
+    expect(zr.getChildren(Constants.ZTSERVERS + "/localhost:9997"))
         .andReturn(List.of(UUID.randomUUID().toString()));
 
     replay(context, zk, zr, zrw);

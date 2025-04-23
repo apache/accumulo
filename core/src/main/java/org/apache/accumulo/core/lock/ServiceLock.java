@@ -370,6 +370,7 @@ public class ServiceLock implements Watcher {
   private void lostLock(LockLossReason reason) {
     LockWatcher localLw = lockWatcher;
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     localLw.lostLock(reason);
@@ -536,6 +537,7 @@ public class ServiceLock implements Watcher {
     String localLock = lockNodeName;
 
     lockNodeName = null;
+    lockId = null;
     lockWatcher = null;
 
     final String pathToDelete = path + "/" + localLock;
@@ -574,11 +576,18 @@ public class ServiceLock implements Watcher {
     return lockNodeName;
   }
 
+  private LockID lockId = null;
+
   public synchronized LockID getLockID() {
     if (lockNodeName == null) {
       throw new IllegalStateException("Lock not held");
     }
-    return new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+
+    if (lockId == null) {
+      lockId = new LockID(path.toString(), lockNodeName, zooKeeper.getSessionId());
+    }
+
+    return lockId;
   }
 
   /**

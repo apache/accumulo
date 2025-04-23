@@ -18,8 +18,12 @@
  */
 package org.apache.accumulo.server.rpc;
 
+import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.thrift.server.TServer;
 
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -40,5 +44,23 @@ public class ServerAddress {
 
   public HostAndPort getAddress() {
     return address;
+  }
+
+  public void startThriftServer(String threadName) {
+    Threads.createThread(threadName, () -> {
+      try {
+        server.serve();
+      } catch (Error e) {
+        Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
+      }
+    }).start();
+
+    while (!server.isServing()) {
+      // Wait for the thread to start and for the TServer to start
+      // serving events
+      UtilWaitThread.sleep(10);
+      Preconditions.checkState(!server.getShouldStop());
+    }
+
   }
 }

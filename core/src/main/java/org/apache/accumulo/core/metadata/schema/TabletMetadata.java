@@ -594,8 +594,7 @@ public class TabletMetadata {
   }
 
   public TabletAvailability getTabletAvailability() {
-    if (AccumuloTable.ROOT.tableId().equals(getTableId())
-        || AccumuloTable.METADATA.tableId().equals(getTableId())) {
+    if (AccumuloTable.allTableIds().contains(getTableId())) {
       // Override the availability for the system tables
       return TabletAvailability.HOSTED;
     }
