@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.iterators;
+package org.apache.accumulo.core.iteratorsImpl;
 
 import java.io.IOException;
 import java.util.Optional;
@@ -27,16 +27,14 @@ import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
-import org.apache.accumulo.core.iteratorsImpl.system.MapFileIterator;
+import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
 
 public class ClientIteratorEnvironment implements IteratorEnvironment {
 
@@ -83,6 +81,11 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
     public Builder withSamplerConfiguration(SamplerConfiguration sc) {
       this.samplerConfig = Optional.ofNullable(sc);
+      return this;
+    }
+
+    public ClientIteratorEnvironment.Builder withEnvironment(ClientServiceEnvironmentImpl env) {
+      this.env = Optional.of(env);
       return this;
     }
 
@@ -137,9 +140,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   @Deprecated(since = "2.0.0")
   public SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName)
       throws IOException {
-    Configuration hadoopConf = new Configuration();
-    FileSystem fs = FileSystem.get(hadoopConf);
-    return new MapFileIterator(fs, mapFileName, hadoopConf);
+    throw new UnsupportedOperationException("Feature not supported");
   }
 
   @Override
@@ -171,9 +172,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public IteratorEnvironment cloneWithSamplingEnabled() {
-    String samplerClass =
-        getPluginEnv().getConfiguration(getTableId()).get(Property.TABLE_SAMPLER.getKey());
-    if (samplerClass == null || samplerClass.isBlank()) {
+    if (samplerConfig.isEmpty()) {
       throw new SampleNotPresentException();
     }
     return new ClientIteratorEnvironment(this);

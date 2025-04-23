@@ -25,7 +25,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 
@@ -54,11 +53,11 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
-import org.apache.accumulo.core.iterators.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -79,23 +78,19 @@ import com.google.common.base.Preconditions;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
-  private static class RFileScannerIteratorEnvironmentBuilder
-      extends ClientIteratorEnvironment.Builder {
-
-    public ClientIteratorEnvironment.Builder withEnvironment(ClientServiceEnvironmentImpl env) {
-      this.env = Optional.of(env);
-      return this;
-    }
-
-  }
-
   private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
 
-    private final Opts opts;
+    private final Configuration conf;
+    private final Configuration tableConf;
 
     public RFileScannerEnvironmentImpl(Opts opts) {
       super(null);
-      this.opts = opts;
+      conf = new ConfigurationImpl(new ConfigurationCopy(DefaultConfiguration.getInstance()));
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      if (opts.tableConfig != null) {
+        opts.tableConfig.forEach(tableCC::set);
+      }
+      tableConf = new ConfigurationImpl(tableCC);
     }
 
     @Override
@@ -106,30 +101,15 @@ class RFileScanner extends ScannerOptions implements Scanner {
     }
 
     @Override
-    public <T> T instantiate(String className, Class<T> base)
-        throws ReflectiveOperationException, IOException {
-      return RFileScanner.class.getClassLoader().loadClass(className).asSubclass(base)
-          .getDeclaredConstructor().newInstance();
-    }
-
-    @Override
-    public <T> T instantiate(TableId tableId, String className, Class<T> base)
-        throws ReflectiveOperationException, IOException {
-      return instantiate(className, base);
-    }
-
-    @Override
     public Configuration getConfiguration() {
-      return new ConfigurationImpl(new ConfigurationCopy(DefaultConfiguration.getInstance()));
+      return conf;
     }
 
     @Override
     public Configuration getConfiguration(TableId tableId) {
       Preconditions.checkArgument(tableId == TABLE_ID, "Expected " + TABLE_ID + " obtained"
           + " from IteratorEnvironment.getTableId(), but got: " + tableId);
-      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
-      opts.tableConfig.forEach(tableCC::set);
-      return new ConfigurationImpl(tableCC);
+      return tableConf;
     }
 
   }
@@ -327,10 +307,9 @@ class RFileScanner extends ScannerOptions implements Scanner {
             EMPTY_BYTES, tableConf);
       }
 
-      ClientIteratorEnvironment.Builder iterEnvBuilder =
-          new RFileScannerIteratorEnvironmentBuilder()
-              .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
-              .withScope(IteratorScope.scan).withTableId(TABLE_ID);
+      ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
+          .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
+          .withScope(IteratorScope.scan).withTableId(TABLE_ID);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
         iterEnvBuilder.withSamplingEnabled();
