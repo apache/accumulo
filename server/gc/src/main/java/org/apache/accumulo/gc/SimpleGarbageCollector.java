@@ -328,7 +328,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
               String resourceGroup = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
               resourceGroup =
                   resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
-              resourceMapping.getOrDefault(resourceGroup, new HashSet<>()).add(tid);
+              resourceMapping.computeIfAbsent(resourceGroup, k -> new HashSet<>()).add(tid);
             }
             for (Entry<String,Set<TableId>> e : resourceMapping.entrySet()) {
               if (ExternalCompactionUtil.countCompactors(e.getKey(), getContext()) == 0) {
@@ -437,7 +437,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
             false, addresses);
     server.startThriftServer("GC Monitor Service");
     setHostname(server.address);
-    log.debug("Starting garbage collector listening on " + server.address);
+    log.debug("Starting garbage collector listening on {}", server.address);
     return server.address;
   }
 
