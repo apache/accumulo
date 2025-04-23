@@ -61,7 +61,7 @@ public class TableMapping {
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     if (namespaceId == Namespace.ACCUMULO.id()) {
       throw new AssertionError(
-          "Putting built-in table maps in Accumulo namespace after init should not be possible");
+          "Putting built-in tables into the Accumulo namespace table map after init should not be possible");
     }
     requireNonNull(tableId);
     var rawTableName = TableNameUtil.qualify(requireNonNull(tableName)).getSecond();
@@ -89,7 +89,7 @@ public class TableMapping {
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     if (namespaceId == Namespace.ACCUMULO.id()) {
       throw new AssertionError(
-          "Removing built-in table maps in Accumulo namespace should not be possible");
+          "Removing built-in tables from the Accumulo namespace table map should not be possible");
     }
     requireNonNull(tableId);
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
@@ -108,7 +108,7 @@ public class TableMapping {
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
     if (namespaceId == Namespace.ACCUMULO.id()) {
       throw new AssertionError(
-          "Renaming built-in table maps in Accumulo namespace should not be possible");
+          "Renaming tables in the Accumulo namespace table map should not be possible");
     }
     requireNonNull(tableId);
     var rawOldName = TableNameUtil.qualify(requireNonNull(oldName)).getSecond();
