@@ -37,7 +37,7 @@ import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -54,38 +54,28 @@ public class ServerInfo implements ClientInfo {
 
   // set things up using the config file, the instanceId from HDFS, and ZK for the instanceName
   static ServerInfo fromServerConfig(SiteConfiguration siteConfig) {
-    final Function<ServerInfo,String> instanceNameFromZk = si -> {
-      try (var zk =
-          si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceName()", "")
-              .get()) {
-        return ZooUtil.getInstanceName(zk, si.getInstanceId());
-      }
-    };
     final Function<ServerInfo,
-        InstanceId> instanceIdFromHdfs = si -> VolumeManager.getInstanceIDFromHdfs(
-            si.getServerDirs().getInstanceIdLocation(si.getVolumeManager().getFirst()),
+        InstanceInfo> instanceInfoFromHdfs = si -> VolumeManager.getInstanceInfoFromHdfs(
+            si.getServerDirs().getInstanceInfoLocation(si.getVolumeManager().getFirst()),
             si.getHadoopConf());
     return new ServerInfo(siteConfig, GET_ZK_HOSTS_FROM_CONFIG, GET_ZK_TIMEOUT_FROM_CONFIG,
-        instanceNameFromZk, instanceIdFromHdfs);
+        instanceInfoFromHdfs);
   }
 
   // set things up using a provided instanceName and InstanceId to initialize the system, but still
   // have a ServerContext that is functional without bootstrapping issues, so long as you don't call
   // functions from it that require an instance to have already been initialized
-  static ServerInfo initialize(SiteConfiguration siteConfig, String instanceName,
-      InstanceId instanceId) {
-    requireNonNull(instanceName);
-    requireNonNull(instanceId);
+  static ServerInfo initialize(SiteConfiguration siteConfig, InstanceInfo instanceInfo) {
+    requireNonNull(instanceInfo);
     return new ServerInfo(siteConfig, GET_ZK_HOSTS_FROM_CONFIG, GET_ZK_TIMEOUT_FROM_CONFIG,
-        si -> instanceName, si -> instanceId);
+        si -> instanceInfo);
   }
 
   // set things up using the config file, and the client config for a server-side CLI utility
   static ServerInfo fromServerAndClientConfig(SiteConfiguration siteConfig, ClientInfo info) {
     // ClientInfo.getInstanceId looks up the ID in ZK using the provided instance name
     return new ServerInfo(siteConfig, si -> info.getZooKeepers(),
-        si -> info.getZooKeepersSessionTimeOut(), si -> info.getInstanceName(),
-        si -> info.getInstanceId());
+        si -> info.getZooKeepersSessionTimeOut(), si -> info.getInstanceInfo());
   }
 
   static ServerInfo forTesting(SiteConfiguration siteConfig, String instanceName, String zooKeepers,
@@ -106,8 +96,7 @@ public class ServerInfo implements ClientInfo {
   private final Supplier<ServerDirs> serverDirs;
   private final Supplier<String> zooKeepers;
   private final Supplier<Integer> zooKeepersSessionTimeOut; // can't memoize IntSupplier
-  private final Supplier<InstanceId> instanceId;
-  private final Supplier<String> instanceName;
+  private final Supplier<InstanceInfo> instanceInfo;
   private final Supplier<Credentials> credentials;
   private final BiFunction<String,String,ZooSession> zooSessionForName;
 
@@ -118,13 +107,12 @@ public class ServerInfo implements ClientInfo {
   // another, but because things are lazily loaded, it is okay if one depends on another in one
   // direction only
   private ServerInfo(SiteConfiguration siteConfig, Function<ServerInfo,String> zkHostsFunction,
-      ToIntFunction<ServerInfo> zkTimeoutFunction, Function<ServerInfo,String> instanceNameFunction,
-      Function<ServerInfo,InstanceId> instanceIdFunction) {
+      ToIntFunction<ServerInfo> zkTimeoutFunction,
+      Function<ServerInfo,InstanceInfo> instanceInfoFunction) {
     this.siteConfig = requireNonNull(siteConfig);
     requireNonNull(zkHostsFunction);
     requireNonNull(zkTimeoutFunction);
-    requireNonNull(instanceNameFunction);
-    requireNonNull(instanceIdFunction);
+    requireNonNull(instanceInfoFunction);
 
     this.hadoopConf = memoize(Configuration::new);
     this.volumeManager = memoize(() -> {
@@ -144,8 +132,7 @@ public class ServerInfo implements ClientInfo {
     // from here on, set up the suppliers based on what was passed in, to support different cases
     this.zooKeepers = memoize(() -> zkHostsFunction.apply(this));
     this.zooKeepersSessionTimeOut = memoize(() -> zkTimeoutFunction.applyAsInt(this));
-    this.instanceId = memoize(() -> instanceIdFunction.apply(this));
-    this.instanceName = memoize(() -> instanceNameFunction.apply(this));
+    this.instanceInfo = memoize(() -> instanceInfoFunction.apply(this));
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -157,8 +144,18 @@ public class ServerInfo implements ClientInfo {
   }
 
   @Override
+  public InstanceInfo getInstanceInfo() {
+    return instanceInfo.get();
+  }
+
+  @Override
+  public String getInstanceName() {
+    return getInstanceInfo().getInstanceName();
+  }
+
+  @Override
   public InstanceId getInstanceId() {
-    return instanceId.get();
+    return getInstanceInfo().getInstanceId();
   }
 
   @Override
@@ -201,11 +198,6 @@ public class ServerInfo implements ClientInfo {
     ClientProperty.setAuthenticationToken(properties, getAuthenticationToken());
     properties.setProperty(ClientProperty.AUTH_PRINCIPAL.getKey(), getPrincipal());
     return properties;
-  }
-
-  @Override
-  public String getInstanceName() {
-    return instanceName.get();
   }
 
   public Credentials getCredentials() {

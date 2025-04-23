@@ -27,6 +27,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
 
@@ -36,6 +37,11 @@ import org.apache.hadoop.conf.Configuration;
  * @since 2.0.0
  */
 public interface ClientInfo {
+
+  /**
+   * @return Accumulo instance info
+   */
+  InstanceInfo getInstanceInfo();
 
   /**
    * @return Accumulo instance name

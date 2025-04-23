@@ -113,7 +113,7 @@ public class InitializeTest {
   public void testCheckInit_OK() throws Exception {
     expect(zk.exists("/", null)).andReturn(new Stat());
     // check for volumes initialized calls exists twice for each volume
-    // once for instance_id, and once for version
+    // once for instance dir, and once for version dir
     expect(fs.exists(anyObject(Path.class))).andReturn(false).times(4);
     replay(sconf, zk, fs);
     Initialize.checkInit(zrw, fs, initConfig);

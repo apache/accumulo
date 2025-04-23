@@ -34,7 +34,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.dataImpl.InstanceInfo;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -77,17 +77,17 @@ public class ServerDirs {
     // all base dirs must have same instance id and data version, any dirs that have neither should
     // be ignored
     String firstDir = null;
-    InstanceId firstIid = null;
+    InstanceInfo firstInfo = null;
     Integer firstVersion = null;
     // preserve order from configuration (to match user expectations a bit when volumes get sent to
     // user-implemented VolumeChoosers)
     LinkedHashSet<String> baseDirsList = new LinkedHashSet<>();
     for (String baseDir : configuredBaseDirs) {
-      Path path = new Path(baseDir, Constants.INSTANCE_ID_DIR);
-      InstanceId currentIid;
+      Path path = new Path(baseDir, Constants.INSTANCE_DIR);
+      InstanceInfo currentInstanceInfo;
       int currentVersion;
       try {
-        currentIid = VolumeManager.getInstanceIDFromHdfs(path, hadoopConf);
+        currentInstanceInfo = VolumeManager.getInstanceInfoFromHdfs(path, hadoopConf);
         Path vpath = new Path(baseDir, Constants.VERSION_DIR);
         currentVersion = getAccumuloPersistentVersion(vpath.getFileSystem(hadoopConf), vpath);
       } catch (Exception e) {
@@ -98,14 +98,14 @@ public class ServerDirs {
         }
       }
 
-      if (firstIid == null) {
-        firstIid = currentIid;
+      if (firstInfo == null) {
+        firstInfo = currentInstanceInfo;
         firstDir = baseDir;
         firstVersion = currentVersion;
-      } else if (!currentIid.equals(firstIid)) {
+      } else if (!currentInstanceInfo.equals(firstInfo)) {
         throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
-            + " contains paths that have different instance ids " + baseDir + " has " + currentIid
-            + " and " + firstDir + " has " + firstIid);
+            + " contains paths that have different instance ids " + baseDir + " has "
+            + currentInstanceInfo + " and " + firstDir + " has " + firstInfo);
       } else if (currentVersion != firstVersion) {
         throw new IllegalArgumentException("Configuration " + Property.INSTANCE_VOLUMES.getKey()
             + " contains paths that have different versions " + baseDir + " has " + currentVersion
@@ -238,8 +238,8 @@ public class ServerDirs {
     }
   }
 
-  public Path getInstanceIdLocation(Volume v) {
+  public Path getInstanceInfoLocation(Volume v) {
     // all base dirs should have the same instance id, so can choose any one
-    return v.prefixChild(Constants.INSTANCE_ID_DIR);
+    return v.prefixChild(Constants.INSTANCE_DIR);
   }
 }
