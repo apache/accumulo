@@ -90,7 +90,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -1105,16 +1105,16 @@ public class ClientContext implements AccumuloClient {
     return tabletLocationCache.get(DataLevel.of(tableId)).computeIfAbsent(tableId,
         (TableId key) -> {
           var lockChecker = getTServerLockChecker();
-          if (AccumuloTable.ROOT.tableId().equals(tableId)) {
+          if (AccumuloNamespace.ROOT.tableId().equals(tableId)) {
             return new RootClientTabletCache(lockChecker);
           }
           var mlo = new MetadataCachedTabletObtainer();
-          if (AccumuloTable.METADATA.tableId().equals(tableId)) {
-            return new ClientTabletCacheImpl(AccumuloTable.METADATA.tableId(),
-                getTabletLocationCache(AccumuloTable.ROOT.tableId()), mlo, lockChecker);
+          if (AccumuloNamespace.METADATA.tableId().equals(tableId)) {
+            return new ClientTabletCacheImpl(AccumuloNamespace.METADATA.tableId(),
+                getTabletLocationCache(AccumuloNamespace.ROOT.tableId()), mlo, lockChecker);
           } else {
             return new ClientTabletCacheImpl(tableId,
-                getTabletLocationCache(AccumuloTable.METADATA.tableId()), mlo, lockChecker);
+                getTabletLocationCache(AccumuloNamespace.METADATA.tableId()), mlo, lockChecker);
           }
         });
   }

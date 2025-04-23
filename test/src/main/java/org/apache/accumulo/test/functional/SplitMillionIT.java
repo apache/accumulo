@@ -45,7 +45,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.minicluster.MemoryUnit;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -92,7 +92,7 @@ public class SplitMillionIT extends ConfigurableMacBase {
         String metaSplit = String.format("%s;%010d", tableId, 100_000_000 / 10 * i);
         metaSplits.add(new Text(metaSplit));
       }
-      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metaSplits);
+      c.tableOperations().addSplits(AccumuloNamespace.METADATA.tableName(), metaSplits);
 
       SortedSet<Text> splits = new TreeSet<>();
 

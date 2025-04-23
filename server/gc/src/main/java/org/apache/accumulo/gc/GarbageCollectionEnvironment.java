@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
@@ -40,8 +41,8 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Return an iterator which points to a list of paths to files and dirs which are candidates for
-   * deletion from a given table, {@link org.apache.accumulo.core.metadata.AccumuloTable#ROOT} or
-   * {@link org.apache.accumulo.core.metadata.AccumuloTable#METADATA}
+   * deletion from a given table, {@link AccumuloNamespace#ROOT} or
+   * {@link AccumuloNamespace#METADATA}
    *
    * @return an iterator referencing a List containing deletion candidates
    */
@@ -58,8 +59,7 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table,
-   * {@link org.apache.accumulo.core.metadata.AccumuloTable#ROOT} or
-   * {@link org.apache.accumulo.core.metadata.AccumuloTable#METADATA}
+   * {@link AccumuloNamespace#ROOT} or {@link AccumuloNamespace#METADATA}
    *
    * @return The list of files for each bulk load currently in progress.
    */

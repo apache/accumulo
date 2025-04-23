@@ -35,7 +35,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -82,10 +82,10 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   public void setupMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+          AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
       if (!rootHasWritePermission) {
-        client.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
-            TablePermission.WRITE);
+        client.securityOperations().grantTablePermission("root",
+            AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
         // Make sure it propagates through ZK
         Thread.sleep(5000);
       }
@@ -97,15 +97,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Final state doesn't match the original
       if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE)) {
+          AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE)) {
         if (rootHasWritePermission) {
           // root had write permission when starting, ensure root still does
           client.securityOperations().grantTablePermission("root",
-              AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+              AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
         } else {
           // root did not have write permission when starting, ensure that it does not
           client.securityOperations().revokeTablePermission("root",
-              AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+              AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
         }
       }
     }
@@ -128,8 +128,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
 
       fs.create(new Path(emptyWalog.toURI())).close();
 
-      assertTrue(client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE),
+      assertTrue(
+          client.securityOperations().hasTablePermission("root",
+              AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE),
           "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
@@ -149,7 +150,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       logEntry.addToMutation(m);
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
         bw.addMutation(m);
       }
 
@@ -187,8 +188,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
           DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
       wal.close();
 
-      assertTrue(client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE),
+      assertTrue(
+          client.securityOperations().hasTablePermission("root",
+              AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE),
           "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
@@ -208,7 +210,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       logEntry.addToMutation(m);
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
         bw.addMutation(m);
       }
 

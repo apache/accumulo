@@ -60,7 +60,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -156,7 +156,7 @@ public class CloneTestIT extends SharedMiniClusterBase {
 
   private void checkMetadata(String table, AccumuloClient client) throws Exception {
     try (Scanner s =
-        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
 
       s.fetchColumnFamily(DataFileColumnFamily.NAME);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -360,7 +360,7 @@ public class CloneTestIT extends SharedMiniClusterBase {
   public void testCloneRootTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertThrows(AccumuloException.class, () -> client.tableOperations()
-          .clone(AccumuloTable.ROOT.tableName(), "rc1", CloneConfiguration.empty()));
+          .clone(AccumuloNamespace.ROOT.tableName(), "rc1", CloneConfiguration.empty()));
     }
   }
 
@@ -368,7 +368,7 @@ public class CloneTestIT extends SharedMiniClusterBase {
   public void testCloneMetadataTable() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       assertThrows(AccumuloException.class, () -> client.tableOperations()
-          .clone(AccumuloTable.METADATA.tableName(), "mc1", CloneConfiguration.empty()));
+          .clone(AccumuloNamespace.METADATA.tableName(), "mc1", CloneConfiguration.empty()));
     }
   }
 

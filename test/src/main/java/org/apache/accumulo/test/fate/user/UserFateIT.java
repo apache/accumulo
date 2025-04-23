@@ -38,7 +38,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
@@ -84,7 +84,7 @@ public class UserFateIT extends FateIT {
       // It is important here to use getTableProperties() and not getConfiguration()
       // because we want only the table properties and not a merged view
       var fateTableProps =
-          client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+          client.tableOperations().getTableProperties(AccumuloNamespace.FATE.tableName());
 
       // Verify properties all have a table. prefix
       assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
@@ -113,7 +113,7 @@ public class UserFateIT extends FateIT {
 
       // Verify all tablets are HOSTED
       try (var tablets =
-          client.getAmple().readTablets().forTable(AccumuloTable.FATE.tableId()).build()) {
+          client.getAmple().readTablets().forTable(AccumuloNamespace.FATE.tableId()).build()) {
         assertTrue(tablets.stream()
             .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
       }

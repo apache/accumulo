@@ -27,7 +27,7 @@ import java.util.function.Function;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.util.Pair;
@@ -73,15 +73,15 @@ public class CompactionJobPrioritizer {
 
   static {
     // root table
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.ROOT.tableId(), CompactionKind.USER),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloNamespace.ROOT.tableId(), CompactionKind.USER),
         ROOT_TABLE_USER);
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.ROOT.tableId(), CompactionKind.SYSTEM),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloNamespace.ROOT.tableId(), CompactionKind.SYSTEM),
         ROOT_TABLE_SYSTEM);
 
     // metadata table
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.METADATA.tableId(), CompactionKind.USER),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloNamespace.METADATA.tableId(), CompactionKind.USER),
         METADATA_TABLE_USER);
-    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloTable.METADATA.tableId(), CompactionKind.SYSTEM),
+    SYSTEM_TABLE_RANGES.put(new Pair<>(AccumuloNamespace.METADATA.tableId(), CompactionKind.SYSTEM),
         METADATA_TABLE_SYSTEM);
 
     // metadata table

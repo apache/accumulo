@@ -38,7 +38,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -386,9 +386,9 @@ public class ZKPermHandler implements PermissionHandler {
     Collections.addAll(rootPerms, SystemPermission.values());
     Map<TableId,Set<TablePermission>> tablePerms = new HashMap<>();
     // Allow the root user to flush the system tables
-    tablePerms.put(AccumuloTable.ROOT.tableId(),
+    tablePerms.put(AccumuloNamespace.ROOT.tableId(),
         Collections.singleton(TablePermission.ALTER_TABLE));
-    tablePerms.put(AccumuloTable.METADATA.tableId(),
+    tablePerms.put(AccumuloNamespace.METADATA.tableId(),
         Collections.singleton(TablePermission.ALTER_TABLE));
     // essentially the same but on the system namespace, the ALTER_TABLE permission is now redundant
     Map<NamespaceId,Set<NamespacePermission>> namespacePerms = new HashMap<>();

@@ -22,7 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.manager.state.TabletManagement;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.server.ServerContext;
 
@@ -31,14 +31,15 @@ import com.google.common.base.Preconditions;
 class RootTabletStateStore extends MetaDataStateStore {
 
   RootTabletStateStore(DataLevel level, ServerContext context) {
-    super(level, context, AccumuloTable.ROOT.tableName());
+    super(level, context, AccumuloNamespace.ROOT.tableName());
   }
 
   @Override
   public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
       TabletManagementParameters parameters) {
     Preconditions.checkArgument(parameters.getLevel() == getLevel());
-    return new TabletManagementScanner(context, ranges, parameters, AccumuloTable.ROOT.tableName());
+    return new TabletManagementScanner(context, ranges, parameters,
+        AccumuloNamespace.ROOT.tableName());
   }
 
   @Override

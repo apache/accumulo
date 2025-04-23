@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.util.checkCommand;
 
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
@@ -34,7 +34,7 @@ public class SystemFilesCheckRunner implements CheckRunner {
     printRunning();
 
     log.trace("********** Looking for missing system files **********");
-    if (RemoveEntriesForMissingFiles.checkTable(context, AccumuloTable.METADATA.tableName(),
+    if (RemoveEntriesForMissingFiles.checkTable(context, AccumuloNamespace.METADATA.tableName(),
         fixFiles, log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     }

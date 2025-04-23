@@ -25,7 +25,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
@@ -75,7 +75,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
-    if (FindOfflineTablets.findOffline(context, AccumuloTable.ROOT.tableName(), false, true,
+    if (FindOfflineTablets.findOffline(context, AccumuloNamespace.ROOT.tableName(), false, true,
         log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     } else {

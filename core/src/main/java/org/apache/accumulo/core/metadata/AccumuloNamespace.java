@@ -28,7 +28,7 @@ import org.apache.accumulo.core.data.TableId;
 /**
  * Defines the name and id of all tables in the accumulo table namespace.
  */
-public enum AccumuloTable {
+public enum AccumuloNamespace {
 
   ROOT("root", "+r"),
   METADATA("metadata", "!0"),
@@ -46,15 +46,30 @@ public enum AccumuloTable {
     return tableId;
   }
 
-  AccumuloTable(String name, String id) {
+  AccumuloNamespace(String name, String id) {
     this.name = Namespace.ACCUMULO.name() + "." + name;
     this.tableId = TableId.of(id);
   }
 
-  private static final Set<TableId> ALL_IDS =
-      Arrays.stream(values()).map(AccumuloTable::tableId).collect(Collectors.toUnmodifiableSet());
+  private static final Set<TableId> ALL_IDS = Arrays.stream(values())
+      .map(AccumuloNamespace::tableId).collect(Collectors.toUnmodifiableSet());
+
+  private static final Set<String> ALL_NAMES = Arrays.stream(values())
+      .map(AccumuloNamespace::tableName).collect(Collectors.toUnmodifiableSet());
 
   public static Set<TableId> allTableIds() {
     return ALL_IDS;
+  }
+
+  public static Set<String> allTableNames() {
+    return ALL_NAMES;
+  }
+
+  public static boolean containsTable(TableId tableId) {
+    return ALL_IDS.contains(tableId);
+  }
+
+  public static boolean containsTable(String tableName) {
+    return ALL_NAMES.contains(tableName);
   }
 }

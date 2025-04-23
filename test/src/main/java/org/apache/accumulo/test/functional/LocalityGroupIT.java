@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.PrintInfo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -132,7 +132,7 @@ public class LocalityGroupIT extends AccumuloClusterHarness {
     verify(accumuloClient, 2000, 1, 50, 0, tableName);
     accumuloClient.tableOperations().flush(tableName, null, null, true);
     try (BatchScanner bscanner = accumuloClient
-        .createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 1)) {
+        .createBatchScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY, 1)) {
       String tableId = accumuloClient.tableOperations().tableIdMap().get(tableName);
       bscanner.setRanges(
           Collections.singletonList(new Range(new Text(tableId + ";"), new Text(tableId + "<"))));

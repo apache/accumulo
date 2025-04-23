@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -73,8 +73,8 @@ class CleanUp extends ManagerRepo {
     try {
       // look for other tables that references this table's files
       AccumuloClient client = manager.getContext();
-      try (BatchScanner bs =
-          client.createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 8)) {
+      try (BatchScanner bs = client.createBatchScanner(AccumuloNamespace.METADATA.tableName(),
+          Authorizations.EMPTY, 8)) {
         Range allTables = TabletsSection.getRange();
         Range tableRange = TabletsSection.getRange(tableId);
         Range beforeTable =
@@ -95,7 +95,7 @@ class CleanUp extends ManagerRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + AccumuloTable.METADATA.tableName()
+      log.error("Failed to scan " + AccumuloNamespace.METADATA.tableName()
           + " looking for references to deleted table " + tableId, e);
     }
 

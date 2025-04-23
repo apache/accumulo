@@ -54,7 +54,7 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -213,7 +213,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       cluster.start();
       // did it recover?
       try (Scanner scanner =
-          c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          c.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
     }
@@ -242,9 +242,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().flush(table, null, null, true);
 
       // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-      c.securityOperations().grantTablePermission(c.whoami(), AccumuloTable.METADATA.tableName(),
-          TablePermission.WRITE);
-      try (BatchWriter bw = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      c.securityOperations().grantTablePermission(c.whoami(),
+          AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
+      try (BatchWriter bw = c.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
         // path is invalid but value is expected - only way the invalid entry will come through
@@ -451,8 +451,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   private void addEntries(AccumuloClient client) throws Exception {
     Ample ample = getServerContext().getAmple();
     client.securityOperations().grantTablePermission(client.whoami(),
-        AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
-    try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+        AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
+    try (BatchWriter bw = client.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";

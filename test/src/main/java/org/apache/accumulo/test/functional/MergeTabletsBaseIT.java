@@ -61,7 +61,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
@@ -188,7 +188,7 @@ public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
       // Verify that the MERGED marker was cleared
       verifyMergedMarkerCleared(getCluster().getServerContext(),
           TableId.of(c.tableOperations().tableIdMap().get(tableName)));
-      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName())) {
+      try (Scanner s = c.createScanner(AccumuloNamespace.METADATA.tableName())) {
         String tid = c.tableOperations().tableIdMap().get(tableName);
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);

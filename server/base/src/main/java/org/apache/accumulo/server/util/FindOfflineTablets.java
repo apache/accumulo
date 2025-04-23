@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -92,12 +92,12 @@ public class FindOfflineTablets {
       }
     }
 
-    if (AccumuloTable.ROOT.tableName().equals(tableName)) {
+    if (AccumuloNamespace.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
     if (!skipRootScan) {
-      printInfoMethod.accept("Scanning " + AccumuloTable.ROOT.tableName());
+      printInfoMethod.accept("Scanning " + AccumuloNamespace.ROOT.tableName());
       try (TabletsMetadata tabletsMetadata =
           context.getAmple().readTablets().forLevel(DataLevel.METADATA).build()) {
         if ((offline =
@@ -107,11 +107,11 @@ public class FindOfflineTablets {
       }
     }
 
-    if (AccumuloTable.METADATA.tableName().equals(tableName)) {
+    if (AccumuloNamespace.METADATA.tableName().equals(tableName)) {
       return 0;
     }
 
-    printInfoMethod.accept("Scanning " + AccumuloTable.METADATA.tableName());
+    printInfoMethod.accept("Scanning " + AccumuloNamespace.METADATA.tableName());
 
     try (var metaScanner = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
       return checkTablets(context, metaScanner.iterator(), tservers, printProblemMethod);

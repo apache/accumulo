@@ -36,7 +36,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -81,8 +81,8 @@ public interface Ample {
    */
   public enum DataLevel {
     ROOT(null, null),
-    METADATA(AccumuloTable.ROOT.tableName(), AccumuloTable.ROOT.tableId()),
-    USER(AccumuloTable.METADATA.tableName(), AccumuloTable.METADATA.tableId());
+    METADATA(AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.ROOT.tableId()),
+    USER(AccumuloNamespace.METADATA.tableName(), AccumuloNamespace.METADATA.tableId());
 
     private final String table;
     private final TableId id;
@@ -113,9 +113,9 @@ public interface Ample {
     }
 
     public static DataLevel of(TableId tableId) {
-      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
+      if (tableId.equals(AccumuloNamespace.ROOT.tableId())) {
         return DataLevel.ROOT;
-      } else if (tableId.equals(AccumuloTable.METADATA.tableId())) {
+      } else if (tableId.equals(AccumuloNamespace.METADATA.tableId())) {
         return DataLevel.METADATA;
       } else {
         return DataLevel.USER;

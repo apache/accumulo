@@ -22,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Set;
 
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
@@ -31,8 +31,8 @@ public class DeleteTableCommandTest {
 
   @Test
   public void removeAccumuloNamespaceTables() {
-    Set<String> tables = Sets.newHashSet(AccumuloTable.METADATA.tableName(),
-        AccumuloTable.ROOT.tableName(), "a1", "a2");
+    Set<String> tables = Sets.newHashSet(AccumuloNamespace.METADATA.tableName(),
+        AccumuloNamespace.ROOT.tableName(), "a1", "a2");
     DeleteTableCommand cmd = new DeleteTableCommand();
     cmd.pruneTables(tables);
 

@@ -45,7 +45,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
@@ -115,7 +115,7 @@ public class Upgrader10to11 implements Upgrader {
   List<String> readReplFilesFromMetadata(final ServerContext context) {
     List<String> results = new ArrayList<>();
     try (Scanner scanner =
-        context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        context.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       scanner.setRange(REP_TABLE_RANGE);
       for (Map.Entry<Key,Value> entry : scanner) {
@@ -136,7 +136,7 @@ public class Upgrader10to11 implements Upgrader {
     }
     // write delete mutations
     boolean haveFailures = false;
-    try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+    try (BatchWriter writer = context.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
       for (String filename : replTableFiles) {
         Mutation m = createDelMutation(filename);
         log.debug("Adding delete marker for file: {}", filename);
@@ -164,8 +164,8 @@ public class Upgrader10to11 implements Upgrader {
    * remove +rep entries from metadata.
    */
   private void deleteReplMetadataEntries(final ServerContext context) {
-    try (BatchDeleter deleter =
-        context.createBatchDeleter(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 10)) {
+    try (BatchDeleter deleter = context.createBatchDeleter(AccumuloNamespace.METADATA.tableName(),
+        Authorizations.EMPTY, 10)) {
       deleter.setRanges(List.of(REP_TABLE_RANGE, REP_WAL_RANGE));
       deleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException ex) {
@@ -234,7 +234,7 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
-    var metaKey = TablePropKey.of(AccumuloTable.METADATA.tableId());
+    var metaKey = TablePropKey.of(AccumuloNamespace.METADATA.tableId());
     var p = propStore.get(metaKey);
     var props = p.asMap();
     List<String> filtered = filterReplConfigKeys(props.keySet());

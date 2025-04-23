@@ -30,7 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +57,8 @@ public class ValidatorsTest {
     Validator<TableId> v = Validators.CAN_CLONE_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of(TableId.of("id1")));
-    assertAllThrow(v, List.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId()));
+    assertAllThrow(v,
+        List.of(AccumuloNamespace.ROOT.tableId(), AccumuloNamespace.METADATA.tableId()));
   }
 
   @Test
@@ -74,8 +75,9 @@ public class ValidatorsTest {
     Validator<String> v = Validators.EXISTING_TABLE_NAME;
     checkNull(v::validate);
     assertAllValidate(v,
-        List.of(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName(), "normalTable",
-            "withNumber2", "has_underscore", "_underscoreStart", StringUtils.repeat("a", 1025),
+        List.of(AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.METADATA.tableName(),
+            "normalTable", "withNumber2", "has_underscore", "_underscoreStart",
+            StringUtils.repeat("a", 1025),
             StringUtils.repeat("a", 1025) + "." + StringUtils.repeat("a", 1025)));
     assertAllThrow(v, List.of("has-dash", "has-dash.inNamespace", "has.dash-inTable", " hasSpace",
         ".", "has$dollar", "two.dots.here", ".startsDot"));
@@ -96,8 +98,9 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NEW_TABLE_NAME;
     checkNull(v::validate);
     assertAllValidate(v,
-        List.of(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName(), "normalTable",
-            "withNumber2", "has_underscore", "_underscoreStart", StringUtils.repeat("a", 1024),
+        List.of(AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.METADATA.tableName(),
+            "normalTable", "withNumber2", "has_underscore", "_underscoreStart",
+            StringUtils.repeat("a", 1024),
             StringUtils.repeat("a", 1025) + "." + StringUtils.repeat("a", 1024)));
     assertAllThrow(v,
         List.of("has-dash", "has-dash.inNamespace", "has.dash-inTable", " hasSpace", ".",
@@ -118,7 +121,8 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NOT_BUILTIN_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2"));
-    assertAllThrow(v, List.of(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName()));
+    assertAllThrow(v,
+        List.of(AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.METADATA.tableName()));
   }
 
   @Test
@@ -126,7 +130,8 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NOT_METADATA_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2"));
-    assertAllThrow(v, List.of(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName()));
+    assertAllThrow(v,
+        List.of(AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.METADATA.tableName()));
   }
 
   @Test
@@ -134,8 +139,8 @@ public class ValidatorsTest {
     Validator<TableId> v = Validators.NOT_ROOT_TABLE_ID;
     checkNull(v::validate);
     assertAllValidate(v,
-        List.of(TableId.of(""), AccumuloTable.METADATA.tableId(), TableId.of(" #0(U!$. ")));
-    assertAllThrow(v, List.of(AccumuloTable.ROOT.tableId()));
+        List.of(TableId.of(""), AccumuloNamespace.METADATA.tableId(), TableId.of(" #0(U!$. ")));
+    assertAllThrow(v, List.of(AccumuloNamespace.ROOT.tableId()));
   }
 
   @Test
@@ -143,15 +148,15 @@ public class ValidatorsTest {
     Validator<TableId> v = Validators.NOT_METADATA_TABLE_ID;
     checkNull(v::validate);
     assertAllValidate(v,
-        List.of(TableId.of(""), AccumuloTable.ROOT.tableId(), TableId.of(" #0(U!$. ")));
-    assertAllThrow(v, List.of(AccumuloTable.METADATA.tableId()));
+        List.of(TableId.of(""), AccumuloNamespace.ROOT.tableId(), TableId.of(" #0(U!$. ")));
+    assertAllThrow(v, List.of(AccumuloNamespace.METADATA.tableId()));
   }
 
   @Test
   public void test_VALID_TABLE_ID() {
     Validator<TableId> v = Validators.VALID_TABLE_ID;
     checkNull(v::validate);
-    assertAllValidate(v, Arrays.stream(AccumuloTable.values()).map(AccumuloTable::tableId)
+    assertAllValidate(v, Arrays.stream(AccumuloNamespace.values()).map(AccumuloNamespace::tableId)
         .collect(Collectors.toList()));
     assertAllValidate(v, List.of(TableId.of("111"), TableId.of("aaaa"), TableId.of("r2d2")));
     assertAllThrow(v, List.of(TableId.of(""), TableId.of("#0(U!$"), TableId.of(" #0(U!$. "),

@@ -28,7 +28,7 @@ import java.time.Duration;
 import java.util.Collections;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -68,14 +68,14 @@ public class DumpConfigIT extends ConfigurableMacBase {
     assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
     assertTrue(site.contains("1234567"));
     String meta = FunctionalTestUtils.readAll(
-        new FileInputStream(new File(folder, AccumuloTable.METADATA.tableName() + ".cfg")));
+        new FileInputStream(new File(folder, AccumuloNamespace.METADATA.tableName() + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
     String systemPerm =
         FunctionalTestUtils.readAll(new FileInputStream(new File(folder, "root_user.cfg")));
     assertTrue(systemPerm.contains("grant System.ALTER_USER -s -u root"));
     assertTrue(systemPerm
-        .contains("grant Table.READ -t " + AccumuloTable.METADATA.tableName() + " -u root"));
+        .contains("grant Table.READ -t " + AccumuloNamespace.METADATA.tableName() + " -u root"));
     assertFalse(systemPerm
-        .contains("grant Table.DROP -t " + AccumuloTable.METADATA.tableName() + " -u root"));
+        .contains("grant Table.DROP -t " + AccumuloNamespace.METADATA.tableName() + " -u root"));
   }
 }

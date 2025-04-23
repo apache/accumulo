@@ -28,7 +28,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
@@ -63,7 +63,7 @@ public class TableLocksCheckRunner implements CheckRunner {
     final var zk = context.getZooSession();
     final MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, null, null);
     final UserFateStore<Admin> ufs =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+        new UserFateStore<>(context, AccumuloNamespace.FATE.tableName(), null, null);
 
     log.trace("Ensuring table and namespace locks are valid...");
 

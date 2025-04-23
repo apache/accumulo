@@ -41,7 +41,7 @@ import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -140,7 +140,7 @@ public class TablesResource {
     }
 
     TreeSet<String> locs = new TreeSet<>();
-    if (AccumuloTable.ROOT.tableId().equals(tableId)) {
+    if (AccumuloNamespace.ROOT.tableId().equals(tableId)) {
       var rootLoc = monitor.getContext().getAmple().readTablet(RootTable.EXTENT).getLocation();
       if (rootLoc != null && rootLoc.getType() == TabletMetadata.LocationType.CURRENT) {
         locs.add(rootLoc.getHostPort());

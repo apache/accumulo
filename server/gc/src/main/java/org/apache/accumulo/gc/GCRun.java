@@ -55,7 +55,7 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.ValidationUtil;
@@ -269,7 +269,7 @@ public class GCRun implements GarbageCollectionEnvironment {
   public void deleteConfirmedCandidates(SortedMap<String,GcCandidate> confirmedDeletes) {
     final VolumeManager fs = context.getVolumeManager();
     var metadataLocation = level == Ample.DataLevel.ROOT
-        ? ZooUtil.getRoot(context.getInstanceID()) + " for " + AccumuloTable.ROOT.tableName()
+        ? ZooUtil.getRoot(context.getInstanceID()) + " for " + AccumuloNamespace.ROOT.tableName()
         : level.metaTable();
 
     if (inSafeMode()) {
@@ -551,9 +551,9 @@ public class GCRun implements GarbageCollectionEnvironment {
   @Override
   public Set<TableId> getCandidateTableIDs() throws InterruptedException {
     if (level == DataLevel.ROOT) {
-      return Set.of(AccumuloTable.ROOT.tableId());
+      return Set.of(AccumuloNamespace.ROOT.tableId());
     } else if (level == DataLevel.METADATA) {
-      return Set.of(AccumuloTable.METADATA.tableId());
+      return Set.of(AccumuloNamespace.METADATA.tableId());
     } else if (level == DataLevel.USER) {
       Set<TableId> tableIds = new HashSet<>();
       getTableIDs().forEach((k, v) -> {
@@ -563,8 +563,8 @@ public class GCRun implements GarbageCollectionEnvironment {
           tableIds.add(k);
         }
       });
-      tableIds.remove(AccumuloTable.METADATA.tableId());
-      tableIds.remove(AccumuloTable.ROOT.tableId());
+      tableIds.remove(AccumuloNamespace.METADATA.tableId());
+      tableIds.remove(AccumuloNamespace.ROOT.tableId());
       return tableIds;
     } else {
       throw new IllegalArgumentException("Unexpected level in GC Env: " + this.level.name());

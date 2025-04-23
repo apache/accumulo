@@ -26,7 +26,7 @@ import java.util.List;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.manager.state.TabletManagement;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -52,7 +52,7 @@ class MetaDataStateStore extends AbstractTabletStateStore implements TabletState
   }
 
   MetaDataStateStore(DataLevel level, ServerContext context) {
-    this(level, context, AccumuloTable.METADATA.tableName());
+    this(level, context, AccumuloNamespace.METADATA.tableName());
   }
 
   @Override

@@ -49,7 +49,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -93,7 +93,7 @@ public class MetadataIT extends SharedMiniClusterBase {
       c.tableOperations().create(tableNames[0]);
 
       try (Scanner rootScanner =
-          c.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
+          c.createScanner(AccumuloNamespace.ROOT.tableName(), Authorizations.EMPTY)) {
         rootScanner.setRange(TabletsSection.getRange());
         rootScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
 
@@ -103,7 +103,7 @@ public class MetadataIT extends SharedMiniClusterBase {
         }
 
         c.tableOperations().create(tableNames[1]);
-        c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(AccumuloNamespace.METADATA.tableName(), null, null, true);
 
         Set<String> files2 = new HashSet<>();
         for (Entry<Key,Value> entry : rootScanner) {
@@ -114,7 +114,8 @@ public class MetadataIT extends SharedMiniClusterBase {
         assertTrue(!files2.isEmpty());
         assertNotEquals(files1, files2);
 
-        c.tableOperations().compact(AccumuloTable.METADATA.tableName(), null, null, false, true);
+        c.tableOperations().compact(AccumuloNamespace.METADATA.tableName(), null, null, false,
+            true);
 
         Set<String> files3 = new HashSet<>();
         for (Entry<Key,Value> entry : rootScanner) {
@@ -135,17 +136,18 @@ public class MetadataIT extends SharedMiniClusterBase {
       for (String id : "1 2 3 4 5".split(" ")) {
         splits.add(new Text(id));
       }
-      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), splits);
+      c.tableOperations().addSplits(AccumuloNamespace.METADATA.tableName(), splits);
       for (String tableName : names) {
         c.tableOperations().create(tableName);
       }
-      c.tableOperations().merge(AccumuloTable.METADATA.tableName(), null, null);
-      try (Scanner s = c.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
+      c.tableOperations().merge(AccumuloNamespace.METADATA.tableName(), null, null);
+      try (Scanner s = c.createScanner(AccumuloNamespace.ROOT.tableName(), Authorizations.EMPTY)) {
         s.setRange(DeletesSection.getRange());
         while (s.stream().findAny().isEmpty()) {
           Thread.sleep(100);
         }
-        assertEquals(0, c.tableOperations().listSplits(AccumuloTable.METADATA.tableName()).size());
+        assertEquals(0,
+            c.tableOperations().listSplits(AccumuloNamespace.METADATA.tableName()).size());
       }
     }
   }
@@ -157,13 +159,13 @@ public class MetadataIT extends SharedMiniClusterBase {
       c.tableOperations().create(tableName);
 
       // batch scan regular metadata table
-      try (BatchScanner s = c.createBatchScanner(AccumuloTable.METADATA.tableName())) {
+      try (BatchScanner s = c.createBatchScanner(AccumuloNamespace.METADATA.tableName())) {
         s.setRanges(Collections.singleton(new Range()));
         assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
 
       // batch scan root metadata table
-      try (BatchScanner s = c.createBatchScanner(AccumuloTable.ROOT.tableName())) {
+      try (BatchScanner s = c.createBatchScanner(AccumuloNamespace.ROOT.tableName())) {
         s.setRanges(Collections.singleton(new Range()));
         assertTrue(s.stream().anyMatch(Objects::nonNull));
       }
@@ -174,8 +176,8 @@ public class MetadataIT extends SharedMiniClusterBase {
   public void testAmpleReadTablets() throws Exception {
 
     try (ClientContext cc = (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      cc.securityOperations().grantTablePermission(cc.whoami(), AccumuloTable.METADATA.tableName(),
-          TablePermission.WRITE);
+      cc.securityOperations().grantTablePermission(cc.whoami(),
+          AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
 
       SortedSet<Text> partitionKeys = new TreeSet<>();
       partitionKeys.add(new Text("a"));
@@ -245,15 +247,15 @@ public class MetadataIT extends SharedMiniClusterBase {
       // It is important here to use getTableProperties() and not getConfiguration()
       // because we want only the table properties and not a merged view
       var rootTableProps =
-          client.tableOperations().getTableProperties(AccumuloTable.ROOT.tableName());
+          client.tableOperations().getTableProperties(AccumuloNamespace.ROOT.tableName());
       var metadataTableProps =
-          client.tableOperations().getTableProperties(AccumuloTable.METADATA.tableName());
+          client.tableOperations().getTableProperties(AccumuloNamespace.METADATA.tableName());
 
       // Verify root table config
-      testCommonSystemTableConfig(client, AccumuloTable.ROOT.tableId(), rootTableProps);
+      testCommonSystemTableConfig(client, AccumuloNamespace.ROOT.tableId(), rootTableProps);
 
       // Verify metadata table config
-      testCommonSystemTableConfig(client, AccumuloTable.METADATA.tableId(), metadataTableProps);
+      testCommonSystemTableConfig(client, AccumuloNamespace.METADATA.tableId(), metadataTableProps);
     }
   }
 
@@ -302,8 +304,8 @@ public class MetadataIT extends SharedMiniClusterBase {
       assertTrue(tablets.stream().allMatch(tm -> {
         // ROOT table and Metadata TabletsSection tablet should be set to never mergeable
         // All other initial tablets for Metadata, Fate, Scanref should be always
-        if (AccumuloTable.ROOT.tableId().equals(tableId)
-            || (AccumuloTable.METADATA.tableId().equals(tableId)
+        if (AccumuloNamespace.ROOT.tableId().equals(tableId)
+            || (AccumuloNamespace.METADATA.tableId().equals(tableId)
                 && metaSplit.equals(tm.getEndRow()))) {
           return tm.getTabletMergeability().equals(TabletMergeabilityMetadata.never());
         }

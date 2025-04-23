@@ -42,7 +42,7 @@ import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.hadoop.fs.Path;
@@ -195,9 +195,9 @@ public class GarbageCollectionTest {
     @Override
     public Set<TableId> getCandidateTableIDs() {
       if (level == Ample.DataLevel.ROOT) {
-        return Set.of(AccumuloTable.ROOT.tableId());
+        return Set.of(AccumuloNamespace.ROOT.tableId());
       } else if (level == Ample.DataLevel.METADATA) {
-        return Collections.singleton(AccumuloTable.METADATA.tableId());
+        return Collections.singleton(AccumuloNamespace.METADATA.tableId());
       } else if (level == Ample.DataLevel.USER) {
         Set<TableId> tableIds = new HashSet<>();
         getTableIDs().forEach((k, v) -> {
@@ -207,8 +207,8 @@ public class GarbageCollectionTest {
             tableIds.add(k);
           }
         });
-        tableIds.remove(AccumuloTable.METADATA.tableId());
-        tableIds.remove(AccumuloTable.ROOT.tableId());
+        tableIds.remove(AccumuloNamespace.METADATA.tableId());
+        tableIds.remove(AccumuloNamespace.ROOT.tableId());
         return tableIds;
       } else {
         throw new IllegalArgumentException("unknown level " + level);

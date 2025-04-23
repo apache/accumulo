@@ -36,7 +36,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -62,7 +62,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
       assertEquals(2, c.instanceOperations().getServers(Type.TABLET_SERVER).size());
       // ensure the metadata table is online
       try (Scanner scanner =
-          c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          c.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
       c.instanceOperations().waitForBalance();
@@ -94,8 +94,8 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
     c.instanceOperations().getServers(Type.TABLET_SERVER)
         .forEach(ts -> tserverCounts.put(ts.toHostPortString(), 0));
     int offline = 0;
-    for (String tableName : new String[] {AccumuloTable.METADATA.tableName(),
-        AccumuloTable.ROOT.tableName()}) {
+    for (String tableName : new String[] {AccumuloNamespace.METADATA.tableName(),
+        AccumuloNamespace.ROOT.tableName()}) {
       try (Scanner s = c.createScanner(tableName, Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange());
         s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);

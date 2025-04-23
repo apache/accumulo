@@ -73,7 +73,7 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -896,8 +896,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
     // nobody should have any of these properties yet
     assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
     assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertFalse(checkTableHasProp(AccumuloTable.ROOT.tableName(), k, v));
-    assertFalse(checkTableHasProp(AccumuloTable.METADATA.tableName(), k, v));
+    assertFalse(checkTableHasProp(AccumuloNamespace.ROOT.tableName(), k, v));
+    assertFalse(checkTableHasProp(AccumuloNamespace.METADATA.tableName(), k, v));
     assertFalse(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
     assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
     assertFalse(checkNamespaceHasProp(namespace, k, v));
@@ -911,9 +911,9 @@ public class NamespacesIT extends SharedMiniClusterBase {
     assertEquals(systemNamespaceShouldInherit,
         checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
     assertEquals(systemNamespaceShouldInherit,
-        checkTableHasProp(AccumuloTable.ROOT.tableName(), k, v));
+        checkTableHasProp(AccumuloNamespace.ROOT.tableName(), k, v));
     assertEquals(systemNamespaceShouldInherit,
-        checkTableHasProp(AccumuloTable.METADATA.tableName(), k, v));
+        checkTableHasProp(AccumuloNamespace.METADATA.tableName(), k, v));
     assertTrue(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
     assertTrue(checkTableHasProp(defaultNamespaceTable, k, v));
     assertTrue(checkNamespaceHasProp(namespace, k, v));
@@ -925,8 +925,8 @@ public class NamespacesIT extends SharedMiniClusterBase {
     Thread.sleep(250);
     assertFalse(c.instanceOperations().getSystemConfiguration().containsValue(v));
     assertFalse(checkNamespaceHasProp(Namespace.ACCUMULO.name(), k, v));
-    assertFalse(checkTableHasProp(AccumuloTable.ROOT.tableName(), k, v));
-    assertFalse(checkTableHasProp(AccumuloTable.METADATA.tableName(), k, v));
+    assertFalse(checkTableHasProp(AccumuloNamespace.ROOT.tableName(), k, v));
+    assertFalse(checkTableHasProp(AccumuloNamespace.METADATA.tableName(), k, v));
     assertFalse(checkNamespaceHasProp(Namespace.DEFAULT.name(), k, v));
     assertFalse(checkTableHasProp(defaultNamespaceTable, k, v));
     assertFalse(checkNamespaceHasProp(namespace, k, v));

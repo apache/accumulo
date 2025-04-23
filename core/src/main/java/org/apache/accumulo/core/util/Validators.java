@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -155,7 +155,7 @@ public class Validators {
       new Validator<>(tableName -> _tableName(tableName, false));
 
   private static final List<String> metadataTables =
-      List.of(AccumuloTable.ROOT.tableName(), AccumuloTable.METADATA.tableName());
+      List.of(AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.METADATA.tableName());
   public static final Validator<String> NOT_METADATA_TABLE = new Validator<>(t -> {
     if (t == null) {
       return NameSegment.Table.isNull();
@@ -192,8 +192,7 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (AccumuloTable.allTableIds().contains(id)
-        || VALID_ID_PATTERN.matcher(id.canonical()).matches()) {
+    if (AccumuloNamespace.containsTable(id) || VALID_ID_PATTERN.matcher(id.canonical()).matches()) {
       return Validator.OK;
     }
     return Optional
@@ -204,13 +203,13 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (id.equals(AccumuloTable.METADATA.tableId())) {
-      return Optional.of(
-          "Cloning " + AccumuloTable.METADATA.tableName() + " is dangerous and no longer supported,"
-              + " see https://github.com/apache/accumulo/issues/1309.");
+    if (id.equals(AccumuloNamespace.METADATA.tableId())) {
+      return Optional.of("Cloning " + AccumuloNamespace.METADATA.tableName()
+          + " is dangerous and no longer supported,"
+          + " see https://github.com/apache/accumulo/issues/1309.");
     }
-    if (id.equals(AccumuloTable.ROOT.tableId())) {
-      return Optional.of("Unable to clone " + AccumuloTable.ROOT.tableName());
+    if (id.equals(AccumuloNamespace.ROOT.tableId())) {
+      return Optional.of("Unable to clone " + AccumuloNamespace.ROOT.tableName());
     }
     return Validator.OK;
   });
@@ -219,9 +218,9 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (AccumuloTable.ROOT.tableId().equals(id)) {
-      return Optional.of("Table must not be the " + AccumuloTable.ROOT.tableName() + "(Id: "
-          + AccumuloTable.ROOT.tableId() + ") table");
+    if (AccumuloNamespace.ROOT.tableId().equals(id)) {
+      return Optional.of("Table must not be the " + AccumuloNamespace.ROOT.tableName() + "(Id: "
+          + AccumuloNamespace.ROOT.tableId() + ") table");
     }
     return Validator.OK;
   });
@@ -230,9 +229,9 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (AccumuloTable.METADATA.tableId().equals(id)) {
-      return Optional.of("Table must not be the " + AccumuloTable.METADATA.tableName() + "(Id: "
-          + AccumuloTable.METADATA.tableId() + ") table");
+    if (AccumuloNamespace.METADATA.tableId().equals(id)) {
+      return Optional.of("Table must not be the " + AccumuloNamespace.METADATA.tableName() + "(Id: "
+          + AccumuloNamespace.METADATA.tableId() + ") table");
     }
     return Validator.OK;
   });
@@ -241,7 +240,7 @@ public class Validators {
     if (id == null) {
       return Optional.of("Table id must not be null");
     }
-    if (AccumuloTable.allTableIds().contains(id)) {
+    if (AccumuloNamespace.containsTable(id)) {
       return Optional.of("Table must not be in the '" + Namespace.ACCUMULO.name() + "' namespace");
     }
     return Validator.OK;

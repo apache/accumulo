@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -118,8 +118,8 @@ public abstract class WALSunnyDayBaseIT extends ConfigurableMacBase {
       assertEquals(3, countInUse(walsAfterRoll.values()), "all WALs should be in use");
 
       // flush the tables
-      for (String table : new String[] {tableName, AccumuloTable.METADATA.tableName(),
-          AccumuloTable.ROOT.tableName(), AccumuloTable.FATE.tableName()}) {
+      for (String table : new String[] {tableName, AccumuloNamespace.METADATA.tableName(),
+          AccumuloNamespace.ROOT.tableName(), AccumuloNamespace.FATE.tableName()}) {
         c.tableOperations().flush(table, null, null, true);
       }
       Thread.sleep(SECONDS.toMillis(1));
@@ -152,11 +152,11 @@ public abstract class WALSunnyDayBaseIT extends ConfigurableMacBase {
           "tableId of the keyExtent should be 1");
       assertTrue(
           markers.keySet().stream()
-              .anyMatch(extent -> extent.tableId().equals(AccumuloTable.FATE.tableId())),
+              .anyMatch(extent -> extent.tableId().equals(AccumuloNamespace.FATE.tableId())),
           "tableId of the Fate table can't be found");
       assertTrue(
           markers.keySet().stream()
-              .anyMatch(extent -> extent.tableId().equals(AccumuloTable.SCAN_REF.tableId())),
+              .anyMatch(extent -> extent.tableId().equals(AccumuloNamespace.SCAN_REF.tableId())),
           "tableId of the ScanRef table can't be found");
 
       // put some data in the WAL
@@ -206,8 +206,8 @@ public abstract class WALSunnyDayBaseIT extends ConfigurableMacBase {
 
   private Map<KeyExtent,List<String>> getRecoveryMarkers(AccumuloClient c) throws Exception {
     Map<KeyExtent,List<String>> result = new HashMap<>();
-    try (Scanner root = c.createScanner(AccumuloTable.ROOT.tableName(), EMPTY);
-        Scanner meta = c.createScanner(AccumuloTable.METADATA.tableName(), EMPTY)) {
+    try (Scanner root = c.createScanner(AccumuloNamespace.ROOT.tableName(), EMPTY);
+        Scanner meta = c.createScanner(AccumuloNamespace.METADATA.tableName(), EMPTY)) {
       root.setRange(TabletsSection.getRange());
       root.fetchColumnFamily(LogColumnFamily.NAME);
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(root);

@@ -20,7 +20,7 @@ package org.apache.accumulo.manager.metrics.fate.user;
 
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
 
@@ -33,7 +33,7 @@ public class UserFateMetrics extends FateMetrics<UserFateMetricValues> {
   @Override
   protected ReadOnlyFateStore<FateMetrics<UserFateMetricValues>>
       buildReadOnlyStore(ServerContext context) {
-    return new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+    return new UserFateStore<>(context, AccumuloNamespace.FATE.tableName(), null, null);
   }
 
   @Override

@@ -73,7 +73,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -149,7 +149,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       var unused = Iterables.size(s); // consume all the data
 
       // examine a clone of the metadata table, so we can manipulate it
-      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
+      copyTable(client, AccumuloNamespace.METADATA.tableName(), metaCopy1);
 
       var tableId1 = getServerContext().getTableId(t1);
       var tableId3 = getServerContext().getTableId(t3);
@@ -170,7 +170,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       while (!tabletsInFlux.isEmpty()) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         UtilWaitThread.sleep(500);
-        copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
+        copyTable(client, AccumuloNamespace.METADATA.tableName(), metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       }
       expected = Map.of();
@@ -530,7 +530,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
     assertEquals(10, mutations.size(),
         "Metadata should have 8 rows (2 for each table) + one row for "
-            + AccumuloTable.FATE.tableId().canonical());
+            + AccumuloNamespace.FATE.tableId().canonical());
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {

@@ -38,7 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -125,8 +125,8 @@ public class SecurityOperation {
     authorizor.initializeSecurity(credentials, rootPrincipal);
     permHandle.initializeSecurity(credentials, rootPrincipal);
     try {
-      permHandle.grantTablePermission(rootPrincipal, AccumuloTable.METADATA.tableId().canonical(),
-          TablePermission.ALTER_TABLE);
+      permHandle.grantTablePermission(rootPrincipal,
+          AccumuloNamespace.METADATA.tableId().canonical(), TablePermission.ALTER_TABLE);
     } catch (TableNotFoundException e) {
       // Shouldn't happen
       throw new IllegalStateException(e);
@@ -355,8 +355,9 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if ((table.equals(AccumuloTable.METADATA.tableId())
-        || table.equals(AccumuloTable.ROOT.tableId())) && permission.equals(TablePermission.READ)) {
+    if ((table.equals(AccumuloNamespace.METADATA.tableId())
+        || table.equals(AccumuloNamespace.ROOT.tableId()))
+        && permission.equals(TablePermission.READ)) {
       return true;
     }
 

@@ -48,7 +48,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.rfile.RFile;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
@@ -198,7 +198,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
       TableId tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       final SortedSet<Text> metadataSplits = new TreeSet<>();
-      Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+      Scanner s = c.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY);
       final String mdTablePrefix = tid.canonical() + ";";
       s.forEach(e -> {
         final String row = e.getKey().getRow().toString();
@@ -206,7 +206,7 @@ public class BulkNewMetadataSkipIT extends AccumuloClusterHarness {
           metadataSplits.add(new Text(row + "\\x00"));
         }
       });
-      c.tableOperations().addSplits(AccumuloTable.METADATA.tableName(), metadataSplits);
+      c.tableOperations().addSplits(AccumuloNamespace.METADATA.tableName(), metadataSplits);
 
       c.tableOperations().importDirectory(dir).to(tableName).plan(loadPlan).load();
 

@@ -52,7 +52,7 @@ import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
@@ -237,7 +237,7 @@ public abstract class ExternalCompaction2BaseIT extends SharedMiniClusterBase {
           TCompactionState.CANCELLED);
 
       // Ensure compaction did not write anything to metadata table after delete table
-      try (var scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
+      try (var scanner = client.createScanner(AccumuloNamespace.METADATA.tableName())) {
         scanner.setRange(MetadataSchema.TabletsSection.getRange(tid));
         assertEquals(0, scanner.stream().count());
       }

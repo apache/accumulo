@@ -26,7 +26,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -51,10 +51,10 @@ public class TabletsMutatorImpl implements TabletsMutator {
 
   private BatchWriter getWriter(TableId tableId) {
 
-    Preconditions.checkArgument(!AccumuloTable.ROOT.tableId().equals(tableId));
+    Preconditions.checkArgument(!AccumuloNamespace.ROOT.tableId().equals(tableId));
 
     try {
-      if (AccumuloTable.METADATA.tableId().equals(tableId)) {
+      if (AccumuloNamespace.METADATA.tableId().equals(tableId)) {
         if (rootWriter == null) {
           rootWriter = context.createBatchWriter(tableMapper.apply(DataLevel.METADATA));
         }

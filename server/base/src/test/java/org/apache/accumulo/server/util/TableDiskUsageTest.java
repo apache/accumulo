@@ -37,7 +37,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -64,8 +64,9 @@ public class TableDiskUsageTest {
 
   @BeforeAll
   public static void beforeClass() {
-    tableIdToNameMap.put(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableName());
-    tableIdToNameMap.put(AccumuloTable.METADATA.tableId(), AccumuloTable.METADATA.tableName());
+    tableIdToNameMap.put(AccumuloNamespace.ROOT.tableId(), AccumuloNamespace.METADATA.tableName());
+    tableIdToNameMap.put(AccumuloNamespace.METADATA.tableId(),
+        AccumuloNamespace.METADATA.tableName());
     tableIdToNameMap.put(tableId1, "table1");
     tableIdToNameMap.put(tableId2, "table2");
     tableIdToNameMap.put(tableId3, "table3");
@@ -137,19 +138,20 @@ public class TableDiskUsageTest {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
     EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata =
-        mockTabletsMetadata(client, AccumuloTable.METADATA.tableId());
+        mockTabletsMetadata(client, AccumuloNamespace.METADATA.tableId());
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
-    appendFileMetadata(realTabletsMetadata, getTabletFile(volume1, AccumuloTable.METADATA.tableId(),
-        AccumuloTable.METADATA.tableName(), "C0001.rf"), 1024);
+    appendFileMetadata(realTabletsMetadata, getTabletFile(volume1,
+        AccumuloNamespace.METADATA.tableId(), AccumuloNamespace.METADATA.tableName(), "C0001.rf"),
+        1024);
     mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result =
-        TableDiskUsage.getDiskUsage(tableSet(AccumuloTable.METADATA.tableId()), client);
+        TableDiskUsage.getDiskUsage(tableSet(AccumuloNamespace.METADATA.tableId()), client);
 
-    assertEquals(1024, getTotalUsage(result, AccumuloTable.METADATA.tableId()));
+    assertEquals(1024, getTotalUsage(result, AccumuloNamespace.METADATA.tableId()));
     assertEquals(1, result.size());
     Map.Entry<SortedSet<String>,Long> firstResult =
         result.entrySet().stream().findFirst().orElseThrow();
