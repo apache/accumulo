@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -62,5 +63,12 @@ public enum AccumuloTable {
 
   public static Set<TableId> allTableIds() {
     return ALL_IDS;
+  }
+
+  public static Map<String,String> tableMapping() {
+    return Map.of(AccumuloTable.ROOT.tableId().canonical(), AccumuloTable.ROOT.simpleTableName(),
+        AccumuloTable.METADATA.tableId().canonical(), AccumuloTable.METADATA.simpleTableName(),
+        AccumuloTable.SCAN_REF.tableId().canonical(), AccumuloTable.SCAN_REF.simpleTableName(),
+        AccumuloTable.FATE.tableId().canonical(), AccumuloTable.FATE.simpleTableName());
   }
 }

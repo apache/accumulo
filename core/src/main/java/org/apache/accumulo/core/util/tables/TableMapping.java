@@ -59,12 +59,13 @@ public class TableMapping {
 
   public void put(TableId tableId, String tableName, TableOperation operation)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    if (namespaceId == Namespace.ACCUMULO.id()) {
+      throw new AssertionError(
+          "Putting built-in table maps in Accumulo namespace after init should not be possible");
+    }
     requireNonNull(tableId);
     var rawTableName = TableNameUtil.qualify(requireNonNull(tableName)).getSecond();
     requireNonNull(operation);
-    if (isBuiltInZKTable(tableId)) {
-      throw new AssertionError("Putting built-in tables in map should not be possible after init");
-    }
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
@@ -86,10 +87,11 @@ public class TableMapping {
 
   public void remove(final TableId tableId)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    requireNonNull(tableId);
-    if (isBuiltInZKTable(tableId)) {
-      throw new AssertionError("Removing built-in tables in map should not be possible");
+    if (namespaceId == Namespace.ACCUMULO.id()) {
+      throw new AssertionError(
+          "Removing built-in table maps in Accumulo namespace should not be possible");
     }
+    requireNonNull(tableId);
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       if (!tables.containsKey(tableId.canonical())) {
@@ -104,12 +106,13 @@ public class TableMapping {
 
   public void rename(final TableId tableId, final String oldName, final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
+    if (namespaceId == Namespace.ACCUMULO.id()) {
+      throw new AssertionError(
+          "Renaming built-in table maps in Accumulo namespace should not be possible");
+    }
     requireNonNull(tableId);
     var rawOldName = TableNameUtil.qualify(requireNonNull(oldName)).getSecond();
     var rawNewName = TableNameUtil.qualify(requireNonNull(newName)).getSecond();
-    if (isBuiltInZKTable(tableId)) {
-      throw new AssertionError("Renaming built-in tables in map should not be possible");
-    }
     context.getZooSession().asReaderWriter().mutateExisting(mappingPath, data -> {
       var tables = deserializeMap(data);
       final String currentName = tables.get(tableId.canonical());
@@ -140,10 +143,9 @@ public class TableMapping {
       }
       Map<String,String> idToName = deserializeMap(data);
       if (namespaceId.equals(Namespace.ACCUMULO.id())) {
-        for (TableId tid : AccumuloTable.allTableIds()) {
-          if (!idToName.containsKey(tid.canonical())) {
-            throw new IllegalStateException("Built-in tables are not present in map");
-          }
+        if (!idToName.equals(AccumuloTable.tableMapping())) {
+          throw new IllegalStateException("Accumulo namespace expected to contain tables "
+              + AccumuloTable.tableMapping() + ", but saw " + idToName);
         }
       }
       var converted = ImmutableSortedMap.<TableId,String>naturalOrder();
@@ -165,10 +167,6 @@ public class TableMapping {
 
   public static String getZTableMapPath(NamespaceId namespaceId) {
     return Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES;
-  }
-
-  private static boolean isBuiltInZKTable(TableId tableId) {
-    return AccumuloTable.allTableIds().contains(tableId);
   }
 
   public SortedMap<TableId,String> getIdToNameMap() {
