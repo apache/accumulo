@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.iteratorsImpl;
 
+import static com.google.common.base.Preconditions.checkState;
+
 import java.io.IOException;
 import java.util.Optional;
 
@@ -50,6 +52,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     protected Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
 
     public Builder withScope(IteratorScope scope) {
+      checkState(this.scope.isEmpty(), "Scope has already been set");
       this.scope = Optional.of(scope);
       return this;
     }
@@ -60,6 +63,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     }
 
     public Builder withAuthorizations(Authorizations auths) {
+      checkState(this.auths.isEmpty(), "Authorizations have already been set");
       this.auths = Optional.of(auths);
       return this;
     }
@@ -70,6 +74,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     }
 
     public Builder withTableId(TableId tableId) {
+      checkState(this.tableId.isEmpty(), "TableId has already been set");
       this.tableId = Optional.of(tableId);
       return this;
     }
@@ -80,22 +85,19 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     }
 
     public Builder withSamplerConfiguration(SamplerConfiguration sc) {
+      checkState(this.samplerConfig.isEmpty(), "SamplerConfiguration has already been set");
       this.samplerConfig = Optional.ofNullable(sc);
       return this;
     }
 
     public ClientIteratorEnvironment.Builder withEnvironment(ClientServiceEnvironmentImpl env) {
-      if (this.env.isPresent()) {
-        throw new IllegalStateException("withEnvironment and withClient are mutually exclusive");
-      }
+      checkState(this.env.isEmpty(), "ClientServiceEnvironmentImpl has already been set");
       this.env = Optional.of(env);
       return this;
     }
 
     public Builder withClient(AccumuloClient client) {
-      if (this.env.isPresent()) {
-        throw new IllegalStateException("withEnvironment and withClient are mutually exclusive");
-      }
+      checkState(this.env.isEmpty(), "ClientServiceEnvironmentImpl has already been set");
       this.env = Optional.of(new ClientServiceEnvironmentImpl((ClientContext) client));
       return this;
     }
