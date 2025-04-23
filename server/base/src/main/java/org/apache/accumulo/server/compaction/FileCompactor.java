@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.LongAdder;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -51,6 +52,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileOperations.ReaderBuilder;
 import org.apache.accumulo.core.file.FileOperations.WriterBuilder;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
@@ -74,7 +76,6 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.fs.FileTypePrefix;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.mem.LowMemoryDetector.DetectionScope;
@@ -347,10 +348,10 @@ public class FileCompactor implements Callable<CompactionStats> {
       // have compacted, or in the case of cloned tables where one
       // of the tables has compacted the input file but the other
       // has not.
-      String dropCachePrefixProperty =
+      final String dropCachePrefixProperty =
           acuTableConf.get(Property.TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND);
-      final EnumSet<FileTypePrefix> dropCacheFilePrefixes =
-          FileTypePrefix.typesFromList(dropCachePrefixProperty);
+      final EnumSet<FilePrefix> dropCacheFileTypes =
+          ConfigurationTypeHelper.getDropCacheBehindFilePrefixes(dropCachePrefixProperty);
 
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
@@ -378,13 +379,13 @@ public class FileCompactor implements Callable<CompactionStats> {
         for (Entry<String,Set<ByteSequence>> entry : lGroups.entrySet()) {
           setLocalityGroup(entry.getKey());
           compactLocalityGroup(entry.getKey(), entry.getValue(), true, mfw, majCStats,
-              dropCacheFilePrefixes);
+              dropCacheFileTypes);
           allColumnFamilies.addAll(entry.getValue());
         }
       }
 
       setLocalityGroup("");
-      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFilePrefixes);
+      compactLocalityGroup(null, allColumnFamilies, false, mfw, majCStats, dropCacheFileTypes);
 
       long t2 = System.currentTimeMillis();
 
@@ -470,7 +471,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   private List<SortedKeyValueIterator<Key,Value>> openMapDataFiles(
-      ArrayList<FileSKVIterator> readers, EnumSet<FileTypePrefix> dropCacheFilePrefixes)
+      ArrayList<FileSKVIterator> readers, EnumSet<FilePrefix> dropCacheFilePrefixes)
       throws IOException {
 
     List<SortedKeyValueIterator<Key,Value>> iters = new ArrayList<>(filesToCompact.size());
@@ -483,10 +484,10 @@ public class FileCompactor implements Callable<CompactionStats> {
         FileSKVIterator reader;
 
         boolean dropCacheBehindCompactionInputFile = false;
-        if (dropCacheFilePrefixes.contains(FileTypePrefix.ALL)) {
+        if (dropCacheFilePrefixes.containsAll(EnumSet.allOf(FilePrefix.class))) {
           dropCacheBehindCompactionInputFile = true;
         } else {
-          FileTypePrefix type = FileTypePrefix.fromFileName(dataFile.getFileName());
+          FilePrefix type = FilePrefix.fromFileName(dataFile.getFileName());
           if (dropCacheFilePrefixes.contains(type)) {
             dropCacheBehindCompactionInputFile = true;
           }
@@ -535,8 +536,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
-      EnumSet<FileTypePrefix> dropCacheFilePrefixes)
-      throws IOException, CompactionCanceledException {
+      EnumSet<FilePrefix> dropCacheFilePrefixes) throws IOException, CompactionCanceledException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {

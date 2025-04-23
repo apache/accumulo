@@ -139,7 +139,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -233,7 +233,7 @@ public class CompactionCoordinator
   private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
-  private final SecurityOperation security;
+  private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
@@ -256,11 +256,11 @@ public class CompactionCoordinator
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
-  public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
-    this.ctx = ctx;
+  public CompactionCoordinator(Manager manager,
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+    this.ctx = manager.getContext();
     this.schedExecutor = this.ctx.getScheduledExecutor();
-    this.security = security;
+    this.security = ctx.getSecurityOperation();
     this.manager = Objects.requireNonNull(manager);
 
     long jobQueueMaxSize =

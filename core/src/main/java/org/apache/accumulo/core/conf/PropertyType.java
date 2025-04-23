@@ -116,6 +116,9 @@ public enum PropertyType {
           + "Substitutions of the ACCUMULO_HOME environment variable can be done in the system "
           + "config file using '${env:ACCUMULO_HOME}' or similar."),
 
+  DROP_CACHE_SELECTION("drop cache option", in(false, "NONE", "ALL", "NON-IMPORT"),
+      "One of 'ALL', 'NONE', or 'NON-IMPORT'"),
+
   ABSOLUTEPATH("absolute path",
       x -> x == null || x.trim().isEmpty() || new Path(x.trim()).isAbsolute(),
       "An absolute filesystem path. The filesystem depends on the property."

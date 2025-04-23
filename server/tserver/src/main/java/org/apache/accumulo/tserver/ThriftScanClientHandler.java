@@ -19,6 +19,8 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,12 +29,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -69,7 +71,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -93,7 +95,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
   private final TabletHostingServer server;
   protected final ServerContext context;
-  protected final SecurityOperation security;
+  protected final AuditedSecurityOperation security;
   private final WriteTracker writeTracker;
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
 
@@ -393,26 +395,22 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     // check if user has permission to the tables
     for (TableId tableId : tables) {
       NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-      if (!security.canScan(credentials, tableId, namespaceId)) {
+      if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio,
+          authorizations)) {
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
       }
     }
 
-    try {
-      if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.BAD_AUTHORIZATIONS);
-      }
-    } catch (ThriftSecurityException tse) {
-      log.error("{} is not authorized", credentials.getPrincipal(), tse);
-      throw tse;
+    if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.BAD_AUTHORIZATIONS);
     }
 
     // @formatter:off
-    Map<KeyExtent, List<Range>> batch = tbatch.entrySet().stream().collect(Collectors.toMap(
-                    entry -> entry.getKey(),
-                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+    Map<KeyExtent,List<Range>> batch = tbatch.entrySet().stream().collect(toMap(
+        Entry::getKey,
+        entry -> entry.getValue().stream().map(Range::new).collect(toList())
     ));
     // @formatter:on
 
@@ -542,13 +540,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
   @Override
   public List<ActiveScan> getActiveScans(TCredentials credentials)
       throws ThriftSecurityException, TException {
-    try {
-      TabletClientHandler.checkPermission(security, context, server, credentials, null, "getScans");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to get active scans", e);
-      throw e;
-    }
-
+    TabletClientHandler.checkPermission(context, server, credentials, null, "getScans");
     return server.getSessionManager().getActiveScans();
   }
 
