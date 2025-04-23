@@ -85,11 +85,17 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     }
 
     public ClientIteratorEnvironment.Builder withEnvironment(ClientServiceEnvironmentImpl env) {
+      if (this.env.isPresent()) {
+        throw new IllegalStateException("withEnvironment and withClient are mutually exclusive");
+      }
       this.env = Optional.of(env);
       return this;
     }
 
     public Builder withClient(AccumuloClient client) {
+      if (this.env.isPresent()) {
+        throw new IllegalStateException("withEnvironment and withClient are mutually exclusive");
+      }
       this.env = Optional.of(new ClientServiceEnvironmentImpl((ClientContext) client));
       return this;
     }
