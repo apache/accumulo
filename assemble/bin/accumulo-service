@@ -156,7 +156,7 @@ function find_processes() {
       expected_pid=<("$filepath")
       found_pid=$(pgrep -F "$filepath" -f "$file")
       if [[ $found_pid != "$expected_pid" ]]; then
-        echo "failed pid in file: $filepath" >&2
+        echo "removing stale pid file $filepath" >&2
         rm "$filepath"
       else
         RUNNING_PROCESSES+=("$file")
