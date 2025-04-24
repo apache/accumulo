@@ -148,9 +148,19 @@ function control_process() {
 function find_processes() {
   local service_type=$1
   local file
-  for file in "$ACCUMULO_PID_DIR"/*; do
-    if file=$(expr "$file" : '^.*/accumulo-\('"$service_type"'.*\)[.]pid$'); then
-      RUNNING_PROCESSES+=("$file")
+  local filepath
+  local expected_pid
+  local found_pid
+  for filepath in "$ACCUMULO_PID_DIR"/*; do
+    if file=$(expr "$filepath" : '^.*/accumulo-\('"$service_type"'.*\)[.]pid$'); then
+      expected_pid=$(<"$filepath")
+      found_pid=$(pgrep -F "$filepath" -f "$file")
+      if [[ $found_pid != "$expected_pid" ]]; then
+        echo "removing stale pid file $filepath" >&2
+        rm "$filepath"
+      else
+        RUNNING_PROCESSES+=("$file")
+      fi
     fi
   done
 }
@@ -159,7 +169,7 @@ function stop_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if [[ $all_flag == 'true' ]]; then
+  if $all_flag; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -188,7 +198,7 @@ function kill_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if [[ $all_flag == 'true' ]]; then
+  if $all_flag; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -215,9 +225,20 @@ function kill_service() {
 function list_processes() {
   local service_type=$1
   find_processes "$service_type"
-  echo "Currently running ${service_type} processes:"
+  echo "Currently running ${service_type} processes (fields: process pid port):"
   for process in "${RUNNING_PROCESSES[@]}"; do
-    echo "$process"
+    local pid_file
+    local pid
+    local port
+    pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
+    pid=$(<"$pid_file")
+    port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $NF}' | paste -sd "," -)
+    # check that only a single port was seen
+    if (($(echo "$port" | grep -c -E '^[0-9]+(,[0-9]+)*$') != 1)); then
+      echo "ERROR unexpected ports $(hostname) process:$process pid:$pid ports:$port" >&2
+    else
+      echo "$process $pid $port"
+    fi
   done
 }
 
