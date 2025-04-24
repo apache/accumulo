@@ -49,7 +49,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -110,25 +110,25 @@ public class TabletMergeabilityIT extends SharedMiniClusterBase {
       var splitPoint = MetadataSchema.TabletsSection.getRange().getEndKey().getRow();
       // Test merge with new splits added after splitPoint default tablet (which is mergeable)
       // Should keep tablets section tablet on merge
-      testMergeabilityAlways(c, AccumuloNamespace.METADATA.tableName(), "~",
-          Set.of(new KeyExtent(AccumuloNamespace.METADATA.tableId(), null, splitPoint),
-              new KeyExtent(AccumuloNamespace.METADATA.tableId(), splitPoint, null)));
+      testMergeabilityAlways(c, SystemTables.METADATA.tableName(), "~",
+          Set.of(new KeyExtent(SystemTables.METADATA.tableId(), null, splitPoint),
+              new KeyExtent(SystemTables.METADATA.tableId(), splitPoint, null)));
     }
   }
 
   @Test
   public void testMergeabilityFate() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      testMergeabilityAlways(c, AccumuloNamespace.FATE.tableName(), "",
-          Set.of(new KeyExtent(AccumuloNamespace.FATE.tableId(), null, null)));
+      testMergeabilityAlways(c, SystemTables.FATE.tableName(), "",
+          Set.of(new KeyExtent(SystemTables.FATE.tableId(), null, null)));
     }
   }
 
   @Test
   public void testMergeabilityScanRef() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      testMergeabilityAlways(c, AccumuloNamespace.SCAN_REF.tableName(), "",
-          Set.of(new KeyExtent(AccumuloNamespace.SCAN_REF.tableId(), null, null)));
+      testMergeabilityAlways(c, SystemTables.SCAN_REF.tableName(), "",
+          Set.of(new KeyExtent(SystemTables.SCAN_REF.tableId(), null, null)));
     }
   }
 

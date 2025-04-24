@@ -19,16 +19,18 @@
 package org.apache.accumulo.core.metadata;
 
 import java.util.Arrays;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 
 /**
  * Defines the name and id of all tables in the accumulo table namespace.
  */
-public enum AccumuloNamespace {
+public enum SystemTables {
 
   ROOT("root", "+r"),
   METADATA("metadata", "!0"),
@@ -46,30 +48,46 @@ public enum AccumuloNamespace {
     return tableId;
   }
 
-  AccumuloNamespace(String name, String id) {
+  SystemTables(String name, String id) {
     this.name = Namespace.ACCUMULO.name() + "." + name;
     this.tableId = TableId.of(id);
   }
 
-  private static final Set<TableId> ALL_IDS = Arrays.stream(values())
-      .map(AccumuloNamespace::tableId).collect(Collectors.toUnmodifiableSet());
+  private static final Set<TableId> ALL_IDS =
+      Arrays.stream(values()).map(SystemTables::tableId).collect(Collectors.toUnmodifiableSet());
 
-  private static final Set<String> ALL_NAMES = Arrays.stream(values())
-      .map(AccumuloNamespace::tableName).collect(Collectors.toUnmodifiableSet());
+  private static final Set<String> ALL_NAMES =
+      Arrays.stream(values()).map(SystemTables::tableName).collect(Collectors.toUnmodifiableSet());
 
-  public static Set<TableId> allTableIds() {
+  private static final Map<String,String> TABLE_ID_TO_NAME =
+      Arrays.stream(values()).collect(Collectors.toUnmodifiableMap(
+          sysTable -> sysTable.tableId().canonical(), sysTable -> sysTable.name));
+
+  public static NamespaceId namespaceId() {
+    return Namespace.ACCUMULO.id();
+  }
+
+  public static String namespaceName() {
+    return Namespace.ACCUMULO.name();
+  }
+
+  public static Set<TableId> tableIds() {
     return ALL_IDS;
   }
 
-  public static Set<String> allTableNames() {
+  public static Set<String> tableNames() {
     return ALL_NAMES;
   }
 
-  public static boolean containsTable(TableId tableId) {
+  public static boolean containsTableId(TableId tableId) {
     return ALL_IDS.contains(tableId);
   }
 
-  public static boolean containsTable(String tableName) {
+  public static boolean containsTableName(String tableName) {
     return ALL_NAMES.contains(tableName);
+  }
+
+  public static Map<String,String> tableIdToNameMap() {
+    return TABLE_ID_TO_NAME;
   }
 }

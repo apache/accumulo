@@ -45,7 +45,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -184,8 +184,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
-    try (Scanner scanner = accumuloClient.createScanner(AccumuloNamespace.METADATA.tableName(),
-        Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -208,8 +208,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
       throws Exception {
-    try (Scanner scanner = accumuloClient.createScanner(AccumuloNamespace.METADATA.tableName(),
-        Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -250,8 +250,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
-    try (Scanner scanner = accumuloClient.createScanner(AccumuloNamespace.METADATA.tableName(),
-        Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {

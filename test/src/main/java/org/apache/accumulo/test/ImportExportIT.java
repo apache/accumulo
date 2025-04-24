@@ -61,8 +61,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -200,8 +200,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     // Get all `file` colfams from the metadata table for the new table
     log.info("Imported into table with ID: {}", tableId);
 
-    try (Scanner s =
-        client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (
+        Scanner s = client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       s.setRange(TabletsSection.getRange(TableId.of(tableId)));
       s.fetchColumnFamily(DataFileColumnFamily.NAME);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -360,7 +360,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // Get all `file` colfams from the metadata table for the new table
       try (Scanner s =
-          client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -585,7 +585,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       assertEquals(7, rowCount);
       int metaFileCount = 0;
       try (Scanner s =
-          client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table));
         s.setRange(TabletsSection.getRange(tid));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);

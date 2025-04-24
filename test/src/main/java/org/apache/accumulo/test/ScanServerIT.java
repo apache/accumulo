@@ -60,7 +60,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -440,7 +440,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   protected static int getNumHostedTablets(AccumuloClient client, String tableId) throws Exception {
-    try (Scanner scanner = client.createScanner(AccumuloNamespace.METADATA.tableName())) {
+    try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
       scanner.setRange(new Range(tableId, tableId + "<"));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       return Iterables.size(scanner);

@@ -57,9 +57,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
@@ -185,7 +185,7 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
 
     TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
     try (Scanner metaScanner =
-        client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+        client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       metaScanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       metaScanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
 
@@ -304,7 +304,7 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
     verifyVolumesUsed(client, tableNames[0], true, false, v8, v9);
     verifyVolumesUsed(client, tableNames[1], true, false, v8, v9);
 
-    client.tableOperations().compact(AccumuloNamespace.ROOT.tableName(),
+    client.tableOperations().compact(SystemTables.ROOT.tableName(),
         new CompactionConfig().setWait(true));
 
     // check that root tablet is not on volume 1 or 2
@@ -321,8 +321,8 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
     client.tableOperations().clone(tableNames[1], tableNames[2], true, new HashMap<>(),
         new HashSet<>());
 
-    client.tableOperations().flush(AccumuloNamespace.METADATA.tableName(), null, null, true);
-    client.tableOperations().flush(AccumuloNamespace.ROOT.tableName(), null, null, true);
+    client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+    client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
     verifyVolumesUsed(client, tableNames[0], true, v8, v9);
     verifyVolumesUsed(client, tableNames[1], true, v8, v9);
@@ -354,7 +354,7 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
   // files with ranges work properly with volume replacement
   private void splitFilesWithRange(AccumuloClient client, String tableName) throws Exception {
     client.securityOperations().grantTablePermission(cluster.getConfig().getRootUserName(),
-        AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
+        SystemTables.METADATA.tableName(), TablePermission.WRITE);
     final ServerContext ctx = getServerContext();
     ctx.setCredentials(new SystemCredentials(client.instanceOperations().getInstanceId(), "root",
         new PasswordToken(ROOT_PASSWORD)));

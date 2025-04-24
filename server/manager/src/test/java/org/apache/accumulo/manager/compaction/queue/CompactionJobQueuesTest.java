@@ -42,9 +42,9 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -231,7 +231,7 @@ public class CompactionJobQueuesTest {
     var tid = TableId.of("1");
     var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
     var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
-    var meta = new KeyExtent(AccumuloNamespace.METADATA.tableId(), new Text("l"), new Text("c"));
+    var meta = new KeyExtent(SystemTables.METADATA.tableId(), new Text("l"), new Text("c"));
     var root = RootTable.EXTENT;
 
     var cg1 = CompactorGroupId.of("CG1");

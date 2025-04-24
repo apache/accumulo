@@ -36,8 +36,8 @@ import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TConditionalMutation;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
@@ -85,7 +85,7 @@ public class RootConditionalWriter implements ConditionalWriter {
     TConditionalMutation tcm =
         ConditionalWriterImpl.convertConditionalMutation(compressedIters, mutation, 1);
     ConditionCheckerContext checkerContext = new ConditionCheckerContext(context, compressedIters,
-        context.getTableConfiguration(AccumuloNamespace.ROOT.tableId()));
+        context.getTableConfiguration(SystemTables.ROOT.tableId()));
 
     ServerConditionalMutation scm = new ServerConditionalMutation(tcm);
 

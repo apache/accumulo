@@ -35,7 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
@@ -107,7 +107,7 @@ public class MiniAccumuloClusterImplTest {
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
     // Expecting default AccumuloTables + TEST_TABLE
-    int expectedNumTables = AccumuloNamespace.values().length + 1;
+    int expectedNumTables = SystemTables.values().length + 1;
     while (true) {
       stats = accumulo.getManagerMonitorInfo();
       if (stats.tableMap.size() < expectedNumTables) {
@@ -124,13 +124,13 @@ public class MiniAccumuloClusterImplTest {
     assertTrue(validGoals.contains(stats.goalState),
         "manager goal state should be in " + validGoals + ". is " + stats.goalState);
     assertNotNull(stats.tableMap, "should have a table map.");
-    assertTrue(stats.tableMap.containsKey(AccumuloNamespace.ROOT.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.ROOT.tableId().canonical()),
         "root table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloNamespace.METADATA.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.METADATA.tableId().canonical()),
         "meta table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloNamespace.FATE.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.FATE.tableId().canonical()),
         "fate table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloNamespace.SCAN_REF.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.SCAN_REF.tableId().canonical()),
         "scan ref table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(testTableID),
         "our test table should exist in " + stats.tableMap.keySet());

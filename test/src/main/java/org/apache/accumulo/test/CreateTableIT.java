@@ -24,7 +24,7 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -61,8 +61,7 @@ public class CreateTableIT extends SharedMiniClusterBase {
       }
       // Confirm all 500 user tables exist in addition to Root, Metadata,
       // and ScanRef tables
-      assertEquals(500 + AccumuloNamespace.allTableIds().size(),
-          client.tableOperations().list().size());
+      assertEquals(500 + SystemTables.tableIds().size(), client.tableOperations().list().size());
     }
   }
 

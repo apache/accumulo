@@ -35,7 +35,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -130,8 +130,8 @@ public class VerifySerialRecoveryIT extends ConfigurableMacBase {
           Pattern.compile(".*recovered \\d+ mutations creating \\d+ entries from \\d+ walogs.*");
       for (String line : result.split("\n")) {
         // ignore metadata and root tables
-        if (line.contains(AccumuloNamespace.METADATA.tableId().canonical())
-            || line.contains(AccumuloNamespace.ROOT.tableId().canonical())) {
+        if (line.contains(SystemTables.METADATA.tableId().canonical())
+            || line.contains(SystemTables.ROOT.tableId().canonical())) {
           continue;
         }
         if (line.contains("recovering data from walogs")) {

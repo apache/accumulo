@@ -51,7 +51,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -693,7 +693,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
         // check for read-only access to metadata table
         loginAs(rootUser);
-        verifyHasOnlyTheseTablePermissions(c, c.whoami(), AccumuloNamespace.METADATA.tableName(),
+        verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.METADATA.tableName(),
             TablePermission.READ, TablePermission.ALTER_TABLE);
         String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 

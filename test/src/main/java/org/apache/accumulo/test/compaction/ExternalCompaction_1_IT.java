@@ -91,8 +91,8 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -255,10 +255,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
         new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var tableId = ctx.getTableId(AccumuloNamespace.ROOT.tableName());
+      var tableId = ctx.getTableId(SystemTables.ROOT.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
       var fateId = createCompactionCommitAndDeadMetadata(c, metaFateStore,
-          AccumuloNamespace.ROOT.tableName(), allCids);
+          SystemTables.ROOT.tableName(), allCids);
       verifyCompactionCommitAndDead(metaFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
@@ -275,10 +275,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       // Metadata table by default already has 2 tablets
-      var tableId = ctx.getTableId(AccumuloNamespace.METADATA.tableName());
+      var tableId = ctx.getTableId(SystemTables.METADATA.tableName());
       var allCids = new HashMap<TableId,List<ExternalCompactionId>>();
       var fateId = createCompactionCommitAndDeadMetadata(c, metaFateStore,
-          AccumuloNamespace.METADATA.tableName(), allCids);
+          SystemTables.METADATA.tableName(), allCids);
       verifyCompactionCommitAndDead(metaFateStore, tableId, fateId, allCids.get(tableId));
     }
   }
@@ -294,7 +294,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       UserFateStore<Manager> userFateStore =
-          new UserFateStore<>(ctx, AccumuloNamespace.FATE.tableName(), testLock.getLockID(), null);
+          new UserFateStore<>(ctx, SystemTables.FATE.tableName(), testLock.getLockID(), null);
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text(row(MAX_DATA / 2)));
       c.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
@@ -318,7 +318,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       UserFateStore<Manager> userFateStore =
-          new UserFateStore<>(ctx, AccumuloNamespace.FATE.tableName(), testLock.getLockID(), null);
+          new UserFateStore<>(ctx, SystemTables.FATE.tableName(), testLock.getLockID(), null);
       FateStore<Manager> metaFateStore =
           new MetaFateStore<>(ctx.getZooSession(), testLock.getLockID(), null);
 
@@ -331,8 +331,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Map<TableId,List<ExternalCompactionId>> allCids = new HashMap<>();
 
       // create compaction metadata for each data level to test
-      for (String tableName : List.of(AccumuloNamespace.ROOT.tableName(),
-          AccumuloNamespace.METADATA.tableName(), userTable)) {
+      for (String tableName : List.of(SystemTables.ROOT.tableName(),
+          SystemTables.METADATA.tableName(), userTable)) {
         var tableId = ctx.getTableId(tableName);
         var fateStore = FateInstanceType.fromTableId(tableId) == FateInstanceType.USER
             ? userFateStore : metaFateStore;
@@ -387,7 +387,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build().stream()
         .collect(Collectors.toList());
     // Root is always 1 tablet
-    if (!tableId.equals(AccumuloNamespace.ROOT.tableId())) {
+    if (!tableId.equals(SystemTables.ROOT.tableId())) {
       assertEquals(2, tabletsMeta.size());
     }
 

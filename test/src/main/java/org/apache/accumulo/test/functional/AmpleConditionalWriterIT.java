@@ -75,10 +75,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -148,7 +148,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      c.securityOperations().grantTablePermission("root", AccumuloNamespace.METADATA.tableName(),
+      c.securityOperations().grantTablePermission("root", SystemTables.METADATA.tableName(),
           TablePermission.WRITE);
 
       tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
@@ -685,7 +685,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       final Text selectedColumnQualifier = SELECTED_COLUMN.getColumnQualifier();
 
       Supplier<String> selectedMetadataValue = () -> {
-        try (Scanner scanner = client.createScanner(AccumuloNamespace.METADATA.tableName())) {
+        try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
           scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
           scanner.setRange(new Range(row));
 
@@ -719,7 +719,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
           "Test json should have reverse file order of actual metadata");
 
       // write the json with reverse file order
-      try (BatchWriter bw = client.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
         Mutation mutation = new Mutation(row);
         mutation.put(selectedColumnFamily, selectedColumnQualifier,
             new Value(newJson.getBytes(UTF_8)));

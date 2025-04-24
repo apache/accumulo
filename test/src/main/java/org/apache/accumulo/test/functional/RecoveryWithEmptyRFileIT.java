@@ -31,8 +31,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -85,7 +85,7 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
 
       log.debug("Replacing rfile(s) with empty");
       try (Scanner meta =
-          client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         String tableId = client.tableOperations().tableIdMap().get(tableName);
         meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
         meta.fetchColumnFamily(DataFileColumnFamily.NAME);

@@ -53,7 +53,7 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -258,7 +258,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
         var zk = context.getZooSession();
         MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
         UserFateStore<String> readOnlyUFS =
-            new UserFateStore<>(context, AccumuloNamespace.FATE.tableName(), null, null);
+            new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
         var lockPath = context.getServerPaths().createTableLocksPath(tableId);
         Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
             Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
@@ -379,7 +379,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       UserFateStore<String> readOnlyUFS =
-          new UserFateStore<>(context, AccumuloNamespace.FATE.tableName(), null, null);
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
       AdminUtil.FateStatus fateStatus = admin.getStatus(readOnlyUFS, null, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());

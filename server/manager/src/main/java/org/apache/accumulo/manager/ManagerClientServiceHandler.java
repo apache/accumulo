@@ -68,7 +68,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TTabletMergeability;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
 import org.apache.accumulo.core.manager.thrift.ThriftPropertyException;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
@@ -174,7 +174,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         }
       }
 
-      if (tableId.equals(AccumuloNamespace.ROOT.tableId())) {
+      if (tableId.equals(SystemTables.ROOT.tableId())) {
         break; // this code does not properly handle the root tablet. See #798
       }
 
@@ -218,7 +218,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
       } catch (TabletDeletedException e) {
         Manager.log.debug("Failed to scan {} table to wait for flush {}",
-            AccumuloNamespace.METADATA.tableName(), tableId, e);
+            SystemTables.METADATA.tableName(), tableId, e);
       }
     }
 

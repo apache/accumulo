@@ -37,7 +37,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -181,8 +181,8 @@ public class RegexGroupBalanceIT extends ConfigurableMacBase {
 
   private Table<String,String,MutableInt> getCounts(AccumuloClient client, String tablename)
       throws TableNotFoundException {
-    try (Scanner s =
-        client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (
+        Scanner s = client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tablename));
       s.setRange(TabletsSection.getRange(tableId));

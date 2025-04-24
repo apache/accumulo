@@ -23,7 +23,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -39,12 +39,12 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
 
   @Override
   public String tableName() {
-    return AccumuloNamespace.ROOT.tableName();
+    return SystemTables.ROOT.tableName();
   }
 
   @Override
   public TableId tableId() {
-    return AccumuloNamespace.ROOT.tableId();
+    return SystemTables.ROOT.tableId();
   }
 
   @Override
@@ -67,7 +67,7 @@ public class RootTableCheckRunner implements MetadataCheckRunner {
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
-    if (FindOfflineTablets.findOffline(context, AccumuloNamespace.METADATA.tableName(), true, false,
+    if (FindOfflineTablets.findOffline(context, SystemTables.METADATA.tableName(), true, false,
         log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     } else {

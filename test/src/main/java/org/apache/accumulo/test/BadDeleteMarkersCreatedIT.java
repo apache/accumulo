@@ -39,7 +39,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.zookeeper.ZooCache;
@@ -166,7 +166,7 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
       log.info("Verifying that delete markers were deleted");
       // look for delete markers
       try (Scanner scanner =
-          c.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+          c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(DeletesSection.getRange());
         for (Entry<Key,Value> entry : scanner) {
           String row = entry.getKey().getRow().toString();

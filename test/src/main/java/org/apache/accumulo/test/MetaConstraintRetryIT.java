@@ -30,7 +30,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.upgrade.SplitRecovery12to13;
@@ -49,7 +49,7 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().grantTablePermission(getAdminPrincipal(),
-          AccumuloNamespace.METADATA.tableName(), TablePermission.WRITE);
+          SystemTables.METADATA.tableName(), TablePermission.WRITE);
 
       ServerContext context = getServerContext();
       KeyExtent extent = new KeyExtent(TableId.of("5"), null, null);

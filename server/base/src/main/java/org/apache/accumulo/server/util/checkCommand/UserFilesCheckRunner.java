@@ -20,7 +20,7 @@ package org.apache.accumulo.server.util.checkCommand;
 
 import static org.apache.accumulo.server.util.Admin.CheckCommand.Check;
 
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
@@ -38,7 +38,7 @@ public class UserFilesCheckRunner implements CheckRunner {
     log.trace("********** Looking for missing user files **********");
     for (String tableName : context.tableOperations().list()) {
       var tableId = context.getTableId(tableName);
-      if (!AccumuloNamespace.containsTable(context.getTableId(tableName))) {
+      if (!SystemTables.containsTableId(context.getTableId(tableName))) {
         log.trace("Checking table {} ({}) for missing files\n", tableName, tableId);
         if (RemoveEntriesForMissingFiles.checkTable(context, tableName, fixFiles, log::trace,
             log::warn) != 0) {

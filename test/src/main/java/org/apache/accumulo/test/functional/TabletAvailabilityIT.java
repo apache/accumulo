@@ -43,7 +43,7 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -53,7 +53,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
   @Test
   public void testSystemFails() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      for (AccumuloNamespace t : AccumuloNamespace.values()) {
+      for (SystemTables t : SystemTables.values()) {
         assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
             .setTabletAvailability(t.tableName(), new Range(), UNHOSTED));
       }

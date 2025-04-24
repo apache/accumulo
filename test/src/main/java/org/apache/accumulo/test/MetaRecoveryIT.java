@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -78,14 +78,14 @@ public class MetaRecoveryIT extends ConfigurableMacBase {
         log.info("Data written to table {}", i);
         i++;
       }
-      c.tableOperations().flush(AccumuloNamespace.METADATA.tableName(), null, null, true);
-      c.tableOperations().flush(AccumuloNamespace.ROOT.tableName(), null, null, true);
+      c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       SortedSet<Text> splits = new TreeSet<>();
       for (i = 1; i < tables.length; i++) {
         splits.add(new Text("" + i));
       }
-      c.tableOperations().addSplits(AccumuloNamespace.METADATA.tableName(), splits);
-      log.info("Added {} splits to {}", splits.size(), AccumuloNamespace.METADATA.tableName());
+      c.tableOperations().addSplits(SystemTables.METADATA.tableName(), splits);
+      log.info("Added {} splits to {}", splits.size(), SystemTables.METADATA.tableName());
       c.instanceOperations().waitForBalance();
       log.info("Restarting");
       getCluster().getClusterControl().kill(ServerType.TABLET_SERVER, "localhost");

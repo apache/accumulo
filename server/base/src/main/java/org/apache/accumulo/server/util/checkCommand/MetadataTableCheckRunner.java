@@ -23,7 +23,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -39,12 +39,12 @@ public class MetadataTableCheckRunner implements MetadataCheckRunner {
 
   @Override
   public String tableName() {
-    return AccumuloNamespace.METADATA.tableName();
+    return SystemTables.METADATA.tableName();
   }
 
   @Override
   public TableId tableId() {
-    return AccumuloNamespace.METADATA.tableId();
+    return SystemTables.METADATA.tableId();
   }
 
   @Override

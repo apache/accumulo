@@ -43,8 +43,8 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -68,8 +68,8 @@ import com.google.common.net.HostAndPort;
 public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(ScanServerUpgrade11to12TestIT.class);
-  private static final Range META_RANGE = new Range(AccumuloNamespace.SCAN_REF.tableId() + ";",
-      AccumuloNamespace.SCAN_REF.tableId() + "<");
+  private static final Range META_RANGE =
+      new Range(SystemTables.SCAN_REF.tableId() + ";", SystemTables.SCAN_REF.tableId() + "<");
 
   private static class ScanServerUpgradeITConfiguration
       implements MiniClusterConfigurationCallback {
@@ -106,13 +106,13 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     ServerContext ctx = getCluster().getServerContext();
     // Remove the scan server table metadata in zk
     try {
-      ctx.getTableManager().removeTable(AccumuloNamespace.SCAN_REF.tableId());
+      ctx.getTableManager().removeTable(SystemTables.SCAN_REF.tableId());
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException("Removal of scan ref table failed" + e);
     }
 
     // Read from the metadata table to find any existing scan ref tablets and remove them
-    try (BatchWriter writer = ctx.createBatchWriter(AccumuloNamespace.METADATA.tableName())) {
+    try (BatchWriter writer = ctx.createBatchWriter(SystemTables.METADATA.tableName())) {
       var refTablet = checkForScanRefTablets().iterator();
       while (refTablet.hasNext()) {
         var entry = refTablet.next();
@@ -128,8 +128,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     // Compact the metadata table to remove the tablet file for the scan ref table
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().compact(AccumuloNamespace.METADATA.tableName(), null, null, true,
-          true);
+      client.tableOperations().compact(SystemTables.METADATA.tableName(), null, null, true, true);
     } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
       log.error("Failed to compact metadata table");
       throw new RuntimeException(e);
@@ -198,7 +197,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
   private Stream<Entry<Key,Value>> checkForScanRefTablets() {
     try {
       Scanner scanner = getCluster().getServerContext()
-          .createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY);
+          .createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
       scanner.setRange(META_RANGE);
       return scanner.stream().onClose(scanner::close);
     } catch (TableNotFoundException e) {
@@ -225,7 +224,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     var upgrader = new Upgrader11to12();
     upgrader.createScanServerRefTable(ctx);
     assertEquals(TableState.ONLINE,
-        ctx.getTableManager().getTableState(AccumuloNamespace.SCAN_REF.tableId()));
+        ctx.getTableManager().getTableState(SystemTables.SCAN_REF.tableId()));
 
     while (checkForScanRefTablets().count() < 4) {
       log.info("Waiting for the table to be hosted");
@@ -234,7 +233,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     log.info("Reading entries from the metadata table");
     try (Scanner scanner = getCluster().getServerContext()
-        .createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+        .createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       var refTablet = scanner.stream().iterator();
       while (refTablet.hasNext()) {
         log.info("Metadata Entry: {}", refTablet.next());
@@ -245,7 +244,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     log.info("Reading entries from the root table");
     try (Scanner scanner = getCluster().getServerContext()
-        .createScanner(AccumuloNamespace.ROOT.tableName(), Authorizations.EMPTY)) {
+        .createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY)) {
       var refTablet = scanner.stream().iterator();
       while (refTablet.hasNext()) {
         log.info("Root Entry: {}", refTablet.next());

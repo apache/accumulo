@@ -65,9 +65,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
@@ -1029,7 +1029,7 @@ public class Tablet extends TabletBase {
 
       if (!tabletMeta.getLogs().isEmpty()) {
         String msg = "Closed tablet " + extent + " has walog entries in "
-            + AccumuloNamespace.METADATA.tableName() + " " + tabletMeta.getLogs();
+            + SystemTables.METADATA.tableName() + " " + tabletMeta.getLogs();
         log.error(msg);
         throw new RuntimeException(msg);
       }

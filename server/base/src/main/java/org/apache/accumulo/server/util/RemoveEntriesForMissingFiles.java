@@ -38,8 +38,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -143,7 +143,7 @@ public class RemoveEntriesForMissingFiles {
     BatchWriter writer = null;
 
     if (fix) {
-      writer = context.createBatchWriter(AccumuloNamespace.METADATA.tableName());
+      writer = context.createBatchWriter(SystemTables.METADATA.tableName());
     }
 
     for (Entry<Key,Value> entry : metadata) {
@@ -200,12 +200,12 @@ public class RemoveEntriesForMissingFiles {
 
   static int checkAllTables(ServerContext context, boolean fix, Consumer<String> printInfoMethod,
       Consumer<String> printProblemMethod) throws Exception {
-    int missing = checkTable(context, AccumuloNamespace.ROOT.tableName(), TabletsSection.getRange(),
-        fix, printInfoMethod, printProblemMethod);
+    int missing = checkTable(context, SystemTables.ROOT.tableName(), TabletsSection.getRange(), fix,
+        printInfoMethod, printProblemMethod);
 
     if (missing == 0) {
-      return checkTable(context, AccumuloNamespace.METADATA.tableName(), TabletsSection.getRange(),
-          fix, printInfoMethod, printProblemMethod);
+      return checkTable(context, SystemTables.METADATA.tableName(), TabletsSection.getRange(), fix,
+          printInfoMethod, printProblemMethod);
     } else {
       return missing;
     }
@@ -213,16 +213,16 @@ public class RemoveEntriesForMissingFiles {
 
   public static int checkTable(ServerContext context, String tableName, boolean fix,
       Consumer<String> printInfoMethod, Consumer<String> printProblemMethod) throws Exception {
-    if (tableName.equals(AccumuloNamespace.ROOT.tableName())) {
+    if (tableName.equals(SystemTables.ROOT.tableName())) {
       throw new IllegalArgumentException("Can not check root table");
-    } else if (tableName.equals(AccumuloNamespace.METADATA.tableName())) {
-      return checkTable(context, AccumuloNamespace.ROOT.tableName(), TabletsSection.getRange(), fix,
+    } else if (tableName.equals(SystemTables.METADATA.tableName())) {
+      return checkTable(context, SystemTables.ROOT.tableName(), TabletsSection.getRange(), fix,
           printInfoMethod, printProblemMethod);
     } else {
       TableId tableId = context.getTableId(tableName);
       Range range = new KeyExtent(tableId, null, null).toMetaRange();
-      return checkTable(context, AccumuloNamespace.METADATA.tableName(), range, fix,
-          printInfoMethod, printProblemMethod);
+      return checkTable(context, SystemTables.METADATA.tableName(), range, fix, printInfoMethod,
+          printProblemMethod);
     }
   }
 

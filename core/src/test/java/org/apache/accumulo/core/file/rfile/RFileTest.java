@@ -71,7 +71,7 @@ import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -2162,7 +2162,7 @@ public class RFileTest extends AbstractRFileTest {
 
     // mfw.startDefaultLocalityGroup();
 
-    Text tableExtent = new Text(TabletsSection.encodeRow(AccumuloNamespace.METADATA.tableId(),
+    Text tableExtent = new Text(TabletsSection.encodeRow(SystemTables.METADATA.tableId(),
         TabletsSection.getRange().getEndKey().getRow()));
 
     // table tablet's directory
@@ -2181,8 +2181,7 @@ public class RFileTest extends AbstractRFileTest {
     mfw.append(tablePrevRowKey, TabletColumnFamily.encodePrevEndRow(null));
 
     // ----------] default tablet info
-    Text defaultExtent =
-        new Text(TabletsSection.encodeRow(AccumuloNamespace.METADATA.tableId(), null));
+    Text defaultExtent = new Text(TabletsSection.encodeRow(SystemTables.METADATA.tableId(), null));
 
     // default's directory
     Key defaultDirKey =

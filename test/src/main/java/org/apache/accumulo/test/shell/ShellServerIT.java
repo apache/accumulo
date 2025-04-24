@@ -80,7 +80,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.metadata.AccumuloNamespace;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -325,17 +325,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("createuser xyzzy", true);
     ts.exec("users", true, "xyzzy", true);
     String perms = ts.exec("userpermissions -u xyzzy", true);
-    assertTrue(perms.contains(
-        "Table permissions (" + AccumuloNamespace.METADATA.tableName() + "): Table.READ"));
+    assertTrue(perms
+        .contains("Table permissions (" + SystemTables.METADATA.tableName() + "): Table.READ"));
     ts.exec("grant -u xyzzy -s System.CREATE_TABLE", true);
     perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
-    ts.exec("grant -u " + getPrincipal() + " -t " + AccumuloNamespace.METADATA.tableName()
-        + " Table.WRITE", true);
-    ts.exec("grant -u " + getPrincipal() + " -t " + AccumuloNamespace.METADATA.tableName()
-        + " Table.GOOFY", false);
+    ts.exec(
+        "grant -u " + getPrincipal() + " -t " + SystemTables.METADATA.tableName() + " Table.WRITE",
+        true);
+    ts.exec(
+        "grant -u " + getPrincipal() + " -t " + SystemTables.METADATA.tableName() + " Table.GOOFY",
+        false);
     ts.exec("grant -u " + getPrincipal() + " -s foo", false);
-    ts.exec("grant -u xyzzy -t " + AccumuloNamespace.METADATA.tableName() + " foo", false);
+    ts.exec("grant -u xyzzy -t " + SystemTables.METADATA.tableName() + " foo", false);
     if (!kerberosEnabled) {
       ts.input.set("secret\nsecret\n");
       ts.exec("user xyzzy", true);
@@ -350,9 +352,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     ts.exec("revoke -u xyzzy -s System.GOOFY", false);
     ts.exec("revoke -u xyzzy -s foo", false);
-    ts.exec("revoke -u xyzzy -t " + AccumuloNamespace.METADATA.tableName() + " Table.WRITE", true);
-    ts.exec("revoke -u xyzzy -t " + AccumuloNamespace.METADATA.tableName() + " Table.GOOFY", false);
-    ts.exec("revoke -u xyzzy -t " + AccumuloNamespace.METADATA.tableName() + " foo", false);
+    ts.exec("revoke -u xyzzy -t " + SystemTables.METADATA.tableName() + " Table.WRITE", true);
+    ts.exec("revoke -u xyzzy -t " + SystemTables.METADATA.tableName() + " Table.GOOFY", false);
+    ts.exec("revoke -u xyzzy -t " + SystemTables.METADATA.tableName() + " foo", false);
     ts.exec("deleteuser xyzzy", true, "deleteuser { xyzzy } (yes|no)?", true);
     ts.exec("deleteuser -f xyzzy", true);
     ts.exec("users", true, "xyzzy", false);
@@ -1013,8 +1015,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
 
     // constraint
-    ts.exec("constraint -l -t " + AccumuloNamespace.METADATA.tableName(), true,
-        "MetadataConstraints=1", true);
+    ts.exec("constraint -l -t " + SystemTables.METADATA.tableName(), true, "MetadataConstraints=1",
+        true);
     ts.exec("createtable " + table + " -evc");
 
     // Make sure the table is fully propagated through zoocache
@@ -1247,8 +1249,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("Sets the tablet availability"));
     ts.exec("setavailability -t " + table + " -b a -e a -a unhosted");
     ts.exec("setavailability -t " + table + " -b c -e e -ee -a Hosted");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build(); Scanner s =
-        client.createScanner(AccumuloNamespace.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        Scanner s = client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = getTableId(table);
       s.setRange(new Range(tableId, tableId + "<"));
       s.fetchColumn(new Column(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
@@ -1571,12 +1573,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("merge --all", true);
     ts.exec("getsplits", true, "z", false);
     ts.exec("deletetable -f " + table);
-    ts.exec("getsplits -t " + AccumuloNamespace.METADATA.tableName(), true);
+    ts.exec("getsplits -t " + SystemTables.METADATA.tableName(), true);
     assertEquals(2, ts.output.get().split("\n").length);
     ts.exec("getsplits -t accumulo.root", true);
     assertEquals(1, ts.output.get().split("\n").length);
-    ts.exec("merge --all -t " + AccumuloNamespace.METADATA.tableName());
-    ts.exec("getsplits -t " + AccumuloNamespace.METADATA.tableName(), true);
+    ts.exec("merge --all -t " + SystemTables.METADATA.tableName());
+    ts.exec("getsplits -t " + SystemTables.METADATA.tableName(), true);
     assertEquals(1, ts.output.get().split("\n").length);
   }
 
@@ -2166,7 +2168,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private List<String> getFiles(String tableId) {
     ts.output.clear();
 
-    ts.exec("scan -t " + AccumuloNamespace.METADATA.tableName() + " -c file -b " + tableId + " -e "
+    ts.exec("scan -t " + SystemTables.METADATA.tableName() + " -c file -b " + tableId + " -e "
         + tableId + "~");
 
     log.debug("countFiles(): {}", ts.output.get());
