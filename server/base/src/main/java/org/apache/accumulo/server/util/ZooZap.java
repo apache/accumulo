@@ -196,7 +196,8 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapTservers) {
       String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
       try {
-        if ((opts.zapManager || opts.zapMaster) && opts.hostPortExcludeFile == null) {
+        if ((opts.zapManager || opts.zapMaster) && opts.hostPortExcludeFile == null
+            && !opts.dryRun) {
           // When shutting down all tablet servers and the manager, then completely clean up all
           // tservers entries in zookeeper
           List<String> children = zoo.getChildren(tserversPath);
