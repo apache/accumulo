@@ -38,6 +38,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -104,6 +105,9 @@ public class ServerContext extends ClientContext {
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
+
+  private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig));
@@ -425,6 +429,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    sharedSchedExecutorCreated.set(true);
     return sharedScheduledThreadPool.get();
   }
 
@@ -461,12 +466,18 @@ public class ServerContext extends ClientContext {
   }
 
   public MetricsInfo getMetricsInfo() {
+    metricsInfoCreated.set(true);
     return metricsInfoSupplier.get();
   }
 
   @Override
   public void close() {
-    getMetricsInfo().close();
+    if (metricsInfoCreated.get()) {
+      getMetricsInfo().close();
+    }
+    if (sharedSchedExecutorCreated.get()) {
+      getScheduledExecutor().shutdownNow();
+    }
     super.close();
   }
 }
