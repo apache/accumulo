@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -76,6 +77,30 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
     this.fullMajorCompaction = false;
     this.userCompaction = false;
     this.authorizations = Authorizations.EMPTY;
+    this.topLevelIterators = new ArrayList<>();
+  }
+
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
+      AccumuloConfiguration tableConfig, TableId tableId, SamplerConfigurationImpl samplerConfig) {
+    if (scope == IteratorScope.majc) {
+      throw new IllegalArgumentException("must set if compaction is full");
+    }
+
+    this.context = context;
+    this.serviceEnvironment = new ServiceEnvironmentImpl(context);
+    this.scope = scope;
+    this.trm = null;
+    this.tableConfig = tableConfig;
+    this.tableId = tableId;
+    this.fullMajorCompaction = false;
+    this.userCompaction = false;
+    this.authorizations = Authorizations.EMPTY;
+    if (samplerConfig != null) {
+      enableSampleForDeepCopy = true;
+      this.samplerConfig = samplerConfig.toSamplerConfiguration();
+    } else {
+      enableSampleForDeepCopy = false;
+    }
     this.topLevelIterators = new ArrayList<>();
   }
 
@@ -235,5 +260,10 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   @Override
   public TableId getTableId() {
     return tableId;
+  }
+
+  @Override
+  public PluginEnvironment getPluginEnv() {
+    return serviceEnvironment;
   }
 }

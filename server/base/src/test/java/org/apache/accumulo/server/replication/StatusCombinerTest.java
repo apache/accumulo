@@ -34,8 +34,8 @@ import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.iterators.Combiner;
 import org.apache.accumulo.core.iterators.DevNull;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.replication.ReplicationSchema.StatusSection;
 import org.apache.accumulo.server.replication.proto.Replication.Status;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,13 +48,6 @@ public class StatusCombinerTest {
   private Key key;
   private Status.Builder builder;
 
-  private static class TestIE implements IteratorEnvironment {
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-  }
-
   @BeforeEach
   public void initCombiner() throws IOException {
     key = new Key();
@@ -62,7 +55,8 @@ public class StatusCombinerTest {
     builder = Status.newBuilder();
     IteratorSetting cfg = new IteratorSetting(50, StatusCombiner.class);
     Combiner.setColumns(cfg, Collections.singletonList(new Column(StatusSection.NAME)));
-    combiner.init(new DevNull(), cfg.getOptions(), new TestIE());
+    combiner.init(new DevNull(), cfg.getOptions(),
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build());
   }
 
   @Test

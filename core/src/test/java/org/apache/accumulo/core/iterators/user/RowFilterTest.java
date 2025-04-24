@@ -39,9 +39,9 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
@@ -205,7 +205,7 @@ public class RowFilterTest {
         new ColumnFamilySkippingIterator(new SortedMapIterator(createKeyValues()));
 
     RowFilter filter = new SummingRowFilter();
-    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -235,10 +235,10 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new TrueFilter();
-    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     RowFilter filter = new TrueFilter();
-    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -251,10 +251,10 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter0 = new RowZeroOrOneFilter();
-    filter0.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter0.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     RowFilter filter = new RowOneOrTwoFilter();
-    filter.init(filter0, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(filter0, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -266,7 +266,7 @@ public class RowFilterTest {
     SortedMapIterator source = new SortedMapIterator(createKeyValues());
 
     RowFilter filter = new RowZeroOrOneFilter();
-    filter.init(source, Collections.emptyMap(), new DefaultIteratorEnvironment());
+    filter.init(source, Collections.emptyMap(), ClientIteratorEnvironment.DEFAULT);
 
     filter.seek(new Range(), Collections.emptySet(), false);
 
@@ -286,7 +286,7 @@ public class RowFilterTest {
     }
 
     // Make a copy of the original RowFilter
-    RowFilter copy = (RowFilter) filter.deepCopy(new DefaultIteratorEnvironment());
+    RowFilter copy = (RowFilter) filter.deepCopy(ClientIteratorEnvironment.DEFAULT);
 
     // Because it's a copy, we should be able to safely seek this one without affecting the original
     copy.seek(new Range(), Collections.emptySet(), false);

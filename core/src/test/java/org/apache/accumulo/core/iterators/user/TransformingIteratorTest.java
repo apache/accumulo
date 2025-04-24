@@ -47,6 +47,7 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
@@ -619,7 +620,7 @@ public class TransformingIteratorTest {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
-      env = new MajCIteratorEnvironmentAdapter();
+      env = new ClientIteratorEnvironment.Builder().withScope(IteratorScope.majc).build();
       super.init(source, options, env);
     }
   }
@@ -665,7 +666,7 @@ public class TransformingIteratorTest {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
-      env = new MajCIteratorEnvironmentAdapter();
+      env = new ClientIteratorEnvironment.Builder().withScope(IteratorScope.majc).build();
       super.init(source, options, env);
     }
   }
@@ -695,7 +696,7 @@ public class TransformingIteratorTest {
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
-      env = new MajCIteratorEnvironmentAdapter();
+      env = new ClientIteratorEnvironment.Builder().withScope(IteratorScope.majc).build();
       super.init(source, options, env);
     }
   }
@@ -742,10 +743,4 @@ public class TransformingIteratorTest {
     }
   }
 
-  private static class MajCIteratorEnvironmentAdapter implements IteratorEnvironment {
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.majc;
-    }
-  }
 }
