@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.iteratortest.environments.SimpleIteratorEnvironment;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 
 /**
  * The necessary user-input to invoke a test on a {@link SortedKeyValueIterator}.
@@ -49,7 +49,7 @@ public class IteratorTestInput {
   private final IteratorEnvironment iteratorEnvironment;
 
   /**
-   * Construct an instance of the test input, using {@link SimpleIteratorEnvironment}.
+   * Construct an instance of the test input, using {@link ClientIteratorEnvironment}.
    *
    * @param iteratorClass The class for the iterator to test.
    * @param iteratorOptions Options, if any, to provide to the iterator ({@link IteratorSetting}'s
@@ -61,7 +61,7 @@ public class IteratorTestInput {
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input) {
     this(iteratorClass, iteratorOptions, range, input, Collections.emptySet(), false,
-        new SimpleIteratorEnvironment());
+        ClientIteratorEnvironment.DEFAULT);
   }
 
   /**
@@ -93,7 +93,7 @@ public class IteratorTestInput {
    * @param families Column families passed to {@link SortedKeyValueIterator#seek}.
    * @param inclusive Whether the families are inclusive or exclusive.
    * @param iterEnv An optional provided {@link IteratorEnvironment}.
-   *        {@link SimpleIteratorEnvironment} will be used if null.
+   *        {@link ClientIteratorEnvironment} will be used if null.
    */
   public IteratorTestInput(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass,
       Map<String,String> iteratorOptions, Range range, SortedMap<Key,Value> input,
@@ -108,7 +108,7 @@ public class IteratorTestInput {
     this.input = Collections.unmodifiableSortedMap(requireNonNull(input));
     this.families = Collections.unmodifiableCollection(requireNonNull(families));
     this.inclusive = inclusive;
-    this.iteratorEnvironment = iterEnv == null ? new SimpleIteratorEnvironment() : iterEnv;
+    this.iteratorEnvironment = iterEnv == null ? ClientIteratorEnvironment.DEFAULT : iterEnv;
   }
 
   public Class<? extends SortedKeyValueIterator<Key,Value>> getIteratorClass() {

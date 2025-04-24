@@ -48,7 +48,6 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.sample.RowSampler;
 import org.apache.accumulo.core.client.sample.Sampler;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -70,6 +69,7 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBu
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -99,25 +99,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class RFileTest extends AbstractRFileTest {
-
-  public static class SampleIE implements IteratorEnvironment {
-
-    private SamplerConfiguration samplerConfig;
-
-    SampleIE(SamplerConfiguration config) {
-      this.samplerConfig = config;
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return samplerConfig != null;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return samplerConfig;
-    }
-  }
 
   private static final Configuration hadoopConf = new Configuration();
 
@@ -1926,15 +1907,16 @@ public class RFileTest extends AbstractRFileTest {
 
         trf.openReader();
 
-        FileSKVIterator sample =
-            trf.reader.getSample(SamplerConfigurationImpl.newSamplerConfig(sampleConf));
+        SamplerConfigurationImpl sc = SamplerConfigurationImpl.newSamplerConfig(sampleConf);
+
+        FileSKVIterator sample = trf.reader.getSample(sc);
 
         checkSample(sample, sampleData);
 
         assertEquals(expectedDataHash, hash(trf.reader));
 
-        SampleIE ie = new SampleIE(
-            SamplerConfigurationImpl.newSamplerConfig(sampleConf).toSamplerConfiguration());
+        IteratorEnvironment ie = new ClientIteratorEnvironment.Builder()
+            .withSamplerConfiguration(sc.toSamplerConfiguration()).withSamplingEnabled().build();
 
         for (int i = 0; i < 3; i++) {
           // test opening and closing deep copies a few times.
@@ -1944,8 +1926,10 @@ public class RFileTest extends AbstractRFileTest {
           SortedKeyValueIterator<Key,Value> sampleDC1 = sample.deepCopy(ie);
           SortedKeyValueIterator<Key,Value> sampleDC2 = sample.deepCopy(ie);
           SortedKeyValueIterator<Key,Value> sampleDC3 = trf.reader.deepCopy(ie);
-          SortedKeyValueIterator<Key,Value> allDC1 = sampleDC1.deepCopy(new SampleIE(null));
-          SortedKeyValueIterator<Key,Value> allDC2 = sample.deepCopy(new SampleIE(null));
+          SortedKeyValueIterator<Key,Value> allDC1 =
+              sampleDC1.deepCopy(ClientIteratorEnvironment.DEFAULT);
+          SortedKeyValueIterator<Key,Value> allDC2 =
+              sample.deepCopy(ClientIteratorEnvironment.DEFAULT);
 
           assertEquals(expectedDataHash, hash(allDC1));
           assertEquals(expectedDataHash, hash(allDC2));
