@@ -153,7 +153,7 @@ function find_processes() {
   local found_pid
   for filepath in "$ACCUMULO_PID_DIR"/*; do
     if file=$(expr "$filepath" : '^.*/accumulo-\('"$service_type"'.*\)[.]pid$'); then
-      expected_pid=<("$filepath")
+      expected_pid=$(<"$filepath")
       found_pid=$(pgrep -F "$filepath" -f "$file")
       if [[ $found_pid != "$expected_pid" ]]; then
         echo "removing stale pid file $filepath" >&2
@@ -231,7 +231,7 @@ function list_processes() {
     local pid
     local port
     pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
-    pid=<("$pid_file")
+    pid=$(<"$pid_file")
     port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $NF}' | paste -sd "," -)
     # check that only a single port was seen
     if (($(echo "$port" | grep -c -E '^[0-9]+(,[0-9]+)*$') != 1)); then
