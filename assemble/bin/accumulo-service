@@ -232,7 +232,7 @@ function list_processes() {
     local port
     pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
     pid=<("$pid_file")
-    port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $2}' | paste -sd "," -)
+    port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $NF}' | paste -sd "," -)
     # check that only a single port was seen
     if (($(echo "$port" | grep -c -E '^[0-9]+(,[0-9]+)*$') != 1)); then
       echo "ERROR unexpected ports $(hostname) process:$process pid:$pid ports:$port" >&2
