@@ -585,8 +585,7 @@ public class TabletMetadata {
   }
 
   public TabletAvailability getTabletAvailability() {
-    if (AccumuloTable.ROOT.tableId().equals(getTableId())
-        || AccumuloTable.METADATA.tableId().equals(getTableId())) {
+    if (AccumuloTable.allTableIds().contains(getTableId())) {
       // Override the availability for the system tables
       return TabletAvailability.HOSTED;
     }
@@ -792,7 +791,7 @@ public class TabletMetadata {
   }
 
   @VisibleForTesting
-  static TabletMetadata create(String id, String prevEndRow, String endRow) {
+  public static TabletMetadata create(String id, String prevEndRow, String endRow) {
     final var tmBuilder = new Builder();
     tmBuilder.table(TableId.of(id));
     tmBuilder.sawPrevEndRow(true);

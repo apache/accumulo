@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.create;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.fate.FateId;
@@ -29,7 +28,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
-import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.util.PropUtil;
 
 class PopulateZookeeperWithNamespace extends ManagerRepo {
@@ -54,13 +52,12 @@ class PopulateZookeeperWithNamespace extends ManagerRepo {
     Utils.getTableNameLock().lock();
     try {
       var context = manager.getContext();
-      NamespaceMapping.put(context.getZooSession().asReaderWriter(),
-          context.getZooKeeperRoot() + Constants.ZNAMESPACES, namespaceInfo.namespaceId,
+      NamespaceMapping.put(context.getZooSession().asReaderWriter(), namespaceInfo.namespaceId,
           namespaceInfo.namespaceName);
-      TableManager.prepareNewNamespaceState(context, namespaceInfo.namespaceId,
+      context.getTableManager().prepareNewNamespaceState(namespaceInfo.namespaceId,
           namespaceInfo.namespaceName, NodeExistsPolicy.OVERWRITE);
 
-      PropUtil.setProperties(context, NamespacePropKey.of(context, namespaceInfo.namespaceId),
+      PropUtil.setProperties(context, NamespacePropKey.of(namespaceInfo.namespaceId),
           namespaceInfo.props);
 
       context.clearTableListCache();

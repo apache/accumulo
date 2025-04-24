@@ -133,6 +133,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
 
@@ -302,11 +304,11 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
-
+        Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
+        Property.SSERV_THREADCHECK);
+    sp.startThriftServer("Thrift Client Server");
     setHostname(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
@@ -361,7 +363,16 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
+
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     SecurityUtil.serverLogin(getConfiguration());
 
     ServerAddress address = null;
@@ -369,7 +380,7 @@ public class ScanServer extends AbstractServer
       address = startScanServerClientService();
       clientAddress = address.getAddress();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the compactor client service", e1);
+      throw new RuntimeException("Failed to start the scan server client service", e1);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();

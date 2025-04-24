@@ -49,29 +49,36 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.split.SplitUtils;
 import org.apache.accumulo.test.fate.ManagerRepoIT;
-import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LargeSplitRowIT extends ConfigurableMacBase {
+public class LargeSplitRowIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(
+        (cfg, coreSite) -> cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1));
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
   private static final Logger log = LoggerFactory.getLogger(LargeSplitRowIT.class);
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(1);
-  }
-
-  @Override
-  public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   // User added split
@@ -82,7 +89,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the TABLE_END_ROW_MAX_SIZE property
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> props = Map.of(Property.TABLE_MAX_END_ROW_SIZE.getKey(), "1000");
       client.tableOperations().create(tableName, new NewTableConfiguration().setProperties(props));
 
@@ -128,7 +135,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
     // make a table and lower the configuration properties
     final String tableName = getUniqueNames(1)[0];
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // @formatter:off
       Map<String,String> props = Map.of(
         Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K",
@@ -164,14 +171,16 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
       // Wait for the tablet to be marked as unsplittable due to the system split running
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      Wait.waitFor(() -> getServerContext().getAmple()
-          .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable() != null,
+      Wait.waitFor(
+          () -> getCluster().getServerContext().getAmple()
+              .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable() != null,
           Wait.MAX_WAIT_MILLIS, 100);
 
       // Verify that the unsplittable column is read correctly
       TabletMetadata tm =
-          getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
-      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
+          getCluster().getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+      assertEquals(tm.getUnSplittable(),
+          SplitUtils.toUnSplittable(getCluster().getServerContext(), tm));
 
       // Make sure all the data that was put in the table is still correct
       int count = 0;
@@ -199,7 +208,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Timeout(60)
   public void automaticSplitWithGaps() throws Exception {
     log.info("Automatic Split With Gaps");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       automaticSplit(client, 30, 2);
     }
   }
@@ -209,7 +218,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Timeout(60)
   public void automaticSplitWithoutGaps() throws Exception {
     log.info("Automatic Split Without Gaps");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       automaticSplit(client, 15, 1);
     }
   }
@@ -218,7 +227,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Timeout(120)
   public void automaticSplitLater() throws Exception {
     log.info("Split later");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // Generate large rows which have long common prefixes and therefore no split can be found.
       // Setting max to 1 causes all rows to have long common prefixes. Setting a max of greater
       // than 1 would generate a row with a short common prefix.
@@ -262,7 +271,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Timeout(60)
   public void testUnsplittableColumn() throws Exception {
     log.info("Unsplittable Column Test");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // make a table and lower the configuration properties
       // @formatter:off
       var maxEndRow = 100;
@@ -298,15 +307,16 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
       // Wait for the tablets to be marked as unsplittable due to the system split running
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
-      Wait.waitFor(() -> getServerContext().getAmple()
-          .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable() != null,
+      Wait.waitFor(
+          () -> getCluster().getServerContext().getAmple()
+              .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable() != null,
           Wait.MAX_WAIT_MILLIS, 100);
 
       // Verify that the unsplittable column is read correctly
       TabletMetadata tm =
-          getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
+          getCluster().getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
       var unsplittable = tm.getUnSplittable();
-      assertEquals(unsplittable, SplitUtils.toUnSplittable(getServerContext(), tm));
+      assertEquals(unsplittable, SplitUtils.toUnSplittable(getCluster().getServerContext(), tm));
 
       // Make sure no splits occurred in the table
       assertTrue(client.tableOperations().listSplits(tableName).isEmpty());
@@ -318,13 +328,15 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
 
       // wait for the unsplittable marker to be set to a new value due to the property change
       Wait.waitFor(() -> {
-        var updatedUnsplittable = getServerContext().getAmple()
+        var updatedUnsplittable = getCluster().getServerContext().getAmple()
             .readTablet(new KeyExtent(tableId, null, null)).getUnSplittable();
         return updatedUnsplittable != null && !updatedUnsplittable.equals(unsplittable);
       }, Wait.MAX_WAIT_MILLIS, 100);
       // recheck with the computed meta is correct after property update
-      tm = getServerContext().getAmple().readTablet(new KeyExtent(tableId, null, null));
-      assertEquals(tm.getUnSplittable(), SplitUtils.toUnSplittable(getServerContext(), tm));
+      tm = getCluster().getServerContext().getAmple()
+          .readTablet(new KeyExtent(tableId, null, null));
+      assertEquals(tm.getUnSplittable(),
+          SplitUtils.toUnSplittable(getCluster().getServerContext(), tm));
 
       // Bump max end row size and verify split occurs and unsplittable column is cleaned up
       client.tableOperations().setProperty(tableName, Property.TABLE_MAX_END_ROW_SIZE.getKey(),
@@ -338,7 +350,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // Verify all tablets have no unsplittable metadata column
       Wait.waitFor(() -> {
         try (var tabletsMetadata =
-            getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+            getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
           return tabletsMetadata.stream()
               .allMatch(tabletMetadata -> tabletMetadata.getUnSplittable() == null);
         }
@@ -355,7 +367,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
   @Timeout(60)
   public void testUnsplittableCleanup() throws Exception {
     log.info("Unsplittable Column Cleanup");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // make a table and lower the configuration properties
       // @formatter:off
       Map<String,String> props = Map.of(
@@ -394,7 +406,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // as unsplittable due to the same end row for all keys after the default tablet is split
       Wait.waitFor(() -> {
         try (var tabletsMetadata =
-            getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+            getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
           return tabletsMetadata.stream().anyMatch(tm -> tm.getUnSplittable() != null);
         }
       }, Wait.MAX_WAIT_MILLIS, 100);
@@ -409,7 +421,7 @@ public class LargeSplitRowIT extends ConfigurableMacBase {
       // same number of splits as before
       Wait.waitFor(() -> {
         try (var tabletsMetadata =
-            getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+            getCluster().getServerContext().getAmple().readTablets().forTable(tableId).build()) {
           return tabletsMetadata.stream().allMatch(tm -> tm.getUnSplittable() == null);
         }
       }, Wait.MAX_WAIT_MILLIS, 100);

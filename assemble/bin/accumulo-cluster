@@ -419,9 +419,29 @@ function control_services() {
   local group
   local tserver
   local G
+  local sserver
+  local gc
   if [[ $ARG_ALL == 1 && $ARG_LOCAL == 0 && $operation == "stop" ]]; then
     echo "Stopping Accumulo cluster..."
     if ! isDebug; then
+      # Stop all of the the Scan Server processes
+      for group in $SSERVER_GROUPS; do
+        echo "Executing $(green "$ARG_CMD") on $(purple scan servers) for group $(yellow "$group")"
+        hosts="SSERVER_HOSTS_$group"
+        for sserver in ${!hosts}; do
+          if canRunOnHost "$sserver"; then
+            execute_command "$operation" "$sserver" sserver "$group" "-g" "$group"
+          fi
+        done
+      done
+      # Stop the GC processes, they scan and write to the metadata table
+      for gc in $GC_HOSTS; do
+        if canRunOnHost "$gc"; then
+          echo "Executing $(green "$ARG_CMD") on $(purple garbage collectors)"
+          execute_command "$operation" "$gc" gc "default"
+        fi
+      done
+      # Try to cleanly stop the TabletServers and Manager
       if ! "$accumulo_cmd" admin stopAll; then
         echo "Invalid password or unable to connect to the manager"
         echo "Initiating forced shutdown in 15 seconds (Ctrl-C to abort)"
@@ -500,7 +520,6 @@ function control_services() {
     done
   fi
 
-  local gc
   if [[ $ARG_ALL == 1 || $ARG_GC == 1 ]]; then
     for gc in $GC_HOSTS; do
       if canRunOnHost "$gc"; then
@@ -521,7 +540,6 @@ function control_services() {
   fi
 
   local sserver_groups
-  local sserver
   if [[ $ARG_ALL == 1 || $ARG_SSERVER == 1 ]]; then
     sserver_groups=$SSERVER_GROUPS
     if [[ -n $ARG_SSERVER_GROUP ]]; then

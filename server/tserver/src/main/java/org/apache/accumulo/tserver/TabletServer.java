@@ -69,7 +69,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -78,6 +77,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -213,7 +213,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private TServer server;
 
-  private String lockID;
+  private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
@@ -329,14 +329,14 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        ClientTabletCache::clearInstances, jitter(), jitter(), TimeUnit.MILLISECONDS));
+        () -> context.clearTabletLocationCache(), jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
       log.info("SASL is enabled, creating ZooKeeper watcher for AuthenticationKeys");
       // Watcher to notice new AuthenticationKeys which enable delegation tokens
       authKeyWatcher = new ZooAuthenticationKeyWatcher(context.getSecretManager(),
-          context.getZooSession(), context.getZooKeeperRoot() + Constants.ZDELEGATION_TOKEN_KEYS);
+          context.getZooSession(), Constants.ZDELEGATION_TOKEN_KEYS);
     } else {
       authKeyWatcher = null;
     }
@@ -370,7 +370,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private TabletClientHandler thriftClientHandler;
   private ThriftScanClientHandler scanClientHandler;
 
-  String getLockID() {
+  ZooUtil.LockID getLockID() {
     return lockID;
   }
 
@@ -411,10 +411,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
-        processor, this.getClass().getSimpleName(), "Thrift Client Server",
-        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK);
+    ServerAddress sp =
+        TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT, processor,
+            this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+            Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sp.startThriftServer("Thrift Client Server");
     this.server = sp.server;
     return sp.address;
   }
@@ -510,8 +511,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          lockID = tabletServerLock.getLockID()
-              .serialize(getContext().getZooKeeperRoot() + Constants.ZTSERVERS + "/");
+          lockID = tabletServerLock.getLockID();
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());

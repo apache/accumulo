@@ -32,7 +32,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
-import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
@@ -40,7 +39,6 @@ import static org.apache.accumulo.core.util.LazySingletons.GSON;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -81,7 +79,6 @@ import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
-import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -103,28 +100,38 @@ import org.apache.accumulo.core.metadata.schema.filters.GcWalsFilter;
 import org.apache.accumulo.core.metadata.schema.filters.HasCurrentFilter;
 import org.apache.accumulo.core.metadata.schema.filters.TabletMetadataFilter;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.minicluster.ServerType;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
-public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
+public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "3s");
+    });
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   private TableId tid;
   private KeyExtent e1;
@@ -154,319 +161,315 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testLocations() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+  public void testLocations() {
 
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+    var ts1 = new TServerInstance("localhost:9997", 5000L);
+    var ts2 = new TServerInstance("localhost:9997", 6000L);
 
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      assertNull(context.getAmple().readTablet(e1).getLocation());
+    assertNull(context.getAmple().readTablet(e1).getLocation());
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts1)).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
-
-      // test require absent with a future location set
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts2)).submit(tm -> false,
-                () -> "Testing that requireAbsentLocation() fails when a future location is set");
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
-      try (TabletsMetadata tablets =
-          context.getAmple().readTablets().forTable(tid).filter(new HasCurrentFilter()).build()) {
-        List<KeyExtent> actual =
-            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
-        assertEquals(List.of(), actual);
-      }
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts1))
-            .putLocation(Location.current(ts1)).deleteLocation(Location.future(ts1))
-            .submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
-
-      // test require absent with a current location set
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts2)).submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus(),
-            () -> "Testing that requireAbsentLocation() fails when a current location is set");
-      }
-      assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
-
-      try (TabletsMetadata tablets =
-          context.getAmple().readTablets().forTable(tid).filter(new HasCurrentFilter()).build()) {
-        List<KeyExtent> actual =
-            tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
-        assertEquals(List.of(e1), actual);
-      }
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts1))
-            .putLocation(Location.current(ts1)).deleteLocation(Location.future(ts1))
-            .submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts2))
-            .putLocation(Location.current(ts2)).deleteLocation(Location.future(ts2))
-            .submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.current(ts1))
-            .deleteLocation(Location.current(ts1)).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertNull(context.getAmple().readTablet(e1).getLocation());
-
-      // Set two current locations, this puts the tablet in a bad state as its only expected that
-      // single location should be set
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().putLocation(Location.current(ts1))
-            .putLocation(Location.current(ts2)).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      // When a tablet has two locations reading it should throw an exception
-      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
-
-      // Try to update the tablet requiring one of the locations that is set on the tablet. Even
-      // though the required location exists, the presence of the other location in the tablet
-      // metadata should cause the update to fail.
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.current(ts1))
-            .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
-            .submit(tm -> false);
-        // The update should be rejected because of the two locations. When a conditional mutation
-        // is rejected an attempt is made to read the tablet metadata and examine. This read of the
-        // tablet metadata will fail because the tablet has two locations.
-        assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
-      }
-      // tablet should still have two location set, so reading it should fail
-      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
-
-      // Requiring an absent location should fail when two locations are set
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
-            .submit(tm -> false);
-        assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
-      }
-      // tablet should still have two location set, so reading it should fail
-      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
-
-      // Change the tablet to have a future and current location set.
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().deleteLocation(Location.current(ts1))
-            .putLocation(Location.future(ts1)).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      // tablet should still have two location set, so reading it should fail
-      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
-
-      // Test requiring different locations. Some of the required locations are actually set and
-      // some are not. All should fail because the tablet has multiple locations set and/or the
-      // required location does not exist.
-      for (var loc : List.of(Location.current(ts1), Location.current(ts2), Location.future(ts1),
-          Location.future(ts2))) {
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(loc)
-              .deleteLocation(Location.future(ts1)).deleteLocation(Location.current(ts2))
-              .submit(tm -> false);
-          // tablet should still have two location set, so reading it should fail
-          assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
-        }
-      }
-
-      // Requiring an absent location should fail when a future and current location are set
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
-            .submit(tm -> false);
-        assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
-      }
-      // tablet should still have two location set, so reading it should fail
-      assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
-
-      // Delete one of the locations w/o any location requirements, this should succeed.
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().deleteLocation(Location.future(ts1))
-            .submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      // This check validates the expected state of the tablet as some of the previous test were
-      // catching an exception and making assumption about the state of the tablet metadata based on
-      // the fact that an exception was thrown.
-      assertEquals(Location.current(ts2), context.getAmple().readTablet(e1).getLocation());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts1)).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
+    assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
+
+    // test require absent with a future location set
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tm -> false,
+              () -> "Testing that requireAbsentLocation() fails when a future location is set");
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
+    try (TabletsMetadata tablets =
+        context.getAmple().readTablets().forTable(tid).filter(new HasCurrentFilter()).build()) {
+      List<KeyExtent> actual =
+          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+      assertEquals(List.of(), actual);
+    }
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts1))
+          .putLocation(Location.current(ts1)).deleteLocation(Location.future(ts1))
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
+
+    // test require absent with a current location set
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus(),
+          () -> "Testing that requireAbsentLocation() fails when a current location is set");
+    }
+    assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
+
+    try (TabletsMetadata tablets =
+        context.getAmple().readTablets().forTable(tid).filter(new HasCurrentFilter()).build()) {
+      List<KeyExtent> actual =
+          tablets.stream().map(TabletMetadata::getExtent).collect(Collectors.toList());
+      assertEquals(List.of(e1), actual);
+    }
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts1))
+          .putLocation(Location.current(ts1)).deleteLocation(Location.future(ts1))
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.future(ts2))
+          .putLocation(Location.current(ts2)).deleteLocation(Location.future(ts2))
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Location.current(ts1), context.getAmple().readTablet(e1).getLocation());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.current(ts1))
+          .deleteLocation(Location.current(ts1)).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getLocation());
+
+    // Set two current locations, this puts the tablet in a bad state as its only expected that
+    // single location should be set
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putLocation(Location.current(ts1))
+          .putLocation(Location.current(ts2)).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    // When a tablet has two locations reading it should throw an exception
+    assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+    // Try to update the tablet requiring one of the locations that is set on the tablet. Even
+    // though the required location exists, the presence of the other location in the tablet
+    // metadata should cause the update to fail.
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(Location.current(ts1))
+          .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
+          .submit(tm -> false);
+      // The update should be rejected because of the two locations. When a conditional mutation
+      // is rejected an attempt is made to read the tablet metadata and examine. This read of the
+      // tablet metadata will fail because the tablet has two locations.
+      assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
+    }
+    // tablet should still have two location set, so reading it should fail
+    assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+    // Requiring an absent location should fail when two locations are set
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
+          .submit(tm -> false);
+      assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
+    }
+    // tablet should still have two location set, so reading it should fail
+    assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+    // Change the tablet to have a future and current location set.
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().deleteLocation(Location.current(ts1))
+          .putLocation(Location.future(ts1)).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    // tablet should still have two location set, so reading it should fail
+    assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+    // Test requiring different locations. Some of the required locations are actually set and
+    // some are not. All should fail because the tablet has multiple locations set and/or the
+    // required location does not exist.
+    for (var loc : List.of(Location.current(ts1), Location.current(ts2), Location.future(ts1),
+        Location.future(ts2))) {
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireLocation(loc)
+            .deleteLocation(Location.future(ts1)).deleteLocation(Location.current(ts2))
+            .submit(tm -> false);
+        // tablet should still have two location set, so reading it should fail
+        assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
+      }
+    }
+
+    // Requiring an absent location should fail when a future and current location are set
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .deleteLocation(Location.current(ts1)).deleteLocation(Location.current(ts2))
+          .submit(tm -> false);
+      assertThrows(IllegalStateException.class, ctmi.process().get(e1)::getStatus);
+    }
+    // tablet should still have two location set, so reading it should fail
+    assertThrows(IllegalStateException.class, () -> context.getAmple().readTablet(e1));
+
+    // Delete one of the locations w/o any location requirements, this should succeed.
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().deleteLocation(Location.future(ts1))
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    // This check validates the expected state of the tablet as some of the previous test were
+    // catching an exception and making assumption about the state of the tablet metadata based on
+    // the fact that an exception was thrown.
+    assertEquals(Location.current(ts2), context.getAmple().readTablet(e1).getLocation());
   }
 
   @Test
-  public void testFiles() throws Exception {
+  public void testFiles() {
 
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+    var ts1 = new TServerInstance("localhost:9997", 5000L);
+    var ts2 = new TServerInstance("localhost:9997", 6000L);
 
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      var stf1 = StoredTabletFile
-          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
-      var stf2 = StoredTabletFile
-          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
-      var stf3 = StoredTabletFile
-          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
-      var stf4 = StoredTabletFile
-          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
-      var dfv = new DataFileValue(100, 100);
+    var stf1 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
+    var stf2 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000071.rf"));
+    var stf3 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000072.rf"));
+    var stf4 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/C0000073.rf"));
+    var dfv = new DataFileValue(100, 100);
 
-      System.out.println(context.getAmple().readTablet(e1).getLocation());
+    System.out.println(context.getAmple().readTablet(e1).getLocation());
 
-      // simulate a compaction where the tablet location is not set
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        var tm1 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv)
-            .putFile(stf3, dfv).build();
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, FILES)
-            .putFile(stf4, new DataFileValue(0, 0)).submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(), context.getAmple().readTablet(e1).getFiles());
-
-      var tm2 = TabletMetadata.builder(e1).putLocation(Location.current(ts1)).build();
-      // simulate minor compacts where the tablet location is not set
-      for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, LOCATION)
-              .putFile(file, new DataFileValue(0, 0)).submit(tm -> false);
-          assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-        }
-      }
-
-      assertEquals(Set.of(), context.getAmple().readTablet(e1).getFiles());
-
-      // set the location
-      var tm3 = TabletMetadata.builder(e1).build(LOCATION);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm3, LOCATION)
-            .putLocation(Location.current(ts1)).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-
-      var tm4 = TabletMetadata.builder(e1).putLocation(Location.current(ts2)).build();
-      // simulate minor compacts where the tablet location is wrong
-      for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm4, LOCATION)
-              .putFile(file, new DataFileValue(0, 0)).submit(tm -> false);
-          assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-        }
-      }
-
-      assertEquals(Set.of(), context.getAmple().readTablet(e1).getFiles());
-
-      // simulate minor compacts where the tablet location is set
-      for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, LOCATION)
-              .putFile(file, new DataFileValue(0, 0)).submit(tm -> false);
-          assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-        }
-      }
-
-      assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
-
-      // simulate a compaction and test a subset and superset of files
-      for (var tabletMeta : List.of(
-          TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).build(),
-          TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
-              .putFile(stf4, dfv).build())) {
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta, FILES)
-              .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2)
-              .deleteFile(stf3).submit(tm -> false);
-          assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-        }
-        assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
-      }
-
-      // simulate a compaction
-      var tm5 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
+    // simulate a compaction where the tablet location is not set
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      var tm1 = TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
           .build();
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES)
-            .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2)
-            .deleteFile(stf3).submit(tm -> false);
-        // First attempt should fail because the dfvs were replaced in the test
-        // so the values of the files will not match
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-
-      // Try again with the correct comapcted datafiles
-      var compactedDv = new DataFileValue(0, 0);
-      tm5 = TabletMetadata.builder(e1).putFile(stf1, compactedDv).putFile(stf2, compactedDv)
-          .putFile(stf3, compactedDv).build();
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES)
-            .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2)
-            .deleteFile(stf3).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles());
-
-      // simulate a bulk import
-      var stf5 = StoredTabletFile
-          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf"));
-      var tm6 = TabletMetadata.builder(e1).build(LOADED);
-      FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId = FateId.from(type, UUID.randomUUID());
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
-            .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
-            .submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(stf4, stf5), context.getAmple().readTablet(e1).getFiles());
-
-      // simulate a compaction
-      var stf6 = StoredTabletFile
-          .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf"));
-      var tm7 =
-          TabletMetadata.builder(e1).putFile(stf4, compactedDv).putFile(stf5, compactedDv).build();
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm7, FILES)
-            .putFile(stf6, new DataFileValue(0, 0)).deleteFile(stf4).deleteFile(stf5)
-            .submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
-
-      // simulate trying to re bulk import file after a compaction
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
-            .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
-            .submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm1, FILES)
+          .putFile(stf4, new DataFileValue(0, 0)).submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
     }
+    assertEquals(Set.of(), context.getAmple().readTablet(e1).getFiles());
+
+    var tm2 = TabletMetadata.builder(e1).putLocation(Location.current(ts1)).build();
+    // simulate minor compacts where the tablet location is not set
+    for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, LOCATION)
+            .putFile(file, new DataFileValue(0, 0)).submit(tm -> false);
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+      }
+    }
+
+    assertEquals(Set.of(), context.getAmple().readTablet(e1).getFiles());
+
+    // set the location
+    var tm3 = TabletMetadata.builder(e1).build(LOCATION);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm3, LOCATION)
+          .putLocation(Location.current(ts1)).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+
+    var tm4 = TabletMetadata.builder(e1).putLocation(Location.current(ts2)).build();
+    // simulate minor compacts where the tablet location is wrong
+    for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm4, LOCATION)
+            .putFile(file, new DataFileValue(0, 0)).submit(tm -> false);
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+      }
+    }
+
+    assertEquals(Set.of(), context.getAmple().readTablet(e1).getFiles());
+
+    // simulate minor compacts where the tablet location is set
+    for (StoredTabletFile file : List.of(stf1, stf2, stf3)) {
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm2, LOCATION)
+            .putFile(file, new DataFileValue(0, 0)).submit(tm -> false);
+        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+      }
+    }
+
+    assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+
+    // simulate a compaction and test a subset and superset of files
+    for (var tabletMeta : List.of(
+        TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).build(),
+        TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv)
+            .putFile(stf4, dfv).build())) {
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta, FILES)
+            .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2)
+            .deleteFile(stf3).submit(tm -> false);
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+      }
+      assertEquals(Set.of(stf1, stf2, stf3), context.getAmple().readTablet(e1).getFiles());
+    }
+
+    // simulate a compaction
+    var tm5 =
+        TabletMetadata.builder(e1).putFile(stf1, dfv).putFile(stf2, dfv).putFile(stf3, dfv).build();
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES)
+          .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2).deleteFile(stf3)
+          .submit(tm -> false);
+      // First attempt should fail because the dfvs were replaced in the test
+      // so the values of the files will not match
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+
+    // Try again with the correct comapcted datafiles
+    var compactedDv = new DataFileValue(0, 0);
+    tm5 = TabletMetadata.builder(e1).putFile(stf1, compactedDv).putFile(stf2, compactedDv)
+        .putFile(stf3, compactedDv).build();
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm5, FILES)
+          .putFile(stf4, new DataFileValue(0, 0)).deleteFile(stf1).deleteFile(stf2).deleteFile(stf3)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf4), context.getAmple().readTablet(e1).getFiles());
+
+    // simulate a bulk import
+    var stf5 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/b-0000009/I0000074.rf"));
+    var tm6 = TabletMetadata.builder(e1).build(LOADED);
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId = FateId.from(type, UUID.randomUUID());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf4, stf5), context.getAmple().readTablet(e1).getFiles());
+
+    // simulate a compaction
+    var stf6 = StoredTabletFile
+        .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/A0000075.rf"));
+    var tm7 =
+        TabletMetadata.builder(e1).putFile(stf4, compactedDv).putFile(stf5, compactedDv).build();
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm7, FILES)
+          .putFile(stf6, new DataFileValue(0, 0)).deleteFile(stf4).deleteFile(stf5)
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
+
+    // simulate trying to re bulk import file after a compaction
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tm6, LOADED)
+          .putFile(stf5, new DataFileValue(0, 0)).putBulkFile(stf5.getTabletFile(), fateId)
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(stf6), context.getAmple().readTablet(e1).getFiles());
   }
 
   @Test
   public void testWALs() {
-    var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
     // Test adding a WAL to a tablet and verifying its presence
     String walFilePath =
@@ -563,8 +566,8 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testSelectedFiles() throws Exception {
-    var context = cluster.getServerContext();
+  public void testSelectedFiles() {
+    var context = getCluster().getServerContext();
 
     var stf1 = StoredTabletFile
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
@@ -652,7 +655,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   @Test
   public void testSelectedFilesReordering() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+      var context = getCluster().getServerContext();
 
       String pathPrefix = "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/";
       StoredTabletFile stf1 = StoredTabletFile.of(new Path(pathPrefix + "F0000070.rf"));
@@ -767,272 +770,264 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testMultipleExtents() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+    var ts1 = new TServerInstance("localhost:9997", 5000L);
+    var ts2 = new TServerInstance("localhost:9997", 6000L);
 
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts1)).submit(tm -> false);
-        ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts2)).submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-        assertEquals(Set.of(e1, e2), results.keySet());
-      }
-      assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
-      assertEquals(Location.future(ts2), context.getAmple().readTablet(e2).getLocation());
-      assertNull(context.getAmple().readTablet(e3).getLocation());
-      assertNull(context.getAmple().readTablet(e4).getLocation());
-
-      var e5 = new KeyExtent(tid, new Text("yz"), new Text("ya"));
-      assertNull(context.getAmple().readTablet(e5));
-
-      // in addition to testing multiple tablets also testing requireAbsentTablet() which is
-      // currently not called elsewhere in this IT
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts2)).submit(tm -> false);
-        ctmi.mutateTablet(e2).requireAbsentTablet().putLocation(Location.future(ts1))
-            .submit(tm -> false);
-        ctmi.mutateTablet(e3).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts1)).submit(tm -> false);
-        ctmi.mutateTablet(e4).requireAbsentOperation().requireAbsentLocation()
-            .putLocation(Location.future(ts2)).submit(tm -> false);
-        ctmi.mutateTablet(e5).requireAbsentTablet().putDirName("t-54321")
-            .putPrevEndRow(e5.prevEndRow()).putTabletAvailability(TabletAvailability.ONDEMAND)
-            .submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.REJECTED, results.get(e1).getStatus());
-        assertEquals(Status.REJECTED, results.get(e2).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e5).getStatus());
-        assertEquals(Set.of(e1, e2, e3, e4, e5), results.keySet());
-      }
-      assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
-      assertEquals(Location.future(ts2), context.getAmple().readTablet(e2).getLocation());
-      assertEquals(Location.future(ts1), context.getAmple().readTablet(e3).getLocation());
-      assertEquals(Location.future(ts2), context.getAmple().readTablet(e4).getLocation());
-      assertEquals("t-54321", context.getAmple().readTablet(e5).getDirName());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts1)).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      assertEquals(Set.of(e1, e2), results.keySet());
     }
+    assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
+    assertEquals(Location.future(ts2), context.getAmple().readTablet(e2).getLocation());
+    assertNull(context.getAmple().readTablet(e3).getLocation());
+    assertNull(context.getAmple().readTablet(e4).getLocation());
+
+    var e5 = new KeyExtent(tid, new Text("yz"), new Text("ya"));
+    assertNull(context.getAmple().readTablet(e5));
+
+    // in addition to testing multiple tablets also testing requireAbsentTablet() which is
+    // currently not called elsewhere in this IT
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentTablet().putLocation(Location.future(ts1))
+          .submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts1)).submit(tm -> false);
+      ctmi.mutateTablet(e4).requireAbsentOperation().requireAbsentLocation()
+          .putLocation(Location.future(ts2)).submit(tm -> false);
+      ctmi.mutateTablet(e5).requireAbsentTablet().putDirName("t-54321")
+          .putPrevEndRow(e5.prevEndRow()).putTabletAvailability(TabletAvailability.ONDEMAND)
+          .submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e4).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e5).getStatus());
+      assertEquals(Set.of(e1, e2, e3, e4, e5), results.keySet());
+    }
+    assertEquals(Location.future(ts1), context.getAmple().readTablet(e1).getLocation());
+    assertEquals(Location.future(ts2), context.getAmple().readTablet(e2).getLocation());
+    assertEquals(Location.future(ts1), context.getAmple().readTablet(e3).getLocation());
+    assertEquals(Location.future(ts2), context.getAmple().readTablet(e4).getLocation());
+    assertEquals("t-54321", context.getAmple().readTablet(e5).getDirName());
   }
 
   @Test
   public void testOperations() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId1 = FateId.from(type, UUID.randomUUID());
-      FateId fateId2 = FateId.from(type, UUID.randomUUID());
-      var opid1 = TabletOperationId.from(TabletOperationType.SPLITTING, fateId1);
-      var opid2 = TabletOperationId.from(TabletOperationType.MERGING, fateId2);
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId1 = FateId.from(type, UUID.randomUUID());
+    FateId fateId2 = FateId.from(type, UUID.randomUUID());
+    var opid1 = TabletOperationId.from(TabletOperationType.SPLITTING, fateId1);
+    var opid2 = TabletOperationId.from(TabletOperationType.MERGING, fateId2);
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(opid1).submit(tm -> false);
-        ctmi.mutateTablet(e2).requireAbsentOperation().putOperation(opid2).submit(tm -> false);
-        ctmi.mutateTablet(e3).requireOperation(opid1).deleteOperation().submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-        assertEquals(Status.REJECTED, results.get(e3).getStatus());
-      }
-      assertEquals(TabletOperationType.SPLITTING,
-          context.getAmple().readTablet(e1).getOperationId().getType());
-      assertEquals(opid1, context.getAmple().readTablet(e1).getOperationId());
-      assertEquals(TabletOperationType.MERGING,
-          context.getAmple().readTablet(e2).getOperationId().getType());
-      assertEquals(opid2, context.getAmple().readTablet(e2).getOperationId());
-      assertNull(context.getAmple().readTablet(e3).getOperationId());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireOperation(opid2).deleteOperation().submit(tm -> false);
-        ctmi.mutateTablet(e2).requireOperation(opid1).deleteOperation().submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.REJECTED, results.get(e1).getStatus());
-        assertEquals(Status.REJECTED, results.get(e2).getStatus());
-      }
-      assertEquals(TabletOperationType.SPLITTING,
-          context.getAmple().readTablet(e1).getOperationId().getType());
-      assertEquals(TabletOperationType.MERGING,
-          context.getAmple().readTablet(e2).getOperationId().getType());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireOperation(opid1).deleteOperation().submit(tm -> false);
-        ctmi.mutateTablet(e2).requireOperation(opid2).deleteOperation().submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      }
-      assertNull(context.getAmple().readTablet(e1).getOperationId());
-      assertNull(context.getAmple().readTablet(e2).getOperationId());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putOperation(opid1).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation().putOperation(opid2).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireOperation(opid1).deleteOperation().submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+      assertEquals(Status.REJECTED, results.get(e3).getStatus());
     }
+    assertEquals(TabletOperationType.SPLITTING,
+        context.getAmple().readTablet(e1).getOperationId().getType());
+    assertEquals(opid1, context.getAmple().readTablet(e1).getOperationId());
+    assertEquals(TabletOperationType.MERGING,
+        context.getAmple().readTablet(e2).getOperationId().getType());
+    assertEquals(opid2, context.getAmple().readTablet(e2).getOperationId());
+    assertNull(context.getAmple().readTablet(e3).getOperationId());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireOperation(opid2).deleteOperation().submit(tm -> false);
+      ctmi.mutateTablet(e2).requireOperation(opid1).deleteOperation().submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
+    }
+    assertEquals(TabletOperationType.SPLITTING,
+        context.getAmple().readTablet(e1).getOperationId().getType());
+    assertEquals(TabletOperationType.MERGING,
+        context.getAmple().readTablet(e2).getOperationId().getType());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireOperation(opid1).deleteOperation().submit(tm -> false);
+      ctmi.mutateTablet(e2).requireOperation(opid2).deleteOperation().submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getOperationId());
+    assertNull(context.getAmple().readTablet(e2).getOperationId());
   }
 
   @Test
   public void testCompaction() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      ExternalCompactionId ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
-      ExternalCompactionId ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionId ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
+    ExternalCompactionId ecid2 = ExternalCompactionId.generate(UUID.randomUUID());
 
-      FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId = FateId.from(type, UUID.randomUUID());
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId = FateId.from(type, UUID.randomUUID());
 
-      ReferencedTabletFile tmpFile =
-          ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
-      CompactorGroupId ceid = CompactorGroupId.of("G1");
-      Set<StoredTabletFile> jobFiles =
-          Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
-      CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
-          CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
+    ReferencedTabletFile tmpFile =
+        ReferencedTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/c1.rf"));
+    CompactorGroupId ceid = CompactorGroupId.of("G1");
+    Set<StoredTabletFile> jobFiles =
+        Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
+    CompactionMetadata ecMeta = new CompactionMetadata(jobFiles, tmpFile, "localhost:4444",
+        CompactionKind.SYSTEM, (short) 2, ceid, false, fateId);
 
-      // create a tablet metadata w/ en empty set of compactions
-      var tabletMetaNoCompactions = TabletMetadata.builder(e1).build(ECOMP);
-      var tabletMetaCompactions =
-          TabletMetadata.builder(e1).putExternalCompaction(ecid1, ecMeta).build();
+    // create a tablet metadata w/ en empty set of compactions
+    var tabletMetaNoCompactions = TabletMetadata.builder(e1).build(ECOMP);
+    var tabletMetaCompactions =
+        TabletMetadata.builder(e1).putExternalCompaction(ecid1, ecMeta).build();
 
-      // Test different compaction requirement scenarios for tablets w/o any compactions in the
-      // metadata table
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMetaNoCompactions, ECOMP)
-            .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
-        ctmi.mutateTablet(e2).requireAbsentOperation().requireCompaction(ecid2)
-            .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
-        ctmi.mutateTablet(e3).requireAbsentOperation().requireSame(tabletMetaNoCompactions, ECOMP)
-            .putExternalCompaction(ecid1, ecMeta).putExternalCompaction(ecid2, ecMeta)
-            .submit(tm -> false);
-        ctmi.mutateTablet(e4).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
-            .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.REJECTED, results.get(e2).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
-        assertEquals(Status.REJECTED, results.get(e4).getStatus());
-      }
-      assertEquals(Set.of(ecid1),
-          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
-      assertEquals(Set.of(), context.getAmple().readTablet(e2).getExternalCompactions().keySet());
-      assertEquals(Set.of(ecid1, ecid2),
-          context.getAmple().readTablet(e3).getExternalCompactions().keySet());
-      assertEquals(Set.of(), context.getAmple().readTablet(e4).getExternalCompactions().keySet());
-
-      // Test compaction requirements that do not match the compaction ids that exists in the
-      // metadata table.
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireCompaction(ecid2)
-            .deleteExternalCompaction(ecid1).submit(tm -> false);
-        ctmi.mutateTablet(e3).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
-            .deleteExternalCompaction(ecid1).submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.REJECTED, results.get(e1).getStatus());
-        assertEquals(Status.REJECTED, results.get(e3).getStatus());
-      }
-      assertEquals(Set.of(ecid1),
-          context.getAmple().readTablet(e1).getExternalCompactions().keySet());
-      assertEquals(Set.of(ecid1, ecid2),
-          context.getAmple().readTablet(e3).getExternalCompactions().keySet());
-
-      // Test compaction requirements that match the compaction ids that exists in the metadata
-      // table.
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
-            .deleteExternalCompaction(ecid1).submit(tm -> false);
-        ctmi.mutateTablet(e3).requireAbsentOperation().requireCompaction(ecid2)
-            .deleteExternalCompaction(ecid1).submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
-      }
-      assertEquals(Set.of(), context.getAmple().readTablet(e1).getExternalCompactions().keySet());
-      assertEquals(Set.of(ecid2),
-          context.getAmple().readTablet(e3).getExternalCompactions().keySet());
+    // Test different compaction requirement scenarios for tablets w/o any compactions in the
+    // metadata table
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMetaNoCompactions, ECOMP)
+          .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireCompaction(ecid2)
+          .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireSame(tabletMetaNoCompactions, ECOMP)
+          .putExternalCompaction(ecid1, ecMeta).putExternalCompaction(ecid2, ecMeta)
+          .submit(tm -> false);
+      ctmi.mutateTablet(e4).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
+          .putExternalCompaction(ecid1, ecMeta).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+      assertEquals(Status.REJECTED, results.get(e4).getStatus());
     }
+    assertEquals(Set.of(ecid1),
+        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    assertEquals(Set.of(), context.getAmple().readTablet(e2).getExternalCompactions().keySet());
+    assertEquals(Set.of(ecid1, ecid2),
+        context.getAmple().readTablet(e3).getExternalCompactions().keySet());
+    assertEquals(Set.of(), context.getAmple().readTablet(e4).getExternalCompactions().keySet());
+
+    // Test compaction requirements that do not match the compaction ids that exists in the
+    // metadata table.
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireCompaction(ecid2)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e3).getStatus());
+    }
+    assertEquals(Set.of(ecid1),
+        context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    assertEquals(Set.of(ecid1, ecid2),
+        context.getAmple().readTablet(e3).getExternalCompactions().keySet());
+
+    // Test compaction requirements that match the compaction ids that exists in the metadata
+    // table.
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMetaCompactions, ECOMP)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      ctmi.mutateTablet(e3).requireAbsentOperation().requireCompaction(ecid2)
+          .deleteExternalCompaction(ecid1).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e3).getStatus());
+    }
+    assertEquals(Set.of(), context.getAmple().readTablet(e1).getExternalCompactions().keySet());
+    assertEquals(Set.of(ecid2),
+        context.getAmple().readTablet(e3).getExternalCompactions().keySet());
   }
 
   @Test
   public void testCompacted() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId1 = FateId.from(type, UUID.randomUUID());
-      FateId fateId2 = FateId.from(type, UUID.randomUUID());
-      FateId fateId3 = FateId.from(type, UUID.randomUUID());
-      FateId fateId4 = FateId.from(type, UUID.randomUUID());
-      FateId fateId5 = FateId.from(type, UUID.randomUUID());
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId1 = FateId.from(type, UUID.randomUUID());
+    FateId fateId2 = FateId.from(type, UUID.randomUUID());
+    FateId fateId3 = FateId.from(type, UUID.randomUUID());
+    FateId fateId4 = FateId.from(type, UUID.randomUUID());
+    FateId fateId5 = FateId.from(type, UUID.randomUUID());
 
-      var tabletMeta1 = TabletMetadata.builder(e1).build(COMPACTED);
+    var tabletMeta1 = TabletMetadata.builder(e1).build(COMPACTED);
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-            .putCompacted(fateId2)
-            .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId2));
-        var tabletMeta2 = TabletMetadata.builder(e2).putCompacted(fateId1).build(COMPACTED);
-        ctmi.mutateTablet(e2).requireAbsentOperation().requireSame(tabletMeta2, COMPACTED)
-            .putCompacted(fateId3)
-            .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId3));
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.REJECTED, results.get(e2).getStatus());
-      }
-      tabletMeta1 = context.getAmple().readTablet(e1);
-      assertEquals(Set.of(fateId2), tabletMeta1.getCompacted());
-      assertEquals(Set.of(), context.getAmple().readTablet(e2).getCompacted());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-            .putCompacted(fateId4).putCompacted(fateId5).submit(tabletMetadata -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      tabletMeta1 = context.getAmple().readTablet(e1);
-      assertEquals(Set.of(fateId2, fateId4, fateId5), tabletMeta1.getCompacted());
-
-      // test require same with a superset
-      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId2).putCompacted(fateId4)
-          .putCompacted(fateId5).putCompacted(fateId1).build(COMPACTED);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-            .deleteCompacted(fateId2).deleteCompacted(fateId4).deleteCompacted(fateId5)
-            .submit(tabletMetadata -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(fateId2, fateId4, fateId5),
-          context.getAmple().readTablet(e1).getCompacted());
-
-      // test require same with a subset
-      tabletMeta1 =
-          TabletMetadata.builder(e2).putCompacted(fateId2).putCompacted(fateId4).build(COMPACTED);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-            .deleteCompacted(fateId2).deleteCompacted(fateId4).deleteCompacted(fateId5)
-            .submit(tabletMetadata -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(fateId2, fateId4, fateId5),
-          context.getAmple().readTablet(e1).getCompacted());
-
-      // now use the exact set the tablet has
-      tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId2).putCompacted(fateId4)
-          .putCompacted(fateId5).build(COMPACTED);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
-            .deleteCompacted(fateId2).deleteCompacted(fateId4).deleteCompacted(fateId5)
-            .submit(tabletMetadata -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(), context.getAmple().readTablet(e1).getCompacted());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .putCompacted(fateId2)
+          .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId2));
+      var tabletMeta2 = TabletMetadata.builder(e2).putCompacted(fateId1).build(COMPACTED);
+      ctmi.mutateTablet(e2).requireAbsentOperation().requireSame(tabletMeta2, COMPACTED)
+          .putCompacted(fateId3)
+          .submit(tabletMetadata -> tabletMetadata.getCompacted().contains(fateId3));
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
     }
+    tabletMeta1 = context.getAmple().readTablet(e1);
+    assertEquals(Set.of(fateId2), tabletMeta1.getCompacted());
+    assertEquals(Set.of(), context.getAmple().readTablet(e2).getCompacted());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .putCompacted(fateId4).putCompacted(fateId5).submit(tabletMetadata -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    tabletMeta1 = context.getAmple().readTablet(e1);
+    assertEquals(Set.of(fateId2, fateId4, fateId5), tabletMeta1.getCompacted());
+
+    // test require same with a superset
+    tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId2).putCompacted(fateId4)
+        .putCompacted(fateId5).putCompacted(fateId1).build(COMPACTED);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .deleteCompacted(fateId2).deleteCompacted(fateId4).deleteCompacted(fateId5)
+          .submit(tabletMetadata -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(fateId2, fateId4, fateId5),
+        context.getAmple().readTablet(e1).getCompacted());
+
+    // test require same with a subset
+    tabletMeta1 =
+        TabletMetadata.builder(e2).putCompacted(fateId2).putCompacted(fateId4).build(COMPACTED);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .deleteCompacted(fateId2).deleteCompacted(fateId4).deleteCompacted(fateId5)
+          .submit(tabletMetadata -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(fateId2, fateId4, fateId5),
+        context.getAmple().readTablet(e1).getCompacted());
+
+    // now use the exact set the tablet has
+    tabletMeta1 = TabletMetadata.builder(e2).putCompacted(fateId2).putCompacted(fateId4)
+        .putCompacted(fateId5).build(COMPACTED);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, COMPACTED)
+          .deleteCompacted(fateId2).deleteCompacted(fateId4).deleteCompacted(fateId5)
+          .submit(tabletMetadata -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(), context.getAmple().readTablet(e1).getCompacted());
   }
 
   @Test
   public void testRootTabletUpdate() {
-    var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
     var rootMeta = context.getAmple().readTablet(RootTable.EXTENT);
     var loc = rootMeta.getLocation();
@@ -1067,120 +1062,126 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
     }
     assertEquals(opid.canonical(),
         context.getAmple().readTablet(RootTable.EXTENT).getOperationId().canonical());
+
+    Wait.waitFor(() -> context.getAmple().readTablet(RootTable.EXTENT).getLocation() == null);
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(RootTable.EXTENT).requireOperation(opid).requireAbsentLocation()
+          .putLocation(Location.future(loc.getServerInstance())).deleteOperation()
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(RootTable.EXTENT).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(RootTable.EXTENT).getOperationId());
+    Wait.waitFor(() -> context.getAmple().readTablet(RootTable.EXTENT).getLocation() != null);
+
   }
 
   @Test
   public void testTime() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      for (var time : List.of(new MetadataTime(100, TimeType.LOGICAL),
-          new MetadataTime(100, TimeType.MILLIS), new MetadataTime(0, TimeType.LOGICAL))) {
-        var tabletMeta1 = TabletMetadata.builder(e1).putTime(time).build();
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, TIME)
-              .putTime(new MetadataTime(101, TimeType.LOGICAL)).submit(tabletMetadata -> false);
-          assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-        }
-        assertEquals(new MetadataTime(0, TimeType.MILLIS),
-            context.getAmple().readTablet(e1).getTime());
+    for (var time : List.of(new MetadataTime(100, TimeType.LOGICAL),
+        new MetadataTime(100, TimeType.MILLIS), new MetadataTime(0, TimeType.LOGICAL))) {
+      var tabletMeta1 = TabletMetadata.builder(e1).putTime(time).build();
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, TIME)
+            .putTime(new MetadataTime(101, TimeType.LOGICAL)).submit(tabletMetadata -> false);
+        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
       }
+      assertEquals(new MetadataTime(0, TimeType.MILLIS),
+          context.getAmple().readTablet(e1).getTime());
+    }
 
-      for (int i = 0; i < 10; i++) {
-        var tabletMeta1 =
-            TabletMetadata.builder(e1).putTime(new MetadataTime(i, TimeType.MILLIS)).build();
-        try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-          ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, TIME)
-              .putTime(new MetadataTime(i + 1, TimeType.MILLIS)).submit(tabletMetadata -> false);
-          assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-        }
-        assertEquals(new MetadataTime(i + 1, TimeType.MILLIS),
-            context.getAmple().readTablet(e1).getTime());
+    for (int i = 0; i < 10; i++) {
+      var tabletMeta1 =
+          TabletMetadata.builder(e1).putTime(new MetadataTime(i, TimeType.MILLIS)).build();
+      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, TIME)
+            .putTime(new MetadataTime(i + 1, TimeType.MILLIS)).submit(tabletMetadata -> false);
+        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
       }
+      assertEquals(new MetadataTime(i + 1, TimeType.MILLIS),
+          context.getAmple().readTablet(e1).getTime());
     }
   }
 
   @Test
   public void testUserCompactionRequested() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      FateInstanceType type = FateInstanceType.fromTableId(tid);
-      FateId fateId1 = FateId.from(type, UUID.randomUUID());
-      FateId fateId2 = FateId.from(type, UUID.randomUUID());
-      FateId fateId3 = FateId.from(type, UUID.randomUUID());
-      FateId fateId4 = FateId.from(type, UUID.randomUUID());
-      FateId fateId5 = FateId.from(type, UUID.randomUUID());
-      var tabletMeta1 = TabletMetadata.builder(e1).build(USER_COMPACTION_REQUESTED);
+    FateInstanceType type = FateInstanceType.fromTableId(tid);
+    FateId fateId1 = FateId.from(type, UUID.randomUUID());
+    FateId fateId2 = FateId.from(type, UUID.randomUUID());
+    FateId fateId3 = FateId.from(type, UUID.randomUUID());
+    FateId fateId4 = FateId.from(type, UUID.randomUUID());
+    FateId fateId5 = FateId.from(type, UUID.randomUUID());
+    var tabletMeta1 = TabletMetadata.builder(e1).build(USER_COMPACTION_REQUESTED);
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId2)
-            .submit(
-                tabletMetadata -> tabletMetadata.getUserCompactionsRequested().contains(fateId2));
-        var tabletMeta2 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId1)
-            .build(USER_COMPACTION_REQUESTED);
-        ctmi.mutateTablet(e2).requireAbsentOperation()
-            .requireSame(tabletMeta2, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId3)
-            .submit(
-                tabletMetadata -> tabletMetadata.getUserCompactionsRequested().contains(fateId3));
-        var results = ctmi.process();
-        assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
-        assertEquals(Status.REJECTED, results.get(e2).getStatus());
-      }
-      tabletMeta1 = context.getAmple().readTablet(e1);
-      assertEquals(Set.of(fateId2), tabletMeta1.getUserCompactionsRequested());
-      assertEquals(Set.of(), context.getAmple().readTablet(e2).getUserCompactionsRequested());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId4)
-            .putUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      tabletMeta1 = context.getAmple().readTablet(e1);
-      assertEquals(Set.of(fateId2, fateId4, fateId5), tabletMeta1.getUserCompactionsRequested());
-
-      // test require same with a superset
-      tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId2)
-          .putUserCompactionRequested(fateId4).putUserCompactionRequested(fateId5)
-          .putUserCompactionRequested(fateId1).build(USER_COMPACTION_REQUESTED);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
-            .deleteUserCompactionRequested(fateId2).deleteUserCompactionRequested(fateId4)
-            .deleteUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(fateId2, fateId4, fateId5),
-          context.getAmple().readTablet(e1).getUserCompactionsRequested());
-
-      // test require same with a subset
-      tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId2)
-          .putUserCompactionRequested(fateId4).build(USER_COMPACTION_REQUESTED);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
-            .deleteUserCompactionRequested(fateId2).deleteUserCompactionRequested(fateId4)
-            .deleteUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(fateId2, fateId4, fateId5),
-          context.getAmple().readTablet(e1).getUserCompactionsRequested());
-
-      // now use the exact set the tablet has
-      tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId2)
-          .putUserCompactionRequested(fateId4).putUserCompactionRequested(fateId5)
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId2)
+          .submit(tabletMetadata -> tabletMetadata.getUserCompactionsRequested().contains(fateId2));
+      var tabletMeta2 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId1)
           .build(USER_COMPACTION_REQUESTED);
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
-            .deleteUserCompactionRequested(fateId2).deleteUserCompactionRequested(fateId4)
-            .deleteUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(Set.of(), context.getAmple().readTablet(e1).getUserCompactionsRequested());
+      ctmi.mutateTablet(e2).requireAbsentOperation()
+          .requireSame(tabletMeta2, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId3)
+          .submit(tabletMetadata -> tabletMetadata.getUserCompactionsRequested().contains(fateId3));
+      var results = ctmi.process();
+      assertEquals(Status.ACCEPTED, results.get(e1).getStatus());
+      assertEquals(Status.REJECTED, results.get(e2).getStatus());
     }
+    tabletMeta1 = context.getAmple().readTablet(e1);
+    assertEquals(Set.of(fateId2), tabletMeta1.getUserCompactionsRequested());
+    assertEquals(Set.of(), context.getAmple().readTablet(e2).getUserCompactionsRequested());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED).putUserCompactionRequested(fateId4)
+          .putUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    tabletMeta1 = context.getAmple().readTablet(e1);
+    assertEquals(Set.of(fateId2, fateId4, fateId5), tabletMeta1.getUserCompactionsRequested());
+
+    // test require same with a superset
+    tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId2)
+        .putUserCompactionRequested(fateId4).putUserCompactionRequested(fateId5)
+        .putUserCompactionRequested(fateId1).build(USER_COMPACTION_REQUESTED);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
+          .deleteUserCompactionRequested(fateId2).deleteUserCompactionRequested(fateId4)
+          .deleteUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(fateId2, fateId4, fateId5),
+        context.getAmple().readTablet(e1).getUserCompactionsRequested());
+
+    // test require same with a subset
+    tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId2)
+        .putUserCompactionRequested(fateId4).build(USER_COMPACTION_REQUESTED);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
+          .deleteUserCompactionRequested(fateId2).deleteUserCompactionRequested(fateId4)
+          .deleteUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(fateId2, fateId4, fateId5),
+        context.getAmple().readTablet(e1).getUserCompactionsRequested());
+
+    // now use the exact set the tablet has
+    tabletMeta1 = TabletMetadata.builder(e2).putUserCompactionRequested(fateId2)
+        .putUserCompactionRequested(fateId4).putUserCompactionRequested(fateId5)
+        .build(USER_COMPACTION_REQUESTED);
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireSame(tabletMeta1, USER_COMPACTION_REQUESTED)
+          .deleteUserCompactionRequested(fateId2).deleteUserCompactionRequested(fateId4)
+          .deleteUserCompactionRequested(fateId5).submit(tabletMetadata -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(Set.of(), context.getAmple().readTablet(e1).getUserCompactionsRequested());
   }
 
   @Nested
@@ -1227,7 +1228,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     @Test
     public void multipleFilters() {
-      ServerContext context = cluster.getServerContext();
+      ServerContext context = getCluster().getServerContext();
 
       // make sure we read all tablets on table initially with no filters
       testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
@@ -1280,17 +1281,15 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     @Test
     public void testCompactedAndFlushIdFilter() {
-      ServerContext context = cluster.getServerContext();
+      ServerContext context = getCluster().getServerContext();
       Set<TabletMetadataFilter> filter = Set.of(new TestTabletMetadataFilter());
       FateInstanceType type = FateInstanceType.fromTableId(tid);
       FateId fateId1 = FateId.from(type, UUID.randomUUID());
       FateId fateId2 = FateId.from(type, UUID.randomUUID());
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        // make sure we read all tablets on table initially with no filters
-        testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
-            "Initially, all tablets should be present");
-      }
+      // make sure we read all tablets on table initially with no filters
+      testFilterApplied(context, Set.of(), Set.of(e1, e2, e3, e4),
+          "Initially, all tablets should be present");
 
       try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
         // Set compacted on e2 but with no flush ID
@@ -1331,7 +1330,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     @Test
     public void walFilter() {
-      ServerContext context = cluster.getServerContext();
+      ServerContext context = getCluster().getServerContext();
 
       Set<TabletMetadataFilter> filter = Set.of(new GcWalsFilter(Set.of()));
 
@@ -1412,7 +1411,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
     @Test
     public void partialFetch() {
-      ServerContext context = cluster.getServerContext();
+      ServerContext context = getCluster().getServerContext();
       TestTabletMetadataFilter filter = new TestTabletMetadataFilter();
       // if we only fetch some columns needed by the filter, we should get an exception
       TabletsMetadata.Options options =
@@ -1427,49 +1426,43 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testFlushId() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
+    assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
 
-      var tabletMeta1 = TabletMetadata.builder(e1).putFlushId(42L).build();
-      assertTrue(tabletMeta1.getFlushId().isPresent());
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, FLUSH_ID)
-            .putFlushId(43L)
-            .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
-
-      var tabletMeta2 = TabletMetadata.builder(e1).build(FLUSH_ID);
-      assertFalse(tabletMeta2.getFlushId().isPresent());
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, FLUSH_ID)
-            .putFlushId(43L)
-            .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(43L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
-
-      var tabletMeta3 = TabletMetadata.builder(e1).putFlushId(43L).build();
-      assertTrue(tabletMeta3.getFlushId().isPresent());
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, FLUSH_ID)
-            .putFlushId(44L)
-            .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 44L);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, FLUSH_ID)
-            .putFlushId(45L)
-            .submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 45L);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
+    var tabletMeta1 = TabletMetadata.builder(e1).putFlushId(42L).build();
+    assertTrue(tabletMeta1.getFlushId().isPresent());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, FLUSH_ID)
+          .putFlushId(43L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
     }
+    assertTrue(context.getAmple().readTablet(e1).getFlushId().isEmpty());
+
+    var tabletMeta2 = TabletMetadata.builder(e1).build(FLUSH_ID);
+    assertFalse(tabletMeta2.getFlushId().isPresent());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, FLUSH_ID)
+          .putFlushId(43L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 43L);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(43L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
+
+    var tabletMeta3 = TabletMetadata.builder(e1).putFlushId(43L).build();
+    assertTrue(tabletMeta3.getFlushId().isPresent());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, FLUSH_ID)
+          .putFlushId(44L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 44L);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, FLUSH_ID)
+          .putFlushId(45L).submit(tabletMetadata -> tabletMetadata.getFlushId().orElse(-1) == 45L);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(44L, context.getAmple().readTablet(e1).getFlushId().getAsLong());
   }
 
   @Test
@@ -1489,7 +1482,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
       c.tableOperations().create(table, new NewTableConfiguration().withSplits(splits));
       var tableId = TableId.of(c.tableOperations().tableIdMap().get(table));
 
-      var ample = cluster.getServerContext().getAmple();
+      var ample = getCluster().getServerContext().getAmple();
 
       AtomicLong accepted = new AtomicLong(0);
       AtomicLong total = new AtomicLong(0);
@@ -1545,214 +1538,119 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
   }
 
   @Test
-  public void testSuspendMarker() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+  public void testTabletAvailability() {
+    var context = getCluster().getServerContext();
 
-      final String SUSPEND_RG = "SUSPEND";
+    assertEquals(TabletAvailability.ONDEMAND,
+        context.getAmple().readTablet(e1).getTabletAvailability());
+    assertEquals(TabletAvailability.ONDEMAND,
+        context.getAmple().readTablet(e2).getTabletAvailability());
 
-      MiniAccumuloClusterImpl cluster = (MiniAccumuloClusterImpl) getCluster();
-      cluster.getConfig().getClusterServerConfiguration().addTabletServerResourceGroup(SUSPEND_RG,
-          1);
-      cluster.getClusterControl().start(ServerType.TABLET_SERVER);
-      List<Process> processes = cluster.getClusterControl().getTabletServers(SUSPEND_RG);
-      assertNotNull(processes);
-      assertEquals(1, processes.size());
-
-      String tableName = getUniqueNames(2)[1];
-      NewTableConfiguration ntc = new NewTableConfiguration();
-      ntc.withInitialTabletAvailability(TabletAvailability.HOSTED);
-      ntc.setProperties(Map.of(Property.TABLE_SUSPEND_DURATION.getKey(), "30s",
-          TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY, SUSPEND_RG));
-      c.tableOperations().create(tableName, ntc);
-
-      c.instanceOperations().waitForBalance();
-
-      TableId suspendTableTid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-
-      TabletMetadata originalTM = null;
-      try (TabletsMetadata tms = TabletsMetadata.builder(c).forTable(suspendTableTid).build()) {
-        assertEquals(1, Iterables.size(tms));
-        originalTM = tms.iterator().next();
-        assertNull(originalTM.getSuspend());
-      }
-
-      cluster.getClusterControl().stopTabletServerGroup(SUSPEND_RG);
-
-      Wait.waitFor(() -> getSuspendedColumn(c, suspendTableTid) != null, 60_000);
-
-      try (var tabletsMutator = getServerContext().getAmple().conditionallyMutateTablets()) {
-        tabletsMutator.mutateTablet(originalTM.getExtent()).requireAbsentOperation()
-            .requireSame(originalTM, SUSPEND).putTabletAvailability(TabletAvailability.ONDEMAND)
-            .submit(tabletMetadata -> false);
-
-        // This should fail because the original tablet metadata does not have a suspend column
-        // and the current tablet metadata does.
-        assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
-            .equals(Status.REJECTED));
-      }
-
-      // test require same when the tablet metadata passed in has a suspend column set
-      var suspendedTM = getServerContext().getAmple().readTablet(originalTM.getExtent());
-      assertNotNull(suspendedTM.getSuspend());
-      try (var tabletsMutator = getServerContext().getAmple().conditionallyMutateTablets()) {
-        tabletsMutator.mutateTablet(originalTM.getExtent()).requireAbsentOperation()
-            .requireSame(suspendedTM, SUSPEND).putFlushNonce(6789).submit(tabletMetadata -> false);
-
-        // This should succeed because the tablet metadata does have a suspend column and the
-        // current tablet metadata does.
-        assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
-            .equals(Status.ACCEPTED));
-      }
-
-      cluster.getClusterControl().start(ServerType.TABLET_SERVER);
-
-      Wait.waitFor(() -> getSuspendedColumn(c, suspendTableTid) == null, 60_000);
-
-      try (var tabletsMutator = getServerContext().getAmple().conditionallyMutateTablets()) {
-        tabletsMutator.mutateTablet(originalTM.getExtent()).requireAbsentOperation()
-            .requireSame(originalTM, SUSPEND).putTabletAvailability(TabletAvailability.ONDEMAND)
-            .submit(tabletMetadata -> false);
-
-        // This should succeed because the original tablet metadata does not have a suspend column
-        // and the current tablet metadata does not also because the tablet server for the SUSPEND
-        // resource group was restarted.
-        assertTrue(tabletsMutator.process().get(originalTM.getExtent()).getStatus()
-            .equals(Status.ACCEPTED));
-
-      }
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation()
+          .requireTabletAvailability(TabletAvailability.HOSTED)
+          .putTabletAvailability(TabletAvailability.UNHOSTED).submit(tm -> false);
+      ctmi.mutateTablet(e2).requireAbsentOperation()
+          .requireTabletAvailability(TabletAvailability.ONDEMAND)
+          .putTabletAvailability(TabletAvailability.UNHOSTED).submit(tm -> false);
+      var results = ctmi.process();
+      assertEquals(Status.REJECTED, results.get(e1).getStatus());
+      assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
     }
-  }
-
-  private static SuspendingTServer getSuspendedColumn(AccumuloClient c, TableId tid) {
-    try (TabletsMetadata tms = TabletsMetadata.builder(c).forTable(tid).build()) {
-      assertEquals(1, Iterables.size(tms));
-      TabletMetadata tm = tms.iterator().next();
-      return tm.getSuspend();
-    }
-  }
-
-  @Test
-  public void testTabletAvailability() throws Exception {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
-
-      assertEquals(TabletAvailability.ONDEMAND,
-          context.getAmple().readTablet(e1).getTabletAvailability());
-      assertEquals(TabletAvailability.ONDEMAND,
-          context.getAmple().readTablet(e2).getTabletAvailability());
-
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation()
-            .requireTabletAvailability(TabletAvailability.HOSTED)
-            .putTabletAvailability(TabletAvailability.UNHOSTED).submit(tm -> false);
-        ctmi.mutateTablet(e2).requireAbsentOperation()
-            .requireTabletAvailability(TabletAvailability.ONDEMAND)
-            .putTabletAvailability(TabletAvailability.UNHOSTED).submit(tm -> false);
-        var results = ctmi.process();
-        assertEquals(Status.REJECTED, results.get(e1).getStatus());
-        assertEquals(Status.ACCEPTED, results.get(e2).getStatus());
-      }
-      assertEquals(TabletAvailability.ONDEMAND,
-          context.getAmple().readTablet(e1).getTabletAvailability());
-      assertEquals(TabletAvailability.UNHOSTED,
-          context.getAmple().readTablet(e2).getTabletAvailability());
-    }
+    assertEquals(TabletAvailability.ONDEMAND,
+        context.getAmple().readTablet(e1).getTabletAvailability());
+    assertEquals(TabletAvailability.UNHOSTED,
+        context.getAmple().readTablet(e2).getTabletAvailability());
   }
 
   @Test
   public void testUnsplittable() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      var tabletMeta1 = TabletMetadata.builder(e1).build(UNSPLITTABLE);
-      // require the UNSPLITTABLE column to be absent when it is absent
-      var usm1 = UnSplittableMetadata.toUnSplittable(e1, 1000, 100000, 32, Set.of());
+    var tabletMeta1 = TabletMetadata.builder(e1).build(UNSPLITTABLE);
+    // require the UNSPLITTABLE column to be absent when it is absent
+    var usm1 = UnSplittableMetadata.toUnSplittable(e1, 1000, 100000, 32, Set.of());
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
-            .setUnSplittable(usm1).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      var tabletMeta2 = context.getAmple().readTablet(e1);
-      assertEquals(usm1.toBase64(), tabletMeta2.getUnSplittable().toBase64());
-
-      // require the UNSPLITTABLE column to be absent when it is not absent
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
-            .deleteUnSplittable().submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
-
-      var usm2 = UnSplittableMetadata.toUnSplittable(e1, 1001, 100001, 33, Set.of());
-      var tabletMeta3 = TabletMetadata.builder(e1).setUnSplittable(usm2).build(UNSPLITTABLE);
-      // require the UNSPLITTABLE column to be usm2 when it is actually usm1
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, UNSPLITTABLE)
-            .deleteUnSplittable().submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
-
-      // require the UNSPLITTABLE column to be usm1 when it is actually usm1
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, UNSPLITTABLE)
-            .deleteUnSplittable().submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
-      }
-      assertNull(context.getAmple().readTablet(e1).getUnSplittable());
-
-      // require the UNSPLITTABLE column to be usm1 when it is actually absent
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, UNSPLITTABLE)
-            .setUnSplittable(usm2).submit(tm -> false);
-        assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
-      }
-      assertNull(context.getAmple().readTablet(e1).getUnSplittable());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
+          .setUnSplittable(usm1).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
     }
+    var tabletMeta2 = context.getAmple().readTablet(e1);
+    assertEquals(usm1.toBase64(), tabletMeta2.getUnSplittable().toBase64());
+
+    // require the UNSPLITTABLE column to be absent when it is not absent
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta1, UNSPLITTABLE)
+          .deleteUnSplittable().submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
+
+    var usm2 = UnSplittableMetadata.toUnSplittable(e1, 1001, 100001, 33, Set.of());
+    var tabletMeta3 = TabletMetadata.builder(e1).setUnSplittable(usm2).build(UNSPLITTABLE);
+    // require the UNSPLITTABLE column to be usm2 when it is actually usm1
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta3, UNSPLITTABLE)
+          .deleteUnSplittable().submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(usm1.toBase64(), context.getAmple().readTablet(e1).getUnSplittable().toBase64());
+
+    // require the UNSPLITTABLE column to be usm1 when it is actually usm1
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, UNSPLITTABLE)
+          .deleteUnSplittable().submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getUnSplittable());
+
+    // require the UNSPLITTABLE column to be usm1 when it is actually absent
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireSame(tabletMeta2, UNSPLITTABLE)
+          .setUnSplittable(usm2).submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getUnSplittable());
   }
 
   @Test
   public void testErrors() {
-    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentTablet().putDirName("d1").submit(tm -> false);
-        // making multiple updates for the same tablet is not supported
-        assertThrows(IllegalStateException.class,
-            () -> ctmi.mutateTablet(e1).requireAbsentTablet().putDirName("d2").submit(tm -> false));
-        // attempt to use a column that requireSame does not support
-        TabletMetadata tabletMetadata = TabletMetadata.builder(e2).build();
-        assertThrows(UnsupportedOperationException.class,
-            () -> ctmi.mutateTablet(e2).requireAbsentOperation()
-                .requireSame(tabletMetadata, HOSTING_REQUESTED).putDirName("d2")
-                .submit(tm -> false));
-      }
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentTablet().putDirName("d1").submit(tm -> false);
+      // making multiple updates for the same tablet is not supported
+      assertThrows(IllegalStateException.class,
+          () -> ctmi.mutateTablet(e1).requireAbsentTablet().putDirName("d2").submit(tm -> false));
+      // attempt to use a column that requireSame does not support
+      TabletMetadata tabletMetadata = TabletMetadata.builder(e2).build();
+      assertThrows(UnsupportedOperationException.class,
+          () -> ctmi.mutateTablet(e2).requireAbsentOperation()
+              .requireSame(tabletMetadata, HOSTING_REQUESTED).putDirName("d2").submit(tm -> false));
+    }
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        // the following end prev end row update should cause a constraint violation because a
-        // tablet's prev end row must be less than its end row
-        ctmi.mutateTablet(e1).requireAbsentOperation().putPrevEndRow(e1.endRow())
-            .submit(tm -> false);
-        // getting status when a constraint violation happened should throw an exception
-        assertThrows(IllegalStateException.class, () -> ctmi.process().get(e1).getStatus());
-      }
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      // the following end prev end row update should cause a constraint violation because a
+      // tablet's prev end row must be less than its end row
+      ctmi.mutateTablet(e1).requireAbsentOperation().putPrevEndRow(e1.endRow()).submit(tm -> false);
+      // getting status when a constraint violation happened should throw an exception
+      assertThrows(IllegalStateException.class, () -> ctmi.process().get(e1).getStatus());
+    }
 
-      try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
-        ctmi.mutateTablet(e1).requireAbsentOperation().putFlushNonce(1234).submit(tm -> false);
-        assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putFlushNonce(1234).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
 
-        // attempting to use after calling proccess() should throw an exception
-        assertThrows(IllegalStateException.class, () -> ctmi.mutateTablet(e1)
-            .requireAbsentOperation().putFlushNonce(1234).submit(tm -> false));
-      }
+      // attempting to use after calling proccess() should throw an exception
+      assertThrows(IllegalStateException.class, () -> ctmi.mutateTablet(e1).requireAbsentOperation()
+          .putFlushNonce(1234).submit(tm -> false));
     }
   }
 
   @Test
   public void testRequiresFiles() {
-    var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
     var stf1 = StoredTabletFile
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
@@ -1803,7 +1701,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testFilesLimit() {
-    var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
     var stf1 = StoredTabletFile
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
@@ -1880,7 +1778,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testRequireAbsentLoaded() {
-    var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
     var stf1 = StoredTabletFile
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));
@@ -1959,7 +1857,7 @@ public class AmpleConditionalWriterIT extends AccumuloClusterHarness {
 
   @Test
   public void testMetadataCheck() {
-    var context = cluster.getServerContext();
+    var context = getCluster().getServerContext();
 
     var stf1 = StoredTabletFile
         .of(new Path("hdfs://localhost:8020/accumulo/tables/2a/default_tablet/F0000070.rf"));

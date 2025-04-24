@@ -16,36 +16,27 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server;
+package org.apache.accumulo.server.conf.store;
+
+import org.apache.accumulo.core.data.AbstractId;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 /**
- * This interface allows service implementations which support running multiple instances
- * concurrently with only one active instance to report whether or not they are the active service.
+ * Provides a strongly-typed id for storing properties in ZooKeeper based on a specific AbstractId
+ * type. The path is based on the AbstractId type, and is the canonical String version of this key.
  */
-public interface HighlyAvailableService {
+public abstract class IdBasedPropStoreKey<ID_TYPE extends AbstractId<ID_TYPE>>
+    extends PropStoreKey {
 
-  /**
-   * Is this service instance currently the active instance for the Accumulo cluster.
-   *
-   * @return True if the service is the active service, false otherwise.
-   */
-  boolean isActiveService();
+  private final ID_TYPE id;
 
-  /**
-   * Is this service instance currently in the process of upgrading.
-   *
-   * @return True if the service is upgrading, false otherwise.
-   */
-  default boolean isUpgrading() {
-    return false;
+  protected IdBasedPropStoreKey(final String path, final ID_TYPE id) {
+    super(path);
+    this.id = id;
   }
 
-  /**
-   * Get the name of the service
-   *
-   * @return service name
-   */
-  default String getServiceName() {
-    return this.getClass().getSimpleName();
+  public @NonNull ID_TYPE getId() {
+    return id;
   }
+
 }

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
 import java.util.Map.Entry;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -43,10 +44,12 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,12 +57,22 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.ArgumentsProvider;
 import org.junit.jupiter.params.provider.ArgumentsSource;
 
-public class CloneIT extends AccumuloClusterHarness {
+public class CloneIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Test
   public void testNoFiles() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
@@ -88,7 +101,7 @@ public class CloneIT extends AccumuloClusterHarness {
   public void testFilesChange(Range range1, Range range2) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       KeyExtent ke = new KeyExtent(TableId.of("0"), null, null);
@@ -150,7 +163,7 @@ public class CloneIT extends AccumuloClusterHarness {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -198,7 +211,7 @@ public class CloneIT extends AccumuloClusterHarness {
   public void testSplit2(Range range) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -280,7 +293,7 @@ public class CloneIT extends AccumuloClusterHarness {
   public void testSplit3(Range range1, Range range2, Range range3) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -329,7 +342,7 @@ public class CloneIT extends AccumuloClusterHarness {
   @ArgumentsSource(RangeArgumentsProvider.class)
   public void testClonedMarker(Range range1, Range range2, Range range3) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
       String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
 
@@ -400,7 +413,7 @@ public class CloneIT extends AccumuloClusterHarness {
   public void testMerge(Range range1, Range range2) throws Exception {
     String filePrefix = "hdfs://nn:8000/accumulo/tables/0";
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      String tableName = getUniqueNames(1)[0];
+      String tableName = generateTableName();
       client.tableOperations().create(tableName);
 
       try (BatchWriter bw1 = client.createBatchWriter(tableName);
@@ -442,5 +455,10 @@ public class CloneIT extends AccumuloClusterHarness {
           Arguments.of(new Range(null, false, "row_0", true),
               new Range("row_0", false, "row_1", true), new Range()));
     }
+  }
+
+  // Append random text because of parameterized tests repeat same test name
+  private String generateTableName() {
+    return getUniqueNames(1)[0] + UUID.randomUUID().toString().substring(0, 8);
   }
 }

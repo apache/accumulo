@@ -16,15 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.tables;
+package org.apache.accumulo.test.functional;
 
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.manager.state.tables.TableState;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
-public interface TableObserver {
-  void initialize();
+public class MergeTabletsIT extends MergeTabletsBaseIT {
 
-  void stateChanged(TableId tableId, TableState tState);
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
 
-  void sessionExpired();
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
 }

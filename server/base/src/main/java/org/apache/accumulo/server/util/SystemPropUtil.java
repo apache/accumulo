@@ -36,14 +36,14 @@ public class SystemPropUtil {
 
   public static void setSystemProperty(ServerContext context, String property, String value)
       throws IllegalArgumentException {
-    final SystemPropKey key = SystemPropKey.of(context);
+    final SystemPropKey key = SystemPropKey.of();
     context.getPropStore().putAll(key,
         Map.of(validateSystemProperty(context, key, property, value), value));
   }
 
   public static void modifyProperties(ServerContext context, long version,
       Map<String,String> properties) throws IllegalArgumentException {
-    final SystemPropKey key = SystemPropKey.of(context);
+    final SystemPropKey key = SystemPropKey.of();
     final Map<String,
         String> checkedProperties = properties.entrySet().stream()
             .collect(Collectors.toMap(
@@ -64,7 +64,7 @@ public class SystemPropUtil {
   }
 
   public static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
-    context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
+    context.getPropStore().removeProperties(SystemPropKey.of(), List.of(property));
   }
 
   private static String validateSystemProperty(ServerContext context, SystemPropKey key,

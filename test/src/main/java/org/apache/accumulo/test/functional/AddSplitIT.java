@@ -53,16 +53,27 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.ImmutableMap;
 
-public class AddSplitIT extends AccumuloClusterHarness {
+public class AddSplitIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -115,11 +126,7 @@ public class AddSplitIT extends AccumuloClusterHarness {
       verifyData(c, tableName, 2L);
 
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(tableName));
-      try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
-        // Default for user created tablets should be mergeability set to NEVER
-        tm.stream().forEach(tablet -> assertEquals(TabletMergeabilityMetadata.never(),
-            tablet.getTabletMergeability()));
-      }
+      verifySplits(id, TabletMergeabilityUtil.userDefaultSplits(splits));
     }
   }
 
@@ -343,12 +350,13 @@ public class AddSplitIT extends AccumuloClusterHarness {
   // Checks that TabletMergeability in metadata matches split settings in the map
   private void verifySplits(TableId id, SortedMap<Text,TabletMergeability> splits) {
     final Set<Text> addedSplits = new HashSet<>(splits.keySet());
-    try (TabletsMetadata tm = getServerContext().getAmple().readTablets().forTable(id).build()) {
+    try (TabletsMetadata tm =
+        getCluster().getServerContext().getAmple().readTablets().forTable(id).build()) {
       tm.stream().forEach(t -> {
         var split = t.getEndRow();
-        // default tablet should be set to never
+        // default tablet should be set to always
         if (split == null) {
-          assertEquals(TabletMergeability.never(),
+          assertEquals(TabletMergeability.always(),
               t.getTabletMergeability().getTabletMergeability());
         } else {
           assertTrue(addedSplits.remove(split));
@@ -367,9 +375,9 @@ public class AddSplitIT extends AccumuloClusterHarness {
     c.tableOperations().getTabletInformation(tableName, new Range()).forEach(ti -> {
       var tmInfo = ti.getTabletMergeabilityInfo();
       var split = ti.getTabletId().getEndRow();
-      // default tablet should always be set to never
+      // default tablet should always be set to always
       if (split == null) {
-        assertEquals(TabletMergeability.never(),
+        assertEquals(TabletMergeability.always(),
             ti.getTabletMergeabilityInfo().getTabletMergeability());
       } else {
         assertTrue(addedSplits.remove(split));

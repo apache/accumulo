@@ -496,7 +496,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // TODO should there be a server side check for this?
     context.requireNotOffline(tableId, tableName);
 
-    ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, tableId);
+    ClientTabletCache tabLocator = context.getTabletLocationCache(tableId);
 
     SortedMap<Text,TabletMergeability> splitsTodo =
         Collections.synchronizedSortedMap(new TreeMap<>(splits));
@@ -1288,7 +1288,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     TableId tableId = context.getTableId(tableName);
-    ClientTabletCache tl = ClientTabletCache.getInstance(context, tableId);
+    ClientTabletCache tl = context.getTabletLocationCache(tableId);
     // it's possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
@@ -1566,8 +1566,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    ClientTabletCache tabLocator =
-        ClientTabletCache.getInstance(context, context.getTableId(tableName));
+    ClientTabletCache tabLocator = context.getTabletLocationCache(context.getTableId(tableName));
     tabLocator.invalidateCache();
   }
 
@@ -1980,7 +1979,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       rangeList = new ArrayList<>(ranges);
     }
 
-    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
+    ClientTabletCache locator = context.getTabletLocationCache(tableId);
     locator.invalidateCache();
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))

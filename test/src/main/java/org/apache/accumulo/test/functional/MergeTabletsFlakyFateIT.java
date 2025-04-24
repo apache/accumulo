@@ -16,18 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.singletons;
+package org.apache.accumulo.test.functional;
+
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.test.fate.FlakyFateManager;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
 /**
- * The {@link SingletonManager} uses this interface to enable and disable singleton services.
- *
- * @see SingletonManager#register(SingletonService)
+ * Run all of the merge test using a flaky Fate impl that will run merge fate steps multiple times
+ * to ensure idempotent.
  */
-public interface SingletonService {
+public class MergeTabletsFlakyFateIT extends MergeTabletsBaseIT {
 
-  public boolean isEnabled();
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
+    });
 
-  public void enable();
+  }
 
-  public void disable();
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 }

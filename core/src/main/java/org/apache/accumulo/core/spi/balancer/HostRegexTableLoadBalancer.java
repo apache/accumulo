@@ -157,7 +157,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     private final Map<String,Pattern> poolNameToRegexPattern;
 
     HrtlbConf(PluginEnvironment.Configuration conf) {
-      System.out.println("building hrtlb conf");
+      LOG.info("Building conf");
       String oobProperty = conf.get(HOST_BALANCER_OOB_CHECK_KEY);
       if (oobProperty != null) {
         oobCheckMillis = ConfigurationTypeHelper.getTimeInMillis(oobProperty);
@@ -379,7 +379,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
   public long balance(BalanceParameters params) {
     long minBalanceTime = 20_000;
     // Iterate over the tables and balance each of them
-    Map<String,TableId> tableIdMap = environment.getTableIdMap();
+    Map<String,TableId> tableIdMap = params.getTablesToBalance();
     Map<TableId,String> tableIdToTableName = tableIdMap.entrySet().stream()
         .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
     tableIdToTableName.keySet().forEach(this::checkTableConfig);
@@ -396,7 +396,8 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         splitCurrentByRegex(params.currentStatus());
     final DataLevel currentLevel = DataLevel.valueOf(params.currentLevel());
 
-    if ((now - this.lastOOBCheckTimes.getOrDefault(currentLevel, System.currentTimeMillis()))
+    if ((now
+        - this.lastOOBCheckTimes.computeIfAbsent(currentLevel, (l) -> System.currentTimeMillis()))
         > myConf.oobCheckMillis) {
       try {
         // Check to see if a tablet is assigned outside the bounds of the pool. If so, migrate it.
@@ -510,8 +511,9 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      getBalancerForTable(tableId).balance(new BalanceParamsImpl(currentView,
-          params.currentResourceGroups(), migrations, newMigrations, DataLevel.of(tableId)));
+      getBalancerForTable(tableId)
+          .balance(new BalanceParamsImpl(currentView, params.currentResourceGroups(), migrations,
+              newMigrations, DataLevel.of(tableId), Map.of(tableName, tableId)));
 
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);

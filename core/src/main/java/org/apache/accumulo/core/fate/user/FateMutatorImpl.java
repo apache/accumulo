@@ -261,4 +261,9 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
       throw new RuntimeException(e);
     }
   }
+
+  @Override
+  public ConditionalMutation getMutation() {
+    return mutation;
+  }
 }

@@ -36,15 +36,27 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
-public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
+public class ZooKeeperPropertiesIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Test
   public void testNoFiles() {
@@ -59,7 +71,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
   @Timeout(30)
   public void testTablePropUtils() throws AccumuloException, TableExistsException,
       AccumuloSecurityException, TableNotFoundException {
-    ServerContext context = getServerContext();
+    ServerContext context = getCluster().getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -71,7 +83,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       Map<String,String> properties = client.tableOperations().getConfiguration(tableName);
       assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      final TablePropKey tablePropKey = TablePropKey.of(context, TableId.of(tid));
+      final TablePropKey tablePropKey = TablePropKey.of(TableId.of(tid));
       PropUtil.setProperties(context, tablePropKey,
           Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
@@ -111,7 +123,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
   @Timeout(30)
   public void testNamespacePropUtils() throws AccumuloException, AccumuloSecurityException,
       NamespaceExistsException, NamespaceNotFoundException {
-    ServerContext context = getServerContext();
+    ServerContext context = getCluster().getServerContext();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -124,7 +136,7 @@ public class ZooKeeperPropertiesIT extends AccumuloClusterHarness {
       assertEquals("15", properties.get(Property.TABLE_FILE_MAX.getKey()));
 
       final NamespaceId namespaceId = NamespaceId.of(nid);
-      final NamespacePropKey namespacePropKey = NamespacePropKey.of(context, namespaceId);
+      final NamespacePropKey namespacePropKey = NamespacePropKey.of(namespaceId);
       PropUtil.setProperties(context, namespacePropKey,
           Map.of(Property.TABLE_FILE_MAX.getKey(), "31"));
 

@@ -59,22 +59,29 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
+import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class MetadataIT extends AccumuloClusterHarness {
+public class MetadataIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniClusterWithConfig(
+        (cfg, coreSite) -> cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1));
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
-  }
-
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   @Test
@@ -285,12 +292,23 @@ public class MetadataIT extends AccumuloClusterHarness {
     assertEquals(maxVersions,
         tableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
 
-    // Verify all tablets are HOSTED and Mergeablity is NEVER
+    // Verify all tablets are HOSTED and initial TabletMergeability settings
+    var metaSplit = MetadataSchema.TabletsSection.getRange().getEndKey().getRow();
+    var initAlwaysMergeable =
+        TabletMergeabilityMetadata.always(SteadyTime.from(Duration.ofMillis(0)));
     try (var tablets = client.getAmple().readTablets().forTable(tableId).build()) {
       assertTrue(
           tablets.stream().allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
-      assertTrue(tablets.stream()
-          .allMatch(tm -> tm.getTabletMergeability().equals(TabletMergeabilityMetadata.never())));
+      assertTrue(tablets.stream().allMatch(tm -> {
+        // ROOT table and Metadata TabletsSection tablet should be set to never mergeable
+        // All other initial tablets for Metadata, Fate, Scanref should be always
+        if (AccumuloTable.ROOT.tableId().equals(tableId)
+            || (AccumuloTable.METADATA.tableId().equals(tableId)
+                && metaSplit.equals(tm.getEndRow()))) {
+          return tm.getTabletMergeability().equals(TabletMergeabilityMetadata.never());
+        }
+        return tm.getTabletMergeability().equals(initAlwaysMergeable);
+      }));
     }
   }
 }

@@ -121,7 +121,6 @@ public class ScanCommand extends Command {
 
       // handle columns
       fetchColumns(cl, scanner);
-      fetchColumsWithCFAndCQ(cl, scanner);
 
       // set timeout
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
@@ -236,16 +235,33 @@ public class ScanCommand extends Command {
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner)
       throws UnsupportedEncodingException {
 
-    if ((cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt()))
-        && cl.hasOption(scanOptColumns.getOpt())) {
+    if (cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt())) {
+      if (cl.hasOption(scanOptColumns.getOpt())) {
+        String formattedString =
+            String.format("Option -%s is mutually exclusive with options -%s and -%s.",
+                scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
+        throw new IllegalArgumentException(formattedString);
+      }
+      String cf = "";
+      String cq = "";
+      if (cl.hasOption(scanOptCf.getOpt())) {
+        cf = cl.getOptionValue(scanOptCf.getOpt());
+      }
+      if (cl.hasOption(scanOptCq.getOpt())) {
+        cq = cl.getOptionValue(scanOptCq.getOpt());
+      }
 
-      String formattedString =
-          String.format("Option -%s is mutually exclusive with options -%s and -%s.",
-              scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
-      throw new IllegalArgumentException(formattedString);
-    }
-
-    if (cl.hasOption(scanOptColumns.getOpt())) {
+      if (cf.isEmpty() && !cq.isEmpty()) {
+        String formattedString = String.format("Option -%s is required when using -%s.",
+            scanOptCf.getOpt(), scanOptCq.getOpt());
+        throw new IllegalArgumentException(formattedString);
+      } else if (!cf.isEmpty() && cq.isEmpty()) {
+        scanner.fetchColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      } else if (!cf.isEmpty() && !cq.isEmpty()) {
+        scanner.fetchColumn(new Text(cf.getBytes(Shell.CHARSET)),
+            new Text(cq.getBytes(Shell.CHARSET)));
+      }
+    } else if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
@@ -256,30 +272,6 @@ public class ScanCommand extends Command {
         }
       }
     }
-  }
-
-  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner) {
-    String cf = "";
-    String cq = "";
-    if (cl.hasOption(scanOptCf.getOpt())) {
-      cf = cl.getOptionValue(scanOptCf.getOpt());
-    }
-    if (cl.hasOption(scanOptCq.getOpt())) {
-      cq = cl.getOptionValue(scanOptCq.getOpt());
-    }
-
-    if (cf.isEmpty() && !cq.isEmpty()) {
-      String formattedString = String.format("Option -%s is required when using -%s.",
-          scanOptCf.getOpt(), scanOptCq.getOpt());
-      throw new IllegalArgumentException(formattedString);
-    } else if (!cf.isEmpty() && cq.isEmpty()) {
-      scanner.fetchColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
-    } else if (!cf.isEmpty() && !cq.isEmpty()) {
-      scanner.fetchColumn(new Text(cf.getBytes(Shell.CHARSET)),
-          new Text(cq.getBytes(Shell.CHARSET)));
-
-    }
-
   }
 
   protected Range getRange(final CommandLine cl) throws UnsupportedEncodingException {

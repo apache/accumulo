@@ -237,7 +237,6 @@ public class Tablet extends TabletBase {
 
         if (files == null) {
           log.debug("Tablet {} had no dir, creating {}", extent, path);
-
           getTabletServer().getVolumeManager().mkdirs(path);
         }
         checkedTabletDirs.add(path);
@@ -628,9 +627,8 @@ public class Tablet extends TabletBase {
 
   public long getFlushID() throws NoNodeException {
     try {
-      String zTablePath = tabletServer.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/"
-          + extent.tableId() + Constants.ZTABLE_FLUSH_ID;
-      String id = new String(context.getZooSession().asReaderWriter().getData(zTablePath), UTF_8);
+      String id = new String(context.getZooSession().asReaderWriter()
+          .getData(Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);

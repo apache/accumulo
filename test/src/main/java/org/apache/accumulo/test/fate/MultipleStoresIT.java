@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -33,12 +33,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
@@ -244,35 +245,37 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
     liveLocks.add(lock1);
     liveLocks.add(lock2);
 
-    Fate<SleepingTestEnv> fate1 =
-        new Fate<>(testEnv1, store1, true, Object::toString, DefaultConfiguration.getInstance());
-    Fate<SleepingTestEnv> fate2 =
-        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
+    Fate<SleepingTestEnv> fate1 = new Fate<>(testEnv1, store1, true, Object::toString,
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
+    Fate<SleepingTestEnv> fate2 = new Fate<>(testEnv2, store2, false, Object::toString,
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
 
-    for (int i = 0; i < numFateIds; i++) {
-      FateId fateId;
-      // Start half the txns using fate1, and the other half using fate2
-      if (i % 2 == 0) {
-        fateId = fate1.startTransaction();
-        fate1.seedTransaction(TEST_FATE_OP, fateId, new SleepingTestRepo(), true, "test");
-      } else {
-        fateId = fate2.startTransaction();
-        fate2.seedTransaction(TEST_FATE_OP, fateId, new SleepingTestRepo(), true, "test");
+    try {
+      for (int i = 0; i < numFateIds; i++) {
+        FateId fateId;
+        // Start half the txns using fate1, and the other half using fate2
+        if (i % 2 == 0) {
+          fateId = fate1.startTransaction();
+          fate1.seedTransaction(TEST_FATE_OP, fateId, new SleepingTestRepo(), true, "test");
+        } else {
+          fateId = fate2.startTransaction();
+          fate2.seedTransaction(TEST_FATE_OP, fateId, new SleepingTestRepo(), true, "test");
+        }
+        allIds.add(fateId);
       }
-      allIds.add(fateId);
-    }
-    assertEquals(numFateIds, allIds.size());
+      assertEquals(numFateIds, allIds.size());
 
-    // Should be able to wait for completion on any fate instance
-    for (FateId fateId : allIds) {
-      fate2.waitForCompletion(fateId);
+      // Should be able to wait for completion on any fate instance
+      for (FateId fateId : allIds) {
+        fate2.waitForCompletion(fateId);
+      }
+      // Ensure that all txns have been executed and have only been executed once
+      assertTrue(Collections.disjoint(testEnv1.executedOps, testEnv2.executedOps));
+      assertEquals(allIds, Sets.union(testEnv1.executedOps, testEnv2.executedOps));
+    } finally {
+      fate1.shutdown(1, TimeUnit.MINUTES);
+      fate2.shutdown(1, TimeUnit.MINUTES);
     }
-    // Ensure that all txns have been executed and have only been executed once
-    assertTrue(Collections.disjoint(testEnv1.executedOps, testEnv2.executedOps));
-    assertEquals(allIds, Sets.union(testEnv1.executedOps, testEnv2.executedOps));
-
-    fate1.shutdown(1, TimeUnit.MINUTES);
-    fate2.shutdown(1, TimeUnit.MINUTES);
   }
 
   @Test
@@ -287,9 +290,10 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
     // reserved using the old LockID should be cleaned up by Fate's DeadReservationCleaner,
     // then picked up by the new Fate/store.
 
+    // > 1 to have some concurrency to simulate realistic fate scenario
+    final int numThreads = 10;
     // One transaction for each FATE worker thread
-    final int numFateIds =
-        Integer.parseInt(Property.MANAGER_FATE_THREADPOOL_SIZE.getDefaultValue());
+    final int numFateIds = numThreads;
     final Set<FateId> allIds = new HashSet<>();
     final LatchTestEnv testEnv1 = new LatchTestEnv();
     final LatchTestEnv testEnv2 = new LatchTestEnv();
@@ -297,71 +301,78 @@ public abstract class MultipleStoresIT extends SharedMiniClusterBase {
     final ZooUtil.LockID lock2 = new ZooUtil.LockID("/locks", "L2", 52);
     final Set<ZooUtil.LockID> liveLocks = new HashSet<>();
     final Predicate<ZooUtil.LockID> isLockHeld = liveLocks::contains;
+    final AccumuloConfiguration config = FateTestUtil.createTestFateConfig(numThreads);
     Map<FateId,FateStore.FateReservation> reservations;
 
     final FateStore<LatchTestEnv> store1 = testStoreFactory.create(lock1, isLockHeld);
     liveLocks.add(lock1);
+    Fate<LatchTestEnv> fate1 = null;
+    Fate<LatchTestEnv> fate2 = null;
 
-    FastFate<LatchTestEnv> fate1 = new FastFate<>(testEnv1, store1, true, Object::toString,
-        DefaultConfiguration.getInstance());
+    try {
+      fate1 = new FastFate<>(testEnv1, store1, true, Object::toString, config);
+      // Ensure nothing is reserved yet
+      assertTrue(store1.getActiveReservations().isEmpty());
 
-    // Ensure nothing is reserved yet
-    assertTrue(store1.getActiveReservations().isEmpty());
+      // Create transactions
+      for (int i = 0; i < numFateIds; i++) {
+        FateId fateId;
+        fateId = fate1.startTransaction();
+        fate1.seedTransaction(TEST_FATE_OP, fateId, new LatchTestRepo(), true, "test");
+        allIds.add(fateId);
+      }
+      assertEquals(numFateIds, allIds.size());
 
-    // Create transactions
-    for (int i = 0; i < numFateIds; i++) {
-      FateId fateId;
-      fateId = fate1.startTransaction();
-      fate1.seedTransaction(TEST_FATE_OP, fateId, new LatchTestRepo(), true, "test");
-      allIds.add(fateId);
+      // Wait for all the fate worker threads to start working on the transactions
+      Wait.waitFor(() -> testEnv1.numWorkers.get() == numFateIds);
+      // Each fate worker will be hung up working (IN_PROGRESS) on a single transaction
+
+      // Verify store1 has the transactions reserved and that they were reserved with lock1
+      reservations = store1.getActiveReservations();
+      assertEquals(allIds, reservations.keySet());
+      reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
+
+      final FateStore<LatchTestEnv> store2 = testStoreFactory.create(lock2, isLockHeld);
+
+      // Verify store2 can see the reserved transactions even though they were reserved using
+      // store1
+      reservations = store2.getActiveReservations();
+      assertEquals(allIds, reservations.keySet());
+      reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
+
+      // Simulate what would happen if the Manager using the Fate object (fate1) died.
+      // isLockHeld would return false for the LockId of the Manager that died (in this case, lock1)
+      // and true for the new Manager's lock (lock2)
+      liveLocks.remove(lock1);
+      liveLocks.add(lock2);
+
+      // Create the new Fate/start the Fate threads (the work finder and the workers).
+      // Don't run another dead reservation cleaner since we already have one running from fate1.
+      fate2 = new Fate<>(testEnv2, store2, false, Object::toString, config,
+          new ScheduledThreadPoolExecutor(2));
+
+      // Wait for the "dead" reservations to be deleted and picked up again (reserved using
+      // fate2/store2/lock2 now).
+      // They are considered "dead" if they are held by lock1 in this test. We don't have to worry
+      // about fate1/store1/lock1 being used to reserve the transactions again since all
+      // the workers for fate1 are hung up
+      Wait.waitFor(() -> {
+        Map<FateId,FateStore.FateReservation> store2Reservations = store2.getActiveReservations();
+        boolean allReservedWithLock2 =
+            store2Reservations.values().stream().allMatch(entry -> entry.getLockID().equals(lock2));
+        return store2Reservations.keySet().equals(allIds) && allReservedWithLock2;
+      }, fate1.getDeadResCleanupDelay().toMillis() * 2);
+    } finally {
+      // Finish work and shutdown
+      testEnv1.workersLatch.countDown();
+      testEnv2.workersLatch.countDown();
+      if (fate1 != null) {
+        fate1.shutdown(1, TimeUnit.MINUTES);
+      }
+      if (fate2 != null) {
+        fate2.shutdown(1, TimeUnit.MINUTES);
+      }
     }
-    assertEquals(numFateIds, allIds.size());
-
-    // Wait for all the fate worker threads to start working on the transactions
-    Wait.waitFor(() -> testEnv1.numWorkers.get() == numFateIds);
-    // Each fate worker will be hung up working (IN_PROGRESS) on a single transaction
-
-    // Verify store1 has the transactions reserved and that they were reserved with lock1
-    reservations = store1.getActiveReservations();
-    assertEquals(allIds, reservations.keySet());
-    reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
-
-    final FateStore<LatchTestEnv> store2 = testStoreFactory.create(lock2, isLockHeld);
-
-    // Verify store2 can see the reserved transactions even though they were reserved using
-    // store1
-    reservations = store2.getActiveReservations();
-    assertEquals(allIds, reservations.keySet());
-    reservations.values().forEach(res -> assertEquals(lock1, res.getLockID()));
-
-    // Simulate what would happen if the Manager using the Fate object (fate1) died.
-    // isLockHeld would return false for the LockId of the Manager that died (in this case, lock1)
-    // and true for the new Manager's lock (lock2)
-    liveLocks.remove(lock1);
-    liveLocks.add(lock2);
-
-    // Create the new Fate/start the Fate threads (the work finder and the workers).
-    // Don't run another dead reservation cleaner since we already have one running from fate1.
-    Fate<LatchTestEnv> fate2 =
-        new Fate<>(testEnv2, store2, false, Object::toString, DefaultConfiguration.getInstance());
-
-    // Wait for the "dead" reservations to be deleted and picked up again (reserved using
-    // fate2/store2/lock2 now).
-    // They are considered "dead" if they are held by lock1 in this test. We don't have to worry
-    // about fate1/store1/lock1 being used to reserve the transactions again since all
-    // the workers for fate1 are hung up
-    Wait.waitFor(() -> {
-      Map<FateId,FateStore.FateReservation> store2Reservations = store2.getActiveReservations();
-      boolean allReservedWithLock2 =
-          store2Reservations.values().stream().allMatch(entry -> entry.getLockID().equals(lock2));
-      return store2Reservations.keySet().equals(allIds) && allReservedWithLock2;
-    }, fate1.getDeadResCleanupDelay().toMillis() * 2);
-
-    // Finish work and shutdown
-    testEnv1.workersLatch.countDown();
-    testEnv2.workersLatch.countDown();
-    fate1.shutdown(1, TimeUnit.MINUTES);
-    fate2.shutdown(1, TimeUnit.MINUTES);
   }
 
   public static class SleepingTestRepo implements Repo<SleepingTestEnv> {

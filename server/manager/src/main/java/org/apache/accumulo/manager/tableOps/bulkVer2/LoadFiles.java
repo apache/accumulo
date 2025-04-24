@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType.CURRENT;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -33,6 +34,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -63,6 +65,7 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.PeekingIterator;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -82,6 +85,13 @@ import com.google.common.net.HostAndPort;
  */
 class LoadFiles extends ManagerRepo {
 
+  // visible for testing
+  interface TabletsMetadataFactory {
+
+    TabletsMetadata newTabletsMetadata(Text startRow);
+
+  }
+
   private static final long serialVersionUID = 1L;
 
   private static final Logger log = LoggerFactory.getLogger(LoadFiles.class);
@@ -94,6 +104,7 @@ class LoadFiles extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
+    log.info("Starting for {} (tid = {})", bulkInfo.sourceDir, fateId);
     if (manager.onlineTabletServers().isEmpty()) {
       log.warn("There are no tablet server to process bulkDir import, waiting (fateId = " + fateId
           + ")");
@@ -104,7 +115,21 @@ class LoadFiles extends ManagerRepo {
     manager.updateBulkImportStatus(bulkInfo.sourceDir, BulkImportState.LOADING);
     try (LoadMappingIterator lmi =
         BulkSerialize.getUpdatedLoadMapping(bulkDir.toString(), bulkInfo.tableId, fs::open)) {
-      return loadFiles(bulkInfo.tableId, bulkDir, lmi, manager, fateId);
+
+      Loader loader = new Loader(manager, bulkInfo.tableId);
+
+      List<ColumnType> fetchCols = new ArrayList<>(List.of(PREV_ROW, LOCATION, LOADED, TIME));
+      if (loader.pauseLimit > 0) {
+        fetchCols.add(FILES);
+      }
+
+      TabletsMetadataFactory tmf = (startRow) -> TabletsMetadata.builder(manager.getContext())
+          .forTable(bulkInfo.tableId).overlapping(startRow, null).checkConsistency()
+          .fetch(fetchCols.toArray(new ColumnType[0])).build();
+
+      int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
+          .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
+      return loadFiles(loader, bulkInfo, bulkDir, lmi, tmf, manager, fateId, skip);
     }
   }
 
@@ -113,28 +138,34 @@ class LoadFiles extends ManagerRepo {
     return new RefreshTablets(bulkInfo);
   }
 
-  private static class Loader {
-    protected Path bulkDir;
-    protected Manager manager;
-    protected FateId fateId;
-    protected boolean setTime;
+  // visible for testing
+  public static class Loader {
+    private final Manager manager;
+    private final long pauseLimit;
+
+    private Path bulkDir;
+    private FateId fateId;
+    private boolean setTime;
     Ample.ConditionalTabletsMutator conditionalMutator;
     private Map<KeyExtent,List<TabletFile>> loadingFiles;
-
     private long skipped = 0;
-    private long pauseLimit;
+
+    public Loader(Manager manager, TableId tableId) {
+      Objects.requireNonNull(manager, "Manager must be supplied");
+      Objects.requireNonNull(tableId, "Table ID must be supplied");
+      this.manager = manager;
+      this.pauseLimit =
+          manager.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
+    }
 
     void start(Path bulkDir, Manager manager, TableId tableId, FateId fateId, boolean setTime)
         throws Exception {
       this.bulkDir = bulkDir;
-      this.manager = manager;
       this.fateId = fateId;
       this.setTime = setTime;
       conditionalMutator = manager.getContext().getAmple().conditionallyMutateTablets();
       this.skipped = 0;
       this.loadingFiles = new HashMap<>();
-      this.pauseLimit =
-          manager.getContext().getTableConfiguration(tableId).getCount(Property.TABLE_FILE_PAUSE);
     }
 
     void load(List<TabletMetadata> tablets, Files files) {
@@ -345,49 +376,87 @@ class LoadFiles extends ManagerRepo {
   }
 
   /**
+   * Stats for the loadFiles method. Helps track wasted time and iterations.
+   */
+  static class ImportTimingStats {
+    Duration totalWastedTime = Duration.ZERO;
+    long wastedIterations = 0;
+    long tabletCount = 0;
+    long callCount = 0;
+  }
+
+  /**
    * Make asynchronous load calls to each overlapping Tablet in the bulk mapping. Return a sleep
    * time to isReady based on a factor of the TabletServer with the most Tablets. This method will
    * scan the metadata table getting Tablet range and location information. It will return 0 when
    * all files have been loaded.
    */
-  private long loadFiles(TableId tableId, Path bulkDir, LoadMappingIterator loadMapIter,
-      Manager manager, FateId fateId) throws Exception {
+  // visible for testing
+  static long loadFiles(Loader loader, BulkInfo bulkInfo, Path bulkDir,
+      LoadMappingIterator loadMapIter, TabletsMetadataFactory factory, Manager manager,
+      FateId fateId, int skipDistance) throws Exception {
     PeekingIterator<Map.Entry<KeyExtent,Bulk.Files>> lmi = new PeekingIterator<>(loadMapIter);
     Map.Entry<KeyExtent,Bulk.Files> loadMapEntry = lmi.peek();
 
     Text startRow = loadMapEntry.getKey().prevEndRow();
 
-    Loader loader = new Loader();
-    long t1;
-    loader.start(bulkDir, manager, tableId, fateId, bulkInfo.setTime);
+    String fmtTid = fateId.getTxUUIDStr();
+    log.trace("{}: Started loading files at row: {}", fmtTid, startRow);
 
-    List<ColumnType> fetchCols = new ArrayList<>(List.of(PREV_ROW, LOCATION, LOADED, TIME));
-    if (loader.pauseLimit > 0) {
-      fetchCols.add(FILES);
-    }
+    loader.start(bulkDir, manager, bulkInfo.tableId, fateId, bulkInfo.setTime);
 
-    try (TabletsMetadata tabletsMetadata =
-        TabletsMetadata.builder(manager.getContext()).forTable(tableId).overlapping(startRow, null)
-            .checkConsistency().fetch(fetchCols.toArray(new ColumnType[0])).build()) {
+    ImportTimingStats importTimingStats = new ImportTimingStats();
+    Timer timer = Timer.startNew();
 
-      // The tablet iterator and load mapping iterator are both iterating over data that is sorted
-      // in the same way. The two iterators are each independently advanced to find common points in
-      // the sorted data.
-      var tabletIter = tabletsMetadata.iterator();
-
-      t1 = System.currentTimeMillis();
+    TabletsMetadata tabletsMetadata = factory.newTabletsMetadata(startRow);
+    try {
+      PeekingIterator<TabletMetadata> pi = new PeekingIterator<>(tabletsMetadata.iterator());
       while (lmi.hasNext()) {
         loadMapEntry = lmi.next();
-        List<TabletMetadata> tablets = findOverlappingTablets(loadMapEntry.getKey(), tabletIter);
+        // If the user set the TABLE_BULK_SKIP_THRESHOLD property, then only look
+        // at the next skipDistance tablets before recreating the iterator
+        if (skipDistance > 0) {
+          final KeyExtent loadMapKey = loadMapEntry.getKey();
+          if (!pi.findWithin(
+              tm -> PREV_COMP.compare(tm.getPrevEndRow(), loadMapKey.prevEndRow()) >= 0,
+              skipDistance)) {
+            log.debug(
+                "{}: Next load mapping range {} not found in {} tablets, recreating TabletMetadata to jump ahead",
+                fmtTid, loadMapKey.prevEndRow(), skipDistance);
+            tabletsMetadata.close();
+            tabletsMetadata = factory.newTabletsMetadata(loadMapKey.prevEndRow());
+            pi = new PeekingIterator<>(tabletsMetadata.iterator());
+          }
+        }
+        List<TabletMetadata> tablets =
+            findOverlappingTablets(fmtTid, loadMapEntry.getKey(), pi, importTimingStats);
         loader.load(tablets, loadMapEntry.getValue());
       }
+    } finally {
+      tabletsMetadata.close();
+    }
+    Duration totalProcessingTime = timer.elapsed();
+
+    log.trace("{}: Completed Finding Overlapping Tablets", fmtTid);
+
+    if (importTimingStats.callCount > 0) {
+      log.debug(
+          "Stats for {} (tid = {}): processed {} tablets in {} calls which took {}ms ({} nanos). Skipped {} iterations which took {}ms ({} nanos) or {}% of the processing time.",
+          bulkInfo.sourceDir, fateId, importTimingStats.tabletCount, importTimingStats.callCount,
+          totalProcessingTime.toMillis(), totalProcessingTime.toNanos(),
+          importTimingStats.wastedIterations, importTimingStats.totalWastedTime.toMillis(),
+          importTimingStats.totalWastedTime.toNanos(),
+          (importTimingStats.totalWastedTime.toNanos() * 100) / totalProcessingTime.toNanos());
     }
 
     long sleepTime = loader.finish();
     if (sleepTime > 0) {
-      long scanTime = Math.min(System.currentTimeMillis() - t1, 30000);
+      log.trace("{}: Tablet Max Sleep is {}", fmtTid, sleepTime);
+      long scanTime = Math.min(totalProcessingTime.toMillis(), 30_000);
+      log.trace("{}: Scan time is {}", fmtTid, scanTime);
       sleepTime = Math.max(sleepTime, scanTime * 2);
     }
+    log.trace("{}: Sleeping for {}ms", fmtTid, sleepTime);
     return sleepTime;
   }
 
@@ -397,8 +466,9 @@ class LoadFiles extends ManagerRepo {
   /**
    * Find all the tablets within the provided bulk load mapping range.
    */
-  private List<TabletMetadata> findOverlappingTablets(KeyExtent loadRange,
-      Iterator<TabletMetadata> tabletIter) {
+  // visible for testing
+  static List<TabletMetadata> findOverlappingTablets(String fmtTid, KeyExtent loadRange,
+      Iterator<TabletMetadata> tabletIter, ImportTimingStats importTimingStats) {
 
     TabletMetadata currTablet = null;
 
@@ -406,13 +476,21 @@ class LoadFiles extends ManagerRepo {
 
       List<TabletMetadata> tablets = new ArrayList<>();
       currTablet = tabletIter.next();
+      log.trace("{}: Finding Overlapping Tablets for row: {}", fmtTid, currTablet.getExtent());
 
       int cmp;
 
+      long wastedIterations = 0;
+      Timer timer = Timer.startNew();
+
       // skip tablets until we find the prevEndRow of loadRange
       while ((cmp = PREV_COMP.compare(currTablet.getPrevEndRow(), loadRange.prevEndRow())) < 0) {
+        wastedIterations++;
+        log.trace("{}: Skipping tablet: {}", fmtTid, currTablet.getExtent());
         currTablet = tabletIter.next();
       }
+
+      Duration wastedTime = timer.elapsed();
 
       if (cmp != 0) {
         throw new IllegalStateException(
@@ -420,18 +498,25 @@ class LoadFiles extends ManagerRepo {
       }
 
       // we have found the first tablet in the range, add it to the list
+      log.trace("{}: Adding tablet: {} to overlapping list", fmtTid, currTablet.getExtent());
       tablets.add(currTablet);
 
       // find the remaining tablets within the loadRange by
       // adding tablets to the list until the endRow matches the loadRange
       while ((cmp = END_COMP.compare(currTablet.getEndRow(), loadRange.endRow())) < 0) {
         currTablet = tabletIter.next();
+        log.trace("{}: Adding tablet: {} to overlapping list", fmtTid, currTablet.getExtent());
         tablets.add(currTablet);
       }
 
       if (cmp != 0) {
         throw new IllegalStateException("Unexpected end row " + currTablet + " " + loadRange);
       }
+
+      importTimingStats.wastedIterations += wastedIterations;
+      importTimingStats.totalWastedTime = importTimingStats.totalWastedTime.plus(wastedTime);
+      importTimingStats.tabletCount += tablets.size();
+      importTimingStats.callCount++;
 
       return tablets;
     } catch (NoSuchElementException e) {

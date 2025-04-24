@@ -277,7 +277,8 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Delete rows between (start, end]
+   * Delete rows between (start, end]. This operation may remove some of the table splits that fall
+   * within the range.
    *
    * @param tableName the table to merge
    * @param start delete rows after this, null means the first row of the table

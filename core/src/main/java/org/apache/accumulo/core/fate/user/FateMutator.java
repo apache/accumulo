@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.user;
 
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
@@ -99,5 +100,7 @@ public interface FateMutator<T> {
   }
 
   Status tryMutate();
+
+  ConditionalMutation getMutation();
 
 }
