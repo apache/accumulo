@@ -750,6 +750,11 @@ function prune() {
     exit 1
   fi
 
+  if ! jq -h >&/dev/null; then
+    echo "$(red ERROR:) Missing $(green jq). Unable to continue."
+    exit 1
+  fi
+
   if [[ -z ${AC_TMP_DIR+x} ]]; then
     echo "AC_TMP_DIR is not set"
     exit 1
