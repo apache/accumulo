@@ -189,6 +189,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     if (cluster != null) {
       try {
         cluster.stop();
+        cluster.terminate();
       } catch (Exception e) {
         // ignored
       }
