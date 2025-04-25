@@ -807,7 +807,7 @@ function prune() {
     if [[ -n $ARG_COMPACTOR_GROUP ]]; then
       read -r -a groups <<<"$ARG_COMPACTOR_GROUP"
     else
-      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
+      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
       readarray -t groups < <(jq -r ".summaries.COMPACTOR.resourceGroups | .[] " "$service_json")
     fi
 
