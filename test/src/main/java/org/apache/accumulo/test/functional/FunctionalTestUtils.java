@@ -63,8 +63,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -85,7 +85,7 @@ public class FunctionalTestUtils {
 
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -102,7 +102,7 @@ public class FunctionalTestUtils {
       throws Exception {
     List<StoredTabletFile> files = new ArrayList<>();
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -114,7 +114,7 @@ public class FunctionalTestUtils {
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -233,7 +233,7 @@ public class FunctionalTestUtils {
       var zk = context.getZooSession();
       MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
       UserFateStore<String> readOnlyUFS =
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
       Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
           Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
       var lockPath = context.getServerPaths().createTableLocksPath();

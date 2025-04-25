@@ -35,7 +35,7 @@ import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 
@@ -62,7 +62,7 @@ public class TableZooHelper implements AutoCloseable {
    *         getCause() of NamespaceNotFoundException
    */
   public TableId getTableId(String tableName) throws TableNotFoundException {
-    for (AccumuloTable systemTable : AccumuloTable.values()) {
+    for (SystemTables systemTable : SystemTables.values()) {
       if (systemTable.tableName().equals(tableName)) {
         return systemTable.tableId();
       }
@@ -98,7 +98,7 @@ public class TableZooHelper implements AutoCloseable {
   }
 
   public String getTableName(TableId tableId) throws TableNotFoundException {
-    for (AccumuloTable systemTable : AccumuloTable.values()) {
+    for (SystemTables systemTable : SystemTables.values()) {
       if (systemTable.tableId().equals(tableId)) {
         return systemTable.tableName();
       }
@@ -194,7 +194,7 @@ public class TableZooHelper implements AutoCloseable {
     checkArgument(context != null, "instance is null");
     checkArgument(tableId != null, "tableId is null");
 
-    if (AccumuloTable.allTableIds().contains(tableId)) {
+    if (SystemTables.containsTableId(tableId)) {
       return Namespace.ACCUMULO.id();
     }
 

@@ -45,7 +45,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
@@ -70,14 +70,14 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     if (getClusterType() == ClusterType.STANDALONE) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         Collection<Text> splits =
-            client.tableOperations().listSplits(AccumuloTable.METADATA.tableName());
+            client.tableOperations().listSplits(SystemTables.METADATA.tableName());
         // We expect a single split
         if (!splits.equals(Arrays.asList(new Text("~")))) {
           log.info("Existing splits on metadata table. Saving them, and applying"
               + " single original split of '~'");
           metadataSplits = splits;
-          client.tableOperations().merge(AccumuloTable.METADATA.tableName(), null, null);
-          client.tableOperations().addSplits(AccumuloTable.METADATA.tableName(),
+          client.tableOperations().merge(SystemTables.METADATA.tableName(), null, null);
+          client.tableOperations().addSplits(SystemTables.METADATA.tableName(),
               new TreeSet<>(Collections.singleton(new Text("~"))));
         }
       }
@@ -89,8 +89,8 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     if (metadataSplits != null) {
       log.info("Restoring split on metadata table");
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        client.tableOperations().merge(AccumuloTable.METADATA.tableName(), null, null);
-        client.tableOperations().addSplits(AccumuloTable.METADATA.tableName(),
+        client.tableOperations().merge(SystemTables.METADATA.tableName(), null, null);
+        client.tableOperations().addSplits(SystemTables.METADATA.tableName(),
             new TreeSet<>(metadataSplits));
       }
     }
@@ -102,15 +102,15 @@ public class MetaSplitIT extends AccumuloClusterHarness {
       SortedSet<Text> splits = new TreeSet<>();
       splits.add(new Text("5"));
       assertThrows(AccumuloException.class,
-          () -> client.tableOperations().addSplits(AccumuloTable.ROOT.tableName(), splits));
-      assertTrue(client.tableOperations().listSplits(AccumuloTable.ROOT.tableName()).isEmpty());
+          () -> client.tableOperations().addSplits(SystemTables.ROOT.tableName(), splits));
+      assertTrue(client.tableOperations().listSplits(SystemTables.ROOT.tableName()).isEmpty());
     }
   }
 
   @Test
   public void testRootTableMerge() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().merge(AccumuloTable.ROOT.tableName(), null, null);
+      client.tableOperations().merge(SystemTables.ROOT.tableName(), null, null);
     }
   }
 
@@ -119,14 +119,14 @@ public class MetaSplitIT extends AccumuloClusterHarness {
     for (String point : points) {
       splits.add(new Text(point));
     }
-    opts.addSplits(AccumuloTable.METADATA.tableName(), splits);
+    opts.addSplits(SystemTables.METADATA.tableName(), splits);
   }
 
   @Test
   public void testMetadataTableSplit() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // disable compactions
-      client.tableOperations().setProperty(AccumuloTable.METADATA.tableName(),
+      client.tableOperations().setProperty(SystemTables.METADATA.tableName(),
           Property.TABLE_MAJC_RATIO.getKey(), "9999");
 
       TableOperations opts = client.tableOperations();
@@ -134,47 +134,47 @@ public class MetaSplitIT extends AccumuloClusterHarness {
         opts.create(Integer.toString(i));
       }
       try {
-        assertEquals(0, countFencedFiles(getServerContext(), AccumuloTable.METADATA.tableName()));
+        assertEquals(0, countFencedFiles(getServerContext(), SystemTables.METADATA.tableName()));
         verifyMetadataTableScan(client);
-        opts.merge(AccumuloTable.METADATA.tableName(), new Text("01"), new Text("02"));
+        opts.merge(SystemTables.METADATA.tableName(), new Text("01"), new Text("02"));
         checkMetadataSplits(1, opts);
         verifyMetadataTableScan(client);
         addSplits(opts, "4 5 6 7 8".split(" "));
         checkMetadataSplits(6, opts);
         verifyMetadataTableScan(client);
 
-        opts.merge(AccumuloTable.METADATA.tableName(), new Text("6"), new Text("9"));
+        opts.merge(SystemTables.METADATA.tableName(), new Text("6"), new Text("9"));
         checkMetadataSplits(4, opts);
         // Merging tablets should produce fenced files because of no-chop merge
-        assertTrue(countFencedFiles(getServerContext(), AccumuloTable.METADATA.tableName()) > 0);
+        assertTrue(countFencedFiles(getServerContext(), SystemTables.METADATA.tableName()) > 0);
         verifyMetadataTableScan(client);
         // Verify that the MERGED marker was cleared and doesn't exist on any tablet
-        verifyMergedMarkerCleared(getServerContext(), AccumuloTable.METADATA.tableId());
+        verifyMergedMarkerCleared(getServerContext(), SystemTables.METADATA.tableId());
 
         addSplits(opts, "44 55 66 77 88".split(" "));
         checkMetadataSplits(9, opts);
-        assertTrue(countFencedFiles(getServerContext(), AccumuloTable.METADATA.tableName()) > 0);
+        assertTrue(countFencedFiles(getServerContext(), SystemTables.METADATA.tableName()) > 0);
         verifyMetadataTableScan(client);
         // Verify that the MERGED marker was cleared and doesn't exist on any tablet
-        verifyMergedMarkerCleared(getServerContext(), AccumuloTable.METADATA.tableId());
+        verifyMergedMarkerCleared(getServerContext(), SystemTables.METADATA.tableId());
 
-        opts.merge(AccumuloTable.METADATA.tableName(), new Text("5"), new Text("7"));
+        opts.merge(SystemTables.METADATA.tableName(), new Text("5"), new Text("7"));
         checkMetadataSplits(6, opts);
-        assertTrue(countFencedFiles(getServerContext(), AccumuloTable.METADATA.tableName()) > 0);
+        assertTrue(countFencedFiles(getServerContext(), SystemTables.METADATA.tableName()) > 0);
         verifyMetadataTableScan(client);
         // Verify that the MERGED marker was cleared and doesn't exist on any tablet
-        verifyMergedMarkerCleared(getServerContext(), AccumuloTable.METADATA.tableId());
+        verifyMergedMarkerCleared(getServerContext(), SystemTables.METADATA.tableId());
 
-        opts.merge(AccumuloTable.METADATA.tableName(), null, null);
+        opts.merge(SystemTables.METADATA.tableName(), null, null);
         checkMetadataSplits(0, opts);
-        assertTrue(countFencedFiles(getServerContext(), AccumuloTable.METADATA.tableName()) > 0);
+        assertTrue(countFencedFiles(getServerContext(), SystemTables.METADATA.tableName()) > 0);
         verifyMetadataTableScan(client);
         // Verify that the MERGED marker was cleared and doesn't exist on any tablet
-        verifyMergedMarkerCleared(getServerContext(), AccumuloTable.METADATA.tableId());
+        verifyMergedMarkerCleared(getServerContext(), SystemTables.METADATA.tableId());
 
-        opts.compact(AccumuloTable.METADATA.tableName(), new CompactionConfig());
+        opts.compact(SystemTables.METADATA.tableName(), new CompactionConfig());
         // Should be no more fenced files after compaction
-        assertEquals(0, countFencedFiles(getServerContext(), AccumuloTable.METADATA.tableName()));
+        assertEquals(0, countFencedFiles(getServerContext(), SystemTables.METADATA.tableName()));
         verifyMetadataTableScan(client);
       } finally {
         for (int i = 1; i <= 10; i++) {
@@ -190,8 +190,8 @@ public class MetaSplitIT extends AccumuloClusterHarness {
   private void verifyMetadataTableScan(AccumuloClient client) throws Exception {
     var tables = client.tableOperations().tableIdMap();
     var expectedExtents = tables.entrySet().stream()
-        .filter(e -> !e.getKey().equals(AccumuloTable.ROOT.tableName())
-            && !e.getKey().equals(AccumuloTable.METADATA.tableName()))
+        .filter(e -> !e.getKey().equals(SystemTables.ROOT.tableName())
+            && !e.getKey().equals(SystemTables.METADATA.tableName()))
         .map(Map.Entry::getValue).map(TableId::of).map(tid -> new KeyExtent(tid, null, null))
         .collect(Collectors.toSet());
     // Verify we have 12 tablets for metadata (Includes FateTable and ScanRef table)
@@ -216,12 +216,12 @@ public class MetaSplitIT extends AccumuloClusterHarness {
       throws AccumuloSecurityException, TableNotFoundException, AccumuloException,
       InterruptedException {
     for (int i = 0; i < 10; i++) {
-      if (opts.listSplits(AccumuloTable.METADATA.tableName()).size() == numSplits) {
+      if (opts.listSplits(SystemTables.METADATA.tableName()).size() == numSplits) {
         break;
       }
       Thread.sleep(2000);
     }
-    Collection<Text> splits = opts.listSplits(AccumuloTable.METADATA.tableName());
+    Collection<Text> splits = opts.listSplits(SystemTables.METADATA.tableName());
     assertEquals(numSplits, splits.size(), "Actual metadata table splits: " + splits);
   }
 

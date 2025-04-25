@@ -78,6 +78,30 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   }
 
   public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
+      AccumuloConfiguration tableConfig, TableId tableId, SamplerConfigurationImpl samplerConfig) {
+    if (scope == IteratorScope.majc) {
+      throw new IllegalArgumentException("must set if compaction is full");
+    }
+
+    this.context = context;
+    this.serviceEnvironment = new ServiceEnvironmentImpl(context);
+    this.scope = scope;
+    this.trm = null;
+    this.tableConfig = tableConfig;
+    this.tableId = tableId;
+    this.fullMajorCompaction = false;
+    this.userCompaction = false;
+    this.authorizations = Authorizations.EMPTY;
+    if (samplerConfig != null) {
+      enableSampleForDeepCopy = true;
+      this.samplerConfig = samplerConfig.toSamplerConfiguration();
+    } else {
+      enableSampleForDeepCopy = false;
+    }
+    this.topLevelIterators = new ArrayList<>();
+  }
+
+  public TabletIteratorEnvironment(ServerContext context, IteratorScope scope,
       AccumuloConfiguration tableConfig, TableId tableId, ScanFileManager trm,
       Map<StoredTabletFile,DataFileValue> files, Authorizations authorizations,
       SamplerConfigurationImpl samplerConfig,
@@ -213,4 +237,5 @@ public class TabletIteratorEnvironment implements SystemIteratorEnvironment {
   public TableId getTableId() {
     return tableId;
   }
+
 }

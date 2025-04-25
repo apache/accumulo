@@ -25,7 +25,7 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.test.fate.FateOpsCommandsIT;
 import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
 import org.apache.accumulo.test.fate.TestLock;
@@ -41,7 +41,7 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsIT {
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     var context = getCluster().getServerContext();
     // the test should not be reserving or checking reservations, so null lockID and isLockHeld
-    testMethod.execute(new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null),
+    testMethod.execute(new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null),
         context);
   }
 
@@ -62,8 +62,7 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsIT {
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
       testMethod.execute(
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), lockID, isLockHeld),
-          context);
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), lockID, isLockHeld), context);
     } finally {
       if (testLock != null) {
         testLock.unlock();

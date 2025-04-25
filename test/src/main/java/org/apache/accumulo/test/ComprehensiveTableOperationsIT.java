@@ -65,9 +65,9 @@ import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -160,10 +160,9 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
 
   @Test
   public void testExpectedSystemTables() {
-    var testedSystemTableIds =
-        Set.of(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableId(),
-            AccumuloTable.FATE.tableId(), AccumuloTable.SCAN_REF.tableId());
-    assertEquals(testedSystemTableIds, AccumuloTable.allTableIds(),
+    var testedSystemTableIds = Set.of(SystemTables.ROOT.tableId(), SystemTables.METADATA.tableId(),
+        SystemTables.FATE.tableId(), SystemTables.SCAN_REF.tableId());
+    assertEquals(testedSystemTableIds, SystemTables.tableIds(),
         "There are newly added system tables that are untested in this IT. Ensure each "
             + "test has testing for the new system table");
   }
@@ -174,7 +173,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // and user tables are returned
     userTable = getUniqueNames(1)[0];
     ops.create(userTable);
-    var expected = Arrays.stream(AccumuloTable.values()).map(AccumuloTable::tableName)
+    var expected = Arrays.stream(SystemTables.values()).map(SystemTables::tableName)
         .collect(Collectors.toSet());
     expected.add(userTable);
     assertEquals(expected, ops.list());
@@ -182,16 +181,16 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     for (Map.Entry<String,String> entry : ops.tableIdMap().entrySet()) {
       var tableName = entry.getKey();
       var tableId = TableId.of(entry.getValue());
-      if (tableName.equals(AccumuloTable.ROOT.tableName())) {
-        assertEquals(AccumuloTable.ROOT.tableId(), tableId);
-      } else if (tableName.equals(AccumuloTable.METADATA.tableName())) {
-        assertEquals(AccumuloTable.METADATA.tableId(), tableId);
-      } else if (tableName.equals(AccumuloTable.FATE.tableName())) {
-        assertEquals(AccumuloTable.FATE.tableId(), tableId);
-      } else if (tableName.equals(AccumuloTable.SCAN_REF.tableName())) {
-        assertEquals(AccumuloTable.SCAN_REF.tableId(), tableId);
+      if (tableName.equals(SystemTables.ROOT.tableName())) {
+        assertEquals(SystemTables.ROOT.tableId(), tableId);
+      } else if (tableName.equals(SystemTables.METADATA.tableName())) {
+        assertEquals(SystemTables.METADATA.tableId(), tableId);
+      } else if (tableName.equals(SystemTables.FATE.tableName())) {
+        assertEquals(SystemTables.FATE.tableId(), tableId);
+      } else if (tableName.equals(SystemTables.SCAN_REF.tableName())) {
+        assertEquals(SystemTables.SCAN_REF.tableId(), tableId);
       } else if (tableName.equals(userTable)) {
-        assertFalse(AccumuloTable.allTableIds().contains(tableId));
+        assertFalse(SystemTables.tableIds().contains(tableId));
       } else {
         throw new IllegalStateException("Unrecognized table: " + tableName);
       }
@@ -204,7 +203,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // and user tables exist
     userTable = getUniqueNames(1)[0];
     ops.create(userTable);
-    var expected = Arrays.stream(AccumuloTable.values()).map(AccumuloTable::tableName)
+    var expected = Arrays.stream(SystemTables.values()).map(SystemTables::tableName)
         .collect(Collectors.toSet());
     expected.add(userTable);
     for (String table : expected) {
@@ -216,7 +215,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   public void test_create() {
     // Creating user tables is thoroughly tested. Make sure we can't create any of the already
     // existing system tables, though.
-    for (var systemTable : AccumuloTable.values()) {
+    for (var systemTable : SystemTables.values()) {
       assertThrows(AccumuloException.class, () -> ops.create(systemTable.tableName()));
     }
   }
@@ -238,7 +237,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     fs.deleteOnExit(exportUserDir);
     ops.exportTable(userTable, exportUserDir.toString());
 
-    var sysTables = AccumuloTable.values();
+    var sysTables = SystemTables.values();
     for (int i = 0; i < sysTables.length; i++) {
       var sysTable = sysTables[i];
       Path exportDir = new Path(baseDir, "export" + i);
@@ -273,7 +272,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
       SortedMap<Text,TabletMergeability> splits2Map =
           TabletMergeabilityUtil.userDefaultSplits(splits2);
 
-      if (table.equals(AccumuloTable.ROOT.tableName())) {
+      if (table.equals(SystemTables.ROOT.tableName())) {
         // cannot add splits to ROOT
         assertThrows(AccumuloException.class, () -> ops.addSplits(table, splits1));
         assertThrows(AccumuloException.class, () -> ops.putSplits(table, splits2Map));
@@ -300,7 +299,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
 
     // basic functionality check for locate on FATE and SCAN_REF tables
     var fateLocations =
-        ops.locate(AccumuloTable.FATE.tableName(), Collections.singletonList(new Range()));
+        ops.locate(SystemTables.FATE.tableName(), Collections.singletonList(new Range()));
     var fateGroupByTablet = fateLocations.groupByTablet().keySet();
     assertFalse(fateGroupByTablet.isEmpty());
     fateGroupByTablet.forEach(tid -> {
@@ -309,7 +308,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
       assertTrue(tabletLoc.contains(":"));
     });
     var scanRefLocations =
-        ops.locate(AccumuloTable.SCAN_REF.tableName(), Collections.singletonList(new Range()));
+        ops.locate(SystemTables.SCAN_REF.tableName(), Collections.singletonList(new Range()));
     var scanRefGroupByTablet = scanRefLocations.groupByTablet().keySet();
     assertFalse(scanRefGroupByTablet.isEmpty());
     scanRefGroupByTablet.forEach(tid -> {
@@ -328,7 +327,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.create(userTable);
     createFateTableRow(userTable);
     createScanRefTableRow();
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       var maxRow =
           ops.getMaxRow(sysTable.tableName(), Authorizations.EMPTY, null, true, null, true);
       log.info("Max row of {} : {}", sysTable, maxRow);
@@ -338,25 +337,9 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // deleteRows for user tables is tested in DeleteRowsIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(DeleteRowsIT.class.getName()));
     // deleteRows not tested for system tables. Test basic functionality here
-    for (var sysTable : AccumuloTable.values()) {
-      switch (sysTable) {
-        case METADATA:
-        case ROOT:
-          // should not be able to delete rows of METADATA or ROOT tables
-          assertThrows(AccumuloException.class,
-              () -> ops.deleteRows(sysTable.tableName(), null, null));
-          break;
-        case FATE:
-          break;
-        case SCAN_REF:
-          cleanupScanRefTable();
-          // check max row again
-          assertNull(
-              ops.getMaxRow(sysTable.tableName(), Authorizations.EMPTY, null, true, null, true));
-          break;
-        default:
-          throw new IllegalStateException("Unrecognized table: " + sysTable);
-      }
+    for (var sysTable : SystemTables.values()) {
+      // should not be able to delete rows of any system table
+      assertThrows(AccumuloException.class, () -> ops.deleteRows(sysTable.tableName(), null, null));
     }
   }
 
@@ -377,19 +360,19 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
 
     SortedSet<Text> fateSplits = new TreeSet<>();
     fateSplits.add(new Text(fateRow1));
-    ops.addSplits(AccumuloTable.FATE.tableName(), fateSplits);
+    ops.addSplits(SystemTables.FATE.tableName(), fateSplits);
     // there may be preexisting splits on the FATE table from a previous test
-    assertTrue(ops.listSplits(AccumuloTable.FATE.tableName()).contains(fateRow1));
-    ops.merge(AccumuloTable.FATE.tableName(), null, null);
-    assertTrue(ops.listSplits(AccumuloTable.FATE.tableName()).isEmpty());
+    assertTrue(ops.listSplits(SystemTables.FATE.tableName()).contains(fateRow1));
+    ops.merge(SystemTables.FATE.tableName(), null, null);
+    assertTrue(ops.listSplits(SystemTables.FATE.tableName()).isEmpty());
 
     SortedSet<Text> scanRefSplits = new TreeSet<>();
     scanRefSplits.add(new Text(scanRefRow1));
-    ops.addSplits(AccumuloTable.SCAN_REF.tableName(), scanRefSplits);
+    ops.addSplits(SystemTables.SCAN_REF.tableName(), scanRefSplits);
     // there may be preexisting splits on the SCAN_REF table from a previous test
-    assertTrue(ops.listSplits(AccumuloTable.SCAN_REF.tableName()).contains(scanRefRow1));
-    ops.merge(AccumuloTable.SCAN_REF.tableName(), null, null);
-    assertTrue(ops.listSplits(AccumuloTable.SCAN_REF.tableName()).isEmpty());
+    assertTrue(ops.listSplits(SystemTables.SCAN_REF.tableName()).contains(scanRefRow1));
+    ops.merge(SystemTables.SCAN_REF.tableName(), null, null);
+    assertTrue(ops.listSplits(SystemTables.SCAN_REF.tableName()).isEmpty());
   }
 
   @Test
@@ -413,19 +396,19 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
           bw.addMutation(mut);
         }
         ops.flush(userTable, null, null, true);
-        ops.flush(AccumuloTable.METADATA.tableName(), null, null, true);
-        ops.flush(AccumuloTable.ROOT.tableName(), null, null, true);
+        ops.flush(SystemTables.METADATA.tableName(), null, null, true);
+        ops.flush(SystemTables.ROOT.tableName(), null, null, true);
       }
 
-      for (var sysTable : List.of(AccumuloTable.ROOT, AccumuloTable.METADATA,
-          AccumuloTable.SCAN_REF, AccumuloTable.FATE)) {
+      for (var sysTable : List.of(SystemTables.ROOT, SystemTables.METADATA, SystemTables.SCAN_REF,
+          SystemTables.FATE)) {
         // create some RFiles for FATE and SCAN_REF tables
-        if (sysTable == AccumuloTable.SCAN_REF) {
+        if (sysTable == SystemTables.SCAN_REF) {
           createScanRefTableRow();
-          ops.flush(AccumuloTable.SCAN_REF.tableName(), null, null, true);
-        } else if (sysTable == AccumuloTable.FATE) {
+          ops.flush(SystemTables.SCAN_REF.tableName(), null, null, true);
+        } else if (sysTable == SystemTables.FATE) {
           createFateTableRow(userTable);
-          ops.flush(AccumuloTable.FATE.tableName(), null, null, true);
+          ops.flush(SystemTables.FATE.tableName(), null, null, true);
         }
 
         Set<StoredTabletFile> stfsBeforeCompact = getStoredTabFiles(sysTable);
@@ -466,7 +449,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createFateTableRow(userTable);
     createScanRefTableRow();
 
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       try {
         var zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
         attachSlowMajcIterator(sysTable.tableName());
@@ -502,7 +485,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // delete for user tables is tested in TableOperationsIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(TableOperationsIT.class.getName()));
     // delete not tested for system tables. Test basic functionality here
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       assertThrows(AccumuloException.class, () -> ops.delete(sysTable.tableName()));
     }
   }
@@ -518,7 +501,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // rename for user tables is tested in RenameIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(RenameIT.class.getName()));
     // rename not tested for system tables. Test basic functionality here
-    var sysTables = AccumuloTable.values();
+    var sysTables = SystemTables.values();
     var tableNames = getUniqueNames(sysTables.length);
 
     for (int i = 0; i < sysTables.length; i++) {
@@ -539,7 +522,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createFateTableRow(userTable);
     createScanRefTableRow();
 
-    for (var sysTable : Set.of(AccumuloTable.FATE, AccumuloTable.SCAN_REF)) {
+    for (var sysTable : Set.of(SystemTables.FATE, SystemTables.SCAN_REF)) {
       int numFilesBeforeFlush = 0;
 
       try (TabletsMetadata tabletsMetadata = getCluster().getServerContext().getAmple()
@@ -605,7 +588,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     assertDoesNotThrow(() -> Class.forName(LocalityGroupIT.class.getName()));
     // setLocalityGroups, getLocalityGroups for system tables not tested for. Test basic
     // functionality here
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       LocalityGroupIT.createAndSetLocalityGroups(client, sysTable.tableName());
       LocalityGroupIT.verifyLocalityGroupSet(client, sysTable.tableName());
     }
@@ -621,7 +604,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     BulkNewIT.writeData(getCluster().getFileSystem(), dir + "/f1.",
         getCluster().getServerContext().getConfiguration(), 0, 5, 0);
 
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       assertThrows(Exception.class, () -> ops.importDirectory(dir).to(sysTable.tableName()).load());
     }
   }
@@ -631,7 +614,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // offline,online,isOnline for user tables is tested in ComprehensiveBaseIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(ComprehensiveBaseIT.class.getName()));
     // offline,online,isOnline not tested for system tables. Test basic functionality here
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       assertTrue(ops.isOnline(sysTable.tableName()));
       assertThrows(AccumuloException.class, () -> ops.offline(sysTable.tableName(), true));
       assertTrue(ops.isOnline(sysTable.tableName()));
@@ -655,7 +638,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
         clientContext.getTabletLocationCache(TableId.of(ops.tableIdMap().get(userTable)))
             .getTabletHostingRequestCount());
 
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       assertEquals(0,
           clientContext.getTabletLocationCache(sysTable.tableId()).getTabletHostingRequestCount());
       ops.clearLocatorCache(sysTable.tableName());
@@ -701,7 +684,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     assertDoesNotThrow(() -> Class.forName(ConstraintIT.class.getName()));
     // addConstraint, listConstraints, removeConstraint not tested for system tables. Test basic
     // functionality here
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       var numExistingConstraints = ops.listConstraints(sysTable.tableName()).size();
       String constraint = ComprehensiveBaseIT.TestConstraint.class.getName();
 
@@ -728,7 +711,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.create(userTable);
     createFateTableRow(userTable);
     createScanRefTableRow();
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       ops.flush(sysTable.tableName(), null, null, true);
       var diskUsageList = ops.getDiskUsage(Set.of(sysTable.tableName()));
       assertEquals(1, diskUsageList.size());
@@ -774,7 +757,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // these are all tested for user tables in SummaryIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(SummaryIT.class.getName()));
     // these are not tested for system tables. Test basic functionality here
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       SummarizerConfiguration sc = SummarizerConfiguration.builder(BasicSummarizer.class).build();
 
       assertThrows(AccumuloSecurityException.class,
@@ -794,7 +777,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.create(userTable);
 
     assertEquals(TimeType.MILLIS, ops.getTimeType(userTable));
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       assertEquals(TimeType.LOGICAL, ops.getTimeType(sysTable.tableName()));
     }
   }
@@ -804,7 +787,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     // these are tested for user tables in TabletAvailabilityIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(TabletAvailabilityIT.class.getName()));
     // these are not tested for system tables. Test basic functionality here
-    for (var sysTable : AccumuloTable.values()) {
+    for (var sysTable : SystemTables.values()) {
       // should not be able to unhost any system table
       assertThrows(IllegalArgumentException.class, () -> ops
           .setTabletAvailability(sysTable.tableName(), new Range(), TabletAvailability.UNHOSTED));
@@ -826,7 +809,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ReadWriteIT.ingest(client, 5, 5, 5, 0, table);
 
     Set<Text> rowsSeenBeforeNewOp = new HashSet<>();
-    try (var scanner = client.createScanner(AccumuloTable.FATE.tableName())) {
+    try (var scanner = client.createScanner(SystemTables.FATE.tableName())) {
       for (var entry : scanner) {
         rowsSeenBeforeNewOp.add(entry.getKey().getRow());
       }
@@ -837,7 +820,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.compact(table, null, null, true, false);
 
     Set<Text> rowsSeenAfterNewOp = new HashSet<>();
-    try (var scanner = client.createScanner(AccumuloTable.FATE.tableName())) {
+    try (var scanner = client.createScanner(SystemTables.FATE.tableName())) {
       for (var entry : scanner) {
         rowsSeenAfterNewOp.add(entry.getKey().getRow());
       }
@@ -886,7 +869,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.cancelCompaction(userTable);
     // Wait for FATE table to be clear
     Wait.waitFor(() -> {
-      try (var scanner = client.createScanner(AccumuloTable.FATE.tableName())) {
+      try (var scanner = client.createScanner(SystemTables.FATE.tableName())) {
         return !scanner.iterator().hasNext();
       }
     });
@@ -897,7 +880,10 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
    * {@link #createScanRefTableRow()}
    */
   private void cleanupScanRefTable() throws Exception {
-    ops.deleteRows(AccumuloTable.SCAN_REF.tableName(), null, null);
+    var scanServerRefs = getCluster().getServerContext().getAmple().scanServerRefs();
+    scanServerRefs.delete(scanServerRefs.list().collect(Collectors.toSet()));
+    assertTrue(
+        client.createScanner(SystemTables.SCAN_REF.tableName()).stream().findAny().isEmpty());
   }
 
   private boolean propFound(String tableName, String key, String val) throws Exception {
@@ -913,7 +899,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     return propFound;
   }
 
-  private Set<StoredTabletFile> getStoredTabFiles(AccumuloTable sysTable) {
+  private Set<StoredTabletFile> getStoredTabFiles(SystemTables sysTable) {
     var clientContext = (ClientContext) client;
     Set<StoredTabletFile> storedTabFiles = new HashSet<>();
     try (TabletsMetadata tabletsMetadata =

@@ -47,7 +47,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -185,7 +185,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     // Scan the metadata table as this is not prevented when the
     // server is low on memory. Use the MemoryFreeingIterator as it
     // will free the memory on init()
-    try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
+    try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
       IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
       scanner.addScanIterator(is);
       assertNotEquals(0, Iterables.size(scanner)); // consume the key/values
