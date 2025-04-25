@@ -27,7 +27,6 @@ import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_NAMESPACE;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE_ID;
-import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_ROOT_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.VALID_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
@@ -692,7 +691,8 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_TABLET_AVAILABILITY: {
         TableOperation tableOp = TableOperation.SET_TABLET_AVAILABILITY;
         validateArgumentCount(arguments, tableOp, 3);
-        String tableName = validateName(arguments.get(0), tableOp, NOT_METADATA_TABLE);
+        String tableName =
+            validateName(arguments.get(0), tableOp, NOT_BUILTIN_TABLE.and(EXISTING_TABLE_NAME));
         TableId tableId = null;
         try {
           tableId = manager.getContext().getTableId(tableName);

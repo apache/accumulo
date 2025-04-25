@@ -41,7 +41,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.core.util.Validators.EXISTING_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
-import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_START_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SPLIT_WAIT_POOL;
 
@@ -223,8 +222,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public boolean exists(String tableName) {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    if (tableName.equals(SystemTables.METADATA.tableName())
-        || tableName.equals(SystemTables.ROOT.tableName())) {
+    if (SystemTables.containsTableName(tableName)) {
       return true;
     }
 
@@ -2243,7 +2241,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void setTabletAvailability(String tableName, Range range, TabletAvailability availability)
       throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
-    NOT_BUILTIN_TABLE.validate(tableName);
     checkArgument(range != null, "range is null");
     checkArgument(availability != null, "tabletAvailability is null");
 
