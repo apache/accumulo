@@ -79,7 +79,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -612,7 +612,7 @@ public class Admin implements KeywordExecutable {
       try {
         Set<String> tables = context.tableOperations().tableIdMap().keySet();
         for (String table : tables) {
-          if (table.equals(AccumuloTable.METADATA.tableName())) {
+          if (table.equals(SystemTables.METADATA.tableName())) {
             continue;
           }
           try {
@@ -1017,7 +1017,7 @@ public class Admin implements KeywordExecutable {
     var lockId = adminLock.getLockID();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, lockId, null);
     UserFateStore<Admin> ufs =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), lockId, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), lockId, null);
     return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
   }
 
@@ -1026,7 +1026,7 @@ public class Admin implements KeywordExecutable {
           throws InterruptedException, KeeperException {
     MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
     UserFateStore<Admin> readOnlyUFS =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
     return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
   }
 
