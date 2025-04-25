@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -68,6 +69,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private final SiteConfiguration siteConfig;
   private final Supplier<ServerContext> contextSupplier;
   private volatile State clusterState = State.STOPPED;
+  private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -136,6 +138,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public ServerContext getServerContext() {
+    serverContextCreated.set(true);
     return contextSupplier.get();
   }
 
@@ -191,7 +194,9 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   public void terminate() throws Exception {
     Preconditions.checkState(clusterState == State.STOPPED,
         "Cannot terminate a cluster that is not stopped.");
-    getServerContext().close();
+    if (serverContextCreated.get()) {
+      getServerContext().close();
+    }
     clusterState = State.TERMINATED;
   }
 
