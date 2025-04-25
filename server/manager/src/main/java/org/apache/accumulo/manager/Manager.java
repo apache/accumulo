@@ -611,7 +611,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     private void cleanupOfflineMigrations() {
       ServerContext context = getContext();
       TableManager manager = context.getTableManager();
-      for (TableId tableId : context.getTableIdToNameMap().keySet()) {
+      for (TableId tableId : context.createTableIdToQualifiedNameMap().keySet()) {
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
@@ -906,7 +906,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         case METADATA:
           return Map.of(AccumuloTable.METADATA.tableName(), AccumuloTable.METADATA.tableId());
         case USER: {
-          Map<String,TableId> userTables = new HashMap<>(getContext().getTableNameToIdMap());
+          Map<String,TableId> userTables = getContext().createQualifiedTableNameToIdMap();
           for (var accumuloTable : AccumuloTable.values()) {
             if (DataLevel.of(accumuloTable.tableId()) != DataLevel.USER) {
               userTables.remove(accumuloTable.tableName());
@@ -1724,7 +1724,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     ServerContext context = getContext();
     TableManager manager = context.getTableManager();
 
-    for (TableId tableId : context.getTableIdToNameMap().keySet()) {
+    for (TableId tableId : context.createTableIdToQualifiedNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state == TableState.ONLINE) {
         result.add(tableId);

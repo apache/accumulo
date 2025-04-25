@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.clientImpl.NamespaceMapping.serializeMap;
 
 import java.util.Map;
 import java.util.SortedMap;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -179,10 +180,24 @@ public class TableMapping {
     return currentTableReverseMap;
   }
 
+  public SortedMap<String,TableId> createQualifiedNameToIdMap(String currentNamespaceName) {
+    var map = new TreeMap<String,TableId>();
+    getNameToIdMap()
+        .forEach((k, v) -> map.put(TableNameUtil.qualified(k, currentNamespaceName), v));
+    return map;
+  }
+
+  public SortedMap<TableId,String> createIdToQualifiedNameMap(String currentNamespaceName) {
+    var map = new TreeMap<TableId,String>();
+    getIdToNameMap()
+        .forEach((k, v) -> map.put(k, TableNameUtil.qualified(v, currentNamespaceName)));
+    return map;
+  }
+
   @Override
   public String toString() {
     return MoreObjects.toStringHelper(getClass()).add("namespaceId", namespaceId)
-        .add("currentTableMap", currentTableMap).toString();
+        .add("lastMzxid", lastMzxid).add("currentTableMap", currentTableMap).toString();
   }
 
 }

@@ -209,7 +209,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
 
     // possible race condition here, if table is renamed
-    String tableName = context.getTableName(tableId);
+    String tableName = context.getQualifiedTableName(tableId);
     var tableConf = context.tableOperations().getConfiguration(tableName);
     AccumuloConfiguration tableCC = new ConfigurationCopy(tableConf);
     var systemConf = context.instanceOperations().getSystemConfiguration();

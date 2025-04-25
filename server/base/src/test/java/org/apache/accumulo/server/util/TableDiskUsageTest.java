@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -60,7 +60,7 @@ public class TableDiskUsageTest {
   private static final String tabletName3 = "t-0003";
   private static final String tabletName4 = "t-0004";
 
-  private static final Map<TableId,String> tableIdToNameMap = new HashMap<>();
+  private static final TreeMap<TableId,String> tableIdToNameMap = new TreeMap<>();
 
   @BeforeAll
   public static void beforeClass() {
@@ -74,7 +74,7 @@ public class TableDiskUsageTest {
   @Test
   public void testSingleTableMultipleTablets() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -104,7 +104,7 @@ public class TableDiskUsageTest {
   @Test
   public void testMultipleVolumes() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -135,7 +135,7 @@ public class TableDiskUsageTest {
   @Test
   public void testMetadataTable() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata =
         mockTabletsMetadata(client, AccumuloTable.METADATA.tableId());
 
@@ -161,7 +161,7 @@ public class TableDiskUsageTest {
   @Test
   public void testDuplicateFile() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -189,7 +189,7 @@ public class TableDiskUsageTest {
   @Test
   public void testEmptyTable() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -212,7 +212,7 @@ public class TableDiskUsageTest {
   @Test
   public void testMultipleTables() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
 
     final TabletsMetadata mockTabletsMetadata1 = mockTabletsMetadata(client, tableId1);
     List<TabletMetadata> realTabletsMetadata1 = new ArrayList<>();

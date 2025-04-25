@@ -55,7 +55,7 @@ public class CheckForMetadataProblems {
     boolean sawProblems = false;
 
     try {
-      tableName = opts.getServerContext().getTableName(tableId);
+      tableName = opts.getServerContext().getQualifiedTableName(tableId);
     } catch (TableNotFoundException e) {
       tableName = null;
     }

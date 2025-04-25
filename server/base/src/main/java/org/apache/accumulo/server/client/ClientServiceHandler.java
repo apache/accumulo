@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
@@ -92,18 +91,12 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   public static NamespaceId checkNamespaceId(ClientContext context, String namespaceName,
       TableOperation operation) throws ThriftTableOperationException {
-    NamespaceId namespaceId = Namespaces.lookupNamespaceId(context, namespaceName);
-    if (namespaceId == null) {
-      // maybe the namespace exists, but the cache was not updated yet... so try to clear the cache
-      // and check again
-      context.clearTableListCache();
-      namespaceId = Namespaces.lookupNamespaceId(context, namespaceName);
-      if (namespaceId == null) {
-        throw new ThriftTableOperationException(null, namespaceName, operation,
-            TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
-      }
+    try {
+      return context.getNamespaceId(namespaceName);
+    } catch (NamespaceNotFoundException e) {
+      throw new ThriftTableOperationException(null, namespaceName, operation,
+          TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
     }
-    return namespaceId;
   }
 
   @Override
@@ -477,52 +470,29 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials,
-      String ns) throws ThriftTableOperationException, TException {
-    NamespaceId namespaceId;
-    try {
-      namespaceId = Namespaces.getNamespaceId(context, ns);
-    } catch (NamespaceNotFoundException e) {
-      String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null,
-          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
-    }
+      String ns) throws TException {
+    NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(context, ns, null);
     checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
     context.getPropStore().getCache().remove(NamespacePropKey.of(namespaceId));
     AccumuloConfiguration config = context.getNamespaceConfiguration(namespaceId);
     return conf(credentials, config);
-
   }
 
   @Override
   public Map<String,String> getNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns)
       throws TException {
-    NamespaceId namespaceId;
-    try {
-      namespaceId = Namespaces.getNamespaceId(context, ns);
-      checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
-      return context.getPropStore().get(NamespacePropKey.of(namespaceId)).asMap();
-
-    } catch (NamespaceNotFoundException e) {
-      String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null,
-          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
-    }
+    NamespaceId namespaceId = checkNamespaceId(context, ns, null);
+    checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
+    return context.getPropStore().get(NamespacePropKey.of(namespaceId)).asMap();
   }
 
   @Override
   public TVersionedProperties getVersionedNamespaceProperties(TInfo tinfo, TCredentials credentials,
       String ns) throws TException {
-    NamespaceId namespaceId;
-    try {
-      namespaceId = Namespaces.getNamespaceId(context, ns);
-      checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
-      return Optional.of(context.getPropStore().get(NamespacePropKey.of(namespaceId)))
-          .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
-          .orElseThrow();
-    } catch (NamespaceNotFoundException e) {
-      String why = "Could not find namespace while getting configuration.";
-      throw new ThriftTableOperationException(null, ns, null,
-          TableOperationExceptionType.NAMESPACE_NOTFOUND, why);
-    }
+    NamespaceId namespaceId = checkNamespaceId(context, ns, null);
+    checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
+    return Optional.of(context.getPropStore().get(NamespacePropKey.of(namespaceId)))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+        .orElseThrow();
   }
 }

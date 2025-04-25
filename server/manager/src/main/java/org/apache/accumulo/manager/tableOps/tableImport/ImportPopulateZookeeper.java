@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -81,7 +80,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
       String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
-      NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
+      NamespaceId namespaceId = context.getNamespaceId(namespace);
       context.getTableMapping(namespaceId).put(tableInfo.tableId, tableInfo.tableName,
           TableOperation.IMPORT);
       env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
@@ -108,7 +107,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   public void undo(FateId fateId, Manager env) throws Exception {
     var context = env.getContext();
     env.getTableManager().removeTable(tableInfo.tableId,
-        Namespaces.getNamespaceId(context, TableNameUtil.qualify(tableInfo.tableName).getFirst()));
+        context.getNamespaceId(TableNameUtil.qualify(tableInfo.tableName).getFirst()));
     Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
     context.clearTableListCache();
   }

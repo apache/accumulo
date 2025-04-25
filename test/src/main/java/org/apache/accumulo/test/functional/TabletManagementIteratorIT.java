@@ -572,7 +572,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private static TabletManagementParameters createParameters(AccumuloClient client,
       Map<Path,Path> replacements) {
     var context = (ClientContext) client;
-    Set<TableId> onlineTables = Sets.filter(context.getTableIdToNameMap().keySet(),
+    Set<TableId> onlineTables = Sets.filter(context.createTableIdToQualifiedNameMap().keySet(),
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();

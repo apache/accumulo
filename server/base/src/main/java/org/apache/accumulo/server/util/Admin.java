@@ -609,7 +609,7 @@ public class Admin implements KeywordExecutable {
 
     Runnable flushTask = () -> {
       try {
-        Set<String> tables = context.tableOperations().tableIdMap().keySet();
+        Set<String> tables = context.tableOperations().list();
         for (String table : tables) {
           if (table.equals(AccumuloTable.METADATA.tableName())) {
             continue;
@@ -1108,7 +1108,7 @@ public class Admin implements KeywordExecutable {
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.
-    Map<TableId,String> tidToNameMap = context.getTableIdToNameMap();
+    Map<TableId,String> tidToNameMap = context.createTableIdToQualifiedNameMap();
     Map<String,String> idsToNameMap = new HashMap<>(tidToNameMap.size() * 2);
     tidToNameMap.forEach((tid, name) -> idsToNameMap.put(tid.canonical(), "t:" + name));
     context.namespaceOperations().namespaceIdMap().forEach((name, nsid) -> {

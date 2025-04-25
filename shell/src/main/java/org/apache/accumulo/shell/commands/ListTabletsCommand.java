@@ -31,7 +31,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletInformation;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -165,17 +164,9 @@ public class ListTabletsCommand extends Command {
 
     if (cl.hasOption(optNamespace.getOpt())) {
       String nsName = cl.getOptionValue(optNamespace.getOpt());
-      NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), nsName);
-      List<String> tables = Namespaces.getTableNames(shellState.getContext(), namespaceId);
-      tables.forEach(name -> {
-        String tableIdString = tableIdMap.get(name);
-        if (tableIdString != null) {
-          TableId id = TableId.of(tableIdString);
-          tableSet.add(new TableInfo(name, id));
-        } else {
-          Shell.log.warn("Table not found: {}", name);
-        }
-      });
+      NamespaceId namespaceId = shellState.getContext().getNamespaceId(nsName);
+      shellState.getContext().getTableMapping(namespaceId).createQualifiedNameToIdMap(nsName)
+          .forEach((name, id) -> tableSet.add(new TableInfo(name, id)));
       return tableSet;
     }
 

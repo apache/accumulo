@@ -20,7 +20,6 @@ package org.apache.accumulo.manager.tableOps.rename;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -65,8 +64,8 @@ public class RenameTable extends ManagerRepo {
     var context = manager.getContext();
 
     // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".") && !namespaceId
-        .equals(Namespaces.getNamespaceId(context, qualifiedNewTableName.getFirst()))) {
+    if (newTableName.contains(".")
+        && !context.getNamespaceId(qualifiedNewTableName.getFirst()).equals(namespaceId)) {
       throw new AcceptableThriftTableOperationException(tableId.canonical(), oldTableName,
           TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
           "Namespace in new table name does not match the old table name");

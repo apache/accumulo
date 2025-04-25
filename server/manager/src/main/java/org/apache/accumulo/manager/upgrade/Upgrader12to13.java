@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -282,8 +281,7 @@ public class Upgrader12to13 implements Upgrader {
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
-      for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-        final String tId = e.getValue();
+      for (String tId : zrw.getChildren(Constants.ZTABLES)) {
         final String zTablePath = Constants.ZTABLES + "/" + tId;
         zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);

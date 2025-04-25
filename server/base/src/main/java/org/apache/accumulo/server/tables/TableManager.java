@@ -191,7 +191,7 @@ public class TableManager {
   public void removeNamespace(NamespaceId namespaceId)
       throws KeeperException, InterruptedException, AcceptableThriftTableOperationException {
     try {
-      NamespaceMapping.remove(zoo, Constants.ZNAMESPACES, namespaceId);
+      context.getNamespaceMapping().remove(Constants.ZNAMESPACES, namespaceId);
     } catch (AcceptableThriftTableOperationException e) {
       // ignore not found, because that's what we're trying to do anyway
       if (e.getType() != TableOperationExceptionType.NAMESPACE_NOTFOUND) {
