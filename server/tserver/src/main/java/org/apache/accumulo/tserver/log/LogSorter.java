@@ -275,12 +275,7 @@ public class LogSorter {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
       Key k = logFileKey.toKey();
-      var list = keyListMap.putIfAbsent(k, logFileValue.mutations);
-      if (list != null) {
-        var muts = new ArrayList<>(list);
-        muts.addAll(logFileValue.mutations);
-        keyListMap.put(logFileKey.toKey(), muts);
-      }
+      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>()).addAll(logFileValue.mutations);
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()

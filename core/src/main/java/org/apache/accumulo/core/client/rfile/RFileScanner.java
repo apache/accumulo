@@ -31,8 +31,9 @@ import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.rfile.RFileScannerBuilder.InputArgs;
-import org.apache.accumulo.core.client.sample.SamplerConfiguration;
+import org.apache.accumulo.core.clientImpl.ClientServiceEnvironmentImpl;
 import org.apache.accumulo.core.clientImpl.ScannerOptions;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheManagerFactory;
@@ -56,6 +58,7 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
@@ -67,6 +70,7 @@ import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.io.Text;
@@ -75,8 +79,46 @@ import com.google.common.base.Preconditions;
 
 class RFileScanner extends ScannerOptions implements Scanner {
 
+  private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
+
+    private final Configuration conf;
+    private final Configuration tableConf;
+
+    public RFileScannerEnvironmentImpl(Opts opts) {
+      super(null);
+      conf = new ConfigurationImpl(new ConfigurationCopy(DefaultConfiguration.getInstance()));
+      ConfigurationCopy tableCC = new ConfigurationCopy(DefaultConfiguration.getInstance());
+      if (opts.tableConfig != null) {
+        opts.tableConfig.forEach(tableCC::set);
+      }
+      tableConf = new ConfigurationImpl(tableCC);
+    }
+
+    @Override
+    public String getTableName(TableId tableId) throws TableNotFoundException {
+      Preconditions.checkArgument(tableId == TABLE_ID, "Expected " + TABLE_ID + " obtained"
+          + " from IteratorEnvironment.getTableId(), but got: " + tableId);
+      return TABLE_NAME;
+    }
+
+    @Override
+    public Configuration getConfiguration() {
+      return conf;
+    }
+
+    @Override
+    public Configuration getConfiguration(TableId tableId) {
+      Preconditions.checkArgument(tableId == TABLE_ID, "Expected " + TABLE_ID + " obtained"
+          + " from IteratorEnvironment.getTableId(), but got: " + tableId);
+      return tableConf;
+    }
+
+  }
+
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
+  private static final String TABLE_NAME = "rfileScanner";
+  private static final TableId TABLE_ID = TableId.of(TABLE_NAME);
 
   private Range range;
   private BlockCacheManager blockCacheManager = null;
@@ -225,33 +267,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
     super.updateScanIteratorOption(iteratorName, key, value);
   }
 
-  private class IterEnv implements IteratorEnvironment {
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return false;
-    }
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return opts.auths;
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return RFileScanner.this.getSamplerConfiguration() != null;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return RFileScanner.this.getSamplerConfiguration();
-    }
-  }
-
   @Override
   public Iterator<Entry<Key,Value>> iterator() {
     try {
@@ -292,15 +307,23 @@ class RFileScanner extends ScannerOptions implements Scanner {
             EMPTY_BYTES, tableConf);
       }
 
+      ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
+          .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
+          .withScope(IteratorScope.scan).withTableId(TABLE_ID);
+      if (getSamplerConfiguration() != null) {
+        iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
+        iterEnvBuilder.withSamplingEnabled();
+      }
+      IteratorEnvironment iterEnv = iterEnvBuilder.build();
       try {
         if (opts.tableConfig != null && !opts.tableConfig.isEmpty()) {
           var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, serverSideIteratorList,
               serverSideIteratorOptions, tableConf);
-          var iteratorBuilder = ibEnv.env(new IterEnv()).build();
+          var iteratorBuilder = ibEnv.env(iterEnv).build();
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         } else {
           var iteratorBuilder = IteratorBuilder.builder(serverSideIteratorList)
-              .opts(serverSideIteratorOptions).env(new IterEnv()).build();
+              .opts(serverSideIteratorOptions).env(iterEnv).build();
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
       } catch (IOException e) {
