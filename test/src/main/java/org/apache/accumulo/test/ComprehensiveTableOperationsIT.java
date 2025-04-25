@@ -523,25 +523,26 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createScanRefTableRow();
 
     for (var sysTable : Set.of(SystemTables.FATE, SystemTables.SCAN_REF)) {
-      int numFilesBeforeFlush = 0;
+      Set<StoredTabletFile> filesBeforeFlush = new HashSet<>();
 
       try (TabletsMetadata tabletsMetadata = getCluster().getServerContext().getAmple()
           .readTablets().forTable(sysTable.tableId()).build()) {
         for (var tm : tabletsMetadata) {
-          numFilesBeforeFlush += tm.getFiles().size();
+          filesBeforeFlush.addAll(tm.getFiles());
         }
       }
+
       ops.flush(sysTable.tableName(), null, null, true);
-      // Wait until we see the new file
-      final int finalNumFilesBeforeFlush = numFilesBeforeFlush;
+
+      // Wait until the set of files changes
       Wait.waitFor(() -> {
+        Set<StoredTabletFile> filesAfterFlush = new HashSet<>();
         try (TabletsMetadata tabletsMetadata = getCluster().getServerContext().getAmple()
             .readTablets().forTable(sysTable.tableId()).build()) {
-          int numFilesAfterFlush = 0;
           for (var tm : tabletsMetadata) {
-            numFilesAfterFlush += tm.getFiles().size();
+            filesAfterFlush.addAll(tm.getFiles());
           }
-          return numFilesAfterFlush > finalNumFilesBeforeFlush;
+          return !filesAfterFlush.equals(filesBeforeFlush);
         }
       });
     }
@@ -561,19 +562,29 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
       String propKey = Property.TABLE_ARBITRARY_PROP_PREFIX.getKey() + "prop";
       String propVal = "val";
       String newPropVal = "newval";
+      // getProperties, getTableProperties, and getConfiguration
+      assertFalse(propFound(tableName, propKey, propVal));
+      assertNull(ops.getTableProperties(tableName).get(propKey));
+      assertNull(ops.getConfiguration(tableName).get(propKey));
+
       ops.setProperty(tableName, propKey, propVal);
+
       // getProperties, getTableProperties, and getConfiguration
       assertTrue(propFound(tableName, propKey, propVal));
       assertEquals(propVal, ops.getTableProperties(tableName).get(propKey));
       assertEquals(propVal, ops.getConfiguration(tableName).get(propKey));
+
       // modifyProperties
       ops.modifyProperties(tableName, properties -> properties.put(propKey, newPropVal));
+
       // getProperties, getTableProperties, and getConfiguration
       assertTrue(propFound(tableName, propKey, newPropVal));
       assertEquals(newPropVal, ops.getTableProperties(tableName).get(propKey));
       assertEquals(newPropVal, ops.getConfiguration(tableName).get(propKey));
+
       // removeProperty
       ops.removeProperty(tableName, propKey);
+
       // getProperties, getTableProperties, and getConfiguration
       assertFalse(propFound(tableName, propKey, newPropVal));
       assertNull(ops.getTableProperties(tableName).get(propKey));
