@@ -793,7 +793,7 @@ function prune() {
     if [[ -n $ARG_SSERVER_GROUP ]]; then
       read -r -a groups <<<"$ARG_SSERVER_GROUP"
     else
-      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exists in cluster.yaml
+      # find all groups known in zookeeper, this will allow pruning entire groups that do not even exist in cluster.yaml
       readarray -t groups < <(jq -r ".summaries.S_SERVER.resourceGroups | .[] " "$service_json")
     fi
 
