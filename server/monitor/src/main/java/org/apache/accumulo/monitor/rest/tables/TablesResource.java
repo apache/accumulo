@@ -61,6 +61,11 @@ import org.apache.accumulo.server.util.TableInfoUtil;
 @Path("/tables")
 @Produces({MediaType.APPLICATION_JSON, MediaType.APPLICATION_XML})
 public class TablesResource {
+  /**
+   * A {@code String} constant representing Table ID to find participating tservers, used in path
+   * parameter.
+   */
+  private static final String TABLEID_PARAM_KEY = "tableId";
 
   @Inject
   private Monitor monitor;
@@ -122,10 +127,11 @@ public class TablesResource {
    * @param tableIdStr Table ID to find participating tservers
    * @return List of participating tservers
    */
-  @Path("{tableId}")
+  @Path("{" + TABLEID_PARAM_KEY + "}")
   @GET
-  public TabletServers getParticipatingTabletServers(@PathParam("tableId") @NotNull @Pattern(
-      regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
+  public TabletServers
+      getParticipatingTabletServers(@PathParam(TABLEID_PARAM_KEY) @NotNull @Pattern(
+          regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableIdStr) {
     TableId tableId = TableId.of(tableIdStr);
     ManagerMonitorInfo mmi = monitor.getMmi();
     // fail fast if unable to get monitor info
