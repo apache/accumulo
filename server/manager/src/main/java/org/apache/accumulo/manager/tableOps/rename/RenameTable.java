@@ -19,9 +19,7 @@
 package org.apache.accumulo.manager.tableOps.rename;
 
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
-import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
-import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
@@ -60,21 +58,14 @@ public class RenameTable extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     Pair<String,String> qualifiedOldTableName = TableNameUtil.qualify(oldTableName);
-    Pair<String,String> qualifiedNewTableName = TableNameUtil.qualify(newTableName);
+    // the namespace name was already checked before starting the fate operation
+    String newSimpleTableName = TableNameUtil.qualify(newTableName).getSecond();
     var context = manager.getContext();
-
-    // ensure no attempt is made to rename across namespaces
-    if (newTableName.contains(".")
-        && !context.getNamespaceId(qualifiedNewTableName.getFirst()).equals(namespaceId)) {
-      throw new AcceptableThriftTableOperationException(tableId.canonical(), oldTableName,
-          TableOperation.RENAME, TableOperationExceptionType.INVALID_NAME,
-          "Namespace in new table name does not match the old table name");
-    }
 
     Utils.getTableNameLock().lock();
     try {
       context.getTableMapping(namespaceId).rename(tableId, qualifiedOldTableName.getSecond(),
-          qualifiedNewTableName.getSecond());
+          newSimpleTableName);
 
       context.clearTableListCache();
     } finally {
