@@ -25,11 +25,9 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -79,11 +77,9 @@ class ImportPopulateZookeeper extends ManagerRepo {
     try {
 
       // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      String namespace = TableNameUtil.qualify(tableInfo.tableName).getFirst();
-      NamespaceId namespaceId = context.getNamespaceId(namespace);
-      context.getTableMapping(namespaceId).put(tableInfo.tableId, tableInfo.tableName,
+      context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
           TableOperation.IMPORT);
-      env.getTableManager().addTable(tableInfo.tableId, namespaceId, tableInfo.tableName);
+      env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
 
       context.clearTableListCache();
     } finally {
@@ -106,8 +102,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
   @Override
   public void undo(FateId fateId, Manager env) throws Exception {
     var context = env.getContext();
-    env.getTableManager().removeTable(tableInfo.tableId,
-        context.getNamespaceId(TableNameUtil.qualify(tableInfo.tableName).getFirst()));
+    env.getTableManager().removeTable(tableInfo.tableId, tableInfo.namespaceId);
     Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
     context.clearTableListCache();
   }
