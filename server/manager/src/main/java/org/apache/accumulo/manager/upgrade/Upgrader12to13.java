@@ -42,7 +42,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -89,21 +89,21 @@ public class Upgrader12to13 implements Upgrader {
   @Override
   public void upgradeRoot(ServerContext context) {
     LOG.info("Looking for partial splits");
-    handlePartialSplits(context, AccumuloTable.ROOT.tableName());
+    handlePartialSplits(context, SystemTables.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
     addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.METADATA);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
-    removeMetaDataBulkLoadFilter(context, AccumuloTable.ROOT.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId());
     LOG.info("Removing compact columns from metadata tablets");
-    removeCompactColumnsFromTable(context, AccumuloTable.ROOT.tableName());
+    removeCompactColumnsFromTable(context, SystemTables.ROOT.tableName());
   }
 
   @Override
   public void upgradeMetadata(ServerContext context) {
-    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
+    LOG.info("Creating table {}", SystemTables.FATE.tableName());
     createFateTable(context);
     LOG.info("Looking for partial splits");
-    handlePartialSplits(context, AccumuloTable.METADATA.tableName());
+    handlePartialSplits(context, SystemTables.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
     addHostingGoals(context, TabletAvailability.ONDEMAND, DataLevel.USER);
     LOG.info("Deleting external compaction final states from user tables");
@@ -111,11 +111,11 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
-    removeMetaDataBulkLoadFilter(context, AccumuloTable.METADATA.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId());
     LOG.info("Removing compact columns from user tables");
-    removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
-    removeBulkFileColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    removeBulkFileColumnsFromTable(context, SystemTables.METADATA.tableName());
   }
 
   private static void addCompactionsNode(ServerContext context) {
@@ -129,7 +129,7 @@ public class Upgrader12to13 implements Upgrader {
 
   private void createFateTable(ServerContext context) {
 
-    if (context.tableOperations().exists(AccumuloTable.FATE.tableName())) {
+    if (context.tableOperations().exists(SystemTables.FATE.tableName())) {
       LOG.info("Fate table already exists");
       return;
     }
@@ -156,7 +156,7 @@ public class Upgrader12to13 implements Upgrader {
       FileSystemInitializer.InitialTablet fateTableTableTablet =
           initializer.createFateRefTablet(context, TabletMergeabilityMetadata.never());
       // Add references to the Metadata Table
-      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
         writer.addMutation(fateTableTableTablet.createMutation());
       } catch (MutationsRejectedException | TableNotFoundException e) {
         LOG.error("Failed to write tablet refs to metadata table");
@@ -297,8 +297,8 @@ public class Upgrader12to13 implements Upgrader {
     // not be easy to test so its better for correctness to delete them and redo the work.
     try (
         var scanner =
-            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
-        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+            context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       var section = new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
       scanner.setRange(section.getRange());
 
@@ -334,8 +334,8 @@ public class Upgrader12to13 implements Upgrader {
     // external compaction metadata.
     try (
         var scanner =
-            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
-        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+            context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       scanner.setRange(TabletsSection.getRange());
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
 

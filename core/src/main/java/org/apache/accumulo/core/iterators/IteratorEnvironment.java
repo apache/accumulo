@@ -31,25 +31,19 @@ public interface IteratorEnvironment {
    * Return the executed scope of the Iterator. Value will be one of the following:
    * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
    */
-  default IteratorScope getIteratorScope() {
-    throw new UnsupportedOperationException();
-  }
+  IteratorScope getIteratorScope();
 
   /**
    * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
    * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    */
-  default boolean isFullMajorCompaction() {
-    throw new UnsupportedOperationException();
-  }
+  boolean isFullMajorCompaction();
 
   /**
    * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
    * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
    */
-  default Authorizations getAuthorizations() {
-    throw new UnsupportedOperationException();
-  }
+  Authorizations getAuthorizations();
 
   /**
    * Returns a new iterator environment object that can be used to create deep copies over sample
@@ -81,9 +75,7 @@ public interface IteratorEnvironment {
    * @throws SampleNotPresentException when sampling is not configured for table.
    * @since 1.8.0
    */
-  default IteratorEnvironment cloneWithSamplingEnabled() {
-    throw new UnsupportedOperationException();
-  }
+  IteratorEnvironment cloneWithSamplingEnabled();
 
   /**
    * There are at least two conditions under which sampling will be enabled for an environment. One
@@ -94,27 +86,21 @@ public interface IteratorEnvironment {
    * @return true if sampling is enabled for this environment.
    * @since 1.8.0
    */
-  default boolean isSamplingEnabled() {
-    throw new UnsupportedOperationException();
-  }
+  boolean isSamplingEnabled();
 
   /**
    *
    * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
    * @since 1.8.0
    */
-  default SamplerConfiguration getSamplerConfiguration() {
-    throw new UnsupportedOperationException();
-  }
+  SamplerConfiguration getSamplerConfiguration();
 
   /**
    * True if compaction was user initiated.
    *
    * @since 2.0.0
    */
-  default boolean isUserCompaction() {
-    throw new UnsupportedOperationException();
-  }
+  boolean isUserCompaction();
 
   /**
    * Returns an object containing information about the server where this iterator was run. To
@@ -126,18 +112,14 @@ public interface IteratorEnvironment {
    *
    * @since 2.1.0
    */
-  default PluginEnvironment getPluginEnv() {
-    throw new UnsupportedOperationException();
-  }
+  PluginEnvironment getPluginEnv();
 
   /**
    * Return the table Id associated with this iterator.
    *
    * @since 2.0.0
    */
-  default TableId getTableId() {
-    throw new UnsupportedOperationException();
-  }
+  TableId getTableId();
 
   /**
    * Return whether or not the server is running low on memory
@@ -145,7 +127,5 @@ public interface IteratorEnvironment {
    * @return true if server is running low on memory
    * @since 3.0.0
    */
-  default boolean isRunningLowOnMemory() {
-    throw new UnsupportedOperationException();
-  }
+  boolean isRunningLowOnMemory();
 }

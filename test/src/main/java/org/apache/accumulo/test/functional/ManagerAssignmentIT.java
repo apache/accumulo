@@ -65,7 +65,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -114,22 +114,19 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
   @BeforeEach
   public void before() throws Exception {
-    Wait.waitFor(() -> countTabletsWithLocation(client, AccumuloTable.ROOT.tableId()) > 0);
-    Wait.waitFor(() -> countTabletsWithLocation(client, AccumuloTable.METADATA.tableId()) > 0);
+    Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.ROOT.tableId()) > 0);
+    Wait.waitFor(() -> countTabletsWithLocation(client, SystemTables.METADATA.tableId()) > 0);
   }
 
   @Test
   public void test() throws Exception {
-    // Confirm that the root and metadata tables are hosted
-    Locations rootLocations = client.tableOperations().locate(AccumuloTable.ROOT.tableName(),
-        Collections.singletonList(new Range()));
-    rootLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(rootLocations.getTabletLocation(tid)));
+    // Confirm that the system tables are hosted
 
-    Locations metadataLocations = client.tableOperations()
-        .locate(AccumuloTable.METADATA.tableName(), Collections.singletonList(new Range()));
-    metadataLocations.groupByTablet().keySet()
-        .forEach(tid -> assertNotNull(metadataLocations.getTabletLocation(tid)));
+    for (SystemTables t : SystemTables.values()) {
+      Locations locs =
+          client.tableOperations().locate(t.tableName(), Collections.singletonList(new Range()));
+      locs.groupByTablet().keySet().forEach(tid -> assertNotNull(locs.getTabletLocation(tid)));
+    }
 
     String tableName = super.getUniqueNames(1)[0];
     client.tableOperations().create(tableName);
@@ -388,7 +385,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         .map(Text::toString).collect(Collectors.toSet()));
 
     client.securityOperations().grantTablePermission(getPrincipal(),
-        AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+        SystemTables.METADATA.tableName(), TablePermission.WRITE);
 
     var ample = getCluster().getServerContext().getAmple();
     var extent = new KeyExtent(tableId, new Text("m"), new Text("f"));
@@ -570,7 +567,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     // could potentially send a kill -9 to the process. Shut the tablet
     // servers down in a more graceful way.
 
-    Locations locs = client.tableOperations().locate(AccumuloTable.ROOT.tableName(),
+    Locations locs = client.tableOperations().locate(SystemTables.ROOT.tableName(),
         Collections.singletonList(TabletsSection.getRange()));
     locs.groupByTablet().keySet().stream().map(locs::getTabletLocation).forEach(location -> {
       HostAndPort address = HostAndPort.fromString(location);

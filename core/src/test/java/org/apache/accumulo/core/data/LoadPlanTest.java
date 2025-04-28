@@ -23,9 +23,11 @@ import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -136,6 +138,40 @@ public class LoadPlanTest {
         + b64binary + "','endRow':null,'rangeType':'TABLE'}]}";
 
     assertEquals(expected.replace("'", "\""), json);
+  }
+
+  @Test
+  public void testIllegalJson() {
+    assertThrows(NullPointerException.class, () -> LoadPlan.fromJson(null));
+
+    List<String> illegalJson = new ArrayList<>();
+    // Test json with extraneous stuff in it
+    illegalJson.add("{'dest':[],'destinations':[]}");
+    // lets try XML
+    illegalJson.add("<destinations></destinations>");
+    // try an empty string
+    illegalJson.add("");
+    illegalJson.add(" ");
+    // try incomplete json
+    illegalJson.add("{'destinations':[{'fileName':'f1.rf'");
+    // try extra field in the destination
+    illegalJson.add(
+        "{'destinations':[{'host':'localhost',fileName':'f1.rf','startRow':null,'endRow':'g','rangeType':'TABLE'}]}");
+    // try an illegal range type
+    illegalJson.add(
+        "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow':null,'rangeType':'LARGE'}]}");
+    // try object value instead of array for destinations field
+    illegalJson.add(
+        "{'destinations':{'fileName':'f1.rf','startRow':null,'endRow': null,'rangeType':'TABLE'}}");
+    // try array of array value instead of array for destinations field
+    illegalJson.add(
+        "{'destinations':[[{'fileName':'f1.rf','startRow':null,'endRow': null,'rangeType':'TABLE'}]]}");
+    // try a row value that is not valid base 64
+    illegalJson.add(
+        "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow': '~!@#$%^&*()_+','rangeType':'TABLE'}]}");
+
+    illegalJson.forEach(json -> assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.fromJson(json.replace("'", "\""))));
   }
 
   @Test

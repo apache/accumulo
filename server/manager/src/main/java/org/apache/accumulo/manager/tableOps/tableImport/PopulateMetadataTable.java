@@ -46,8 +46,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -102,8 +102,7 @@ class PopulateMetadataTable extends ManagerRepo {
     VolumeManager fs = manager.getVolumeManager();
 
     try (
-        BatchWriter mbw =
-            manager.getContext().createBatchWriter(AccumuloTable.METADATA.tableName());
+        BatchWriter mbw = manager.getContext().createBatchWriter(SystemTables.METADATA.tableName());
         FSDataInputStream fsDataInputStream = fs.open(path);
         ZipInputStream zis = new ZipInputStream(fsDataInputStream)) {
 

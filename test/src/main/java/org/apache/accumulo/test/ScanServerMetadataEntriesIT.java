@@ -47,8 +47,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.gc.GCRun;
@@ -231,7 +231,7 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
 
       List<Entry<Key,Value>> metadataEntries = null;
       try (Scanner scanner2 =
-          client.createScanner(AccumuloTable.SCAN_REF.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.SCAN_REF.tableName(), Authorizations.EMPTY)) {
         metadataEntries = scanner2.stream().distinct().collect(Collectors.toList());
       }
       assertEquals(fileCount, metadataEntries.size());

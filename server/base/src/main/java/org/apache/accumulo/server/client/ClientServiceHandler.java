@@ -62,7 +62,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -71,7 +71,7 @@ import org.slf4j.LoggerFactory;
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
   protected final ServerContext context;
-  protected final SecurityOperation security;
+  protected final AuditedSecurityOperation security;
 
   public ClientServiceHandler(ServerContext context) {
     this.context = context;
