@@ -303,7 +303,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
           .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
-          .withScope(IteratorScope.scan);
+          .withScope(IteratorScope.scan).withTableId(null);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
         iterEnvBuilder.withSamplingEnabled();
