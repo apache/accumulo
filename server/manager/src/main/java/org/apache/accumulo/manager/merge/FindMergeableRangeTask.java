@@ -77,7 +77,7 @@ public class FindMergeableRangeTask implements Runnable {
   @Override
   public void run() {
     var context = manager.getContext();
-    Map<TableId,String> tables = context.getTableIdToNameMap();
+    Map<TableId,String> tables = context.createTableIdToQualifiedNameMap();
 
     log.debug("Starting FindMergeableRangeTask");
 

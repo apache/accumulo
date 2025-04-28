@@ -142,7 +142,7 @@ public class Upgrader11to12 implements Upgrader {
         String namespaceNamePath = Constants.ZNAMESPACES + "/" + namespaceId + ZNAMESPACE_NAME;
         namespaceMap.put(namespaceId, new String(zrw.getData(namespaceNamePath), UTF_8));
       }
-      byte[] mapping = NamespaceMapping.serialize(namespaceMap);
+      byte[] mapping = NamespaceMapping.serializeMap(namespaceMap);
       zrw.putPersistentData(Constants.ZNAMESPACES, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
 
       for (String namespaceId : namespaceIdList) {

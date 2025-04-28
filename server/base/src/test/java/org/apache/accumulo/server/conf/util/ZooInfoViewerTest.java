@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
@@ -266,8 +267,9 @@ public class ZooInfoViewerTest {
           return nsPropBytes;
         }).once();
 
-    var mockTableIdMap = Map.of(TableId.of("t"), "t_table");
-    expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
+    TreeMap<TableId,String> mockTableIdMap = new TreeMap<>();
+    mockTableIdMap.put(TableId.of("t"), "t_table");
+    expect(context.createTableIdToQualifiedNameMap()).andReturn(mockTableIdMap).once();
 
     var tProps = new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1"));
     var tPropBytes = propCodec.toBytes(tProps);
@@ -334,11 +336,12 @@ public class ZooInfoViewerTest {
 
     var mockNamespaceIdMap = Map.of(NamespaceId.of("+accumulo"), "accumulo",
         NamespaceId.of("+default"), "", NamespaceId.of("a_nsid"), "a_namespace_name");
-    var mockTableIdMap = Map.of(TableId.of("t_tid"), "t_tablename");
+    var mockTableIdMap = new TreeMap<TableId,String>();
+    mockTableIdMap.put(TableId.of("t_tid"), "t_tablename");
     var context = MockServerContext.get();
     expect(context.getInstanceID()).andReturn(iid).once();
     expect(context.getNamespaceIdToNameMap()).andReturn(mockNamespaceIdMap);
-    expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
+    expect(context.createTableIdToQualifiedNameMap()).andReturn(mockTableIdMap).once();
 
     replay(context);
 

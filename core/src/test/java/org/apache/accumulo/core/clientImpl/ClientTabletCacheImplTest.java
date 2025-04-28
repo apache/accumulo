@@ -214,14 +214,14 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.ROOT.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.ROOT.tableId()))
         .andReturn(SystemTables.ROOT.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.METADATA.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.METADATA.tableId()))
         .andReturn(SystemTables.METADATA.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     EasyMock.expect(tops.isOnline("foo")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("0")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("1")).andReturn(true).anyTimes();
@@ -751,14 +751,14 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.ROOT.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.ROOT.tableId()))
         .andReturn(SystemTables.ROOT.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.METADATA.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.METADATA.tableId()))
         .andReturn(SystemTables.METADATA.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     iid = InstanceId.of("instance1");
     rootTabletLoc = "tserver4";
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
