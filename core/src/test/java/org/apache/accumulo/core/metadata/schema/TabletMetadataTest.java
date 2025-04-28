@@ -34,10 +34,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -372,51 +373,48 @@ public class TabletMetadataTest {
 
   @Test
   public void testValidateWithNonOverlappingFileRange() {
-    TabletMetadata.Builder builder = new TabletMetadata.Builder();
+    // Create KeyExtent with prevEndRow = "b", endRow = "d", and table ID = 5
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("d"), new Text("b"));
 
-    builder.table(TableId.of("5"));
-    builder.prevEndRow(new Text("b"));
-    builder.sawPrevEndRow(true);
-    builder.endRow(new Text("d"));
-
+    // Define a file with a range outside the tablet's extent range
     Range fileRange = new Range(new Text("x\0"), true, new Text("z\0"), false);
     StoredTabletFile file =
         StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f1.rf"), fileRange);
 
-    builder.file(file, new DataFileValue(0, 0, 0));
-    assertThrows(IllegalStateException.class, () -> builder.build(EnumSet.allOf(ColumnType.class)));
+    // Build the TabletMetadata using fluent builder
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    // Asserting that building the metadata throws an exception due to the invalid file range
+    assertThrows(IllegalStateException.class, () -> builder.build(ColumnType.values()));
   }
 
   @Test
   public void testValidateWithOverlappingFileRange() {
-    TabletMetadata.Builder builder = new TabletMetadata.Builder();
-    builder.table(TableId.of("5"));
-    builder.prevEndRow(new Text("a"));
-    builder.sawPrevEndRow(true);
-    builder.endRow(new Text("m"));
+    KeyExtent extent = new KeyExtent(TableId.of("2"), new Text("m"), new Text("a"));
 
     Range fileRange = new Range(new Text("c\0"), true, new Text("e\0"), false);
     StoredTabletFile file =
         StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f2.rf"), fileRange);
-    builder.file(file, new DataFileValue(0, 0, 0));
+    TabletMetadataBuilder builder = TabletMetadata.builder(extent)
+        // Note: sawPrevEndRow is optional here — default is false
+        .putFile(file, new DataFileValue(0, 0, 0));
 
-    assertDoesNotThrow(() -> builder.build(EnumSet.allOf(ColumnType.class)));
+    assertDoesNotThrow(() -> builder.build(ColumnType.values()));
   }
 
   @Test
   public void testValidateWithNoFileRange() {
-    TabletMetadata.Builder builder = new TabletMetadata.Builder();
-    builder.table(TableId.of("5"));
-    builder.prevEndRow(new Text("b"));
-    builder.sawPrevEndRow(true);
-    builder.endRow(new Text("d"));
+    KeyExtent extent = new KeyExtent(TableId.of("3"), new Text("d"), new Text("b"));
 
     Range emptyRange = new Range();
     StoredTabletFile file =
         StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f3.rf"), emptyRange);
-    builder.file(file, new DataFileValue(0, 0, 0));
+    TabletMetadataBuilder builder = TabletMetadata.builder(extent)
+        // Note: sawPrevEndRow is optional here — default is false
+        .putFile(file, new DataFileValue(0, 0, 0));
 
-    assertDoesNotThrow(() -> builder.build(EnumSet.allOf(ColumnType.class)));
+    assertDoesNotThrow(() -> builder.build(ColumnType.values()));
   }
 
   @Test
@@ -459,6 +457,7 @@ public class TabletMetadataTest {
         .add(FateId.from(FateInstanceType.USER, UUID.randomUUID())));
 
     // Set some data in the collections and very they are not empty but still immutable
+    b.table(TableId.of("4"));
     b.extCompaction(ecid, ecMeta);
     b.file(stf, new DataFileValue(0, 0, 0));
     b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
@@ -467,6 +466,7 @@ public class TabletMetadataTest {
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.userCompactionsRequested(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
+    b.sawPrevEndRow(true);
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());

@@ -832,7 +832,7 @@ public class TabletMetadata {
   }
 
   public static void validate(TabletMetadata tm) {
-    if (tm.files.isEmpty() || !tm.sawPrevEndRow) {
+    if (tm.files.isEmpty() || !tm.fetchedCols.contains(ColumnType.PREV_ROW)) {
       return;
     }
 
