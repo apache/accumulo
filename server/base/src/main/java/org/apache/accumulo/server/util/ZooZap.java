@@ -189,7 +189,7 @@ public class ZooZap implements KeywordExecutable {
       try {
         removeSingletonLock(zoo, monitorLockPath, hostPortPredicate, opts);
       } catch (KeeperException | InterruptedException e) {
-        log.error("Error deleting manager lock", e);
+        log.error("Error deleting monitor lock", e);
       }
     }
 
