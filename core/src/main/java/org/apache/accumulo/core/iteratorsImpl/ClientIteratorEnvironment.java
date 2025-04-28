@@ -70,7 +70,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
     public Builder withTableId(TableId tableId) {
       checkState(this.tableId.isEmpty(), "TableId has already been set");
-      this.tableId = Optional.of(tableId);
+      this.tableId = Optional.ofNullable(tableId);
       return this;
     }
 
