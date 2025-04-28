@@ -33,7 +33,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -199,10 +199,10 @@ public class CheckForMetadataProblems {
     boolean sawProblems;
     try (Scope scope = span.makeCurrent()) {
 
-      sawProblems = checkMetadataAndRootTableEntries(AccumuloTable.ROOT.tableName(), opts,
+      sawProblems = checkMetadataAndRootTableEntries(SystemTables.ROOT.tableName(), opts,
           System.out::println, System.out::println);
       System.out.println();
-      sawProblems = checkMetadataAndRootTableEntries(AccumuloTable.METADATA.tableName(), opts,
+      sawProblems = checkMetadataAndRootTableEntries(SystemTables.METADATA.tableName(), opts,
           System.out::println, System.out::println) || sawProblems;
       if (sawProblems) {
         throw new IllegalStateException();

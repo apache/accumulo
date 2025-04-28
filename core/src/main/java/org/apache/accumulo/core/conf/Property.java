@@ -35,7 +35,7 @@ import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheMa
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
@@ -479,7 +479,7 @@ public enum Property {
           + "indicates an unlimited number of threads will be used.",
       "1.8.0"),
   MANAGER_METADATA_SUSPENDABLE("manager.metadata.suspendable", "false", PropertyType.BOOLEAN,
-      "Allow tablets for the " + AccumuloTable.METADATA.tableName()
+      "Allow tablets for the " + SystemTables.METADATA.tableName()
           + " table to be suspended via table.suspend.duration.",
       "1.8.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZcStat;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
@@ -144,9 +144,9 @@ public class TableMapping {
       }
       Map<String,String> idToName = deserializeMap(data);
       if (namespaceId.equals(Namespace.ACCUMULO.id())) {
-        if (!idToName.equals(AccumuloTable.tableMapping())) {
+        if (!idToName.equals(SystemTables.tableIdToSimpleNameMap())) {
           throw new IllegalStateException("Accumulo namespace expected to contain tables "
-              + AccumuloTable.tableMapping() + ", but saw " + idToName);
+              + SystemTables.tableIdToSimpleNameMap() + ", but saw " + idToName);
         }
       }
       var converted = ImmutableSortedMap.<TableId,String>naturalOrder();
