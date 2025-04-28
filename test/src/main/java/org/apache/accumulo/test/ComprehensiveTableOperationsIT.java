@@ -324,8 +324,7 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     createFateTableRow(userTable);
     createScanRefTableRow();
     for (var sysTable : SystemTables.tableNames()) {
-      var maxRow =
-          ops.getMaxRow(sysTable, Authorizations.EMPTY, null, true, null, true);
+      var maxRow = ops.getMaxRow(sysTable, Authorizations.EMPTY, null, true, null, true);
       log.info("Max row of {} : {}", sysTable, maxRow);
       assertNotNull(maxRow);
     }
