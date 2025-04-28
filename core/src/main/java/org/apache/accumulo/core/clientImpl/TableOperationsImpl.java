@@ -1509,15 +1509,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
     switch (newState) {
       case OFFLINE:
         op = TFateOperation.TABLE_OFFLINE;
-        if (tableName.equals(SystemTables.METADATA.tableName())
-            || tableName.equals(SystemTables.ROOT.tableName())) {
+        if (SystemTables.containsTableName(tableName)) {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
       case ONLINE:
         op = TFateOperation.TABLE_ONLINE;
-        if (tableName.equals(SystemTables.METADATA.tableName())
-            || tableName.equals(SystemTables.ROOT.tableName())) {
+        if (SystemTables.containsTableName(tableName)) {
           // Don't submit a Fate operation for this, these tables can only be online.
           return;
         }
@@ -2241,6 +2239,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void setTabletAvailability(String tableName, Range range, TabletAvailability availability)
       throws AccumuloSecurityException, AccumuloException {
     EXISTING_TABLE_NAME.validate(tableName);
+    if (SystemTables.containsTableName(tableName)) {
+      throw new AccumuloException("Cannot set set tablet availability for table " + tableName);
+    }
+
     checkArgument(range != null, "range is null");
     checkArgument(availability != null, "tabletAvailability is null");
 
