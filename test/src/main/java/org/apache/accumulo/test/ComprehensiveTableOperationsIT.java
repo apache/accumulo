@@ -323,9 +323,9 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
     ops.create(userTable);
     createFateTableRow(userTable);
     createScanRefTableRow();
-    for (var sysTable : SystemTables.values()) {
+    for (var sysTable : SystemTables.tableNames()) {
       var maxRow =
-          ops.getMaxRow(sysTable.tableName(), Authorizations.EMPTY, null, true, null, true);
+          ops.getMaxRow(sysTable, Authorizations.EMPTY, null, true, null, true);
       log.info("Max row of {} : {}", sysTable, maxRow);
       assertNotNull(maxRow);
     }
@@ -490,14 +490,18 @@ public class ComprehensiveTableOperationsIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void test_rename() {
+  public void test_rename() throws Exception {
     // rename for user tables is tested in RenameIT. Ensure test exists
     assertDoesNotThrow(() -> Class.forName(RenameIT.class.getName()));
     // rename not tested for system tables. Test basic functionality here
+    String newTableName = "newTableName";
+    userTable = getUniqueNames(1)[0];
+    ops.create(userTable);
 
     for (var sysTable : SystemTables.tableNames()) {
-      var e = assertThrows(AccumuloException.class, () -> ops.rename(sysTable, "newTableName"));
-      assertEquals("Table must not be in the 'accumulo' namespace", e.getMessage());
+      assertThrows(AccumuloException.class, () -> ops.rename(sysTable, newTableName));
+      assertFalse(ops.exists(newTableName));
+      assertThrows(AccumuloException.class, () -> ops.rename(userTable, sysTable));
     }
   }
 
