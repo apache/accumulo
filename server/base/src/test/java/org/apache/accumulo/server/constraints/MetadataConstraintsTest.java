@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -685,6 +686,31 @@ public class MetadataConstraintsTest {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
         TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.after(Duration.ofDays(3),
             SteadyTime.from(Duration.ofHours(1)))));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+  }
+
+  @Test
+  public void testAvailabilityColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    KeyExtent fateKeyExtent = new KeyExtent(SystemTables.FATE.tableId(), null, null);
+    m = new Mutation(fateKeyExtent.toMetaRow());
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));
+    assertViolation(mc, m, (short) 4007);
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value("INVALID"));
+    assertViolation(mc, m, (short) 4005);
+
+    m = new Mutation(new Text("foo"));
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));
+    assertViolation(mc, m, (short) 4);
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
   }
