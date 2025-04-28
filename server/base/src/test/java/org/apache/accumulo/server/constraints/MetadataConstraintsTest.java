@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Method;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.List;
 import java.util.Set;
@@ -39,10 +40,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
@@ -133,7 +135,7 @@ public class MetadataConstraintsTest {
 
     assertTrue(violations.isEmpty());
 
-    m = new Mutation(new Text(AccumuloTable.METADATA.tableId().canonical() + "<"));
+    m = new Mutation(new Text(SystemTables.METADATA.tableId().canonical() + "<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);
@@ -632,11 +634,59 @@ public class MetadataConstraintsTest {
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/invalid"));
+    m.put(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), new Value("/invalid"));
     violations = mc.check(createEnv(), m);
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
     assertEquals((short) 3102, violations.get(0));
+  }
+
+  @Test
+  public void testMergeabilityColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    // Delay must be >= 0
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        new Value("{\"delay\":-1,\"steadyTime\":1,\"never\"=false}"));
+    assertViolation(mc, m, (short) 4006);
+
+    // SteadyTime must be null if never is true
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"steadyTime\":1,\"never\"=true}"));
+    assertViolation(mc, m, (short) 4006);
+
+    // delay must be null if never is true
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":1,\"never\"=true}"));
+    assertViolation(mc, m, (short) 4006);
+
+    // SteadyTime must be set if delay is set
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10,\"never\"=false}"));
+    assertViolation(mc, m, (short) 4006);
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.never()));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m, TabletMergeabilityMetadata
+        .toValue(TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS))));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
+        TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.after(Duration.ofDays(3),
+            SteadyTime.from(Duration.ofHours(1)))));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
   }
 
   // Encode a row how it would appear in Json

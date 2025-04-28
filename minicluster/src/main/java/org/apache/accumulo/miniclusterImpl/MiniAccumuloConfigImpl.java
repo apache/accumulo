@@ -68,6 +68,7 @@ public class MiniAccumuloConfigImpl {
 
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
+  static final String DEFAULT_ZOOKEEPER_HOST = "127.0.0.1";
 
   private File dir = null;
   private String rootPassword = null;
@@ -188,8 +189,8 @@ public class MiniAccumuloConfigImpl {
 
       mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
 
-      mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE.getKey(),
-          Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE.getDefaultValue());
+      mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
+          Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
       mergeProp(Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
           Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
 
@@ -211,7 +212,7 @@ public class MiniAccumuloConfigImpl {
             zooKeeperPort = PortUtils.getRandomFreePort();
           }
 
-          zkHost = "localhost:" + zooKeeperPort;
+          zkHost = DEFAULT_ZOOKEEPER_HOST + ":" + zooKeeperPort;
         }
         siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), zkHost);
       }

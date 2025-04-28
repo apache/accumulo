@@ -32,12 +32,18 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -58,9 +64,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.util.Pair;
@@ -73,7 +79,7 @@ public class ClientTabletCacheImplTest {
 
   private static final KeyExtent ROOT_TABLE_EXTENT = RootTable.EXTENT;
   private static final KeyExtent METADATA_TABLE_EXTENT =
-      new KeyExtent(AccumuloTable.METADATA.tableId(), null, ROOT_TABLE_EXTENT.endRow());
+      new KeyExtent(SystemTables.METADATA.tableId(), null, ROOT_TABLE_EXTENT.endRow());
 
   static KeyExtent createNewKeyExtent(String table, String endRow, String prevEndRow) {
     return new KeyExtent(TableId.of(table), endRow == null ? null : new Text(endRow),
@@ -170,8 +176,8 @@ public class ClientTabletCacheImplTest {
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
-        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache =
+        new ClientTabletCacheImpl(SystemTables.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab1TabletCache =
         new ClientTabletCacheImpl(TableId.of(table), rootTabletCache, ttlo, tslc);
     // disable hosting requests for these tests
@@ -208,14 +214,14 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(AccumuloTable.ROOT.tableId()))
-        .andReturn(AccumuloTable.ROOT.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(AccumuloTable.METADATA.tableId()))
-        .andReturn(AccumuloTable.METADATA.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.ROOT.tableId()))
+        .andReturn(SystemTables.ROOT.tableName()).anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.METADATA.tableId()))
+        .andReturn(SystemTables.METADATA.tableName()).anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     EasyMock.expect(tops.isOnline("foo")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("0")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("1")).andReturn(true).anyTimes();
@@ -498,7 +504,7 @@ public class ClientTabletCacheImplTest {
 
   static class TServers {
     private final Map<String,Map<KeyExtent,SortedMap<Key,Value>>> tservers = new HashMap<>();
-    private BiConsumer<CachedTablet,Text> lookupConsumer = (cachedTablet, row) -> {};
+    private volatile BiConsumer<CachedTablet,Text> lookupConsumer = (cachedTablet, row) -> {};
   }
 
   static class TestCachedTabletObtainer implements CachedTabletObtainer {
@@ -513,7 +519,7 @@ public class ClientTabletCacheImplTest {
 
     @Override
     public CachedTablets lookupTablet(ClientContext context, CachedTablet src, Text row,
-        Text stopRow, ClientTabletCache parent) {
+        Text stopRow) {
 
       lookupConsumer.accept(src, row);
 
@@ -521,14 +527,12 @@ public class ClientTabletCacheImplTest {
           tservers.get(src.getTserverLocation().orElseThrow());
 
       if (tablets == null) {
-        parent.invalidateCache(context, src.getTserverLocation().orElseThrow());
         return null;
       }
 
       SortedMap<Key,Value> tabletData = tablets.get(src.getExtent());
 
       if (tabletData == null) {
-        parent.invalidateCache(src.getExtent());
         return null;
       }
 
@@ -542,60 +546,6 @@ public class ClientTabletCacheImplTest {
 
       return MetadataCachedTabletObtainer.getMetadataLocationEntries(results);
     }
-
-    @Override
-    public List<CachedTablet> lookupTablets(ClientContext context, String tserver,
-        Map<KeyExtent,List<Range>> map, ClientTabletCache parent) {
-
-      ArrayList<CachedTablet> list = new ArrayList<>();
-
-      Map<KeyExtent,SortedMap<Key,Value>> tablets = tservers.get(tserver);
-
-      if (tablets == null) {
-        parent.invalidateCache(context, tserver);
-        return list;
-      }
-
-      TreeMap<Key,Value> results = new TreeMap<>();
-
-      Set<Entry<KeyExtent,List<Range>>> es = map.entrySet();
-      List<KeyExtent> failures = new ArrayList<>();
-      for (Entry<KeyExtent,List<Range>> entry : es) {
-        SortedMap<Key,Value> tabletData = tablets.get(entry.getKey());
-
-        if (tabletData == null) {
-          failures.add(entry.getKey());
-          continue;
-        }
-        List<Range> ranges = entry.getValue();
-        for (Range range : ranges) {
-          SortedMap<Key,Value> tm;
-          if (range.getStartKey() == null) {
-            tm = tabletData;
-          } else {
-            tm = tabletData.tailMap(range.getStartKey());
-          }
-
-          for (Entry<Key,Value> de : tm.entrySet()) {
-            if (range.afterEndKey(de.getKey())) {
-              break;
-            }
-
-            if (range.contains(de.getKey())) {
-              results.put(de.getKey(), de.getValue());
-            }
-          }
-        }
-      }
-
-      if (!failures.isEmpty()) {
-        parent.invalidateCache(failures);
-      }
-
-      return MetadataCachedTabletObtainer.getMetadataLocationEntries(results).getCachedTablets();
-
-    }
-
   }
 
   static class YesLockChecker implements TabletServerLockChecker {
@@ -619,10 +569,6 @@ public class ClientTabletCacheImplTest {
       return new CachedTablet(RootTable.EXTENT, rootTabletLoc, "1", TabletAvailability.HOSTED,
           false);
     }
-
-    @Override
-    public void invalidateCache(ClientContext context, String server) {}
-
   }
 
   static void createEmptyTablet(TServers tservers, String server, KeyExtent tablet) {
@@ -731,8 +677,8 @@ public class ClientTabletCacheImplTest {
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
-        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache =
+        new ClientTabletCacheImpl(SystemTables.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab1TabletCache =
         new ClientTabletCacheImpl(TableId.of("tab1"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -784,7 +730,7 @@ public class ClientTabletCacheImplTest {
 
     // simulate a server failure
     setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, tab1e21, "tserver9");
-    tab1TabletCache.invalidateCache(context, "tserver8");
+    tab1TabletCache.invalidateCache(tab1e21);
     locateTabletTest(tab1TabletCache, "r1", tab1e22, "tserver6");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver9");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver4");
@@ -792,9 +738,9 @@ public class ClientTabletCacheImplTest {
     // simulate all servers failing
     deleteServer(tservers, "tserver1");
     deleteServer(tservers, "tserver2");
-    tab1TabletCache.invalidateCache(context, "tserver4");
-    tab1TabletCache.invalidateCache(context, "tserver6");
-    tab1TabletCache.invalidateCache(context, "tserver9");
+    tab1TabletCache.invalidateCache(tab1e22);
+    tab1TabletCache.invalidateCache(tab1e21);
+    tab1TabletCache.invalidateCache(tab1e1);
 
     locateTabletTest(tab1TabletCache, "r1", null, null);
     locateTabletTest(tab1TabletCache, "h", null, null);
@@ -805,14 +751,14 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(AccumuloTable.ROOT.tableId()))
-        .andReturn(AccumuloTable.ROOT.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(AccumuloTable.METADATA.tableId()))
-        .andReturn(AccumuloTable.METADATA.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.ROOT.tableId()))
+        .andReturn(SystemTables.ROOT.tableName()).anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.METADATA.tableId()))
+        .andReturn(SystemTables.METADATA.tableName()).anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     iid = InstanceId.of("instance1");
     rootTabletLoc = "tserver4";
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
@@ -828,9 +774,9 @@ public class ClientTabletCacheImplTest {
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver3");
 
     // simulate the metadata table splitting
-    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), tab1e21.toMetaRow(),
+    KeyExtent mte1 = new KeyExtent(SystemTables.METADATA.tableId(), tab1e21.toMetaRow(),
         ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, tab1e21.toMetaRow());
+    KeyExtent mte2 = new KeyExtent(SystemTables.METADATA.tableId(), null, tab1e21.toMetaRow());
 
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte1, "tserver5");
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte2, "tserver6");
@@ -843,13 +789,16 @@ public class ClientTabletCacheImplTest {
     tab1TabletCache.invalidateCache(tab1e21);
     tab1TabletCache.invalidateCache(tab1e22);
 
+    // parent cache has incorrect entry, the first attempt will fail and clear that, should work on
+    // 2nd attempt
+    locateTabletTest(tab1TabletCache, "a", null, null);
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
     // simulate metadata and regular server down and the reassigned
     deleteServer(tservers, "tserver5");
-    tab1TabletCache.invalidateCache(context, "tserver7");
+    tab1TabletCache.invalidateCache(tab1e1);
     locateTabletTest(tab1TabletCache, "a", null, null);
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
@@ -861,17 +810,17 @@ public class ClientTabletCacheImplTest {
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver7");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
-    tab1TabletCache.invalidateCache(context, "tserver7");
+    tab1TabletCache.invalidateCache(tab1e1);
     setLocation(tservers, "tserver10", mte1, tab1e1, "tserver2");
     locateTabletTest(tab1TabletCache, "a", tab1e1, "tserver2");
     locateTabletTest(tab1TabletCache, "h", tab1e21, "tserver8");
     locateTabletTest(tab1TabletCache, "r", tab1e22, "tserver9");
 
     // simulate a hole in the metadata, caused by a partial split
-    KeyExtent mte11 = new KeyExtent(AccumuloTable.METADATA.tableId(), tab1e1.toMetaRow(),
+    KeyExtent mte11 = new KeyExtent(SystemTables.METADATA.tableId(), tab1e1.toMetaRow(),
         ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte12 =
-        new KeyExtent(AccumuloTable.METADATA.tableId(), tab1e21.toMetaRow(), tab1e1.toMetaRow());
+        new KeyExtent(SystemTables.METADATA.tableId(), tab1e21.toMetaRow(), tab1e1.toMetaRow());
     deleteServer(tservers, "tserver10");
     setLocation(tservers, "tserver4", ROOT_TABLE_EXTENT, mte12, "tserver10");
     setLocation(tservers, "tserver10", mte12, tab1e21, "tserver12");
@@ -1484,16 +1433,16 @@ public class ClientTabletCacheImplTest {
   @Test
   public void testBug1() throws Exception {
     // a bug that occurred while running continuous ingest
-    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("0;0bc"),
+    KeyExtent mte1 = new KeyExtent(SystemTables.METADATA.tableId(), new Text("0;0bc"),
         ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("0;0bc"));
+    KeyExtent mte2 = new KeyExtent(SystemTables.METADATA.tableId(), null, new Text("0;0bc"));
 
     TServers tservers = new TServers();
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
-        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache =
+        new ClientTabletCacheImpl(SystemTables.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab0TabletCache =
         new ClientTabletCacheImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -1515,15 +1464,15 @@ public class ClientTabletCacheImplTest {
   public void testBug2() throws Exception {
     // a bug that occurred while running a functional test
     KeyExtent mte1 =
-        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("~"), ROOT_TABLE_EXTENT.endRow());
-    KeyExtent mte2 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("~"));
+        new KeyExtent(SystemTables.METADATA.tableId(), new Text("~"), ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte2 = new KeyExtent(SystemTables.METADATA.tableId(), null, new Text("~"));
 
     TServers tservers = new TServers();
     TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
-    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
-        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache =
+        new ClientTabletCacheImpl(SystemTables.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab0TabletCache =
         new ClientTabletCacheImpl(TableId.of("0"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -1544,15 +1493,15 @@ public class ClientTabletCacheImplTest {
   // being merged away, caused locating tablets to fail
   @Test
   public void testBug3() throws Exception {
-    KeyExtent mte1 = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;c"),
-        ROOT_TABLE_EXTENT.endRow());
+    KeyExtent mte1 =
+        new KeyExtent(SystemTables.METADATA.tableId(), new Text("1;c"), ROOT_TABLE_EXTENT.endRow());
     KeyExtent mte2 =
-        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;f"), new Text("1;c"));
+        new KeyExtent(SystemTables.METADATA.tableId(), new Text("1;f"), new Text("1;c"));
     KeyExtent mte3 =
-        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;j"), new Text("1;f"));
+        new KeyExtent(SystemTables.METADATA.tableId(), new Text("1;j"), new Text("1;f"));
     KeyExtent mte4 =
-        new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("1;r"), new Text("1;j"));
-    KeyExtent mte5 = new KeyExtent(AccumuloTable.METADATA.tableId(), null, new Text("1;r"));
+        new KeyExtent(SystemTables.METADATA.tableId(), new Text("1;r"), new Text("1;j"));
+    KeyExtent mte5 = new KeyExtent(SystemTables.METADATA.tableId(), null, new Text("1;r"));
 
     KeyExtent ke1 = new KeyExtent(TableId.of("1"), null, null);
 
@@ -1561,8 +1510,8 @@ public class ClientTabletCacheImplTest {
 
     RootClientTabletCache rtl = new TestRootClientTabletCache();
 
-    ClientTabletCacheImpl rootTabletCache = new ClientTabletCacheImpl(
-        AccumuloTable.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl rootTabletCache =
+        new ClientTabletCacheImpl(SystemTables.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
     ClientTabletCacheImpl tab0TabletCache =
         new ClientTabletCacheImpl(TableId.of("1"), rootTabletCache, ttlo, new YesLockChecker());
 
@@ -1974,5 +1923,282 @@ public class ClientTabletCacheImplTest {
     assertEquals(Map.of(ke1, List.of(range1), ke2, List.of(range2), ke3, List.of(range2), ke4,
         List.of(range3)), seen);
     assertEquals(0, failures.size());
+  }
+
+  @Test
+  public void testMultithreadedLookups() throws Exception {
+
+    // This test ensures that when multiple threads all attempt to lookup data that is not currently
+    // in the cache that the minimal amount of metadata lookups are done. Should only see one
+    // concurrent lookup per metadata tablet and no more or less.
+    KeyExtent mte1 = new KeyExtent(SystemTables.METADATA.tableId(), new Text("foo;m"), null);
+    KeyExtent mte2 = new KeyExtent(SystemTables.METADATA.tableId(), null, new Text("foo;m"));
+
+    var ke1 = createNewKeyExtent("foo", "m", null);
+    var ke2 = createNewKeyExtent("foo", "q", "m");
+    var ke3 = createNewKeyExtent("foo", null, "q");
+
+    TServers tservers = new TServers();
+
+    List<KeyExtent> lookups = Collections.synchronizedList(new ArrayList<>());
+    AtomicInteger activeLookups = new AtomicInteger(0);
+    AtomicBoolean sawTwoActive = new AtomicBoolean(false);
+    tservers.lookupConsumer = (src, row) -> {
+      if (!src.getExtent().equals(ROOT_TABLE_EXTENT)) {
+        lookups.add(src.getExtent());
+        // increment the total number of threads currently doing metadata lookups
+        activeLookups.incrementAndGet();
+        try {
+          while (!sawTwoActive.get()) {
+            // sleep to simulate metadata lookup that takes time, this gives threads time to pile up
+            // waiting for the metadata lookup
+            Thread.sleep(100);
+            // wait until two threads are doing metadata lookups
+            if (activeLookups.get() == 2) {
+              sawTwoActive.set(true);
+            } else {
+              // Should never see more than two threads in here because the cache should not do more
+              // than one lookup per metadata tablet at a time and there are two metadata tablets.
+              assertTrue(activeLookups.get() <= 2);
+            }
+          }
+        } catch (InterruptedException e) {
+          throw new RuntimeException(e);
+        } finally {
+          activeLookups.decrementAndGet();
+        }
+      }
+    };
+    TestCachedTabletObtainer ttlo = new TestCachedTabletObtainer(tservers);
+
+    RootClientTabletCache rtl = new TestRootClientTabletCache();
+
+    ClientTabletCacheImpl rootTabletCache =
+        new ClientTabletCacheImpl(SystemTables.METADATA.tableId(), rtl, ttlo, new YesLockChecker());
+    ClientTabletCacheImpl metaCache =
+        new ClientTabletCacheImpl(TableId.of("foo"), rootTabletCache, ttlo, new YesLockChecker());
+
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte1, "tserver2");
+    setLocation(tservers, "tserver1", ROOT_TABLE_EXTENT, mte2, "tserver3");
+
+    setLocation(tservers, "tserver2", mte1, ke1, "tserver7");
+    setLocation(tservers, "tserver3", mte2, ke2, "tserver8");
+    setLocation(tservers, "tserver3", mte2, ke3, "tserver9");
+
+    var executor = Executors.newCachedThreadPool();
+    List<Future<CachedTablet>> futures = new ArrayList<>();
+
+    // start 64 threads all trying to lookup data in the cache, should see only two threads do a
+    // concurrent lookup in the metadata table and no more or less.
+    List<String> rowsToLookup = new ArrayList<>();
+
+    for (int i = 0; i < 64; i++) {
+      String lookup = (char) ('a' + (i % 26)) + "";
+      rowsToLookup.add(lookup);
+    }
+
+    Collections.shuffle(rowsToLookup);
+
+    for (var lookup : rowsToLookup) {
+      var future = executor.submit(() -> {
+        var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
+        if (lookup.compareTo("m") <= 0) {
+          assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
+        } else if (lookup.compareTo("q") <= 0) {
+          assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
+        } else {
+          assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
+        }
+        return loc;
+      });
+      futures.add(future);
+    }
+
+    for (var future : futures) {
+      assertNotNull(future.get());
+    }
+
+    assertTrue(sawTwoActive.get());
+    // The second metadata tablet (mte2) contains two user tablets (ke2 and ke3). Depending on which
+    // of these two user tablets is looked up in the metadata table first will see a total of 2 or 3
+    // lookups. If the location of ke2 is looked up first then it will get the locations of ke2 and
+    // ke3 from mte2 and put them in the cache. If the location of ke3 is looked up first then it
+    // will only get the location of ke3 from mte2 and not ke2.
+    assertTrue(lookups.size() == 2 || lookups.size() == 3, lookups::toString);
+    assertEquals(1, lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte1)).count(),
+        lookups::toString);
+    var mte2Lookups =
+        lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte2)).count();
+    assertTrue(mte2Lookups == 1 || mte2Lookups == 2, lookups::toString);
+    executor.shutdown();
+  }
+
+  @Test
+  public void testNonBlocking() throws Exception {
+    // Tests that when two threads query the cache and one needs to read from metadata table and one
+    // does not, that the one that does not is not blocked. This test ensures that when data is in
+    // cache it can always be accessed immediately.
+
+    List<KeyExtent> lookups = new ArrayList<>();
+    TServers tservers = new TServers();
+    // This lock is used by the test to cause a metadata lookup to block
+    var lookupLock = new ReentrantLock();
+    tservers.lookupConsumer = (src, row) -> {
+      lookupLock.lock();
+      try {
+        lookups.add(src.getExtent());
+      } finally {
+        lookupLock.unlock();
+      }
+    };
+
+    ClientTabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+
+    var ke1 = createNewKeyExtent("foo", "g", null);
+    var ke2 = createNewKeyExtent("foo", "m", "g");
+    var ke3 = createNewKeyExtent("foo", "r", "m");
+    var ke4 = createNewKeyExtent("foo", null, "r");
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "tserver3");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "tserver4");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, "tserver5");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, "tserver6");
+
+    assertEquals("tserver3",
+        metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver4",
+        metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver5",
+        metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver6",
+        metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+
+    // clear this extent from cache to cause it to be looked up again in the metadata table
+    metaCache.invalidateCache(ke2);
+
+    var executor = Executors.newCachedThreadPool();
+
+    // acquire this lock to simulate a metadata table lookup blocking
+    lookupLock.lock();
+
+    // verify test assumption
+    assertEquals(0, lookupLock.getQueueLength());
+
+    // start a background task that will read from the metadata table
+    var lookupFuture = executor
+        .submit(() -> metaCache.findTablet(context, new Text("h"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+
+    // wait for the background thread to get stuck waiting on the lock
+    while (lookupLock.getQueueLength() == 0) {
+      Thread.sleep(5);
+    }
+
+    // The lookup task should be blocked trying to get location from the metadata table
+    assertFalse(lookupFuture.isDone());
+    assertEquals(1, lookupLock.getQueueLength());
+
+    // should be able to get the tablet locations that are still in the cache w/o blocking
+    assertEquals("tserver3",
+        metaCache.findTablet(context, new Text("a"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver5",
+        metaCache.findTablet(context, new Text("n"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+    assertEquals("tserver6",
+        metaCache.findTablet(context, new Text("s"), false, LocationNeed.REQUIRED)
+            .getTserverLocation().orElseThrow());
+
+    // The lookup task should still be blocked
+    assertFalse(lookupFuture.isDone());
+    assertEquals(1, lookupLock.getQueueLength());
+
+    // allow the metadata lookup running in background thread to proceed.
+    lookupLock.unlock();
+
+    // The future should be able to run and complete
+    assertEquals("tserver4", lookupFuture.get());
+
+    // verify test assumptions
+    assertTrue(lookupFuture.isDone());
+    assertEquals(0, lookupLock.getQueueLength());
+  }
+
+  @Test
+  public void testInvalidation() throws Exception {
+    // Test invalidation methods on the cache. Other test methods call the invalidate methods and
+    // assume it works, but do not verify its working as expected. Want to verify two things in this
+    // test. First verify that invalidation only invalidates what was requested and no more. Second
+    // verify that invalidation causes a metadata read on subsequent cache accesses.
+
+    List<String> lookups = new ArrayList<>();
+    TServers tservers = new TServers();
+    tservers.lookupConsumer = (src, row) -> {
+      if (src.getExtent().equals(METADATA_TABLE_EXTENT)) {
+        lookups.add(row.toString());
+      }
+    };
+
+    ClientTabletCacheImpl metaCache = createLocators(tservers, "tserver1", "tserver2", "foo");
+
+    var ke1 = createNewKeyExtent("foo", "g", null);
+    var ke2 = createNewKeyExtent("foo", "m", "g");
+    var ke3 = createNewKeyExtent("foo", "r", "m");
+    var ke4 = createNewKeyExtent("foo", null, "r");
+
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke1, "tserver3");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke2, "tserver4");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke3, "tserver5");
+    setLocation(tservers, "tserver2", METADATA_TABLE_EXTENT, ke4, "tserver3");
+
+    // Do cache lookups in reverse order to force a metadata lookup for each row. The cache will
+    // read ahead when doing metadata lookups and want to avoid that in this case.
+    Map<String,String> expectedLocations = new LinkedHashMap<>();
+    expectedLocations.put("s", "tserver3");
+    expectedLocations.put("n", "tserver5");
+    expectedLocations.put("h", "tserver4");
+    expectedLocations.put("a", "tserver3");
+
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;s", "foo;n", "foo;h", "foo;a"), Set.copyOf(lookups));
+
+    // invalidate one extent from the metadata table, should only read that extent from metadata
+    // table
+    metaCache.invalidateCache(ke2);
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;h"), Set.copyOf(lookups));
+
+    // invalidate two extents
+    metaCache.invalidateCache(List.of(ke2, ke4));
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;h", "foo;s"), Set.copyOf(lookups));
+
+    // invalidate everything in cache
+    metaCache.invalidateCache();
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of("foo;s", "foo;n", "foo;h", "foo;a"), Set.copyOf(lookups));
+
+    // when nothing was invalidated, should see no metadata lookups
+    lookups.clear();
+    checkLocations(expectedLocations, metaCache);
+    assertEquals(Set.of(), Set.copyOf(lookups));
+  }
+
+  private void checkLocations(Map<String,String> expectedLocations, ClientTabletCacheImpl metaCache)
+      throws Exception {
+    for (var entry : expectedLocations.entrySet()) {
+      String row = entry.getKey();
+      String location = entry.getValue();
+      assertEquals(location,
+          metaCache.findTablet(context, new Text(row), false, LocationNeed.REQUIRED)
+              .getTserverLocation().orElseThrow());
+    }
   }
 }

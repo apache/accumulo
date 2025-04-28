@@ -18,22 +18,32 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
+import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.util.DurationFormat;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
-import com.google.common.net.HostAndPort;
+import com.google.common.base.Preconditions;
+import com.google.common.collect.Lists;
 
 public class ListScansCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt;
+  private Option serverOpt, tserverOption, rgOpt, disablePaginationOpt;
 
   @Override
   public String description() {
@@ -47,23 +57,47 @@ public class ListScansCommand extends Command {
 
     final InstanceOperations instanceOps = shellState.getAccumuloClient().instanceOperations();
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
-    final Set<ServerId> servers = new HashSet<>();
+    final List<ServerId> servers = new ArrayList<>();
 
-    if (cl.hasOption(tserverOption.getOpt())) {
-      String serverAddress = cl.getOptionValue(tserverOption.getOpt());
-      final HostAndPort hp = HostAndPort.fromString(serverAddress);
+    String serverValue = getServerOptValue(cl, serverOpt, tserverOption);
+    if (serverValue != null || cl.hasOption(rgOpt)) {
+      final var serverPredicate = serverRegexPredicate(serverValue);
+      final var rgPredicate = rgRegexPredicate(cl.getOptionValue(rgOpt));
       servers
-          .add(instanceOps.getServer(ServerId.Type.SCAN_SERVER, null, hp.getHost(), hp.getPort()));
-      servers.add(
-          instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort()));
+          .addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER, rgPredicate, serverPredicate));
+      servers.addAll(
+          instanceOps.getServers(ServerId.Type.TABLET_SERVER, rgPredicate, serverPredicate));
     } else {
       servers.addAll(instanceOps.getServers(ServerId.Type.SCAN_SERVER));
       servers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
     }
 
-    shellState.printLines(new ActiveScanIterator(servers, instanceOps), paginate);
+    Stream<String> activeScans = getActiveScans(instanceOps, servers);
+    activeScans = appendHeader(activeScans);
+    shellState.printLines(activeScans.iterator(), paginate);
 
     return 0;
+  }
+
+  private Stream<String> getActiveScans(InstanceOperations instanceOps, List<ServerId> servers) {
+    List<List<ServerId>> partServerIds = Lists.partition(servers, 100);
+    return partServerIds.stream().flatMap(ids -> {
+      try {
+        return instanceOps.getActiveScans(ids).stream().map(as -> {
+          var dur = new DurationFormat(as.getAge(), "");
+          var dur2 = new DurationFormat(as.getLastContactTime(), "");
+          var server = as.getServerId();
+          return (String.format(
+              "%21s |%21s |%21s |%9s |%9s |%7s |%6s |%8s |%8s |%10s |%20s |%10s |%20s |%10s | %s",
+              server.getResourceGroup(), server.toHostPortString(), as.getClient(), dur, dur2,
+              as.getState(), as.getType(), as.getUser(), as.getTable(), as.getColumns(),
+              as.getAuthorizations(), (as.getType() == ScanType.SINGLE ? as.getTablet() : "N/A"),
+              as.getScanid(), as.getSsiList(), as.getSsio()));
+        });
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        return Stream.of("ERROR " + e.getMessage());
+      }
+    });
   }
 
   @Override
@@ -75,9 +109,20 @@ public class ListScansCommand extends Command {
   public Options getOptions() {
     final Options opts = new Options();
 
-    tserverOption = new Option("ts", "tabletServer", true, "tablet server to list scans for");
+    serverOpt = new Option("s", "server", true,
+        "tablet/scan server regex to list scans for. Regex will match against strings like <host>:<port>");
+    serverOpt.setArgName("tablet/scan server regex");
+    opts.addOption(serverOpt);
+
+    // Leaving here for backwards compatibility, same as serverOpt
+    tserverOption = new Option("ts", "tabletServer", true, "tablet/scan server to list scans for");
     tserverOption.setArgName("tablet server");
     opts.addOption(tserverOption);
+
+    rgOpt = new Option("rg", "resourceGroup", true,
+        "tablet/scan server resource group regex to list scans for");
+    rgOpt.setArgName("resource group");
+    opts.addOption(rgOpt);
 
     disablePaginationOpt = new Option("np", "no-pagination", false, "disable pagination of output");
     opts.addOption(disablePaginationOpt);
@@ -85,4 +130,31 @@ public class ListScansCommand extends Command {
     return opts;
   }
 
+  static String getServerOptValue(CommandLine cl, Option serverOpt, Option tserverOption) {
+    Preconditions.checkArgument(!(cl.hasOption(serverOpt) && cl.hasOption(tserverOption)),
+        "serverOpt and tserverOption may not be both set at the same time.");
+    return cl.hasOption(serverOpt) ? cl.getOptionValue(serverOpt)
+        : cl.getOptionValue(tserverOption);
+  }
+
+  static BiPredicate<String,Integer> serverRegexPredicate(String serverRegex) {
+    return Optional.ofNullable(serverRegex).map(regex -> Pattern.compile(regex).asMatchPredicate())
+        .map(matcherPredicate -> (BiPredicate<String,
+            Integer>) (h, p) -> matcherPredicate.test(h + ":" + p))
+        .orElse((h, p) -> true);
+  }
+
+  static Predicate<String> rgRegexPredicate(String rgRegex) {
+    return Optional.ofNullable(rgRegex).map(regex -> Pattern.compile(regex).asMatchPredicate())
+        .orElse(rg -> true);
+  }
+
+  private static Stream<String> appendHeader(Stream<String> stream) {
+    Stream<String> header = Stream.of(String.format(
+        " %-21s| %-21s| %-21s| %-9s| %-9s| %-7s| %-6s|"
+            + " %-8s| %-8s| %-10s| %-20s| %-10s| %-10s | %-20s | %s",
+        "GROUP", "SERVER", "CLIENT", "AGE", "LAST", "STATE", "TYPE", "USER", "TABLE", "COLUMNS",
+        "AUTHORIZATIONS", "TABLET", "SCAN ID", "ITERATORS", "ITERATOR OPTIONS"));
+    return Stream.concat(header, stream);
+  }
 }

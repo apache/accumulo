@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.Property;
@@ -64,9 +66,10 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -77,6 +80,7 @@ import org.apache.accumulo.server.util.CheckForMetadataProblems;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -244,16 +248,24 @@ public class SplitIT extends AccumuloClusterHarness {
         Thread.sleep(SECONDS.toMillis(15));
       }
       TableId id = TableId.of(c.tableOperations().tableIdMap().get(table));
-      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+      try (Scanner s = c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         KeyExtent extent = new KeyExtent(id, null, null);
         s.setRange(extent.toMetaRange());
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
+        TabletColumnFamily.MERGEABILITY_COLUMN.fetch(s);
         int count = 0;
         int shortened = 0;
         for (Entry<Key,Value> entry : s) {
           extent = KeyExtent.fromMetaPrevRow(entry);
           if (extent.endRow() != null && extent.endRow().toString().length() < 14) {
             shortened++;
+          }
+          if (TabletColumnFamily.MERGEABILITY_COLUMN.getColumnQualifier()
+              .equals(entry.getKey().getColumnQualifier())) {
+            // Default tablet should be set to ALWAYS, all newly generated system splits should be
+            // set to ALWAYS
+            assertEquals(TabletMergeability.always(),
+                TabletMergeabilityMetadata.fromValue(entry.getValue()).getTabletMergeability());
           }
           count++;
         }
@@ -487,8 +499,12 @@ public class SplitIT extends AccumuloClusterHarness {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
 
-      c.tableOperations().create(tableName, new NewTableConfiguration()
-          .setProperties(singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K")));
+      SortedSet<Text> initialSplits = new TreeSet<>(List.of(new Text("r1")));
+
+      c.tableOperations().create(tableName,
+          new NewTableConfiguration()
+              .setProperties(singletonMap(Property.TABLE_SPLIT_THRESHOLD.getKey(), "10K"))
+              .withSplits(initialSplits));
 
       var random = RANDOM.get();
       byte[] val = new byte[100];
@@ -511,8 +527,20 @@ public class SplitIT extends AccumuloClusterHarness {
       // import the file
       c.tableOperations().importDirectory(dir).to(tableName).load();
 
+      // wait for the tablet to be marked unsplittable
+      var ctx = getServerContext();
+      Wait.waitFor(() -> {
+        var tableId = ctx.getTableId(tableName);
+        try (var tabletsMeta = ctx.getAmple().readTablets().forTable(tableId).build()) {
+          return tabletsMeta.stream()
+              .filter(tabletMetadata -> tabletMetadata.getUnSplittable() != null).count() == 1;
+        }
+      });
+
       // tablet should not be able to split
-      assertEquals(0, c.tableOperations().listSplits(tableName).size());
+      var splits = c.tableOperations().listSplits(tableName).stream().map(Text::toString)
+          .collect(Collectors.toSet());
+      assertEquals(Set.of("r1"), splits);
 
       Thread.sleep(1000);
 

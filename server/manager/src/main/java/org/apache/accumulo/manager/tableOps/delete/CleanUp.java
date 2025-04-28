@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -44,7 +44,6 @@ import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.problems.ProblemReports;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
@@ -75,7 +74,7 @@ class CleanUp extends ManagerRepo {
       // look for other tables that references this table's files
       AccumuloClient client = manager.getContext();
       try (BatchScanner bs =
-          client.createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 8)) {
+          client.createBatchScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY, 8)) {
         Range allTables = TabletsSection.getRange();
         Range tableRange = TabletsSection.getRange(tableId);
         Range beforeTable =
@@ -96,7 +95,7 @@ class CleanUp extends ManagerRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + AccumuloTable.METADATA.tableName()
+      log.error("Failed to scan " + SystemTables.METADATA.tableName()
           + " looking for references to deleted table " + tableId, e);
     }
 
@@ -110,13 +109,6 @@ class CleanUp extends ManagerRepo {
       MetadataTableUtil.deleteTable(tableId, refCount != 0, manager.getContext(), null);
     } catch (Exception e) {
       log.error("error deleting " + tableId + " from metadata table", e);
-    }
-
-    // remove any problem reports the table may have
-    try {
-      ProblemReports.getInstance(manager.getContext()).deleteProblemReports(tableId);
-    } catch (Exception e) {
-      log.error("Failed to delete problem reports for table " + tableId, e);
     }
 
     if (refCount == 0) {
@@ -140,7 +132,7 @@ class CleanUp extends ManagerRepo {
 
     // remove table from zookeeper
     try {
-      manager.getTableManager().removeTable(tableId);
+      manager.getTableManager().removeTable(tableId, namespaceId);
       manager.getContext().clearTableListCache();
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);

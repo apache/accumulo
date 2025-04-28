@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
@@ -123,7 +124,8 @@ public class TableLoadBalancer implements TabletBalancer {
       }
 
       if (balancer == null) {
-        log.info("Using balancer {} for table {}", SimpleLoadBalancer.class.getName(), tableId);
+        log.info("Creating balancer {} limited to balancing table {}",
+            SimpleLoadBalancer.class.getName(), tableId);
         balancer = new SimpleLoadBalancer(tableId);
       }
       perTableBalancers.put(tableId, balancer);
@@ -209,8 +211,10 @@ public class TableLoadBalancer implements TabletBalancer {
   @Override
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
-    // Iterate over the tables and balance each of them
-    for (TableId tableId : environment.getTableIdMap().values()) {
+    final DataLevel currentDataLevel = DataLevel.valueOf(params.currentLevel());
+    for (Entry<String,TableId> entry : params.getTablesToBalance().entrySet()) {
+      String tableName = entry.getKey();
+      TableId tableId = entry.getValue();
       final String tableResourceGroup = getResourceGroupNameForTable(tableId);
       // get the group of tservers for this table
       SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
@@ -222,7 +226,8 @@ public class TableLoadBalancer implements TabletBalancer {
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       long tableBalanceTime =
           getBalancerForTable(tableId).balance(new BalanceParamsImpl(groupedTServers,
-              params.currentResourceGroups(), params.currentMigrations(), newMigrations));
+              params.currentResourceGroups(), params.currentMigrations(), newMigrations,
+              currentDataLevel, Map.of(tableName, tableId)));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

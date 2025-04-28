@@ -20,6 +20,7 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 
@@ -69,7 +70,7 @@ public class ZooKeeperMain implements KeywordExecutable {
       }
       System.out.println("The accumulo instance id is " + context.getInstanceID());
       if (!opts.servers.contains("/")) {
-        opts.servers += "/accumulo/" + context.getInstanceID();
+        opts.servers += ZooUtil.getRoot(context.getInstanceID());
       }
       org.apache.zookeeper.ZooKeeperMain
           .main(new String[] {"-server", opts.servers, "-timeout", "" + (opts.timeout * 1000)});

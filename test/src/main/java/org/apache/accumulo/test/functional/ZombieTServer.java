@@ -123,20 +123,20 @@ public class ZombieTServer {
         ThriftProcessorTypes.TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tch, context));
 
-    ServerAddress serverPort = TServerUtils.startTServer(context.getConfiguration(),
-        ThriftServerType.CUSTOM_HS_HA, muxProcessor, "ZombieTServer", "walking dead", 2,
+    ServerAddress serverPort = TServerUtils.createThriftServer(context.getConfiguration(),
+        ThriftServerType.CUSTOM_HS_HA, muxProcessor, "ZombieTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
         context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
         HostAndPort.fromParts("0.0.0.0", port));
-
+    serverPort.startThriftServer("walking dead");
     String addressString = serverPort.address.toString();
 
     var zLockPath = context.getServerPaths()
         .createTabletServerPath(Constants.DEFAULT_RESOURCE_GROUP_NAME, serverPort.address);
-    ZooReaderWriter zoo = context.getZooReaderWriter();
+    ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
-    ServiceLock zlock = new ServiceLock(zoo.getZooKeeper(), zLockPath, UUID.randomUUID());
+    ServiceLock zlock = new ServiceLock(context.getZooSession(), zLockPath, UUID.randomUUID());
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",

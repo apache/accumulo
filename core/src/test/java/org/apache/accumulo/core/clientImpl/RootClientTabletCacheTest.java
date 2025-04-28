@@ -19,44 +19,40 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createStrictMock;
-import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 
 import java.util.List;
 
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 public class RootClientTabletCacheTest {
+
   private ClientContext context;
   private TabletServerLockChecker lockChecker;
-  private ZooCache zc;
-  private RootClientTabletCache rtl;
 
   @BeforeEach
   public void setUp() {
     context = createMock(ClientContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/iid").anyTimes();
-    zc = createStrictMock(ZooCache.class);
-    expect(context.getZooCache()).andReturn(zc).anyTimes();
-    replay(context);
     lockChecker = createMock(TabletServerLockChecker.class);
-    rtl = new RootClientTabletCache(lockChecker);
+    replay(context, lockChecker);
+  }
+
+  @AfterEach
+  public void tearDown() {
+    verify(context, lockChecker);
   }
 
   @Test
   public void testInvalidateCache_Noop() {
-    replay(zc);
-    // its not expected that any of the validate functions will interact w/ zoocache
-    rtl.invalidateCache(context, "server");
+    var rtl = new RootClientTabletCache(lockChecker);
+    // it's not expected that any of the validate functions will do anything with the mock objects
     rtl.invalidateCache(RootTable.EXTENT);
     rtl.invalidateCache();
     rtl.invalidateCache(List.of(RootTable.EXTENT));
-    verify(zc);
   }
 }

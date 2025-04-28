@@ -19,7 +19,6 @@
 package org.apache.accumulo.manager.compaction.coordinator.commit;
 
 import java.io.Serializable;
-import java.util.Collection;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -56,7 +55,7 @@ public class CompactionCommitData implements Serializable {
     return KeyExtent.fromThrift(textent).tableId();
   }
 
-  public Collection<StoredTabletFile> getJobFiles() {
-    return inputPaths.stream().map(StoredTabletFile::of).collect(Collectors.toList());
+  public Set<StoredTabletFile> getJobFiles() {
+    return inputPaths.stream().map(StoredTabletFile::of).collect(Collectors.toSet());
   }
 }

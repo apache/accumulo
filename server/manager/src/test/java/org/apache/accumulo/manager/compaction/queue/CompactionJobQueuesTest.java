@@ -30,7 +30,7 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -42,11 +42,10 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
@@ -60,7 +59,7 @@ public class CompactionJobQueuesTest {
       throws URISyntaxException {
     Collection<CompactableFile> files = List
         .of(new CompactableFileImpl(new URI("file://accumulo/tables//123/t-0/f" + file), 100, 100));
-    return new CompactionJobImpl(prio, cgi, files, CompactionKind.SYSTEM, Optional.empty());
+    return new CompactionJobImpl(prio, cgi, files, CompactionKind.SYSTEM);
   }
 
   @Test
@@ -72,28 +71,23 @@ public class CompactionJobQueuesTest {
     var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
     var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
 
-    var tm1 = TabletMetadata.builder(extent1).build();
-    var tm2 = TabletMetadata.builder(extent2).build();
-    var tm3 = TabletMetadata.builder(extent3).build();
-    var tm4 = TabletMetadata.builder(extent4).build();
-
     var cg1 = CompactorGroupId.of("CG1");
     var cg2 = CompactorGroupId.of("CG2");
     var cg3 = CompactorGroupId.of("CG3");
 
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
     jobQueues.beginFullScan(DataLevel.USER);
 
-    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
-    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
-    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
-    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(extent2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(extent3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(extent4, List.of(newJob((short) 4, 8, cg1)));
 
-    jobQueues.add(tm1, List.of(newJob((short) 4, 1, cg2)));
-    jobQueues.add(tm2, List.of(newJob((short) 3, 2, cg2)));
-    jobQueues.add(tm3, List.of(newJob((short) 2, 3, cg2)));
-    jobQueues.add(tm4, List.of(newJob((short) 1, 4, cg2)));
+    jobQueues.add(extent1, List.of(newJob((short) 4, 1, cg2)));
+    jobQueues.add(extent2, List.of(newJob((short) 3, 2, cg2)));
+    jobQueues.add(extent3, List.of(newJob((short) 2, 3, cg2)));
+    jobQueues.add(extent4, List.of(newJob((short) 1, 4, cg2)));
 
     jobQueues.endFullScan(DataLevel.USER);
 
@@ -101,8 +95,8 @@ public class CompactionJobQueuesTest {
     assertEquals(4, jobQueues.getQueuedJobs(cg2));
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
-    assertEquals(extent4, jobQueues.poll(cg1).getTabletMetadata().getExtent());
-    assertEquals(extent1, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(4, jobQueues.poll(cg1).getPriority());
+    assertEquals(4, jobQueues.poll(cg2).getPriority());
 
     assertEquals(3, jobQueues.getQueuedJobs(cg1));
     assertEquals(3, jobQueues.getQueuedJobs(cg2));
@@ -111,17 +105,17 @@ public class CompactionJobQueuesTest {
     jobQueues.beginFullScan(DataLevel.USER);
 
     // should still be able to poll and get things added in the last full scan
-    assertEquals(extent3, jobQueues.poll(cg1).getTabletMetadata().getExtent());
+    assertEquals(3, jobQueues.poll(cg1).getPriority());
     assertEquals(2, jobQueues.getQueuedJobs(cg1));
     assertEquals(3, jobQueues.getQueuedJobs(cg2));
 
     // add something new during the full scan
-    jobQueues.add(tm1, List.of(newJob((short) -7, 9, cg2)));
+    jobQueues.add(extent1, List.of(newJob((short) -7, 9, cg2)));
     assertEquals(2, jobQueues.getQueuedJobs(cg1));
     assertEquals(4, jobQueues.getQueuedJobs(cg2));
 
     // should still be able to poll and get things added in the last full scan
-    assertEquals(extent2, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(3, jobQueues.poll(cg2).getPriority());
     assertEquals(2, jobQueues.getQueuedJobs(cg1));
     assertEquals(3, jobQueues.getQueuedJobs(cg2));
 
@@ -133,18 +127,18 @@ public class CompactionJobQueuesTest {
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
     assertNull(jobQueues.poll(cg1));
-    assertEquals(extent1, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(-7, jobQueues.poll(cg2).getPriority());
 
     assertEquals(0, jobQueues.getQueuedJobs(cg1));
     assertEquals(0, jobQueues.getQueuedJobs(cg2));
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
     // add some things outside of a begin/end full scan calls
-    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
-    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(extent2, List.of(newJob((short) 2, 6, cg1)));
 
-    jobQueues.add(tm1, List.of(newJob((short) 4, 1, cg2)));
-    jobQueues.add(tm2, List.of(newJob((short) 3, 2, cg2)));
+    jobQueues.add(extent1, List.of(newJob((short) 4, 1, cg2)));
+    jobQueues.add(extent2, List.of(newJob((short) 3, 2, cg2)));
 
     jobQueues.beginFullScan(DataLevel.USER);
 
@@ -153,19 +147,19 @@ public class CompactionJobQueuesTest {
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
     // add some things inside the begin/end full scan calls
-    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
-    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+    jobQueues.add(extent3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(extent4, List.of(newJob((short) 4, 8, cg1)));
 
-    jobQueues.add(tm3, List.of(newJob((short) 2, 3, cg2)));
-    jobQueues.add(tm4, List.of(newJob((short) 1, 4, cg2)));
+    jobQueues.add(extent3, List.of(newJob((short) 2, 3, cg2)));
+    jobQueues.add(extent4, List.of(newJob((short) 1, 4, cg2)));
 
     assertEquals(4, jobQueues.getQueuedJobs(cg1));
     assertEquals(4, jobQueues.getQueuedJobs(cg2));
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
     // poll inside the full scan calls
-    assertEquals(extent4, jobQueues.poll(cg1).getTabletMetadata().getExtent());
-    assertEquals(extent1, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(4, jobQueues.poll(cg1).getPriority());
+    assertEquals(4, jobQueues.poll(cg2).getPriority());
 
     assertEquals(3, jobQueues.getQueuedJobs(cg1));
     assertEquals(3, jobQueues.getQueuedJobs(cg2));
@@ -178,9 +172,9 @@ public class CompactionJobQueuesTest {
     assertEquals(2, jobQueues.getQueuedJobs(cg2));
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
-    assertEquals(extent3, jobQueues.poll(cg1).getTabletMetadata().getExtent());
-    assertEquals(extent3, jobQueues.poll(cg2).getTabletMetadata().getExtent());
-    assertEquals(extent4, jobQueues.poll(cg2).getTabletMetadata().getExtent());
+    assertEquals(3, jobQueues.poll(cg1).getPriority());
+    assertEquals(2, jobQueues.poll(cg2).getPriority());
+    assertEquals(1, jobQueues.poll(cg2).getPriority());
 
     assertNull(jobQueues.poll(cg1));
     assertNull(jobQueues.poll(cg2));
@@ -191,22 +185,22 @@ public class CompactionJobQueuesTest {
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
     // add jobs outside of begin/end full scan
-    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
-    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
-    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
-    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(extent2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(extent3, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(extent4, List.of(newJob((short) 4, 8, cg1)));
 
-    jobQueues.add(tm1, List.of(newJob((short) 4, 1, cg2)));
-    jobQueues.add(tm2, List.of(newJob((short) 3, 2, cg2)));
-    jobQueues.add(tm3, List.of(newJob((short) 2, 3, cg2)));
-    jobQueues.add(tm4, List.of(newJob((short) 1, 4, cg2)));
+    jobQueues.add(extent1, List.of(newJob((short) 4, 1, cg2)));
+    jobQueues.add(extent2, List.of(newJob((short) 3, 2, cg2)));
+    jobQueues.add(extent3, List.of(newJob((short) 2, 3, cg2)));
+    jobQueues.add(extent4, List.of(newJob((short) 1, 4, cg2)));
 
     jobQueues.beginFullScan(DataLevel.USER);
 
     // readd some of the tablets added before the beginFullScan, this should prevent those tablets
     // from being removed by endFullScan
-    jobQueues.add(tm4, List.of(newJob((short) 5, 5, cg2)));
-    jobQueues.add(tm1, List.of(newJob((short) -7, 5, cg2)));
+    jobQueues.add(extent4, List.of(newJob((short) 5, 5, cg2)));
+    jobQueues.add(extent1, List.of(newJob((short) -7, 5, cg2)));
 
     assertEquals(4, jobQueues.getQueuedJobs(cg1));
     assertEquals(4, jobQueues.getQueuedJobs(cg2));
@@ -220,8 +214,8 @@ public class CompactionJobQueuesTest {
     assertEquals(0, jobQueues.getQueuedJobs(cg3));
 
     // make sure we see what was added last for the tablets
-    assertEquals(5, jobQueues.poll(cg2).getJob().getPriority());
-    assertEquals(-7, jobQueues.poll(cg2).getJob().getPriority());
+    assertEquals(5, jobQueues.poll(cg2).getPriority());
+    assertEquals(-7, jobQueues.poll(cg2).getPriority());
 
     assertEquals(0, jobQueues.getQueuedJobs(cg1));
     assertEquals(0, jobQueues.getQueuedJobs(cg2));
@@ -237,22 +231,17 @@ public class CompactionJobQueuesTest {
     var tid = TableId.of("1");
     var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
     var extent2 = new KeyExtent(tid, new Text("q"), new Text("l"));
-    var meta = new KeyExtent(AccumuloTable.METADATA.tableId(), new Text("l"), new Text("c"));
+    var meta = new KeyExtent(SystemTables.METADATA.tableId(), new Text("l"), new Text("c"));
     var root = RootTable.EXTENT;
-
-    var tm1 = TabletMetadata.builder(extent1).build();
-    var tm2 = TabletMetadata.builder(extent2).build();
-    var tmm = TabletMetadata.builder(meta).build();
-    var tmr = TabletMetadata.builder(root).build();
 
     var cg1 = CompactorGroupId.of("CG1");
 
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
-    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
-    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
-    jobQueues.add(tmm, List.of(newJob((short) 3, 7, cg1)));
-    jobQueues.add(tmr, List.of(newJob((short) 4, 8, cg1)));
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+    jobQueues.add(extent2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(meta, List.of(newJob((short) 3, 7, cg1)));
+    jobQueues.add(root, List.of(newJob((short) 4, 8, cg1)));
 
     // verify that a begin and end full scan will only drop tablets in its level
 
@@ -283,7 +272,7 @@ public class CompactionJobQueuesTest {
 
     final int numToAdd = 100_000;
 
-    CompactionJobQueues jobQueues = new CompactionJobQueues(numToAdd + 1);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(10000000);
     CompactorGroupId[] groups =
         Stream.of("G1", "G2", "G3").map(CompactorGroupId::of).toArray(CompactorGroupId[]::new);
 
@@ -321,8 +310,7 @@ public class CompactionJobQueuesTest {
       // Create unique exents because re-adding the same extent will clobber any jobs already in the
       // queue for that extent which could throw off the counts
       KeyExtent extent = new KeyExtent(TableId.of("1"), new Text(i + "z"), new Text(i + "a"));
-      TabletMetadata tm = TabletMetadata.builder(extent).build();
-      jobQueues.add(tm, List.of(newJob((short) (i % 31), i, groups[i % groups.length])));
+      jobQueues.add(extent, List.of(newJob((short) (i % 31), i, groups[i % groups.length])));
     }
 
     // Cause the background threads to exit after polling all data
@@ -342,7 +330,7 @@ public class CompactionJobQueuesTest {
 
   @Test
   public void testGetAsync() throws Exception {
-    CompactionJobQueues jobQueues = new CompactionJobQueues(100);
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
 
     var tid = TableId.of("1");
     var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
@@ -350,12 +338,12 @@ public class CompactionJobQueuesTest {
     var extent3 = new KeyExtent(tid, new Text("l"), new Text("c"));
     var extent4 = new KeyExtent(tid, new Text("c"), new Text("a"));
 
-    var tm1 = TabletMetadata.builder(extent1).build();
-    var tm2 = TabletMetadata.builder(extent2).build();
-    var tm3 = TabletMetadata.builder(extent3).build();
-    var tm4 = TabletMetadata.builder(extent4).build();
-
     var cg1 = CompactorGroupId.of("CG1");
+
+    var job1 = newJob((short) 1, 5, cg1);
+    var job2 = newJob((short) 2, 6, cg1);
+    var job3 = newJob((short) 3, 7, cg1);
+    var job4 = newJob((short) 4, 8, cg1);
 
     var future1 = jobQueues.getAsync(cg1);
     var future2 = jobQueues.getAsync(cg1);
@@ -363,13 +351,13 @@ public class CompactionJobQueuesTest {
     assertFalse(future1.isDone());
     assertFalse(future2.isDone());
 
-    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
-    jobQueues.add(tm2, List.of(newJob((short) 2, 6, cg1)));
+    jobQueues.add(extent1, List.of(job1));
+    jobQueues.add(extent2, List.of(job2));
     // Futures were immediately completed so nothing should be queued
     assertTrue(jobQueues.getQueue(cg1).getJobAges().isEmpty());
 
-    jobQueues.add(tm3, List.of(newJob((short) 3, 7, cg1)));
-    jobQueues.add(tm4, List.of(newJob((short) 4, 8, cg1)));
+    jobQueues.add(extent3, List.of(job3));
+    jobQueues.add(extent4, List.of(job4));
     // No futures available, so jobAges should exist for 2 tablets
     assertEquals(2, jobQueues.getQueue(cg1).getJobAges().size());
 
@@ -384,10 +372,10 @@ public class CompactionJobQueuesTest {
     assertTrue(future3.isDone());
     assertTrue(future4.isDone());
 
-    assertEquals(extent1, future1.get().getTabletMetadata().getExtent());
-    assertEquals(extent2, future2.get().getTabletMetadata().getExtent());
-    assertEquals(extent4, future3.get().getTabletMetadata().getExtent());
-    assertEquals(extent3, future4.get().getTabletMetadata().getExtent());
+    assertEquals(job1, future1.get());
+    assertEquals(job2, future2.get());
+    assertEquals(job4, future3.get());
+    assertEquals(job3, future4.get());
 
     // test cancelling a future and having a future timeout
     var future5 = jobQueues.getAsync(cg1);
@@ -403,11 +391,39 @@ public class CompactionJobQueuesTest {
     var future7 = jobQueues.getAsync(cg1);
     assertFalse(future7.isDone());
     // since future5 was canceled and future6 timed out, this addition should go to future7
-    jobQueues.add(tm1, List.of(newJob((short) 1, 5, cg1)));
+    var job5 = newJob((short) 1, 5, cg1);
+    jobQueues.add(extent1, List.of(job5));
     assertTrue(future7.isDone());
-    assertEquals(extent1, future7.get().getTabletMetadata().getExtent());
+    assertEquals(job5, future7.get());
     assertTrue(future5.isDone());
     assertTrue(future6.isCompletedExceptionally());
     assertTrue(future6.isDone());
+  }
+
+  @Test
+  public void testResetSize() throws Exception {
+    CompactionJobQueues jobQueues = new CompactionJobQueues(1000000);
+
+    var tid = TableId.of("1");
+    var extent1 = new KeyExtent(tid, new Text("z"), new Text("q"));
+
+    var cg1 = CompactorGroupId.of("CG1");
+    var cg2 = CompactorGroupId.of("CG2");
+
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg1)));
+
+    assertEquals(Set.of(cg1), jobQueues.getQueueIds());
+    assertEquals(1000000, jobQueues.getQueueMaxSize(cg1));
+
+    jobQueues.resetMaxSize(500000);
+
+    assertEquals(Set.of(cg1), jobQueues.getQueueIds());
+    assertEquals(500000, jobQueues.getQueueMaxSize(cg1));
+
+    // create a new queue and ensure it uses the updated max size
+    jobQueues.add(extent1, List.of(newJob((short) 1, 5, cg2)));
+    assertEquals(Set.of(cg1, cg2), jobQueues.getQueueIds());
+    assertEquals(500000, jobQueues.getQueueMaxSize(cg1));
+    assertEquals(500000, jobQueues.getQueueMaxSize(cg2));
   }
 }

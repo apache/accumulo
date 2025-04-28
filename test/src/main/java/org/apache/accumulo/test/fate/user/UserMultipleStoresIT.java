@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
+import static org.apache.accumulo.test.fate.FateTestUtil.createFateTable;
 
 import java.util.function.Predicate;
 

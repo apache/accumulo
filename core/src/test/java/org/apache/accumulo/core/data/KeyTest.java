@@ -328,4 +328,54 @@ public class KeyTest {
         new Key(new Text(row), new Text(colFamily), new Text(colQualifier), colVisibility2, ts);
     assertEquals(bytesColVisibilityKey2, textColVisibilityKey2);
   }
+
+  private static class TestByteSequence extends ArrayByteSequence {
+
+    private static final long serialVersionUID = 1234L;
+
+    public TestByteSequence(String s) {
+      super(s);
+    }
+
+    @Override
+    public boolean isBackedByArray() {
+      return false;
+    }
+  }
+
+  @Test
+  public void testByteSequenceConstructor() {
+    var row1 = new ArrayByteSequence("Row");
+    var row2 = new ArrayByteSequence("TheRowData").subSequence(3, 6);
+    var row3 = new TestByteSequence("Row");
+
+    var fam1 = new ArrayByteSequence("Family");
+    var fam2 = new ArrayByteSequence("SomeFamilyData").subSequence(4, 10);
+    var fam3 = new TestByteSequence("Family");
+
+    var qual1 = new ArrayByteSequence("Qual");
+    var qual2 = new ArrayByteSequence("TheQualData").subSequence(3, 7);
+    var qual3 = new TestByteSequence("Qual");
+
+    var vis1 = new ArrayByteSequence("Vis");
+    var vis2 = new ArrayByteSequence("AVisData").subSequence(1, 4);
+    var vis3 = new TestByteSequence("Vis");
+
+    var expectedKey = new Key("Row", "Family", "Qual", "Vis", 4);
+
+    for (var r : List.of(row1, row2, row3)) {
+      for (var f : List.of(fam1, fam2, fam3)) {
+        for (var q : List.of(qual1, qual2, qual3)) {
+          for (var v : List.of(vis1, vis2, vis3)) {
+            var actualKey = new Key(r, f, q, v, 4);
+            assertEquals(expectedKey, actualKey);
+            var actualKey2 =
+                Key.builder().row(r).family(f).qualifier(q).visibility(v).timestamp(4).build();
+            assertEquals(expectedKey, actualKey2);
+          }
+        }
+      }
+    }
+
+  }
 }

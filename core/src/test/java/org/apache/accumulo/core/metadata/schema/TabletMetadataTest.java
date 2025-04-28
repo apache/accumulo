@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Constructor;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -643,6 +644,8 @@ public class TabletMetadataTest {
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
         .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
         .putCompacted(compactFateId1).putCompacted(compactFateId2).putCloned()
+        .putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)))
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -662,6 +665,8 @@ public class TabletMetadataTest {
     assertFalse(tm.hasMerged());
     assertNull(tm.getUnSplittable());
     assertEquals("OK", tm.getCloned());
+    assertEquals(TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)),
+        tm.getTabletMergeability());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -688,6 +693,7 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm2::hasMerged);
     assertThrows(IllegalStateException.class, tm2::getUserCompactionsRequested);
     assertThrows(IllegalStateException.class, tm2::getUnSplittable);
+    assertThrows(IllegalStateException.class, tm2::getTabletAvailability);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm =
@@ -707,7 +713,10 @@ public class TabletMetadataTest {
         .putSuspension(ser1, SteadyTime.from(45L, TimeUnit.MILLISECONDS))
         .putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1).putWal(le2)
         .setHostingRequested().putSelectedFiles(selFiles).setMerged()
-        .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta).build();
+        .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta)
+        .putTabletMergeability(TabletMergeabilityMetadata.after(Duration.ofDays(3),
+            SteadyTime.from(45L, TimeUnit.MILLISECONDS)))
+        .build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
@@ -724,6 +733,11 @@ public class TabletMetadataTest {
     assertTrue(tm3.hasMerged());
     assertTrue(tm3.getUserCompactionsRequested().contains(selFilesFateId));
     assertEquals(unsplittableMeta, tm3.getUnSplittable());
+    var tmm = tm3.getTabletMergeability();
+    assertEquals(Duration.ofDays(3), tmm.getTabletMergeability().getDelay().orElseThrow());
+    assertEquals(SteadyTime.from(45L, TimeUnit.MILLISECONDS), tmm.getSteadyTime().orElseThrow());
+    assertTrue(tmm.isMergeable(SteadyTime.from(Duration.ofHours(73))));
+    assertFalse(tmm.isMergeable(SteadyTime.from(Duration.ofHours(72))));
   }
 
 }

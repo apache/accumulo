@@ -20,19 +20,27 @@ package org.apache.accumulo.core.fate.user;
 
 import java.io.IOException;
 import java.io.Serializable;
-import java.time.Duration;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -40,6 +48,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -52,9 +62,9 @@ import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -71,10 +81,21 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   private final String tableName;
 
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
-  private static final int maxRepos = 100;
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
-      com.google.common.collect.Range.closed(1, maxRepos);
+      com.google.common.collect.Range.closed(1, MAX_REPOS);
 
+  /**
+   * Constructs a UserFateStore
+   *
+   * @param context the {@link ClientContext}
+   * @param tableName the name of the table which will store the Fate data
+   * @param lockID the {@link org.apache.accumulo.core.fate.zookeeper.ZooUtil.LockID} held by the
+   *        process creating this store. Should be null if this store will be used as read-only
+   *        (will not be used to reserve transactions)
+   * @param isLockHeld the {@link Predicate} used to determine if the lockID is held or not at the
+   *        time of invocation. If the store is used for a {@link Fate} which runs a dead
+   *        reservation cleaner, this should be non-null, otherwise null is fine
+   */
   public UserFateStore(ClientContext context, String tableName, ZooUtil.LockID lockID,
       Predicate<ZooUtil.LockID> isLockHeld) {
     this(context, tableName, lockID, isLockHeld, DEFAULT_MAX_DEFERRED, DEFAULT_FATE_ID_GENERATOR);
@@ -86,11 +107,6 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
-  }
-
-  public UserFateStore(ClientContext context, ZooUtil.LockID lockID,
-      Predicate<ZooUtil.LockID> isLockHeld) {
-    this(context, AccumuloTable.FATE.tableName(), lockID, isLockHeld);
   }
 
   @Override
@@ -106,7 +122,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         UtilWaitThread.sleep(100);
       }
 
-      var status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW)
+      var status = newMutator(fateId).requireAbsent().putStatus(TStatus.NEW)
           .putCreateTime(System.currentTimeMillis()).tryMutate();
 
       switch (status) {
@@ -123,108 +139,73 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   public FateId getFateId() {
-    return FateId.from(fateInstanceType, UUID.randomUUID());
+    return fateIdGenerator.newRandomId(type());
   }
 
   @Override
-  public Optional<FateTxStore<T>> createAndReserve(FateKey fateKey) {
-    final var reservation = FateReservation.from(lockID, UUID.randomUUID());
-    final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
-    Optional<FateTxStore<T>> txStore = Optional.empty();
+  public Seeder<T> beginSeeding() {
+    return new BatchSeeder();
+  }
+
+  private FateMutator<T> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, FateId fateId,
+      Repo<T> repo, boolean autoCleanUp) {
+    Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
+        .putKey(fateKey).putCreateTime(System.currentTimeMillis());
+    return buildMutator(mutatorFactory, fateOp, repo, autoCleanUp);
+  }
+
+  @Override
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<T> repo,
+      boolean autoCleanUp) {
+    Supplier<FateMutator<T>> mutatorFactory =
+        () -> newMutator(fateId).requireStatus(TStatus.NEW).requireUnreserved().requireAbsentKey();
+    return seedTransaction(mutatorFactory, fateId.canonical(), fateOp, repo, autoCleanUp);
+  }
+
+  private FateMutator<T> buildMutator(Supplier<FateMutator<T>> mutatorFactory,
+      Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp) {
+    var mutator = mutatorFactory.get();
+    mutator =
+        mutator.putFateOp(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
+    if (autoCleanUp) {
+      mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
+    }
+    return mutator;
+  }
+
+  private boolean seedTransaction(Supplier<FateMutator<T>> mutatorFactory, String logId,
+      Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp) {
+    var mutator = buildMutator(mutatorFactory, fateOp, repo, autoCleanUp);
     int maxAttempts = 5;
-    FateMutator.Status status = null;
-
-    // Only need to retry if it is UNKNOWN
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      status = newMutator(fateId).requireStatus().putStatus(TStatus.NEW).putKey(fateKey)
-          .putReservedTx(reservation).putCreateTime(System.currentTimeMillis()).tryMutate();
-      if (status != FateMutator.Status.UNKNOWN) {
-        break;
+      var status = mutator.tryMutate();
+      if (status == FateMutator.Status.ACCEPTED) {
+        // signal to the super class that a new fate transaction was seeded and is ready to run
+        seededTx();
+        log.trace("Attempt to seed {} returned {}", logId, status);
+        return true;
+      } else if (status == FateMutator.Status.REJECTED) {
+        log.debug("Attempt to seed {} returned {}", logId, status);
+        return false;
+      } else if (status == FateMutator.Status.UNKNOWN) {
+        // At this point can not reliably determine if the conditional mutation was successful or
+        // not because no reservation was acquired. For example since no reservation was acquired it
+        // is possible that seeding was a success and something immediately picked it up and started
+        // operating on it and changing it. If scanning after that point can not conclude success or
+        // failure. Another situation is that maybe the fateId already existed in a seeded form
+        // prior to getting this unknown.
+        log.debug("Attempt to seed {} returned {} status, retrying", logId, status);
+        UtilWaitThread.sleep(250);
       }
-      UtilWaitThread.sleep(100);
     }
 
-    switch (status) {
-      case ACCEPTED:
-        txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
-        break;
-      case REJECTED:
-        // If the status is REJECTED, we need to check what about the mutation was REJECTED:
-        // 1) Possible something like the following occurred:
-        // the first attempt was UNKNOWN but written, the next attempt would be rejected
-        // We return the FateTxStore in this case.
-        // 2) If there is a collision with existing fate id, throw error
-        // 3) If the fate id is already reserved, return an empty optional
-        // 4) If the fate id is still NEW/unseeded and unreserved, we can try to reserve it
-        try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
-          scanner.setRange(getRow(fateId));
-          scanner.fetchColumn(TxColumnFamily.STATUS_COLUMN.getColumnFamily(),
-              TxColumnFamily.STATUS_COLUMN.getColumnQualifier());
-          scanner.fetchColumn(TxColumnFamily.TX_KEY_COLUMN.getColumnFamily(),
-              TxColumnFamily.TX_KEY_COLUMN.getColumnQualifier());
-          scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-              TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
-          TStatus statusSeen = TStatus.UNKNOWN;
-          Optional<FateKey> fateKeySeen = Optional.empty();
-          Optional<FateReservation> reservationSeen = Optional.empty();
-
-          for (Entry<Key,Value> entry : scanner) {
-            Text colf = entry.getKey().getColumnFamily();
-            Text colq = entry.getKey().getColumnQualifier();
-            Value val = entry.getValue();
-
-            switch (colq.toString()) {
-              case TxColumnFamily.STATUS:
-                statusSeen = TStatus.valueOf(val.toString());
-                break;
-              case TxColumnFamily.TX_KEY:
-                fateKeySeen = Optional.of(FateKey.deserialize(val.get()));
-                break;
-              case TxColumnFamily.RESERVATION:
-                reservationSeen = Optional.of(FateReservation.deserialize(val.get()));
-                break;
-              default:
-                throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
-            }
-          }
-
-          if (statusSeen == TStatus.NEW) {
-            verifyFateKey(fateId, fateKeySeen, fateKey);
-            // This will be the case if the mutation status is REJECTED but the mutation was written
-            if (reservationSeen.isPresent() && reservationSeen.orElseThrow().equals(reservation)) {
-              txStore = Optional.of(new FateTxStoreImpl(fateId, reservation));
-            } else if (reservationSeen.isEmpty()) {
-              // NEW/unseeded transaction and not reserved, so we can allow it to be reserved
-              // we tryReserve() since another thread may have reserved it since the scan
-              txStore = tryReserve(fateId);
-              // the status was known before reserving to be NEW,
-              // however it could change so check after reserving to avoid race conditions.
-              var statusAfterReserve =
-                  txStore.map(ReadOnlyFateTxStore::getStatus).orElse(TStatus.UNKNOWN);
-              if (statusAfterReserve != TStatus.NEW) {
-                txStore.ifPresent(txs -> txs.unreserve(Duration.ZERO));
-                txStore = Optional.empty();
-              }
-            }
-          } else {
-            log.trace(
-                "fate id {} tstatus {} fate key {} is reserved {} "
-                    + "has already been seeded with work (non-NEW status)",
-                fateId, statusSeen, fateKeySeen.orElse(null), reservationSeen.isPresent());
-          }
-        } catch (TableNotFoundException e) {
-          throw new IllegalStateException(tableName + " not found!", e);
-        }
-        break;
-      default:
-        throw new IllegalStateException("Unknown or unexpected status " + status);
-    }
-
-    return txStore;
+    log.warn("Repeatedly received unknown status when attempting to seed {}", logId);
+    return false;
   }
 
   @Override
   public Optional<FateTxStore<T>> tryReserve(FateId fateId) {
+    verifyLock(lockID, fateId);
     // Create a unique FateReservation for this reservation attempt
     FateReservation reservation = FateReservation.from(lockID, UUID.randomUUID());
 
@@ -291,21 +272,24 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       RowFateStatusFilter.configureScanner(scanner, statuses);
       TxColumnFamily.STATUS_COLUMN.fetch(scanner);
       TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
+      TxInfoColumnFamily.FATE_OP_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         SortedMap<Key,Value> rowMap;
         TStatus status = TStatus.UNKNOWN;
         FateReservation reservation = null;
+        Fate.FateOperation fateOp = null;
         try {
           rowMap = WholeRowIterator.decodeRow(e.getKey(), e.getValue());
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
-        // expect status and optionally reservation
-        Preconditions.checkState(rowMap.size() == 1 || rowMap.size() == 2,
-            "Invalid row seen: %s. Expected to see one entry for the status and optionally an "
-                + "entry for the fate reservation",
+        // Always expect a status, optionally expect a fate operation (present if seeded)
+        // and optionally expect a fate reservation (present if currently reserved)
+        Preconditions.checkState(rowMap.size() >= 1 && rowMap.size() <= 3,
+            "Invalid row seen: %s. Expected to see tx status and optionally a fate op and "
+                + "optionally a fate reservation",
             rowMap);
         for (Entry<Key,Value> entry : rowMap.entrySet()) {
           Text colf = entry.getKey().getColumnFamily();
@@ -318,12 +302,16 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
             case TxColumnFamily.RESERVATION:
               reservation = FateReservation.deserialize(val.get());
               break;
+            case TxInfoColumnFamily.FATE_OP:
+              fateOp = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
+              break;
             default:
               throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
           }
         }
         final TStatus finalStatus = status;
         final Optional<FateReservation> finalReservation = Optional.ofNullable(reservation);
+        final Optional<Fate.FateOperation> finalFateOp = Optional.ofNullable(fateOp);
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
@@ -333,6 +321,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           @Override
           public Optional<FateReservation> getFateReservation() {
             return finalReservation;
+          }
+
+          @Override
+          public Optional<Fate.FateOperation> getFateOperation() {
+            return finalFateOp;
           }
         };
       });
@@ -404,6 +397,113 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     return fateInstanceType;
   }
 
+  private class BatchSeeder implements Seeder<T> {
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    private final Map<FateId,Pair<FateMutator<T>,CompletableFuture<Optional<FateId>>>> pending =
+        new HashMap<>();
+
+    @Override
+    public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+        FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+      Preconditions.checkState(!closed.get(), "Can't attempt to seed with a closed seeder.");
+
+      final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+      // If not already submitted, add to the pending list and return the future
+      // or the existing future if duplicate. The pending map will store the mutator
+      // to be processed on close in a one batch.
+      return pending.computeIfAbsent(fateId, id -> {
+        FateMutator<T> mutator = seedTransaction(fateOp, fateKey, fateId, repo, autoCleanUp);
+        CompletableFuture<Optional<FateId>> future = new CompletableFuture<>();
+        return new Pair<>(mutator, future);
+      }).getSecond();
+    }
+
+    @Override
+    public void close() {
+      closed.set(true);
+
+      int maxAttempts = 5;
+
+      // This loop will submit all the pending mutations as one batch
+      // to a conditional writer and any known results will be removed
+      // from the pending map. Unknown results will be re-attempted up
+      // to the maxAttempts count
+      for (int attempt = 0; attempt < maxAttempts && !pending.isEmpty(); attempt++) {
+        var currentResults = tryMutateBatch();
+        for (Entry<FateId,ConditionalWriter.Status> result : currentResults.entrySet()) {
+          var fateId = result.getKey();
+          var status = result.getValue();
+          var future = pending.get(fateId).getSecond();
+          switch (result.getValue()) {
+            case ACCEPTED:
+              seededTx();
+              log.trace("Attempt to seed {} returned {}", fateId.canonical(), status);
+              // Complete the future with the fatId and remove from pending
+              future.complete(Optional.of(fateId));
+              pending.remove(fateId);
+              break;
+            case REJECTED:
+              log.debug("Attempt to seed {} returned {}", fateId.canonical(), status);
+              // Rejected so complete with an empty optional and remove from pending
+              future.complete(Optional.empty());
+              pending.remove(fateId);
+              break;
+            case UNKNOWN:
+              log.debug("Attempt to seed {} returned {} status, retrying", fateId.canonical(),
+                  status);
+              // unknown, so don't remove from map so that we try again if still under
+              // max attempts
+              break;
+            default:
+              // do not expect other statuses
+              throw new IllegalStateException("Unhandled status for mutation " + status);
+          }
+        }
+
+        if (!pending.isEmpty()) {
+          // At this point can not reliably determine if the unknown pending mutations were
+          // successful or not because no reservation was acquired. For example since no
+          // reservation was acquired it is possible that seeding was a success and something
+          // immediately picked it up and started operating on it and changing it.
+          // If scanning after that point can not conclude success or failure. Another situation
+          // is that maybe the fateId already existed in a seeded form prior to getting this
+          // unknown.
+          UtilWaitThread.sleep(250);
+        }
+      }
+
+      // Any remaining will be UNKNOWN status, so complete the futures with an optional empty
+      pending.forEach((fateId, pair) -> {
+        pair.getSecond().complete(Optional.empty());
+        log.warn("Repeatedly received unknown status when attempting to seed {}",
+            fateId.canonical());
+      });
+    }
+
+    // Submit all the pending mutations to a single conditional writer
+    // as one batch and return the results for each mutation
+    private Map<FateId,ConditionalWriter.Status> tryMutateBatch() {
+      if (pending.isEmpty()) {
+        return Map.of();
+      }
+
+      final Map<FateId,ConditionalWriter.Status> resultsMap = new HashMap<>();
+      try (ConditionalWriter writer = context.createConditionalWriter(tableName)) {
+        Iterator<ConditionalWriter.Result> results = writer
+            .write(pending.values().stream().map(pair -> pair.getFirst().getMutation()).iterator());
+        while (results.hasNext()) {
+          var result = results.next();
+          var row = new Text(result.getMutation().getRow());
+          resultsMap.put(FateId.from(FateInstanceType.USER, row.toString()), result.getStatus());
+        }
+      } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+        throw new IllegalStateException(e);
+      }
+      return resultsMap;
+    }
+  }
+
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl {
 
     private FateTxStoreImpl(FateId fateId) {
@@ -454,8 +554,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
         final ColumnFQ cq;
         switch (txInfo) {
-          case TX_NAME:
-            cq = TxInfoColumnFamily.TX_NAME_COLUMN;
+          case FATE_OP:
+            cq = TxInfoColumnFamily.FATE_OP_COLUMN;
             break;
           case AUTO_CLEAN:
             cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
@@ -499,12 +599,12 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
       Optional<Integer> top = findTop();
 
-      if (top.filter(t -> t >= maxRepos).isPresent()) {
+      if (top.filter(t -> t >= MAX_REPOS).isPresent()) {
         throw new StackOverflowException("Repo stack size too large");
       }
 
       FateMutator<T> fateMutator =
-          newMutator(fateId).requireStatus(TStatus.IN_PROGRESS, TStatus.NEW);
+          newMutator(fateId).requireStatus(REQ_PUSH_STATUS.toArray(TStatus[]::new));
       fateMutator.putRepo(top.map(t -> t + 1).orElse(1), repo).mutate();
     }
 
@@ -513,8 +613,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(true);
 
       Optional<Integer> top = findTop();
-      top.ifPresent(t -> newMutator(fateId)
-          .requireStatus(TStatus.FAILED_IN_PROGRESS, TStatus.SUCCESSFUL).deleteRepo(t).mutate());
+      top.ifPresent(t -> newMutator(fateId).requireStatus(REQ_POP_STATUS.toArray(TStatus[]::new))
+          .deleteRepo(t).mutate());
     }
 
     @Override
@@ -539,7 +639,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(true);
 
       var mutator = newMutator(fateId);
-      mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED);
+      mutator.requireStatus(REQ_DELETE_STATUS.toArray(TStatus[]::new));
       mutator.delete().mutate();
       this.deleted = true;
     }
@@ -549,9 +649,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       verifyReservedAndNotDeleted(true);
 
       var mutator = newMutator(fateId);
-      // allow deletion of all txns other than UNKNOWN
-      mutator.requireStatus(TStatus.NEW, TStatus.SUBMITTED, TStatus.SUCCESSFUL, TStatus.FAILED,
-          TStatus.FAILED_IN_PROGRESS, TStatus.IN_PROGRESS);
+      mutator.requireStatus(REQ_FORCE_DELETE_STATUS.toArray(TStatus[]::new));
       mutator.delete().mutate();
       this.deleted = true;
     }
@@ -579,14 +677,14 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   static Text invertRepo(int position) {
     Preconditions.checkArgument(REPO_RANGE.contains(position),
-        "Position %s is not in the valid range of [0,%s]", position, maxRepos);
-    return new Text(String.format("%02d", maxRepos - position));
+        "Position %s is not in the valid range of [0,%s]", position, MAX_REPOS);
+    return new Text(String.format("%02d", MAX_REPOS - position));
   }
 
   static Integer restoreRepo(Text invertedPosition) {
-    int position = maxRepos - Integer.parseInt(invertedPosition.toString());
+    int position = MAX_REPOS - Integer.parseInt(invertedPosition.toString());
     Preconditions.checkArgument(REPO_RANGE.contains(position),
-        "Position %s is not in the valid range of [0,%s]", position, maxRepos);
+        "Position %s is not in the valid range of [0,%s]", position, MAX_REPOS);
     return position;
   }
 }

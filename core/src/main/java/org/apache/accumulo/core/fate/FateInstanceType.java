@@ -21,7 +21,7 @@ package org.apache.accumulo.core.fate;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 
 public enum FateInstanceType {
   META, USER;
@@ -54,6 +54,6 @@ public enum FateInstanceType {
   }
 
   public static FateInstanceType fromTableId(TableId tableId) {
-    return AccumuloTable.allTableIds().contains(tableId) ? META : USER;
+    return SystemTables.containsTableId(tableId) ? META : USER;
   }
 }

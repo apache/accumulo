@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.manager.metrics.fate.user;
 
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.server.ServerContext;
 
@@ -31,12 +31,13 @@ public class UserFateMetrics extends FateMetrics<UserFateMetricValues> {
   }
 
   @Override
-  protected ReadOnlyFateStore<FateMetrics<UserFateMetricValues>> buildStore(ServerContext context) {
-    return new UserFateStore<>(context, AbstractFateStore.createDummyLockID(), null);
+  protected ReadOnlyFateStore<FateMetrics<UserFateMetricValues>>
+      buildReadOnlyStore(ServerContext context) {
+    return new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
   }
 
   @Override
   protected UserFateMetricValues getMetricValues() {
-    return UserFateMetricValues.getUserStoreMetrics(fateStore);
+    return UserFateMetricValues.getUserStoreMetrics(readOnlyFateStore);
   }
 }

@@ -279,42 +279,24 @@ public class WebViews {
   /**
    * Returns participating tservers template
    *
-   * @param tableID Table ID for participating tservers
+   * @param tableId Table ID for participating tservers
    * @return Participating tservers model
    */
   @GET
-  @Path("tables/{tableID}")
+  @Path("tables/{tableId}")
   @Template(name = "/default.ftl")
   public Map<String,Object> getTables(
-      @PathParam("tableID") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableID)
+      @PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableId)
       throws TableNotFoundException {
-
-    String tableName = monitor.getContext().getTableName(TableId.of(tableID));
+    String tableName = monitor.getContext().getQualifiedTableName(TableId.of(tableId));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
 
     model.put("template", "table.ftl");
     model.put("js", "table.js");
-    model.put("tableID", tableID);
+    model.put("tableId", tableId);
     model.put("table", tableName);
-
-    return model;
-  }
-
-  /**
-   * Returns log report template
-   *
-   * @return Log report model
-   */
-  @GET
-  @Path("log")
-  @Template(name = "/default.ftl")
-  public Map<String,Object> getLogs() {
-
-    Map<String,Object> model = getModel();
-    model.put("title", "Recent Logs");
-    model.put("template", "log.ftl");
 
     return model;
   }

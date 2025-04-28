@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static java.util.stream.Collectors.toList;
 import static java.util.stream.Collectors.toSet;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getActiveCompactions;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -84,9 +85,9 @@ import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -243,7 +244,7 @@ public class CompactionIT extends CompactionBaseIT {
         LOG.debug("Plan job priority is {}:{}", job.getKind(), job.getPriority());
         return new CompactionJobImpl(
             job.getKind() == CompactionKind.SYSTEM ? Short.MAX_VALUE : job.getPriority(),
-            job.getGroup(), job.getFiles(), job.getKind(), Optional.empty());
+            job.getGroup(), job.getFiles(), job.getKind());
       }).collect(toList());
     }
   }
@@ -576,7 +577,7 @@ public class CompactionIT extends CompactionBaseIT {
 
       Set<StoredTabletFile> mfiles1;
       try (TabletsMetadata tabletsMetadata = getServerContext().getAmple().readTablets()
-          .forTable(AccumuloTable.METADATA.tableId()).build()) {
+          .forTable(SystemTables.METADATA.tableId()).build()) {
         mfiles1 = tabletsMetadata.iterator().next().getFiles();
       }
       var rootFiles1 = getServerContext().getAmple().readTablet(RootTable.EXTENT).getFiles();
@@ -586,8 +587,8 @@ public class CompactionIT extends CompactionBaseIT {
       log.debug("rootFiles1 {}",
           rootFiles1.stream().map(StoredTabletFile::getFileName).collect(toList()));
 
-      c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-      c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+      c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
       // create another table to cause more metadata writes
       c.tableOperations().create(tableNames[1]);
@@ -599,8 +600,8 @@ public class CompactionIT extends CompactionBaseIT {
       c.tableOperations().flush(tableNames[1], null, null, true);
 
       // create another metadata file
-      c.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-      c.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+      c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
       // The multiple flushes should create multiple files. We expect the file sets to changes and
       // eventually equal one.
@@ -608,7 +609,7 @@ public class CompactionIT extends CompactionBaseIT {
       Wait.waitFor(() -> {
         Set<StoredTabletFile> mfiles2;
         try (TabletsMetadata tabletsMetadata = getServerContext().getAmple().readTablets()
-            .forTable(AccumuloTable.METADATA.tableId()).build()) {
+            .forTable(SystemTables.METADATA.tableId()).build()) {
           mfiles2 = tabletsMetadata.iterator().next().getFiles();
         }
         log.debug("mfiles2 {}",
@@ -996,9 +997,9 @@ public class CompactionIT extends CompactionBaseIT {
         Wait.waitFor(() -> {
           var tabletMeta = ((ClientContext) client).getAmple().readTablet(extent);
           var externalCompactions = tabletMeta.getExternalCompactions();
-          assertTrue(externalCompactions.values().stream()
-              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM));
-          return externalCompactions.size() == 1;
+          boolean allECAreSystem = externalCompactions.values().stream()
+              .allMatch(ec -> ec.getKind() == CompactionKind.SYSTEM);
+          return allECAreSystem && externalCompactions.size() == 1;
         }, Wait.MAX_WAIT_MILLIS, 10);
 
         // Wait for the user compaction to now run after the system finishes
@@ -1158,7 +1159,7 @@ public class CompactionIT extends CompactionBaseIT {
 
       List<ActiveCompaction> compactions = new ArrayList<>();
       do {
-        client.instanceOperations().getActiveCompactions().forEach((ac) -> {
+        getActiveCompactions(client.instanceOperations()).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
               compactions.add(ac);
@@ -1171,12 +1172,12 @@ public class CompactionIT extends CompactionBaseIT {
       } while (compactions.isEmpty());
 
       ActiveCompaction running1 = compactions.get(0);
-      ServerId host = running1.getHost();
+      ServerId host = running1.getServerId();
       assertTrue(host.getType() == ServerId.Type.COMPACTOR);
 
       compactions.clear();
       do {
-        client.instanceOperations().getActiveCompactions(host).forEach((ac) -> {
+        client.instanceOperations().getActiveCompactions(List.of(host)).forEach((ac) -> {
           try {
             if (ac.getTable().equals(table1)) {
               compactions.add(ac);
@@ -1203,7 +1204,7 @@ public class CompactionIT extends CompactionBaseIT {
    */
   private int countFiles(AccumuloClient c, String tableName) throws Exception {
     var tableId = getCluster().getServerContext().getTableId(tableName);
-    try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (Scanner s = c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       s.setRange(MetadataSchema.TabletsSection.getRange(tableId));
       TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
       s.fetchColumnFamily(new Text(DataFileColumnFamily.NAME));

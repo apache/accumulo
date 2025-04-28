@@ -38,14 +38,16 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.data.Stat;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -54,101 +56,96 @@ import org.slf4j.LoggerFactory;
 class Upgrader10to11Test {
   private static final Logger log = LoggerFactory.getLogger(Upgrader10to11Test.class);
 
-  private InstanceId instanceId = null;
-  private ServerContext context = null;
-  private ZooReaderWriter zrw = null;
-
-  private PropStore propStore = null;
+  private InstanceId instanceId;
+  private ServerContext context;
+  private ZooSession zk;
+  private PropStore propStore;
 
   @BeforeEach
   public void initMocks() {
     instanceId = InstanceId.of(UUID.randomUUID());
     context = createMock(ServerContext.class);
-    zrw = createMock(ZooReaderWriter.class);
+    zk = createMock(ZooSession.class);
     propStore = createMock(PropStore.class);
 
-    expect(context.getZooReaderWriter()).andReturn(zrw).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(new ZooReaderWriter(zk)).anyTimes();
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
+  }
+
+  @AfterEach
+  public void verifyMocks() {
+    verify(context, zk, propStore);
   }
 
   @Test
   void upgradeZooKeeperGoPath() throws Exception {
-
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
-    expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
+    expect(zk.exists(buildRepTablePath(instanceId), null)).andReturn(new Stat()).once();
+    expect(zk.getData(buildRepTablePath(instanceId) + ZTABLE_STATE, null, null))
         .andReturn(TableState.OFFLINE.name().getBytes(UTF_8)).once();
-    zrw.recursiveDelete(buildRepTablePath(instanceId), ZooUtil.NodeMissingPolicy.SKIP);
+    expect(zk.getChildren(buildRepTablePath(instanceId), null)).andReturn(List.of());
+    zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
 
-    expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
+    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
-    replay(context, zrw, propStore);
+    replay(context, zk, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
     upgrader.upgradeZookeeper(context);
-
-    verify(context, zrw);
   }
 
   @Test
   void upgradeZookeeperNoReplTableNode() throws Exception {
-
-    expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(false).once();
-    replay(context, zrw);
+    expect(zk.exists(buildRepTablePath(instanceId), null)).andReturn(null).once();
+    replay(context, zk, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
     upgrader.upgradeZookeeper(context);
-
-    verify(context, zrw);
   }
 
   @Test
   void checkReplicationStateOffline() throws Exception {
 
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
-    expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
-    expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
+    expect(zk.exists(buildRepTablePath(instanceId), null)).andReturn(new Stat()).once();
+    expect(zk.getData(buildRepTablePath(instanceId) + ZTABLE_STATE, null, null))
         .andReturn(TableState.OFFLINE.name().getBytes(UTF_8)).once();
-    zrw.recursiveDelete(buildRepTablePath(instanceId), ZooUtil.NodeMissingPolicy.SKIP);
+    expect(zk.getChildren(buildRepTablePath(instanceId), null)).andReturn(List.of());
+    zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
-    expect(propStore.get(TablePropKey.of(instanceId, AccumuloTable.METADATA.tableId())))
+    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
         .andReturn(new VersionedProperties()).once();
 
-    replay(context, zrw, propStore);
+    replay(context, zk, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
 
     upgrader.upgradeZookeeper(context);
-
-    verify(context, zrw);
   }
 
   @Test
   void checkReplicationStateOnline() throws Exception {
-    expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
-    expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
+    expect(zk.exists(buildRepTablePath(instanceId), null)).andReturn(new Stat()).once();
+    expect(zk.getData(buildRepTablePath(instanceId) + ZTABLE_STATE, null, null))
         .andReturn(TableState.ONLINE.name().getBytes(UTF_8)).anyTimes();
-    replay(context, zrw);
+    replay(context, zk, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
     assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(context));
-
-    verify(context, zrw);
   }
 
   @Test
   void checkReplicationStateNoNode() throws Exception {
-    expect(zrw.exists(buildRepTablePath(instanceId))).andReturn(true).once();
-    expect(zrw.getData(buildRepTablePath(instanceId) + ZTABLE_STATE))
+    expect(zk.exists(buildRepTablePath(instanceId), null)).andReturn(new Stat()).once();
+    expect(zk.getData(buildRepTablePath(instanceId) + ZTABLE_STATE, null, null))
         .andThrow(new KeeperException.NoNodeException("force no node exception")).anyTimes();
-    replay(context, zrw);
+    replay(context, zk, propStore);
 
     Upgrader10to11 upgrader = new Upgrader10to11();
     assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(context));
-
-    verify(context, zrw);
   }
 
   @Test
@@ -188,5 +185,7 @@ class Upgrader10to11Test {
 
     assertEquals(6, filtered.size());
     log.info("F:{}", filtered);
+
+    replay(context, zk, propStore);
   }
 }

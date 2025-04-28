@@ -24,7 +24,6 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.slf4j.LoggerFactory;
 
 class SetupNamespacePermissions extends ManagerRepo {
@@ -40,7 +39,7 @@ class SetupNamespacePermissions extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fate, Manager env) throws Exception {
     // give all namespace permissions to the creator
-    SecurityOperation security = env.getContext().getSecurityOperation();
+    var security = env.getContext().getSecurityOperation();
     for (var permission : NamespacePermission.values()) {
       try {
         security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,

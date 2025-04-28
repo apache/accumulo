@@ -75,7 +75,6 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
-import org.apache.accumulo.manager.split.SeedSplitTask;
 import org.apache.accumulo.manager.state.TableCounts;
 import org.apache.accumulo.manager.state.TableStats;
 import org.apache.accumulo.manager.upgrade.UpgradeCoordinator;
@@ -350,12 +349,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // Do not add any code here, it may interfere with the finally block removing extents from
     // hostingRequestInProgress
     try (var mutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-      inProgress.forEach(ke -> {
-        mutator.mutateTablet(ke).requireAbsentOperation()
-            .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
-            .setHostingRequested().submit(TabletMetadata::getHostingRequested);
-
-      });
+      inProgress.forEach(ke -> mutator.mutateTablet(ke).requireAbsentOperation()
+          .requireTabletAvailability(TabletAvailability.ONDEMAND).requireAbsentLocation()
+          .setHostingRequested()
+          .submit(TabletMetadata::getHostingRequested, () -> "host ondemand"));
 
       List<Range> ranges = new ArrayList<>();
 
@@ -400,12 +397,21 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     var tServersSnapshot = manager.tserversSnapshot();
 
-    return new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
-        manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
-        store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
-        lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-            : Map.of(),
-        manager.getSteadyTime());
+    var tabletMgmtParams =
+        new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
+            manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
+            store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
+            lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
+                : Map.of(),
+            manager.getSteadyTime());
+
+    if (LOG.isTraceEnabled()) {
+      // Log the json that will be passed to iterators to make tablet filtering decisions.
+      LOG.trace("{}:{}", TabletManagementParameters.class.getSimpleName(),
+          tabletMgmtParams.serialize());
+    }
+
+    return tabletMgmtParams;
   }
 
   private Set<TServerInstance> getFilteredServersToShutdown() {
@@ -597,16 +603,24 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             state, goal, actions, tm.getLogs().size());
       }
 
-      if (actions.contains(ManagementAction.NEEDS_SPLITTING)) {
+      final boolean needsSplit = actions.contains(ManagementAction.NEEDS_SPLITTING);
+      if (needsSplit) {
         LOG.debug("{} may need splitting.", tm.getExtent());
-        manager.getSplitter().initiateSplit(new SeedSplitTask(manager, tm.getExtent()));
+        manager.getSplitter().initiateSplit(tm.getExtent());
       }
 
       if (actions.contains(ManagementAction.NEEDS_COMPACTING) && compactionGenerator != null) {
-        var jobs = compactionGenerator.generateJobs(tm,
-            TabletManagementIterator.determineCompactionKinds(actions));
-        LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
-        manager.getCompactionCoordinator().addJobs(tm, jobs);
+        // Check if tablet needs splitting, priority should be giving to splits over
+        // compactions because it's best to compact after a split
+        if (!needsSplit) {
+          var jobs = compactionGenerator.generateJobs(tm,
+              TabletManagementIterator.determineCompactionKinds(actions));
+          LOG.debug("{} may need compacting adding {} jobs", tm.getExtent(), jobs.size());
+          manager.getCompactionCoordinator().addJobs(tm, jobs);
+        } else {
+          LOG.trace("skipping compaction job generation because {} may need splitting.",
+              tm.getExtent());
+        }
       }
 
       if (actions.contains(ManagementAction.NEEDS_LOCATION_UPDATE)
@@ -1077,7 +1091,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               "replaceVolume conditional mutation rejection check {} logsRemoved:{} filesRemoved:{}",
               tm.getExtent(), logsRemoved, filesRemoved);
           return logsRemoved && filesRemoved;
-        });
+        }, () -> "replace volume");
       }
 
       tabletsMutator.process().forEach((extent, result) -> {

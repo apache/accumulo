@@ -18,13 +18,17 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metrics.Metric.LOW_MEMORY;
 import static org.apache.accumulo.core.metrics.Metric.MINC_PAUSED;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getActiveCompactions;
+import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -32,7 +36,9 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.MemoryUnit;
@@ -71,6 +77,7 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
     }
   }
 
+  private static final AtomicInteger LOW_MEM_DETECTED = new AtomicInteger(0);
   private static final DoubleAdder MINC_PAUSED_COUNT = new DoubleAdder();
   private static TestStatsDSink sink;
   private static Thread metricConsumer;
@@ -90,6 +97,12 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
             if (MINC_PAUSED.getName().equals(metric.getName())) {
               double val = Double.parseDouble(metric.getValue());
               MINC_PAUSED_COUNT.add(val);
+            } else if (metric.getName().equals(LOW_MEMORY.getName())) {
+              String process = metric.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY);
+              if (process != null && process.contains(ServerId.Type.TABLET_SERVER.name())) {
+                int val = Integer.parseInt(metric.getValue());
+                LOW_MEM_DETECTED.set(val);
+              }
             }
           }
         }
@@ -139,7 +152,9 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
 
       try (Scanner scanner = client.createScanner(table)) {
 
+        waitFor(() -> 0 == LOW_MEM_DETECTED.get());
         MemoryStarvedScanIT.consumeServerMemory(scanner);
+        waitFor(() -> 1 == LOW_MEM_DETECTED.get());
 
         int paused = MINC_PAUSED_COUNT.intValue();
         assertEquals(0, paused);
@@ -150,13 +165,14 @@ public class MemoryStarvedMinCIT extends SharedMiniClusterBase {
           Thread.sleep(1000);
           paused = MINC_PAUSED_COUNT.intValue();
         }
+        assertTrue(getActiveCompactions(client.instanceOperations()).stream()
+            .anyMatch(ac -> ac.getPausedCount() > 0));
 
         MemoryStarvedScanIT.freeServerMemory(client);
         ingestThread.interrupt();
         ingestThread.join();
         assertNull(error.get());
-        assertTrue(client.instanceOperations().getActiveCompactions().stream()
-            .anyMatch(ac -> ac.getPausedCount() > 0));
+        waitFor(() -> 0 == LOW_MEM_DETECTED.get());
       }
     }
   }

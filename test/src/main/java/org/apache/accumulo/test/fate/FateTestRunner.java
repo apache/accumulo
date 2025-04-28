@@ -34,11 +34,16 @@ public interface FateTestRunner<T extends TestEnv> {
         AbstractFateStore.DEFAULT_FATE_ID_GENERATOR);
   }
 
+  default void stopManagerAndExecuteTest(FateTestExecutor<MultipleStoresIT.LatchTestEnv> testMethod)
+      throws Exception {
+    throw new UnsupportedOperationException("Not implemented");
+  }
+
   interface FateTestExecutor<T> {
     void execute(FateStore<T> store, ServerContext sctx) throws Exception;
   }
 
-  class TestEnv {
+  static class TestEnv {
 
   }
 }

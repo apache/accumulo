@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.manager;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.spi.balancer.TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -196,7 +197,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       }
       log.info("Creating table " + tableName);
       Map<String,String> properties = new HashMap<>();
-      properties.put("table.custom.assignment.group", TEST_GROUP_NAME);
+      properties.put(TABLE_ASSIGNMENT_GROUP_PROPERTY, TEST_GROUP_NAME);
       properties.put(Property.TABLE_SUSPEND_DURATION.getKey(), action.suspendTime);
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints)

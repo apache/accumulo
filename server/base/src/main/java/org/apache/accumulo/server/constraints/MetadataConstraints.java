@@ -34,12 +34,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -60,11 +59,11 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ta
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
-import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -74,9 +73,6 @@ public class MetadataConstraints implements Constraint {
 
   private static final Logger log = LoggerFactory.getLogger(MetadataConstraints.class);
   private static final byte[] BULK_COL_BYTES = BulkFileColumnFamily.STR_NAME.getBytes(UTF_8);
-
-  private ZooCache zooCache = null;
-  private String zooRoot = null;
 
   private static final boolean[] validTableNameChars = new boolean[256];
   static {
@@ -102,6 +98,7 @@ public class MetadataConstraints implements Constraint {
           TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
           SplitColumnFamily.UNSPLITTABLE_COLUMN,
+          TabletColumnFamily.MERGEABILITY_COLUMN,
           Upgrade12to13.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
@@ -276,9 +273,9 @@ public class MetadataConstraints implements Constraint {
       case 4:
         return "Invalid metadata row format";
       case 5:
-        return "Row can not be less than " + AccumuloTable.METADATA.tableId();
+        return "Row can not be less than " + SystemTables.METADATA.tableId();
       case 6:
-        return "Empty values are not allowed for any " + AccumuloTable.METADATA.tableName()
+        return "Empty values are not allowed for any " + SystemTables.METADATA.tableName()
             + " column";
       case 7:
         return "Lock not held in zookeeper by writer";
@@ -302,6 +299,8 @@ public class MetadataConstraints implements Constraint {
         return "Invalid unsplittable column";
       case 4005:
         return "Malformed availability value";
+      case 4006:
+        return "Malformed mergeability value";
 
     }
     return null;
@@ -352,7 +351,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than AccumuloTable.METADATA.tableId()
-    if (Arrays.compare(row, AccumuloTable.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
+    if (Arrays.compare(row, SystemTables.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
       addViolation(violations, 5);
     }
   }
@@ -381,6 +380,13 @@ public class MetadataConstraints implements Constraint {
           addViolation(violations, 4005);
         }
         break;
+      case (TabletColumnFamily.MERGEABILITY_QUAL):
+        try {
+          TabletMergeabilityMetadata.fromValue(new Value(columnUpdate.getValue()));
+        } catch (IllegalArgumentException e) {
+          addViolation(violations, 4006);
+        }
+        break;
     }
   }
 
@@ -390,20 +396,12 @@ public class MetadataConstraints implements Constraint {
 
     switch (qualStr) {
       case ServerColumnFamily.LOCK_QUAL:
-        if (zooCache == null) {
-          zooCache = new ZooCache(context.getZooReader(), null);
-          CleanerUtil.zooCacheClearer(this, zooCache);
-        }
-
-        if (zooRoot == null) {
-          zooRoot = context.getZooKeeperRoot();
-        }
-
         boolean lockHeld = false;
         String lockId = new String(columnUpdate.getValue(), UTF_8);
 
         try {
-          lockHeld = ServiceLock.isLockHeld(zooCache, new ZooUtil.LockID(zooRoot, lockId));
+          lockHeld =
+              ServiceLock.isLockHeld(context.getZooCache(), ZooUtil.LockID.deserialize(lockId));
         } catch (Exception e) {
           log.debug("Failed to verify lock was held {} {}", lockId, e.getMessage());
         }
