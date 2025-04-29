@@ -49,6 +49,10 @@ waiting for the tests to run.
 
 This command produces `assemble/target/accumulo-<version>-bin.tar.gz`
 
+If building a non-release version of Accumulo then you may need to add
+`-Dapache.snapshots=true` to the MAVEN_OPTS environment variable so that
+Maven can resolve snapshot dependencies.
+
 ## Contributing
 
 Contributions are welcome to all Apache Accumulo repositories.
