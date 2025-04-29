@@ -650,7 +650,6 @@ public class ClientContext implements AccumuloClient {
 
   public synchronized void clearTableListCache() {
     ensureOpen();
-    getZooCache().clear(Constants.ZTABLES);
     getZooCache().clear(Constants.ZNAMESPACES);
   }
 
@@ -690,16 +689,22 @@ public class ClientContext implements AccumuloClient {
    */
   public synchronized TableState getTableState(TableId tableId, boolean clearCachedState) {
     ensureOpen();
-    String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
-    ZooCache zc = getZooCache();
-    if (clearCachedState) {
-      zc.clear(statePath);
-    }
-    byte[] state = zc.get(statePath);
-    if (state == null) {
-      return TableState.UNKNOWN;
-    }
-    return TableState.valueOf(new String(state, UTF_8));
+    String statePath = null;
+      try {
+        statePath = Constants.ZNAMESPACES + "/" + getNamespaceId(tableId) + Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
+        ZooCache zc = getZooCache();
+        if (clearCachedState) {
+          zc.clear(statePath);
+        }
+        byte[] state = zc.get(statePath);
+        if (state == null) {
+          return TableState.UNKNOWN;
+        }
+        return TableState.valueOf(new String(state, UTF_8));
+      } catch (TableNotFoundException e) {
+          throw new IllegalStateException("Table not found in ZooKeeper: " + statePath);
+      }
+
   }
 
   /**
@@ -1267,7 +1272,7 @@ public class ClientContext implements AccumuloClient {
     Set<String> pathsToWatch = new HashSet<>();
     for (String path : Set.of(Constants.ZCOMPACTORS, Constants.ZDEADTSERVERS, Constants.ZGC_LOCK,
         Constants.ZMANAGER_LOCK, Constants.ZMINI_LOCK, Constants.ZMONITOR_LOCK,
-        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS, Constants.ZTABLES,
+        Constants.ZNAMESPACES, Constants.ZRECOVERY, Constants.ZSSERVERS,
         Constants.ZTSERVERS, Constants.ZUSERS, RootTable.ZROOT_TABLET, Constants.ZTEST_LOCK)) {
       pathsToWatch.add(path);
     }

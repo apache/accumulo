@@ -83,10 +83,11 @@ public class Utils {
 
   public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
       boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, fateId, lockType).tryLock()) {
+    var context = env.getContext();
+    if (getLock(context, tableId, fateId, lockType).tryLock()) {
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
-        if (!zk.exists(Constants.ZTABLES + "/" + tableId)) {
+        ZooReaderWriter zk = context.getZooSession().asReaderWriter();
+        if (!zk.exists(Constants.ZNAMESPACES + "/" + context.getNamespaceId(tableId) + Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }

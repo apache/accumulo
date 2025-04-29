@@ -79,10 +79,8 @@ public class TableManager {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    String zTablePath = Constants.ZTABLES + "/" + tableId;
+    String zTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
-        namespaceId.canonical().getBytes(UTF_8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
@@ -167,8 +165,8 @@ public class TableManager {
     prepareNewTableState(tableId, namespaceId, tableName, TableState.NEW,
         NodeExistsPolicy.OVERWRITE);
 
-    String srcTablePath = Constants.ZTABLES + "/" + srcTableId + Constants.ZCONFIG;
-    String newTablePath = Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
+    String srcTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + srcTableId + Constants.ZCONFIG;
+    String newTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
     PropUtil.setProperties(context, TablePropKey.of(tableId), propertiesToSet);
@@ -185,7 +183,7 @@ public class TableManager {
         throw e;
       }
     }
-    zoo.recursiveDelete(Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
+    zoo.recursiveDelete(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
   }
 
   public void removeNamespace(NamespaceId namespaceId)

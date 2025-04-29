@@ -120,7 +120,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    String zTablePath = Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
+    String zTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
 
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     byte[] fid;
