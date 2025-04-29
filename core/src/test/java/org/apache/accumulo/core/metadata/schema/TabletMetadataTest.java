@@ -373,19 +373,14 @@ public class TabletMetadataTest {
 
   @Test
   public void testValidateWithNonOverlappingFileRange() {
-    // Create KeyExtent with prevEndRow = "b", endRow = "d", and table ID = 5
     KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("d"), new Text("b"));
 
-    // Define a file with a range outside the tablet's extent range
     Range fileRange = new Range(new Text("x\0"), true, new Text("z\0"), false);
     StoredTabletFile file =
         StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f1.rf"), fileRange);
-
-    // Build the TabletMetadata using fluent builder
     TabletMetadataBuilder builder =
         TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
 
-    // Asserting that building the metadata throws an exception due to the invalid file range
     assertThrows(IllegalStateException.class, () -> builder.build(ColumnType.values()));
   }
 
@@ -396,9 +391,8 @@ public class TabletMetadataTest {
     Range fileRange = new Range(new Text("c\0"), true, new Text("e\0"), false);
     StoredTabletFile file =
         StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f2.rf"), fileRange);
-    TabletMetadataBuilder builder = TabletMetadata.builder(extent)
-        // Note: sawPrevEndRow is optional here — default is false
-        .putFile(file, new DataFileValue(0, 0, 0));
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
 
     assertDoesNotThrow(() -> builder.build(ColumnType.values()));
   }
@@ -410,9 +404,8 @@ public class TabletMetadataTest {
     Range emptyRange = new Range();
     StoredTabletFile file =
         StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f3.rf"), emptyRange);
-    TabletMetadataBuilder builder = TabletMetadata.builder(extent)
-        // Note: sawPrevEndRow is optional here — default is false
-        .putFile(file, new DataFileValue(0, 0, 0));
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
 
     assertDoesNotThrow(() -> builder.build(ColumnType.values()));
   }
