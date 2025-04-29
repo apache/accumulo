@@ -151,7 +151,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        final String tableName = ctx.getTableName(tableId);
+        final String tableName = ctx.getQualifiedTableName(tableId);
         try (Stream<TabletInformation> tablets =
             this.ctx.tableOperations().getTabletInformation(tableName, new Range())) {
           tablets.forEach(t -> summary.processTabletInformation(tableId, tableName, t));
@@ -293,7 +293,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       futures.add(this.pool.submit(new CompactionListFetcher(summary)));
 
       // Fetch Tablet / Tablet information from the metadata table
-      for (TableId tableId : this.ctx.getTableNameToIdMap().values()) {
+      for (TableId tableId : this.ctx.createQualifiedTableNameToIdMap().values()) {
         futures.add(this.pool.submit(new TableInformationFetcher(this.ctx, tableId, summary)));
       }
 

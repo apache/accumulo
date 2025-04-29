@@ -52,7 +52,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.util.LockMap;
 import org.apache.accumulo.core.util.Pair;
@@ -631,7 +631,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     // System tables should always be hosted
-    if (AccumuloTable.allTableIds().contains(tableId)) {
+    if (SystemTables.containsTableId(tableId)) {
       return;
     }
 

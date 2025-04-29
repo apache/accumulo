@@ -43,7 +43,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -245,7 +244,7 @@ public class TableDiskUsage {
 
   protected static Map<SortedSet<String>,Long> buildSharedUsageMap(final TableDiskUsage tdu,
       final ClientContext clientContext, final Set<TableId> emptyTableIds) {
-    final Map<TableId,String> reverseTableIdMap = clientContext.getTableIdToNameMap();
+    final Map<TableId,String> reverseTableIdMap = clientContext.createTableIdToQualifiedNameMap();
 
     SortedMap<SortedSet<String>,Long> usage = new TreeMap<>((o1, o2) -> {
       int len1 = o1.size();

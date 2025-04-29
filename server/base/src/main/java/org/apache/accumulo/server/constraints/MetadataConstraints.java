@@ -36,9 +36,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -273,9 +273,9 @@ public class MetadataConstraints implements Constraint {
       case 4:
         return "Invalid metadata row format";
       case 5:
-        return "Row can not be less than " + AccumuloTable.METADATA.tableId();
+        return "Row can not be less than " + SystemTables.METADATA.tableId();
       case 6:
-        return "Empty values are not allowed for any " + AccumuloTable.METADATA.tableName()
+        return "Empty values are not allowed for any " + SystemTables.METADATA.tableName()
             + " column";
       case 7:
         return "Lock not held in zookeeper by writer";
@@ -301,6 +301,8 @@ public class MetadataConstraints implements Constraint {
         return "Malformed availability value";
       case 4006:
         return "Malformed mergeability value";
+      case 4007:
+        return "Tried to set availability of a system table";
 
     }
     return null;
@@ -351,7 +353,7 @@ public class MetadataConstraints implements Constraint {
     }
 
     // ensure row is not less than AccumuloTable.METADATA.tableId()
-    if (Arrays.compare(row, AccumuloTable.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
+    if (Arrays.compare(row, SystemTables.METADATA.tableId().canonical().getBytes(UTF_8)) < 0) {
       addViolation(violations, 5);
     }
   }
@@ -376,6 +378,12 @@ public class MetadataConstraints implements Constraint {
       case (TabletColumnFamily.AVAILABILITY_QUAL):
         try {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
+          if (!violations.contains((short) 4)) {
+            KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
+            if (ke.isSystemTable()) {
+              addViolation(violations, 4007);
+            }
+          }
         } catch (IllegalArgumentException e) {
           addViolation(violations, 4005);
         }

@@ -32,15 +32,15 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZcStat;
-import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.zookeeper.KeeperException;
 
+import com.google.common.base.MoreObjects;
 import com.google.common.collect.ImmutableSortedMap;
 import com.google.gson.reflect.TypeToken;
 
 public class NamespaceMapping {
+
   // type token must represent a mutable type, so it can be altered in the mutateExisting methods
   // without needing to make a copy
   private static final Type MAP_TYPE = new TypeToken<TreeMap<String,String>>() {}.getType();
@@ -53,18 +53,16 @@ public class NamespaceMapping {
     this.context = context;
   }
 
-  public static void put(final ZooReaderWriter zoo, final NamespaceId namespaceId,
-      final String namespaceName)
+  public void put(final NamespaceId namespaceId, final String namespaceName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    requireNonNull(zoo);
     requireNonNull(namespaceId);
     requireNonNull(namespaceName);
     if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
       throw new AssertionError(
           "Putting built-in namespaces in map should not be possible after init");
     }
-    zoo.mutateExisting(Constants.ZNAMESPACES, data -> {
-      var namespaces = deserialize(data);
+    context.getZooSession().asReaderWriter().mutateExisting(Constants.ZNAMESPACES, data -> {
+      var namespaces = deserializeMap(data);
       final String currentName = namespaces.get(namespaceId.canonical());
       if (namespaceName.equals(currentName)) {
         return null; // mapping already exists; operation is idempotent, so no change needed
@@ -80,43 +78,39 @@ public class NamespaceMapping {
             "Namespace name already exists");
       }
       namespaces.put(namespaceId.canonical(), namespaceName);
-      return serialize(namespaces);
+      return serializeMap(namespaces);
     });
   }
 
-  public static void remove(final ZooReaderWriter zoo, final String zPath,
-      final NamespaceId namespaceId)
+  public void remove(final String zPath, final NamespaceId namespaceId)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    requireNonNull(zoo);
     requireNonNull(zPath);
     requireNonNull(namespaceId);
     if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
       throw new AssertionError("Removing built-in namespaces in map should not be possible");
     }
-    zoo.mutateExisting(zPath, data -> {
-      var namespaces = deserialize(data);
+    context.getZooSession().asReaderWriter().mutateExisting(zPath, data -> {
+      var namespaces = deserializeMap(data);
       if (!namespaces.containsKey(namespaceId.canonical())) {
         throw new AcceptableThriftTableOperationException(null, namespaceId.canonical(),
             TableOperation.DELETE, TableOperationExceptionType.NAMESPACE_NOTFOUND,
             "Namespace already removed while processing");
       }
       namespaces.remove(namespaceId.canonical());
-      return serialize(namespaces);
+      return serializeMap(namespaces);
     });
   }
 
-  public static void rename(final ZooReaderWriter zoo, final NamespaceId namespaceId,
-      final String oldName, final String newName)
+  public void rename(final NamespaceId namespaceId, final String oldName, final String newName)
       throws InterruptedException, KeeperException, AcceptableThriftTableOperationException {
-    requireNonNull(zoo);
     requireNonNull(namespaceId);
     requireNonNull(oldName);
     requireNonNull(newName);
     if (Namespace.DEFAULT.id().equals(namespaceId) || Namespace.ACCUMULO.id().equals(namespaceId)) {
       throw new AssertionError("Renaming built-in namespaces in map should not be possible");
     }
-    zoo.mutateExisting(Constants.ZNAMESPACES, current -> {
-      var namespaces = deserialize(current);
+    context.getZooSession().asReaderWriter().mutateExisting(Constants.ZNAMESPACES, current -> {
+      var namespaces = deserializeMap(current);
       final String currentName = namespaces.get(namespaceId.canonical());
       if (newName.equals(currentName)) {
         return null; // mapping already exists; operation is idempotent, so no change needed
@@ -130,29 +124,28 @@ public class NamespaceMapping {
             TableOperationExceptionType.NAMESPACE_EXISTS, "Namespace name already exists");
       }
       namespaces.put(namespaceId.canonical(), newName);
-      return serialize(namespaces);
+      return serializeMap(namespaces);
     });
   }
 
-  public static byte[] serialize(Map<String,String> map) {
+  public static byte[] serializeMap(Map<String,String> map) {
     return GSON.get().toJson(new TreeMap<>(map), MAP_TYPE).getBytes(UTF_8);
   }
 
-  public static Map<String,String> deserialize(byte[] data) {
+  public static Map<String,String> deserializeMap(byte[] data) {
     requireNonNull(data);
     return GSON.get().fromJson(new String(data, UTF_8), MAP_TYPE);
   }
 
   private synchronized void update() {
-    final ZooCache zc = context.getZooCache();
     final ZcStat stat = new ZcStat();
 
-    byte[] data = zc.get(Constants.ZNAMESPACES, stat);
+    byte[] data = context.getZooCache().get(Constants.ZNAMESPACES, stat);
     if (stat.getMzxid() > lastMzxid) {
       if (data == null) {
         throw new IllegalStateException("namespaces node should not be null");
       } else {
-        Map<String,String> idToName = deserialize(data);
+        Map<String,String> idToName = deserializeMap(data);
         if (!idToName.containsKey(Namespace.DEFAULT.id().canonical())
             || !idToName.containsKey(Namespace.ACCUMULO.id().canonical())) {
           throw new IllegalStateException("Built-in namespace is not present in map");
@@ -179,6 +172,12 @@ public class NamespaceMapping {
   public SortedMap<String,NamespaceId> getNameToIdMap() {
     update();
     return currentNamespaceReverseMap;
+  }
+
+  @Override
+  public String toString() {
+    return MoreObjects.toStringHelper(getClass()).add("lastMzxid", lastMzxid)
+        .add("currentNamespaceMap", currentNamespaceMap).toString();
   }
 
 }

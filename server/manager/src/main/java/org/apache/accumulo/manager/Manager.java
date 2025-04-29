@@ -101,7 +101,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -375,8 +375,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   }
 
   private int nonMetaDataTabletsAssignedOrHosted() {
-    return totalAssignedOrHosted() - assignedOrHosted(AccumuloTable.METADATA.tableId())
-        - assignedOrHosted(AccumuloTable.ROOT.tableId());
+    return totalAssignedOrHosted() - assignedOrHosted(SystemTables.METADATA.tableId())
+        - assignedOrHosted(SystemTables.ROOT.tableId());
   }
 
   private int notHosted() {
@@ -410,14 +410,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       case SAFE_MODE:
         // Count offline tablets for the metadata table
         for (TabletGroupWatcher watcher : watchers) {
-          TableCounts counts = watcher.getStats(AccumuloTable.METADATA.tableId());
+          TableCounts counts = watcher.getStats(SystemTables.METADATA.tableId());
           result += counts.unassigned() + counts.suspended();
         }
         break;
       case UNLOAD_METADATA_TABLETS:
       case UNLOAD_ROOT_TABLET:
         for (TabletGroupWatcher watcher : watchers) {
-          TableCounts counts = watcher.getStats(AccumuloTable.METADATA.tableId());
+          TableCounts counts = watcher.getStats(SystemTables.METADATA.tableId());
           result += counts.unassigned() + counts.suspended();
         }
         break;
@@ -611,7 +611,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     private void cleanupOfflineMigrations() {
       ServerContext context = getContext();
       TableManager manager = context.getTableManager();
-      for (TableId tableId : context.getTableIdToNameMap().keySet()) {
+      for (TableId tableId : context.createTableIdToQualifiedNameMap().keySet()) {
         TableState state = manager.getTableState(tableId);
         if (state == TableState.OFFLINE) {
           clearMigrations(tableId);
@@ -742,7 +742,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
                 }
                   break;
                 case UNLOAD_METADATA_TABLETS: {
-                  int count = assignedOrHosted(AccumuloTable.METADATA.tableId());
+                  int count = assignedOrHosted(SystemTables.METADATA.tableId());
                   log.debug(
                       String.format("There are %d metadata tablets assigned or hosted", count));
                   if (count == 0 && goodStats()) {
@@ -751,12 +751,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
                 }
                   break;
                 case UNLOAD_ROOT_TABLET:
-                  int count = assignedOrHosted(AccumuloTable.METADATA.tableId());
+                  int count = assignedOrHosted(SystemTables.METADATA.tableId());
                   if (count > 0 && goodStats()) {
                     log.debug(String.format("%d metadata tablets online", count));
                     setManagerState(ManagerState.UNLOAD_ROOT_TABLET);
                   }
-                  int root_count = assignedOrHosted(AccumuloTable.ROOT.tableId());
+                  int root_count = assignedOrHosted(SystemTables.ROOT.tableId());
                   if (root_count > 0 && goodStats()) {
                     log.debug("The root tablet is still assigned or hosted");
                   }
@@ -869,23 +869,23 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         final Map<String,TableInfo> newTableMap =
             new HashMap<>(dl == DataLevel.USER ? oldTableMap.size() : 1);
         if (dl == DataLevel.ROOT) {
-          if (oldTableMap.containsKey(AccumuloTable.ROOT.tableId().canonical())) {
-            newTableMap.put(AccumuloTable.ROOT.tableId().canonical(),
-                oldTableMap.get(AccumuloTable.ROOT.tableId().canonical()));
+          if (oldTableMap.containsKey(SystemTables.ROOT.tableId().canonical())) {
+            newTableMap.put(SystemTables.ROOT.tableId().canonical(),
+                oldTableMap.get(SystemTables.ROOT.tableId().canonical()));
           }
         } else if (dl == DataLevel.METADATA) {
-          if (oldTableMap.containsKey(AccumuloTable.METADATA.tableId().canonical())) {
-            newTableMap.put(AccumuloTable.METADATA.tableId().canonical(),
-                oldTableMap.get(AccumuloTable.METADATA.tableId().canonical()));
+          if (oldTableMap.containsKey(SystemTables.METADATA.tableId().canonical())) {
+            newTableMap.put(SystemTables.METADATA.tableId().canonical(),
+                oldTableMap.get(SystemTables.METADATA.tableId().canonical()));
           }
         } else if (dl == DataLevel.USER) {
-          if (!oldTableMap.containsKey(AccumuloTable.METADATA.tableId().canonical())
-              && !oldTableMap.containsKey(AccumuloTable.ROOT.tableId().canonical())) {
+          if (!oldTableMap.containsKey(SystemTables.METADATA.tableId().canonical())
+              && !oldTableMap.containsKey(SystemTables.ROOT.tableId().canonical())) {
             newTableMap.putAll(oldTableMap);
           } else {
             oldTableMap.forEach((table, info) -> {
-              if (!table.equals(AccumuloTable.ROOT.tableId().canonical())
-                  && !table.equals(AccumuloTable.METADATA.tableId().canonical())) {
+              if (!table.equals(SystemTables.ROOT.tableId().canonical())
+                  && !table.equals(SystemTables.METADATA.tableId().canonical())) {
                 newTableMap.put(table, info);
               }
             });
@@ -902,12 +902,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     private Map<String,TableId> getTablesForLevel(DataLevel dataLevel) {
       switch (dataLevel) {
         case ROOT:
-          return Map.of(AccumuloTable.ROOT.tableName(), AccumuloTable.ROOT.tableId());
+          return Map.of(SystemTables.ROOT.tableName(), SystemTables.ROOT.tableId());
         case METADATA:
-          return Map.of(AccumuloTable.METADATA.tableName(), AccumuloTable.METADATA.tableId());
+          return Map.of(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId());
         case USER: {
-          Map<String,TableId> userTables = new HashMap<>(getContext().getTableNameToIdMap());
-          for (var accumuloTable : AccumuloTable.values()) {
+          Map<String,TableId> userTables = getContext().createQualifiedTableNameToIdMap();
+          for (var accumuloTable : SystemTables.values()) {
             if (DataLevel.of(accumuloTable.tableId()) != DataLevel.USER) {
               userTables.remove(accumuloTable.tableName());
             }
@@ -1347,7 +1347,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       var metaInstance = initializeFateInstance(context,
           new MetaFateStore<>(context.getZooSession(), managerLock.getLockID(), isLockHeld));
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
-          AccumuloTable.FATE.tableName(), managerLock.getLockID(), isLockHeld));
+          SystemTables.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
       if (!fateRefs.compareAndSet(null,
           Map.of(FateInstanceType.META, metaInstance, FateInstanceType.USER, userInstance))) {
@@ -1714,17 +1714,17 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Set<TableId> result = new HashSet<>();
     if (getManagerState() != ManagerState.NORMAL) {
       if (getManagerState() != ManagerState.UNLOAD_METADATA_TABLETS) {
-        result.add(AccumuloTable.METADATA.tableId());
+        result.add(SystemTables.METADATA.tableId());
       }
       if (getManagerState() != ManagerState.UNLOAD_ROOT_TABLET) {
-        result.add(AccumuloTable.ROOT.tableId());
+        result.add(SystemTables.ROOT.tableId());
       }
       return result;
     }
     ServerContext context = getContext();
     TableManager manager = context.getTableManager();
 
-    for (TableId tableId : context.getTableIdToNameMap().keySet()) {
+    for (TableId tableId : context.createTableIdToQualifiedNameMap().keySet()) {
       TableState state = manager.getTableState(tableId);
       if (state == TableState.ONLINE) {
         result.add(tableId);

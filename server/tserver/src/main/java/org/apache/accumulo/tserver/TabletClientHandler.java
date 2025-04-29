@@ -72,7 +72,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.cache.BlockCache;
@@ -814,8 +814,8 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
         throw new NoSuchScanIDException();
       }
 
-      if (!cs.tableId.equals(AccumuloTable.METADATA.tableId())
-          && !cs.tableId.equals(AccumuloTable.ROOT.tableId())) {
+      if (!cs.tableId.equals(SystemTables.METADATA.tableId())
+          && !cs.tableId.equals(SystemTables.ROOT.tableId())) {
         try {
           server.resourceManager.waitUntilCommitsAreEnabled();
         } catch (HoldTimeoutException hte) {

@@ -47,7 +47,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -283,15 +283,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
             switch (action) {
               case "compact":
-                accumuloClient.tableOperations().compact(AccumuloTable.METADATA.tableName(), null,
+                accumuloClient.tableOperations().compact(SystemTables.METADATA.tableName(), null,
                     null, true, true);
-                accumuloClient.tableOperations().compact(AccumuloTable.ROOT.tableName(), null, null,
+                accumuloClient.tableOperations().compact(SystemTables.ROOT.tableName(), null, null,
                     true, true);
                 break;
               case "flush":
-                accumuloClient.tableOperations().flush(AccumuloTable.METADATA.tableName(), null,
+                accumuloClient.tableOperations().flush(SystemTables.METADATA.tableName(), null,
                     null, true);
-                accumuloClient.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null,
+                accumuloClient.tableOperations().flush(SystemTables.ROOT.tableName(), null, null,
                     true);
                 break;
               default:
@@ -322,7 +322,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           if (lastCompactorCheck.hasElapsed(gcDelay * 3, MILLISECONDS)) {
             Map<String,Set<TableId>> resourceMapping = new HashMap<>();
-            for (TableId tid : AccumuloTable.allTableIds()) {
+            for (TableId tid : SystemTables.tableIds()) {
               TableConfiguration tconf = getContext().getTableConfiguration(tid);
               String resourceGroup = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
               resourceGroup =

@@ -37,7 +37,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -87,7 +86,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = Timer.startNew();
     }
 
-    TreeSet<String> namespaces = new TreeSet<>(Namespaces.getNameToIdMap(context).keySet());
+    var namespaces = new TreeSet<>(context.getNamespaceMapping().getIdToNameMap().values());
 
     if (timer != null) {
       log.trace("tid={} Fetched {} namespaces in {}", Thread.currentThread().getId(),
@@ -109,7 +108,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       timer = Timer.startNew();
     }
 
-    boolean exists = Namespaces.namespaceNameExists(context, namespace);
+    boolean exists = false;
+    try {
+      context.getNamespaceId(namespace);
+      exists = true;
+    } catch (NamespaceNotFoundException e) {
+      /* ignore */
+    }
 
     if (timer != null) {
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
@@ -139,7 +144,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       NamespaceNotFoundException, NamespaceNotEmptyException {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
-    NamespaceId namespaceId = Namespaces.getNamespaceId(context, namespace);
+    NamespaceId namespaceId = context.getNamespaceId(namespace);
     if (namespaceId.equals(Namespace.ACCUMULO.id()) || namespaceId.equals(Namespace.DEFAULT.id())) {
       Credentials credentials = context.getCredentials();
       log.debug("{} attempted to delete the {} namespace", credentials.getPrincipal(), namespaceId);
@@ -147,7 +152,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
           SecurityErrorCode.UNSUPPORTED_OPERATION);
     }
 
-    if (!Namespaces.getTableIds(context, namespaceId).isEmpty()) {
+    if (!context.getTableMapping(namespaceId).getIdToNameMap().isEmpty()) {
       throw new NamespaceNotEmptyException(namespaceId.canonical(), namespace, null);
     }
 
@@ -329,11 +334,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
   @Override
   public Map<String,String> namespaceIdMap() {
-    return Namespaces.getNameToIdMap(context).entrySet().stream()
-        .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().canonical(), (v1, v2) -> {
-          throw new IllegalStateException(
-              String.format("Duplicate key for values %s and %s", v1, v2));
-        }, TreeMap::new));
+    var result = new TreeMap<String,String>();
+    context.getNamespaceMapping().getIdToNameMap().forEach(
+        (namespaceId, namespaceName) -> result.put(namespaceName, namespaceId.canonical()));
+    return result;
   }
 
   @Override

@@ -79,7 +79,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -90,7 +90,6 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.tables.TableMap;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
@@ -609,9 +608,9 @@ public class Admin implements KeywordExecutable {
 
     Runnable flushTask = () -> {
       try {
-        Set<String> tables = context.tableOperations().tableIdMap().keySet();
+        Set<String> tables = context.tableOperations().list();
         for (String table : tables) {
-          if (table.equals(AccumuloTable.METADATA.tableName())) {
+          if (table.equals(SystemTables.METADATA.tableName())) {
             continue;
           }
           try {
@@ -927,8 +926,7 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
-      File outputDirectory)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
+      File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
     File tableBackup = new File(outputDirectory, tableName + ".cfg");
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
       writer.write(createTableFormat.format(new String[] {tableName}));
@@ -951,7 +949,8 @@ public class Admin implements KeywordExecutable {
 
   // Fate Operations
   private void executeFateOpsCommand(ServerContext context, FateOpsCommand fateOpsCommand)
-      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
+      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException,
+      NamespaceNotFoundException {
 
     validateFateUserInput(fateOpsCommand);
 
@@ -1016,7 +1015,7 @@ public class Admin implements KeywordExecutable {
     var lockId = adminLock.getLockID();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, lockId, null);
     UserFateStore<Admin> ufs =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), lockId, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), lockId, null);
     return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
   }
 
@@ -1025,7 +1024,7 @@ public class Admin implements KeywordExecutable {
           throws InterruptedException, KeeperException {
     MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
     UserFateStore<Admin> readOnlyUFS =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
     return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
   }
 
@@ -1100,14 +1099,15 @@ public class Admin implements KeywordExecutable {
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
       Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
-      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
+      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException,
+      NamespaceNotFoundException {
 
     var zk = context.getZooSession();
     var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.
-    Map<TableId,String> tidToNameMap = new TableMap(context).getIdtoNameMap();
+    Map<TableId,String> tidToNameMap = context.createTableIdToQualifiedNameMap();
     Map<String,String> idsToNameMap = new HashMap<>(tidToNameMap.size() * 2);
     tidToNameMap.forEach((tid, name) -> idsToNameMap.put(tid.canonical(), "t:" + name));
     context.namespaceOperations().namespaceIdMap().forEach((name, nsid) -> {
