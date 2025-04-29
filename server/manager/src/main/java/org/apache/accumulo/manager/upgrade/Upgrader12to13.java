@@ -91,6 +91,8 @@ public class Upgrader12to13 implements Upgrader {
     addCompactionsNode(context);
     LOG.info("Adding table mappings to zookeeper");
     addTableMappingsToZooKeeper(context);
+    LOG.info("Moving tables from flat storage to under respective namespaces");
+    moveZkTables(context);
   }
 
   @Override
@@ -442,5 +444,50 @@ public class Upgrader12to13 implements Upgrader {
       throw new IllegalStateException(
           "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
+  }
+
+  private void moveZkTables(ServerContext context) {
+    final var zrw = context.getZooSession().asReaderWriter();
+    try {
+      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
+      for (String tableId : tableIds) {
+        String oldPath = Constants.ZTABLES + "/" + tableId;
+        String tableNamespaceNode = oldPath + Constants.ZTABLE_NAMESPACE;
+        if (!zrw.exists(oldPath)) {
+          throw new IllegalStateException("Source table path does not exist: " + oldPath);
+        } else if (!zrw.exists(tableNamespaceNode)) {
+          throw new IllegalStateException(
+              "Source table namespace node does not exist: " + tableNamespaceNode);
+        }
+        String namespaceId = new String(zrw.getData(tableNamespaceNode), UTF_8);
+        String newPath = Constants.ZNAMESPACES + namespaceId + Constants.ZTABLES + tableId;
+        moveZkNode(context, oldPath, newPath);
+        if (zrw.exists(tableNamespaceNode)) {
+          zrw.recursiveDelete(tableNamespaceNode, NodeMissingPolicy.SKIP);
+        }
+      }
+
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
+          ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+  }
+
+  private static void moveZkNode(ServerContext context, String from, String to)
+      throws KeeperException, InterruptedException {
+    final var zrw = context.getZooSession().asReaderWriter();
+    byte[] data = zrw.getData(from);
+    zrw.putPersistentData(to, data, ZooUtil.NodeExistsPolicy.OVERWRITE);
+    for (String child : zrw.getChildren(from)) {
+      if (child.equals(Constants.ZTABLE_NAMESPACE.substring(1))) {
+        continue;
+      }
+      moveZkNode(context, from + "/" + child, to + "/" + child);
+    }
+    zrw.recursiveDelete(from, NodeMissingPolicy.SKIP);
   }
 }
