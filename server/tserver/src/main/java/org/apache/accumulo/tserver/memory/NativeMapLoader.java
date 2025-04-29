@@ -19,6 +19,7 @@
 package org.apache.accumulo.tserver.memory;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
@@ -101,7 +102,7 @@ public class NativeMapLoader {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "search paths provided by admin")
   private static Stream<File> mapLibraryNames(String name) {
-    File base = new File(name);
+    File base = Path.of(name).toFile();
     if (!base.isDirectory()) {
       return Stream.of(base);
     }
@@ -119,7 +120,7 @@ public class NativeMapLoader {
   // this is its own method because spotbugs sec-bugs doesn't understand how to suppress lambdas
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "search paths provided by admin")
   private static File appendFileToDir(File base, String f) {
-    return new File(base, f);
+    return Path.of(base.toURI()).resolve(f).toFile();
   }
 
   private static boolean loadNativeLib(File libFile) {
