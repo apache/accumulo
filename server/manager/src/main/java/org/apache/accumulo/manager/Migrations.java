@@ -100,13 +100,19 @@ public class Migrations {
   }
 
   public Set<KeyExtent> snapshot(DataLevel dl) {
-    return Set.copyOf(migrations.get(dl).keySet());
+    var migrationsForLevel = migrations.get(dl);
+    synchronized (migrationsForLevel) {
+      return Set.copyOf(migrationsForLevel.keySet());
+    }
   }
 
   public Map<DataLevel,Set<KeyExtent>> mutableCopy() {
     Map<DataLevel,Set<KeyExtent>> copy = new EnumMap<>(DataLevel.class);
     for (var dataLevel : DataLevel.values()) {
-      copy.put(dataLevel, new HashSet<>(migrations.get(dataLevel).keySet()));
+      var migrationsForLevel = migrations.get(dataLevel);
+      synchronized (migrationsForLevel) {
+        copy.put(dataLevel, new HashSet<>(migrationsForLevel.keySet()));
+      }
     }
     return copy;
   }
