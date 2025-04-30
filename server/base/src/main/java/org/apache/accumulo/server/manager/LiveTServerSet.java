@@ -218,8 +218,10 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   public synchronized void startListeningForTabletServerChanges() {
+    scanServers();
+
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
-        .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
+        .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
   }
 
   public void tabletServerShuttingDown(String server) {

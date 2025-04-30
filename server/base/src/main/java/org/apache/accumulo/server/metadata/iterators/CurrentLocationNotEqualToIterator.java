@@ -48,22 +48,18 @@ public class CurrentLocationNotEqualToIterator extends ColumnFamilyTransformatio
 
   @Override
   protected Value transform(SortedKeyValueIterator<Key,Value> source) throws IOException {
-    TServerInstance tsiSeen = null;
+    TServerInstance tsiSeen;
     while (source.hasTop()) {
       Value address = source.getTopValue();
       Text session = source.getTopKey().getColumnQualifier();
       tsiSeen = new TServerInstance(address, session);
       if (tsiSeen.equals(tsi)) {
-        break;
+        return new Value(EQUAL);
       }
       source.next();
     }
 
-    if (tsi.equals(tsiSeen)) {
-      return new Value(EQUAL);
-    } else {
-      return new Value(NOT_EQUAL);
-    }
+    return new Value(NOT_EQUAL);
   }
 
   /**
