@@ -39,7 +39,6 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -139,8 +138,7 @@ public class IteratorConfigUtilTest {
   private SortedKeyValueIterator<Key,Value> createIter(IteratorScope scope,
       SortedMapIterator source, AccumuloConfiguration conf) throws IOException {
     var ibEnv = IteratorConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
-    var iteratorBuilder =
-        ibEnv.env(new DefaultIteratorEnvironment(conf)).useClassLoader(null).build();
+    var iteratorBuilder = ibEnv.env(ClientIteratorEnvironment.DEFAULT).useClassLoader(null).build();
     return IteratorConfigUtil.loadIterators(source, iteratorBuilder);
   }
 

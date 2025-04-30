@@ -288,7 +288,7 @@ public class WebViews {
   public Map<String,Object> getTables(
       @PathParam("tableId") @NotNull @Pattern(regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableId)
       throws TableNotFoundException {
-    String tableName = monitor.getContext().getTableName(TableId.of(tableId));
+    String tableName = monitor.getContext().getQualifiedTableName(TableId.of(tableId));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");

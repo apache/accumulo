@@ -39,7 +39,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
@@ -61,11 +61,11 @@ public class FateTestUtil {
    */
   public static void createFateTable(ClientContext client, String table) throws Exception {
     final var fateTableProps =
-        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+        client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
     TabletAvailability availability;
-    try (var tabletStream = client.tableOperations()
-        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+    try (var tabletStream =
+        client.tableOperations().getTabletInformation(SystemTables.FATE.tableName(), new Range())) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }

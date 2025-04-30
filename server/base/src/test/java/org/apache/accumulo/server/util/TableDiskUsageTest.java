@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +29,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
 
@@ -37,8 +37,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -60,12 +60,12 @@ public class TableDiskUsageTest {
   private static final String tabletName3 = "t-0003";
   private static final String tabletName4 = "t-0004";
 
-  private static final Map<TableId,String> tableIdToNameMap = new HashMap<>();
+  private static final TreeMap<TableId,String> tableIdToNameMap = new TreeMap<>();
 
   @BeforeAll
   public static void beforeClass() {
-    tableIdToNameMap.put(AccumuloTable.ROOT.tableId(), AccumuloTable.METADATA.tableName());
-    tableIdToNameMap.put(AccumuloTable.METADATA.tableId(), AccumuloTable.METADATA.tableName());
+    tableIdToNameMap.put(SystemTables.ROOT.tableId(), SystemTables.METADATA.tableName());
+    tableIdToNameMap.put(SystemTables.METADATA.tableId(), SystemTables.METADATA.tableName());
     tableIdToNameMap.put(tableId1, "table1");
     tableIdToNameMap.put(tableId2, "table2");
     tableIdToNameMap.put(tableId3, "table3");
@@ -74,7 +74,7 @@ public class TableDiskUsageTest {
   @Test
   public void testSingleTableMultipleTablets() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -104,7 +104,7 @@ public class TableDiskUsageTest {
   @Test
   public void testMultipleVolumes() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -135,21 +135,21 @@ public class TableDiskUsageTest {
   @Test
   public void testMetadataTable() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata =
-        mockTabletsMetadata(client, AccumuloTable.METADATA.tableId());
+        mockTabletsMetadata(client, SystemTables.METADATA.tableId());
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
-    appendFileMetadata(realTabletsMetadata, getTabletFile(volume1, AccumuloTable.METADATA.tableId(),
-        AccumuloTable.METADATA.tableName(), "C0001.rf"), 1024);
+    appendFileMetadata(realTabletsMetadata, getTabletFile(volume1, SystemTables.METADATA.tableId(),
+        SystemTables.METADATA.tableName(), "C0001.rf"), 1024);
     mockTabletsMetadataIter(mockTabletsMetadata, realTabletsMetadata.iterator());
 
     EasyMock.replay(client, mockTabletsMetadata);
 
     Map<SortedSet<String>,Long> result =
-        TableDiskUsage.getDiskUsage(tableSet(AccumuloTable.METADATA.tableId()), client);
+        TableDiskUsage.getDiskUsage(tableSet(SystemTables.METADATA.tableId()), client);
 
-    assertEquals(1024, getTotalUsage(result, AccumuloTable.METADATA.tableId()));
+    assertEquals(1024, getTotalUsage(result, SystemTables.METADATA.tableId()));
     assertEquals(1, result.size());
     Map.Entry<SortedSet<String>,Long> firstResult =
         result.entrySet().stream().findFirst().orElseThrow();
@@ -161,7 +161,7 @@ public class TableDiskUsageTest {
   @Test
   public void testDuplicateFile() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -189,7 +189,7 @@ public class TableDiskUsageTest {
   @Test
   public void testEmptyTable() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
     final TabletsMetadata mockTabletsMetadata = mockTabletsMetadata(client, tableId1);
 
     List<TabletMetadata> realTabletsMetadata = new ArrayList<>();
@@ -212,7 +212,7 @@ public class TableDiskUsageTest {
   @Test
   public void testMultipleTables() throws Exception {
     final ClientContext client = EasyMock.createMock(ClientContext.class);
-    EasyMock.expect(client.getTableIdToNameMap()).andReturn(tableIdToNameMap);
+    EasyMock.expect(client.createTableIdToQualifiedNameMap()).andReturn(tableIdToNameMap);
 
     final TabletsMetadata mockTabletsMetadata1 = mockTabletsMetadata(client, tableId1);
     List<TabletMetadata> realTabletsMetadata1 = new ArrayList<>();

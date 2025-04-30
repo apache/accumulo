@@ -36,7 +36,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -71,7 +71,7 @@ class CleanUp extends ManagerRepo {
       // look for other tables that references this table's files
       AccumuloClient client = manager.getContext();
       try (BatchScanner bs =
-          client.createBatchScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY, 8)) {
+          client.createBatchScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY, 8)) {
         Range allTables = TabletsSection.getRange();
         Range tableRange = TabletsSection.getRange(tableId);
         Range beforeTable =
@@ -92,7 +92,7 @@ class CleanUp extends ManagerRepo {
 
     } catch (Exception e) {
       refCount = -1;
-      log.error("Failed to scan " + AccumuloTable.METADATA.tableName()
+      log.error("Failed to scan " + SystemTables.METADATA.tableName()
           + " looking for references to deleted table " + tableId, e);
     }
 
@@ -129,7 +129,7 @@ class CleanUp extends ManagerRepo {
 
     // remove table from zookeeper
     try {
-      manager.getTableManager().removeTable(tableId);
+      manager.getTableManager().removeTable(tableId, namespaceId);
       manager.getContext().clearTableListCache();
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);

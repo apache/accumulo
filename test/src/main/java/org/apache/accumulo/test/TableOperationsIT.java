@@ -68,7 +68,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -436,10 +436,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.METADATA.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.METADATA.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.ROOT.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.ROOT.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
     // test non-existent table

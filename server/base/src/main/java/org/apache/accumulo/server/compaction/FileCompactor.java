@@ -65,9 +65,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.logging.TabletLogger;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionReason;
@@ -356,8 +356,8 @@ public class FileCompactor implements Callable<CompactionStats> {
       final boolean isMinC = env.getIteratorScope() == IteratorUtil.IteratorScope.minc;
 
       final boolean dropCacheBehindOutput =
-          !AccumuloTable.ROOT.tableId().equals(this.extent.tableId())
-              && !AccumuloTable.METADATA.tableId().equals(this.extent.tableId())
+          !SystemTables.ROOT.tableId().equals(this.extent.tableId())
+              && !SystemTables.METADATA.tableId().equals(this.extent.tableId())
               && ((isMinC && acuTableConf.getBoolean(Property.TABLE_MINC_OUTPUT_DROP_CACHE))
                   || (!isMinC && acuTableConf.getBoolean(Property.TABLE_MAJC_OUTPUT_DROP_CACHE)));
 

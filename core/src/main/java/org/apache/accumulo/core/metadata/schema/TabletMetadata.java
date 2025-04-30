@@ -71,9 +71,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -594,7 +594,7 @@ public class TabletMetadata {
   }
 
   public TabletAvailability getTabletAvailability() {
-    if (AccumuloTable.allTableIds().contains(getTableId())) {
+    if (SystemTables.containsTableId(getTableId())) {
       // Override the availability for the system tables
       return TabletAvailability.HOSTED;
     }
@@ -797,8 +797,8 @@ public class TabletMetadata {
       }
     }
 
-    if (AccumuloTable.ROOT.tableId().equals(tmBuilder.tableId)
-        || AccumuloTable.METADATA.tableId().equals(tmBuilder.tableId)) {
+    if (SystemTables.ROOT.tableId().equals(tmBuilder.tableId)
+        || SystemTables.METADATA.tableId().equals(tmBuilder.tableId)) {
       // Override the availability for the system tables
       tmBuilder.availability(TabletAvailability.HOSTED);
     }

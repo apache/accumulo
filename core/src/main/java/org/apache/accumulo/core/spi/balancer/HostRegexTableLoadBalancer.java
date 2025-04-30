@@ -35,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -58,6 +59,7 @@ import org.apache.accumulo.core.spi.balancer.data.TableStatistics;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.spi.balancer.data.TabletStatistics;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -352,6 +354,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         .collect(Collectors.toMap(Map.Entry::getValue, Map.Entry::getKey));
 
     // Send a view of the current servers to the tables tablet balancer
+    Timer assignmentTimer = Timer.startNew();
     for (Entry<TableId,Map<TabletId,TabletServerId>> e : groupedUnassigned.entrySet()) {
       Map<TabletId,TabletServerId> newAssignments = new HashMap<>();
       String tableName = tableIdToTableName.get(e.getKey());
@@ -369,8 +372,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}",
           e.getValue().size(), tableName, currentView.keySet());
+      assignmentTimer.restart();
       getBalancerForTable(e.getKey()).getAssignments(new AssignmentParamsImpl(currentView,
           params.currentResourceGroups(), e.getValue(), newAssignments));
+      LOG.trace("assignment results table:{} assignments:{} time:{}ms", tableName,
+          newAssignments.size(), assignmentTimer.elapsed(TimeUnit.MILLISECONDS));
       newAssignments.forEach(params::addAssignment);
     }
   }
@@ -502,6 +508,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       migrationsFromLastPass.clear();
     }
 
+    Timer balanceTimer = Timer.startNew();
     for (TableId tableId : tableIdMap.values()) {
       String tableName = tableIdToTableName.get(tableId);
       String regexTableName = getPoolNameForTable(tableName);
@@ -511,9 +518,12 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
+      balanceTimer.restart();
       getBalancerForTable(tableId)
           .balance(new BalanceParamsImpl(currentView, params.currentResourceGroups(), migrations,
               newMigrations, DataLevel.of(tableId), Map.of(tableName, tableId)));
+      LOG.trace("balance results tableId:{} migrations:{} time:{}ms", tableId, newMigrations.size(),
+          balanceTimer.elapsed(TimeUnit.MILLISECONDS));
 
       if (newMigrations.isEmpty()) {
         tableToTimeSinceNoMigrations.remove(tableId);
