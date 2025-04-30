@@ -301,8 +301,6 @@ public class MetadataConstraints implements Constraint {
         return "Malformed availability value";
       case 4006:
         return "Malformed mergeability value";
-      case 4007:
-        return "Tried to set availability of a system table";
 
     }
     return null;
@@ -378,12 +376,6 @@ public class MetadataConstraints implements Constraint {
       case (TabletColumnFamily.AVAILABILITY_QUAL):
         try {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
-          if (!violations.contains((short) 4)) {
-            KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
-            if (ke.isSystemTable()) {
-              addViolation(violations, 4007);
-            }
-          }
         } catch (IllegalArgumentException e) {
           addViolation(violations, 4005);
         }
