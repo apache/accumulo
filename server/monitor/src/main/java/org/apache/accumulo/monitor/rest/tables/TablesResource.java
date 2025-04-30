@@ -95,9 +95,7 @@ public class TablesResource {
     TableManager tableManager = monitor.getContext().getTableManager();
 
     // Add tables to the list
-    for (Map.Entry<String,TableId> entry : monitor.getContext().getTableNameToIdMap().entrySet()) {
-      String tableName = entry.getKey();
-      TableId tableId = entry.getValue();
+    monitor.getContext().createQualifiedTableNameToIdMap().forEach((tableName, tableId) -> {
       TableInfo tableInfo = tableStats.get(tableId);
       TableState tableState = tableManager.getTableState(tableId);
 
@@ -112,7 +110,7 @@ public class TablesResource {
       } else {
         tableList.addTable(new TableInformation(tableName, tableId, tableState.name()));
       }
-    }
+    });
     return tableList;
   }
 

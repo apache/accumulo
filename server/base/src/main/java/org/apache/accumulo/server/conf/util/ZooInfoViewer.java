@@ -211,7 +211,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
     writer.println();
     // tables
-    Map<TableId,String> id2TableMap = context.getTableIdToNameMap();
+    Map<TableId,String> id2TableMap = context.createTableIdToQualifiedNameMap();
     writer.println("Table ids:");
     for (Map.Entry<TableId,String> e : id2TableMap.entrySet()) {
       writer.printf("%s%-9s => %24s\n", INDENT, e.getKey(), e.getValue());
@@ -351,7 +351,7 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     Set<String> cmdOptTables = new TreeSet<>(tables);
 
-    Map<TableId,String> allIds = context.getTableIdToNameMap();
+    Map<TableId,String> allIds = context.createTableIdToQualifiedNameMap();
 
     Map<TableId,String> filteredIds;
     if (cmdOptTables.isEmpty()) {

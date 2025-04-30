@@ -69,7 +69,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   private String getTableName(TableId tableId) {
     try {
-      return context.getTableName(tableId);
+      return context.getQualifiedTableName(tableId);
     } catch (TableNotFoundException e) {
       return "Unknown Table with ID " + tableId;
     }
