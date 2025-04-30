@@ -690,11 +690,9 @@
               <ignorePackage>org.apache.accumulo.cluster</ignorePackage>
               <ignorePackage>org.apache.accumulo.minicluster</ignorePackage>
               <ignorePackage>org.apache.accumulo.miniclusterImpl</ignorePackage>
-              <!-- ignore shell -->
-              <ignorePackage>org.apache.accumulo.shell</ignorePackage>
               <!-- ignore ITs -->
-              <ignorePackage>org.apache.acccumulo.harness</ignorePackage>
-              <ignorePackage>org.apache.acccumulo.test</ignorePackage>
+              <ignorePackage>org.apache.accumulo.harness</ignorePackage>
+              <ignorePackage>org.apache.accumulo.test</ignorePackage>
             </ignorePackages>
           </configuration>
         </plugin>
