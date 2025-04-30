@@ -46,8 +46,8 @@ class TableStateWatcher implements ZooCacheWatcher {
 
     TableId tableId = null;
 
-    if (zPath != null && zPath.startsWith(Constants.ZTABLES + "/")) {
-      String suffix = zPath.substring(Constants.ZTABLES.length() + 1);
+    if (zPath != null && zPath.startsWith(Constants.ZNAMESPACES + "/") && zPath.contains(Constants.ZTABLES + "/")) {
+      String suffix = zPath.substring(zPath.indexOf(Constants.ZTABLES) + Constants.ZTABLES.length() + 1);
       if (suffix.contains("/")) {
         String[] sa = suffix.split("/", 2);
         if (Constants.ZTABLE_STATE.equals("/" + sa[1])) {
