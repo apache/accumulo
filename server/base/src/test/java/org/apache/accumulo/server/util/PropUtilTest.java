@@ -31,6 +31,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
 import org.apache.accumulo.server.ServerContext;
@@ -66,7 +67,8 @@ public class PropUtilTest {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     InstanceId iid = createMock(InstanceId.class);
     TableId tid = createMock(TableId.class);
-    TablePropKey tkey = TablePropKey.of(tid);
+    NamespaceId nid = createMock(NamespaceId.class);
+    TablePropKey tkey = TablePropKey.of(tid, nid);
 
     expect(ctx.getConfiguration()).andReturn(conf).once();
     expect(conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY))
@@ -87,7 +89,8 @@ public class PropUtilTest {
     AccumuloConfiguration conf = createMock(AccumuloConfiguration.class);
     InstanceId iid = createMock(InstanceId.class);
     TableId tid = createMock(TableId.class);
-    TablePropKey tkey = TablePropKey.of(tid);
+    NamespaceId nid = createMock(NamespaceId.class);
+    TablePropKey tkey = TablePropKey.of(tid, nid);
 
     expect(ctx.getConfiguration()).andReturn(conf).once();
     expect(conf.get(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY))

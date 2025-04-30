@@ -34,6 +34,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -70,6 +71,7 @@ public class PropStoreZooKeeperIT {
   private PropStore propStore = null;
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
+  private final NamespaceId nid = NamespaceId.of("ns1");
 
   @TempDir
   private static File tempDir;
@@ -123,7 +125,7 @@ public class PropStoreZooKeeperIT {
    */
   @Test
   public void createNoProps() throws InterruptedException, KeeperException {
-    var propKey = TablePropKey.of(tIdA);
+    var propKey = TablePropKey.of(tIdA, nid);
 
     // read from ZK, after delete no node and node not created.
     assertNull(zk.exists(propKey.getPath(), null));
@@ -132,7 +134,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void failOnDuplicate() throws InterruptedException, KeeperException {
-    var propKey = TablePropKey.of(tIdA);
+    var propKey = TablePropKey.of(tIdA, nid);
 
     assertNull(zk.exists(propKey.getPath(), null)); // check node does not exist in ZK
 
@@ -147,7 +149,7 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void createWithProps() throws InterruptedException, KeeperException, IOException {
-    var propKey = TablePropKey.of(tIdA);
+    var propKey = TablePropKey.of(tIdA, nid);
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
     propStore.create(propKey, initialProps);
@@ -167,7 +169,7 @@ public class PropStoreZooKeeperIT {
   public void update() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    var propKey = TablePropKey.of(tIdA);
+    var propKey = TablePropKey.of(tIdA, nid);
     propStore.registerAsListener(propKey, listener);
 
     Map<String,String> initialProps = new HashMap<>();
@@ -237,8 +239,8 @@ public class PropStoreZooKeeperIT {
 
   @Test
   public void deleteTest() {
-    var tableAPropKey = TablePropKey.of(tIdA);
-    var tableBPropKey = TablePropKey.of(tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA, nid);
+    var tableBPropKey = TablePropKey.of(tIdB, nid);
 
     Map<String,String> initialProps = new HashMap<>();
     initialProps.put(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -263,8 +265,8 @@ public class PropStoreZooKeeperIT {
   public void deleteThroughWatcher() throws InterruptedException {
     TestChangeListener listener = new TestChangeListener();
 
-    var tableAPropKey = TablePropKey.of(tIdA);
-    var tableBPropKey = TablePropKey.of(tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA, nid);
+    var tableBPropKey = TablePropKey.of(tIdB, nid);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);
@@ -308,8 +310,8 @@ public class PropStoreZooKeeperIT {
 
     TestChangeListener listener = new TestChangeListener();
 
-    var tableAPropKey = TablePropKey.of(tIdA);
-    var tableBPropKey = TablePropKey.of(tIdB);
+    var tableAPropKey = TablePropKey.of(tIdA, nid);
+    var tableBPropKey = TablePropKey.of(tIdB, nid);
 
     propStore.registerAsListener(tableAPropKey, listener);
     propStore.registerAsListener(tableBPropKey, listener);

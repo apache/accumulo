@@ -165,7 +165,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       // check zk nodes exist
       assertTrue(context.getPropStore().exists(NamespacePropKey.of(nid)));
-      assertTrue(context.getPropStore().exists(TablePropKey.of(tid)));
+      assertTrue(context.getPropStore().exists(TablePropKey.of(tid, nid)));
       // check ServerConfigurationFactory
       assertNotNull(context.getNamespaceConfiguration(nid));
       assertNotNull(context.getTableConfiguration(tid));
@@ -176,7 +176,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       // check zk nodes deleted
       assertFalse(context.getPropStore().exists(NamespacePropKey.of(nid)));
-      assertFalse(context.getPropStore().exists(TablePropKey.of(tid)));
+      assertFalse(context.getPropStore().exists(TablePropKey.of(tid, nid)));
       // check ServerConfigurationFactory deleted - should return null
       assertNull(context.getTableConfiguration(tid));
     }

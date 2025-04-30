@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -68,6 +69,7 @@ public class PropCacheCaffeineImplZkIT {
 
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
+  private final NamespaceId nid = NamespaceId.of("ns1");
 
   @TempDir
   private static File tempDir;
@@ -127,7 +129,7 @@ public class PropCacheCaffeineImplZkIT {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    var propStoreKey = TablePropKey.of(tIdA);
+    var propStoreKey = TablePropKey.of(tIdA, nid);
     var created = zrw.putPersistentData(propStoreKey.getPath(),
         VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 

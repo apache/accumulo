@@ -89,7 +89,7 @@ class ImportPopulateZookeeper extends ManagerRepo {
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId), getExportedProps(volMan));
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId, tableInfo.namespaceId), getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,

@@ -45,6 +45,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -366,7 +367,8 @@ public class ZooInfoViewer implements KeywordExecutable {
 
     filteredIds.forEach((tid, name) -> {
       try {
-        var key = TablePropKey.of(tid);
+        NamespaceId namespaceId = context.getNamespaceId(tid);
+        var key = TablePropKey.of(tid, namespaceId);
         log.trace("fetch props from path: {}", key.getPath());
         var props = ZooPropStore.readFromZk(key, nullWatcher, zooReader);
         results.put(name, props);
@@ -375,6 +377,9 @@ public class ZooInfoViewer implements KeywordExecutable {
         throw new IllegalStateException("Interrupted reading table properties from ZooKeeper", ex);
       } catch (IOException | KeeperException ex) {
         throw new IllegalStateException("Failed to read table properties from ZooKeeper", ex);
+      }
+      catch (TableNotFoundException e) {
+        throw new IllegalStateException("Table not found in ZooKeeper: " + tid);
       }
     });
 

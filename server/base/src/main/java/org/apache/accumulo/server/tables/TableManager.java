@@ -84,7 +84,7 @@ public class TableManager {
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
-    var propKey = TablePropKey.of(tableId);
+    var propKey = TablePropKey.of(tableId, namespaceId);
     var propStore = context.getPropStore();
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
@@ -169,8 +169,8 @@ public class TableManager {
     String newTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    PropUtil.setProperties(context, TablePropKey.of(tableId), propertiesToSet);
-    PropUtil.removeProperties(context, TablePropKey.of(tableId), propertiesToExclude);
+    PropUtil.setProperties(context, TablePropKey.of(tableId, namespaceId), propertiesToSet);
+    PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId), propertiesToExclude);
   }
 
   public void removeTable(TableId tableId, NamespaceId namespaceId)

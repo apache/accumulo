@@ -36,10 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -102,7 +99,7 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("setting metadata table hosting availability");
     addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.METADATA);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
-    removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId(), SystemTables.namespaceId());
     LOG.info("Removing compact columns from metadata tablets");
     removeCompactColumnsFromTable(context, SystemTables.ROOT.tableName());
   }
@@ -120,7 +117,7 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
-    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId(), SystemTables.namespaceId());
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
@@ -293,9 +290,9 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId) {
+  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId, NamespaceId namespaceId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
-    PropUtil.removeProperties(context, TablePropKey.of(tableId), List.of(propName));
+    PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId), List.of(propName));
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {

@@ -83,7 +83,7 @@ public class ZooKeeperPropertiesIT extends SharedMiniClusterBase {
       Map<String,String> properties = client.tableOperations().getConfiguration(tableName);
       assertEquals("false", properties.get(Property.TABLE_BLOOM_ENABLED.getKey()));
 
-      final TablePropKey tablePropKey = TablePropKey.of(TableId.of(tid));
+      final TablePropKey tablePropKey = TablePropKey.of(TableId.of(tid), NamespaceId.of("ns1"));
       PropUtil.setProperties(context, tablePropKey,
           Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 

@@ -31,6 +31,7 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -207,7 +208,13 @@ public class ZooPropEditor implements KeywordExecutable {
     // either tid or table name option provided, get the table id
     if (!opts.tableOpt.isEmpty() || !opts.tableIdOpt.isEmpty()) {
       TableId tid = getTableId(context, opts);
-      return TablePropKey.of(tid);
+      NamespaceId namespaceId = null;
+      try {
+        namespaceId = context.getNamespaceId(tid);
+      } catch (TableNotFoundException e) {
+        throw new IllegalStateException("Table not found in ZooKeeper: " + tid);
+      }
+      return TablePropKey.of(tid, namespaceId);
     }
 
     // either nid of namespace name provided, get the namespace id.

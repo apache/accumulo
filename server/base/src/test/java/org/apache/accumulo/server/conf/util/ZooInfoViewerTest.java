@@ -274,9 +274,10 @@ public class ZooInfoViewerTest {
     var tProps = new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1"));
     var tPropBytes = propCodec.toBytes(tProps);
     TableId tid = TableId.of("t");
+    NamespaceId nid = NamespaceId.of("n");
     Capture<Stat> stat = newCapture();
     expect(
-        zk.getData(eq(TablePropKey.of(tid).getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        zk.getData(eq(TablePropKey.of(tid, nid).getPath()), isA(PropStoreWatcher.class), capture(stat)))
         .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());

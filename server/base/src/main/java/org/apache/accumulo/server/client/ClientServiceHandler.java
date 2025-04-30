@@ -348,8 +348,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
       String tableName) throws TException {
     TableId tableId = checkTableId(context, tableName, null);
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = context.getNamespaceId(tableId);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
+    }
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
-    context.getPropStore().getCache().remove(TablePropKey.of(tableId));
+    context.getPropStore().getCache().remove(TablePropKey.of(tableId, namespaceId));
     AccumuloConfiguration config = context.getTableConfiguration(tableId);
     return conf(credentials, config);
   }
@@ -359,7 +365,13 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
-    return context.getPropStore().get(TablePropKey.of(tableId)).asMap();
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = context.getNamespaceId(tableId);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
+    }
+    return context.getPropStore().get(TablePropKey.of(tableId, namespaceId)).asMap();
   }
 
   @Override
@@ -367,7 +379,13 @@ public class ClientServiceHandler implements ClientService.Iface {
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
-    return Optional.of(context.getPropStore().get(TablePropKey.of(tableId)))
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = context.getNamespaceId(tableId);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
+    }
+    return Optional.of(context.getPropStore().get(TablePropKey.of(tableId, namespaceId)))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
         .orElseThrow();
   }
