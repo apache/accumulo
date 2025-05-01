@@ -131,7 +131,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putFateOp(byte[] data) {
-    TxInfoColumnFamily.FATE_OP_COLUMN.put(mutation, new Value(data));
+    TxAdminColumnFamily.FATE_OP_COLUMN.put(mutation, new Value(data));
     return this;
   }
 

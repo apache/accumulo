@@ -39,9 +39,6 @@ public class FateSchema {
     public static final String STR_NAME = "txinfo";
     public static final Text NAME = new Text(STR_NAME);
 
-    public static final String FATE_OP = "fateop";
-    public static final ColumnFQ FATE_OP_COLUMN = new ColumnFQ(NAME, new Text(FATE_OP));
-
     public static final String AUTO_CLEAN = "autoclean";
     public static final ColumnFQ AUTO_CLEAN_COLUMN = new ColumnFQ(NAME, new Text(AUTO_CLEAN));
 
@@ -60,6 +57,7 @@ public class FateSchema {
     public static final Text NAME = new Text(STR_NAME);
   }
 
+  // when FATE looks for work, this is the family scanned
   public static class TxAdminColumnFamily {
     public static final String STR_NAME = "txadmin";
     public static final Text NAME = new Text(STR_NAME);
@@ -69,6 +67,9 @@ public class FateSchema {
 
     public static final String RESERVATION = "reservation";
     public static final ColumnFQ RESERVATION_COLUMN = new ColumnFQ(NAME, new Text(RESERVATION));
+
+    public static final String FATE_OP = "fateop";
+    public static final ColumnFQ FATE_OP_COLUMN = new ColumnFQ(NAME, new Text(FATE_OP));
   }
 
 }
