@@ -303,7 +303,7 @@ public class WebViews {
   @Template(name = "/default.ftl")
   public Map<String,Object> getTables(@PathParam(TABLEID_PARAM_KEY) @NotNull @Pattern(
       regexp = ALPHA_NUM_REGEX_TABLE_ID) String tableId) throws TableNotFoundException {
-    String tableName = monitor.getContext().getTableName(TableId.of(tableId));
+    String tableName = monitor.getContext().getQualifiedTableName(TableId.of(tableId));
 
     Map<String,Object> model = getModel();
     model.put("title", "Table Status");
