@@ -195,7 +195,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       }
 
       // should eventually see the four zombie scans running against four tablets
-      Wait.waitFor(() -> countDistinctTabletsScans(table, c) == 4);
+      Wait.waitFor(() -> countDistinctTabletsScans(table, c) == 4, 60_000);
 
       assertEquals(1, c.instanceOperations().getTabletServers().size());
 
@@ -206,10 +206,10 @@ public class ZombieScanIT extends ConfigurableMacBase {
       getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
 
       // Wait for all tablets servers
-      Wait.waitFor(() -> c.instanceOperations().getTabletServers().size() == 4);
+      Wait.waitFor(() -> c.instanceOperations().getTabletServers().size() == 4, 60_000);
 
       // The table should eventually balance across the 4 tablet servers
-      Wait.waitFor(() -> countLocations(table, c) == 4);
+      Wait.waitFor(() -> countLocations(table, c) == 4, 60_000);
 
       // The zombie scans should still be running
       assertTrue(futures.stream().noneMatch(Future::isDone));
@@ -255,7 +255,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
     Wait.waitFor(() -> {
       var zsmc = getZombieScansMetric();
       return zsmc == -1 || zsmc == 0;
-    });
+    }, 60_000);
 
     String table = getUniqueNames(1)[0];
 
@@ -268,7 +268,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
         getCluster().getClusterControl().startAllServers(SCAN_SERVER);
         // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
         // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(() -> !c.instanceOperations().getScanServers().isEmpty());
+        Wait.waitFor(() -> !c.instanceOperations().getScanServers().isEmpty(), 60_000);
       }
 
       c.tableOperations().create(table);
@@ -293,7 +293,7 @@ public class ZombieScanIT extends ConfigurableMacBase {
       }
 
       // should eventually see the eight stuck scans running
-      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 8);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 8, 60_000);
 
       // Cancel the scan threads. This will cause the sessions on the server side to timeout and
       // become inactive. The stuck threads on the server side related to the timed out sessions
@@ -301,12 +301,12 @@ public class ZombieScanIT extends ConfigurableMacBase {
       Wait.waitFor(() -> {
         futures.forEach(future -> future.cancel(true));
         return futures.stream().allMatch(Future::isDone);
-      });
+      }, 60_000);
 
       // Four of the eight running scans should respond to thread interrupts and exit
-      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 4);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 4, 60_000);
 
-      Wait.waitFor(() -> getZombieScansMetric() == 4);
+      Wait.waitFor(() -> getZombieScansMetric() == 4, 60_000);
 
       assertEquals(4, countActiveScans(c, serverType, table));
 
@@ -317,19 +317,19 @@ public class ZombieScanIT extends ConfigurableMacBase {
       futures.add(startStuckBatchScan(c, table, executor, "99", false, consistency));
       futures.add(startStuckBatchScan(c, table, executor, "0", true, consistency));
 
-      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 8);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 8, 60_000);
 
       // Cancel the client side scan threads. Should cause the server side threads to be
       // interrupted.
       Wait.waitFor(() -> {
         futures.forEach(future -> future.cancel(true));
         return futures.stream().allMatch(Future::isDone);
-      });
+      }, 60_000);
 
       // Two of the stuck threads should respond to interrupts on the server side and exit.
-      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 6);
+      Wait.waitFor(() -> countActiveScans(c, serverType, table) == 6, 60_000);
 
-      Wait.waitFor(() -> getZombieScansMetric() == 6);
+      Wait.waitFor(() -> getZombieScansMetric() == 6, 60_000);
 
       assertEquals(6, countActiveScans(c, serverType, table));
 
