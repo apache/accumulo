@@ -18,35 +18,50 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Iterator;
 import java.util.Map;
+import java.util.TreeMap;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.ClientSideIteratorScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.rfile.RFile;
+import org.apache.accumulo.core.client.rfile.RFileWriter;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.iterators.WrappingIterator;
+import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,6 +70,12 @@ import org.junit.jupiter.api.Test;
  * Test that objects in IteratorEnvironment returned from the server are as expected.
  */
 public class IteratorEnvIT extends AccumuloClusterHarness {
+  private static final String BAD_COL_FAM = "badcf";
+  private static final String GOOD_COL_FAM = "cf1";
+  private static final String CUSTOM_PROP_KEY_SUFFIX = "iterator.env.test";
+  private static final String CUSTOM_PROP_KEY = "table.custom." + CUSTOM_PROP_KEY_SUFFIX;
+  private static final String CUSTOM_PROP_VAL = "value1";
+  private static final String EXPECTED_TABLE_ID_OPT = "expected.table.id";
 
   @Override
   protected Duration defaultTimeout() {
@@ -71,121 +92,123 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   /**
    * Basic scan iterator to test IteratorEnvironment returns what is expected.
    */
-  public static class ScanIter extends WrappingIterator {
+  public static class ScanIter extends Filter {
     IteratorScope scope = IteratorScope.scan;
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      testEnv(scope, options, env);
-
       // Checking for compaction on a scan should throw an error.
-      try {
-        env.isUserCompaction();
-        throw new RuntimeException(
-            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
-      } catch (IllegalStateException e) {}
-      try {
-        env.isFullMajorCompaction();
-        throw new RuntimeException(
-            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
-      } catch (IllegalStateException e) {}
+      testEnv(scope, options, env, true);
+    }
+
+    @Override
+    public boolean accept(Key k, Value v) {
+      // The only reason for filtering out some data is as a way to verify init() and testEnv()
+      // have been called
+      return !k.getColumnFamily().toString().equals(BAD_COL_FAM);
     }
   }
 
   /**
    * Basic compaction iterator to test IteratorEnvironment returns what is expected.
    */
-  public static class MajcIter extends WrappingIterator {
+  public static class MajcIter extends Filter {
     IteratorScope scope = IteratorScope.majc;
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      testEnv(scope, options, env);
-      try {
-        env.isUserCompaction();
-      } catch (IllegalStateException e) {
-        throw new RuntimeException("Test failed");
-      }
-      try {
-        env.isFullMajorCompaction();
-      } catch (IllegalStateException e) {
-        throw new RuntimeException("Test failed");
-      }
+      // Checking for compaction on majc should not throw an error.
+      testEnv(scope, options, env, false);
+    }
+
+    @Override
+    public boolean accept(Key k, Value v) {
+      // The only reason for filtering out some data is as a way to verify init() and testEnv()
+      // have been called
+      return !k.getColumnFamily().toString().equals(BAD_COL_FAM);
     }
   }
 
   /**
    *
    */
-  public static class MincIter extends WrappingIterator {
+  public static class MincIter extends Filter {
     IteratorScope scope = IteratorScope.minc;
 
     @Override
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      testEnv(scope, options, env);
-      try {
-        env.isUserCompaction();
-        throw new RuntimeException(
-            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
-      } catch (IllegalStateException e) {}
-      try {
-        env.isFullMajorCompaction();
-        throw new RuntimeException(
-            "Test failed - Expected to throw IllegalStateException when checking compaction on a scan.");
-      } catch (IllegalStateException e) {}
+      // Checking for compaction on minc should throw an error.
+      testEnv(scope, options, env, true);
+    }
+
+    @Override
+    public boolean accept(Key k, Value v) {
+      // The only reason for filtering out some data is as a way to verify init() and testEnv()
+      // have been called
+      return !k.getColumnFamily().toString().equals(BAD_COL_FAM);
     }
   }
 
   /**
    * Test the environment methods return what is expected.
    */
-  private static void testEnv(IteratorScope scope, Map<String,String> opts,
-      IteratorEnvironment env) {
-    TableId expectedTableId = TableId.of(opts.get("expected.table.id"));
+  private static void testEnv(IteratorScope scope, Map<String,String> opts, IteratorEnvironment env,
+      boolean checkCompactionShouldThrow) {
+    String expTableIdString = opts.get(EXPECTED_TABLE_ID_OPT);
+    TableId expectedTableId = expTableIdString == null ? null : TableId.of(expTableIdString);
+
+    if (checkCompactionShouldThrow) {
+      assertThrows(IllegalStateException.class, env::isUserCompaction,
+          "Test failed - Expected to throw IllegalStateException when checking compaction");
+      assertThrows(IllegalStateException.class, env::isFullMajorCompaction,
+          "Test failed - Expected to throw IllegalStateException when checking compaction");
+    } else {
+      assertDoesNotThrow(env::isUserCompaction,
+          "Test failed - Expected not to throw exception when checking compaction");
+      assertDoesNotThrow(env::isFullMajorCompaction,
+          "Test failed - Expected not to throw exception when checking compaction");
+    }
 
     // verify getServiceEnv() and getPluginEnv() are the same objects,
     // so further checks only need to use getPluginEnv()
     @SuppressWarnings("deprecation")
     ServiceEnvironment serviceEnv = env.getServiceEnv();
     PluginEnvironment pluginEnv = env.getPluginEnv();
-    if (serviceEnv != pluginEnv) {
-      throw new RuntimeException("Test failed - assertSame(getServiceEnv(),getPluginEnv())");
-    }
+    assertEquals(serviceEnv, pluginEnv, "Test failed - assertSame(getServiceEnv(),getPluginEnv())");
 
     // verify property exists on the table config (deprecated and new),
     // with and without custom prefix, but not in the system config
     @SuppressWarnings("deprecation")
-    String accTableConf = env.getConfig().get("table.custom.iterator.env.test");
-    if (!"value1".equals(accTableConf)) {
-      throw new RuntimeException("Test failed - Expected table property not found in getConfig().");
-    }
+    String accTableConf = env.getConfig().get(CUSTOM_PROP_KEY);
+    assertEquals(CUSTOM_PROP_VAL, accTableConf,
+        "Test failed - Expected table property not found in getConfig().");
     var tableConf = pluginEnv.getConfiguration(env.getTableId());
-    if (!"value1".equals(tableConf.get("table.custom.iterator.env.test"))) {
-      throw new RuntimeException("Test failed - Expected table property not found in table conf.");
-    }
-    if (!"value1".equals(tableConf.getTableCustom("iterator.env.test"))) {
-      throw new RuntimeException("Test failed - Expected table property not found in table conf.");
-    }
+    assertEquals(CUSTOM_PROP_VAL, tableConf.get(CUSTOM_PROP_KEY),
+        "Test failed - Expected table property not found in table conf.");
+    assertEquals(CUSTOM_PROP_VAL, tableConf.getTableCustom(CUSTOM_PROP_KEY_SUFFIX),
+        "Test failed - Expected table property not found in table conf.");
     var systemConf = pluginEnv.getConfiguration();
-    if (systemConf.get("table.custom.iterator.env.test") != null) {
-      throw new RuntimeException("Test failed - Unexpected table property found in system conf.");
-    }
+    assertNull(systemConf.get(CUSTOM_PROP_KEY),
+        "Test failed - Unexpected table property found in system conf.");
 
     // check other environment settings
-    if (!scope.equals(env.getIteratorScope())) {
-      throw new RuntimeException("Test failed - Error getting iterator scope");
-    }
-    if (env.isSamplingEnabled()) {
-      throw new RuntimeException("Test failed - isSamplingEnabled returned true, expected false");
-    }
-    if (!expectedTableId.equals(env.getTableId())) {
-      throw new RuntimeException("Test failed - Error getting Table ID");
+    assertEquals(scope, env.getIteratorScope(), "Test failed - Error getting iterator scope");
+    assertFalse(env.isSamplingEnabled(),
+        "Test failed - isSamplingEnabled returned true, expected false");
+    assertEquals(expectedTableId, env.getTableId(), "Test failed - Error getting Table ID");
+    assertNull(env.getSamplerConfiguration());
+    assertThrows(Exception.class, env::cloneWithSamplingEnabled);
+    // per javadoc, getAuthorizations will throw UOE if scope != scan
+    if (env.getIteratorScope() == IteratorScope.scan) {
+      assertNotNull(env.getAuthorizations());
+    } else {
+      assertThrows(UnsupportedOperationException.class, env::getAuthorizations);
     }
   }
 
@@ -203,10 +226,14 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
 
   @Test
   public void test() throws Exception {
-    String[] tables = getUniqueNames(3);
+    String[] tables = getUniqueNames(5);
     testScan(tables[0], ScanIter.class);
     testCompact(tables[1], MajcIter.class);
     testMinCompact(tables[2], MincIter.class);
+    // No table when scanning at file level
+    testRFileScan(ScanIter.class);
+    testOfflineScan(tables[3], ScanIter.class);
+    testClientSideScan(tables[4], ScanIter.class);
   }
 
   private void testScan(String tableName,
@@ -214,11 +241,10 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     writeData(tableName);
 
     IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
-    cfg.addOption("expected.table.id", client.tableOperations().tableIdMap().get(tableName));
+    cfg.addOption(EXPECTED_TABLE_ID_OPT, client.tableOperations().tableIdMap().get(tableName));
     try (Scanner scan = client.createScanner(tableName)) {
       scan.addScanIterator(cfg);
-      Iterator<Map.Entry<Key,Value>> iter = scan.iterator();
-      iter.forEachRemaining(e -> assertEquals("cf1", e.getKey().getColumnFamily().toString()));
+      validateScanner(scan);
     }
   }
 
@@ -227,10 +253,14 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     writeData(tableName);
 
     IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
-    cfg.addOption("expected.table.id", client.tableOperations().tableIdMap().get(tableName));
+    cfg.addOption(EXPECTED_TABLE_ID_OPT, client.tableOperations().tableIdMap().get(tableName));
     CompactionConfig config = new CompactionConfig();
     config.setIterators(Collections.singletonList(cfg));
     client.tableOperations().compact(tableName, config);
+
+    try (Scanner scan = client.createScanner(tableName)) {
+      validateScanner(scan);
+    }
   }
 
   public void testMinCompact(String tableName,
@@ -238,16 +268,105 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     writeData(tableName);
 
     IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
-    cfg.addOption("expected.table.id", client.tableOperations().tableIdMap().get(tableName));
+    cfg.addOption(EXPECTED_TABLE_ID_OPT, client.tableOperations().tableIdMap().get(tableName));
 
     client.tableOperations().attachIterator(tableName, cfg, EnumSet.of(IteratorScope.minc));
 
-    client.tableOperations().flush(tableName);
+    client.tableOperations().flush(tableName, null, null, true);
+
+    try (Scanner scan = client.createScanner(tableName)) {
+      validateScanner(scan);
+    }
+  }
+
+  private void testRFileScan(Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass)
+      throws Exception {
+    TreeMap<Key,Value> data = createTestData();
+    var fs = FileSystem.getLocal(new Configuration());
+    String rFilePath = createRFile(fs, data);
+
+    IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
+
+    try (Scanner scan = RFile.newScanner().from(rFilePath).withFileSystem(fs)
+        .withTableProperties(getTableConfig().getProperties()).build()) {
+      scan.addScanIterator(cfg);
+      validateScanner(scan);
+    }
+  }
+
+  public void testOfflineScan(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    writeData(tableName);
+
+    TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+    client.tableOperations().offline(tableName, true);
+
+    IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
+    cfg.addOption(EXPECTED_TABLE_ID_OPT, tableId.canonical());
+
+    try (OfflineScanner scan =
+        new OfflineScanner((ClientContext) client, tableId, Authorizations.EMPTY)) {
+      scan.addScanIterator(cfg);
+      validateScanner(scan);
+    }
+  }
+
+  public void testClientSideScan(String tableName,
+      Class<? extends SortedKeyValueIterator<Key,Value>> iteratorClass) throws Exception {
+    writeData(tableName);
+
+    IteratorSetting cfg = new IteratorSetting(1, iteratorClass);
+    cfg.addOption(EXPECTED_TABLE_ID_OPT, client.tableOperations().tableIdMap().get(tableName));
+
+    try (Scanner scan = client.createScanner(tableName);
+        var clientIterScan = new ClientSideIteratorScanner(scan)) {
+      clientIterScan.addScanIterator(cfg);
+      validateScanner(clientIterScan);
+    }
+  }
+
+  private TreeMap<Key,Value> createTestData() {
+    TreeMap<Key,Value> testData = new TreeMap<>();
+
+    // Write data that we do not expect to be filtered out
+    testData.put(new Key("row1", GOOD_COL_FAM, "cq1"), new Value("val1"));
+    testData.put(new Key("row2", GOOD_COL_FAM, "cq1"), new Value("val2"));
+    testData.put(new Key("row3", GOOD_COL_FAM, "cq1"), new Value("val3"));
+    // Write data that we expect to be filtered out
+    testData.put(new Key("row4", BAD_COL_FAM, "badcq"), new Value("val1"));
+    testData.put(new Key("row5", BAD_COL_FAM, "badcq"), new Value("val2"));
+    testData.put(new Key("row6", BAD_COL_FAM, "badcq"), new Value("val3"));
+
+    return testData;
+  }
+
+  private void validateScanner(Scanner scan) {
+    // Ensure the bad cf was filtered out to ensure init() and testEnv() were called
+    int numElts = 0;
+    for (var e : scan) {
+      numElts++;
+      assertEquals(GOOD_COL_FAM, e.getKey().getColumnFamily().toString());
+    }
+    assertEquals(3, numElts);
+  }
+
+  private String createRFile(FileSystem fs, TreeMap<Key,Value> data) throws Exception {
+    File dir = new File(System.getProperty("user.dir") + "/target/rfilescan-iterenv-test");
+    assertTrue(dir.mkdirs());
+    String filePath = dir.getAbsolutePath() + "/test.rf";
+
+    try (RFileWriter writer = RFile.newWriter().to(filePath).withFileSystem(fs).build()) {
+      writer.append(data.entrySet());
+    }
+
+    fs.deleteOnExit(new Path(dir.getAbsolutePath()));
+
+    return filePath;
   }
 
   private NewTableConfiguration getTableConfig() {
     NewTableConfiguration ntc = new NewTableConfiguration();
-    ntc.setProperties(Collections.singletonMap("table.custom.iterator.env.test", "value1"));
+    ntc.setProperties(Collections.singletonMap(CUSTOM_PROP_KEY, CUSTOM_PROP_VAL));
     return ntc;
   }
 
@@ -255,15 +374,13 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     client.tableOperations().create(tableName, getTableConfig());
 
     try (BatchWriter bw = client.createBatchWriter(tableName)) {
-      Mutation m = new Mutation("row1");
-      m.at().family("cf1").qualifier("cq1").put("val1");
-      bw.addMutation(m);
-      m = new Mutation("row2");
-      m.at().family("cf1").qualifier("cq1").put("val2");
-      bw.addMutation(m);
-      m = new Mutation("row3");
-      m.at().family("cf1").qualifier("cq1").put("val3");
-      bw.addMutation(m);
+      for (Map.Entry<Key,Value> data : createTestData().entrySet()) {
+        var key = data.getKey();
+        Mutation m = new Mutation(key.getRow());
+        m.at().family(key.getColumnFamily()).qualifier(key.getColumnQualifier())
+            .put(data.getValue());
+        bw.addMutation(m);
+      }
     }
   }
 }
