@@ -47,6 +47,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration.Deriver;
@@ -628,7 +629,7 @@ public class Tablet extends TabletBase {
   public long getFlushID() throws NoNodeException {
     try {
       String id = new String(context.getZooSession().asReaderWriter()
-          .getData(Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID), UTF_8);
+          .getData(Constants.ZNAMESPACES + "/" + context.getNamespaceId(extent.tableId()) + Constants.ZTABLES + "/" + extent.tableId() + Constants.ZTABLE_FLUSH_ID), UTF_8);
       return Long.parseLong(id);
     } catch (InterruptedException | NumberFormatException e) {
       throw new RuntimeException("Exception on " + extent + " getting flush ID", e);
@@ -638,6 +639,8 @@ public class Tablet extends TabletBase {
       } else {
         throw new RuntimeException("Exception on " + extent + " getting flush ID", ke);
       }
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Table not found in ZooKeeper: " + extent.tableId());
     }
   }
 

@@ -54,7 +54,7 @@ public class DeleteTable extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager env) {
     final EnumSet<TableState> expectedCurrStates =
         EnumSet.of(TableState.ONLINE, TableState.OFFLINE);
-    env.getTableManager().transitionTableState(tableId, TableState.DELETING, expectedCurrStates);
+    env.getTableManager().transitionTableState(tableId, namespaceId, TableState.DELETING, expectedCurrStates);
     env.getEventCoordinator().event(tableId, "deleting table %s %s", tableId, fateId);
     return new ReserveTablets(tableId, namespaceId);
   }

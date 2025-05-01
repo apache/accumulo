@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -91,10 +92,10 @@ public class TableManager {
     }
   }
 
-  public synchronized void transitionTableState(final TableId tableId, final TableState newState,
+  public synchronized void transitionTableState(final TableId tableId, final NamespaceId namespaceId, final TableState newState,
       final EnumSet<TableState> expectedCurrStates) {
     Preconditions.checkArgument(newState != TableState.UNKNOWN);
-    String statePath = Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
+    String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
 
     try {
       zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), currData -> {
@@ -140,8 +141,14 @@ public class TableManager {
 
   public TableState getTableState(TableId tableId) {
     TableState tState = TableState.UNKNOWN;
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = context.getNamespaceId(tableId);
+    } catch (TableNotFoundException e) {
+      throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
+    }
     byte[] data =
-        context.getZooCache().get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+        context.getZooCache().get(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
     if (data != null) {
       String sState = new String(data, UTF_8);
       try {

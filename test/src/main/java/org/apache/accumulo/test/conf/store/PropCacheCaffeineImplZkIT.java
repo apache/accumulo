@@ -98,16 +98,17 @@ public class PropCacheCaffeineImplZkIT {
 
   @BeforeEach
   public void setupZnodes() throws Exception {
+    var zPath = Constants.ZNAMESPACES + "/" + nid + Constants.ZTABLES;
     zrw.mkdirs(Constants.ZCONFIG);
-    zk.create(Constants.ZTABLES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+    zk.create(zPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tIdA.canonical() + "/conf", new byte[0],
+    zk.create(zPath + "/" + tIdA.canonical() + "/conf", new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
-    zk.create(Constants.ZTABLES + "/" + tIdB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+    zk.create(zPath + "/" + tIdB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tIdB.canonical() + "/conf", new byte[0],
+    zk.create(zPath + "/" + tIdB.canonical() + "/conf", new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
   }
 

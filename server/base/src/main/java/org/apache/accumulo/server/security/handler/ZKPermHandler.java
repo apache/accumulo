@@ -77,7 +77,7 @@ public class ZKPermHandler implements PermissionHandler {
         // maybe the table was just deleted?
         try {
           // check for existence:
-          zoo.getData(Constants.ZTABLES + "/" + table);
+          zoo.getData(Constants.ZNAMESPACES + "/" + ctx.getNamespaceId(table) + Constants.ZTABLES + "/" + table);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
@@ -89,6 +89,8 @@ public class ZKPermHandler implements PermissionHandler {
             throw new TableNotFoundException(null, table, "while checking permissions");
           }
           log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
+        } catch (NamespaceNotFoundException ex) {
+          throw new IllegalStateException("Namespace not found in ZooKeeper for table: " + table);
         }
         return false;
       }
