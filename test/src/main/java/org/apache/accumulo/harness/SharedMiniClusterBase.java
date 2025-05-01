@@ -85,8 +85,12 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    *
    * @param miniClusterCallback A callback to configure the minicluster before it is started.
    */
-  public static void startMiniClusterWithConfig(
+  public static synchronized void startMiniClusterWithConfig(
       MiniClusterConfigurationCallback miniClusterCallback) throws Exception {
+    if (cluster != null) {
+      return;
+    }
+
     File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
 
@@ -131,10 +135,11 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   /**
    * Stops the MiniAccumuloCluster and related services if they are running.
    */
-  public static void stopMiniCluster() {
+  public static synchronized void stopMiniCluster() {
     if (cluster != null) {
       try {
         cluster.stop();
+        cluster = null;
       } catch (Exception e) {
         log.error("Failed to stop minicluster", e);
       }

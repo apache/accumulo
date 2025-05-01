@@ -18,30 +18,27 @@
  */
 package org.apache.accumulo.test;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.apache.accumulo.harness.AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY;
 
-import org.apache.accumulo.core.client.Accumulo;
-import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Tag;
+import org.junit.platform.suite.api.AfterSuite;
+import org.junit.platform.suite.api.BeforeSuite;
+import org.junit.platform.suite.api.IncludeTags;
+import org.junit.platform.suite.api.SelectPackages;
+import org.junit.platform.suite.api.Suite;
 
-@Tag(SUNNY_DAY)
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
-public class ComprehensiveIT extends ComprehensiveBaseIT {
-  @BeforeAll
-  public static void setup() throws Exception {
+@Suite
+@SelectPackages("org.apache.accumulo.test") // look in this package and subpackages
+@IncludeTags(SIMPLE_MINI_CLUSTER_ONLY) // for tests with this tag
+public class SimpleSharedMacTestSuite extends SharedMiniClusterBase {
+
+  @BeforeSuite
+  public static void beforeAllTests() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
-
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
-    }
   }
 
-  @AfterAll
-  public static void teardown() {
+  @AfterSuite
+  public static void afterAllTests() throws Exception {
     SharedMiniClusterBase.stopMiniCluster();
   }
 }
