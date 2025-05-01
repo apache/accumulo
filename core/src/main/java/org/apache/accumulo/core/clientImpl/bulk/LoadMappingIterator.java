@@ -29,14 +29,12 @@ import java.io.UncheckedIOException;
 import java.util.AbstractMap;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.NoSuchElementException;
 
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonIOException;
-import com.google.gson.JsonSyntaxException;
+import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 
 /**
@@ -76,30 +74,27 @@ public class LoadMappingIterator
 
   @Override
   public Map.Entry<KeyExtent,Bulk.Files> next() {
+    Bulk.Mapping bm;
     try {
-      Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
-      if (bm == null) {
-        throw new NoSuchElementException("No more elements in input");
-      }
-
-      KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
-
-      if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
-        throw new IllegalStateException(
-            String.format("KeyExtents are not in sorted order: %s comes after %s", lastKeyExtent,
-                currentKeyExtent));
-      }
-
-      lastKeyExtent = currentKeyExtent;
-
-      if (renameMap != null) {
-        return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles().mapNames(renameMap));
-      } else {
-        return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles());
-      }
-
-    } catch (JsonSyntaxException | JsonIOException e) {
+      bm = gson.fromJson(reader, Bulk.Mapping.class);
+    } catch (JsonParseException e) {
       throw new IllegalStateException("Failed to read next mapping", e);
+    }
+
+    KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
+
+    if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
+      throw new IllegalStateException(
+          String.format("KeyExtents are not in sorted order: %s comes after %s", lastKeyExtent,
+              currentKeyExtent));
+    }
+
+    lastKeyExtent = currentKeyExtent;
+
+    if (renameMap != null) {
+      return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles().mapNames(renameMap));
+    } else {
+      return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles());
     }
   }
 

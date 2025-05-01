@@ -22,7 +22,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.clientImpl.bulk.BulkSerialize.createGson;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.BufferedWriter;
 import java.io.ByteArrayInputStream;
@@ -41,6 +43,7 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonWriter;
 
 public class LoadMappingIteratorTest {
@@ -134,4 +137,39 @@ public class LoadMappingIteratorTest {
       assertEquals(expected, e.getMessage());
     }
   }
+
+  @Test
+  void testNullCheck() throws IOException {
+    Map<KeyExtent,String> loadRanges = new LinkedHashMap<>();
+    loadRanges.put(nke(null, "a"), "f1 f2");
+
+    try (LoadMappingIterator iterator = createLoadMappingIter(loadRanges)) {
+      assertTrue(iterator.hasNext());
+      iterator.next();
+
+      assertFalse(iterator.hasNext());
+
+      var e = assertThrows(IllegalStateException.class, iterator::next);
+      String expected = "Failed to read next mapping";
+      assertEquals(expected, e.getMessage());
+    }
+  }
+
+  @Test
+  void testMalformedJson() throws IOException {
+    // Create invalid JSON (missing closing bracket)
+    String malformedJson =
+        "[ { \"extent\": { \"table\": \"1\", \"endRow\": \"a\" }, \"files\": [ ] ";
+
+    ByteArrayInputStream bais = new ByteArrayInputStream(malformedJson.getBytes(UTF_8));
+
+    try (LoadMappingIterator iterator =
+        BulkSerialize.readLoadMapping("/some/dir", TableId.of("1"), p -> bais)) {
+      var e = assertThrows(IllegalStateException.class, iterator::next);
+      String expected = "Failed to read next mapping";
+      assertEquals(expected, e.getMessage());
+      assertInstanceOf(JsonParseException.class, e.getCause());
+    }
+  }
+
 }
