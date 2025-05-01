@@ -122,4 +122,17 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>api-diff</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.revapi</groupId>
+            <artifactId>revapi-maven-plugin</artifactId>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>
