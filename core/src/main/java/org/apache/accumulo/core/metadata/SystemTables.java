@@ -37,31 +37,34 @@ public enum SystemTables {
   FATE("fate", "+fate"),
   SCAN_REF("scanref", "+scanref");
 
-  private final String name;
+  private final String simpleName;
+  private final String qualifiedName;
   private final TableId tableId;
 
   public String tableName() {
-    return name;
+    return qualifiedName;
+  }
+
+  public String simpleTableName() {
+    return simpleName;
   }
 
   public TableId tableId() {
     return tableId;
   }
 
-  SystemTables(String name, String id) {
-    this.name = Namespace.ACCUMULO.name() + "." + name;
+  private SystemTables(String simpleName, String id) {
+    this.simpleName = simpleName;
+    this.qualifiedName = namespaceName() + "." + simpleName;
     this.tableId = TableId.of(id);
   }
 
   private static final Set<TableId> ALL_IDS =
       Arrays.stream(values()).map(SystemTables::tableId).collect(Collectors.toUnmodifiableSet());
 
-  private static final Set<String> ALL_NAMES =
-      Arrays.stream(values()).map(SystemTables::tableName).collect(Collectors.toUnmodifiableSet());
-
-  private static final Map<String,String> TABLE_ID_TO_NAME =
+  private static final Map<String,String> TABLE_ID_TO_SIMPLE_NAME =
       Arrays.stream(values()).collect(Collectors.toUnmodifiableMap(
-          sysTable -> sysTable.tableId().canonical(), sysTable -> sysTable.name));
+          sysTable -> sysTable.tableId().canonical(), sysTable -> sysTable.simpleName));
 
   public static NamespaceId namespaceId() {
     return Namespace.ACCUMULO.id();
@@ -75,19 +78,11 @@ public enum SystemTables {
     return ALL_IDS;
   }
 
-  public static Set<String> tableNames() {
-    return ALL_NAMES;
-  }
-
   public static boolean containsTableId(TableId tableId) {
     return ALL_IDS.contains(tableId);
   }
 
-  public static boolean containsTableName(String tableName) {
-    return ALL_NAMES.contains(tableName);
-  }
-
-  public static Map<String,String> tableIdToNameMap() {
-    return TABLE_ID_TO_NAME;
+  public static Map<String,String> tableIdToSimpleNameMap() {
+    return TABLE_ID_TO_SIMPLE_NAME;
   }
 }

@@ -65,9 +65,6 @@ class CleanUp extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) {
-
-    manager.clearMigrations(tableId);
-
     int refCount = 0;
 
     try {
@@ -132,7 +129,7 @@ class CleanUp extends ManagerRepo {
 
     // remove table from zookeeper
     try {
-      manager.getTableManager().removeTable(tableId);
+      manager.getTableManager().removeTable(tableId, namespaceId);
       manager.getContext().clearTableListCache();
     } catch (Exception e) {
       log.error("Failed to find table id in zookeeper", e);

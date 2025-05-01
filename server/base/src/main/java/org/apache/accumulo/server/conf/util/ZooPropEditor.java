@@ -224,7 +224,7 @@ public class ZooPropEditor implements KeywordExecutable {
     if (!opts.tableIdOpt.isEmpty()) {
       return TableId.of(opts.tableIdOpt);
     }
-    Map<TableId,String> tids = context.getTableIdToNameMap();
+    Map<TableId,String> tids = context.createTableIdToQualifiedNameMap();
     return tids.entrySet().stream().filter(entry -> opts.tableOpt.equals(entry.getValue()))
         .map(Map.Entry::getKey).findAny()
         .orElseThrow(() -> new IllegalArgumentException("Could not find table " + opts.tableOpt));
@@ -243,8 +243,8 @@ public class ZooPropEditor implements KeywordExecutable {
   private String getDisplayName(final PropStoreKey propStoreKey, final ServerContext context) {
 
     if (propStoreKey instanceof TablePropKey) {
-      return context.getTableIdToNameMap().getOrDefault(((TablePropKey) propStoreKey).getId(),
-          "unknown");
+      return context.createTableIdToQualifiedNameMap()
+          .getOrDefault(((TablePropKey) propStoreKey).getId(), "unknown");
     }
     if (propStoreKey instanceof NamespacePropKey) {
       return context.getNamespaceIdToNameMap()
