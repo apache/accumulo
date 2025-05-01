@@ -592,7 +592,8 @@ public class Tablet extends TabletBase {
         t1 = System.currentTimeMillis();
 
         if (isClosing() || isClosed() || getTabletMemory().memoryReservedForMinC()
-            || updatingFlushID || (mincReason == MinorCompactionReason.SYSTEM
+            || getTabletMemory().getMemTable().getNumEntries() == 0 || updatingFlushID
+            || (mincReason == MinorCompactionReason.SYSTEM
                 && getDatafiles().size() >= pauseLimit)) {
 
           logMessage = new StringBuilder();
