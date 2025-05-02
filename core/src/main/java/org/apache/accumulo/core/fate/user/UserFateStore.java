@@ -271,7 +271,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       RowFateStatusFilter.configureScanner(scanner, statuses);
-      // columns fetched from TxAdminColumnFamily
+      // columns fetched here must be in/added to TxAdminColumnFamily for locality group benefits
       TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
       TxAdminColumnFamily.RESERVATION_COLUMN.fetch(scanner);
       TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
