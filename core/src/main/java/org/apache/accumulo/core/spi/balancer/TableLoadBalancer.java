@@ -98,8 +98,8 @@ public class TableLoadBalancer implements TabletBalancer {
 
       if (balancer == null) {
         log.info("Creating balancer {} limited to balancing table {}",
-            SimpleLoadBalancer.class.getName(), tableId);
-        balancer = new SimpleLoadBalancer(tableId);
+            DerelictBalancer.class.getName(), tableId);
+        balancer = new DerelictBalancer(tableId);
       }
       perTableBalancers.put(tableId, balancer);
       balancer.init(environment);
