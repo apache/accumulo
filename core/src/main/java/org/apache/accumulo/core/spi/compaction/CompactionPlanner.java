@@ -96,7 +96,7 @@ public interface CompactionPlanner {
     TableId getTableId();
 
     /**
-     * @teturn the tablet for which a compaction is being planned
+     * @return the tablet for which a compaction is being planned
      * @since 2.1.4
      */
     TabletId getTabletId();
