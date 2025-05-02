@@ -45,6 +45,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
@@ -752,6 +755,11 @@ public class DefaultCompactionPlannerTest {
       @Override
       public TableId getTableId() {
         return TableId.of("42");
+      }
+
+      @Override
+      public TabletId getTabletId() {
+        return new TabletIdImpl(new KeyExtent(getTableId(), null, null));
       }
 
       @Override
