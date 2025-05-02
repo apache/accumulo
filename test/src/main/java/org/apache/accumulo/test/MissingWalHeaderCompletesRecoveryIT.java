@@ -40,6 +40,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -121,7 +122,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       String fakeServer = "127.0.0.1:12345";
 
       File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
+      File walogServerDir = new File(walogs, AddressUtil.toDfsFileFormat(fakeServer));
       File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
       log.info("Created empty WAL at {}", emptyWalog.toURI());
@@ -176,7 +177,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       String fakeServer = "127.0.0.1:12345";
 
       File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
+      File walogServerDir = new File(walogs, AddressUtil.toDfsFileFormat(fakeServer));
       File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
 
       log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
