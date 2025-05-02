@@ -56,6 +56,7 @@ import org.apache.accumulo.manager.upgrade.Upgrader11to12;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
@@ -79,6 +80,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
+      coreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
       cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
     }
   }

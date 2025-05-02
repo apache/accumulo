@@ -638,6 +638,43 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
    */
   private Map<DataLevel,Set<KeyExtent>> partitionMigrations() {
     final Map<DataLevel,Set<KeyExtent>> partitionedMigrations = new EnumMap<>(DataLevel.class);
+
+    // Don't try to check migrations if the Root and Metadata
+    // tables are not hosted.
+    boolean skipMigrationCheck = false;
+
+    if (watchers.size() != 3) {
+      log.debug("Skipping migration check, not all TabletGroupWatchers are started");
+      skipMigrationCheck = true;
+    } else {
+      for (TabletGroupWatcher watcher : watchers) {
+        if (!watcher.isAlive()) {
+          log.debug("Skipping migration check, not all TabletGroupWatchers are started");
+          skipMigrationCheck = true;
+          break;
+        }
+        final DataLevel level = watcher.getLevel();
+        if (level == DataLevel.ROOT || level == DataLevel.METADATA) {
+          final TableId tid = level == DataLevel.ROOT ? SystemTables.ROOT.tableId()
+              : SystemTables.METADATA.tableId();
+          final TableCounts count = watcher.getStats(tid);
+          if (count.hosted() == 0 || count.assigned() > 0 || count.assignedToDeadServers() > 0
+              || count.suspended() > 0 || count.unassigned() > 0) {
+            log.debug("Table {} has tablets that are not hosted, {}", tid, count);
+            log.debug("Skipping migration check due to unhosted system tables");
+            skipMigrationCheck = true;
+            break;
+          }
+        }
+      }
+    }
+    if (skipMigrationCheck) {
+      partitionedMigrations.put(DataLevel.ROOT, new HashSet<>());
+      partitionedMigrations.put(DataLevel.METADATA, new HashSet<>());
+      partitionedMigrations.put(DataLevel.USER, new HashSet<>());
+      return partitionedMigrations;
+    }
+
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
