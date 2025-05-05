@@ -838,7 +838,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // and not wait for the old locks to be cleaned up.
     try {
       new ZooZap().zap(getServerContext().getSiteConfiguration(), "-manager",
-          "-compaction-coordinators", "-tservers", "-compactors", "-sservers");
+          "-compaction-coordinators", "-tservers", "-compactors", "-sservers", "--gc");
     } catch (RuntimeException e) {
       log.error("Error zapping zookeeper locks", e);
     }

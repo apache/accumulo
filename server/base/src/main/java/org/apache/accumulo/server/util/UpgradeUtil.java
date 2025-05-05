@@ -133,7 +133,7 @@ public class UpgradeUtil implements KeywordExecutable {
 
       LOG.info("Forcing removal of all server locks");
       new ZooZap().zap(siteConf, "-manager", "-compaction-coordinators", "-tservers", "-compactors",
-          "-sservers");
+          "-sservers", "--monitor", "--gc");
 
       LOG.info("Instance {} prepared for upgrade. Server processes will not start while"
           + " in this state. To undo this state and abort upgrade preparations delete"
