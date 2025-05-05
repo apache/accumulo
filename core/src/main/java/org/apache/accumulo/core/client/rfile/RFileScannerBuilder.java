@@ -61,8 +61,8 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
         sources = new RFileSource[rFiles.length];
         for (int i = 0; i < rFiles.length; i++) {
           final Path path = rFiles[i].getPath();
-          sources[i] = new RFileSource(getFileSystem().open(path),
-              getFileSystem().getFileStatus(path).getLen(), rFiles[i].getFence());
+          sources[i] = new RFileSource(getFileSystem(path).open(path),
+              getFileSystem(path).getFileStatus(path).getLen(), rFiles[i].getFence());
         }
       } else {
         for (int i = 0; i < sources.length; i++) {
@@ -77,7 +77,7 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
     }
   }
 
-  private RFileScanner.Opts opts = new RFileScanner.Opts();
+  private final RFileScanner.Opts opts = new RFileScanner.Opts();
 
   @Override
   public ScannerOptions withoutSystemIterators() {
@@ -162,5 +162,4 @@ class RFileScannerBuilder implements RFile.InputArguments, RFile.ScannerFSOption
     this.opts.bounds = range;
     return this;
   }
-
 }

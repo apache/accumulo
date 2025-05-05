@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.manager.tableOps.clone;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -27,33 +28,34 @@ import org.slf4j.LoggerFactory;
 class CloneMetadata extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private CloneInfo cloneInfo;
+  private final CloneInfo cloneInfo;
 
   public CloneMetadata(CloneInfo cloneInfo) {
     this.cloneInfo = cloneInfo;
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     LoggerFactory.getLogger(CloneMetadata.class)
-        .info(String.format("Cloning %s with tableId %s from srcTableId %s", cloneInfo.tableName,
-            cloneInfo.tableId, cloneInfo.srcTableId));
+        .info(String.format("Cloning %s with tableId %s from srcTableId %s",
+            cloneInfo.getTableName(), cloneInfo.getTableId(), cloneInfo.getSrcTableId()));
     // need to clear out any metadata entries for tableId just in case this
     // died before and is executing again
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
+    MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
         environment.getManagerLock());
-    MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.srcTableId, cloneInfo.tableId);
+    MetadataTableUtil.cloneTable(environment.getContext(), cloneInfo.getSrcTableId(),
+        cloneInfo.getTableId());
     return new FinishCloneTable(cloneInfo);
   }
 
   @Override
-  public void undo(long tid, Manager environment) throws Exception {
-    MetadataTableUtil.deleteTable(cloneInfo.tableId, false, environment.getContext(),
+  public void undo(FateId fateId, Manager environment) throws Exception {
+    MetadataTableUtil.deleteTable(cloneInfo.getTableId(), false, environment.getContext(),
         environment.getManagerLock());
   }
 

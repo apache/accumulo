@@ -25,36 +25,31 @@ import java.util.Map;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
-import org.apache.accumulo.core.client.admin.ActiveCompaction.CompactionHost.Type;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
-
-import com.google.common.net.HostAndPort;
 
 /**
  * @since 1.6.0
  */
 public class ActiveCompactionImpl extends ActiveCompaction {
 
-  private org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
-  private ClientContext context;
-  private HostAndPort hostport;
-  private Type type;
+  private final org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac;
+  private final ClientContext context;
+  private final ServerId server;
 
   ActiveCompactionImpl(ClientContext context,
-      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, HostAndPort hostport,
-      CompactionHost.Type type) {
+      org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction tac, ServerId server) {
     this.tac = tac;
     this.context = context;
-    this.hostport = hostport;
-    this.type = type;
+    this.server = server;
   }
 
   @Override
   public String getTable() throws TableNotFoundException {
-    return context.getTableName(KeyExtent.fromThrift(tac.getExtent()).tableId());
+    return context.getQualifiedTableName(KeyExtent.fromThrift(tac.getExtent()).tableId());
   }
 
   @Override
@@ -124,22 +119,7 @@ public class ActiveCompactionImpl extends ActiveCompaction {
   }
 
   @Override
-  public CompactionHost getHost() {
-    return new CompactionHost() {
-      @Override
-      public Type getType() {
-        return type;
-      }
-
-      @Override
-      public String getAddress() {
-        return hostport.getHost();
-      }
-
-      @Override
-      public int getPort() {
-        return hostport.getPort();
-      }
-    };
+  public ServerId getServerId() {
+    return server;
   }
 }

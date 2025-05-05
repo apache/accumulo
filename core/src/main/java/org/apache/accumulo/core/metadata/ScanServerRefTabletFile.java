@@ -22,6 +22,8 @@ import java.net.URI;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -29,43 +31,61 @@ import org.apache.hadoop.io.Text;
 public class ScanServerRefTabletFile extends ReferencedTabletFile {
 
   private final Value NULL_VALUE = new Value(new byte[0]);
-  private final Text colf;
-  private final Text colq;
+  private final Text serverAddress;
+  private final Text uuid;
+
+  public ScanServerRefTabletFile(UUID serverLockUUID, String serverAddress, String file) {
+    super(new Path(URI.create(file)));
+    this.serverAddress = new Text(serverAddress);
+    uuid = new Text(serverLockUUID.toString());
+  }
 
   public ScanServerRefTabletFile(String file, String serverAddress, UUID serverLockUUID) {
     super(new Path(URI.create(file)));
-    this.colf = new Text(serverAddress);
-    this.colq = new Text(serverLockUUID.toString());
+    this.serverAddress = new Text(serverAddress);
+    this.uuid = new Text(serverLockUUID.toString());
   }
 
-  public ScanServerRefTabletFile(String file, Text colf, Text colq) {
-    super(new Path(URI.create(file)));
-    this.colf = colf;
-    this.colq = colq;
+  public ScanServerRefTabletFile(Key k) {
+    super(new Path(URI.create(k.getColumnQualifier().toString())));
+    serverAddress = k.getColumnFamily();
+    uuid = k.getRow();
   }
 
-  public String getRow() {
-    return this.getNormalizedPathStr();
+  public Mutation putMutation() {
+    Mutation mutation = new Mutation(uuid.toString());
+    mutation.put(serverAddress, getFilePath(), getValue());
+    return mutation;
   }
 
-  public Text getServerAddress() {
-    return this.colf;
+  public Mutation putDeleteMutation() {
+    Mutation mutation = new Mutation(uuid.toString());
+    mutation.putDelete(serverAddress, getFilePath());
+    return mutation;
   }
 
-  public Text getServerLockUUID() {
-    return this.colq;
+  public Text getFilePath() {
+    return new Text(this.getNormalizedPathStr());
+  }
+
+  public UUID getServerLockUUID() {
+    return UUID.fromString(uuid.toString());
   }
 
   public Value getValue() {
     return NULL_VALUE;
   }
 
+  public Text getServerAddress() {
+    return serverAddress;
+  }
+
   @Override
   public int hashCode() {
     final int prime = 31;
     int result = super.hashCode();
-    result = prime * result + ((colf == null) ? 0 : colf.hashCode());
-    result = prime * result + ((colq == null) ? 0 : colq.hashCode());
+    result = prime * result + ((serverAddress == null) ? 0 : serverAddress.hashCode());
+    result = prime * result + ((uuid == null) ? 0 : uuid.hashCode());
     return result;
   }
 
@@ -81,13 +101,13 @@ public class ScanServerRefTabletFile extends ReferencedTabletFile {
       return false;
     }
     ScanServerRefTabletFile other = (ScanServerRefTabletFile) obj;
-    return Objects.equals(colf, other.colf) && Objects.equals(colq, other.colq);
+    return Objects.equals(serverAddress, other.serverAddress) && Objects.equals(uuid, other.uuid);
   }
 
   @Override
   public String toString() {
-    return "ScanServerRefTabletFile [file=" + this.getRow() + ", server address=" + colf
-        + ", server lock uuid=" + colq + "]";
+    return "ScanServerRefTabletFile [file=" + this.getNormalizedPathStr() + ", server address="
+        + serverAddress + ", server lock uuid=" + uuid + "]";
   }
 
 }

@@ -43,8 +43,8 @@ import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
  */
 public class Credentials {
 
-  private String principal;
-  private AuthenticationToken token;
+  private final String principal;
+  private final AuthenticationToken token;
 
   /**
    * Creates a new credentials object.

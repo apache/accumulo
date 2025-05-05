@@ -95,7 +95,8 @@ public class ConfigCheckUtil {
   }
 
   private static class CheckTimeDurationBetween implements CheckTimeDuration {
-    long min, max;
+    final long min;
+    final long max;
 
     CheckTimeDurationBetween(long x, long y) {
       min = Math.min(x, y);

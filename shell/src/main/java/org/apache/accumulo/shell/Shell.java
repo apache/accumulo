@@ -109,6 +109,7 @@ import org.apache.accumulo.shell.commands.ExtensionCommand;
 import org.apache.accumulo.shell.commands.FlushCommand;
 import org.apache.accumulo.shell.commands.FormatterCommand;
 import org.apache.accumulo.shell.commands.GetAuthsCommand;
+import org.apache.accumulo.shell.commands.GetAvailabilityCommand;
 import org.apache.accumulo.shell.commands.GetGroupsCommand;
 import org.apache.accumulo.shell.commands.GetSplitsCommand;
 import org.apache.accumulo.shell.commands.GrantCommand;
@@ -144,6 +145,7 @@ import org.apache.accumulo.shell.commands.RenameTableCommand;
 import org.apache.accumulo.shell.commands.RevokeCommand;
 import org.apache.accumulo.shell.commands.ScanCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
+import org.apache.accumulo.shell.commands.SetAvailabilityCommand;
 import org.apache.accumulo.shell.commands.SetGroupsCommand;
 import org.apache.accumulo.shell.commands.SetIterCommand;
 import org.apache.accumulo.shell.commands.SetShellIterCommand;
@@ -174,6 +176,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.TerminalBuilder.SystemOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -227,6 +230,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected String execCommand = null;
   protected boolean verbose = true;
 
+  private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private long authTimeout;
@@ -298,7 +302,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    */
   public boolean config(String... args) throws IOException {
     if (this.terminal == null) {
-      this.terminal = TerminalBuilder.builder().jansi(false).build();
+      this.terminal =
+          TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
       this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
@@ -376,6 +381,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
       }
     }
 
+    canPaginate = terminal.getSize().getRows() > 0;
+
     // decide whether to execute commands from a file and quit
     if (options.getExecFile() != null) {
       execFile = options.getExecFile();
@@ -414,7 +421,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] tableCommands = {new CloneTableCommand(), new ConfigCommand(),
         new CreateTableCommand(), new DeleteTableCommand(), new DropTableCommand(), new DUCommand(),
         new ExportTableCommand(), new ImportTableCommand(), new OfflineCommand(),
-        new OnlineCommand(), new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
+        new SetAvailabilityCommand(), new GetAvailabilityCommand(), new OnlineCommand(),
+        new RenameTableCommand(), new TablesCommand(), new NamespacesCommand(),
         new CreateNamespaceCommand(), new DeleteNamespaceCommand(), new RenameNamespaceCommand(),
         new SummariesCommand()};
     Command[] tableControlCommands = {new AddSplitsCommand(), new CompactCommand(),
@@ -1027,7 +1035,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         if (out == null) {
           if (peek != null) {
             writer.println(peek);
-            if (paginate) {
+            if (canPaginate && paginate) {
               linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
               // check if displaying the next line would result in

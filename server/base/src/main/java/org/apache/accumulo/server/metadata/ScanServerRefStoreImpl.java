@@ -31,17 +31,16 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ScanServerRefStoreImpl implements ScanServerRefStore {
 
-  private static Logger log = LoggerFactory.getLogger(ScanServerRefStoreImpl.class);
+  private static final Logger log = LoggerFactory.getLogger(ScanServerRefStoreImpl.class);
 
   private final ClientContext context;
   private final String tableName;
@@ -55,9 +54,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
   public void put(Collection<ScanServerRefTabletFile> scanRefs) {
     try (BatchWriter writer = context.createBatchWriter(tableName)) {
       for (ScanServerRefTabletFile ref : scanRefs) {
-        Mutation m = new Mutation(ref.getRow());
-        m.put(ref.getServerAddress(), ref.getServerLockUUID(), ref.getValue());
-        writer.addMutation(m);
+        writer.addMutation(ref.putMutation());
       }
     } catch (MutationsRejectedException | TableNotFoundException e) {
       throw new IllegalStateException(
@@ -70,8 +67,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
     try {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       return scanner.stream().onClose(scanner::close)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString(),
-              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()));
+          .map(e -> new ScanServerRefTabletFile(e.getKey()));
     } catch (TableNotFoundException e) {
       throw new IllegalStateException(tableName + " not found!", e);
     }
@@ -82,12 +78,10 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
     Objects.requireNonNull(serverAddress, "Server address must be supplied");
     Objects.requireNonNull(scanServerLockUUID, "Server uuid must be supplied");
     try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
-      scanner.fetchColumn(new Text(serverAddress), new Text(scanServerLockUUID.toString()));
+      scanner.setRange(new Range(scanServerLockUUID.toString()));
 
       Set<ScanServerRefTabletFile> refsToDelete = StreamSupport.stream(scanner.spliterator(), false)
-          .map(e -> new ScanServerRefTabletFile(e.getKey().getRowData().toString(),
-              e.getKey().getColumnFamily(), e.getKey().getColumnQualifier()))
-          .collect(Collectors.toSet());
+          .map(e -> new ScanServerRefTabletFile(e.getKey())).collect(Collectors.toSet());
 
       if (!refsToDelete.isEmpty()) {
         this.delete(refsToDelete);
@@ -101,9 +95,7 @@ public class ScanServerRefStoreImpl implements ScanServerRefStore {
   public void delete(Collection<ScanServerRefTabletFile> refsToDelete) {
     try (BatchWriter writer = context.createBatchWriter(tableName)) {
       for (ScanServerRefTabletFile ref : refsToDelete) {
-        Mutation m = new Mutation(ref.getRow());
-        m.putDelete(ref.getServerAddress(), ref.getServerLockUUID());
-        writer.addMutation(m);
+        writer.addMutation(ref.putDeleteMutation());
       }
       log.debug("Deleted scan server file reference entries for files: {}", refsToDelete);
     } catch (MutationsRejectedException | TableNotFoundException e) {

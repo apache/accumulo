@@ -18,13 +18,17 @@
  */
 package org.apache.accumulo.server.security;
 
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
+
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.Credentials;
@@ -36,10 +40,9 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
-import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.manager.thrift.FateOperation;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.manager.thrift.TFateOperation;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -66,7 +69,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   private String getTableName(TableId tableId) {
     try {
-      return context.getTableName(tableId);
+      return context.getQualifiedTableName(tableId);
     } catch (TableNotFoundException e) {
       return "Unknown Table with ID " + tableId;
     }
@@ -82,7 +85,7 @@ public class AuditedSecurityOperation extends SecurityOperation {
 
   private boolean shouldAudit(TCredentials credentials, TableId tableId) {
     return (audit.isInfoEnabled() || audit.isWarnEnabled())
-        && !tableId.equals(AccumuloTable.METADATA.tableId()) && shouldAudit(credentials);
+        && !tableId.equals(SystemTables.METADATA.tableId()) && shouldAudit(credentials);
   }
 
   // Is INFO the right level to check? Do we even need that check?
@@ -138,26 +141,22 @@ public class AuditedSecurityOperation extends SecurityOperation {
     return result;
   }
 
-  @Override
-  public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
-      TRange range, List<TColumn> columns, List<IterInfo> ssiList,
+  private boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
+      Supplier<String> rangeStringSupplier, List<TColumn> columns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
     if (shouldAudit(credentials, tableId)) {
-      Range convertedRange = new Range(range);
-      List<String> convertedColumns =
-          truncate(columns.stream().map(Column::new).collect(Collectors.toList()));
+      String rangeString = rangeStringSupplier.get();
+      List<String> convertedColumns = truncate(columns.stream().map(Column::new).collect(toList()));
       String tableName = getTableName(tableId);
-
       try {
         boolean canScan = super.canScan(credentials, tableId, namespaceId);
         audit(credentials, canScan, CAN_SCAN_AUDIT_TEMPLATE, tableName,
-            getAuthString(authorizations), convertedRange, convertedColumns, ssiList, ssio);
-
+            getAuthString(authorizations), rangeString, convertedColumns, ssiList, ssio);
         return canScan;
       } catch (ThriftSecurityException ex) {
         audit(credentials, ex, CAN_SCAN_AUDIT_TEMPLATE, getAuthString(authorizations), tableId,
-            convertedRange, convertedColumns, ssiList, ssio);
+            rangeString, convertedColumns, ssiList, ssio);
         throw ex;
       }
     } else {
@@ -165,41 +164,30 @@ public class AuditedSecurityOperation extends SecurityOperation {
     }
   }
 
-  public static final String CAN_SCAN_BATCH_AUDIT_TEMPLATE =
-      "action: scan; targetTable: %s; authorizations: %s; range: %s; columns: %s;"
-          + " iterators: %s; iteratorOptions: %s;";
-
-  @Override
   public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
-      Map<TKeyExtent,List<TRange>> tbatch, List<TColumn> tcolumns, List<IterInfo> ssiList,
+      TRange range, List<TColumn> columns, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
       throws ThriftSecurityException {
-    if (shouldAudit(credentials, tableId)) {
+    Supplier<String> rangeToString = () -> new Range(range).toString();
+    return canScan(credentials, tableId, namespaceId, rangeToString, columns, ssiList, ssio,
+        authorizations);
+  }
 
+  public boolean canScan(TCredentials credentials, TableId tableId, NamespaceId namespaceId,
+      Map<KeyExtent,List<TRange>> tbatch, List<TColumn> columns, List<IterInfo> ssiList,
+      Map<String,Map<String,String>> ssio, List<ByteBuffer> authorizations)
+      throws ThriftSecurityException {
+    Supplier<String> rangeToString = () -> {
       // @formatter:off
-      Map<KeyExtent, List<String>> truncated = tbatch.entrySet().stream().collect(Collectors.toMap(
-                      entry -> KeyExtent.fromThrift(entry.getKey()),
-                      entry -> truncate(entry.getValue().stream().map(Range::new).collect(Collectors.toList()))
+      Map<KeyExtent,List<String>> truncated = tbatch.entrySet().stream().collect(toMap(
+          Entry::getKey,
+          entry -> truncate(entry.getValue().stream().map(Range::new).collect(toList()))
       ));
       // @formatter:on
-      List<Column> convertedColumns =
-          tcolumns.stream().map(Column::new).collect(Collectors.toList());
-      String tableName = getTableName(tableId);
-
-      try {
-        boolean canScan = super.canScan(credentials, tableId, namespaceId);
-        audit(credentials, canScan, CAN_SCAN_BATCH_AUDIT_TEMPLATE, tableName,
-            getAuthString(authorizations), truncated, convertedColumns, ssiList, ssio);
-
-        return canScan;
-      } catch (ThriftSecurityException ex) {
-        audit(credentials, ex, CAN_SCAN_BATCH_AUDIT_TEMPLATE, getAuthString(authorizations),
-            tableId, truncated, convertedColumns, ssiList, ssio);
-        throw ex;
-      }
-    } else {
-      return super.canScan(credentials, tableId, namespaceId);
-    }
+      return truncated.toString();
+    };
+    return canScan(credentials, tableId, namespaceId, rangeToString, columns, ssiList, ssio,
+        authorizations);
   }
 
   public static final String CHANGE_AUTHORIZATIONS_AUDIT_TEMPLATE =
@@ -685,18 +673,18 @@ public class AuditedSecurityOperation extends SecurityOperation {
       "action: %s; targetTable: %s:%s";
 
   @Override
-  public boolean canOnlineOfflineTable(TCredentials credentials, TableId tableId, FateOperation op,
+  public boolean canChangeTableState(TCredentials credentials, TableId tableId, TFateOperation op,
       NamespaceId namespaceId) throws ThriftSecurityException {
     String tableName = getTableName(tableId);
     String operation = null;
-    if (op == FateOperation.TABLE_ONLINE) {
+    if (op == TFateOperation.TABLE_ONLINE) {
       operation = "onlineTable";
     }
-    if (op == FateOperation.TABLE_OFFLINE) {
+    if (op == TFateOperation.TABLE_OFFLINE) {
       operation = "offlineTable";
     }
     try {
-      boolean result = super.canOnlineOfflineTable(credentials, tableId, op, namespaceId);
+      boolean result = super.canChangeTableState(credentials, tableId, op, namespaceId);
       audit(credentials, result, CAN_ONLINE_OFFLINE_TABLE_AUDIT_TEMPLATE, operation, tableName,
           tableId);
       return result;

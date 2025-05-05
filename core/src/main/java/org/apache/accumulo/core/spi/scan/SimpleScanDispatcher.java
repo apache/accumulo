@@ -65,7 +65,8 @@ public class SimpleScanDispatcher implements ScanDispatcher {
   private ScanDispatch multiDispatch;
   private Map<String,Map<ScanInfo.Type,ScanDispatch>> hintDispatch;
 
-  private static Pattern CACHE_PATTERN = Pattern.compile("cacheUsage[.](\\w+)([.](index|data))?");
+  private static final Pattern CACHE_PATTERN =
+      Pattern.compile("cacheUsage[.](\\w+)([.](index|data))?");
 
   public static final String DEFAULT_SCAN_EXECUTOR_NAME = "default";
 

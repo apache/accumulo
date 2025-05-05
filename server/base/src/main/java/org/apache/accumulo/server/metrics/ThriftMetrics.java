@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.THRIFT_EXECUTE;
+import static org.apache.accumulo.core.metrics.Metric.THRIFT_IDLE;
+
 import org.apache.accumulo.core.metrics.MetricsProducer;
 
 import io.micrometer.core.instrument.DistributionSummary;
@@ -40,8 +43,10 @@ public class ThriftMetrics implements MetricsProducer {
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    idle = DistributionSummary.builder(METRICS_THRIFT_IDLE).baseUnit("ms").register(registry);
-    execute = DistributionSummary.builder(METRICS_THRIFT_EXECUTE).baseUnit("ms").register(registry);
+    idle = DistributionSummary.builder(THRIFT_IDLE.getName()).baseUnit("ms")
+        .description(THRIFT_IDLE.getDescription()).register(registry);
+    execute = DistributionSummary.builder(THRIFT_EXECUTE.getName()).baseUnit("ms")
+        .description(THRIFT_EXECUTE.getDescription()).register(registry);
   }
 
 }

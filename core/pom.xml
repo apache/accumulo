@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-project</artifactId>
-    <version>3.1.0-SNAPSHOT</version>
+    <version>4.0.0-SNAPSHOT</version>
   </parent>
   <artifactId>accumulo-core</artifactId>
   <name>Apache Accumulo Core</name>
@@ -50,6 +50,10 @@
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.flatbuffers</groupId>
+      <artifactId>flatbuffers-java</artifactId>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -114,18 +118,8 @@
       <artifactId>hadoop-client-api</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.logging.log4j</groupId>
-      <artifactId>log4j-1.2-api</artifactId>
-    </dependency>
-    <dependency>
       <groupId>org.apache.thrift</groupId>
       <artifactId>libthrift</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>org.apache.httpcomponents</groupId>
-          <artifactId>httpcore</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.apache.zookeeper</groupId>
@@ -152,8 +146,8 @@
       <artifactId>hadoop-client-runtime</artifactId>
       <scope>runtime</scope>
     </dependency>
-    <!-- bnd dependency added due to lint issue, see https://github.com/apache/logging-log4j2/issues/2232 -->
     <dependency>
+      <!-- used by log4j-api; needed here for compile time linting only; we don't actually use it -->
       <groupId>biz.aQute.bnd</groupId>
       <artifactId>biz.aQute.bnd.annotation</artifactId>
       <scope>test</scope>
@@ -161,6 +155,12 @@
     <dependency>
       <groupId>org.apache.hadoop</groupId>
       <artifactId>hadoop-client-minicluster</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <!-- legacy log4j is still used by hadoop-client-minicluster -->
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-1.2-api</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -186,6 +186,11 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -372,7 +377,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/server-properties3.md</argument>
+                <argument>${project.build.directory}/generated-docs/server-properties.md</argument>
               </arguments>
             </configuration>
           </execution>
@@ -387,7 +392,22 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/client-properties3.md</argument>
+                <argument>${project.build.directory}/generated-docs/client-properties.md</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>metrics-markdown</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.core.metrics.MetricsDocGen</mainClass>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <argument>--generate-markdown</argument>
+                <argument>${project.build.directory}/generated-docs/metrics.md</argument>
               </arguments>
             </configuration>
           </execution>

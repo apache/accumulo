@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.create;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
@@ -41,27 +42,26 @@ class PopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.getTableId(), tid, LockType.WRITE, false,
+  public long isReady(FateId fateId, Manager environment) throws Exception {
+    return Utils.reserveTable(environment, tableInfo.getTableId(), fateId, LockType.WRITE, false,
         TableOperation.CREATE);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // reserve the table name in zookeeper or fail
 
     Utils.getTableNameLock().lock();
     try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(manager.getContext(), tableInfo.getTableName(),
-          tableInfo.getTableId(), TableOperation.CREATE);
-
+      var context = manager.getContext();
+      // write tableName & tableId, first to Table Mapping and then to Zookeeper
+      context.getTableMapping(tableInfo.getNamespaceId()).put(tableInfo.getTableId(),
+          tableInfo.getTableName(), TableOperation.CREATE);
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
       try {
-        PropUtil.setProperties(manager.getContext(),
-            TablePropKey.of(manager.getContext(), tableInfo.getTableId()), tableInfo.props);
+        PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId()), tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,
@@ -69,7 +69,7 @@ class PopulateZookeeper extends ManagerRepo {
                 + tableInfo.props);
       }
 
-      manager.getContext().clearTableListCache();
+      context.clearTableListCache();
       return new ChooseDir(tableInfo);
     } finally {
       Utils.getTableNameLock().unlock();
@@ -78,9 +78,9 @@ class PopulateZookeeper extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager manager) throws Exception {
-    manager.getTableManager().removeTable(tableInfo.getTableId());
-    Utils.unreserveTable(manager, tableInfo.getTableId(), tid, LockType.WRITE);
+  public void undo(FateId fateId, Manager manager) throws Exception {
+    manager.getTableManager().removeTable(tableInfo.getTableId(), tableInfo.getNamespaceId());
+    Utils.unreserveTable(manager, tableInfo.getTableId(), fateId, LockType.WRITE);
     manager.getContext().clearTableListCache();
   }
 

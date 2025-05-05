@@ -552,6 +552,63 @@ public class Key implements WritableComparable<Key>, Cloneable {
         new Text(cv.getExpression()), ts);
   }
 
+  /**
+   * Creates a key with the specified row, the specified column family, the specified column
+   * qualifier, the specified column visibility, the specified timestamp, and delete marker false.
+   * This constructor creates a copy of the fields.
+   * <p>
+   * To avoid copying, use
+   * {@link Key#Key(byte[] row, byte[] cf, byte[] cq, byte[] cv, long ts, boolean deleted, boolean copy)}
+   * instead.
+   *
+   * @see #builder()
+   * @since 3.1.0
+   */
+  public Key(ByteSequence row, ByteSequence cf, ByteSequence cq, ByteSequence cv, long ts) {
+    byte[] rowBytes, cfBytes, cqBytes, cvBytes;
+    int rowOffset, cfOffset, cqOffset, cvOffset;
+    int rowLen, cfLen, cqLen, cvLen;
+
+    if (row.isBackedByArray()) {
+      rowBytes = row.getBackingArray();
+      rowOffset = row.offset();
+    } else {
+      rowBytes = row.toArray();
+      rowOffset = 0;
+    }
+    rowLen = row.length();
+
+    if (cf.isBackedByArray()) {
+      cfBytes = cf.getBackingArray();
+      cfOffset = cf.offset();
+    } else {
+      cfBytes = cf.toArray();
+      cfOffset = 0;
+    }
+    cfLen = cf.length();
+
+    if (cq.isBackedByArray()) {
+      cqBytes = cq.getBackingArray();
+      cqOffset = cq.offset();
+    } else {
+      cqBytes = cq.toArray();
+      cqOffset = 0;
+    }
+    cqLen = cq.length();
+
+    if (cv.isBackedByArray()) {
+      cvBytes = cv.getBackingArray();
+      cvOffset = cv.offset();
+    } else {
+      cvBytes = cv.toArray();
+      cvOffset = 0;
+    }
+    cvLen = cv.length();
+
+    init(rowBytes, rowOffset, rowLen, cfBytes, cfOffset, cfLen, cqBytes, cqOffset, cqLen, cvBytes,
+        cvOffset, cvLen, ts, false, true);
+  }
+
   private byte[] followingArray(byte[] ba) {
     byte[] fba = new byte[ba.length + 1];
     System.arraycopy(ba, 0, fba, 0, ba.length);
@@ -658,6 +715,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
   }
 
   /**
+   * Writes the row ID into the given <code>ArrayByteSequence</code> without allocating new object
+   * by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to row data, rather
+   * than copying row data.
+   *
+   * @param r <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getRowData(ArrayByteSequence r) {
+    r.reset(row, 0, row.length);
+    return r;
+  }
+
+  /**
    * Gets the row ID as a <code>Text</code> object.
    *
    * @return Text containing the row ID
@@ -684,6 +756,21 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnFamilyData() {
     return new ArrayByteSequence(colFamily);
+  }
+
+  /**
+   * Writes the column family into the given <code>ArrayByteSequence</code> without allocating new
+   * object by using {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)}
+   * method. Using this updates existing ArrayByteSequence object with reference to column family
+   * data, rather than copying column family data.
+   *
+   * @param cf <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnFamilyData(ArrayByteSequence cf) {
+    cf.reset(colFamily, 0, colFamily.length);
+    return cf;
   }
 
   /**
@@ -727,6 +814,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnQualifierData() {
     return new ArrayByteSequence(colQualifier);
+  }
+
+  /**
+   * Writes the column qualifier into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column qualifier data, rather
+   * than copying column qualifier data.
+   *
+   * @param cq <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnQualifierData(ArrayByteSequence cq) {
+    cq.reset(colQualifier, 0, colQualifier.length);
+    return cq;
   }
 
   /**
@@ -805,6 +908,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    */
   public ByteSequence getColumnVisibilityData() {
     return new ArrayByteSequence(colVisibility);
+  }
+
+  /**
+   * Writes the column visibility into the given <code>ArrayByteSequence</code> without allocating
+   * new object by using
+   * {@link org.apache.accumulo.core.data.ArrayByteSequence#reset(byte[], int, int)} method. Using
+   * this updates existing ArrayByteSequence object with reference to column visibility data, rather
+   * than copying column visibility data.
+   *
+   * @param cv <code>ArrayByteSequence</code> object to copy into
+   * @return the <code>ArrayByteSequence</code> that was passed in
+   * @since 3.1.0
+   */
+  public ArrayByteSequence getColumnVisibilityData(ArrayByteSequence cv) {
+    cv.reset(colVisibility, 0, colVisibility.length);
+    return cv;
   }
 
   /**

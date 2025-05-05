@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.core.spi.compaction;
 
-import org.apache.accumulo.core.client.admin.CompactionConfig;
-import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
-
 /**
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
@@ -30,19 +27,6 @@ public enum CompactionKind {
    * A system initiated routine compaction.
    */
   SYSTEM,
-  /**
-   * Set of files selected by a {@link CompactionSelector} configured for a table.
-   *
-   * @deprecated since 3.1. Use of selector compactions should be replaced with user compactions
-   *             initiated via
-   *             {@link org.apache.accumulo.core.client.admin.TableOperations#compact(String, CompactionConfig)}.
-   *             Everything that can be done with selector compactions can also be done with user
-   *             compactions. User compactions offer more control over when compactions run, the
-   *             range of data compacted, and the ability to cancel. Selector compactions offer none
-   *             of these features and were deprecated in favor of only offering user compactions.
-   */
-  @Deprecated(since = "3.1")
-  SELECTOR,
   /**
    * A user initiated a one time compaction using an Accumulo client.
    */

@@ -25,6 +25,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -42,8 +43,6 @@ import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -70,9 +69,6 @@ public class ManagerApiIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    // need to pretend to be a server, so we can bypass all of
-    // the singleton resource management in this test
-    SingletonManager.setMode(Mode.SERVER);
     SharedMiniClusterBase.startMiniCluster();
     rootUser = new Credentials(getPrincipal(), getToken());
     regularUser = new Credentials("regularUser", new PasswordToken("regularUser"));
@@ -92,28 +88,18 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private ThriftClientTypes.Exec<Void,ManagerClientService.Client> op;
+  private Function<Credentials,ThriftClientTypes.Exec<Void,ManagerClientService.Client>> op;
 
   @Test
   public void testPermissions_setManagerGoalState() throws Exception {
     // To setManagerGoalState, user needs SystemPermission.SYSTEM
-    op = client -> {
-      client.setManagerGoalState(TraceUtil.traceInfo(), regularUser.toThrift(instanceId),
+    op = user -> client -> {
+      client.setManagerGoalState(TraceUtil.traceInfo(), user.toThrift(instanceId),
           ManagerGoalState.NORMAL);
       return null;
     };
     expectPermissionDenied(op, regularUser);
-    op = client -> {
-      client.setManagerGoalState(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
-          ManagerGoalState.NORMAL);
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
-    op = client -> {
-      client.setManagerGoalState(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId),
-          ManagerGoalState.NORMAL);
-      return null;
-    };
     expectPermissionSuccess(op, privilegedUser);
   }
 
@@ -139,32 +125,16 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       tableId = client.tableOperations().tableIdMap().get(tableName);
     }
 
-    op = client -> {
-      client.initiateFlush(TraceUtil.traceInfo(), regularUser.toThrift(instanceId), tableId);
+    op = user -> client -> {
+      client.initiateFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId);
       return null;
     };
     expectPermissionDenied(op, regularUser);
     // privileged users can grant themselves permission, but it's not default
-    op = client -> {
-      client.initiateFlush(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId), tableId);
-      return null;
-    };
     expectPermissionDenied(op, privilegedUser);
-    op = client -> {
-      client.initiateFlush(TraceUtil.traceInfo(), regUserWithWrite.toThrift(instanceId), tableId);
-      return null;
-    };
     expectPermissionSuccess(op, regUserWithWrite);
-    op = client -> {
-      client.initiateFlush(TraceUtil.traceInfo(), regUserWithAlter.toThrift(instanceId), tableId);
-      return null;
-    };
     expectPermissionSuccess(op, regUserWithAlter);
     // root user can because they created the table
-    op = client -> {
-      client.initiateFlush(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), tableId);
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
   }
 
@@ -191,48 +161,23 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     }
     AtomicLong flushId = new AtomicLong();
     // initiateFlush as the root user to get the flushId, then test waitForFlush with other users
-    op = client -> {
-      flushId
-          .set(client.initiateFlush(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), tableId));
+    op = user -> client -> {
+      flushId.set(client.initiateFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId));
       return null;
     };
     expectPermissionSuccess(op, rootUser);
-    op = client -> {
-      client.waitForFlush(TraceUtil.traceInfo(), regularUser.toThrift(instanceId), tableId,
+    op = user -> client -> {
+      client.waitForFlush(TraceUtil.traceInfo(), user.toThrift(instanceId), tableId,
           TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
           flushId.get(), 1);
       return null;
     };
     expectPermissionDenied(op, regularUser);
     // privileged users can grant themselves permission, but it's not default
-    op = client -> {
-      client.waitForFlush(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId), tableId,
-          TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
-          flushId.get(), 1);
-      return null;
-    };
     expectPermissionDenied(op, privilegedUser);
-    op = client -> {
-      client.waitForFlush(TraceUtil.traceInfo(), regUserWithWrite.toThrift(instanceId), tableId,
-          TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
-          flushId.get(), 1);
-      return null;
-    };
     expectPermissionSuccess(op, regUserWithWrite);
-    op = client -> {
-      client.waitForFlush(TraceUtil.traceInfo(), regUserWithAlter.toThrift(instanceId), tableId,
-          TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
-          flushId.get(), 1);
-      return null;
-    };
     expectPermissionSuccess(op, regUserWithAlter);
     // root user can because they created the table
-    op = client -> {
-      client.waitForFlush(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), tableId,
-          TextUtil.getByteBuffer(new Text("myrow")), TextUtil.getByteBuffer(new Text("myrow~")),
-          flushId.get(), 1);
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
   }
 
@@ -240,20 +185,15 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void testPermissions_modifySystemProperties() throws Exception {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
-    op = client -> {
-      client.modifySystemProperties(TraceUtil.traceInfo(), regularUser.toThrift(instanceId),
+    op = user -> client -> {
+      client.modifySystemProperties(TraceUtil.traceInfo(), user.toThrift(instanceId),
           new TVersionedProperties(0, Map.of(propKey, "10000")));
       return null;
     };
     expectPermissionDenied(op, regularUser);
-    op = client -> {
-      client.modifySystemProperties(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
-          new TVersionedProperties(0, Map.of(propKey, "10000")));
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
-    op = client -> {
-      client.modifySystemProperties(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId),
+    op = user -> client -> {
+      client.modifySystemProperties(TraceUtil.traceInfo(), user.toThrift(instanceId),
           new TVersionedProperties(1, Map.of(propKey, "10000")));
       return null;
     };
@@ -272,20 +212,14 @@ public class ManagerApiIT extends SharedMiniClusterBase {
       client.instanceOperations().setProperty(propKey1, "10000"); // ensure it exists
       client.instanceOperations().setProperty(propKey2, "10000"); // ensure it exists
     }
-    op = client -> {
-      client.removeSystemProperty(TraceUtil.traceInfo(), regularUser.toThrift(instanceId),
-          propKey1);
+    op = user -> client -> {
+      client.removeSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey1);
       return null;
     };
     expectPermissionDenied(op, regularUser);
-    op = client -> {
-      client.removeSystemProperty(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), propKey1);
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
-    op = client -> {
-      client.removeSystemProperty(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId),
-          propKey2);
+    op = user -> client -> {
+      client.removeSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey2);
       return null;
     };
     expectPermissionSuccess(op, privilegedUser);
@@ -295,23 +229,12 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   public void testPermissions_setSystemProperty() throws Exception {
     // To setSystemProperty, user needs SystemPermission.SYSTEM
     String propKey = Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey();
-    op = client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), regularUser.toThrift(instanceId), propKey,
-          "10000");
+    op = user -> client -> {
+      client.setSystemProperty(TraceUtil.traceInfo(), user.toThrift(instanceId), propKey, "10000");
       return null;
     };
     expectPermissionDenied(op, regularUser);
-    op = client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), propKey,
-          "10000");
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
-    op = client -> {
-      client.setSystemProperty(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId), propKey,
-          "10000");
-      return null;
-    };
     expectPermissionSuccess(op, privilegedUser);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.instanceOperations().removeProperty(propKey); // clean up property
@@ -323,37 +246,27 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     // To shutdownTabletServer, user needs SystemPermission.SYSTEM
     // this server won't exist, so shutting it down is a NOOP on success
     String fakeHostAndPort = getUniqueNames(1)[0] + ":0";
-    op = client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), regularUser.toThrift(instanceId),
-          fakeHostAndPort, false);
+    op = user -> client -> {
+      client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId), fakeHostAndPort,
+          false);
       return null;
     };
     expectPermissionDenied(op, regularUser);
-    op = client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
-          fakeHostAndPort, false);
-      return null;
-    };
     expectPermissionSuccess(op, rootUser);
-    op = client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId),
-          fakeHostAndPort, false);
-      return null;
-    };
     expectPermissionSuccess(op, privilegedUser);
   }
 
   @Test
   public void shutdownTabletServer() throws Exception {
-    op = client -> {
-      client.shutdownTabletServer(TraceUtil.traceInfo(), rootUser.toThrift(instanceId),
+    op = user -> client -> {
+      client.shutdownTabletServer(TraceUtil.traceInfo(), user.toThrift(instanceId),
           "fakeTabletServer:9997", true);
       return null;
     };
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(rootUser.getPrincipal(), rootUser.getToken()).build()) {
       ClientContext context = (ClientContext) client;
-      ThriftClientTypes.MANAGER.execute(context, op);
+      ThriftClientTypes.MANAGER.execute(context, op.apply(rootUser));
     }
   }
 
@@ -368,32 +281,29 @@ public class ManagerApiIT extends SharedMiniClusterBase {
         .as(privilegedUser.getPrincipal(), privilegedUser.getToken());
     try (var rootClient = rootUserBuilder.build(); var privClient = privUserBuilder.build()) {
       // To shutdown, user needs SystemPermission.SYSTEM
-      op = client -> {
-        client.shutdown(TraceUtil.traceInfo(), regularUser.toThrift(instanceId), false);
+      op = user -> client -> {
+        client.shutdown(TraceUtil.traceInfo(), user.toThrift(instanceId), false);
         return null;
       };
       expectPermissionDenied(op, regularUser);
-      // We should be able to do both of the following RPC calls before it actually shuts down
-      op = client -> {
-        client.shutdown(TraceUtil.traceInfo(), rootUser.toThrift(instanceId), false);
-        return null;
-      };
-      expectPermissionSuccess(op, (ClientContext) rootClient);
-      op = client -> {
-        client.shutdown(TraceUtil.traceInfo(), privilegedUser.toThrift(instanceId), false);
-        return null;
-      };
-      expectPermissionSuccess(op, (ClientContext) privClient);
+      expectPermissionSuccess(op.apply(rootUser), (ClientContext) rootClient);
+
+      // make sure it's stopped, then start it again to test with the privileged user
+      getCluster().stop();
+      getCluster().start();
+
+      // make sure regular user is still denied after restart
+      expectPermissionDenied(op, regularUser);
+      expectPermissionSuccess(op.apply(privilegedUser), (ClientContext) privClient);
     }
   }
 
   private static void expectPermissionSuccess(
-      ThriftClientTypes.Exec<Void,ManagerClientService.Client> op, Credentials user)
-      throws Exception {
+      Function<Credentials,ThriftClientTypes.Exec<Void,ManagerClientService.Client>> op,
+      Credentials user) throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(user.getPrincipal(), user.getToken()).build()) {
-      ClientContext context = (ClientContext) client;
-      ThriftClientTypes.MANAGER.execute(context, op);
+      ThriftClientTypes.MANAGER.execute((ClientContext) client, op.apply(user));
     }
   }
 
@@ -404,9 +314,9 @@ public class ManagerApiIT extends SharedMiniClusterBase {
   }
 
   private static void expectPermissionDenied(
-      ThriftClientTypes.Exec<Void,ManagerClientService.Client> op, Credentials user) {
-    AccumuloSecurityException e =
-        assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));
+      Function<Credentials,ThriftClientTypes.Exec<Void,ManagerClientService.Client>> op,
+      Credentials user) {
+    var e = assertThrows(AccumuloSecurityException.class, () -> expectPermissionSuccess(op, user));
     assertSame(SecurityErrorCode.PERMISSION_DENIED, e.getSecurityErrorCode());
   }
 

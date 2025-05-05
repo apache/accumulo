@@ -62,6 +62,9 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
   @Override
   public boolean isPropertySet(Property prop) {
-    return runtimeFixedProps.get(prop) != null || super.isPropertySet(prop);
+    if (Property.isFixedZooPropertyKey(prop)) {
+      return runtimeFixedProps.wasPropertySet(prop);
+    }
+    return super.isPropertySet(prop);
   }
 }

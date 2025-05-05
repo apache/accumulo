@@ -23,114 +23,49 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.SortedMap;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
-import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.clientImpl.Namespaces;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.DistributedLock;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooReservation;
-import org.apache.accumulo.core.util.FastFormat;
-import org.apache.accumulo.core.util.tables.TableNameUtil;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 public class Utils {
   private static final byte[] ZERO_BYTE = {'0'};
   private static final Logger log = LoggerFactory.getLogger(Utils.class);
 
-  /**
-   * Checks that a table name is only used by the specified table id or not used at all.
-   */
-  public static void checkTableNameDoesNotExist(ServerContext context, String tableName,
-      TableId tableId, TableOperation operation) throws AcceptableThriftTableOperationException {
-
-    final Map<NamespaceId,String> namespaces = new HashMap<>();
-    final boolean namespaceInTableName = tableName.contains(".");
-    try {
-      for (String tid : context.getZooReader()
-          .getChildren(context.getZooKeeperRoot() + Constants.ZTABLES)) {
-
-        final String zTablePath = context.getZooKeeperRoot() + Constants.ZTABLES + "/" + tid;
-        try {
-          final byte[] tname = context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAME);
-          Preconditions.checkState(tname != null, "Malformed table entry in ZooKeeper at %s",
-              zTablePath);
-
-          String namespaceName = Namespace.DEFAULT.name();
-          if (namespaceInTableName) {
-            final byte[] nId =
-                context.getZooReader().getData(zTablePath + Constants.ZTABLE_NAMESPACE);
-            if (nId != null) {
-              final NamespaceId namespaceId = NamespaceId.of(new String(nId, UTF_8));
-              if (!namespaceId.equals(Namespace.DEFAULT.id())) {
-                namespaceName = namespaces.get(namespaceId);
-                if (namespaceName == null) {
-                  try {
-                    namespaceName = Namespaces.getNamespaceName(context, namespaceId);
-                    namespaces.put(namespaceId, namespaceName);
-                  } catch (NamespaceNotFoundException e) {
-                    throw new AcceptableThriftTableOperationException(null, tableName,
-                        TableOperation.CREATE, TableOperationExceptionType.OTHER,
-                        "Table (" + tableId.canonical() + ") contains reference to namespace ("
-                            + namespaceId + ") that doesn't exist");
-                  }
-                }
-              }
-            }
-          }
-
-          if (tableName.equals(TableNameUtil.qualified(new String(tname, UTF_8), namespaceName))
-              && !tableId.equals(TableId.of(tid))) {
-            throw new AcceptableThriftTableOperationException(tid, tableName, operation,
-                TableOperationExceptionType.EXISTS, null);
-          }
-        } catch (NoNodeException nne) {
-          log.trace("skipping tableId {}, either being created or has been deleted.", tid, nne);
-          continue;
-        }
-      }
-    } catch (KeeperException | InterruptedException e) {
-      log.error("Error checking to see if tableId {} exists in ZooKeeper", tableId, e);
-      throw new AcceptableThriftTableOperationException(null, tableName, TableOperation.CREATE,
-          TableOperationExceptionType.OTHER, e.getMessage());
-    }
-
-  }
-
   public static <T extends AbstractId<T>> T getNextId(String name, ServerContext context,
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
-      ZooReaderWriter zoo = context.getZooReaderWriter();
-      final String ntp = context.getZooKeeperRoot() + Constants.ZTABLES;
-      byte[] nid = zoo.mutateOrCreate(ntp, ZERO_BYTE, currentValue -> {
+      ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
+      byte[] nid = zoo.mutateOrCreate(Constants.ZTABLES, ZERO_BYTE, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
         nextId = nextId.add(BigInteger.ONE);
         return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);
@@ -146,92 +81,88 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Manager env, TableId tableId, long tid, LockType lockType,
+  public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
       boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, tid, lockType).tryLock()) {
+    if (getLock(env.getContext(), tableId, fateId, lockType).tryLock()) {
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
-        if (!zk.exists(env.getContext().getZooKeeperRoot() + Constants.ZTABLES + "/" + tableId)) {
+        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+        if (!zk.exists(Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }
       }
-      log.info("table {} {} locked for {} operation: {}", tableId, FateTxId.formatTid(tid),
-          lockType, op);
+      log.info("table {} {} locked for {} operation: {}", tableId, fateId, lockType, op);
       return 0;
     } else {
       return 100;
     }
   }
 
-  public static void unreserveTable(Manager env, TableId tableId, long tid, LockType lockType) {
-    getLock(env.getContext(), tableId, tid, lockType).unlock();
-    log.info("table {} {} unlocked for {}", tableId, FateTxId.formatTid(tid), lockType);
-  }
-
-  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, long id,
+  public static void unreserveTable(Manager env, TableId tableId, FateId fateId,
       LockType lockType) {
-    getLock(env.getContext(), namespaceId, id, lockType).unlock();
-    log.info("namespace {} {} unlocked for {}", namespaceId, FateTxId.formatTid(id), lockType);
+    getLock(env.getContext(), tableId, fateId, lockType).unlock();
+    log.info("table {} {} unlocked for {}", tableId, fateId, lockType);
   }
 
-  public static long reserveNamespace(Manager env, NamespaceId namespaceId, long id,
+  public static void unreserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
+      LockType lockType) {
+    getLock(env.getContext(), namespaceId, fateId, lockType).unlock();
+    log.info("namespace {} {} unlocked for {}", namespaceId, fateId, lockType);
+  }
+
+  public static long reserveNamespace(Manager env, NamespaceId namespaceId, FateId fateId,
       LockType lockType, boolean mustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), namespaceId, id, lockType).tryLock()) {
+    if (getLock(env.getContext(), namespaceId, fateId, lockType).tryLock()) {
       if (mustExist) {
-        ZooReaderWriter zk = env.getContext().getZooReaderWriter();
-        if (!zk.exists(
-            env.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES + "/" + namespaceId)) {
+        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
+        if (!zk.exists(Constants.ZNAMESPACES + "/" + namespaceId)) {
           throw new AcceptableThriftTableOperationException(namespaceId.canonical(), "", op,
               TableOperationExceptionType.NAMESPACE_NOTFOUND, "Namespace does not exist");
         }
       }
-      log.info("namespace {} {} locked for {} operation: {}", namespaceId, FateTxId.formatTid(id),
-          lockType, op);
+      log.info("namespace {} {} locked for {} operation: {}", namespaceId, fateId, lockType, op);
       return 0;
     } else {
       return 100;
     }
   }
 
-  public static long reserveHdfsDirectory(Manager env, String directory, long tid)
+  public static long reserveHdfsDirectory(Manager env, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
-    String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
 
-    ZooReaderWriter zk = env.getContext().getZooReaderWriter();
+    ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
 
-    if (ZooReservation.attempt(zk, resvPath, FastFormat.toHexString(tid), "")) {
+    if (ZooReservation.attempt(zk, Constants.ZHDFS_RESERVATIONS + "/"
+        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)), fateId, "")) {
       return 0;
     } else {
       return 50;
     }
   }
 
-  public static void unreserveHdfsDirectory(Manager env, String directory, long tid)
+  public static void unreserveHdfsDirectory(Manager env, String directory, FateId fateId)
       throws KeeperException, InterruptedException {
-    String resvPath = env.getContext().getZooKeeperRoot() + Constants.ZHDFS_RESERVATIONS + "/"
-        + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8));
-    ZooReservation.release(env.getContext().getZooReaderWriter(), resvPath,
-        FastFormat.toHexString(tid));
+    ZooReservation.release(env.getContext().getZooSession().asReaderWriter(),
+        Constants.ZHDFS_RESERVATIONS + "/"
+            + Base64.getEncoder().encodeToString(directory.getBytes(UTF_8)),
+        fateId);
   }
 
-  private static Lock getLock(ServerContext context, AbstractId<?> id, long tid,
+  private static Lock getLock(ServerContext context, AbstractId<?> id, FateId fateId,
       LockType lockType) {
-    byte[] lockData = FastFormat.toZeroPaddedHex(tid);
-    var fLockPath =
-        FateLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS + "/" + id.canonical());
-    FateLock qlock = new FateLock(context.getZooReaderWriter(), fLockPath);
-    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, lockData);
+    FateLock qlock = new FateLock(context.getZooSession().asReaderWriter(),
+        FateLock.path(Constants.ZTABLE_LOCKS + "/" + id.canonical()));
+    DistributedLock lock = DistributedReadWriteLock.recoverLock(qlock, fateId);
     if (lock != null) {
+
       // Validate the recovered lock type
       if (lock.getType() != lockType) {
-        throw new IllegalStateException("Unexpected lock type " + lock.getType()
-            + " recovered for transaction " + FateTxId.formatTid(tid) + " on object " + id
-            + ". Expected " + lockType + " lock instead.");
+        throw new IllegalStateException(
+            "Unexpected lock type " + lock.getType() + " recovered for transaction " + fateId
+                + " on object " + id + ". Expected " + lockType + " lock instead.");
       }
     } else {
-      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, lockData);
+      DistributedReadWriteLock locker = new DistributedReadWriteLock(qlock, fateId);
       switch (lockType) {
         case WRITE:
           lock = locker.writeLock();
@@ -254,20 +185,8 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Manager env, AbstractId<?> id, long tid) {
-    return Utils.getLock(env.getContext(), id, tid, LockType.READ);
-  }
-
-  public static void checkNamespaceDoesNotExist(ServerContext context, String namespace,
-      NamespaceId namespaceId, TableOperation operation)
-      throws AcceptableThriftTableOperationException {
-
-    NamespaceId n = Namespaces.lookupNamespaceId(context, namespace);
-
-    if (n != null && !n.equals(namespaceId)) {
-      throw new AcceptableThriftTableOperationException(null, namespace, operation,
-          TableOperationExceptionType.NAMESPACE_EXISTS, null);
-    }
+  public static Lock getReadLock(Manager env, AbstractId<?> id, FateId fateId) {
+    return Utils.getLock(env.getContext(), id, fateId, LockType.READ);
   }
 
   /**
@@ -285,6 +204,21 @@ public class Utils {
       while (file.hasNextLine()) {
         String line = file.nextLine();
         data.add(encoded ? new Text(Base64.getDecoder().decode(line)) : new Text(line));
+      }
+    }
+    return data;
+  }
+
+  public static SortedMap<Text,TabletMergeability> getSortedSplitsFromFile(Manager manager,
+      Path path) throws IOException {
+    FileSystem fs = path.getFileSystem(manager.getContext().getHadoopConf());
+    var data = new TreeMap<Text,TabletMergeability>();
+    try (var file = new java.util.Scanner(fs.open(path), UTF_8)) {
+      while (file.hasNextLine()) {
+        String line = file.nextLine();
+        log.trace("split line: {}", line);
+        Pair<Text,TabletMergeability> splitTm = TabletMergeabilityUtil.decode(line);
+        data.put(splitTm.getFirst(), splitTm.getSecond());
       }
     }
     return data;

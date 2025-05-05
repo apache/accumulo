@@ -36,17 +36,18 @@ public class SystemPropUtil {
 
   public static void setSystemProperty(ServerContext context, String property, String value)
       throws IllegalArgumentException {
-    final SystemPropKey key = SystemPropKey.of(context);
-    context.getPropStore().putAll(key, Map.of(validateSystemProperty(key, property, value), value));
+    final SystemPropKey key = SystemPropKey.of();
+    context.getPropStore().putAll(key,
+        Map.of(validateSystemProperty(context, key, property, value), value));
   }
 
   public static void modifyProperties(ServerContext context, long version,
       Map<String,String> properties) throws IllegalArgumentException {
-    final SystemPropKey key = SystemPropKey.of(context);
+    final SystemPropKey key = SystemPropKey.of();
     final Map<String,
         String> checkedProperties = properties.entrySet().stream()
             .collect(Collectors.toMap(
-                entry -> validateSystemProperty(key, entry.getKey(), entry.getValue()),
+                entry -> validateSystemProperty(context, key, entry.getKey(), entry.getValue()),
                 Map.Entry::getValue));
     context.getPropStore().replaceAll(key, version, checkedProperties);
   }
@@ -63,11 +64,11 @@ public class SystemPropUtil {
   }
 
   public static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
-    context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
+    context.getPropStore().removeProperties(SystemPropKey.of(), List.of(property));
   }
 
-  private static String validateSystemProperty(SystemPropKey key, String property,
-      final String value) throws IllegalArgumentException {
+  private static String validateSystemProperty(ServerContext context, SystemPropKey key,
+      String property, final String value) throws IllegalArgumentException {
     // Retrieve the replacement name for this property, if there is one.
     // Do this before we check if the name is a valid zookeeper name.
     final var original = property;
@@ -88,7 +89,7 @@ public class SystemPropUtil {
       throw iae;
     }
     if (Property.isValidTablePropertyKey(property)) {
-      PropUtil.validateProperties(key, Map.of(property, value));
+      PropUtil.validateProperties(context, key, Map.of(property, value));
     }
 
     // Find the property taking prefix into account

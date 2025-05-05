@@ -48,12 +48,8 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class PrintInfoIT extends SharedMiniClusterBase {
-
-  private static final Logger log = LoggerFactory.getLogger(PrintInfoIT.class);
 
   @BeforeAll
   public static void setup() throws Exception {

@@ -68,6 +68,9 @@ public class GrepIteratorTest {
     output.put(new Key("dfh", "xyz", "xyz", 0), new Value("abcdef"));
     input.put(new Key("dfh", "xyz", "xyz", 1), new Value("xyz"));
 
+    input.put(new Key("dfh", "xyz", "xyz", "abcdef", 0), new Value("xyz"));
+    output.put(new Key("dfh", "xyz", "xyz", "abcdef", 0), new Value("xyz"));
+
     Key k = new Key("dfh", "xyz", "xyz", 1);
     k.setDeleted(true);
     input.put(k, new Value("xyz"));
@@ -82,6 +85,7 @@ public class GrepIteratorTest {
       assertEquals(e.getValue(), skvi.getTopValue());
       skvi.next();
     }
+
     assertFalse(skvi.hasTop());
   }
 
@@ -90,6 +94,7 @@ public class GrepIteratorTest {
     GrepIterator gi = new GrepIterator();
     IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
     GrepIterator.setTerm(is, "ab");
+    GrepIterator.matchColumnVisibility(is, true);
     gi.init(new SortedMapIterator(input), is.getOptions(), null);
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
     checkEntries(gi, output);
@@ -116,5 +121,140 @@ public class GrepIteratorTest {
     gi.seek(new Range(), EMPTY_COL_FAMS, false);
 
     checkEntries(gi, output);
+  }
+
+  @Test
+  public void testMatchRow() throws Exception {
+    GrepIterator gi = new GrepIterator();
+    IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
+
+    GrepIterator.setTerm(is, "abcdef");
+
+    GrepIterator.matchRow(is, true);
+    GrepIterator.matchColumnFamily(is, false);
+    GrepIterator.matchColumnQualifier(is, false);
+    GrepIterator.matchColumnVisibility(is, false);
+    GrepIterator.matchValue(is, false);
+
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
+    gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    SortedMap<Key,Value> expectedOutput = new TreeMap<>();
+    input.forEach((k, v) -> {
+      if (k.getRowData().toString().contains("abcdef") || k.isDeleted()) {
+        expectedOutput.put(k, v);
+      }
+    });
+
+    assertFalse(expectedOutput.isEmpty());
+    checkEntries(gi, expectedOutput);
+  }
+
+  @Test
+  public void testMatchFamily() throws Exception {
+    GrepIterator gi = new GrepIterator();
+    IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
+
+    GrepIterator.setTerm(is, "abcdef");
+
+    GrepIterator.matchRow(is, false);
+    GrepIterator.matchColumnFamily(is, true);
+    GrepIterator.matchColumnQualifier(is, false);
+    GrepIterator.matchColumnVisibility(is, false);
+    GrepIterator.matchValue(is, false);
+
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
+    gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    SortedMap<Key,Value> expectedOutput = new TreeMap<>();
+    input.forEach((k, v) -> {
+      if (k.getColumnFamilyData().toString().contains("abcdef") || k.isDeleted()) {
+        expectedOutput.put(k, v);
+      }
+    });
+
+    assertFalse(expectedOutput.isEmpty());
+    checkEntries(gi, expectedOutput);
+  }
+
+  @Test
+  public void testMatchQualifier() throws Exception {
+    GrepIterator gi = new GrepIterator();
+    IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
+
+    GrepIterator.setTerm(is, "abcdef");
+
+    GrepIterator.matchRow(is, false);
+    GrepIterator.matchColumnFamily(is, false);
+    GrepIterator.matchColumnQualifier(is, true);
+    GrepIterator.matchColumnVisibility(is, false);
+    GrepIterator.matchValue(is, false);
+
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
+    gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    SortedMap<Key,Value> expectedOutput = new TreeMap<>();
+    input.forEach((k, v) -> {
+      if (k.getColumnQualifierData().toString().contains("abcdef") || k.isDeleted()) {
+        expectedOutput.put(k, v);
+      }
+    });
+
+    assertFalse(expectedOutput.isEmpty());
+    checkEntries(gi, expectedOutput);
+  }
+
+  @Test
+  public void testMatchVisibility() throws Exception {
+    GrepIterator gi = new GrepIterator();
+    IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
+
+    GrepIterator.setTerm(is, "abcdef");
+
+    GrepIterator.matchRow(is, false);
+    GrepIterator.matchColumnFamily(is, false);
+    GrepIterator.matchColumnQualifier(is, false);
+    GrepIterator.matchColumnVisibility(is, true);
+    GrepIterator.matchValue(is, false);
+
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
+    gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    SortedMap<Key,Value> expectedOutput = new TreeMap<>();
+    input.forEach((k, v) -> {
+      if (k.getColumnVisibilityData().toString().contains("abcdef") || k.isDeleted()) {
+        expectedOutput.put(k, v);
+      }
+    });
+
+    assertFalse(expectedOutput.isEmpty());
+    checkEntries(gi, expectedOutput);
+  }
+
+  @Test
+  public void testMatchValue() throws Exception {
+    GrepIterator gi = new GrepIterator();
+    IteratorSetting is = new IteratorSetting(1, GrepIterator.class);
+
+    GrepIterator.setTerm(is, "abcdef");
+
+    GrepIterator.matchRow(is, false);
+    GrepIterator.matchColumnFamily(is, false);
+    GrepIterator.matchColumnQualifier(is, false);
+    GrepIterator.matchColumnVisibility(is, false);
+    GrepIterator.matchValue(is, true);
+
+    gi.init(new SortedMapIterator(input), is.getOptions(), null);
+    gi.seek(new Range(), EMPTY_COL_FAMS, false);
+
+    SortedMap<Key,Value> expectedOutput = new TreeMap<>();
+    input.forEach((k, v) -> {
+      if (v.toString().contains("abcdef") || k.isDeleted()) {
+        expectedOutput.put(k, v);
+      }
+    });
+
+    assertFalse(expectedOutput.isEmpty());
+    checkEntries(gi, expectedOutput);
   }
 }

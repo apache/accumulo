@@ -22,15 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -38,9 +37,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.accumulo.tserver.ScanServer;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.zookeeper.ZooKeeper;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -57,6 +54,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
      "   \"maxBusyTimeout\": \"5m\","+
      "   \"busyTimeoutMultiplier\": 8,"+
      "   \"scanTypeActivations\": [],"+
+     "   \"timeToWaitForScanServers\":\"0s\","+
      "   \"attemptPlans\": ["+
      "     {"+
      "       \"servers\": \"3\","+
@@ -80,6 +78,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
      "   \"busyTimeoutMultiplier\": 8,"+
      "   \"group\": \"GROUP1\","+
      "   \"scanTypeActivations\": [\"use_group1\"],"+
+     "   \"timeToWaitForScanServers\":\"0s\","+
      "   \"attemptPlans\": ["+
      "     {"+
      "       \"servers\": \"3\","+
@@ -103,7 +102,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
   private static class Config implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumScanServers(0); // start with no scan servers
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(0); // start with no scan servers
       cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT.getKey(), "10s");
 
       cfg.setClientProperty(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles",
@@ -124,12 +123,9 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
   @Test
   public void testClientConfiguration() throws Exception {
 
-    final String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    final ZooKeeper zk = getCluster().getServerContext().getZooReaderWriter().getZooKeeper();
-    final String scanServerRoot = zooRoot + Constants.ZSSERVERS;
-
     // Ensure no scan servers running
-    Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 0);
+    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -146,14 +142,16 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             "The scanner should fall back to the tserver and should have seen all ingested and flushed entries");
 
         // Allow one scan server to be started at this time
-        getCluster().getConfig().setNumScanServers(1);
+        getCluster().getConfig().getClusterServerConfiguration().setNumDefaultScanServers(1);
 
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 1, 30_000);
-        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
-            (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
-            == true);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(rg -> true, AddressSelector.all(), true).size() == 1, 30_000);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(rg -> rg.equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME),
+                AddressSelector.all(), true)
+            .size() > 0);
 
         assertEquals(ingestedEntryCount, Iterables.size(scanner),
             "The scan server scanner should have seen all ingested and flushed entries");
@@ -163,19 +161,18 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
             ScanServerIT.ingest(client, tableName, 10, 10, 10, "colf", true);
         assertEquals(100, additionalIngest1);
 
-        // Bump the number of scan serves that can run to start the GROUP1 scan server
-        getCluster().getConfig().setNumScanServers(2);
-        // If the following fails to start the ScanServer, it's possible that the value
-        // of property SSERV_GROUP_NAME has changed. If that is the case, then this test
-        // and the scripts need to be updated.
-        getCluster()._exec(ScanServer.class, ServerType.SCAN_SERVER, Map.of(),
-            new String[] {"-o", "sserver.group=GROUP1"});
-        Wait.waitFor(() -> zk.getChildren(scanServerRoot, false).size() == 2);
-        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream().anyMatch(
-            (p) -> p.getSecond().equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME))
-            == true);
-        Wait.waitFor(() -> ((ClientContext) client).getScanServers().values().stream()
-            .anyMatch((p) -> p.getSecond().equals("GROUP1")) == true);
+        // A a scan server for resource group GROUP1
+        getCluster().getConfig().getClusterServerConfiguration()
+            .addScanServerResourceGroup("GROUP1", 1);
+        getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(rg -> true, AddressSelector.all(), true).size() == 2, 30_000);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(rg -> rg.equals(ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME),
+                AddressSelector.all(), true)
+            .size() == 1);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(rg -> rg.equals("GROUP1"), AddressSelector.all(), true).size() == 1);
 
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));
         assertEquals(ingestedEntryCount + additionalIngest1, Iterables.size(scanner),

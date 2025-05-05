@@ -38,12 +38,13 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.conf.ColumnSet;
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
@@ -94,8 +95,8 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
    * SortedKeyValueIterator.
    */
   public static class ValueIterator implements Iterator<Value> {
-    Key topKey;
-    SortedKeyValueIterator<Key,Value> source;
+    final Key topKey;
+    final SortedKeyValueIterator<Key,Value> source;
     boolean hasNext;
 
     /**
@@ -182,11 +183,12 @@ public abstract class Combiner extends WrappingIterator implements OptionDescrib
     findTop();
   }
 
-  private Key workKey = new Key();
+  private final Key workKey = new Key();
 
   @VisibleForTesting
   static final Cache<String,Boolean> loggedMsgCache =
-      Caffeine.newBuilder().expireAfterWrite(1, HOURS).maximumSize(10000).build();
+      Caches.getInstance().createNewBuilder(CacheName.COMBINER_LOGGED_MSGS, true)
+          .expireAfterWrite(1, HOURS).maximumSize(10000).build();
 
   private void sawDelete() {
     if (isMajorCompaction && !reduceOnFullCompactionOnly

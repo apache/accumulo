@@ -31,19 +31,18 @@ import java.util.Collection;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -102,8 +101,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     }
 
     client.tableOperations().flush(table, null, null, true);
-    client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-    client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+    client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+    client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
     Set<Entry<ServerType,Collection<ProcessReference>>> procs =
         getCluster().getProcesses().entrySet();
@@ -116,10 +115,7 @@ public class ExistingMacIT extends ConfigurableMacBase {
       }
     }
 
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    final String zInstanceRoot =
-        Constants.ZROOT + "/" + client.instanceOperations().getInstanceId();
-    while (!AccumuloStatus.isAccumuloOffline(zrw, zInstanceRoot)) {
+    while (!AccumuloStatus.isAccumuloOffline((ClientContext) client)) {
       log.debug("Accumulo services still have their ZK locks held");
       Thread.sleep(1000);
     }

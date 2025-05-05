@@ -29,7 +29,7 @@ import org.apache.accumulo.server.conf.store.PropStoreKey;
  */
 public abstract class PropStoreEventTask implements Runnable {
 
-  private final PropStoreKey<?> propStoreKey;
+  private final PropStoreKey propStoreKey;
   private final Set<PropChangeListener> listeners;
 
   /**
@@ -48,7 +48,7 @@ public abstract class PropStoreEventTask implements Runnable {
    * @param propStoreKey the prop cache key
    * @param listeners the set of listeners
    */
-  private PropStoreEventTask(final PropStoreKey<?> propStoreKey,
+  private PropStoreEventTask(final PropStoreKey propStoreKey,
       final Set<PropChangeListener> listeners) {
     this.propStoreKey = propStoreKey;
     this.listeners = listeners;
@@ -56,7 +56,7 @@ public abstract class PropStoreEventTask implements Runnable {
 
   public static class PropStoreZkChangeEventTask extends PropStoreEventTask {
 
-    PropStoreZkChangeEventTask(final PropStoreKey<?> propStoreKey,
+    PropStoreZkChangeEventTask(final PropStoreKey propStoreKey,
         final Set<PropChangeListener> listeners) {
       super(propStoreKey, listeners);
     }
@@ -69,7 +69,7 @@ public abstract class PropStoreEventTask implements Runnable {
 
   public static class PropStoreCacheChangeEventTask extends PropStoreEventTask {
 
-    PropStoreCacheChangeEventTask(final PropStoreKey<?> propStoreKey,
+    PropStoreCacheChangeEventTask(final PropStoreKey propStoreKey,
         final Set<PropChangeListener> listeners) {
       super(propStoreKey, listeners);
     }
@@ -82,7 +82,7 @@ public abstract class PropStoreEventTask implements Runnable {
 
   public static class PropStoreDeleteEventTask extends PropStoreEventTask {
 
-    PropStoreDeleteEventTask(final PropStoreKey<?> propStoreKey,
+    PropStoreDeleteEventTask(final PropStoreKey propStoreKey,
         final Set<PropChangeListener> listeners) {
       super(propStoreKey, listeners);
     }

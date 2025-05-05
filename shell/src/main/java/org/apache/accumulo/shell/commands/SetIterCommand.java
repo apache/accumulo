@@ -40,7 +40,7 @@ import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.RegExFilter;
 import org.apache.accumulo.core.iterators.user.ReqVisFilter;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellCommandException;
@@ -92,7 +92,7 @@ public class SetIterCommand extends Command {
     String configuredName;
     try {
       if (profileOpt != null && (currentTableName == null || currentTableName.isBlank())) {
-        tmpTable = AccumuloTable.METADATA.tableName();
+        tmpTable = SystemTables.METADATA.tableName();
         shellState.setTableName(tmpTable);
         tables = cl.hasOption(OptUtil.tableOpt().getOpt()) || !currentTableName.isEmpty();
       }
@@ -109,7 +109,7 @@ public class SetIterCommand extends Command {
     }
 
     // Try to get the name provided by the setiter command
-    String name = cl.getOptionValue(nameOpt.getOpt(), null);
+    String name = cl.getOptionValue(nameOpt.getOpt());
 
     // Cannot continue if no name is provided
     if (name == null && configuredName == null) {

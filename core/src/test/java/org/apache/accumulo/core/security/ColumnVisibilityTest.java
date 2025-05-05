@@ -19,17 +19,9 @@
 package org.apache.accumulo.core.security;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.security.ColumnVisibility.quote;
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.Comparator;
-
-import org.apache.accumulo.core.security.ColumnVisibility.Node;
-import org.apache.accumulo.core.security.ColumnVisibility.NodeComparator;
-import org.apache.accumulo.core.security.ColumnVisibility.NodeType;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
@@ -37,7 +29,7 @@ public class ColumnVisibilityTest {
 
   private void shouldThrow(String... strings) {
     for (String s : strings) {
-      final byte[] sBytes = s.getBytes();
+      final byte[] sBytes = s.getBytes(UTF_8);
       assertThrows(IllegalArgumentException.class, () -> new ColumnVisibility(sBytes),
           "Should throw: " + s);
     }
@@ -45,7 +37,7 @@ public class ColumnVisibilityTest {
 
   private void shouldNotThrow(String... strings) {
     for (String s : strings) {
-      new ColumnVisibility(s.getBytes());
+      new ColumnVisibility(s.getBytes(UTF_8));
     }
   }
 
@@ -60,14 +52,6 @@ public class ColumnVisibilityTest {
     assertEquals(a, b);
     assertEquals(a, c);
     assertEquals(a, d);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testEmptyFlatten() {
-    // empty visibility is valid
-    new ColumnVisibility().flatten();
-    new ColumnVisibility("").flatten();
   }
 
   @Test
@@ -88,14 +72,6 @@ public class ColumnVisibilityTest {
     shouldThrow("a*b");
   }
 
-  @SuppressWarnings("deprecation")
-  public void normalized(String... values) {
-    for (int i = 0; i < values.length; i += 2) {
-      ColumnVisibility cv = new ColumnVisibility(values[i].getBytes());
-      assertArrayEquals(cv.flatten(), values[i + 1].getBytes());
-    }
-  }
-
   @Test
   public void testComplexCompound() {
     shouldNotThrow("(a|b)&(x|y)");
@@ -103,17 +79,6 @@ public class ColumnVisibilityTest {
     shouldNotThrow("A&FOO&(L|M)", "(A|B)&FOO&(L|M)", "A&B&(L|M|FOO)", "((A|B|C)|foo)&bar");
     shouldNotThrow("(one&two)|(foo&bar)", "(one|foo)&three", "one|foo|bar", "(one|foo)|bar",
         "((one|foo)|bar)&two");
-  }
-
-  @Test
-  public void testNormalization() {
-    normalized("a", "a", "(a)", "a", "b|a", "a|b", "(b)|a", "a|b", "(b|(a|c))&x", "x&(a|b|c)",
-        "(((a)))", "a");
-    final String normForm = "a&b&c";
-    normalized("b&c&a", normForm, "c&b&a", normForm, "a&(b&c)", normForm, "(a&c)&b", normForm);
-
-    // this an expression that's basically `expr | expr`
-    normalized("(d&c&b&a)|(b&c&a&d)", "a&b&c&d");
   }
 
   @Test
@@ -160,105 +125,5 @@ public class ColumnVisibilityTest {
     shouldNotThrow("A&\"B.D\"");
     shouldNotThrow("A&\"B\\\\D\"");
     shouldNotThrow("A&\"B\\\"D\"");
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testToString() {
-    ColumnVisibility cv = new ColumnVisibility(quote("a"));
-    assertEquals("[a]", cv.toString());
-
-    // multi-byte
-    cv = new ColumnVisibility(quote("五"));
-    assertEquals("[\"五\"]", cv.toString());
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTree() {
-    Node node = parse("(W)|(U&V)");
-    assertNode(node, NodeType.OR, 0, 9);
-    assertNode(node.getChildren().get(0), NodeType.TERM, 1, 2);
-    assertNode(node.getChildren().get(1), NodeType.AND, 5, 8);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTreeWithNoChildren() {
-    Node node = parse("ABC");
-    assertNode(node, NodeType.TERM, 0, 3);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTreeWithTwoChildren() {
-    Node node = parse("ABC|DEF");
-    assertNode(node, NodeType.OR, 0, 7);
-    assertNode(node.getChildren().get(0), NodeType.TERM, 0, 3);
-    assertNode(node.getChildren().get(1), NodeType.TERM, 4, 7);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTreeWithParenthesesAndTwoChildren() {
-    Node node = parse("(ABC|DEF)");
-    assertNode(node, NodeType.OR, 1, 8);
-    assertNode(node.getChildren().get(0), NodeType.TERM, 1, 4);
-    assertNode(node.getChildren().get(1), NodeType.TERM, 5, 8);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTreeWithParenthesizedChildren() {
-    Node node = parse("ABC|(DEF&GHI)");
-    assertNode(node, NodeType.OR, 0, 13);
-    assertNode(node.getChildren().get(0), NodeType.TERM, 0, 3);
-    assertNode(node.getChildren().get(1), NodeType.AND, 5, 12);
-    assertNode(node.getChildren().get(1).children.get(0), NodeType.TERM, 5, 8);
-    assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 9, 12);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTreeWithMoreParentheses() {
-    Node node = parse("(W)|(U&V)");
-    assertNode(node, NodeType.OR, 0, 9);
-    assertNode(node.getChildren().get(0), NodeType.TERM, 1, 2);
-    assertNode(node.getChildren().get(1), NodeType.AND, 5, 8);
-    assertNode(node.getChildren().get(1).children.get(0), NodeType.TERM, 5, 6);
-    assertNode(node.getChildren().get(1).children.get(1), NodeType.TERM, 7, 8);
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testEmptyParseTreesAreEqual() {
-    Comparator<Node> comparator = new NodeComparator(new byte[] {});
-    Node empty = new ColumnVisibility().getParseTree();
-    assertEquals(0, comparator.compare(empty, parse("")));
-  }
-
-  @Test
-  @SuppressWarnings("deprecation")
-  public void testParseTreesOrdering() {
-    byte[] expression = "(b&c&d)|((a|m)&y&z)|(e&f)".getBytes(UTF_8);
-    byte[] flattened = new ColumnVisibility(expression).flatten();
-
-    // Convert to String for indexOf convenience
-    String flat = new String(flattened, UTF_8);
-    assertTrue(flat.indexOf('e') < flat.indexOf('|'), "shortest expressions sort first");
-    assertTrue(flat.indexOf('b') < flat.indexOf('a'), "shortest children sort first");
-  }
-
-  @SuppressWarnings("deprecation")
-  private Node parse(String s) {
-    ColumnVisibility v = new ColumnVisibility(s);
-    return v.getParseTree();
-  }
-
-  @SuppressWarnings("deprecation")
-  private void assertNode(Node node, NodeType nodeType, int start, int end) {
-    assertEquals(node.type, nodeType);
-    assertEquals(start, node.start);
-    assertEquals(end, node.end);
   }
 }

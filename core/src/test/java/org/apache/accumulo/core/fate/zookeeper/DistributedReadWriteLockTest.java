@@ -22,12 +22,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicIntegerArray;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.QueueLock;
+import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockEntry;
 import org.junit.jupiter.api.Test;
 
 public class DistributedReadWriteLockTest {
@@ -36,17 +43,22 @@ public class DistributedReadWriteLockTest {
   public static class MockQueueLock implements QueueLock {
 
     long next = 0L;
-    final SortedMap<Long,byte[]> locks = new TreeMap<>();
+    final SortedMap<Long,FateLockEntry> locks = new TreeMap<>();
 
     @Override
-    public synchronized SortedMap<Long,byte[]> getEarlierEntries(long entry) {
-      SortedMap<Long,byte[]> result = new TreeMap<>();
-      result.putAll(locks.headMap(entry + 1));
+    public synchronized SortedMap<Long,Supplier<FateLockEntry>>
+        getEntries(BiPredicate<Long,Supplier<FateLockEntry>> predicate) {
+      SortedMap<Long,Supplier<FateLockEntry>> result = new TreeMap<>();
+      locks.forEach((seq, lockData) -> {
+        if (predicate.test(seq, () -> lockData)) {
+          result.put(seq, () -> lockData);
+        }
+      });
       return result;
     }
 
     @Override
-    public synchronized void removeEntry(long entry) {
+    public synchronized void removeEntry(FateLockEntry data, long entry) {
       synchronized (locks) {
         locks.remove(entry);
         locks.notifyAll();
@@ -54,10 +66,10 @@ public class DistributedReadWriteLockTest {
     }
 
     @Override
-    public synchronized long addEntry(byte[] data) {
+    public synchronized long addEntry(FateLockEntry entry) {
       long result;
       synchronized (locks) {
-        locks.put(result = next++, data);
+        locks.put(result = next++, entry);
         locks.notifyAll();
       }
       return result;
@@ -66,8 +78,8 @@ public class DistributedReadWriteLockTest {
 
   // some data that is probably not going to update atomically
   static class SomeData {
-    private AtomicIntegerArray data = new AtomicIntegerArray(100);
-    private AtomicInteger counter = new AtomicInteger();
+    private final AtomicIntegerArray data = new AtomicIntegerArray(100);
+    private final AtomicInteger counter = new AtomicInteger();
 
     void read() {
       for (int i = 0; i < data.length(); i++) {
@@ -90,7 +102,8 @@ public class DistributedReadWriteLockTest {
     data.read();
     QueueLock qlock = new MockQueueLock();
 
-    final ReadWriteLock locker = new DistributedReadWriteLock(qlock, "locker1".getBytes());
+    final ReadWriteLock locker =
+        new DistributedReadWriteLock(qlock, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     final Lock readLock = locker.readLock();
     final Lock writeLock = locker.writeLock();
     readLock.lock();
@@ -133,4 +146,15 @@ public class DistributedReadWriteLockTest {
     }
   }
 
+  @Test
+  public void testFateLockEntrySerDes() {
+    var uuid = UUID.randomUUID();
+    var entry = FateLockEntry.from(LockType.READ, FateId.from(FateInstanceType.USER, uuid));
+    assertEquals(LockType.READ, entry.getLockType());
+    assertEquals(FateId.from(FateInstanceType.USER, uuid), entry.getFateId());
+
+    String serialized = entry.serialize();
+    var deserialized = FateLockEntry.deserialize(serialized);
+    assertEquals(entry, deserialized);
+  }
 }

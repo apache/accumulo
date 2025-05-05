@@ -31,7 +31,9 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
@@ -46,6 +48,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -53,6 +56,7 @@ public class SystemConfigurationTest {
 
   private InstanceId instanceId;
 
+  private ServerContext context;
   private PropStore propStore;
 
   private SystemConfiguration sysConfig;
@@ -60,7 +64,7 @@ public class SystemConfigurationTest {
   @BeforeEach
   public void initMocks() {
     instanceId = InstanceId.of(UUID.randomUUID());
-    ServerContext context = createMock(ServerContext.class);
+    context = createMock(ServerContext.class);
     expect(context.getInstanceID()).andReturn(instanceId).anyTimes();
     propStore = createMock(ZooPropStore.class);
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
@@ -73,11 +77,11 @@ public class SystemConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
-    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
+    expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     replay(propStore);
 
     ConfigurationCopy defaultConfig =
@@ -85,6 +89,11 @@ public class SystemConfigurationTest {
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
     sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
+  }
+
+  @AfterEach
+  public void verifyMocks() {
+    verify(context, propStore);
   }
 
   @Test
@@ -95,8 +104,7 @@ public class SystemConfigurationTest {
 
   @Test
   public void testFromFixed() {
-
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
@@ -104,7 +112,7 @@ public class SystemConfigurationTest {
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
     assertEquals(TABLE_BLOOM_SIZE.getDefaultValue(), sysConfig.get(TABLE_BLOOM_SIZE)); // default
 
-    assertTrue(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertFalse(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
     assertTrue(sysConfig.isPropertySet(GC_PORT)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
@@ -126,11 +134,10 @@ public class SystemConfigurationTest {
     assertEquals("false", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
     assertEquals("2048", sysConfig.get(TABLE_BLOOM_SIZE)); // default
 
-    assertTrue(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertFalse(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
     assertTrue(sysConfig.isPropertySet(GC_PORT)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
-
   }
 }

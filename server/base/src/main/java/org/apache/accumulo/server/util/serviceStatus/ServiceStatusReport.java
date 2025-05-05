@@ -18,7 +18,8 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
-import static org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor.DEFAULT_GROUP_NAME;
+import static org.apache.accumulo.core.Constants.DEFAULT_RESOURCE_GROUP_NAME;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -38,7 +39,7 @@ public class ServiceStatusReport {
 
   private static final Logger LOG = LoggerFactory.getLogger(ServiceStatusReport.class);
 
-  private static final Gson gson = new Gson();
+  private static final Gson gson = GSON.get();
 
   private static final DateTimeFormatter rptTimeFmt =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
@@ -46,10 +47,14 @@ public class ServiceStatusReport {
   private static final String I4 = "    ";
   private static final String I6 = "      ";
 
-  private final String reportTime;
-  private final int zkReadErrors;
-  private final boolean noHosts;
-  private final Map<ReportKey,StatusSummary> summaries;
+  private String reportTime;
+  private int zkReadErrors;
+  private boolean noHosts;
+  private Map<ReportKey,StatusSummary> summaries;
+
+  // Gson requires a default constructor when JDK Unsafe usage is disabled
+  @SuppressWarnings("unused")
+  private ServiceStatusReport() {}
 
   public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries, final boolean noHosts) {
     reportTime = rptTimeFmt.format(ZonedDateTime.now(ZoneId.of("UTC")));
@@ -91,7 +96,6 @@ public class ServiceStatusReport {
     fmtResourceGroups(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
     fmtResourceGroups(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
     fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), noHosts);
-    fmtResourceGroups(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
     fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), noHosts);
 
     sb.append("\n");
@@ -142,7 +146,7 @@ public class ServiceStatusReport {
     }
     // only default group is present, omit grouping from report
     if (!summary.getResourceGroups().isEmpty()
-        && summary.getResourceGroups().equals(Set.of(DEFAULT_GROUP_NAME))) {
+        && summary.getResourceGroups().equals(Set.of(DEFAULT_RESOURCE_GROUP_NAME))) {
       fmtServiceStatus(sb, reportKey, summary, noHosts);
       return;
     }
@@ -180,7 +184,6 @@ public class ServiceStatusReport {
 
   public enum ReportKey {
     COMPACTOR("Compactors"),
-    COORDINATOR("Coordinators"),
     GC("Garbage Collectors"),
     MANAGER("Managers"),
     MONITOR("Monitors"),

@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -31,12 +32,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiConsumer;
 
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ClientSideIteratorScanner;
+import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
@@ -46,9 +49,11 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
+import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.clientImpl.OfflineScanner;
 import org.apache.accumulo.core.clientImpl.ScannerImpl;
-import org.apache.accumulo.core.clientImpl.TabletLocator;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -56,6 +61,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.hadoopImpl.mapreduce.lib.InputConfigurator;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
@@ -213,7 +219,9 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
         }
         if (isIsolated) {
           log.info("Creating isolated scanner");
-          scanner = new IsolatedScanner(scanner);
+          @SuppressWarnings("resource")
+          var wrapped = new IsolatedScanner(scanner);
+          scanner = wrapped;
         }
         if (usesLocalIterators) {
           log.info("Using local iterators");
@@ -361,7 +369,7 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
 
         // get the metadata information for these ranges
         Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
-        TabletLocator tl;
+        ClientTabletCache tl;
         try {
           if (tableConfig.isOfflineScan()) {
             binnedRanges = binOfflineTable(context, tableId, ranges, callingClass);
@@ -379,18 +387,52 @@ public abstract class AccumuloRecordReader<K,V> extends RecordReader<K,V> {
             // tables tablets... so clear it
             tl.invalidateCache();
 
-            while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
-              clientContext.requireNotDeleted(tableId);
-              clientContext.requireNotOffline(tableId, tableName);
-              binnedRanges.clear();
-              log.warn("Unable to locate bins for specified ranges. Retrying.");
-              // sleep randomly between 100 and 200 ms
-              sleepUninterruptibly(100 + RANDOM.get().nextInt(100), TimeUnit.MILLISECONDS);
-              tl.invalidateCache();
+            if (InputConfigurator.getConsistencyLevel(callingClass, context.getConfiguration())
+                == ConsistencyLevel.IMMEDIATE) {
+              while (!tl.binRanges(clientContext, ranges, binnedRanges).isEmpty()) {
+                clientContext.requireNotDeleted(tableId);
+                clientContext.requireNotOffline(tableId, tableName);
+                binnedRanges.clear();
+                log.warn("Unable to locate bins for specified ranges. Retrying.");
+                // sleep randomly between 100 and 200 ms
+                sleepUninterruptibly(100 + RANDOM.get().nextInt(100), TimeUnit.MILLISECONDS);
+                tl.invalidateCache();
+              }
+            } else {
+              Map<String,Map<KeyExtent,List<Range>>> unhostedRanges = new HashMap<>();
+              unhostedRanges.put("", new HashMap<>());
+              BiConsumer<CachedTablet,Range> consumer = (ct, r) -> {
+                unhostedRanges.get("").computeIfAbsent(ct.getExtent(), k -> new ArrayList<>())
+                    .add(r);
+              };
+              List<Range> failures =
+                  tl.findTablets(clientContext, ranges, consumer, LocationNeed.NOT_REQUIRED);
+
+              Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
+                  .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofSeconds(2))
+                  .backOffFactor(1.5).logInterval(Duration.ofMinutes(3)).createRetry();
+
+              while (!failures.isEmpty()) {
+
+                clientContext.requireNotDeleted(tableId);
+
+                try {
+                  retry.waitForNextAttempt(log,
+                      String.format("locating tablets in table %s(%s) for %d ranges", tableName,
+                          tableId, ranges.size()));
+                } catch (InterruptedException e) {
+                  throw new RuntimeException(e);
+                }
+                unhostedRanges.get("").clear();
+                tl.invalidateCache();
+                failures =
+                    tl.findTablets(clientContext, ranges, consumer, LocationNeed.NOT_REQUIRED);
+              }
+              binnedRanges = unhostedRanges;
             }
           }
-        } catch (TableOfflineException | TableNotFoundException | AccumuloException
-            | AccumuloSecurityException e) {
+        } catch (InvalidTabletHostingRequestException | TableOfflineException
+            | TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
           throw new IOException(e);
         }
 

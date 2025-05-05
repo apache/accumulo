@@ -97,12 +97,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <li>"s" for seconds</li>
  * <li>"ms" for milliseconds</li>
  * </ul>
- * If duration is not specified this setting defaults to 0s, and will disable the wait for scan
- * servers and will fall back to tablet servers immediately. When set to a large value, the selector
- * will effectively wait for scan servers to become available before falling back to tablet servers.
- * To ensure the selector never falls back scanning tablet servers an unrealistic wait time can be
- * set. For instanced should be sufficient. Setting Waiting for scan servers is done via
- * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}</li>
+ * If duration is not specified this setting defaults to 100 years, which for all practical purposes
+ * will never fall back to tablet servers. Waiting for scan servers is done via
+ * {@link org.apache.accumulo.core.spi.scan.ScanServerSelector.SelectorParameters#waitUntil(Supplier, Duration, String)}.
+ * To immediately fall back to tablet servers when no scan servers are present set this to
+ * zero.</li>
  * <li><b>attemptPlans : </b> A list of configuration to use for each scan attempt. Each list object
  * has the following fields:
  * <ul>
@@ -238,6 +237,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
       parse();
       return parsedBusyTimeout;
     }
+
   }
 
   @SuppressFBWarnings(value = {"NP_UNWRITTEN_PUBLIC_OR_PROTECTED_FIELD", "UWF_UNWRITTEN_FIELD"},
@@ -249,7 +249,7 @@ public class ConfigurableScanServerSelector implements ScanServerSelector {
     int busyTimeoutMultiplier;
     String maxBusyTimeout;
     String group = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    String timeToWaitForScanServers = "0s";
+    String timeToWaitForScanServers = 100 * 365 + "d";
 
     transient boolean parsed = false;
     transient long parsedMaxBusyTimeout;

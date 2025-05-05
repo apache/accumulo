@@ -19,6 +19,8 @@
 package org.apache.accumulo.tserver;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.stream.Collectors.toList;
+import static java.util.stream.Collectors.toMap;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -27,12 +29,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.SampleNotPresentException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -70,7 +72,7 @@ import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.TooManyFilesException;
 import org.apache.accumulo.server.rpc.TServerUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.tserver.scan.LookupTask;
 import org.apache.accumulo.tserver.scan.NextBatchTask;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -94,7 +96,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
   private final TabletHostingServer server;
   protected final ServerContext context;
-  protected final SecurityOperation security;
+  protected final AuditedSecurityOperation security;
   private final WriteTracker writeTracker;
   private final long MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS;
 
@@ -214,6 +216,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     long sid = server.getSessionManager().createSession(scanSession, true);
 
+    scanParams.setScanSessionId(sid);
+
     ScanResult scanResult;
     try {
       scanResult = continueScan(tinfo, sid, scanSession, busyTimeout);
@@ -252,17 +256,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     server.getScanMetrics().incrementContinueScan();
 
-    if (scanSession.nextBatchTask == null) {
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
+    if (scanSession.getScanTask() == null) {
+      scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
       server.getResourceManager().executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
+          getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
     ScanBatch bresult;
     try {
-      bresult = scanSession.nextBatchTask.get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
+      bresult = scanSession.getScanTask().get(busyTimeout, MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS,
           TimeUnit.MILLISECONDS);
-      scanSession.nextBatchTask = null;
+      scanSession.clearScanTask();
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
       if (e.getCause() instanceof NotServingTabletException) {
@@ -276,7 +280,7 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
         sleepUninterruptibly(MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
         List<KVEntry> empty = Collections.emptyList();
         bresult = new ScanBatch(empty, true);
-        scanSession.nextBatchTask = null;
+        scanSession.clearScanTask();
       } else {
         throw new RuntimeException(e);
       }
@@ -311,9 +315,9 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     if (scanResult.more && scanSession.batchCount > scanSession.readaheadThreshold) {
       // start reading next batch while current batch is transmitted
       // to client
-      scanSession.nextBatchTask = new NextBatchTask(server, scanID, scanSession.interruptFlag);
+      scanSession.setScanTask(new NextBatchTask(server, scanID, scanSession.interruptFlag));
       server.getResourceManager().executeReadAhead(scanSession.extent,
-          getScanDispatcher(scanSession.extent), scanSession, scanSession.nextBatchTask);
+          getScanDispatcher(scanSession.extent), scanSession, scanSession.getScanTask());
     }
 
     if (!scanResult.more) {
@@ -334,8 +338,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
       long t2 = System.currentTimeMillis();
 
       if (log.isTraceEnabled()) {
-        log.trace(String.format("ScanSess tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
-            TServerUtils.clientAddress.get(), ss.extent.tableId(), ss.entriesReturned,
+        log.trace(String.format("ScanSess %d tid %s %s %,d entries in %.2f secs, nbTimes = [%s] ",
+            scanID, TServerUtils.clientAddress.get(), ss.extent.tableId(), ss.entriesReturned,
             (t2 - ss.startTime) / 1000.0, ss.runStats.toString()));
       }
 
@@ -393,26 +397,22 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     // check if user has permission to the tables
     for (TableId tableId : tables) {
       NamespaceId namespaceId = getNamespaceId(credentials, tableId);
-      if (!security.canScan(credentials, tableId, namespaceId)) {
+      if (!security.canScan(credentials, tableId, namespaceId, tbatch, tcolumns, ssiList, ssio,
+          authorizations)) {
         throw new ThriftSecurityException(credentials.getPrincipal(),
             SecurityErrorCode.PERMISSION_DENIED);
       }
     }
 
-    try {
-      if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
-        throw new ThriftSecurityException(credentials.getPrincipal(),
-            SecurityErrorCode.BAD_AUTHORIZATIONS);
-      }
-    } catch (ThriftSecurityException tse) {
-      log.error("{} is not authorized", credentials.getPrincipal(), tse);
-      throw tse;
+    if (!security.authenticatedUserHasAuthorizations(credentials, authorizations)) {
+      throw new ThriftSecurityException(credentials.getPrincipal(),
+          SecurityErrorCode.BAD_AUTHORIZATIONS);
     }
 
     // @formatter:off
-    Map<KeyExtent, List<Range>> batch = tbatch.entrySet().stream().collect(Collectors.toMap(
-                    entry -> entry.getKey(),
-                    entry -> entry.getValue().stream().map(Range::new).collect(Collectors.toList())
+    Map<KeyExtent,List<Range>> batch = tbatch.entrySet().stream().collect(toMap(
+        Entry::getKey,
+        entry -> entry.getValue().stream().map(Range::new).collect(toList())
     ));
     // @formatter:on
 
@@ -439,6 +439,8 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
     }
 
     long sid = server.getSessionManager().createSession(mss, true);
+
+    scanParams.setScanSessionId(sid);
 
     MultiScanResult result;
     try {
@@ -472,17 +474,17 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     server.getScanMetrics().incrementContinueScan();
 
-    if (session.lookupTask == null) {
-      session.lookupTask = new LookupTask(server, scanID);
+    if (session.getScanTask() == null) {
+      session.setScanTask(new LookupTask(server, scanID));
       server.getResourceManager().executeReadAhead(session.threadPoolExtent,
-          getScanDispatcher(session.threadPoolExtent), session, session.lookupTask);
+          getScanDispatcher(session.threadPoolExtent), session, session.getScanTask());
     }
 
     try {
 
-      MultiScanResult scanResult = session.lookupTask.get(busyTimeout,
+      MultiScanResult scanResult = session.getScanTask().get(busyTimeout,
           MAX_TIME_TO_WAIT_FOR_SCAN_RESULT_MILLIS, TimeUnit.MILLISECONDS);
-      session.lookupTask = null;
+      session.clearScanTask();
       return scanResult;
     } catch (ExecutionException e) {
       server.getSessionManager().removeSession(scanID);
@@ -529,23 +531,18 @@ public class ThriftScanClientHandler implements TabletScanClientService.Iface {
 
     if (log.isTraceEnabled()) {
       log.trace(String.format(
-          "MultiScanSess %s %,d entries in %.2f secs"
+          "MultiScanSess %d %s %,d entries in %.2f secs"
               + " (lookup_time:%.2f secs tablets:%,d ranges:%,d) ",
-          TServerUtils.clientAddress.get(), session.numEntries, (t2 - session.startTime) / 1000.0,
-          session.totalLookupTime / 1000.0, session.numTablets, session.numRanges));
+          scanID, TServerUtils.clientAddress.get(), session.numEntries,
+          (t2 - session.startTime) / 1000.0, session.totalLookupTime / 1000.0, session.numTablets,
+          session.numRanges));
     }
   }
 
   @Override
   public List<ActiveScan> getActiveScans(TInfo tinfo, TCredentials credentials)
       throws ThriftSecurityException, TException {
-    try {
-      TabletClientHandler.checkPermission(security, context, server, credentials, null, "getScans");
-    } catch (ThriftSecurityException e) {
-      log.error("Caller doesn't have permission to get active scans", e);
-      throw e;
-    }
-
+    TabletClientHandler.checkPermission(context, server, credentials, null, "getScans");
     return server.getSessionManager().getActiveScans();
   }
 

@@ -35,7 +35,6 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -46,10 +45,10 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.gc.GCRun;
@@ -58,6 +57,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -78,9 +78,9 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
         org.apache.hadoop.conf.Configuration coreSite) {
-      cfg.setNumScanServers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultScanServers(1);
       cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "3s");
-      cfg.setProperty(Property.SSERVER_SCAN_REFERENCE_EXPIRATION_TIME, "5s");
+      cfg.setProperty(Property.SSERV_SCAN_REFERENCE_EXPIRATION_TIME, "5s");
     }
   }
 
@@ -91,13 +91,9 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER,
         "localhost");
 
-    String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
+    Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
+        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
 
-    while (zrw.getChildren(scanServerRoot).size() == 0) {
-      Thread.sleep(500);
-    }
   }
 
   @AfterAll
@@ -231,43 +227,41 @@ public class ScanServerMetadataEntriesIT extends SharedMiniClusterBase {
         Iterator<Entry<Key,Value>> iter = scanner.iterator();
         assertTrue(iter.hasNext());
         assertNotNull(iter.next());
-
-        List<Entry<Key,Value>> metadataEntries = null;
-        try (Scanner scanner2 =
-            client.createScanner(AccumuloTable.SCAN_REF.tableName(), Authorizations.EMPTY)) {
-          metadataEntries = scanner2.stream().distinct().collect(Collectors.toList());
-        }
-        assertEquals(fileCount, metadataEntries.size());
-        metadataEntries.forEach(e -> log.info("{}", e.getKey()));
-
-        Set<String> metadataScanFileRefs = new HashSet<>();
-        metadataEntries.forEach(m -> {
-          String file = m.getKey().getRow().toString();
-          metadataScanFileRefs.add(file);
-        });
-        assertEquals(fileCount, metadataScanFileRefs.size());
-
-        assertEquals(fileCount, ctx.getAmple().scanServerRefs().list().count());
-        List<Reference> refs;
-        try (Stream<Reference> references = gc.getReferences()) {
-          refs = references.collect(Collectors.toList());
-        }
-        assertTrue(refs.size() > fileCount * 2);
-        List<Reference> tableRefs =
-            refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())
-                .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
-                .collect(Collectors.toList());
-        log.info("Reference List:{}", tableRefs);
-        // There should be 6 references here. 3 for the table file entries, and 3 for the scan
-        // server references
-        assertEquals(fileCount * 2, tableRefs.size());
-
-        Set<String> deduplicatedReferences =
-            tableRefs.stream().map(Reference::getMetadataPath).collect(Collectors.toSet());
-
-        assertEquals(fileCount, deduplicatedReferences.size());
       }
 
+      List<Entry<Key,Value>> metadataEntries = null;
+      try (Scanner scanner2 =
+          client.createScanner(SystemTables.SCAN_REF.tableName(), Authorizations.EMPTY)) {
+        metadataEntries = scanner2.stream().distinct().collect(Collectors.toList());
+      }
+      assertEquals(fileCount, metadataEntries.size());
+      metadataEntries.forEach(e -> log.info("{}", e.getKey()));
+
+      Set<String> metadataScanFileRefs = new HashSet<>();
+      metadataEntries.forEach(m -> {
+        metadataScanFileRefs.add(new ScanServerRefTabletFile(m.getKey()).getFilePath().toString());
+      });
+      assertEquals(fileCount, metadataScanFileRefs.size());
+
+      assertEquals(fileCount, ctx.getAmple().scanServerRefs().list().count());
+      List<Reference> refs;
+      try (Stream<Reference> references = gc.getReferences()) {
+        refs = references.collect(Collectors.toList());
+      }
+      assertTrue(refs.size() > fileCount * 2);
+      List<Reference> tableRefs =
+          refs.stream().filter(r -> r.getTableId().equals(tid) && !r.isDirectory())
+              .peek(r -> assertTrue(metadataScanFileRefs.contains(r.getMetadataPath())))
+              .collect(Collectors.toList());
+      log.info("Reference List:{}", tableRefs);
+      // There should be 6 references here. 3 for the table file entries, and 3 for the scan
+      // server references
+      assertEquals(fileCount * 2, tableRefs.size());
+
+      Set<String> deduplicatedReferences =
+          tableRefs.stream().map(Reference::getMetadataPath).collect(Collectors.toSet());
+
+      assertEquals(fileCount, deduplicatedReferences.size());
       client.tableOperations().delete(tableName);
     }
     // close happens asynchronously. Let the test fail by timeout

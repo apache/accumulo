@@ -45,7 +45,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -96,7 +96,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Get 2 tablet servers
-    cfg.setNumTservers(2);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
@@ -185,7 +185,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
     try (Scanner scanner =
-        accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -209,7 +209,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
       throws Exception {
     try (Scanner scanner =
-        accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -251,7 +251,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     try (Scanner scanner =
-        accumuloClient.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {

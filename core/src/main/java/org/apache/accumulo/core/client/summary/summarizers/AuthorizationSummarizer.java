@@ -63,7 +63,7 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
   private static class AuthsConverter implements Converter<ByteSequence> {
 
     final int MAX_ENTRIES = 1000;
-    private Map<ByteSequence,Set<ByteSequence>> cache =
+    private final Map<ByteSequence,Set<ByteSequence>> cache =
         new LinkedHashMap<>(MAX_ENTRIES + 1, .75F, true) {
           private static final long serialVersionUID = 1L;
 
@@ -81,11 +81,11 @@ public class AuthorizationSummarizer extends CountingSummarizer<ByteSequence> {
       if (vis.length() > 0) {
         Set<ByteSequence> auths = cache.get(vis);
         if (auths == null) {
-          auths = new HashSet<>();
-          for (String auth : AccessExpression.of(vis.toArray()).getAuthorizations().asSet()) {
-            auths.add(new ArrayByteSequence(auth));
-          }
-          cache.put(new ArrayByteSequence(vis), auths);
+          var newAuths = new HashSet<ByteSequence>();
+          AccessExpression.findAuthorizations(vis.toArray(),
+              auth -> newAuths.add(new ArrayByteSequence(auth)));
+          cache.put(new ArrayByteSequence(vis), newAuths);
+          auths = newAuths;
         }
 
         for (ByteSequence auth : auths) {

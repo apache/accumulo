@@ -42,12 +42,12 @@ import io.opentelemetry.context.Scope;
 
 public class RandomWriter {
 
-  private static int num_columns_per_row = 1;
-  private static int num_payload_bytes = 1024;
+  private static final int num_columns_per_row = 1;
+  private static final int num_payload_bytes = 1024;
   private static final Logger log = LoggerFactory.getLogger(RandomWriter.class);
 
   public static class RandomMutationGenerator implements Iterable<Mutation>, Iterator<Mutation> {
-    private long max_mutations;
+    private final long max_mutations;
     private int mutations_so_far = 0;
     private static final Logger log = LoggerFactory.getLogger(RandomMutationGenerator.class);
 
@@ -93,7 +93,7 @@ public class RandomWriter {
     @Parameter(names = "--count", description = "number of mutations to write", required = true)
     long count;
     @Parameter(names = "--table", description = "table to use")
-    String tableName = "test_write_table";
+    final String tableName = "test_write_table";
   }
 
   public static void main(String[] args) throws Exception {

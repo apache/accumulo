@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -38,19 +39,19 @@ public class ClientPropertyTest {
     assertEquals("testpass1", ClientProperty.AUTH_TOKEN.getValue(props));
     AuthenticationToken token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
-    assertEquals("testpass1", new String(((PasswordToken) token).getPassword()));
+    assertEquals("testpass1", new String(((PasswordToken) token).getPassword(), UTF_8));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass2"));
     assertEquals("/////gAAAAl0ZXN0cGFzczI=", ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
-    assertEquals("testpass2", new String(((PasswordToken) token).getPassword()));
+    assertEquals("testpass2", new String(((PasswordToken) token).getPassword(), UTF_8));
 
     ClientProperty.setAuthenticationToken(props, new PasswordToken("testpass3"));
     assertEquals("/////gAAAAl0ZXN0cGFzczM=", ClientProperty.AUTH_TOKEN.getValue(props));
     token = ClientProperty.getAuthenticationToken(props);
     assertTrue(token instanceof PasswordToken);
-    assertEquals("testpass3", new String(((PasswordToken) token).getPassword()));
+    assertEquals("testpass3", new String(((PasswordToken) token).getPassword(), UTF_8));
 
     ClientProperty.setKerberosKeytab(props, "/path/to/keytab");
     assertEquals("/path/to/keytab", ClientProperty.AUTH_TOKEN.getValue(props));

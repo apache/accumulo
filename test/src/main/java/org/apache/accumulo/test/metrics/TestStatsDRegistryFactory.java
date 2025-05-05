@@ -37,6 +37,8 @@ public class TestStatsDRegistryFactory implements MeterRegistryFactory {
   public static final String SERVER_HOST = "test.meter.registry.host";
   public static final String SERVER_PORT = "test.meter.registry.port";
 
+  public static final Duration pollingFrequency = Duration.ofSeconds(3);
+
   @Override
   public MeterRegistry create(final InitParameters params) {
     LOG.info("starting metrics registration.");
@@ -77,7 +79,7 @@ public class TestStatsDRegistryFactory implements MeterRegistryFactory {
 
       @Override
       public Duration pollingFrequency() {
-        return Duration.ofSeconds(3);
+        return pollingFrequency;
       }
 
       @Override

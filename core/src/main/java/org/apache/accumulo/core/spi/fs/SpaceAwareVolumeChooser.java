@@ -26,6 +26,8 @@ import java.util.NavigableMap;
 import java.util.Set;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.util.cache.Caches;
+import org.apache.accumulo.core.util.cache.Caches.CacheName;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -34,7 +36,6 @@ import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 /**
@@ -49,12 +50,12 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
   public static final String RECOMPUTE_INTERVAL = "spaceaware.volume.chooser.recompute.interval";
 
   // Default time to wait in ms. Defaults to 5 min
-  private long defaultComputationCacheDuration = 300000;
+  private final long defaultComputationCacheDuration = 300000;
   private LoadingCache<Set<String>,WeightedRandomCollection> choiceCache = null;
 
   private static final Logger log = LoggerFactory.getLogger(SpaceAwareVolumeChooser.class);
 
-  private Configuration conf = new Configuration();
+  private final Configuration conf = new Configuration();
 
   protected double getFreeSpace(String uri) throws IOException {
     FileSystem pathFs = new Path(uri).getFileSystem(conf);
@@ -76,7 +77,8 @@ public class SpaceAwareVolumeChooser extends PreferredVolumeChooser {
       long computationCacheDuration = StringUtils.isNotBlank(propertyValue)
           ? Long.parseLong(propertyValue) : defaultComputationCacheDuration;
 
-      choiceCache = Caffeine.newBuilder().expireAfterWrite(computationCacheDuration, MILLISECONDS)
+      choiceCache = Caches.getInstance().createNewBuilder(CacheName.SPACE_AWARE_VOLUME_CHOICE, true)
+          .expireAfterWrite(computationCacheDuration, MILLISECONDS)
           .build(key -> new WeightedRandomCollection(key, env));
     }
 

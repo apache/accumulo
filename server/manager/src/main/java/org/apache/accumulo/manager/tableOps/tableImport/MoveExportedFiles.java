@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -32,7 +34,7 @@ import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationExcepti
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -49,16 +51,14 @@ class MoveExportedFiles extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   MoveExportedFiles(ImportedTableInfo ti) {
     this.tableInfo = ti;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
-    String fmtTid = FateTxId.formatTid(tid);
-
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     int workerCount = manager.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
     VolumeManager fs = manager.getVolumeManager();
     Map<Path,Path> oldToNewPaths = new HashMap<>();
@@ -80,7 +80,7 @@ class MoveExportedFiles extends ManagerRepo {
           Arrays.stream(importedFiles).map(FileStatus::getPath).collect(Collectors.toSet());
 
       if (log.isDebugEnabled()) {
-        log.debug("{} files already present in imported (target) directory: {}", fmtTid,
+        log.debug("{} files already present in imported (target) directory: {}", fateId,
             imported.stream().map(Path::getName).collect(Collectors.joining(",")));
       }
 
@@ -107,12 +107,12 @@ class MoveExportedFiles extends ManagerRepo {
           // operation would be truly unexpected
           oldToNewPaths.put(originalPath, newPath);
         } else {
-          log.debug("{} not moving (unmapped) file {}", fmtTid, originalPath);
+          log.debug("{} not moving (unmapped) file {}", fateId, originalPath);
         }
       }
     }
     try {
-      fs.bulkRename(oldToNewPaths, workerCount, "importtable rename", fmtTid);
+      fs.bulkRename(oldToNewPaths, workerCount, IMPORT_TABLE_RENAME_POOL.poolName, fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());

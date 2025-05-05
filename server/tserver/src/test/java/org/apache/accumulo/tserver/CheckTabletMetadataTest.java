@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.tserver;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.tserver.AssignmentHandler.checkTabletMetadata;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -65,7 +66,7 @@ public class CheckTabletMetadataTest {
   private static void assertFail(TreeMap<Key,Value> tabletMeta, KeyExtent ke, TServerInstance tsi) {
     try {
       TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
-          EnumSet.allOf(ColumnType.class), true);
+          EnumSet.allOf(ColumnType.class), true, false);
       assertFalse(checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
       e.printStackTrace();
@@ -78,7 +79,7 @@ public class CheckTabletMetadataTest {
     assertNotNull(copy.remove(keyToDelete));
     try {
       TabletMetadata tm = TabletMetadata.convertRow(copy.entrySet().iterator(),
-          EnumSet.allOf(ColumnType.class), true);
+          EnumSet.allOf(ColumnType.class), true, false);
       assertFalse(checkTabletMetadata(ke, tsi, tm));
     } catch (Exception e) {
       e.printStackTrace();
@@ -94,14 +95,14 @@ public class CheckTabletMetadataTest {
 
     put(tabletMeta, "1<", TabletColumnFamily.PREV_ROW_COLUMN,
         TabletColumnFamily.encodePrevEndRow(null).get());
-    put(tabletMeta, "1<", ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes());
-    put(tabletMeta, "1<", ServerColumnFamily.TIME_COLUMN, "M0".getBytes());
+    put(tabletMeta, "1<", ServerColumnFamily.DIRECTORY_COLUMN, "t1".getBytes(UTF_8));
+    put(tabletMeta, "1<", ServerColumnFamily.TIME_COLUMN, "M0".getBytes(UTF_8));
     put(tabletMeta, "1<", FutureLocationColumnFamily.NAME, "4", "127.0.0.1:9997");
 
     TServerInstance tsi = new TServerInstance("127.0.0.1:9997", 4);
 
     TabletMetadata tm = TabletMetadata.convertRow(tabletMeta.entrySet().iterator(),
-        EnumSet.allOf(ColumnType.class), true);
+        EnumSet.allOf(ColumnType.class), true, false);
     assertTrue(checkTabletMetadata(ke, tsi, tm));
 
     assertFail(tabletMeta, ke, new TServerInstance("127.0.0.1:9998", 4));

@@ -93,9 +93,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
 
-  private Logger log = LoggerFactory.getLogger(getClass());
+  private final Logger log = LoggerFactory.getLogger(getClass());
 
-  protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
+  protected final ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
   protected boolean scanning;
   protected Range seekRange;
@@ -107,7 +107,8 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   private LRUMap<ByteSequence,Boolean> parsedVisibilitiesCache = null;
   private long maxBufferSize;
 
-  private static Comparator<Pair<Key,Value>> keyComparator = Comparator.comparing(Pair::getFirst);
+  private static final Comparator<Pair<Key,Value>> keyComparator =
+      Comparator.comparing(Pair::getFirst);
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
@@ -265,9 +266,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
   private static class RangeIterator implements SortedKeyValueIterator<Key,Value> {
 
-    private SortedKeyValueIterator<Key,Value> source;
-    private Key prefixKey;
-    private PartialKey keyPrefix;
+    private final SortedKeyValueIterator<Key,Value> source;
+    private final Key prefixKey;
+    private final PartialKey keyPrefix;
     private boolean hasTop = false;
 
     RangeIterator(SortedKeyValueIterator<Key,Value> source, Key prefixKey, PartialKey keyPrefix) {

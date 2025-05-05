@@ -27,7 +27,7 @@ import java.io.OutputStream;
  * been buffered.
  */
 class SimpleBufferedOutputStream extends FilterOutputStream {
-  protected byte[] buf; // the borrowed buffer
+  protected final byte[] buf; // the borrowed buffer
   protected int count = 0; // bytes used in buffer.
 
   // Constructor

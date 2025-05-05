@@ -22,10 +22,13 @@ import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.client.admin.InitialTableState;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
@@ -41,11 +44,12 @@ public class CreateTable extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private static final Logger log = LoggerFactory.getLogger(CreateTable.class);
 
-  private TableInfo tableInfo;
+  private final TableInfo tableInfo;
 
   public CreateTable(String user, String tableName, TimeType timeType, Map<String,String> props,
       Path splitPath, int splitCount, Path splitDirsPath, InitialTableState initialTableState,
-      NamespaceId namespaceId) {
+      TabletAvailability initialTabletAvailability, NamespaceId namespaceId,
+      TabletMergeability defaultTabletMergeability) {
     tableInfo = new TableInfo();
     tableInfo.setTableName(tableName);
     tableInfo.setTimeType(timeType);
@@ -56,17 +60,19 @@ public class CreateTable extends ManagerRepo {
     tableInfo.setInitialSplitSize(splitCount);
     tableInfo.setInitialTableState(initialTableState);
     tableInfo.setSplitDirsPath(splitDirsPath);
+    tableInfo.setInitialTabletAvailability(initialTabletAvailability);
+    tableInfo.setDefaultTabletMergeability(defaultTabletMergeability);
   }
 
   @Override
-  public long isReady(long tid, Manager environment) throws Exception {
+  public long isReady(FateId fateId, Manager environment) throws Exception {
     // reserve the table's namespace to make sure it doesn't change while the table is created
-    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), tid, LockType.READ, true,
-        TableOperation.CREATE);
+    return Utils.reserveNamespace(environment, tableInfo.getNamespaceId(), fateId, LockType.READ,
+        true, TableOperation.CREATE);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // first step is to reserve a table id.. if the machine fails during this step
     // it is ok to retry... the only side effect is that a table id may not be used
     // or skipped
@@ -84,7 +90,7 @@ public class CreateTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws IOException {
+  public void undo(FateId fateId, Manager env) throws IOException {
     // Clean up split files if create table operation fails
     Path p = null;
     try {
@@ -96,7 +102,7 @@ public class CreateTable extends ManagerRepo {
     } catch (IOException e) {
       log.error("Table failed to be created and failed to clean up split files at {}", p, e);
     } finally {
-      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), tid, LockType.READ);
+      Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);
     }
   }
 

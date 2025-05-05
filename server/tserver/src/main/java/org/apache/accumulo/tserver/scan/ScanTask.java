@@ -26,16 +26,23 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.accumulo.tserver.TabletHostingServer;
+
+import com.google.common.base.Preconditions;
 
 public abstract class ScanTask<T> implements Runnable {
 
   protected final TabletHostingServer server;
   protected AtomicBoolean interruptFlag;
   protected ArrayBlockingQueue<Object> resultQueue;
-  protected AtomicInteger state;
-  protected AtomicReference<ScanRunState> runState;
+  protected final AtomicInteger state;
+  private final AtomicReference<ScanRunState> runState;
+
+  private Thread scanThread = null;
+  private final Lock scanThreadLock = new ReentrantLock();
 
   private static final int INITIAL = 1;
   private static final int ADDED = 2;
@@ -50,7 +57,58 @@ public abstract class ScanTask<T> implements Runnable {
   }
 
   protected boolean transitionToRunning() {
-    return runState.compareAndSet(ScanRunState.QUEUED, ScanRunState.RUNNING);
+    if (runState.compareAndSet(ScanRunState.QUEUED, ScanRunState.RUNNING)) {
+      scanThreadLock.lock();
+      try {
+        Preconditions.checkState(scanThread == null);
+        scanThread = Thread.currentThread();
+      } finally {
+        scanThreadLock.unlock();
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  protected void transitionFromRunning() {
+    scanThreadLock.lock();
+    try {
+      Preconditions.checkState(scanThread != null);
+      scanThread = null;
+    } finally {
+      scanThreadLock.unlock();
+    }
+    runState.compareAndSet(ScanRunState.RUNNING, ScanRunState.FINISHED);
+  }
+
+  public static class ScanThreadStackTrace {
+    public final long threadId;
+    public final String threadName;
+    public final StackTraceElement[] stackTrace;
+
+    private ScanThreadStackTrace(Thread thread) {
+      this.threadId = thread.getId();
+      this.stackTrace = thread.getStackTrace();
+      this.threadName = thread.getName();
+    }
+  }
+
+  public ScanThreadStackTrace getStackTrace() {
+    // Acquire the scanThreadLock to ensure we only get the stack trace when the thread is executing
+    // the scan task for this code. The threads could be thread pool threads and if they exit the
+    // task they could move on to process an unrelated scan task. Should not get unrelated stack
+    // traces when using the lock.
+    scanThreadLock.lock();
+    try {
+      if (scanThread == null) {
+        return null;
+      }
+
+      return new ScanThreadStackTrace(scanThread);
+    } finally {
+      scanThreadLock.unlock();
+    }
   }
 
   protected void addResult(Object o) {
@@ -67,13 +125,23 @@ public abstract class ScanTask<T> implements Runnable {
           "Cancel will always attempt to interrupt running next batch task");
     }
 
-    if (state.get() == CANCELED) {
-      return true;
-    }
-
     if (state.compareAndSet(INITIAL, CANCELED)) {
       interruptFlag.set(true);
       resultQueue = null;
+      return true;
+    }
+
+    if (state.get() == CANCELED) {
+      scanThreadLock.lock();
+      try {
+        if (scanThread != null) {
+          // Doing the interrupt while the scanThreadLock is held prevents race conditions where we
+          // interrupt a thread pool thread that has moved onto another unrelated task.
+          scanThread.interrupt();
+        }
+      } finally {
+        scanThreadLock.unlock();
+      }
       return true;
     }
 
@@ -172,8 +240,21 @@ public abstract class ScanTask<T> implements Runnable {
     return state.get() == CANCELED;
   }
 
+  public boolean producedResult() {
+    return state.get() == ADDED;
+  }
+
   public ScanRunState getScanRunState() {
     return runState.get();
+  }
+
+  public Thread getScanThread() {
+    scanThreadLock.lock();
+    try {
+      return scanThread;
+    } finally {
+      scanThreadLock.unlock();
+    }
   }
 
 }

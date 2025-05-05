@@ -38,7 +38,7 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 public class VersioningIterator extends WrappingIterator implements OptionDescriber {
   private final int maxCount = 10;
 
-  private Key currentKey = new Key();
+  private final Key currentKey = new Key();
   private int numVersions;
   protected int maxVersions;
 

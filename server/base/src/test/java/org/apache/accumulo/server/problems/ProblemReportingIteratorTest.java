@@ -50,7 +50,7 @@ public class ProblemReportingIteratorTest {
   @BeforeEach
   public void setUp() {
     ii = EasyMock.createMock(InterruptibleIterator.class);
-    pri = new ProblemReportingIterator(null, TABLE_ID, RESOURCE, false, ii);
+    pri = new ProblemReportingIterator(TABLE_ID, RESOURCE, false, ii);
   }
 
   @Test

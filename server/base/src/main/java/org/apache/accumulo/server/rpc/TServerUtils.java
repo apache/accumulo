@@ -20,6 +20,7 @@ package org.apache.accumulo.server.rpc;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.ACCUMULO_POOL_PREFIX;
 
 import java.io.IOException;
 import java.net.InetAddress;
@@ -46,18 +47,14 @@ import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TProcessorFactory;
 import org.apache.thrift.protocol.TProtocolFactory;
-import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.server.TThreadedSelectorServer;
 import org.apache.thrift.transport.TNonblockingServerSocket;
@@ -72,7 +69,6 @@ import org.apache.thrift.transport.TTransportFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 import com.google.common.primitives.Ints;
 
@@ -113,27 +109,26 @@ public class TServerUtils {
   }
 
   /**
-   * Start a server, at the given port, or higher, if that port is not available.
+   * Create a ServerAddress, at the given port, or higher, if that port is not available. Callers
+   * must start the ThriftServer after calling this method using
+   * {@code ServerAddress#startThriftServer(String)}
    *
    * @param context RPC configuration
    * @param portHintProperty the port to attempt to open, can be zero, meaning "any available port"
    * @param processor the service to be started
    * @param serverName the name of the class that is providing the service
-   * @param threadName name this service's thread for better debugging
    * @param portSearchProperty A boolean Property to control if port-search should be used, or null
    *        to disable
    * @param minThreadProperty A Property to control the minimum number of threads in the pool
    * @param timeBetweenThreadChecksProperty A Property to control the amount of time between checks
    *        to resize the thread pool
-   * @param maxMessageSizeProperty A Property to control the maximum Thrift message size accepted
    * @return the server object created, and the port actually used
    * @throws UnknownHostException when we don't know our own address
    */
-  public static ServerAddress startServer(ServerContext context, String hostname,
-      Property portHintProperty, TProcessor processor, String serverName, String threadName,
+  public static ServerAddress createThriftServer(ServerContext context, String hostname,
+      Property portHintProperty, TProcessor processor, String serverName,
       Property portSearchProperty, Property minThreadProperty, Property threadTimeOutProperty,
-      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
-      throws UnknownHostException {
+      Property timeBetweenThreadChecksProperty) throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
 
     final IntStream portHint = config.getPortStream(portHintProperty);
@@ -153,10 +148,7 @@ public class TServerUtils {
       timeBetweenThreadChecks = config.getTimeInMillis(timeBetweenThreadChecksProperty);
     }
 
-    long maxMessageSize = 10_000_000;
-    if (maxMessageSizeProperty != null) {
-      maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
-    }
+    long maxMessageSize = config.getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
 
     boolean portSearch = false;
     if (portSearchProperty != null) {
@@ -178,8 +170,8 @@ public class TServerUtils {
 
     HostAndPort[] addresses = getHostAndPorts(hostname, portHint);
     try {
-      return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
-          minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
+      return TServerUtils.createThriftServer(serverType, timedProcessor, serverName, minThreads,
+          threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
           context.getServerSslParams(), context.getSaslParams(), context.getClientTimeoutInMillis(),
           backlog, portSearch, addresses);
     } catch (TTransportException e) {
@@ -203,12 +195,12 @@ public class TServerUtils {
           }
           try {
             HostAndPort addr = HostAndPort.fromParts(hostname, port);
-            return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
+            return TServerUtils.createThriftServer(serverType, timedProcessor, serverName,
                 minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
                 context.getServerSslParams(), context.getSaslParams(),
                 context.getClientTimeoutInMillis(), backlog, portSearch, addr);
           } catch (TTransportException tte) {
-            log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
+            log.info("Unable to use port {}, retrying.", port);
           }
         }
         log.error("Unable to start TServer", e);
@@ -310,20 +302,21 @@ public class TServerUtils {
   private static ThreadPoolExecutor createSelfResizingThreadPool(final String serverName,
       final int executorThreads, long threadTimeOut, final AccumuloConfiguration conf,
       long timeBetweenThreadChecks) {
-    final ThreadPoolExecutor pool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(serverName + "-ClientPool").numCoreThreads(executorThreads)
-        .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();
+    String poolName = ACCUMULO_POOL_PREFIX.poolName + "." + serverName.toLowerCase() + ".client";
+    final ThreadPoolExecutor pool =
+        ThreadPools.getServerThreadPools().getPoolBuilder(poolName).numCoreThreads(executorThreads)
+            .withTimeOut(threadTimeOut, MILLISECONDS).enableThreadPoolMetrics().build();
     // periodically adjust the number of threads we need by checking how busy our threads are
     ThreadPools.watchCriticalFixedDelay(conf, timeBetweenThreadChecks, () -> {
       // there is a minor race condition between sampling the current state of the thread pool
       // and adjusting it however, this isn't really an issue, since it adjusts periodically
       if (pool.getCorePoolSize() <= pool.getActiveCount()) {
         int larger = pool.getCorePoolSize() + Math.min(pool.getQueue().size(), 2);
-        ThreadPools.resizePool(pool, () -> larger, serverName + "-ClientPool");
+        ThreadPools.resizePool(pool, () -> larger, poolName);
       } else {
         if (pool.getCorePoolSize() > pool.getActiveCount() + 3) {
           int smaller = Math.max(executorThreads, pool.getCorePoolSize() - 1);
-          ThreadPools.resizePool(pool, () -> smaller, serverName + "-ClientPool");
+          ThreadPools.resizePool(pool, () -> smaller, poolName);
         }
       }
     });
@@ -565,9 +558,14 @@ public class TServerUtils {
     return new ServerAddress(server, address);
   }
 
-  public static ServerAddress startTServer(final AccumuloConfiguration conf,
-      ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
-      int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
+  /**
+   * Create a ServerAddress, at the given port, or higher, if that port is not available. Callers
+   * must start the ThriftServer after calling this method using
+   * {@code ServerAddress#startThriftServer(String)}
+   */
+  public static ServerAddress createThriftServer(final AccumuloConfiguration conf,
+      ThriftServerType serverType, TProcessor processor, String serverName, int numThreads,
+      long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
       long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, boolean portSearch,
       HostAndPort... addresses) {
@@ -577,9 +575,9 @@ public class TServerUtils {
     }
 
     try {
-      return startTServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
-          threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
-          sslParams, saslParams, serverSocketTimeout, backlog, portSearch, addresses);
+      return createThriftServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
+          numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, sslParams,
+          saslParams, serverSocketTimeout, backlog, portSearch, addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }
@@ -592,8 +590,8 @@ public class TServerUtils {
    * @return A ServerAddress encapsulating the Thrift server created and the host/port which it is
    *         bound to.
    */
-  private static ServerAddress startTServer(ThriftServerType serverType, TimedProcessor processor,
-      String serverName, String threadName, int numThreads, long threadTimeOut,
+  private static ServerAddress createThriftServer(ThriftServerType serverType,
+      TimedProcessor processor, String serverName, int numThreads, long threadTimeOut,
       final AccumuloConfiguration conf, long timeBetweenThreadChecks, long maxMessageSize,
       SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
       long serverSocketTimeout, int backlog, boolean portSearch, HostAndPort... addresses)
@@ -656,28 +654,11 @@ public class TServerUtils {
           "Unable to create server on addresses: " + Arrays.toString(addresses));
     }
 
-    final TServer finalServer = serverAddress.server;
-
-    Threads.createThread(threadName, () -> {
-      try {
-        finalServer.serve();
-      } catch (Error e) {
-        Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
-      }
-    }).start();
-
-    while (!finalServer.isServing()) {
-      // Wait for the thread to start and for the TServer to start
-      // serving events
-      UtilWaitThread.sleep(10);
-      Preconditions.checkState(!finalServer.getShouldStop());
-    }
-
     // check for the special "bind to everything address"
     if (serverAddress.address.getHost().equals("0.0.0.0")) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
       try {
-        serverAddress = new ServerAddress(finalServer, HostAndPort
+        serverAddress = new ServerAddress(serverAddress.server, HostAndPort
             .fromParts(InetAddress.getLocalHost().getHostName(), serverAddress.address.getPort()));
       } catch (UnknownHostException e) {
         throw new TTransportException(e);

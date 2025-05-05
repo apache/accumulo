@@ -31,7 +31,7 @@ public class ThreadPoolExecutorBuilderTest {
 
   @Test
   public void builderDefaultsTest() {
-    var p = serverPool.getPoolBuilder("defaults").build();
+    var p = serverPool.getPoolBuilder("defaults.pool").build();
     assertEquals(0, p.getCorePoolSize());
     assertEquals(1, p.getMaximumPoolSize());
     assertEquals(3L, p.getKeepAliveTime(MINUTES));
@@ -40,38 +40,38 @@ public class ThreadPoolExecutorBuilderTest {
   @Test
   public void builderInvalidNumCoreTest() {
     assertThrows(IllegalArgumentException.class,
-        () -> serverPool.getPoolBuilder("test1").numCoreThreads(-1).build());
+        () -> serverPool.getPoolBuilder("test1.pool").numCoreThreads(-1).build());
   }
 
   @Test
   public void builderInvalidNumMaxThreadsTest() {
     // max threads must be > core threads
     assertThrows(IllegalArgumentException.class,
-        () -> serverPool.getPoolBuilder("test1").numCoreThreads(2).numMaxThreads(1).build());
+        () -> serverPool.getPoolBuilder("test1.pool").numCoreThreads(2).numMaxThreads(1).build());
   }
 
   @Test
   public void builderPoolCoreMaxTest() {
-    var p = serverPool.getPoolBuilder("test1").numCoreThreads(1).numMaxThreads(2).build();
+    var p = serverPool.getPoolBuilder("test1.pool").numCoreThreads(1).numMaxThreads(2).build();
     assertEquals(1, p.getCorePoolSize());
     assertEquals(2, p.getMaximumPoolSize());
   }
 
   @Test
   public void builderFixedPoolTest() {
-    var p = serverPool.getPoolBuilder("test1").numCoreThreads(2).build();
+    var p = serverPool.getPoolBuilder("test1.pool").numCoreThreads(2).build();
     assertEquals(2, p.getCorePoolSize());
     assertEquals(2, p.getMaximumPoolSize());
   }
 
   @Test
   public void buildeSetTimeoutTest() {
-    var p = serverPool.getPoolBuilder("test1").withTimeOut(0L, MILLISECONDS).build();
+    var p = serverPool.getPoolBuilder("test1.pool").withTimeOut(0L, MILLISECONDS).build();
     assertEquals(0, p.getCorePoolSize());
     assertEquals(1, p.getMaximumPoolSize());
     assertEquals(0L, p.getKeepAliveTime(MINUTES));
 
-    var p2 = serverPool.getPoolBuilder("test1").withTimeOut(123L, MILLISECONDS).build();
+    var p2 = serverPool.getPoolBuilder("test1.pool").withTimeOut(123L, MILLISECONDS).build();
     assertEquals(0, p2.getCorePoolSize());
     assertEquals(1, p2.getMaximumPoolSize());
     assertEquals(123L, p2.getKeepAliveTime(MILLISECONDS));

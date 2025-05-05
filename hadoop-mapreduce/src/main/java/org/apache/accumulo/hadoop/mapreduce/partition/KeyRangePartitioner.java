@@ -31,7 +31,7 @@ import org.apache.hadoop.mapreduce.Partitioner;
  * @since 2.0.0
  */
 public class KeyRangePartitioner extends Partitioner<Key,Writable> implements Configurable {
-  private RangePartitioner rp = new RangePartitioner();
+  private final RangePartitioner rp = new RangePartitioner();
 
   @Override
   public int getPartition(Key key, Writable value, int numPartitions) {

@@ -204,12 +204,13 @@ public class ClientSideIteratorIT extends AccumuloClusterHarness {
   private void runPluginEnvTest(Set<String> expected) throws Exception {
     try (var scanner = client.createScanner(tableName)) {
       initCalled.set(false);
-      var csis = new ClientSideIteratorScanner(scanner);
-      csis.addScanIterator(new IteratorSetting(100, "filter", TestPropFilter.class));
-      assertEquals(expected,
-          csis.stream().map(e -> e.getKey().getRowData().toString()).collect(Collectors.toSet()));
-      // this check is here to ensure the iterator executed client side and not server side
-      assertTrue(initCalled.get());
+      try (var csis = new ClientSideIteratorScanner(scanner)) {
+        csis.addScanIterator(new IteratorSetting(100, "filter", TestPropFilter.class));
+        assertEquals(expected,
+            csis.stream().map(e -> e.getKey().getRowData().toString()).collect(Collectors.toSet()));
+        // this check is here to ensure the iterator executed client side and not server side
+        assertTrue(initCalled.get());
+      }
     }
 
     // The offline scanner also runs iterators client side, so test its client side access to

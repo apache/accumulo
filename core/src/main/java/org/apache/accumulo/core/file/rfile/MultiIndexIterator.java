@@ -42,7 +42,7 @@ import org.apache.hadoop.io.Text;
 
 class MultiIndexIterator extends HeapIterator implements FileSKVIterator {
 
-  private RFile.Reader source;
+  private final RFile.Reader source;
 
   MultiIndexIterator(RFile.Reader source, List<Iterator<IndexEntry>> indexes) {
     super(indexes.size());

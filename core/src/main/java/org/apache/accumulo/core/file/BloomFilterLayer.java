@@ -20,6 +20,7 @@ package org.apache.accumulo.core.file;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BLOOM_LOADER_POOL;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -81,7 +82,7 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder("bloom-loader")
+      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(BLOOM_LOADER_POOL)
           .numCoreThreads(0).numMaxThreads(maxLoadThreads).withTimeOut(60L, SECONDS).build();
     }
     return loadThreadPool;
@@ -92,7 +93,7 @@ public class BloomFilterLayer {
     private int numKeys;
     private int vectorSize;
 
-    private FileSKVWriter writer;
+    private final FileSKVWriter writer;
     private KeyFunctor transformer = null;
     private boolean closed = false;
     private long length = -1;
@@ -204,7 +205,7 @@ public class BloomFilterLayer {
     private volatile DynamicBloomFilter bloomFilter;
     private int loadRequest = 0;
     private int loadThreshold = 1;
-    private int maxLoadThreads;
+    private final int maxLoadThreads;
     private Runnable loadTask;
     private volatile KeyFunctor transformer = null;
     private volatile boolean closed = false;
@@ -348,8 +349,8 @@ public class BloomFilterLayer {
 
   public static class Reader implements FileSKVIterator {
 
-    private BloomFilterLoader bfl;
-    private FileSKVIterator reader;
+    private final BloomFilterLoader bfl;
+    private final FileSKVIterator reader;
 
     public Reader(FileSKVIterator reader, AccumuloConfiguration acuconf) {
       this.reader = reader;

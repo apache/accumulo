@@ -58,13 +58,13 @@ public class PropStoreWatcher implements Watcher {
   private static final Logger log = LoggerFactory.getLogger(PropStoreWatcher.class);
 
   private static final ExecutorService executorService = ThreadPools.getServerThreadPools()
-      .getPoolBuilder("zoo_change_update").numCoreThreads(2).build();
+      .getPoolBuilder("prop.store.zoo.change.update").numCoreThreads(2).build();
   private final ReentrantReadWriteLock listenerLock = new ReentrantReadWriteLock();
   private final ReentrantReadWriteLock.ReadLock listenerReadLock = listenerLock.readLock();
   private final ReentrantReadWriteLock.WriteLock listenerWriteLock = listenerLock.writeLock();
 
   // access should be guarded by acquiring the listener read or write lock
-  private final Map<PropStoreKey<?>,Set<PropChangeListener>> listeners = new HashMap<>();
+  private final Map<PropStoreKey,Set<PropChangeListener>> listeners = new HashMap<>();
 
   private final ReadyMonitor zkReadyMonitor;
 
@@ -72,8 +72,7 @@ public class PropStoreWatcher implements Watcher {
     this.zkReadyMonitor = zkReadyMonitor;
   }
 
-  public void registerListener(final PropStoreKey<?> propStoreKey,
-      final PropChangeListener listener) {
+  public void registerListener(final PropStoreKey propStoreKey, final PropChangeListener listener) {
     listenerWriteLock.lock();
     try {
       Set<PropChangeListener> set = listeners.computeIfAbsent(propStoreKey, s -> new HashSet<>());
@@ -95,7 +94,7 @@ public class PropStoreWatcher implements Watcher {
   public void process(final WatchedEvent event) {
 
     String path;
-    PropStoreKey<?> propStoreKey;
+    PropStoreKey propStoreKey;
     switch (event.getType()) {
       case NodeDataChanged:
         path = event.getPath();
@@ -164,7 +163,7 @@ public class PropStoreWatcher implements Watcher {
    *
    * @param propStoreKey the cache id
    */
-  public void signalZkChangeEvent(@NonNull final PropStoreKey<?> propStoreKey) {
+  public void signalZkChangeEvent(@NonNull final PropStoreKey propStoreKey) {
     log.trace("signal ZooKeeper change event: {}", propStoreKey);
     Set<PropChangeListener> snapshot = getListenerSnapshot(propStoreKey);
     log.trace("Sending change event to: {}", snapshot);
@@ -180,7 +179,7 @@ public class PropStoreWatcher implements Watcher {
    *
    * @param propStoreKey the cache id
    */
-  public void signalCacheChangeEvent(final PropStoreKey<?> propStoreKey) {
+  public void signalCacheChangeEvent(final PropStoreKey propStoreKey) {
     log.trace("cache change event: {}", propStoreKey);
     Set<PropChangeListener> snapshot = getListenerSnapshot(propStoreKey);
     if (snapshot != null) {
@@ -195,7 +194,7 @@ public class PropStoreWatcher implements Watcher {
    *
    * @param propStoreKey the cache id
    */
-  public void listenerCleanup(final PropStoreKey<?> propStoreKey) {
+  public void listenerCleanup(final PropStoreKey propStoreKey) {
     listenerWriteLock.lock();
     try {
       listeners.remove(propStoreKey);
@@ -211,7 +210,7 @@ public class PropStoreWatcher implements Watcher {
    * @param propStoreKey the prop cache id
    * @return an immutable copy of listeners.
    */
-  private Set<PropChangeListener> getListenerSnapshot(final PropStoreKey<?> propStoreKey) {
+  private Set<PropChangeListener> getListenerSnapshot(final PropStoreKey propStoreKey) {
 
     Set<PropChangeListener> snapshot = null;
     listenerReadLock.lock();

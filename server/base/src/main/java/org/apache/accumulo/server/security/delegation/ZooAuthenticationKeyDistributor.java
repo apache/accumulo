@@ -34,6 +34,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Id;
@@ -47,15 +48,13 @@ import org.slf4j.LoggerFactory;
 public class ZooAuthenticationKeyDistributor {
   private static final Logger log = LoggerFactory.getLogger(ZooAuthenticationKeyDistributor.class);
 
-  private final ZooReaderWriter zk;
+  private final ZooReaderWriter zrw;
   private final String baseNode;
-  private AtomicBoolean initialized = new AtomicBoolean(false);
+  private final AtomicBoolean initialized = new AtomicBoolean(false);
 
-  public ZooAuthenticationKeyDistributor(ZooReaderWriter zk, String baseNode) {
-    requireNonNull(zk);
-    requireNonNull(baseNode);
-    this.zk = zk;
-    this.baseNode = baseNode;
+  public ZooAuthenticationKeyDistributor(ZooSession zk, String baseNode) {
+    this.zrw = zk.asReaderWriter();
+    this.baseNode = requireNonNull(baseNode);
   }
 
   /**
@@ -67,8 +66,8 @@ public class ZooAuthenticationKeyDistributor {
       return;
     }
 
-    if (zk.exists(baseNode)) {
-      List<ACL> acls = zk.getACL(baseNode);
+    if (zrw.exists(baseNode)) {
+      List<ACL> acls = zrw.getACL(baseNode);
       if (acls.size() == 1) {
         ACL actualAcl = acls.get(0), expectedAcl = ZooUtil.PRIVATE.get(0);
         Id actualId = actualAcl.getId();
@@ -86,7 +85,7 @@ public class ZooAuthenticationKeyDistributor {
       throw new IllegalStateException(
           "Delegation token secret key node in ZooKeeper is not protected.");
     } else {
-      zk.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL);
+      zrw.putPrivatePersistentData(baseNode, new byte[0], NodeExistsPolicy.FAIL);
     }
 
     initialized.set(true);
@@ -100,7 +99,7 @@ public class ZooAuthenticationKeyDistributor {
    */
   public List<AuthenticationKey> getCurrentKeys() throws KeeperException, InterruptedException {
     checkState(initialized.get(), "Not initialized");
-    List<String> children = zk.getChildren(baseNode);
+    List<String> children = zrw.getChildren(baseNode);
 
     // Shortcircuit to avoid a list creation
     if (children.isEmpty()) {
@@ -110,7 +109,7 @@ public class ZooAuthenticationKeyDistributor {
     // Deserialize each byte[] into an AuthenticationKey
     List<AuthenticationKey> keys = new ArrayList<>(children.size());
     for (String child : children) {
-      byte[] data = zk.getData(qualifyPath(child));
+      byte[] data = zrw.getData(qualifyPath(child));
       if (data != null) {
         AuthenticationKey key = new AuthenticationKey();
         try {
@@ -138,7 +137,7 @@ public class ZooAuthenticationKeyDistributor {
 
     // Make sure the node doesn't already exist
     String path = qualifyPath(newKey);
-    if (zk.exists(path)) {
+    if (zrw.exists(path)) {
       log.warn("AuthenticationKey with ID '{}' already exists in ZooKeeper", newKey.getKeyId());
       return;
     }
@@ -157,7 +156,7 @@ public class ZooAuthenticationKeyDistributor {
         path);
 
     // Put it into ZK with the private ACL
-    zk.putPrivatePersistentData(path, serializedKey, NodeExistsPolicy.FAIL);
+    zrw.putPrivatePersistentData(path, serializedKey, NodeExistsPolicy.FAIL);
   }
 
   /**
@@ -174,7 +173,7 @@ public class ZooAuthenticationKeyDistributor {
     requireNonNull(key);
 
     String path = qualifyPath(key);
-    if (!zk.exists(path)) {
+    if (!zrw.exists(path)) {
       log.warn("AuthenticationKey with ID '{}' doesn't exist in ZooKeeper", key.getKeyId());
       return;
     }
@@ -182,7 +181,7 @@ public class ZooAuthenticationKeyDistributor {
     log.debug("Removing AuthenticationKey with keyId {} from ZooKeeper at {}", key.getKeyId(),
         path);
 
-    zk.delete(path);
+    zrw.delete(path);
   }
 
   String qualifyPath(String keyId) {

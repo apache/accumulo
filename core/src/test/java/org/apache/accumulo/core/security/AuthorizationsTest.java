@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.security;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -32,7 +33,7 @@ public class AuthorizationsTest {
 
   @Test
   public void testSetOfByteArrays() {
-    assertTrue(ByteArraySet.fromStrings("a", "b", "c").contains("a".getBytes()));
+    assertTrue(ByteArraySet.fromStrings("a", "b", "c").contains("a".getBytes(UTF_8)));
   }
 
   @Test

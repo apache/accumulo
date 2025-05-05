@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tableOps.namespace.delete;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
@@ -34,19 +35,19 @@ class NamespaceCleanUp extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceId namespaceId;
+  private final NamespaceId namespaceId;
 
   public NamespaceCleanUp(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;
   }
 
   @Override
-  public long isReady(long tid, Manager manager) {
+  public long isReady(FateId fateId, Manager manager) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long id, Manager manager) {
+  public Repo<Manager> call(FateId fateId, Manager manager) {
 
     // remove from zookeeper
     try {
@@ -64,7 +65,7 @@ class NamespaceCleanUp extends ManagerRepo {
       log.error("{}", e.getMessage(), e);
     }
 
-    Utils.unreserveNamespace(manager, namespaceId, id, LockType.WRITE);
+    Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.WRITE);
 
     log.debug("Deleted namespace " + namespaceId);
 
@@ -72,7 +73,7 @@ class NamespaceCleanUp extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager environment) {
+  public void undo(FateId fateId, Manager environment) {
     // nothing to do
   }
 

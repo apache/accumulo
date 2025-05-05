@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.file.rfile;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
@@ -153,7 +154,7 @@ public class MultiThreadedRFileTest {
       FileSystem fs = FileSystem.newInstance(conf);
       Path path = new Path("file://" + rfile);
       dos = fs.create(path, true);
-      BCFile.Writer _cbw = new BCFile.Writer(dos, null, "gz", conf,
+      BCFile.Writer _cbw = new BCFile.Writer(dos, "gz", conf,
           CryptoFactoryLoader.getServiceForServer(accumuloConfiguration));
       SamplerConfigurationImpl samplerConfig =
           SamplerConfigurationImpl.newSamplerConfig(accumuloConfiguration);
@@ -198,7 +199,8 @@ public class MultiThreadedRFileTest {
   }
 
   static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(), cf.getBytes(), cq.getBytes(), cv.getBytes(), ts);
+    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
+        ts);
   }
 
   static Value newValue(String val) {
@@ -231,7 +233,7 @@ public class MultiThreadedRFileTest {
 
       // now start up multiple RFile deepcopies
       int maxThreads = 10;
-      String name = "MultiThreadedRFileTestThread";
+      String name = "test.rfile.multi.thread.pool";
       ThreadPoolExecutor pool =
           ThreadPools.getServerThreadPools().getPoolBuilder(name).numCoreThreads(maxThreads + 1)
               .numMaxThreads(maxThreads + 1).withTimeOut(5, MINUTES).build();

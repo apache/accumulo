@@ -60,7 +60,7 @@ public class ReadyMonitorTest {
     // these tests wait for workers to signal ready using count down latch.
     // size pool so some threads are likely to wait on others to complete.
     int numPoolThreads = numWorkerThreads / 2;
-    workerPool = ThreadPools.getServerThreadPools().getPoolBuilder("readyMonitor-test-pool")
+    workerPool = ThreadPools.getServerThreadPools().getPoolBuilder("test.ready.monitor.pool")
         .numCoreThreads(numPoolThreads).build();
   }
 

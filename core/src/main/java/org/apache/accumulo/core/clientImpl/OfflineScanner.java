@@ -37,9 +37,9 @@ public class OfflineScanner extends ScannerOptions implements Scanner {
   private int batchSize;
   private Range range;
 
-  private ClientContext context;
-  private Authorizations authorizations;
-  private Text tableId;
+  private final ClientContext context;
+  private final Authorizations authorizations;
+  private final Text tableId;
 
   public OfflineScanner(ClientContext context, TableId tableId, Authorizations authorizations) {
     checkArgument(context != null, "context is null");

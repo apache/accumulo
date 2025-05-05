@@ -25,7 +25,7 @@ package org.apache.accumulo.core.client.lexicoder;
  */
 public class FloatLexicoder extends AbstractLexicoder<Float> {
 
-  private UIntegerLexicoder intEncoder = new UIntegerLexicoder();
+  private final UIntegerLexicoder intEncoder = new UIntegerLexicoder();
 
   @Override
   public byte[] encode(Float f) {

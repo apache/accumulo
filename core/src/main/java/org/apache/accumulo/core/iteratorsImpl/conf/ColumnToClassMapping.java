@@ -32,11 +32,11 @@ import org.apache.hadoop.io.Text;
 
 public class ColumnToClassMapping<K> {
 
-  private HashMap<ColFamHashKey,K> objectsCF;
-  private HashMap<ColHashKey,K> objectsCol;
+  private final HashMap<ColFamHashKey,K> objectsCF;
+  private final HashMap<ColHashKey,K> objectsCol;
 
-  private ColHashKey lookupCol = new ColHashKey();
-  private ColFamHashKey lookupCF = new ColFamHashKey();
+  private final ColHashKey lookupCol = new ColHashKey();
+  private final ColFamHashKey lookupCF = new ColFamHashKey();
 
   public ColumnToClassMapping() {
     objectsCF = new HashMap<>();

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.commons.io.FileUtils;
@@ -70,7 +70,7 @@ public class MiniAccumuloClusterImplTest {
     MiniAccumuloConfigImpl config =
         new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
-    config.setNumTservers(NUM_TSERVERS);
+    config.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);
     accumulo.start();
     // create a table to ensure there are some entries in the !0 table
@@ -107,7 +107,7 @@ public class MiniAccumuloClusterImplTest {
   public void saneMonitorInfo() throws Exception {
     ManagerMonitorInfo stats;
     // Expecting default AccumuloTables + TEST_TABLE
-    int expectedNumTables = AccumuloTable.values().length + 1;
+    int expectedNumTables = SystemTables.values().length + 1;
     while (true) {
       stats = accumulo.getManagerMonitorInfo();
       if (stats.tableMap.size() < expectedNumTables) {
@@ -124,11 +124,13 @@ public class MiniAccumuloClusterImplTest {
     assertTrue(validGoals.contains(stats.goalState),
         "manager goal state should be in " + validGoals + ". is " + stats.goalState);
     assertNotNull(stats.tableMap, "should have a table map.");
-    assertTrue(stats.tableMap.containsKey(AccumuloTable.ROOT.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.ROOT.tableId().canonical()),
         "root table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloTable.METADATA.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.METADATA.tableId().canonical()),
         "meta table should exist in " + stats.tableMap.keySet());
-    assertTrue(stats.tableMap.containsKey(AccumuloTable.SCAN_REF.tableId().canonical()),
+    assertTrue(stats.tableMap.containsKey(SystemTables.FATE.tableId().canonical()),
+        "fate table should exist in " + stats.tableMap.keySet());
+    assertTrue(stats.tableMap.containsKey(SystemTables.SCAN_REF.tableId().canonical()),
         "scan ref table should exist in " + stats.tableMap.keySet());
     assertTrue(stats.tableMap.containsKey(testTableID),
         "our test table should exist in " + stats.tableMap.keySet());

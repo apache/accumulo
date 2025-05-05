@@ -56,13 +56,13 @@ public class MutationTest {
    */
   @Test
   public void testByteConstructor() {
-    Mutation m = new Mutation("0123456789".getBytes());
+    Mutation m = new Mutation("0123456789".getBytes(UTF_8));
     assertEquals("30313233343536373839", toHexString(m.getRow()));
   }
 
   @Test
   public void testLimitedByteConstructor() {
-    Mutation m = new Mutation("0123456789".getBytes(), 2, 5);
+    Mutation m = new Mutation("0123456789".getBytes(UTF_8), 2, 5);
     assertEquals("3233343536", toHexString(m.getRow()));
   }
 
@@ -77,9 +77,9 @@ public class MutationTest {
 
     ColumnUpdate cu = updates.get(0);
 
-    assertEquals("cf1", new String(cu.getColumnFamily()));
-    assertEquals("cq1", new String(cu.getColumnQualifier()));
-    assertEquals("", new String(cu.getColumnVisibility()));
+    assertEquals("cf1", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq1", new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
     assertFalse(cu.hasTimestamp());
 
   }
@@ -94,41 +94,41 @@ public class MutationTest {
 
     assertEquals(2, updates.size());
 
-    assertEquals("r1", new String(m.getRow()));
+    assertEquals("r1", new String(m.getRow(), UTF_8));
     ColumnUpdate cu = updates.get(0);
 
-    assertEquals("cf1", new String(cu.getColumnFamily()));
-    assertEquals("cq1", new String(cu.getColumnQualifier()));
-    assertEquals("", new String(cu.getColumnVisibility()));
+    assertEquals("cf1", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq1", new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
     assertFalse(cu.hasTimestamp());
 
     cu = updates.get(1);
 
-    assertEquals("cf2", new String(cu.getColumnFamily()));
-    assertEquals("cq2", new String(cu.getColumnQualifier()));
-    assertEquals("", new String(cu.getColumnVisibility()));
+    assertEquals("cf2", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq2", new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
     assertTrue(cu.hasTimestamp());
     assertEquals(56, cu.getTimestamp());
 
     m = cloneMutation(m);
 
-    assertEquals("r1", new String(m.getRow()));
+    assertEquals("r1", new String(m.getRow(), UTF_8));
     updates = m.getUpdates();
 
     assertEquals(2, updates.size());
 
     cu = updates.get(0);
 
-    assertEquals("cf1", new String(cu.getColumnFamily()));
-    assertEquals("cq1", new String(cu.getColumnQualifier()));
-    assertEquals("", new String(cu.getColumnVisibility()));
+    assertEquals("cf1", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq1", new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
     assertFalse(cu.hasTimestamp());
 
     cu = updates.get(1);
 
-    assertEquals("cf2", new String(cu.getColumnFamily()));
-    assertEquals("cq2", new String(cu.getColumnQualifier()));
-    assertEquals("", new String(cu.getColumnVisibility()));
+    assertEquals("cf2", new String(cu.getColumnFamily(), UTF_8));
+    assertEquals("cq2", new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
     assertTrue(cu.hasTimestamp());
     assertEquals(56, cu.getTimestamp());
 
@@ -163,14 +163,14 @@ public class MutationTest {
     }
 
     for (int r = 0; r < 3; r++) {
-      assertEquals("r1", new String(m.getRow()));
+      assertEquals("r1", new String(m.getRow(), UTF_8));
       List<ColumnUpdate> updates = m.getUpdates();
       assertEquals(5, updates.size());
       for (int i = 0; i < 5; i++) {
         ColumnUpdate cu = updates.get(i);
-        assertEquals("cf" + i, new String(cu.getColumnFamily()));
-        assertEquals("cq" + i, new String(cu.getColumnQualifier()));
-        assertEquals("", new String(cu.getColumnVisibility()));
+        assertEquals("cf" + i, new String(cu.getColumnFamily(), UTF_8));
+        assertEquals("cq" + i, new String(cu.getColumnQualifier(), UTF_8));
+        assertEquals("", new String(cu.getColumnVisibility(), UTF_8));
         assertFalse(cu.hasTimestamp());
 
         byte[] val = cu.getValue();
@@ -296,7 +296,8 @@ public class MutationTest {
 
     // vis: CharSequence (String implementation)
     actual = new Mutation("row5");
-    actual.at().family(fam).qualifier(qual).visibility(new String(vis.getExpression())).put(val);
+    actual.at().family(fam).qualifier(qual).visibility(new String(vis.getExpression(), UTF_8))
+        .put(val);
     assertEquals(expected, actual);
 
     // vis: ColumnVisibility
@@ -378,7 +379,7 @@ public class MutationTest {
     expected.put(fam, qual, val);
 
     Mutation actual = new Mutation("row5");
-    actual.at().family(fam).qualifier(qual).put(val.getBytes());
+    actual.at().family(fam).qualifier(qual).put(val.getBytes(UTF_8));
     assertEquals(expected, actual);
     assertEquals(34, actual.numBytes());
     assertThrows(IllegalStateException.class,
@@ -488,7 +489,7 @@ public class MutationTest {
     m.putDelete("cf8", "cq8", new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
-    assertEquals("r1", new String(m.getRow()));
+    assertEquals("r1", new String(m.getRow(), UTF_8));
 
     List<ColumnUpdate> updates = m.getUpdates();
 
@@ -508,17 +509,19 @@ public class MutationTest {
 
   @Test
   public void testByteArrays() {
-    Mutation m = new Mutation("r1".getBytes());
+    Mutation m = new Mutation("r1".getBytes(UTF_8));
 
-    m.put("cf1".getBytes(), "cq1".getBytes(), "v1".getBytes());
-    m.put("cf2".getBytes(), "cq2".getBytes(), new ColumnVisibility("cv2"), "v2".getBytes());
-    m.put("cf3".getBytes(), "cq3".getBytes(), 3L, "v3".getBytes());
-    m.put("cf4".getBytes(), "cq4".getBytes(), new ColumnVisibility("cv4"), 4L, "v4".getBytes());
+    m.put("cf1".getBytes(UTF_8), "cq1".getBytes(UTF_8), "v1".getBytes(UTF_8));
+    m.put("cf2".getBytes(UTF_8), "cq2".getBytes(UTF_8), new ColumnVisibility("cv2"),
+        "v2".getBytes(UTF_8));
+    m.put("cf3".getBytes(UTF_8), "cq3".getBytes(UTF_8), 3L, "v3".getBytes(UTF_8));
+    m.put("cf4".getBytes(UTF_8), "cq4".getBytes(UTF_8), new ColumnVisibility("cv4"), 4L,
+        "v4".getBytes(UTF_8));
 
-    m.putDelete("cf5".getBytes(), "cq5".getBytes());
-    m.putDelete("cf6".getBytes(), "cq6".getBytes(), new ColumnVisibility("cv6"));
-    m.putDelete("cf7".getBytes(), "cq7".getBytes(), 7L);
-    m.putDelete("cf8".getBytes(), "cq8".getBytes(), new ColumnVisibility("cv8"), 8L);
+    m.putDelete("cf5".getBytes(UTF_8), "cq5".getBytes(UTF_8));
+    m.putDelete("cf6".getBytes(UTF_8), "cq6".getBytes(UTF_8), new ColumnVisibility("cv6"));
+    m.putDelete("cf7".getBytes(UTF_8), "cq7".getBytes(UTF_8), 7L);
+    m.putDelete("cf8".getBytes(UTF_8), "cq8".getBytes(UTF_8), new ColumnVisibility("cv8"), 8L);
 
     assertEquals(8, m.size());
 
@@ -553,14 +556,14 @@ public class MutationTest {
     m1.put("cf1.2", "cq1.2", new ColumnVisibility("C|D"), "val1.2");
     byte[] val1_3 = new byte[Mutation.VALUE_SIZE_COPY_CUTOFF + 3];
     Arrays.fill(val1_3, (byte) 3);
-    m1.put("cf1.3", "cq1.3", new ColumnVisibility("E|F"), new String(val1_3));
+    m1.put("cf1.3", "cq1.3", new ColumnVisibility("E|F"), new String(val1_3, UTF_8));
     int size1 = m1.size();
     long nb1 = m1.numBytes();
 
     Mutation m2 = new Mutation("row2");
     byte[] val2 = new byte[Mutation.VALUE_SIZE_COPY_CUTOFF + 2];
     Arrays.fill(val2, (byte) 2);
-    m2.put("cf2", "cq2", new ColumnVisibility("G|H"), 1234, new String(val2));
+    m2.put("cf2", "cq2", new ColumnVisibility("G|H"), 1234, new String(val2, UTF_8));
     int size2 = m2.size();
     long nb2 = m2.numBytes();
 
@@ -578,39 +581,39 @@ public class MutationTest {
     Mutation m = new Mutation();
     m.readFields(dis);
 
-    assertEquals("row1", new String(m.getRow()));
+    assertEquals("row1", new String(m.getRow(), UTF_8));
     assertEquals(size1, m.size());
     assertEquals(nb1, m.numBytes());
     assertEquals(3, m.getUpdates().size());
     verifyColumnUpdate(m.getUpdates().get(0), "cf1.1", "cq1.1", "A|B", 0L, false, false, "val1.1");
     verifyColumnUpdate(m.getUpdates().get(1), "cf1.2", "cq1.2", "C|D", 0L, false, false, "val1.2");
     verifyColumnUpdate(m.getUpdates().get(2), "cf1.3", "cq1.3", "E|F", 0L, false, false,
-        new String(val1_3));
+        new String(val1_3, UTF_8));
 
     // Reuse the same mutation object (which is what happens in the hadoop framework
     // when objects are read by an input format)
     m.readFields(dis);
 
-    assertEquals("row2", new String(m.getRow()));
+    assertEquals("row2", new String(m.getRow(), UTF_8));
     assertEquals(size2, m.size());
     assertEquals(nb2, m.numBytes());
     assertEquals(1, m.getUpdates().size());
     verifyColumnUpdate(m.getUpdates().get(0), "cf2", "cq2", "G|H", 1234L, true, false,
-        new String(val2));
+        new String(val2, UTF_8));
   }
 
   private void verifyColumnUpdate(ColumnUpdate cu, String cf, String cq, String cv, long ts,
       boolean timeSet, boolean deleted, String val) {
 
-    assertEquals(cf, new String(cu.getColumnFamily()));
-    assertEquals(cq, new String(cu.getColumnQualifier()));
-    assertEquals(cv, new String(cu.getColumnVisibility()));
+    assertEquals(cf, new String(cu.getColumnFamily(), UTF_8));
+    assertEquals(cq, new String(cu.getColumnQualifier(), UTF_8));
+    assertEquals(cv, new String(cu.getColumnVisibility(), UTF_8));
     assertEquals(timeSet, cu.hasTimestamp());
     if (timeSet) {
       assertEquals(ts, cu.getTimestamp());
     }
     assertEquals(deleted, cu.isDeleted());
-    assertEquals(val, new String(cu.getValue()));
+    assertEquals(val, new String(cu.getValue(), UTF_8));
   }
 
   @Test
@@ -637,7 +640,7 @@ public class MutationTest {
     // after readFields
     m2.readFields(dis);
 
-    assertEquals("r1", new String(m2.getRow()));
+    assertEquals("r1", new String(m2.getRow(), UTF_8));
     assertEquals(2, m2.getUpdates().size());
     assertEquals(2, m2.size());
     verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
@@ -675,7 +678,7 @@ public class MutationTest {
     dis.close();
 
     // check it
-    assertEquals("r1", new String(m2.getRow()));
+    assertEquals("r1", new String(m2.getRow(), UTF_8));
     assertEquals(3, m2.getUpdates().size());
     assertEquals(3, m2.size());
     verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
@@ -684,7 +687,7 @@ public class MutationTest {
 
     Mutation m1 = convert(m2);
 
-    assertEquals("r1", new String(m1.getRow()));
+    assertEquals("r1", new String(m1.getRow(), UTF_8));
     assertEquals(3, m1.getUpdates().size());
     assertEquals(3, m1.size());
     verifyColumnUpdate(m1.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");
@@ -747,7 +750,7 @@ public class MutationTest {
     DataInputStream dis = new DataInputStream(bis);
     m2.readFields(dis);
 
-    assertEquals("r1", new String(m1.getRow()));
+    assertEquals("r1", new String(m1.getRow(), UTF_8));
     assertEquals(4, m2.getUpdates().size());
     assertEquals(4, m2.size());
     verifyColumnUpdate(m2.getUpdates().get(0), "cf1", "cq1", "", 0L, false, false, "v1");

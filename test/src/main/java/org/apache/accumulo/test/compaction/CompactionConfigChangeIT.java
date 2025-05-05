@@ -31,13 +31,32 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.spi.compaction.DefaultCompactionPlanner;
+import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.junit.jupiter.api.Test;
 
 public class CompactionConfigChangeIT extends AccumuloClusterHarness {
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("little", 1);
+    cfg.getClusterServerConfiguration().addCompactorResourceGroup("big", 1);
+
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
+        RatioBasedCompactionPlanner.class.getName());
+    cfg.setProperty(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+        ("[{'group':'small','maxSize':'2M'}, {'group':'medium','maxSize':'128M'},"
+            + "{'group':'large'}]").replaceAll("'", "\""));
+
+    // use raw local file system so walogs sync and flush will work
+    hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
+  }
 
   public static long countFiles(AccumuloClient client, String table, String fileNamePrefix)
       throws Exception {
@@ -56,44 +75,34 @@ public class CompactionConfigChangeIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String table = getUniqueNames(1)[0];
 
-      client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner",
-          DefaultCompactionPlanner.class.getName());
-      client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
-          ("[{'name':'small','type':'internal','maxSize':'2M','numThreads':2},"
-              + "{'name':'medium','type':'internal','maxSize':'128M','numThreads':2},"
-              + "{'name':'large','type':'internal','numThreads':2}]").replaceAll("'", "\""));
-
-      createTable(client, table, "cs1", 100);
+      createTable(client, table, "cs1", 50);
 
       ExternalCompactionTestUtils.writeData(client, table, MAX_DATA);
 
       client.tableOperations().flush(table, null, null, true);
 
-      assertEquals(100, countFiles(client, table, "F"));
+      assertEquals(50, countFiles(client, table, "F"));
 
       // Start 100 slow compactions, each compaction should take ~1 second. There are 2 tservers
       // each with 2 threads and then 8 threads.
       CompactionConfig compactionConfig = new CompactionConfig();
       IteratorSetting iteratorSetting = new IteratorSetting(100, SlowIterator.class);
-      SlowIterator.setSleepTime(iteratorSetting, 100);
+      SlowIterator.setSleepTime(iteratorSetting, 50);
       compactionConfig.setIterators(List.of(iteratorSetting));
       compactionConfig.setWait(false);
 
       client.tableOperations().compact(table, compactionConfig);
 
       // give some time for compactions to start running
-      Wait.waitFor(() -> countFiles(client, table, "F") < 95);
+      Wait.waitFor(() -> countFiles(client, table, "F") < 45);
 
-      // Change config deleting executors named small, medium, and large. There was bug where
-      // deleting executors running compactions would leave the tablet in a bad state for future
+      // Change config deleting groups named small, medium, and large. There was bug where
+      // deleting groups running compactions would leave the tablet in a bad state for future
       // compactions. Because the compactions are running slow, expect this config change to overlap
       // with running compactions.
       client.instanceOperations().setProperty(
-          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.executors",
-          ("[{'name':'little','type':'internal','maxSize':'128M','numThreads':8},"
-              + "{'name':'big','type':'internal','numThreads':2}]").replaceAll("'", "\""));
+          Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.groups",
+          ("[{'group':'little','maxSize':'128M'},{'group':'big'}]").replaceAll("'", "\""));
 
       Wait.waitFor(() -> countFiles(client, table, "F") == 0, 60000);
 

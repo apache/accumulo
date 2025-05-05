@@ -18,27 +18,24 @@
  */
 package org.apache.accumulo.manager.tableOps.compact.cancel;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CancelCompactions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   private static final Logger log = LoggerFactory.getLogger(CancelCompactions.class);
 
@@ -48,51 +45,29 @@ public class CancelCompactions extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, LockType.READ, true,
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT_CANCEL)
-        + Utils.reserveTable(env, tableId, tid, LockType.READ, true, TableOperation.COMPACT_CANCEL);
+        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true,
+            TableOperation.COMPACT_CANCEL);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
-    mutateZooKeeper(tid, tableId, environment);
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
+    var idsToCancel =
+        CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
+
+    for (var idToCancel : idsToCancel) {
+      log.debug("{} deleting compaction config {}", fateId, idToCancel);
+      CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
+    }
     return new FinishCancelCompaction(namespaceId, tableId);
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, LockType.READ);
-    Utils.unreserveNamespace(env, namespaceId, tid, LockType.READ);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
   }
 
-  public static void mutateZooKeeper(long tid, TableId tableId, Manager environment)
-      throws Exception {
-    String zCompactID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES
-        + "/" + tableId + Constants.ZTABLE_COMPACT_ID;
-    String zCancelID = Constants.ZROOT + "/" + environment.getInstanceID() + Constants.ZTABLES + "/"
-        + tableId + Constants.ZTABLE_COMPACT_CANCEL_ID;
-
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
-
-    byte[] currentValue = zoo.getData(zCompactID);
-
-    String cvs = new String(currentValue, UTF_8);
-    String[] tokens = cvs.split(",");
-    final long flushID = Long.parseLong(tokens[0]);
-
-    zoo.mutateExisting(zCancelID, currentValue2 -> {
-      long cid = Long.parseLong(new String(currentValue2, UTF_8));
-
-      if (cid < flushID) {
-        log.debug("{} setting cancel compaction id to {} for {}", FateTxId.formatTid(tid), flushID,
-            tableId);
-        return Long.toString(flushID).getBytes(UTF_8);
-      } else {
-        log.debug("{} leaving cancel compaction id as {} for {}", FateTxId.formatTid(tid), cid,
-            tableId);
-        return Long.toString(cid).getBytes(UTF_8);
-      }
-    });
-  }
 }

@@ -36,8 +36,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -200,7 +200,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
   }
 
   private Scanner createMetadataFileScanner(AccumuloClient client, String table) throws Exception {
-    var scanner = client.createScanner(AccumuloTable.METADATA.tableName());
+    var scanner = client.createScanner(SystemTables.METADATA.tableName());
     var tableId = TableId.of(client.tableOperations().tableIdMap().get(table));
     var range = new KeyExtent(tableId, null, null).toMetaRange();
     scanner.setRange(range);
@@ -212,10 +212,10 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
     client.tableOperations().offline(table, true);
 
     client.securityOperations().grantTablePermission(getPrincipal(),
-        AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+        SystemTables.METADATA.tableName(), TablePermission.WRITE);
 
     try (var scanner = createMetadataFileScanner(client, table);
-        var writer = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+        var writer = client.createBatchWriter(SystemTables.METADATA.tableName())) {
       scanner.forEach((k, v) -> {
         Mutation m = new Mutation(k.getRow());
         var qual = k.getColumnQualifierData().toString();
@@ -231,7 +231,7 @@ public class FileNormalizationIT extends SharedMiniClusterBase {
       });
     } finally {
       client.securityOperations().revokeTablePermission(getPrincipal(),
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+          SystemTables.METADATA.tableName(), TablePermission.WRITE);
       client.tableOperations().online(table, true);
     }
   }

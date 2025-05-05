@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.Constants.IMPORT_MAPPINGS_FILE;
 
 import java.util.EnumSet;
 
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
@@ -35,19 +36,19 @@ class FinishImportTable extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   public FinishImportTable(ImportedTableInfo ti) {
     this.tableInfo = ti;
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
 
     if (!tableInfo.keepMappings) {
       for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
@@ -59,14 +60,14 @@ class FinishImportTable extends ManagerRepo {
     final TableState newState = tableInfo.keepOffline ? TableState.OFFLINE : TableState.ONLINE;
     env.getTableManager().transitionTableState(tableInfo.tableId, newState, expectedCurrStates);
 
-    Utils.unreserveNamespace(env, tableInfo.namespaceId, tid, LockType.READ);
-    Utils.unreserveTable(env, tableInfo.tableId, tid, LockType.WRITE);
+    Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
-      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), tid);
+      Utils.unreserveHdfsDirectory(env, new Path(dm.exportDir).toString(), fateId);
     }
 
-    env.getEventCoordinator().event("Imported table %s ", tableInfo.tableName);
+    env.getEventCoordinator().event(tableInfo.tableId, "Imported table %s ", tableInfo.tableName);
 
     LoggerFactory.getLogger(FinishImportTable.class)
         .debug("Imported table " + tableInfo.tableId + " " + tableInfo.tableName);
@@ -80,6 +81,6 @@ class FinishImportTable extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) {}
+  public void undo(FateId fateId, Manager env) {}
 
 }

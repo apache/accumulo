@@ -40,10 +40,9 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.gc.ReferenceDirectory;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.hadoop.fs.Path;
@@ -152,7 +151,7 @@ public class GarbageCollectionTest {
 
     public void addDirReference(String tableId, String endRow, String dir) {
       TableId tid = TableId.of(tableId);
-      references.put(tableId + ":" + endRow, new ReferenceDirectory(tid, dir));
+      references.put(tableId + ":" + endRow, ReferenceFile.forDirectory(tid, dir));
       tableIds.add(tid);
     }
 
@@ -196,9 +195,9 @@ public class GarbageCollectionTest {
     @Override
     public Set<TableId> getCandidateTableIDs() {
       if (level == Ample.DataLevel.ROOT) {
-        return Set.of(AccumuloTable.ROOT.tableId());
+        return Set.of(SystemTables.ROOT.tableId());
       } else if (level == Ample.DataLevel.METADATA) {
-        return Collections.singleton(AccumuloTable.METADATA.tableId());
+        return Collections.singleton(SystemTables.METADATA.tableId());
       } else if (level == Ample.DataLevel.USER) {
         Set<TableId> tableIds = new HashSet<>();
         getTableIDs().forEach((k, v) -> {
@@ -208,8 +207,8 @@ public class GarbageCollectionTest {
             tableIds.add(k);
           }
         });
-        tableIds.remove(AccumuloTable.METADATA.tableId());
-        tableIds.remove(AccumuloTable.ROOT.tableId());
+        tableIds.remove(SystemTables.METADATA.tableId());
+        tableIds.remove(SystemTables.ROOT.tableId());
         return tableIds;
       } else {
         throw new IllegalArgumentException("unknown level " + level);

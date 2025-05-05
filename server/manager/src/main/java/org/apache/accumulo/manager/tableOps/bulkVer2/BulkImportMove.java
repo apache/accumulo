@@ -18,25 +18,24 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BULK_IMPORT_DIR_MOVE_POOL;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.bulk.BulkSerialize;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.FateTxId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.zookeeper.TransactionWatcher.ZooArbitrator;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,25 +68,19 @@ class BulkImportMove extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     final Path bulkDir = new Path(bulkInfo.bulkDir);
     final Path sourceDir = new Path(bulkInfo.sourceDir);
 
-    String fmtTid = FateTxId.formatTid(tid);
-
-    log.debug("{} sourceDir {}", fmtTid, sourceDir);
+    log.debug("{} sourceDir {}", fateId, sourceDir);
 
     VolumeManager fs = manager.getVolumeManager();
-
-    if (bulkInfo.tableState == TableState.ONLINE) {
-      ZooArbitrator.start(manager.getContext(), Constants.BULK_ARBITRATOR_TYPE, tid);
-    }
 
     try {
       manager.updateBulkImportStatus(sourceDir.toString(), BulkImportState.MOVING);
       Map<String,String> oldToNewNameMap =
           BulkSerialize.readRenameMap(bulkDir.toString(), fs::open);
-      moveFiles(tid, sourceDir, bulkDir, manager, fs, oldToNewNameMap);
+      moveFiles(fateId, sourceDir, bulkDir, manager, fs, oldToNewNameMap);
 
       return new LoadFiles(bulkInfo);
     } catch (Exception ex) {
@@ -100,14 +93,13 @@ class BulkImportMove extends ManagerRepo {
   /**
    * For every entry in renames, move the file from the key path to the value path
    */
-  private void moveFiles(long tid, Path sourceDir, Path bulkDir, Manager manager,
+  private void moveFiles(FateId fateId, Path sourceDir, Path bulkDir, Manager manager,
       final VolumeManager fs, Map<String,String> renames) throws Exception {
     manager.getContext().getAmple().addBulkLoadInProgressFlag(
-        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), tid);
+        "/" + bulkDir.getParent().getName() + "/" + bulkDir.getName(), fateId);
     AccumuloConfiguration aConf = manager.getConfiguration();
     int workerCount = aConf.getCount(Property.MANAGER_RENAME_THREADS);
     Map<Path,Path> oldToNewMap = new HashMap<>();
-    String fmtTid = FateTxId.formatTid(tid);
 
     for (Map.Entry<String,String> renameEntry : renames.entrySet()) {
       final Path originalPath = new Path(sourceDir, renameEntry.getKey());
@@ -115,7 +107,7 @@ class BulkImportMove extends ManagerRepo {
       oldToNewMap.put(originalPath, newPath);
     }
     try {
-      fs.bulkRename(oldToNewMap, workerCount, "bulkDir move", fmtTid);
+      fs.bulkRename(oldToNewMap, workerCount, BULK_IMPORT_DIR_MOVE_POOL.poolName, fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
           TableOperation.BULK_IMPORT, TableOperationExceptionType.OTHER,

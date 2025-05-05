@@ -78,7 +78,6 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.Local
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
@@ -377,8 +376,8 @@ public class RFile {
   }
 
   private static class SampleEntry {
-    Key key;
-    Value val;
+    final Key key;
+    final Value val;
 
     SampleEntry(Key key, Value val) {
       this.key = new Key(key);
@@ -388,12 +387,12 @@ public class RFile {
 
   private static class SampleLocalityGroupWriter {
 
-    private Sampler sampler;
+    private final Sampler sampler;
 
-    private List<SampleEntry> entries = new ArrayList<>();
+    private final List<SampleEntry> entries = new ArrayList<>();
     private long dataSize = 0;
 
-    private LocalityGroupWriter lgw;
+    private final LocalityGroupWriter lgw;
 
     public SampleLocalityGroupWriter(LocalityGroupWriter lgw, Sampler sampler) {
       this.lgw = lgw;
@@ -437,7 +436,7 @@ public class RFile {
 
   private static class LocalityGroupWriter {
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
     private BlockAppender blockWriter;
 
     private final long blockSize;
@@ -450,10 +449,10 @@ public class RFile {
 
     private Key prevKey = new Key();
 
-    private SampleLocalityGroupWriter sample;
+    private final SampleLocalityGroupWriter sample;
 
     // Use windowed stats to fix ACCUMULO-4669
-    private RollingStats keyLenStats = new RollingStats(2017);
+    private final RollingStats keyLenStats = new RollingStats(2017);
     private double averageKeySize = 0;
 
     LocalityGroupWriter(BCFile.Writer fileWriter, long blockSize, long maxBlockSize,
@@ -569,14 +568,14 @@ public class RFile {
     public static final int MAX_CF_IN_DLG = 1000;
     private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
 
     private final long blockSize;
     private final long maxBlockSize;
     private final int indexBlockSize;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private LocalityGroupMetadata sampleLocalityGroup = null;
 
@@ -584,13 +583,13 @@ public class RFile {
     private boolean closed = false;
     private boolean startedDefaultLocalityGroup = false;
 
-    private HashSet<ByteSequence> previousColumnFamilies;
+    private final HashSet<ByteSequence> previousColumnFamilies;
     private long length = -1;
 
     private LocalityGroupWriter lgWriter;
 
-    private SamplerConfigurationImpl samplerConfig;
-    private Sampler sampler;
+    private final SamplerConfigurationImpl samplerConfig;
+    private final Sampler sampler;
 
     public Writer(BCFile.Writer bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance()
@@ -763,13 +762,13 @@ public class RFile {
 
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
-    private CachableBlockFile.Reader reader;
-    private MultiLevelIndex.Reader index;
-    private int blockCount;
-    private Key firstKey;
-    private int startBlock;
+    private final CachableBlockFile.Reader reader;
+    private final MultiLevelIndex.Reader index;
+    private final int blockCount;
+    private final Key firstKey;
+    private final int startBlock;
     private boolean closed = false;
-    private int version;
+    private final int version;
     private boolean checkRange = true;
 
     private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,
@@ -993,7 +992,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
           SkippR skippr =
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
@@ -1055,7 +1054,7 @@ public class RFile {
             hasTop = true;
           }
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -1072,7 +1071,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new MutableByteSequence(val.get(), 0, val.getSize());
+                valbs.reset(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
@@ -1295,24 +1294,32 @@ public class RFile {
       this(new CachableBlockFile.Reader(b));
     }
 
-    private void closeLocalityGroupReaders() {
+    private void closeLocalityGroupReaders(boolean ignoreIOExceptions) throws IOException {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
-          log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          if (ignoreIOExceptions) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          } else {
+            throw e;
+          }
         }
       }
     }
 
     @Override
-    public void closeDeepCopies() {
+    public void closeDeepCopies() throws IOException {
+      closeDeepCopies(false);
+    }
+
+    private void closeDeepCopies(boolean ignoreIOExceptions) throws IOException {
       if (deepCopy) {
         throw new IllegalStateException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
-        deepCopy.closeLocalityGroupReaders();
+        deepCopy.closeLocalityGroupReaders(ignoreIOExceptions);
       }
 
       deepCopies.clear();
@@ -1324,8 +1331,9 @@ public class RFile {
         throw new IllegalStateException("Calling close on a deep copy is not supported");
       }
 
-      closeDeepCopies();
-      closeLocalityGroupReaders();
+      // Closes as much as possible igoring and logging exceptions along the way
+      closeDeepCopies(true);
+      closeLocalityGroupReaders(true);
 
       if (sampleReaders != null) {
         for (LocalityGroupReader lgr : sampleReaders) {
@@ -1712,7 +1720,7 @@ public class RFile {
 
       // If exclusive we need to strip the last byte to get the last key that is part of the
       // actual range to return
-      final byte[] ba = key.getRow().getBytes();
+      final byte[] ba = key.getRowData().toArray();
       Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
       byte[] fba = new byte[ba.length - 1];
       System.arraycopy(ba, 0, fba, 0, ba.length - 1);

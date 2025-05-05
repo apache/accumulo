@@ -62,7 +62,7 @@ public class Violations {
 
   public static final Violations EMPTY = new Violations(Collections.emptyMap());
 
-  private Map<CVSKey,ConstraintViolationSummary> cvsmap;
+  private final Map<CVSKey,ConstraintViolationSummary> cvsmap;
 
   /**
    * Creates a new empty object.

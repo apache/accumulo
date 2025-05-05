@@ -70,7 +70,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setNumTservers(1);
+      cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     }
 
   }
@@ -256,7 +256,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
   public static void setInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
       TableId tableId) {
-    TablePropKey key = TablePropKey.of(context, tableId);
+    TablePropKey key = TablePropKey.of(tableId);
     context.getPropStore().putAll(key,
         Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid"));
   }

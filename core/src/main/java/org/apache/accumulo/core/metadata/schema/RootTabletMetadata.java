@@ -28,17 +28,21 @@ import java.nio.charset.CharsetDecoder;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * This class is used to serialize and deserialize root tablet metadata using GSon. The only data
@@ -57,17 +61,36 @@ public class RootTabletMetadata {
 
   private static final int VERSION = 1;
 
+  /**
+   * Reads the tablet metadata for the root tablet from zookeeper
+   */
+  public static RootTabletMetadata read(ClientContext ctx) {
+    try {
+      ZooReader zooReader = ctx.getZooSession().asReader();
+      // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
+      // zookeeper
+      zooReader.sync(RootTable.ZROOT_TABLET);
+      byte[] bytes = zooReader.getData(RootTable.ZROOT_TABLET);
+      return new RootTabletMetadata(new String(bytes, UTF_8));
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
+
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The data is mapped using Strings as follows:
      *
      * TreeMap<column_family, TreeMap<column_qualifier, value>>
      */
-    private final TreeMap<String,TreeMap<String,String>> columnValues;
+    private TreeMap<String,TreeMap<String,String>> columnValues;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Data() {}
 
     private Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
       this.version = version;
@@ -152,7 +175,7 @@ public class RootTabletMetadata {
     }
   }
 
-  public Stream<SimpleImmutableEntry<Key,Value>> toKeyValues() {
+  public Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {
     String row = RootTable.EXTENT.toMetaRow().toString();
     return data.columnValues.entrySet().stream()
         .flatMap(famToQualVal -> famToQualVal.getValue().entrySet().stream()
@@ -161,13 +184,19 @@ public class RootTabletMetadata {
                 new Value(qualVal.getValue()))));
   }
 
+  public SortedMap<Key,Value> toKeyValues() {
+    TreeMap<Key,Value> metamap = new TreeMap<>();
+    getKeyValues().forEach(e -> metamap.put(e.getKey(), e.getValue()));
+    return metamap;
+  }
+
   /**
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
     // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
-    return TabletMetadata.convertRow(toKeyValues().iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+    return TabletMetadata.convertRow(getKeyValues().iterator(),
+        EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
   }
 
   public static boolean needsUpgrade(final String json) {
@@ -180,5 +209,4 @@ public class RootTabletMetadata {
   public String toJson() {
     return GSON.get().toJson(data);
   }
-
 }

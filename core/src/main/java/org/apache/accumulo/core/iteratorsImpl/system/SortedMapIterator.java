@@ -48,7 +48,7 @@ public class SortedMapIterator implements InterruptibleIterator {
   private Iterator<Entry<Key,Value>> iter;
   private Entry<Key,Value> entry;
 
-  private SortedMap<Key,Value> map;
+  private final SortedMap<Key,Value> map;
   private Range range;
 
   private AtomicBoolean interruptFlag;

@@ -36,8 +36,8 @@ import org.apache.hadoop.io.Text;
  */
 public class Condition {
 
-  private ByteSequence cf;
-  private ByteSequence cq;
+  private final ByteSequence cf;
+  private final ByteSequence cq;
   private ByteSequence cv;
   private ByteSequence val;
   private Long ts;
@@ -207,6 +207,21 @@ public class Condition {
     checkArgument(value != null, "value is null");
     this.val = value;
     return this;
+  }
+
+  /**
+   * This method sets the expected value of a column. In order for the condition to pass the column
+   * must exist and have this value. If a value is not set, then the column must be absent for the
+   * condition to pass. See {@link #setValue(byte[])}.
+   *
+   * @param value value
+   * @return this condition
+   * @throws IllegalArgumentException if value is null
+   * @since 4.0.0
+   */
+  public Condition setValue(Value value) {
+    checkArgument(value != null, "value is null");
+    return setValue(value.get());
   }
 
   /**

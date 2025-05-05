@@ -37,11 +37,14 @@ import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.rfile.RFile.Reader;
 import org.apache.accumulo.core.file.rfile.bcfile.MetaBlockDoesNotExist;
+import org.apache.accumulo.core.logging.LoggingBlockCache;
 import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheEntry;
+import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.summary.Gatherer.RowRange;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.WritableUtils;
@@ -56,8 +59,8 @@ public class SummaryReader {
 
   private static class CompositeCache implements BlockCache {
 
-    private BlockCache summaryCache;
-    private BlockCache indexCache;
+    private final BlockCache summaryCache;
+    private final BlockCache indexCache;
 
     CompositeCache(BlockCache summaryCache, BlockCache indexCache) {
       this.summaryCache = summaryCache;
@@ -178,8 +181,9 @@ public class SummaryReader {
   public static SummaryReader load(Configuration conf, RFileSource source, String cacheId,
       Predicate<SummarizerConfiguration> summarySelector, SummarizerFactory factory,
       CryptoService cryptoService) throws IOException {
-    CachableBuilder cb = new CachableBuilder().input(source.getInputStream(), cacheId)
-        .length(source.getLength()).conf(conf).cryptoService(cryptoService);
+    CachableBuilder cb =
+        new CachableBuilder().input((FSDataInputStream) source.getInputStream(), cacheId)
+            .length(source.getLength()).conf(conf).cryptoService(cryptoService);
     return load(new CachableBlockFile.Reader(cb), summarySelector, factory);
   }
 
@@ -191,7 +195,9 @@ public class SummaryReader {
     try {
       // the reason BCFile is used instead of RFile is to avoid reading in the RFile meta block when
       // only summary data is wanted.
-      CompositeCache compositeCache = new CompositeCache(summaryCache, indexCache);
+      CompositeCache compositeCache =
+          new CompositeCache(LoggingBlockCache.wrap(CacheType.SUMMARY, summaryCache),
+              LoggingBlockCache.wrap(CacheType.INDEX, indexCache));
       CachableBuilder cb = new CachableBuilder().fsPath(fs, file).conf(conf).fileLen(fileLenCache)
           .cacheProvider(new BasicCacheProvider(compositeCache, null)).cryptoService(cryptoService);
       bcReader = new CachableBlockFile.Reader(cb);

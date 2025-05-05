@@ -21,12 +21,9 @@ package org.apache.accumulo.tserver;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.thrift.TabletLoadState;
-import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
-import org.apache.accumulo.core.util.time.NanoTime;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.state.DistributedStoreException;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
@@ -40,7 +37,7 @@ class UnloadTabletHandler implements Runnable {
   private final KeyExtent extent;
   private final TUnloadTabletGoal goalState;
   private final SteadyTime requestTime;
-  private final NanoTime createTime;
+  private final Timer createTime;
   private final TabletServer server;
 
   public UnloadTabletHandler(TabletServer server, KeyExtent extent, TUnloadTabletGoal goalState,
@@ -49,7 +46,7 @@ class UnloadTabletHandler implements Runnable {
     this.goalState = goalState;
     this.server = server;
     this.requestTime = requestTime;
-    this.createTime = NanoTime.now();
+    this.createTime = Timer.startNew();
   }
 
   @Override
@@ -109,19 +106,13 @@ class UnloadTabletHandler implements Runnable {
     server.onlineTablets.remove(extent);
 
     try {
-      TServerInstance instance = server.getTabletSession();
-      TabletLocationState tls = null;
-      try {
-        tls = new TabletLocationState(extent, null, Location.current(instance), null, null, null);
-      } catch (BadLocationStateException e) {
-        log.error("Unexpected error", e);
-      }
+      TabletMetadata tm = t.getMetadata();
       if (!goalState.equals(TUnloadTabletGoal.SUSPENDED) || extent.isRootTablet()
           || (extent.isMeta()
               && !server.getConfiguration().getBoolean(Property.MANAGER_METADATA_SUSPENDABLE))) {
-        TabletStateStore.unassign(server.getContext(), tls, null);
+        TabletStateStore.unassign(server.getContext(), tm, null);
       } else {
-        TabletStateStore.suspend(server.getContext(), tls, null,
+        TabletStateStore.suspend(server.getContext(), tm, null,
             requestTime.plus(createTime.elapsed()));
       }
     } catch (DistributedStoreException ex) {

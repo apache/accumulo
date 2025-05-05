@@ -52,7 +52,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -63,9 +62,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator.Behavior;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.VisibilityFilter;
-import org.apache.accumulo.core.metadata.MetadataServicer;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory;
 import org.apache.accumulo.core.util.Stat;
@@ -73,6 +72,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -82,7 +82,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -102,8 +101,6 @@ public class CollectTabletStats {
     @Parameter(names = "--columns", description = "comma separated list of columns")
     String columns;
   }
-
-  static class TestEnvironment implements IteratorEnvironment {}
 
   public static void main(String[] args) throws Exception {
 
@@ -356,22 +353,25 @@ public class CollectTabletStats {
       String tableName, SortedMap<KeyExtent,String> tabletLocations) throws Exception {
 
     TableId tableId = context.getTableId(tableName);
-    MetadataServicer.forTableId(context, tableId).getTabletLocations(tabletLocations);
 
     InetAddress localaddress = InetAddress.getLocalHost();
 
     List<KeyExtent> candidates = new ArrayList<>();
 
-    for (Entry<KeyExtent,String> entry : tabletLocations.entrySet()) {
-      String loc = entry.getValue();
-      if (loc != null) {
-        boolean isLocal =
-            HostAndPort.fromString(entry.getValue()).getHost().equals(localaddress.getHostName());
+    try (var tabletsMeta = context.getAmple().readTablets().forTable(tableId)
+        .fetch(TabletMetadata.ColumnType.LOCATION).checkConsistency().build()) {
+      for (var tabletMeta : tabletsMeta) {
+        var loc = tabletMeta.getLocation();
+        if (loc != null && loc.getType() == TabletMetadata.LocationType.CURRENT) {
+          boolean isLocal = loc.getHost().equals(localaddress.getHostName());
 
-        if (selectLocalTablets && isLocal) {
-          candidates.add(entry.getKey());
-        } else if (!selectLocalTablets && !isLocal) {
-          candidates.add(entry.getKey());
+          if (selectLocalTablets && isLocal) {
+            candidates.add(tabletMeta.getExtent());
+            tabletLocations.put(tabletMeta.getExtent(), loc.getHostPort());
+          } else if (!selectLocalTablets && !isLocal) {
+            candidates.add(tabletMeta.getExtent());
+            tabletLocations.put(tabletMeta.getExtent(), loc.getHostPort());
+          }
         }
       }
     }
@@ -429,8 +429,8 @@ public class CollectTabletStats {
   private static SortedKeyValueIterator<Key,Value> createScanIterator(KeyExtent ke,
       Collection<SortedKeyValueIterator<Key,Value>> dataFiles, Authorizations authorizations,
       byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf)
-      throws IOException {
+      Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf,
+      ServerContext context) throws IOException {
 
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
 
@@ -449,7 +449,9 @@ public class CollectTabletStats {
 
     if (useTableIterators) {
       var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      var iteratorBuilder = ibEnv.env(new TestEnvironment()).useClassLoader("test").build();
+      TabletIteratorEnvironment iterEnv =
+          new TabletIteratorEnvironment(context, IteratorScope.scan, conf, ke.tableId());
+      var iteratorBuilder = ibEnv.env(iterEnv).useClassLoader("test").build();
       return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }
     return visFilter;
@@ -506,7 +508,7 @@ public class CollectTabletStats {
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
     TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
-        emptySsio, useTableIterators, tconf);
+        emptySsio, useTableIterators, tconf, context);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 

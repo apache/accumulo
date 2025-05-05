@@ -25,10 +25,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.concurrent.Executor;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -113,7 +115,9 @@ public interface TableOperations {
       throws AccumuloSecurityException, AccumuloException, TableExistsException;
 
   /**
-   * Imports a table exported via exportTable and copied via hadoop distcp.
+   * Imports a table exported via exportTable and copied via hadoop distcp. All tablets in the new
+   * table created via this operation will have the {@link TabletAvailability#ONDEMAND}
+   * availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param importDir A directory containing the files copied by distcp from exportTable
@@ -127,7 +131,8 @@ public interface TableOperations {
 
   /**
    * Imports a table exported via {@link #exportTable(String, String)} and then copied via hadoop
-   * distcp.
+   * distcp. All tablets in the new table created via this operation will have the
+   * {@link TabletAvailability#ONDEMAND} availability.
    *
    * @param tableName Name of a table to create and import into.
    * @param ic ImportConfiguration for the table being created. If no configuration is needed pass
@@ -181,6 +186,32 @@ public interface TableOperations {
    * @throws TableNotFoundException if the table does not exist
    */
   void addSplits(String tableName, SortedSet<Text> partitionKeys)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
+
+  /**
+   *
+   * Ensures that tablets are split along a set of keys.
+   *
+   * TODO: This method currently only adds new splits (existing are stripped). The intent in a
+   * future PR is so support updating existing splits and the TabletMergeabilty setting. See
+   * https://github.com/apache/accumulo/issues/5014
+   *
+   * <p>
+   * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
+   * encoding is not enforced by operations that work with byte arrays.
+   * <p>
+   * For example, you can create 256 evenly-sliced splits via the following code sample even though
+   * the given byte sequences are not valid UTF-8.
+   *
+   * @param tableName the name of the table
+   * @param splits a sorted map of row key values to pre-split the table on and associated
+   *        TabletMergeability
+   *
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   * @throws TableNotFoundException if the table does not exist
+   */
+  void putSplits(String tableName, SortedMap<Text,TabletMergeability> splits)
       throws TableNotFoundException, AccumuloException, AccumuloSecurityException;
 
   /**
@@ -246,7 +277,8 @@ public interface TableOperations {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException;
 
   /**
-   * Delete rows between (start, end]
+   * Delete rows between (start, end]. This operation may remove some of the table splits that fall
+   * within the range.
    *
    * @param tableName the table to merge
    * @param start delete rows after this, null means the first row of the table
@@ -304,8 +336,23 @@ public interface TableOperations {
    * </ul>
    *
    * <p>
-   * If two threads call this method concurrently for the same table and set one or more of the
-   * above then one thread will fail.
+   * Starting with Accumulo, 4.0 concurrent compactions can be initiated on a table with different
+   * configuration. Prior to 4.0, if this were done, then only one compaction would work and the
+   * others would throw an exception. When concurrent compactions with different configuration run,
+   * each tablet will be compacted once for each user initiated compaction in some arbitrary order.
+   * For example consider the following situation.
+   *
+   * <ol>
+   * <li>Table A has three tablets Tab1, Tab2, Tab3</li>
+   * <li>This method is called to initiate a compaction on Tablets Tab1 and Tab2 with iterator
+   * I1</li>
+   * <li>This method is called to initiate a compaction on Tablets Tab2 and Tab3 with iterator
+   * I2</li>
+   * <li>Tablet Tab1 will compact with iterator I1</li>
+   * <li>Two compactions will happen for tablet Tab2. It will either compact with iterator I1 and
+   * then I2 OR it will compact with iterator I2 and then I1.</li>
+   * <li>Tablet Tab3 will compact with iterator I2</li>
+   * </ol>
    *
    * @param tableName the table to compact
    * @param config the configuration to use
@@ -989,6 +1036,33 @@ public interface TableOperations {
    * @since 2.1.0
    */
   default TimeType getTimeType(String tableName) throws TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * Sets the tablet availability for a range of Tablets in the specified table, but does not wait
+   * for the tablets to reach this availability state. For the Range parameter, note that the Row
+   * portion of the start and end Keys and the inclusivity parameters are used when determining the
+   * range of affected tablets. The other portions of the start and end Keys are not used.
+   *
+   * @param tableName table name
+   * @param range tablet range
+   * @param tabletAvailability tablet availability
+   * @since 4.0.0
+   */
+  default void setTabletAvailability(String tableName, Range range,
+      TabletAvailability tabletAvailability)
+      throws AccumuloSecurityException, AccumuloException, TableNotFoundException {
+    throw new UnsupportedOperationException();
+  }
+
+  /**
+   * @return a stream of tablet information for tablets that fall in the specified range. The stream
+   *         may be backed by a scanner, so it's best to close the stream.
+   * @since 4.0.0
+   */
+  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
+      throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 

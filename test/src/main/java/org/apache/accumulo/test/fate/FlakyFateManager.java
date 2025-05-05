@@ -21,24 +21,23 @@ package org.apache.accumulo.test.fate;
 import java.io.IOException;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.Fate;
-import org.apache.accumulo.core.fate.TStore;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
+import org.apache.accumulo.server.ServerContext;
 import org.slf4j.LoggerFactory;
 
 public class FlakyFateManager extends Manager {
-
   protected FlakyFateManager(ConfigOpts opts, String[] args) throws IOException {
-    super(opts, args);
+    super(opts, ServerContext::new, args);
   }
 
   @Override
-  protected Fate<Manager> initializeFateInstance(TStore<Manager> store,
-      AccumuloConfiguration conf) {
-    LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate");
-    return new FlakyFate<>(this, store, TraceRepo::toLogString, conf);
+  protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
+    LoggerFactory.getLogger(FlakyFateManager.class).info("Creating Flaky Fate for {}",
+        store.type());
+    return new FlakyFate<>(this, store, TraceRepo::toLogString, getConfiguration());
   }
 
   public static void main(String[] args) throws Exception {

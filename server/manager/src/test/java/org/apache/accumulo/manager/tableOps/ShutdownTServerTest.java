@@ -24,7 +24,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.UUID;
 
+import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -45,10 +49,11 @@ public class ShutdownTServerTest {
     final TServerInstance tserver = new TServerInstance(hap, "fake");
     final boolean force = false;
 
-    final ShutdownTServer op = new ShutdownTServer(tserver, force);
+    final ShutdownTServer op =
+        new ShutdownTServer(tserver, Constants.DEFAULT_RESOURCE_GROUP_NAME, force);
 
     final Manager manager = EasyMock.createMock(Manager.class);
-    final long tid = 1L;
+    final FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
     final TServerConnection tserverCnxn = EasyMock.createMock(TServerConnection.class);
     final TabletServerStatus status = new TabletServerStatus();
@@ -65,7 +70,7 @@ public class ShutdownTServerTest {
     EasyMock.replay(tserverCnxn, manager);
 
     // FATE op is not ready
-    long wait = op.isReady(tid, manager);
+    long wait = op.isReady(fateId, manager);
     assertTrue(wait > 0, "Expected wait to be greater than 0");
 
     EasyMock.verify(tserverCnxn, manager);
@@ -87,10 +92,10 @@ public class ShutdownTServerTest {
     EasyMock.replay(tserverCnxn, manager);
 
     // FATE op is not ready
-    wait = op.isReady(tid, manager);
+    wait = op.isReady(fateId, manager);
     assertEquals(0, wait, "Expected wait to be 0");
 
-    Repo<Manager> op2 = op.call(tid, manager);
+    Repo<Manager> op2 = op.call(fateId, manager);
     assertNull(op2, "Expected no follow on step");
 
     EasyMock.verify(tserverCnxn, manager);
