@@ -73,6 +73,7 @@ public class Upgrader12to13 implements Upgrader {
 
   @VisibleForTesting
   static final String ZTABLE_NAME = "/name";
+  static final String ZTABLE_NAMESPACE = "/namespace";
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
@@ -415,7 +416,7 @@ public class Upgrader12to13 implements Upgrader {
         var tableName =
             new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
         var namespaceId = new String(
-            zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+            zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAMESPACE), UTF_8);
         mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
             (tid, existingName) -> {
               if (existingName != null) {
@@ -443,13 +444,13 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void moveZkTables(ServerContext context) {
+  void moveZkTables(ServerContext context) {
     final var zrw = context.getZooSession().asReaderWriter();
     try {
       List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
       for (String tableId : tableIds) {
         String oldPath = Constants.ZTABLES + "/" + tableId;
-        String tableNamespaceNode = oldPath + Constants.ZTABLE_NAMESPACE;
+        String tableNamespaceNode = oldPath + ZTABLE_NAMESPACE;
         if (!zrw.exists(oldPath)) {
           throw new IllegalStateException("Source table path does not exist: " + oldPath);
         } else if (!zrw.exists(tableNamespaceNode)) {
@@ -480,7 +481,7 @@ public class Upgrader12to13 implements Upgrader {
     byte[] data = zrw.getData(from);
     zrw.putPersistentData(to, data, ZooUtil.NodeExistsPolicy.OVERWRITE);
     for (String child : zrw.getChildren(from)) {
-      if (child.equals(Constants.ZTABLE_NAMESPACE.substring(1))) {
+      if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
         continue;
       }
       moveZkNode(context, from + "/" + child, to + "/" + child);

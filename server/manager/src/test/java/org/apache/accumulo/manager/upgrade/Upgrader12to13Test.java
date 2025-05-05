@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.manager.upgrade.Upgrader12to13.ZTABLE_NAME;
+import static org.apache.accumulo.manager.upgrade.Upgrader12to13.ZTABLE_NAMESPACE;
 import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createStrictMock;
@@ -106,7 +107,7 @@ public class Upgrader12to13Test {
     for (String tableId : mockTableIds) {
       expect(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME))
           .andReturn(mockTables.get(tableId).getBytes(UTF_8)).once();
-      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE))
+      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAMESPACE))
           .andReturn(mockTableToNamespace.get(tableId).getBytes(UTF_8)).once();
     }
 
@@ -131,6 +132,66 @@ public class Upgrader12to13Test {
 
     replay(context, zk, zrw);
     upgrader.addTableMappingsToZooKeeper(context);
+    verify(context, zk, zrw);
+  }
+
+  @Test
+  public void testMovingZkTables() throws InterruptedException, KeeperException {
+    Upgrader12to13 upgrader = new Upgrader12to13();
+    InstanceId iid = InstanceId.of(UUID.randomUUID());
+
+    ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createStrictMock(ZooSession.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+
+    expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+
+    List<String> mockTableIds = List.of("t1", "t2");
+    Map<String,String> tableToNamespace = Map.of("t1", "ns1", "t2", "ns2");
+    Map<String,List<String>> tableChildren = Map.of("t1", List.of("flush-id", "state", "tableNamespace"),
+            "t2", List.of("flush-id", "state", "tableNamespace"));
+
+
+    expect(zrw.getChildren(eq(Constants.ZTABLES))).andReturn(mockTableIds).once();
+
+    for (String tableId : mockTableIds) {
+      String oldPath = Constants.ZTABLES + "/" + tableId;
+      String tableNamespaceNode = oldPath + ZTABLE_NAMESPACE;
+      String newPath = Constants.ZNAMESPACES + tableToNamespace.get(tableId) + Constants.ZTABLES + tableId;
+
+      expect(zrw.exists(eq(oldPath))).andReturn(true).once();
+      expect(zrw.exists(eq(tableNamespaceNode))).andReturn(true).once();
+      expect(zrw.getData(eq(tableNamespaceNode))).andReturn(tableToNamespace.get(tableId).getBytes(UTF_8)).once();
+
+      expect(zrw.getData(eq(oldPath))).andReturn(("data_" + tableId).getBytes(UTF_8)).once();
+      expect(zrw.putPersistentData(eq(newPath), eq(("data_" + tableId).getBytes(UTF_8)),
+              eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+      expect(zrw.getChildren(eq(oldPath))).andReturn(tableChildren.get(tableId)).once();
+      for (String child : tableChildren.get(tableId)) {
+        if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
+          continue;
+        }
+        String childFrom = oldPath + "/" + child;
+        String childTo = newPath + "/" + child;
+        expect(zrw.getData(eq(childFrom))).andReturn(("data_" + tableId + "_" + child).getBytes(UTF_8)).once();
+        expect(zrw.putPersistentData(eq(childTo), eq(("data_" + tableId + "_" + child).getBytes(UTF_8)),
+                eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+        expect(zrw.getChildren(eq(childFrom))).andReturn(List.of()).once();
+        zrw.recursiveDelete(eq(childFrom), eq(NodeMissingPolicy.SKIP));
+        expectLastCall().once();
+      }
+      zrw.recursiveDelete(eq(oldPath), eq(NodeMissingPolicy.SKIP));
+      expectLastCall().once();
+
+      expect(zrw.exists(eq(tableNamespaceNode))).andReturn(true).once();
+      zrw.recursiveDelete(eq(tableNamespaceNode), eq(NodeMissingPolicy.SKIP));
+      expectLastCall().once();
+    }
+
+    replay(context, zk, zrw);
+    upgrader.moveZkTables(context);
     verify(context, zk, zrw);
   }
 }

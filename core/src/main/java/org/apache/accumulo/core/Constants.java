@@ -43,8 +43,6 @@ public class Constants {
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
 
-  public static final String ZTABLE_NAMESPACE = "/namespace";
-
   public static final String ZNAMESPACES = "/namespaces";
   public static final String ZTABLES = "/tables";
   public static final String ZMANAGERS = "/managers";
