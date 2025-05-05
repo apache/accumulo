@@ -77,7 +77,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterables;
 
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class SampleIT extends SharedMiniClusterBase {
 
   @BeforeAll

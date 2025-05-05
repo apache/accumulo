@@ -45,16 +45,19 @@ import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 // the shutdown test should sort last, so other tests don't break
 @TestMethodOrder(MethodOrderer.MethodName.class)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ManagerApiIT extends SharedMiniClusterBase {
 
   private static Credentials rootUser;

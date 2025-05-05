@@ -96,7 +96,7 @@ import org.junit.jupiter.api.function.Executable;
  * Test different namespace permissions
  */
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class NamespacesIT extends SharedMiniClusterBase {
 
   private AccumuloClient c;

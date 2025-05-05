@@ -16,29 +16,39 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.test;
+package org.apache.accumulo.suites;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY;
+import static org.apache.accumulo.harness.AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.junit.jupiter.api.Tag;
 import org.junit.platform.suite.api.AfterSuite;
 import org.junit.platform.suite.api.BeforeSuite;
+import org.junit.platform.suite.api.IncludeClassNamePatterns;
 import org.junit.platform.suite.api.IncludeTags;
 import org.junit.platform.suite.api.SelectPackages;
 import org.junit.platform.suite.api.Suite;
 
 @Suite
 @SelectPackages("org.apache.accumulo.test") // look in this package and subpackages
-@IncludeTags(SIMPLE_MINI_CLUSTER_ONLY) // for tests with this tag
-public class SimpleSharedMacTestSuite extends SharedMiniClusterBase {
+@IncludeTags(SIMPLE_MINI_CLUSTER_SUITE) // for tests with this tag
+@IncludeClassNamePatterns(".*IT") // need to override the default pattern
+@Tag("TestSuite")
+public class SimpleSharedMacTestSuiteIT extends SharedMiniClusterBase {
 
   @BeforeSuite
   public static void beforeAllTests() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
+
+    // Disable tests that are run as part of this suite
+    // from stopping MiniAccumuloCluster in there JUnit
+    // lifecycle methods (e.g. AfterEach, AfterAll)
+    SharedMiniClusterBase.STOP_DISABLED.set(true);
   }
 
   @AfterSuite
   public static void afterAllTests() throws Exception {
+    SharedMiniClusterBase.STOP_DISABLED.set(false);
     SharedMiniClusterBase.stopMiniCluster();
   }
 }

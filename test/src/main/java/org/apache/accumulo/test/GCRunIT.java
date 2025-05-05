@@ -58,7 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class GCRunIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(GCRunIT.class);

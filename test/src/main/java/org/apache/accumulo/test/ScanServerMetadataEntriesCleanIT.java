@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.net.HostAndPort;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ScanServerMetadataEntriesCleanIT extends SharedMiniClusterBase {
 
   @BeforeAll

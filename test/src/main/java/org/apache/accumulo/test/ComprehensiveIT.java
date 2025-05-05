@@ -29,7 +29,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
 @Tag(SUNNY_DAY)
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ComprehensiveIT extends ComprehensiveBaseIT {
   @BeforeAll
   public static void setup() throws Exception {

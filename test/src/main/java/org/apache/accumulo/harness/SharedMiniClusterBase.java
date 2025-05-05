@@ -27,6 +27,7 @@ import java.io.File;
 import java.lang.StackWalker.StackFrame;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
@@ -66,6 +67,7 @@ import org.slf4j.LoggerFactory;
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
+  protected static final AtomicBoolean STOP_DISABLED = new AtomicBoolean(false);
 
   private static String rootPassword;
   private static AuthenticationToken token;
@@ -136,6 +138,9 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    * Stops the MiniAccumuloCluster and related services if they are running.
    */
   public static synchronized void stopMiniCluster() {
+    if (STOP_DISABLED.get()) {
+      return;
+    }
     if (cluster != null) {
       try {
         cluster.stop();

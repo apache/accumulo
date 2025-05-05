@@ -52,7 +52,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Maps;
 
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class MultiTableBatchWriterIT extends SharedMiniClusterBase {
 
   @BeforeAll

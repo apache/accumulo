@@ -49,7 +49,7 @@ public class AccumuloITBase extends WithTestNames {
   public static final String SUNNY_DAY = "SunnyDay";
   public static final String MINI_CLUSTER_ONLY = "MiniClusterOnly";
   public static final String ZOOKEEPER_TESTING_SERVER = "ZooKeeperTestingServer";
-  public static final String SIMPLE_MINI_CLUSTER_ONLY = "SimpleMiniClusterOnly";
+  public static final String SIMPLE_MINI_CLUSTER_SUITE = "SimpleMiniClusterSuite";
 
   protected <T> T getOnlyElement(Collection<T> c) {
     return c.stream().collect(onlyElement());

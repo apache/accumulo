@@ -59,7 +59,7 @@ import org.junit.jupiter.api.Test;
 import com.beust.jcommander.JCommander;
 import com.google.common.collect.Sets;
 
-@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class AdminCheckIT extends SharedMiniClusterBase {
 
   @BeforeAll
