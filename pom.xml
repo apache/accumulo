@@ -686,10 +686,6 @@
             <includeTestClasses>false</includeTestClasses>
             <javaVersion>${maven.compiler.target}</javaVersion>
             <ignorePackages>
-              <!-- ignore mini -->
-              <ignorePackage>org.apache.accumulo.cluster</ignorePackage>
-              <ignorePackage>org.apache.accumulo.minicluster</ignorePackage>
-              <ignorePackage>org.apache.accumulo.miniclusterImpl</ignorePackage>
               <!-- ignore ITs -->
               <ignorePackage>org.apache.accumulo.harness</ignorePackage>
               <ignorePackage>org.apache.accumulo.test</ignorePackage>

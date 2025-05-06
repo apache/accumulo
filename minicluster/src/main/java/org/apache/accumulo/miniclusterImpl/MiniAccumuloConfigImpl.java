@@ -140,7 +140,6 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
-  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
@@ -156,12 +155,12 @@ public class MiniAccumuloConfigImpl {
     }
 
     if (!initialized) {
-      libDir = new File(dir, "lib");
-      libExtDir = new File(libDir, "ext");
-      confDir = new File(dir, "conf");
-      accumuloDir = new File(dir, "accumulo");
-      zooKeeperDir = new File(dir, "zookeeper");
-      logDir = new File(dir, "logs");
+      libDir = java.nio.file.Path.of(dir.toURI()).resolve("lib").toFile();
+      libExtDir = java.nio.file.Path.of(libDir.toURI()).resolve("ext").toFile();
+      confDir = java.nio.file.Path.of(dir.toURI()).resolve("conf").toFile();
+      accumuloDir = java.nio.file.Path.of(dir.toURI()).resolve("accumulo").toFile();
+      zooKeeperDir = java.nio.file.Path.of(dir.toURI()).resolve("zookeeper").toFile();
+      logDir = java.nio.file.Path.of(dir.toURI()).resolve("logs").toFile();
 
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
@@ -229,7 +228,8 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    File keystoreFile = new File(getConfDir(), "credential-provider.jks");
+    File keystoreFile =
+        java.nio.file.Path.of(getConfDir().toURI()).resolve("credential-provider.jks").toFile();
     String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
     Configuration conf = getHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
@@ -586,14 +586,15 @@ public class MiniAccumuloConfigImpl {
   }
 
   public File getAccumuloPropsFile() {
-    return new File(getConfDir(), "accumulo.properties");
+    return java.nio.file.Path.of(getConfDir().toURI()).resolve("accumulo.properties").toFile();
   }
 
   /**
    * @return location of accumulo-client.properties file for connecting to this mini cluster
    */
   public File getClientPropsFile() {
-    return new File(getConfDir(), "accumulo-client.properties");
+    return java.nio.file.Path.of(getConfDir().toURI()).resolve("accumulo-client.properties")
+        .toFile();
   }
 
   /**
@@ -723,8 +724,8 @@ public class MiniAccumuloConfigImpl {
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
     accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    File coreSite = new File(hadoopConfDir, "core-site.xml");
-    File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
+    File coreSite = java.nio.file.Path.of(hadoopConfDir.toURI()).resolve("core-site.xml").toFile();
+    File hdfsSite = java.nio.file.Path.of(hadoopConfDir.toURI()).resolve("hdfs-site.xml").toFile();
 
     try {
       hadoopConf.addResource(coreSite.toURI().toURL());
