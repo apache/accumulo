@@ -20,6 +20,7 @@ package org.apache.accumulo.server.tablets;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -50,7 +51,7 @@ public class UniqueNameAllocator {
   private final ServerContext context;
 
   private long next = 0;
-  // non inclusive end allocated names
+  // exclusive end of allocated names
   private long maxAllocated = 0;
 
   public UniqueNameAllocator(ServerContext context) {
@@ -66,7 +67,7 @@ public class UniqueNameAllocator {
    * @return a thread safe iterator that can be called up to the number of names requested
    */
   public synchronized Iterator<String> getNextNames(int needed) {
-    Preconditions.checkArgument(needed > 0);
+    Preconditions.checkArgument(needed > 0, "needed=%s is <=-0", needed);
     while ((next + needed) > maxAllocated) {
       final int allocate = getAllocation(needed);
       try {
@@ -84,32 +85,46 @@ public class UniqueNameAllocator {
       }
     }
 
-    // inclusive start of rane
     final long start = next;
     next += needed;
-    // non inclusive end of range
-    final long end = start + needed;
-    Preconditions.checkState(end <= maxAllocated);
+    Preconditions.checkState(next <= maxAllocated);
+    return new NameIterator(start, next);
+  }
 
-    // This iterator is thread safe and avoids creating all of the string objects ahead of time.
-    return new Iterator<>() {
-      private AtomicLong iterNext = new AtomicLong(start);
+  /**
+   * Thread safe iterator that avoids creating all of the string objects ahead of time
+   */
+  static class NameIterator implements Iterator<String> {
 
-      @Override
-      public boolean hasNext() {
-        return iterNext.get() < end;
+    private final AtomicLong iterNext;
+    private final long end;
+
+    /**
+     *
+     * @param start inclusive start
+     * @param end exclusive end
+     */
+    NameIterator(long start, long end) {
+      Preconditions.checkArgument(start < end);
+      Preconditions.checkArgument(start >= 0);
+      this.iterNext = new AtomicLong(start);
+      this.end = end;
+    }
+
+    @Override
+    public boolean hasNext() {
+      return iterNext.get() < end;
+    }
+
+    @Override
+    public String next() {
+      long name = iterNext.getAndIncrement();
+      if (name >= end) {
+        throw new NoSuchElementException();
       }
-
-      @Override
-      public String next() {
-        long name = iterNext.getAndIncrement();
-        if (name >= end) {
-          throw new NoSuchElementException();
-        }
-        return new String(FastFormat.toZeroPaddedString(name, 7, Character.MAX_RADIX, new byte[0]),
-            UTF_8);
-      }
-    };
+      return new String(FastFormat.toZeroPaddedString(name, 7, Character.MAX_RADIX, new byte[0]),
+          UTF_8);
+    }
   }
 
   private int getAllocation(int needed) {

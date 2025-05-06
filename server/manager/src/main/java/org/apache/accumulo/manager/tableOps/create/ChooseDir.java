@@ -21,8 +21,8 @@ package org.apache.accumulo.manager.tableOps.create;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
-import java.util.SortedMap;
 import java.util.Iterator;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
