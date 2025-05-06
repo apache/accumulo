@@ -98,7 +98,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.DerelictBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -1919,7 +1919,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   void initializeBalancer() {
     var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DerelictBalancer());
+        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
     localTabletBalancer.init(balancerEnvironment);
     tabletBalancer = localTabletBalancer;
   }

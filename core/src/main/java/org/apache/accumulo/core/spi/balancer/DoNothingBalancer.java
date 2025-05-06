@@ -28,17 +28,17 @@ import org.slf4j.LoggerFactory;
  *
  * @since 2.1.4
  */
-public class DerelictBalancer implements TabletBalancer {
+public class DoNothingBalancer implements TabletBalancer {
 
-  private static final Logger log = LoggerFactory.getLogger(DerelictBalancer.class);
+  private static final Logger log = LoggerFactory.getLogger(DoNothingBalancer.class);
 
   private final TableId tableId;
 
-  public DerelictBalancer() {
+  public DoNothingBalancer() {
     this.tableId = null;
   }
 
-  public DerelictBalancer(TableId tableId) {
+  public DoNothingBalancer(TableId tableId) {
     this.tableId = tableId;
   }
 
@@ -48,19 +48,19 @@ public class DerelictBalancer implements TabletBalancer {
   @Override
   public void getAssignments(AssignmentParameters params) {
     if (tableId != null) {
-      log.warn("Ignoring {} assignment request for tableId {}", params.unassignedTablets().size(),
+      log.warn("Balancer creation failed. Ignoring {} assignment request for tableId {}", params.unassignedTablets().size(),
           tableId);
     } else {
-      log.warn("Ignoring {} assignment request ", params.unassignedTablets().size());
+      log.warn("Balancer creation failed. Ignoring {} assignment request ", params.unassignedTablets().size());
     }
   }
 
   @Override
   public long balance(BalanceParameters params) {
     if (tableId != null) {
-      log.warn("Ignoring request to balance tablets for tableId:{}", tableId);
+      log.warn("Balancer creation failed. Ignoring request to balance tablets for tableId:{}", tableId);
     } else {
-      log.warn("Ignoring request to balance tablets");
+      log.warn("Balancer creation failed. Ignoring request to balance tablets");
     }
     return 30_000;
   }
