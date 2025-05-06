@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -73,9 +74,9 @@ public class NativeMapIT {
   }
 
   public static File nativeMapLocation() {
-    File projectDir = new File(System.getProperty("user.dir")).getParentFile();
-    return new File(projectDir, "server/native/target/accumulo-native-" + Constants.VERSION
-        + "/accumulo-native-" + Constants.VERSION);
+    File projectDir = Path.of(System.getProperty("user.dir")).toFile().getParentFile();
+    return Path.of(projectDir.toURI()).resolve("server/native/target/accumulo-native-"
+        + Constants.VERSION + "/accumulo-native-" + Constants.VERSION).toFile();
   }
 
   @BeforeAll

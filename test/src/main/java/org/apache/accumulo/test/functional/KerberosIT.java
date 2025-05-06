@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.reflect.UndeclaredThrowableException;
+import java.nio.file.Path;
 import java.security.PrivilegedExceptionAction;
 import java.time.Duration;
 import java.util.Arrays;
@@ -189,7 +190,8 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testNewUser() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab =
+        Path.of(kdc.getKeytabDir().toURI()).resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }
@@ -244,7 +246,8 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesThroughGrant() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab =
+        Path.of(kdc.getKeytabDir().toURI()).resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -307,7 +310,8 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesForTable() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab =
+        Path.of(kdc.getKeytabDir().toURI()).resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -481,7 +485,8 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab =
+        Path.of(kdc.getKeytabDir().toURI()).resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }

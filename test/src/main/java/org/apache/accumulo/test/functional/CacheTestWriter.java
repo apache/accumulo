@@ -22,9 +22,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.TreeMap;
@@ -49,7 +51,7 @@ public class CacheTestWriter {
       var zrw = zk.asReaderWriter();
 
       String rootDir = args[0];
-      File reportDir = new File(args[1]);
+      File reportDir = Path.of(args[1]).toFile();
       int numReaders = Integer.parseInt(args[2]);
       int numVerifications = Integer.parseInt(args[3]);
       int numData = NUM_DATA;
@@ -136,7 +138,7 @@ public class CacheTestWriter {
 
             for (File file : files) {
               try {
-                FileInputStream fis = new FileInputStream(file);
+                InputStream fis = Files.newInputStream(Path.of(file.toURI()));
                 ObjectInputStream ois = new ObjectInputStream(fis);
 
                 @SuppressWarnings("unchecked")

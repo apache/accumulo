@@ -21,9 +21,11 @@ package org.apache.accumulo.harness.conf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -58,9 +60,9 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     if (propertyFile != null) {
       // Check for properties provided in a file
-      File f = new File(propertyFile);
+      Path f = Path.of(propertyFile);
       Properties fileProperties = new Properties();
-      try (FileReader reader = new FileReader(f, UTF_8)) {
+      try (BufferedReader reader = Files.newBufferedReader(f)) {
         fileProperties.load(reader);
         clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
         clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
@@ -98,7 +100,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           throw new RuntimeException(
               "Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
-        File clientConfFile = new File(clientConf);
+        File clientConfFile = Path.of(clientConf).toFile();
         if (!clientConfFile.exists() || !clientConfFile.isFile()) {
           throw new RuntimeException(
               "Client configuration should be a normal file: " + clientConfFile);
@@ -132,12 +134,12 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     // Check for properties provided in a file
     if (propertyFile != null) {
-      File f = new File(propertyFile);
+      File f = Path.of(propertyFile).toFile();
       if (f.exists() && f.isFile() && f.canRead()) {
         Properties fileProperties = new Properties();
-        FileReader reader = null;
+        BufferedReader reader = null;
         try {
-          reader = new FileReader(f, UTF_8);
+          reader = Files.newBufferedReader(Path.of(f.toURI()), UTF_8);
         } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }
