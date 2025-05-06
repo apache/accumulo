@@ -131,7 +131,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   }
 
   /**
-   * Copy constructor used for enabling sample. Only called from {@link cloneWithSamplingEnabled}.
+   * Copy constructor used for enabling sample. Only called from {@link #cloneWithSamplingEnabled}.
    */
   private ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
     this.scope = copy.scope;
@@ -221,7 +221,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public TableId getTableId() {
-    return this.tableId.orElseThrow();
+    return this.tableId.orElse(null);
   }
 
 }
