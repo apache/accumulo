@@ -84,6 +84,8 @@ public class WebViewsIT extends JerseyTest {
 
   @BeforeAll
   public static void createMocks() throws TableNotFoundException {
+    System.setProperty(TestProperties.CONTAINER_PORT, "0");
+
     ServerContext contextMock = createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
     expect(contextMock.getInstanceID()).andReturn(InstanceId.of("foo")).atLeastOnce();

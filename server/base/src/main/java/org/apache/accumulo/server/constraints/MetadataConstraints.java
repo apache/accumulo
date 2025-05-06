@@ -39,6 +39,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -94,6 +95,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.FLUSH_COLUMN,
           ServerColumnFamily.FLUSH_NONCE_COLUMN,
           ServerColumnFamily.OPID_COLUMN,
+          ServerColumnFamily.MIGRATION_COLUMN,
           TabletColumnFamily.AVAILABILITY_COLUMN,
           TabletColumnFamily.REQUESTED_COLUMN,
           ServerColumnFamily.SELECTED_COLUMN,
@@ -302,7 +304,7 @@ public class MetadataConstraints implements Constraint {
       case 4006:
         return "Malformed mergeability value";
       case 4007:
-        return "Tried to set availability of a system table";
+        return "Malformed migration value";
 
     }
     return null;
@@ -378,12 +380,6 @@ public class MetadataConstraints implements Constraint {
       case (TabletColumnFamily.AVAILABILITY_QUAL):
         try {
           TabletAvailabilityUtil.fromValue(new Value(columnUpdate.getValue()));
-          if (!violations.contains((short) 4)) {
-            KeyExtent ke = KeyExtent.fromMetaRow(new Text(mutation.getRow()));
-            if (ke.isSystemTable()) {
-              addViolation(violations, 4007);
-            }
-          }
         } catch (IllegalArgumentException e) {
           addViolation(violations, 4005);
         }
@@ -448,6 +444,12 @@ public class MetadataConstraints implements Constraint {
           addViolation(violations, 4001);
         }
         break;
+      case ServerColumnFamily.MIGRATION_QUAL:
+        try {
+          new TServerInstance(new String(columnUpdate.getValue(), UTF_8));
+        } catch (Exception e) {
+          addViolation(violations, 4007);
+        }
     }
   }
 

@@ -126,11 +126,11 @@ public class TabletManagementIterator extends WholeRowIterator {
       return true;
     }
 
-    if (tabletMgmtParams.getMigrations().containsKey(tm.getExtent())) {
+    if (tm.getMigration() != null) {
       // Ideally only the state and goalState would need to be used to determine if a tablet should
-      // be returned. However, the Manager/TGW currently needs everything in the migrating set
-      // returned so it can update in memory maps it has. If this were improved then this case would
-      // not be needed.
+      // be returned. However, the Manager/TGW currently needs everything currently migrating
+      // returned so it can update the migrations. If this were improved then this case would not
+      // be needed.
       return true;
     }
 

@@ -696,20 +696,9 @@ public class MetadataConstraintsTest {
     Mutation m;
     List<Short> violations;
 
-    for (var sysTable : SystemTables.values()) {
-      KeyExtent ke = new KeyExtent(sysTable.tableId(), null, null);
-      m = new Mutation(ke.toMetaRow());
-      TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));
-      assertViolation(mc, m, (short) 4007);
-    }
-
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value("INVALID"));
     assertViolation(mc, m, (short) 4005);
-
-    m = new Mutation(new Text("foo"));
-    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));
-    assertViolation(mc, m, (short) 4);
 
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));

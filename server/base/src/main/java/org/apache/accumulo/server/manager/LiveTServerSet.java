@@ -221,7 +221,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     scanServers();
 
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
-        .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
+        .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
   }
 
   public void tabletServerShuttingDown(String server) {
@@ -250,7 +250,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
         checkServer(updates, doomed, tserverPath);
       }
 
-      // log.debug("Current: " + current.keySet());
       this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
