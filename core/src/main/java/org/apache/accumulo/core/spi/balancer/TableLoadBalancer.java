@@ -66,12 +66,12 @@ public class TableLoadBalancer implements TabletBalancer {
     return null;
   }
 
-  private TabletBalancer constructAndInitializeBalancer(String clazzName, TableId tableId){
+  private TabletBalancer constructAndInitializeBalancer(String clazzName, TableId tableId) {
     try {
       var balancer = constructNewBalancerForTable(clazzName, tableId);
       balancer.init(environment);
       return balancer;
-    }catch (Exception e){
+    } catch (Exception e) {
       log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
       return null;
     }
@@ -88,10 +88,10 @@ public class TableLoadBalancer implements TabletBalancer {
 
     if (balancer == null || !clazzName.equals(balancer.getClass().getName())) {
       balancer = constructAndInitializeBalancer(clazzName, tableId);
-      if(balancer == null){
+      if (balancer == null) {
         balancer = constructAndInitializeBalancer(DoNothingBalancer.class.getName(), tableId);
-        log.warn("Fell back to balancer {} for table {}",
-                DoNothingBalancer.class.getName(), tableId);
+        log.warn("Fell back to balancer {} for table {}", DoNothingBalancer.class.getName(),
+            tableId);
       }
       log.info("Loaded class {} for table {}", balancer.getClass().getName(), tableId);
       perTableBalancers.put(tableId, balancer);

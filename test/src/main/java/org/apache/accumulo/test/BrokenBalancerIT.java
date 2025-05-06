@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -43,8 +45,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 public class BrokenBalancerIT extends ConfigurableMacBase {
 
   private static final Logger log = LoggerFactory.getLogger(BrokenBalancerIT.class);
@@ -69,7 +69,7 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
     Map<String,String> siteConfig = cfg.getSiteConfig();
     siteConfig.put(Property.TSERV_MAXMEM.getKey(), "10K");
     siteConfig.put(Property.TSERV_MAJC_DELAY.getKey(), "50ms");
-    siteConfig.put(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL.getKey(),"3s");
+    siteConfig.put(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL.getKey(), "3s");
     cfg.setSiteConfig(siteConfig);
     // ensure we have two tservers
     if (cfg.getNumTservers() != 2) {
@@ -79,7 +79,7 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
 
   @Test
   public void testBalancerException() throws Exception {
-      String tableName = getUniqueNames(1)[0];
+    String tableName = getUniqueNames(1)[0];
     testBadBalancer(BrokenBalancer.class.getName(), tableName);
   }
 
@@ -101,9 +101,9 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
           new NewTableConfiguration().withSplits(splits).setProperties(props);
       c.tableOperations().create(tableName, ntc);
 
-      var scanFuture = executor.submit(()->{
-        try(var scanner = c.createScanner(tableName)) {
-          scanner.forEach((k,v)->System.out.println(k+" "+v));
+      var scanFuture = executor.submit(() -> {
+        try (var scanner = c.createScanner(tableName)) {
+          scanner.forEach((k, v) -> System.out.println(k + " " + v));
         }
         return 0;
       });
@@ -114,7 +114,8 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
 
       // fix the balancer config
       log.info("fixing per tablet balancer");
-      c.tableOperations().setProperty(tableName, Property.TABLE_LOAD_BALANCER.getKey(), SimpleLoadBalancer.class.getName());
+      c.tableOperations().setProperty(tableName, Property.TABLE_LOAD_BALANCER.getKey(),
+          SimpleLoadBalancer.class.getName());
 
       scanFuture.get();
 
@@ -135,13 +136,14 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
 
       // fix the system level balancer
       log.info("fixing manager balancer");
-      c.instanceOperations().setProperty(Property.MANAGER_TABLET_BALANCER.getKey(), TableLoadBalancer.class.getName());
+      c.instanceOperations().setProperty(Property.MANAGER_TABLET_BALANCER.getKey(),
+          TableLoadBalancer.class.getName());
 
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // should eventually balance across all 5 tabletsevers
-      Wait.waitFor(()->5==BalanceIT.countLocations(c, tableName).size());
-    }finally {
+      Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size());
+    } finally {
       executor.shutdownNow();
     }
   }
