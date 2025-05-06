@@ -66,6 +66,17 @@ public class TableLoadBalancer implements TabletBalancer {
     return null;
   }
 
+  private TabletBalancer constructAndInitializeBalancer(String clazzName, TableId tableId){
+    try {
+      var balancer = constructNewBalancerForTable(clazzName, tableId);
+      balancer.init(environment);
+      return balancer;
+    }catch (Exception e){
+      log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
+      return null;
+    }
+  }
+
   protected TabletBalancer getBalancerForTable(TableId tableId) {
     TabletBalancer balancer = perTableBalancers.get(tableId);
 
@@ -74,35 +85,16 @@ public class TableLoadBalancer implements TabletBalancer {
     if (clazzName == null) {
       clazzName = SimpleLoadBalancer.class.getName();
     }
-    if (balancer != null) {
-      if (!clazzName.equals(balancer.getClass().getName())) {
-        // the balancer class for this table does not match the class specified in the configuration
-        try {
-          balancer = constructNewBalancerForTable(clazzName, tableId);
-          perTableBalancers.put(tableId, balancer);
-          balancer.init(environment);
 
-          log.info("Loaded new class {} for table {}", clazzName, tableId);
-        } catch (Exception e) {
-          log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-        }
+    if (balancer == null || !clazzName.equals(balancer.getClass().getName())) {
+      balancer = constructAndInitializeBalancer(clazzName, tableId);
+      if(balancer == null){
+        balancer = constructAndInitializeBalancer(DoNothingBalancer.class.getName(), tableId);
+        log.warn("Fell back to balancer {} for table {}",
+                DoNothingBalancer.class.getName(), tableId);
       }
-    }
-    if (balancer == null) {
-      try {
-        balancer = constructNewBalancerForTable(clazzName, tableId);
-        log.info("Loaded class {} for table {}", clazzName, tableId);
-      } catch (Exception e) {
-        log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-      }
-
-      if (balancer == null) {
-        log.info("Creating balancer {} limited to balancing table {}",
-            DoNothingBalancer.class.getName(), tableId);
-        balancer = new DoNothingBalancer(tableId);
-      }
+      log.info("Loaded class {} for table {}", balancer.getClass().getName(), tableId);
       perTableBalancers.put(tableId, balancer);
-      balancer.init(environment);
     }
     return balancer;
   }
