@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.tableOps.create;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
@@ -99,8 +100,9 @@ class ChooseDir extends ManagerRepo {
     String tabletDir;
     UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
+    Iterator<String> names = namer.getNextNames(num);
     for (int i = 0; i < num; i++) {
-      tabletDir = Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
+      tabletDir = Constants.GENERATED_TABLET_DIRECTORY_PREFIX + names.next();
       splitDirs.add(new Text(tabletDir));
     }
     return splitDirs;
