@@ -21,19 +21,29 @@ package org.apache.accumulo.test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.AccumuloITBase;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class CreateTableIT extends SharedMiniClusterBase {
+  private static final Logger log = LoggerFactory.getLogger(CreateTableIT.class);
+  public static final int NUM_TABLES = 500;
 
   @Override
   protected Duration defaultTimeout() {
@@ -51,20 +61,22 @@ public class CreateTableIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testCreateLotsOfTables() throws Exception {
+  public void testCreateLotsOfTables() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String[] tableNames = getUniqueNames(NUM_TABLES);
 
-      String[] tableNames = getUniqueNames(500);
+      Arrays.stream(tableNames).parallel().forEach(name -> {
+        Timer timer = Timer.startNew();
+        try {
+          client.tableOperations().create(name);
+        } catch (AccumuloException | AccumuloSecurityException | TableExistsException e) {
+          throw new RuntimeException(e);
+        }
+        log.info("Table {} creation took: {} ms", name, timer.elapsed(TimeUnit.MILLISECONDS));
+      });
 
-      for (int i = 0; i < tableNames.length; i++) {
-        // Create waits for the Fate operation to complete
-        long start = System.currentTimeMillis();
-        client.tableOperations().create(tableNames[i]);
-        System.out.println("Table creation took: " + (System.currentTimeMillis() - start) + "ms");
-      }
-      // Confirm all 500 user tables exist in addition to Root, Metadata,
-      // and ScanRef tables
-      assertEquals(500 + SystemTables.tableIds().size(), client.tableOperations().list().size());
+      final int systemTables = SystemTables.values().length;
+      assertEquals(NUM_TABLES + systemTables, client.tableOperations().list().size());
     }
   }
 
