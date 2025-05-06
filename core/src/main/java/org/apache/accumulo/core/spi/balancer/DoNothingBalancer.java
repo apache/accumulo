@@ -48,17 +48,19 @@ public class DoNothingBalancer implements TabletBalancer {
   @Override
   public void getAssignments(AssignmentParameters params) {
     if (tableId != null) {
-      log.warn("Balancer creation failed. Ignoring {} assignment request for tableId {}", params.unassignedTablets().size(),
-          tableId);
+      log.warn("Balancer creation failed. Ignoring {} assignment request for tableId {}",
+          params.unassignedTablets().size(), tableId);
     } else {
-      log.warn("Balancer creation failed. Ignoring {} assignment request ", params.unassignedTablets().size());
+      log.warn("Balancer creation failed. Ignoring {} assignment request ",
+          params.unassignedTablets().size());
     }
   }
 
   @Override
   public long balance(BalanceParameters params) {
     if (tableId != null) {
-      log.warn("Balancer creation failed. Ignoring request to balance tablets for tableId:{}", tableId);
+      log.warn("Balancer creation failed. Ignoring request to balance tablets for tableId:{}",
+          tableId);
     } else {
       log.warn("Balancer creation failed. Ignoring request to balance tablets");
     }
