@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -41,7 +42,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.ReentrantLock;
@@ -2004,11 +2004,11 @@ public class ClientTabletCacheImplTest {
         rowsToLookup.add(lookup);
       }
 
-      Collections.shuffle(rowsToLookup);
+      Collections.shuffle(rowsToLookup, RANDOM.get());
 
       for (var lookup : rowsToLookup) {
         var future = executor.submit(() -> {
-          if (ThreadLocalRandom.current().nextInt(10) < 3) {
+          if (RANDOM.get().nextInt(10) < 3) {
             Thread.yield();
           }
           var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
