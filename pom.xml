@@ -945,6 +945,7 @@
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
+                <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
