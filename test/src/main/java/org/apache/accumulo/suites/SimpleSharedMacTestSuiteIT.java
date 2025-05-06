@@ -32,7 +32,7 @@ import org.junit.platform.suite.api.Suite;
 @Suite
 @SelectPackages("org.apache.accumulo.test") // look in this package and subpackages
 @IncludeTags(SIMPLE_MINI_CLUSTER_SUITE) // for tests with this tag
-@IncludeClassNamePatterns(".*IT") // need to override the default pattern
+@IncludeClassNamePatterns(".*IT") // need to override the default pattern ".*Test"
 @Tag("TestSuite")
 public class SimpleSharedMacTestSuiteIT extends SharedMiniClusterBase {
 

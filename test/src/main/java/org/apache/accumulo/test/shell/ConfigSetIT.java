@@ -51,7 +51,6 @@ public class ConfigSetIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConfigSetIT.class);
 
   @Test
-  @SuppressWarnings("deprecation")
   public void setInvalidJson() throws Exception {
     log.debug("Starting setInvalidJson test ------------------");
 
@@ -66,6 +65,7 @@ public class ConfigSetIT extends SharedMiniClusterBase {
           validJson);
       assertThrows(AccumuloException.class, () -> client.instanceOperations()
           .setProperty(MONITOR_RESOURCES_EXTERNAL.getKey(), invalidJson));
+      client.instanceOperations().removeProperty(COMPACTION_SERVICE_DEFAULT_GROUPS.getKey());
 
     }
   }

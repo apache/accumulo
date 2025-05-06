@@ -34,10 +34,16 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -139,6 +145,25 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    */
   public static synchronized void stopMiniCluster() {
     if (STOP_DISABLED.get()) {
+      // If stop is disabled, then we are likely running a
+      // test class that is part of a larger suite. We don't
+      // want to shut down the cluster, but we should clean
+      // up any tables that were created, but not deleted,
+      // by the test class. This will prevent issues with
+      // subsequent tests that count objects or initiate
+      // compactions and wait for them, but some other table
+      // from a prior test is compacting.
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        for (String tableName : client.tableOperations().list()) {
+          if (!tableName.startsWith(Namespace.ACCUMULO.name() + ".")) {
+            try {
+              client.tableOperations().delete(tableName);
+            } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+              log.error("Error deleting table {}", tableName, e);
+            }
+          }
+        }
+      }
       return;
     }
     if (cluster != null) {
