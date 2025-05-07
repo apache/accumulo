@@ -164,7 +164,7 @@ public class HalfDeadTServerIT extends ConfigurableMacBase {
       }
 
       // create our own tablet server with the special test library
-      Path confDirPath = Path.of(cluster.getConfig().getDir().toURI());
+      Path confDirPath = cluster.getConfig().getDir().toPath();
       String javaHome = System.getProperty("java.home");
       String javaBin = javaHome + File.separator + "bin" + File.separator + "java";
       String classpath = System.getProperty("java.class.path");

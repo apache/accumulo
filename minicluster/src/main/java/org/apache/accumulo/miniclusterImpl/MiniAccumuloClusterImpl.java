@@ -201,9 +201,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       mkdirs(config.getAccumuloDir());
     }
 
-    java.nio.file.Path confDir = java.nio.file.Path.of(config.getConfDir().toURI());
+    java.nio.file.Path confDir = config.getConfDir().toPath();
     if (config.useMiniDFS()) {
-      java.nio.file.Path configPath = java.nio.file.Path.of(config.getAccumuloDir().toURI());
+      java.nio.file.Path configPath = config.getAccumuloDir().toPath();
       File nn = configPath.resolve("nn").toFile();
       mkdirs(nn);
       File dn = configPath.resolve("dn").toFile();
@@ -277,8 +277,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
       zooCfgFile = confDir.resolve("zoo.cfg").toFile();
-      BufferedWriter fileWriter =
-          Files.newBufferedWriter(java.nio.file.Path.of(zooCfgFile.toURI()));
+      BufferedWriter fileWriter = Files.newBufferedWriter(zooCfgFile.toPath());
 
       // zookeeper uses Properties to read its config, so use that to write in order to properly
       // escape things like Windows paths
@@ -357,7 +356,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     public String readStdOut() {
-      try (InputStream in = Files.newInputStream(java.nio.file.Path.of(stdOut.toURI()))) {
+      try (InputStream in = Files.newInputStream(stdOut.toPath())) {
         return IOUtils.toString(in, UTF_8);
       } catch (IOException e) {
         throw new UncheckedIOException(e);
@@ -418,7 +417,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
     int hashcode = builder.hashCode();
 
-    java.nio.file.Path logDir = java.nio.file.Path.of(config.getLogDir().toURI());
+    java.nio.file.Path logDir = config.getLogDir().toPath();
     File stdOut = logDir.resolve(clazz.getSimpleName() + "_" + hashcode + ".out").toFile();
     File stdErr = logDir.resolve(clazz.getSimpleName() + "_" + hashcode + ".err").toFile();
 
@@ -475,7 +474,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings)
       throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(java.nio.file.Path.of(file.toURI()));
+    BufferedWriter fileWriter = Files.newBufferedWriter(file.toPath());
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
@@ -489,7 +488,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(java.nio.file.Path.of(file.toURI()));
+    BufferedWriter fileWriter = Files.newBufferedWriter(file.toPath());
 
     for (Entry<String,String> entry : settings.entrySet()) {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
@@ -1100,7 +1099,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.useMiniDFS()) {
       p = "/tmp/";
     } else {
-      File tmp = java.nio.file.Path.of(config.getDir().toURI()).resolve("tmp").toFile();
+      File tmp = config.getDir().toPath().resolve("tmp").toFile();
       mkdirs(tmp);
       p = tmp.toString();
     }
@@ -1115,8 +1114,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public String getAccumuloPropertiesPath() {
-    return java.nio.file.Path.of(config.getConfDir().toURI()).resolve("accumulo.properties")
-        .toFile().toString();
+    return config.getConfDir().toPath().resolve("accumulo.properties").toFile().toString();
   }
 
   @Override

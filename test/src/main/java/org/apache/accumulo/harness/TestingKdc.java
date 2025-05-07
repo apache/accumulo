@@ -68,7 +68,7 @@ public class TestingKdc {
     assertTrue(targetDir.isDirectory(), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
-    File kdcDir = Path.of(targetDir.toURI()).resolve("kerberos").resolve("minikdc").toFile();
+    File kdcDir = targetDir.toPath().resolve("kerberos").resolve("minikdc").toFile();
 
     assertTrue(kdcDir.mkdirs() || kdcDir.isDirectory());
 
@@ -82,7 +82,7 @@ public class TestingKdc {
         "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/keytabs
-    File keytabDir = Path.of(targetDir.toURI()).resolve("kerberos").resolve("keytabs").toFile();
+    File keytabDir = targetDir.toPath().resolve("kerberos").resolve("keytabs").toFile();
 
     assertTrue(keytabDir.mkdirs() || keytabDir.isDirectory());
 
@@ -122,7 +122,7 @@ public class TestingKdc {
     Thread.sleep(1000);
 
     // Create the identity for accumulo servers
-    Path keyTabDirPath = Path.of(keytabDir.toURI());
+    Path keyTabDirPath = keytabDir.toPath();
     File accumuloKeytab = keyTabDirPath.resolve("accumulo.keytab").toFile();
     String accumuloPrincipal = String.format("accumulo/%s", hostname);
 

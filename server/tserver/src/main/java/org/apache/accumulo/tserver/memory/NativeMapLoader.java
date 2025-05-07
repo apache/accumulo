@@ -120,7 +120,7 @@ public class NativeMapLoader {
   // this is its own method because spotbugs sec-bugs doesn't understand how to suppress lambdas
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "search paths provided by admin")
   private static File appendFileToDir(File base, String f) {
-    return Path.of(base.toURI()).resolve(f).toFile();
+    return base.toPath().resolve(f).toFile();
   }
 
   private static boolean loadNativeLib(File libFile) {

@@ -80,7 +80,7 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File getSslDir(File baseDir) {
     assertTrue(baseDir.exists() && baseDir.isDirectory());
-    return Path.of(baseDir.getParentFile().toURI()).resolve(baseDir.getName() + "-ssl").toFile();
+    return baseDir.getParentFile().toPath().resolve(baseDir.getName() + "-ssl").toFile();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
@@ -90,7 +90,7 @@ public class AccumuloITBase extends WithTestNames {
     if (name == null) {
       return baseDir;
     }
-    File testDir = Path.of(baseDir.toURI()).resolve(name).toFile();
+    File testDir = baseDir.toPath().resolve(name).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;

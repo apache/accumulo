@@ -94,7 +94,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     FileUtils.deleteQuietly(sslDir);
     assertTrue(sslDir.mkdir());
 
-    java.nio.file.Path sslDirPath = java.nio.file.Path.of(sslDir.toURI());
+    java.nio.file.Path sslDirPath = sslDir.toPath();
     File rootKeystoreFile = sslDirPath.resolve("root-" + cfg.getInstanceName() + ".jks").toFile();
     File localKeystoreFile = sslDirPath.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
     File publicTruststoreFile =
@@ -172,8 +172,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
-      File csFile = java.nio.file.Path.of(cluster.getConfig().getConfDir().toURI())
-          .resolve("core-site.xml").toFile();
+      File csFile = cluster.getConfig().getConfDir().toPath().resolve("core-site.xml").toFile();
       if (csFile.exists()) {
         coreSite.addResource(new Path(csFile.getAbsolutePath()));
       }

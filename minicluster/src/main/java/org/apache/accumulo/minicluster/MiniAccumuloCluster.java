@@ -150,7 +150,7 @@ public class MiniAccumuloCluster implements AutoCloseable {
    * @since 2.0.0
    */
   public static Properties getClientProperties(File directory) {
-    Path dir = Path.of(directory.toURI());
+    Path dir = directory.toPath();
     File clientProps = dir.resolve("conf").resolve("accumulo-client.properties").toFile();
     Preconditions.checkArgument(clientProps.exists());
     return ClientInfoImpl.toProperties(clientProps.toPath());

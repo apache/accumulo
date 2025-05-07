@@ -138,7 +138,7 @@ public class CacheTestWriter {
 
             for (File file : files) {
               try {
-                InputStream fis = Files.newInputStream(Path.of(file.toURI()));
+                InputStream fis = Files.newInputStream(file.toPath());
                 ObjectInputStream ois = new ObjectInputStream(fis);
 
                 @SuppressWarnings("unchecked")

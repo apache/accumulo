@@ -139,7 +139,7 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
         Properties fileProperties = new Properties();
         BufferedReader reader = null;
         try {
-          reader = Files.newBufferedReader(Path.of(f.toURI()), UTF_8);
+          reader = Files.newBufferedReader(f.toPath(), UTF_8);
         } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }

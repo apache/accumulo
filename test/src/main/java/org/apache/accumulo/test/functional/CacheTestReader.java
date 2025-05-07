@@ -89,7 +89,7 @@ public class CacheTestReader {
 
           LOG.info("Data: {}", readData);
 
-          try (OutputStream fos = Files.newOutputStream(Path.of(myfile.toURI()));
+          try (OutputStream fos = Files.newOutputStream(myfile.toPath());
               ObjectOutputStream oos = new ObjectOutputStream(fos)) {
             oos.writeObject(readData);
           }

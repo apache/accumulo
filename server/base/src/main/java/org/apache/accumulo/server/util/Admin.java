@@ -850,7 +850,7 @@ public class Admin implements KeywordExecutable {
   private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    Path namespaceScript = Path.of(outputDirectory.toURI()).resolve(namespace + NS_FILE_SUFFIX);
+    Path namespaceScript = outputDirectory.toPath().resolve(namespace + NS_FILE_SUFFIX);
     try (BufferedWriter nsWriter = Files.newBufferedWriter(namespaceScript)) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
       Map<String,String> props = ImmutableSortedMap
@@ -872,7 +872,7 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
-    Path userScript = Path.of(outputDirectory.toURI()).resolve(user + USER_FILE_SUFFIX);
+    Path userScript = outputDirectory.toPath().resolve(user + USER_FILE_SUFFIX);
     try (BufferedWriter userWriter = Files.newBufferedWriter(userScript)) {
       userWriter.write(createUserFormat.format(new String[] {user}));
       Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
@@ -915,7 +915,7 @@ public class Admin implements KeywordExecutable {
         conf.put(prop.getKey(), prop.getValue());
       }
     }
-    Path siteBackup = Path.of(outputDirectory.toURI()).resolve(ACCUMULO_SITE_BACKUP_FILE);
+    Path siteBackup = outputDirectory.toPath().resolve(ACCUMULO_SITE_BACKUP_FILE);
     try (BufferedWriter fw = Files.newBufferedWriter(siteBackup)) {
       for (Entry<String,String> prop : conf.entrySet()) {
         fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
@@ -927,7 +927,7 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
       File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
-    Path tableBackup = Path.of(outputDirectory.toURI()).resolve(tableName + ".cfg");
+    Path tableBackup = outputDirectory.toPath().resolve(tableName + ".cfg");
     try (BufferedWriter writer = Files.newBufferedWriter(tableBackup)) {
       writer.write(createTableFormat.format(new String[] {tableName}));
       Map<String,String> props =

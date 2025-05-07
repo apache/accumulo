@@ -75,8 +75,8 @@ public class NativeMapIT {
 
   public static File nativeMapLocation() {
     File projectDir = Path.of(System.getProperty("user.dir")).toFile().getParentFile();
-    return Path.of(projectDir.toURI()).resolve("server/native/target/accumulo-native-"
-        + Constants.VERSION + "/accumulo-native-" + Constants.VERSION).toFile();
+    return projectDir.toPath().resolve("server/native/target/accumulo-native-" + Constants.VERSION
+        + "/accumulo-native-" + Constants.VERSION).toFile();
   }
 
   @BeforeAll

@@ -103,7 +103,7 @@ public class MiniClusterHarness {
     // Write out any configuration items to a file so HDFS will pick them up automatically (from the
     // classpath)
     if (coreSite.size() > 0) {
-      Path csFile = Path.of(miniCluster.getConfig().getConfDir().toURI()).resolve("core-site.xml");
+      Path csFile = miniCluster.getConfig().getConfDir().toPath().resolve("core-site.xml");
       if (csFile.toFile().exists()) {
         throw new RuntimeException(csFile + " already exist");
       }
@@ -146,7 +146,7 @@ public class MiniClusterHarness {
       return;
     }
 
-    Path folderPath = Path.of(folder.toURI());
+    Path folderPath = folder.toPath();
     Path sslDir = folderPath.resolve("ssl");
     assertTrue(sslDir.toFile().mkdirs() || sslDir.toFile().isDirectory());
     File rootKeystoreFile = sslDir.resolve("root-" + cfg.getInstanceName() + ".jks").toFile();

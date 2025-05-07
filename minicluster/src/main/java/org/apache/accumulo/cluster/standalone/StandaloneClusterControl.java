@@ -346,14 +346,14 @@ public class StandaloneClusterControl implements ClusterControl {
    * Read hosts in file named by 'fn' in Accumulo conf dir
    */
   protected List<String> getHosts(String fn) throws IOException {
-    return getHosts(Path.of(getServerConfDir().toURI()).resolve(fn).toFile());
+    return getHosts(getServerConfDir().toPath().resolve(fn).toFile());
   }
 
   /**
    * Read the provided file and return all lines which don't start with a '#' character
    */
   protected List<String> getHosts(File f) throws IOException {
-    try (BufferedReader reader = Files.newBufferedReader(Path.of(f.toURI()))) {
+    try (BufferedReader reader = Files.newBufferedReader(f.toPath())) {
       List<String> hosts = new ArrayList<>();
       String line;
       while ((line = reader.readLine()) != null) {

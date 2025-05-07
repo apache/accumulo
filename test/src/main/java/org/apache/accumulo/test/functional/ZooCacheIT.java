@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -67,7 +66,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @BeforeAll
   public static void createTestDirectory() {
-    testDir = Path.of(createTestDir(ZooCacheIT.class.getName()).toURI()).resolve(pathName).toFile();
+    testDir = createTestDir(ZooCacheIT.class.getName()).toPath().resolve(pathName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
   }
