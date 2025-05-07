@@ -34,7 +34,7 @@ import org.junit.platform.suite.api.Suite;
 @IncludeTags(SIMPLE_MINI_CLUSTER_SUITE) // for tests with this tag
 @IncludeClassNamePatterns(".*IT") // need to override the default pattern ".*Test"
 @Tag("TestSuite")
-public class SimpleSharedMacTestSuiteIT extends SharedMiniClusterBase {
+public class SimpleSharedMacTestSuite extends SharedMiniClusterBase {
 
   @BeforeSuite
   public static void beforeAllTests() throws Exception {
