@@ -55,7 +55,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooCacheIT.class);
 
-  private static String pathName = "/zcTest-42";
+  private static String pathName = "zcTest-42";
   private static File testDir;
 
   @Override
@@ -73,13 +73,14 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
   @Test
   public void test() throws Exception {
-    assertEquals(0, exec(CacheTestClean.class, pathName, testDir.getAbsolutePath()).waitFor());
+    assertEquals(0,
+        exec(CacheTestClean.class, "/" + pathName, testDir.getAbsolutePath()).waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<>();
     List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Thread reader = new Thread(() -> {
         try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-          CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(),
+          CacheTestReader.main(new String[] {"/" + pathName, testDir.getAbsolutePath(),
               ClientInfo.from(client.properties()).getZooKeepers()});
         } catch (Exception ex) {
           ref.set(ex);
@@ -89,7 +90,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       threads.add(reader);
     }
     assertEquals(0,
-        exec(CacheTestWriter.class, pathName, testDir.getAbsolutePath(), "3", "50").waitFor());
+        exec(CacheTestWriter.class, "/" + pathName, testDir.getAbsolutePath(), "3", "50")
+            .waitFor());
     for (Thread t : threads) {
       t.join();
       if (ref.get() != null) {

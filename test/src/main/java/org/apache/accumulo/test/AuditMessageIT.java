@@ -324,8 +324,8 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // Prepare to export the table
     Path confDirPath = getCluster().getConfig().getDir().toPath();
-    File exportDir = confDirPath.resolve("/export").toFile();
-    File exportDirBulk = confDirPath.resolve("/export_bulk").toFile();
+    File exportDir = confDirPath.resolve("export").toFile();
+    File exportDirBulk = confDirPath.resolve("export_bulk").toFile();
     assertTrue(exportDirBulk.mkdir() || exportDirBulk.isDirectory());
 
     auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME, true);
@@ -333,7 +333,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path
     // to re-import it
-    File distCpTxt = exportDir.toPath().resolve("/distcp.txt").toFile();
+    File distCpTxt = exportDir.toPath().resolve("distcp.txt").toFile();
     File importFile = null;
 
     // Just grab the first rf file, it will do for now.
