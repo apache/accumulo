@@ -46,7 +46,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
@@ -206,7 +205,7 @@ public class TabletRefresher {
       client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, location.getHostAndPort(),
           context, timeInMillis);
 
-      var unrefreshed = client.refreshTablets(TraceUtil.traceInfo(), context.rpcCreds(), refreshes);
+      var unrefreshed = client.refreshTablets(context.rpcCreds(), refreshes);
 
       log.trace("{} refresh request to {} returned {} unrefreshed extents", logId, location,
           unrefreshed.size());

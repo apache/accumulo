@@ -49,7 +49,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -96,16 +95,15 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,
         KeyExtent extent) throws TException {
-      client.loadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
-          extent.toThrift());
+      client.loadTablet(context.rpcCreds(), lockString(lock), extent.toThrift());
     }
 
     public void assignTablet(ServiceLock lock, KeyExtent extent) throws TException {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
         try (TTransport transport = ThriftUtil.createTransport(address, context)) {
-          TabletManagementClientService.Client client =
-              ThriftUtil.createClient(ThriftClientTypes.TABLET_MGMT, transport);
+          TabletManagementClientService.Client client = ThriftUtil
+              .createClient(ThriftClientTypes.TABLET_MGMT, transport, context.getInstanceID());
           loadTablet(client, lock, extent);
         }
       } else {
@@ -124,8 +122,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       TabletManagementClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
       try {
-        client.unloadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
-            extent.toThrift(), goal, requestTime);
+        client.unloadTablet(context.rpcCreds(), lockString(lock), extent.toThrift(), goal,
+            requestTime);
       } finally {
         ThriftUtil.returnClient(client, context);
       }
@@ -141,10 +139,9 @@ public class LiveTServerSet implements ZooCacheWatcher {
       long start = System.currentTimeMillis();
 
       try (TTransport transport = ThriftUtil.createTransport(address, context)) {
-        TabletServerClientService.Client client =
-            ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
-        TabletServerStatus status =
-            client.getTabletServerStatus(TraceUtil.traceInfo(), context.rpcCreds());
+        TabletServerClientService.Client client = ThriftUtil
+            .createClient(ThriftClientTypes.TABLET_SERVER, transport, context.getInstanceID());
+        TabletServerStatus status = client.getTabletServerStatus(context.rpcCreds());
         if (status != null) {
           status.setResponseTime(System.currentTimeMillis() - start);
         }
@@ -156,7 +153,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       TabletServerClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
       try {
-        client.halt(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock));
+        client.halt(context.rpcCreds(), lockString(lock));
       } finally {
         ThriftUtil.returnClient(client, context);
       }
@@ -166,7 +163,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       TabletServerClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
       try {
-        client.fastHalt(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock));
+        client.fastHalt(context.rpcCreds(), lockString(lock));
       } finally {
         ThriftUtil.returnClient(client, context);
       }
@@ -177,8 +174,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       TabletServerClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
       try {
-        client.flush(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
-            tableId.canonical(), startRow == null ? null : ByteBuffer.wrap(startRow),
+        client.flush(context.rpcCreds(), lockString(lock), tableId.canonical(),
+            startRow == null ? null : ByteBuffer.wrap(startRow),
             endRow == null ? null : ByteBuffer.wrap(endRow));
       } finally {
         ThriftUtil.returnClient(client, context);

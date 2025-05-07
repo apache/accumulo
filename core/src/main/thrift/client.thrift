@@ -118,10 +118,6 @@ struct TVersionedProperties {
    2:map<string, string> properties
 }
 
-struct TInfo {
-  1:map<string,string> headers
-}
-
 enum TTabletAvailability {
   HOSTED
   UNHOSTED
@@ -146,14 +142,12 @@ service ClientService {
 
   // user management methods
   set<string> listLocalUsers(
-    2:TInfo tinfo
     3:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   void createLocalUser(
-    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:binary password
@@ -162,7 +156,6 @@ service ClientService {
   )
 
   void dropLocalUser(
-    3:TInfo tinfo
     4:security.TCredentials credentials
     2:string principal
   ) throws (
@@ -170,7 +163,6 @@ service ClientService {
   )
 
   void changeLocalUserPassword(
-    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:binary password
@@ -180,14 +172,12 @@ service ClientService {
 
   // authentication-related methods
   bool authenticate(
-    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   bool authenticateUser(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:security.TCredentials toAuth
   ) throws (
@@ -196,7 +186,6 @@ service ClientService {
 
   // authorization-related methods
   void changeAuthorizations(
-    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:list<binary> authorizations
@@ -205,7 +194,6 @@ service ClientService {
   )
 
   list<binary> getUserAuthorizations(
-    3:TInfo tinfo
     4:security.TCredentials credentials
     2:string principal
   ) throws (
@@ -214,7 +202,6 @@ service ClientService {
 
   // permissions-related methods
   bool hasSystemPermission(
-    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:i8 sysPerm
@@ -223,7 +210,6 @@ service ClientService {
   )
 
   bool hasTablePermission(
-    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
@@ -234,7 +220,6 @@ service ClientService {
   )
 
   bool hasNamespacePermission(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
@@ -245,7 +230,6 @@ service ClientService {
   )
 
   void grantSystemPermission(
-    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:i8 permission
@@ -254,7 +238,6 @@ service ClientService {
   )
 
   void revokeSystemPermission(
-    4:TInfo tinfo
     5:security.TCredentials credentials
     2:string principal
     3:i8 permission
@@ -263,7 +246,6 @@ service ClientService {
   )
 
   void grantTablePermission(
-    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
@@ -274,7 +256,6 @@ service ClientService {
   )
 
   void revokeTablePermission(
-    5:TInfo tinfo
     6:security.TCredentials credentials
     2:string principal
     3:string tableName
@@ -285,7 +266,6 @@ service ClientService {
   )
 
   void grantNamespacePermission(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
@@ -296,7 +276,6 @@ service ClientService {
   )
 
   void revokeNamespacePermission(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string principal
     4:string ns
@@ -308,7 +287,6 @@ service ClientService {
 
   // configuration methods
   map<string, string> getConfiguration(
-    2:TInfo tinfo
     3:security.TCredentials credentials
     1:ConfigurationType type
   ) throws (
@@ -316,21 +294,18 @@ service ClientService {
   )
 
   map<string, string> getSystemProperties(
-    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   TVersionedProperties getVersionedSystemProperties(
-    1:TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:ThriftSecurityException sec
   )
 
   map<string, string> getTableConfiguration(
-    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
@@ -339,7 +314,6 @@ service ClientService {
   )
 
   map<string, string> getTableProperties(
-    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
@@ -348,7 +322,6 @@ service ClientService {
   )
 
   TVersionedProperties getVersionedTableProperties(
-    1:TInfo tinfo
     3:security.TCredentials credentials
     2:string tableName
   ) throws (
@@ -357,7 +330,6 @@ service ClientService {
   )
 
   map<string, string> getNamespaceConfiguration(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
@@ -366,7 +338,6 @@ service ClientService {
   )
 
   map<string, string> getNamespaceProperties(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
@@ -375,7 +346,6 @@ service ClientService {
   )
 
   TVersionedProperties getVersionedNamespaceProperties(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
   ) throws (
@@ -384,14 +354,12 @@ service ClientService {
   )
 
   bool checkClass(
-    1:TInfo tinfo
     4:security.TCredentials credentials
     2:string className
     3:string interfaceMatch
   )
 
   bool checkTableClass(
-    1:TInfo tinfo
     5:security.TCredentials credentials
     2:string tableId
     3:string className
@@ -402,7 +370,6 @@ service ClientService {
   )
 
   bool checkNamespaceClass(
-    1:TInfo tinfo
     2:security.TCredentials credentials
     3:string namespaceId
     4:string className
