@@ -119,7 +119,7 @@ public class TableConfigurationTest {
     if (tid == null) {
       throw new IllegalStateException("missing test tableId");
     }
-    tableConfig = new TableConfiguration(context, tid, nsConfig);
+    tableConfig = new TableConfiguration(context, tid, nsid, nsConfig);
 
   }
 

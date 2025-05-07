@@ -154,7 +154,7 @@ public class ZooBasedConfigurationTest {
 
     NamespaceConfiguration nsConfig = new NamespaceConfiguration(context, nsId, siteConfig);
 
-    ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsConfig);
+    ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsId, nsConfig);
     Map<String,String> readProps = zbc.getSnapshot();
 
     assertNotNull(zbc.getSnapshot());

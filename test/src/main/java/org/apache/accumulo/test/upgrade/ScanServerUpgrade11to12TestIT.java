@@ -108,7 +108,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
   private void deleteScanServerRefTable() throws InterruptedException {
     ServerContext ctx = getCluster().getServerContext();
     ZooReaderWriter zoo = ctx.getZooSession().asReaderWriter();
-    String zPath = Constants.ZTABLES + "/" + SystemTables.SCAN_REF.tableId();
+    String zPath = Constants.ZNAMESPACES + "/" + SystemTables.namespaceId() + Constants.ZTABLES + "/" + SystemTables.SCAN_REF.tableId();
     // Remove the scan server table metadata in zk
     try {
       zoo.recursiveDelete(zPath + Constants.ZTABLE_STATE, ZooUtil.NodeMissingPolicy.SKIP);

@@ -288,9 +288,6 @@ public class ZooInfoViewerTest {
           return tPropBytes;
         }).once();
 
-    expect(zk.getData(ZTABLES + "/t" + ZTABLE_NAMESPACE, null, null))
-        .andReturn("+default".getBytes(UTF_8)).anyTimes();
-
     context.close();
     expectLastCall().once();
 

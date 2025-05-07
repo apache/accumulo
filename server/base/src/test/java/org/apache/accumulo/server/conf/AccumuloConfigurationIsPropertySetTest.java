@@ -275,7 +275,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var sysConfig = new ConfigurationCopy(setToMap(setOnSystem));
 
     var namespaceConfig = new NamespaceConfiguration(context, namespaceId, sysConfig);
-    var tableConfig = new TableConfiguration(context, tableId, namespaceConfig);
+    var tableConfig = new TableConfiguration(context, tableId, namespaceId, namespaceConfig);
 
     var shouldBeSet = new HashSet<Property>();
     shouldBeSet.addAll(setOnSystem);

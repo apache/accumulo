@@ -122,7 +122,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         }
         context.getPropStore().registerAsListener(TablePropKey.of(tableId, namespaceId), changeWatcher);
         var conf =
-            new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
+            new TableConfiguration(context, tableId, namespaceId, getNamespaceConfigurationForTable(tableId));
         ConfigCheckUtil.validate(conf, "table id: " + tableId.toString());
 
         return conf;
