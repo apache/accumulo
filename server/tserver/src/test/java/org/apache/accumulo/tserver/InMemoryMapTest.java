@@ -803,7 +803,7 @@ public class InMemoryMapTest extends WithTestNames {
   private String[] uniqueDirPaths(int numOfDirs) {
     String[] newDirs = new String[numOfDirs];
     for (int i = 0; i < newDirs.length; i++) {
-      File newDir = new File(tempDir, testName() + i);
+      File newDir = tempDir.toPath().resolve(testName() + i).toFile();
       assertTrue(newDir.isDirectory() || newDir.mkdir(), "Failed to create directory: " + newDir);
       newDirs[i] = newDir.getAbsolutePath();
     }

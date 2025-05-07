@@ -683,7 +683,6 @@
           <artifactId>modernizer-maven-plugin</artifactId>
           <version>3.1.0</version>
           <configuration>
-            <includeTestClasses>false</includeTestClasses>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
         </plugin>
