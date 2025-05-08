@@ -205,6 +205,7 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
     if (cluster != null) {
       if (type.isDynamic()) {
         cluster.stop();
+        cluster.terminate();
       } else {
         log.info("Removing tables which appear to be from the current test");
         cleanupTables();
