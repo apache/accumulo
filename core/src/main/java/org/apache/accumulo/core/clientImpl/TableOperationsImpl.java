@@ -1227,22 +1227,22 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     final String localityGroupPrefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
 
-    modifyProperties(tableName, props -> {
+    modifyProperties(tableName, properties -> {
 
       // add/update each locality group
-      groupsToSet.forEach((groupName, colFams) -> props.put(localityGroupPrefix + groupName,
+      groupsToSet.forEach((groupName, colFams) -> properties.put(localityGroupPrefix + groupName,
           LocalityGroupUtil.encodeColumnFamilies(colFams)));
 
       // update the list of all locality groups
       final String allGroups = Joiner.on(",").join(groupsToSet.keySet());
-      props.put(Property.TABLE_LOCALITY_GROUPS.getKey(), allGroups);
+      properties.put(Property.TABLE_LOCALITY_GROUPS.getKey(), allGroups);
 
       // remove any stale locality groups that were previously set
-      for (String key : new ArrayList<>(props.keySet())) {
+      for (String key : new ArrayList<>(properties.keySet())) {
         if (key.startsWith(localityGroupPrefix)) {
           String grp = key.substring(localityGroupPrefix.length());
           if (!groupsToSet.containsKey(grp)) {
-            props.remove(key);
+            properties.remove(key);
           }
         }
       }
@@ -1853,15 +1853,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void clearSamplerOptions(String tableName)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
+  /**
+   * Removes all sampler option properties from the given properties map
+   */
+  private void clearSamplerOptions(Map<String,String> props) {
     String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
-    for (Entry<String,String> entry : getProperties(tableName)) {
-      String property = entry.getKey();
+    for (String property : new ArrayList<>(props.keySet())) {
       if (property.startsWith(prefix)) {
-        removeProperty(tableName, property);
+        props.remove(property);
       }
     }
   }
@@ -1871,19 +1870,24 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    clearSamplerOptions(tableName);
     Map<String,String> props =
         new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
-    modifyProperties(tableName, properties -> properties.putAll(props));
+
+    modifyProperties(tableName, properties -> {
+      clearSamplerOptions(properties);
+      properties.putAll(props);
+    });
   }
 
   @Override
   public void clearSamplerConfiguration(String tableName)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    removeProperty(tableName, Property.TABLE_SAMPLER.getKey());
-    clearSamplerOptions(tableName);
+    modifyProperties(tableName, properties -> {
+      properties.remove(Property.TABLE_SAMPLER.getKey());
+      clearSamplerOptions(properties);
+    });
   }
 
   @Override
