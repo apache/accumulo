@@ -120,7 +120,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
 
-    String zTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_FLUSH_ID;
+    String zTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+        + tableId + Constants.ZTABLE_FLUSH_ID;
 
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     byte[] fid;
@@ -269,8 +270,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
 
     try {
-      PropUtil.replaceProperties(context, TablePropKey.of(tableId, namespaceId), properties.getVersion(),
-          properties.getProperties());
+      PropUtil.replaceProperties(context, TablePropKey.of(tableId, namespaceId),
+          properties.getVersion(), properties.getProperties());
     } catch (ConcurrentModificationException cme) {
       log.warn("Error modifying table properties, properties have changed", cme);
       throw new ThriftConcurrentModificationException(cme.getMessage());
@@ -533,12 +534,14 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       if (op == TableOperation.REMOVE_PROPERTY) {
-        PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId), List.of(property));
+        PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId),
+            List.of(property));
       } else if (op == TableOperation.SET_PROPERTY) {
         if (value == null || value.isEmpty()) {
           value = "";
         }
-        PropUtil.setProperties(context, TablePropKey.of(tableId, namespaceId), Map.of(property, value));
+        PropUtil.setProperties(context, TablePropKey.of(tableId, namespaceId),
+            Map.of(property, value));
       }
     } catch (IllegalStateException ex) {
       log.warn("Invalid table property, tried to set: tableId: " + tableId.canonical() + " to: "

@@ -377,8 +377,7 @@ public class ZooInfoViewer implements KeywordExecutable {
         throw new IllegalStateException("Interrupted reading table properties from ZooKeeper", ex);
       } catch (IOException | KeeperException ex) {
         throw new IllegalStateException("Failed to read table properties from ZooKeeper", ex);
-      }
-      catch (TableNotFoundException e) {
+      } catch (TableNotFoundException e) {
         throw new IllegalStateException("Table not found in ZooKeeper: " + tid);
       }
     });

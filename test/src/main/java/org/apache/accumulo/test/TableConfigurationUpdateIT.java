@@ -72,7 +72,8 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       // Number of iterations per thread
       int iterations = 100000;
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table));
-      AccumuloConfiguration tableConf = new TableConfiguration(context, tid, Namespace.DEFAULT.id(), defaultConf);
+      AccumuloConfiguration tableConf =
+          new TableConfiguration(context, tid, Namespace.DEFAULT.id(), defaultConf);
 
       long start = System.currentTimeMillis();
       ExecutorService svc = Executors.newFixedThreadPool(numThreads);

@@ -105,8 +105,8 @@ public class CompactionDriver extends ManagerRepo {
           TableOperationsImpl.COMPACTION_CANCELED_MSG);
     }
 
-    String deleteMarkerPath =
-        PreDeleteTable.createDeleteMarkerPath(manager.getContext().getInstanceID(), tableId, namespaceId);
+    String deleteMarkerPath = PreDeleteTable
+        .createDeleteMarkerPath(manager.getContext().getInstanceID(), tableId, namespaceId);
     if (zoo.exists(deleteMarkerPath)) {
       // table is being deleted
       throw new AcceptableThriftTableOperationException(tableId.canonical(), null,

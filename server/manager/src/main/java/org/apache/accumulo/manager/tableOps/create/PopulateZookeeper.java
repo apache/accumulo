@@ -61,7 +61,8 @@ class PopulateZookeeper extends ManagerRepo {
           tableInfo.getTableName());
 
       try {
-        PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId(), tableInfo.getNamespaceId()), tableInfo.props);
+        PropUtil.setProperties(context,
+            TablePropKey.of(tableInfo.getTableId(), tableInfo.getNamespaceId()), tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,

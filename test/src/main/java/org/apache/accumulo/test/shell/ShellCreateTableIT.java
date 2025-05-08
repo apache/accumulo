@@ -799,12 +799,14 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
 
       // source will still inherit from sys and namespace (no prop values)
-      var vp2 = propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable)), NamespaceId.of(srcNS)));
+      var vp2 =
+          propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable)), NamespaceId.of(srcNS)));
       assertNull(vp2.asMap().get(sysPropName));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
-      var vp3 = propStore.get(TablePropKey.of(TableId.of(tids.get(destTable)), NamespaceId.of(srcNS)));
+      var vp3 =
+          propStore.get(TablePropKey.of(TableId.of(tids.get(destTable)), NamespaceId.of(srcNS)));
       assertEquals(sysPropValue1, vp3.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
 

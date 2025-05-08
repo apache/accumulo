@@ -118,7 +118,8 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
-    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId(), SystemTables.namespaceId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId(),
+        SystemTables.namespaceId());
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
@@ -291,7 +292,8 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId, NamespaceId namespaceId) {
+  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId,
+      NamespaceId namespaceId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
     PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId), List.of(propName));
   }
@@ -415,8 +417,8 @@ public class Upgrader12to13 implements Upgrader {
       for (String tableId : tableIds) {
         var tableName =
             new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
-        var namespaceId = new String(
-            zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAMESPACE), UTF_8);
+        var namespaceId =
+            new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAMESPACE), UTF_8);
         mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
             (tid, existingName) -> {
               if (existingName != null) {

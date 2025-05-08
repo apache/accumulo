@@ -234,7 +234,7 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
-    var metaKey = TablePropKey.of(SystemTables.METADATA.tableId());
+    var metaKey = TablePropKey.of(SystemTables.METADATA.tableId(), SystemTables.namespaceId());
     var p = propStore.get(metaKey);
     var props = p.asMap();
     List<String> filtered = filterReplConfigKeys(props.keySet());

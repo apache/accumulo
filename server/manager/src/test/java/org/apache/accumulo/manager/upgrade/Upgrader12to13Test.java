@@ -150,24 +150,26 @@ public class Upgrader12to13Test {
 
     List<String> mockTableIds = List.of("t1", "t2");
     Map<String,String> tableToNamespace = Map.of("t1", "ns1", "t2", "ns2");
-    Map<String,List<String>> tableChildren = Map.of("t1", List.of("flush-id", "state", "tableNamespace"),
-            "t2", List.of("flush-id", "state", "tableNamespace"));
-
+    Map<String,List<String>> tableChildren =
+        Map.of("t1", List.of("flush-id", "state", "tableNamespace"), "t2",
+            List.of("flush-id", "state", "tableNamespace"));
 
     expect(zrw.getChildren(eq(Constants.ZTABLES))).andReturn(mockTableIds).once();
 
     for (String tableId : mockTableIds) {
       String oldPath = Constants.ZTABLES + "/" + tableId;
       String tableNamespaceNode = oldPath + ZTABLE_NAMESPACE;
-      String newPath = Constants.ZNAMESPACES + tableToNamespace.get(tableId) + Constants.ZTABLES + tableId;
+      String newPath =
+          Constants.ZNAMESPACES + tableToNamespace.get(tableId) + Constants.ZTABLES + tableId;
 
       expect(zrw.exists(eq(oldPath))).andReturn(true).once();
       expect(zrw.exists(eq(tableNamespaceNode))).andReturn(true).once();
-      expect(zrw.getData(eq(tableNamespaceNode))).andReturn(tableToNamespace.get(tableId).getBytes(UTF_8)).once();
+      expect(zrw.getData(eq(tableNamespaceNode)))
+          .andReturn(tableToNamespace.get(tableId).getBytes(UTF_8)).once();
 
       expect(zrw.getData(eq(oldPath))).andReturn(("data_" + tableId).getBytes(UTF_8)).once();
       expect(zrw.putPersistentData(eq(newPath), eq(("data_" + tableId).getBytes(UTF_8)),
-              eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+          eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
       expect(zrw.getChildren(eq(oldPath))).andReturn(tableChildren.get(tableId)).once();
       for (String child : tableChildren.get(tableId)) {
         if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
@@ -175,9 +177,11 @@ public class Upgrader12to13Test {
         }
         String childFrom = oldPath + "/" + child;
         String childTo = newPath + "/" + child;
-        expect(zrw.getData(eq(childFrom))).andReturn(("data_" + tableId + "_" + child).getBytes(UTF_8)).once();
-        expect(zrw.putPersistentData(eq(childTo), eq(("data_" + tableId + "_" + child).getBytes(UTF_8)),
-                eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+        expect(zrw.getData(eq(childFrom)))
+            .andReturn(("data_" + tableId + "_" + child).getBytes(UTF_8)).once();
+        expect(zrw.putPersistentData(eq(childTo),
+            eq(("data_" + tableId + "_" + child).getBytes(UTF_8)),
+            eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
         expect(zrw.getChildren(eq(childFrom))).andReturn(List.of()).once();
         zrw.recursiveDelete(eq(childFrom), eq(NodeMissingPolicy.SKIP));
         expectLastCall().once();

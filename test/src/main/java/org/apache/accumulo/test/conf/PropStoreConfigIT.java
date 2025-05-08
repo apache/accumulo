@@ -266,7 +266,9 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
         log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
-        var tableAcl = zrw.getACL(TablePropKey.of(TableId.of(tEntry.getValue())).getPath());
+        var tid = TableId.of(tEntry.getValue());
+        var tableAcl =
+            zrw.getACL(TablePropKey.of(tid, serverContext.getNamespaceId(tid)).getPath());
         log.debug("Received ACLs of: {}", tableAcl);
         assertEquals(1, tableAcl.size());
         assertFalse(tableAcl.get(0).toString().contains("world"));

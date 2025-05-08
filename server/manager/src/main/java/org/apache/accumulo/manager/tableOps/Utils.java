@@ -87,7 +87,8 @@ public class Utils {
     if (getLock(context, tableId, fateId, lockType).tryLock()) {
       if (tableMustExist) {
         ZooReaderWriter zk = context.getZooSession().asReaderWriter();
-        if (!zk.exists(Constants.ZNAMESPACES + "/" + context.getNamespaceId(tableId) + Constants.ZTABLES + "/" + tableId)) {
+        if (!zk.exists(Constants.ZNAMESPACES + "/" + context.getNamespaceId(tableId)
+            + Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }

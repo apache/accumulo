@@ -61,7 +61,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
-  public TableConfiguration(ServerContext context, TableId tableId, NamespaceId namespaceId, NamespaceConfiguration parent) {
+  public TableConfiguration(ServerContext context, TableId tableId, NamespaceId namespaceId,
+      NamespaceConfiguration parent) {
     super(log, context, TablePropKey.of(tableId, namespaceId), parent);
     this.tableId = tableId;
 

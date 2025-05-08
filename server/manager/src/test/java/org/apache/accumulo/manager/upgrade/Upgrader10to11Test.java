@@ -88,7 +88,8 @@ class Upgrader10to11Test {
     zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
 
-    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
+    expect(
+        propStore.get(TablePropKey.of(SystemTables.METADATA.tableId(), SystemTables.namespaceId())))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zk, propStore);
@@ -116,7 +117,8 @@ class Upgrader10to11Test {
     expect(zk.getChildren(buildRepTablePath(instanceId), null)).andReturn(List.of());
     zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
-    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
+    expect(
+        propStore.get(TablePropKey.of(SystemTables.METADATA.tableId(), SystemTables.namespaceId())))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zk, propStore);

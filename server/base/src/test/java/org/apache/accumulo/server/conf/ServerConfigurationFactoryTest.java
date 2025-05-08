@@ -66,8 +66,8 @@ public class ServerConfigurationFactoryTest {
     propStore = createMock(ZooPropStore.class);
     expect(propStore.get(eq(SystemPropKey.of()))).andReturn(new VersionedProperties(Map.of()))
         .anyTimes();
-    expect(propStore.get(eq(TablePropKey.of(TID, NSID)))).andReturn(new VersionedProperties(Map.of()))
-        .anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(TID, NSID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
     expect(propStore.get(eq(NamespacePropKey.of(NSID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
 

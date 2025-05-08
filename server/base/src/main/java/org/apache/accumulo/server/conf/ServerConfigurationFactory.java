@@ -120,9 +120,10 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         } catch (TableNotFoundException e) {
           throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
         }
-        context.getPropStore().registerAsListener(TablePropKey.of(tableId, namespaceId), changeWatcher);
-        var conf =
-            new TableConfiguration(context, tableId, namespaceId, getNamespaceConfigurationForTable(tableId));
+        context.getPropStore().registerAsListener(TablePropKey.of(tableId, namespaceId),
+            changeWatcher);
+        var conf = new TableConfiguration(context, tableId, namespaceId,
+            getNamespaceConfigurationForTable(tableId));
         ConfigCheckUtil.validate(conf, "table id: " + tableId.toString());
 
         return conf;

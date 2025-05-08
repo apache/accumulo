@@ -56,11 +56,11 @@ class FinishCreateTable extends ManagerRepo {
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
 
     if (tableInfo.getInitialTableState() == InitialTableState.OFFLINE) {
-      env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(), tableInfo.getNamespaceId(),
-          TableState.OFFLINE, expectedCurrStates);
+      env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
+          tableInfo.getNamespaceId(), TableState.OFFLINE, expectedCurrStates);
     } else {
-      env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(), tableInfo.getNamespaceId(),
-          TableState.ONLINE, expectedCurrStates);
+      env.getContext().getTableManager().transitionTableState(tableInfo.getTableId(),
+          tableInfo.getNamespaceId(), TableState.ONLINE, expectedCurrStates);
     }
 
     Utils.unreserveNamespace(env, tableInfo.getNamespaceId(), fateId, LockType.READ);

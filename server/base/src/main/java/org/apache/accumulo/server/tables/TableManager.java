@@ -80,7 +80,8 @@ public class TableManager {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    String zTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
+    String zTablePath =
+        Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
@@ -92,10 +93,12 @@ public class TableManager {
     }
   }
 
-  public synchronized void transitionTableState(final TableId tableId, final NamespaceId namespaceId, final TableState newState,
+  public synchronized void transitionTableState(final TableId tableId,
+      final NamespaceId namespaceId, final TableState newState,
       final EnumSet<TableState> expectedCurrStates) {
     Preconditions.checkArgument(newState != TableState.UNKNOWN);
-    String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
+    String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId
+        + Constants.ZTABLE_STATE;
 
     try {
       zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), currData -> {
@@ -147,8 +150,8 @@ public class TableManager {
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
     }
-    byte[] data =
-        context.getZooCache().get(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+    byte[] data = context.getZooCache().get(Constants.ZNAMESPACES + "/" + namespaceId
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
     if (data != null) {
       String sState = new String(data, UTF_8);
       try {
@@ -172,8 +175,10 @@ public class TableManager {
     prepareNewTableState(tableId, namespaceId, tableName, TableState.NEW,
         NodeExistsPolicy.OVERWRITE);
 
-    String srcTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + srcTableId + Constants.ZCONFIG;
-    String newTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
+    String srcTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+        + srcTableId + Constants.ZCONFIG;
+    String newTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+        + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
     PropUtil.setProperties(context, TablePropKey.of(tableId, namespaceId), propertiesToSet);
@@ -190,7 +195,9 @@ public class TableManager {
         throw e;
       }
     }
-    zoo.recursiveDelete(Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
+    zoo.recursiveDelete(
+        Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId,
+        NodeMissingPolicy.SKIP);
   }
 
   public void removeNamespace(NamespaceId namespaceId)

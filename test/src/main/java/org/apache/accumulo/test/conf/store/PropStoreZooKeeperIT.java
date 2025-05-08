@@ -104,13 +104,13 @@ public class PropStoreZooKeeperIT {
     zk.create(zPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     zk.create(zPath + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
-    zk.create(zPath + "/" + tIdA.canonical() + "/conf", new byte[0],
-        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tIdA.canonical() + "/conf", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
 
     zk.create(zPath + "/" + tIdB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
-    zk.create(zPath + "/" + tIdB.canonical() + "/conf", new byte[0],
-        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tIdB.canonical() + "/conf", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
     propStore = ZooPropStore.initialize(zk);
   }
 

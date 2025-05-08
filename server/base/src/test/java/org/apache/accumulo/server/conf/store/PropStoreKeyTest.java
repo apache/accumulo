@@ -109,7 +109,8 @@ public class PropStoreKeyTest {
     assertNull(PropStoreKey.fromPath("/foo"));
     assertNull(PropStoreKey.fromPath(ZCONFIG + "/foo"));
 
-    assertTrue(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZTABLES + "/a" + ZCONFIG) instanceof TablePropKey);
+    assertTrue(PropStoreKey
+        .fromPath(ZNAMESPACES + "/a" + ZTABLES + "/a" + ZCONFIG) instanceof TablePropKey);
     assertNull(PropStoreKey.fromPath(ZTABLES + ZCONFIG));
     assertNull(PropStoreKey.fromPath("/invalid/a" + ZCONFIG));
     assertNull(PropStoreKey.fromPath(ZNAMESPACES + "/a" + ZTABLES + "/a" + ZCONFIG + "/foo"));
@@ -124,6 +125,7 @@ public class PropStoreKeyTest {
   public void getBasePathTest() {
     assertTrue(SystemPropKey.of().getPath().endsWith("/config"));
     assertTrue(NamespacePropKey.of(NamespaceId.of("123")).getPath().endsWith(ZCONFIG));
-    assertTrue(TablePropKey.of(TableId.of("456"), NamespaceId.of("n1")).getPath().endsWith(ZCONFIG));
+    assertTrue(
+        TablePropKey.of(TableId.of("456"), NamespaceId.of("n1")).getPath().endsWith(ZCONFIG));
   }
 }

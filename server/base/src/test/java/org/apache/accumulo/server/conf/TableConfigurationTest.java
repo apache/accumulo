@@ -157,8 +157,8 @@ public class TableConfigurationTest {
         Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "123", Property.INSTANCE_SECRET.getKey(), expectedPass)))
         .anyTimes();
-    expect(propStore.get(eq(TablePropKey.of(TID, NID)))).andReturn(new VersionedProperties(Map.of()))
-        .anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(TID, NID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
     replay(propStore);
 
     nsConfig.zkChangeEvent(NamespacePropKey.of(NID));

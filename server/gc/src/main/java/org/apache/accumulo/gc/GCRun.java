@@ -46,7 +46,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -238,9 +237,11 @@ public class GCRun implements GarbageCollectionEnvironment {
         zr.sync(Constants.ZNAMESPACES);
         final Map<TableId,TableState> tids = new HashMap<>();
         for (String namespaceId : zr.getChildren(Constants.ZNAMESPACES)) {
-          for (TableId tableId : context.getTableMapping(NamespaceId.of(namespaceId)).getIdToNameMap().keySet()) {
+          for (TableId tableId : context.getTableMapping(NamespaceId.of(namespaceId))
+              .getIdToNameMap().keySet()) {
             TableState tableState = null;
-            String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
+            String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+                + tableId.canonical() + Constants.ZTABLE_STATE;
             try {
               byte[] state = zr.getData(statePath);
               if (state == null) {

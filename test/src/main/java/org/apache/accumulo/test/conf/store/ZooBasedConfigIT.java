@@ -126,9 +126,9 @@ public class ZooBasedConfigIT {
     expect(context.getZooSession()).andReturn(zk);
 
     zk.create(Constants.ZNAMESPACES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-            CreateMode.PERSISTENT);
+        CreateMode.PERSISTENT);
     zk.create(Constants.ZNAMESPACES + "/" + nsId.canonical(), new byte[0],
-            ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
     zk.create(zPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
