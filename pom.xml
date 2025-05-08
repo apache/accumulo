@@ -1170,7 +1170,11 @@
               <goal>verify</goal>
             </goals>
             <configuration>
-              <excludedGroups>SIMPLE_MINI_CLUSTER_SUITE,TestSuite</excludedGroups>
+              <!--
+                exclude tests that were run as part of the test suite and
+                the test suite itself
+              -->
+              <excludedGroups>SimpleMiniClusterSuite,TestSuite</excludedGroups>
             </configuration>
           </execution>
         </executions>
