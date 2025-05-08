@@ -21,6 +21,7 @@ package org.apache.accumulo.core.rpc;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -140,7 +141,7 @@ public class SslConnectionParams {
   private static String findKeystore(String keystorePath) throws FileNotFoundException {
     try {
       // first just try the file
-      File file = new File(keystorePath);
+      File file = Path.of(keystorePath).toFile();
       if (file.exists()) {
         return file.getAbsolutePath();
       }
@@ -148,7 +149,7 @@ public class SslConnectionParams {
         // try classpath
         URL url = SslConnectionParams.class.getClassLoader().getResource(keystorePath);
         if (url != null) {
-          file = new File(url.toURI());
+          file = Path.of(url.toURI()).toFile();
           if (file.exists()) {
             return file.getAbsolutePath();
           }

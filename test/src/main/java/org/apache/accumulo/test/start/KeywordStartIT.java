@@ -26,9 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -125,7 +125,7 @@ public class KeywordStartIT {
    */
   @Test
   public void testExpectedClasses() {
-    assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
+    assumeTrue(Path.of(System.getProperty("user.dir")).resolve("src").toFile().exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);

@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
@@ -43,8 +44,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
-  private static final File BASE_DIR = new File(System.getProperty("user.dir")
-      + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
+  private static final File BASE_DIR =
+      Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests")
+          .resolve(MiniAccumuloClusterExistingZooKeepersTest.class.getName()).toFile();
 
   private static final String SECRET = "superSecret";
 
@@ -53,7 +55,7 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
   @BeforeEach
   public void setupTestCluster() {
     assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());
-    File testDir = new File(BASE_DIR, testName());
+    File testDir = BASE_DIR.toPath().resolve(testName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 

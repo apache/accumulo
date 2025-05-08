@@ -28,10 +28,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
@@ -54,11 +54,11 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TestUpgradePathForWALogs extends WithTestNames {
 
   // older logs no longer compatible
-  private static final String WALOG_FROM_15 = "/walog-from-15.walog";
+  private static final String WALOG_FROM_15 = "walog-from-15.walog";
   // logs from versions 1.6 through 1.10 should be the same
-  private static final String WALOG_FROM_16 = "/walog-from-16.walog";
+  private static final String WALOG_FROM_16 = "walog-from-16.walog";
   // logs from 2.0 were changed for improved crypto
-  private static final String WALOG_FROM_20 = "/walog-from-20.walog";
+  private static final String WALOG_FROM_20 = "walog-from-20.walog";
 
   private ServerContext context;
   private TabletServer server;
@@ -74,7 +74,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     server = createMock(TabletServer.class);
 
     // Create a new subdirectory for each test
-    perTestTempSubDir = new File(tempDir, testName());
+    perTestTempSubDir = tempDir.toPath().resolve(testName()).toFile();
     assertTrue(perTestTempSubDir.isDirectory() || perTestTempSubDir.mkdir(),
         "Failed to create folder: " + perTestTempSubDir);
 
@@ -102,8 +102,9 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     String walogToTest = WALOG_FROM_15;
     String testPath = perTestTempSubDir.getAbsolutePath();
 
-    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
-        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
+    try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
+        OutputStream walogInHDFStream =
+            Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
@@ -112,8 +113,9 @@ public class TestUpgradePathForWALogs extends WithTestNames {
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
       assertThrows(IllegalArgumentException.class,
-          () -> logProcessor.sort(context.getVolumeManager(), WALOG_FROM_15,
-              new Path("file://" + testPath + WALOG_FROM_15), "file://" + testPath + "/manyMaps"));
+          () -> logProcessor.sort(context.getVolumeManager(), "/" + WALOG_FROM_15,
+              new Path("file://" + testPath + "/" + WALOG_FROM_15),
+              "file://" + testPath + "/manyMaps"));
     }
   }
 
@@ -123,8 +125,9 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     String testPath = perTestTempSubDir.getAbsolutePath();
     String destPath = "file://" + testPath + "/manyMaps";
 
-    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
-        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
+    try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
+        OutputStream walogInHDFStream =
+            Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
@@ -134,8 +137,8 @@ public class TestUpgradePathForWALogs extends WithTestNames {
       LogSorter logSorter = new LogSorter(server);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
 
-      logProcessor.sort(context.getVolumeManager(), walogToTest,
-          new Path("file://" + testPath + walogToTest), destPath);
+      logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
+          new Path("file://" + testPath + "/" + walogToTest), destPath);
 
       assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
     }
@@ -147,8 +150,9 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     String testPath = perTestTempSubDir.getAbsolutePath();
     String destPath = "file://" + testPath + "/manyMaps";
 
-    try (InputStream walogStream = getClass().getResourceAsStream(walogToTest);
-        OutputStream walogInHDFStream = new FileOutputStream(testPath + walogToTest)) {
+    try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
+        OutputStream walogInHDFStream =
+            Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
@@ -157,8 +161,8 @@ public class TestUpgradePathForWALogs extends WithTestNames {
 
       LogSorter logSorter = new LogSorter(server);
       LogSorter.LogProcessor logProcessor = logSorter.new LogProcessor();
-      logProcessor.sort(context.getVolumeManager(), walogToTest,
-          new Path("file://" + testPath + walogToTest), destPath);
+      logProcessor.sort(context.getVolumeManager(), "/" + walogToTest,
+          new Path("file://" + testPath + "/" + walogToTest), destPath);
 
       assertTrue(context.getVolumeManager().exists(getFinishedMarkerPath(destPath)));
     }

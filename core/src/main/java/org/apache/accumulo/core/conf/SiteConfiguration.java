@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -93,7 +94,7 @@ public class SiteConfiguration extends AccumuloConfiguration {
       if (configFile.startsWith("file://")) {
         File f;
         try {
-          f = new File(new URI(configFile));
+          f = Path.of(new URI(configFile)).toFile();
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration from " + configFile, e);

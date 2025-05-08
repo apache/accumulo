@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;
+import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
@@ -87,7 +88,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    */
   public static void startMiniClusterWithConfig(
       MiniClusterConfigurationCallback miniClusterCallback) throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
 
     // Make a shared MAC instance instead of spinning up one per test method

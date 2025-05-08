@@ -120,9 +120,10 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
+      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
+      File emptyWalog = walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
 
       log.info("Created empty WAL at {}", emptyWalog.toURI());
 
@@ -175,9 +176,11 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
+      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
+      File partialHeaderWalog =
+          walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
 
       log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
 

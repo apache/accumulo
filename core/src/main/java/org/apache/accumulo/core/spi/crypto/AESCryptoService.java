@@ -31,7 +31,7 @@ import java.io.OutputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.InvalidAlgorithmParameterException;
 import java.security.InvalidKeyException;
 import java.security.Key;
@@ -607,7 +607,7 @@ public class AESCryptoService implements CryptoService {
   public static Key loadKekFromUri(String keyId) {
     try {
       final java.net.URI uri = new URI(keyId);
-      return new SecretKeySpec(Files.readAllBytes(Paths.get(uri.getPath())), "AES");
+      return new SecretKeySpec(Files.readAllBytes(Path.of(uri.getPath())), "AES");
     } catch (URISyntaxException | IOException | IllegalArgumentException e) {
       throw new CryptoException("Unable to load key encryption key.", e);
     }
