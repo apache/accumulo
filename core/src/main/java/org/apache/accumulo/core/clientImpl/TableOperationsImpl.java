@@ -1220,42 +1220,33 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups)
+  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groupsToSet)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
-    LocalityGroupUtil.ensureNonOverlappingGroups(groups);
+    LocalityGroupUtil.ensureNonOverlappingGroups(groupsToSet);
 
-    for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-      Set<Text> colFams = entry.getValue();
-      String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
-      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
-    }
+    final String localityGroupPrefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
 
-    try {
-      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
-          Joiner.on(",").join(groups.keySet()));
-    } catch (AccumuloException e) {
-      if (e.getCause() instanceof TableNotFoundException) {
-        throw (TableNotFoundException) e.getCause();
-      }
-      throw e;
-    }
+    modifyProperties(tableName, props -> {
 
-    // remove anything extraneous
-    String prefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
-    for (Entry<String,String> entry : getProperties(tableName)) {
-      String property = entry.getKey();
-      if (property.startsWith(prefix)) {
-        // this property configures a locality group, find out which
-        // one:
-        String[] parts = property.split("\\.");
-        String group = parts[parts.length - 1];
+      // add/update each locality group
+      groupsToSet.forEach((groupName, colFams) -> props.put(localityGroupPrefix + groupName,
+          LocalityGroupUtil.encodeColumnFamilies(colFams)));
 
-        if (!groups.containsKey(group)) {
-          removePropertyNoChecks(tableName, property);
+      // update the list of all locality groups
+      final String allGroups = Joiner.on(",").join(groupsToSet.keySet());
+      props.put(Property.TABLE_LOCALITY_GROUPS.getKey(), allGroups);
+
+      // remove any stale locality groups that were previously set
+      for (String key : new ArrayList<>(props.keySet())) {
+        if (key.startsWith(localityGroupPrefix)) {
+          String grp = key.substring(localityGroupPrefix.length());
+          if (!groupsToSet.containsKey(grp)) {
+            props.remove(key);
+          }
         }
       }
-    }
+    });
   }
 
   @Override
