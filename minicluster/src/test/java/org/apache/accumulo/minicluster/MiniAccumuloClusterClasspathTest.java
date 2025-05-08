@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -64,13 +65,14 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir =
+        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
+    testDir = baseDir.toPath().resolve(MiniAccumuloClusterTest.class.getName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
-    jarFile = new File(tempDir, "iterator.jar");
+    jarFile = tempDir.toPath().resolve("iterator.jar").toFile();
     FileUtils.copyURLToFile(
         requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
         jarFile);

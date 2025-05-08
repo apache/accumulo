@@ -23,12 +23,12 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStreamWriter;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.nio.file.Path;
 import java.util.Scanner;
 
 import org.junit.jupiter.api.AfterEach;
@@ -94,7 +94,7 @@ public class PasswordConverterTest {
   @Test
   public void testFile() throws IOException {
     argv[1] = "file:pom.xml";
-    Scanner scan = new Scanner(new File("pom.xml"), UTF_8);
+    Scanner scan = new Scanner(Path.of("pom.xml").toFile(), UTF_8);
     String expected = scan.nextLine();
     scan.close();
     new JCommander(password).parse(argv);

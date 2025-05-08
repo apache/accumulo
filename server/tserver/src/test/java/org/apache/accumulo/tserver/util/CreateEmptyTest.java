@@ -99,7 +99,7 @@ public class CreateEmptyTest {
     String rf1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
 
     // create the file so it exists
-    File f = new File(wal1);
+    File f = java.nio.file.Path.of(wal1).toFile();
     assertTrue(f.createNewFile());
 
     String[] walArgs = {"--type", "WAL", wal1};
@@ -110,7 +110,7 @@ public class CreateEmptyTest {
         () -> createEmpty.createEmptyWal(walOpts, context));
 
     // create the file so it exists
-    File f2 = new File(rf1);
+    File f2 = java.nio.file.Path.of(rf1).toFile();
     assertTrue(f2.createNewFile());
 
     String[] rfArgs = {"--type", "RF", rf1};

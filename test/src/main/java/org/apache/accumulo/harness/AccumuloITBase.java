@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -80,17 +81,17 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File getSslDir(File baseDir) {
     assertTrue(baseDir.exists() && baseDir.isDirectory());
-    return new File(baseDir.getParentFile(), baseDir.getName() + "-ssl");
+    return baseDir.getParentFile().toPath().resolve(baseDir.getName() + "-ssl").toFile();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File createTestDir(String name) {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name == null) {
       return baseDir;
     }
-    File testDir = new File(baseDir, name);
+    File testDir = baseDir.toPath().resolve(name).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -141,7 +142,7 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
   protected File initJar(String jarResourcePath, String namePrefix, String testDir)
       throws IOException {
-    var testFileDir = new File(testDir);
+    var testFileDir = Path.of(testDir).toFile();
     File jar = File.createTempFile(namePrefix, ".jar", testFileDir);
     var url = this.getClass().getResource(jarResourcePath);
     if (url == null) {

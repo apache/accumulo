@@ -23,7 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Collections;
 
@@ -58,20 +58,20 @@ public class DumpConfigIT extends ConfigurableMacBase {
       justification = "user.dir is suitable test input")
   @Test
   public void test() throws Exception {
-    File folder = new File(tempDir, testName() + "/");
+    File folder = tempDir.toPath().resolve(testName() + "/").toFile();
     assertTrue(folder.isDirectory() || folder.mkdir(), "failed to create dir: " + folder);
-    File siteFileBackup = new File(folder, "accumulo.properties.bak");
+    File siteFileBackup = folder.toPath().resolve("accumulo.properties.bak").toFile();
     assertFalse(siteFileBackup.exists());
     assertEquals(0, exec(Admin.class, "dumpConfig", "-a", "-d", folder.getPath()).waitFor());
     assertTrue(siteFileBackup.exists());
-    String site = FunctionalTestUtils.readAll(new FileInputStream(siteFileBackup));
+    String site = FunctionalTestUtils.readAll(Files.newInputStream(siteFileBackup.toPath()));
     assertTrue(site.contains(Property.TABLE_FILE_BLOCK_SIZE.getKey()));
     assertTrue(site.contains("1234567"));
-    String meta = FunctionalTestUtils
-        .readAll(new FileInputStream(new File(folder, SystemTables.METADATA.tableName() + ".cfg")));
+    String meta = FunctionalTestUtils.readAll(
+        Files.newInputStream(folder.toPath().resolve(SystemTables.METADATA.tableName() + ".cfg")));
     assertTrue(meta.contains(Property.TABLE_FILE_REPLICATION.getKey()));
     String systemPerm =
-        FunctionalTestUtils.readAll(new FileInputStream(new File(folder, "root_user.cfg")));
+        FunctionalTestUtils.readAll(Files.newInputStream(folder.toPath().resolve("root_user.cfg")));
     assertTrue(systemPerm.contains("grant System.ALTER_USER -s -u root"));
     assertTrue(systemPerm
         .contains("grant Table.READ -t " + SystemTables.METADATA.tableName() + " -u root"));
