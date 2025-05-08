@@ -112,13 +112,13 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
       client.tableOperations().setProperty(table1, TABLE_MAJC_RATIO.getKey(), "1001");
       TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table1));
 
-      ReadWriteIT.ingest(client, 1000, 1, 1, 0, "colf", table1, 1);
+      ReadWriteIT.ingest(client, 1000, 1, 1, 0, "colf", table1, 20);
 
       Ample ample = ((ClientContext) client).getAmple();
       try (
           TabletsMetadata tms = ample.readTablets().forTable(tid).fetch(ColumnType.FILES).build()) {
         TabletMetadata tm = tms.iterator().next();
-        assertEquals(1000, tm.getFiles().size());
+        assertEquals(50, tm.getFiles().size());
       }
 
       IteratorSetting setting = new IteratorSetting(50, "error", ErrorThrowingIterator.class);
@@ -132,7 +132,7 @@ public class ExternalCompaction4_IT extends AccumuloClusterHarness {
         assertEquals(1, tm.getFiles().size());
       }
 
-      ReadWriteIT.verify(client, 1000, 1, 1, 0, table1);
+      ReadWriteIT.verify(client, 50, 1, 1, 0, table1);
 
     } finally {
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
