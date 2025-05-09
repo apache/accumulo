@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.Executors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -40,7 +39,6 @@ import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +88,6 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
   }
 
   private void testBadBalancer(String balancerClass, String tableName) throws Exception {
-    var executor = Executors.newCachedThreadPool();
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
       SortedSet<Text> splits = new TreeSet<>();
       for (int i = 0; i < 10; i++) {
@@ -101,23 +98,17 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
           new NewTableConfiguration().withSplits(splits).setProperties(props);
       c.tableOperations().create(tableName, ntc);
 
-      var scanFuture = executor.submit(() -> {
-        try (var scanner = c.createScanner(tableName)) {
-          scanner.forEach((k, v) -> System.out.println(k + " " + v));
-        }
-        return 0;
-      });
-
+      assertEquals(Map.of(" none", 11), BalanceIT.countLocations(c, tableName));
       UtilWaitThread.sleep(5000);
       // scan should not be able to complete because the tablet should not be assigned
-      Assertions.assertFalse(scanFuture.isDone());
+      assertEquals(Map.of(" none", 11), BalanceIT.countLocations(c, tableName));
 
       // fix the balancer config
       log.info("fixing per tablet balancer");
       c.tableOperations().setProperty(tableName, Property.TABLE_LOAD_BALANCER.getKey(),
           SimpleLoadBalancer.class.getName());
 
-      scanFuture.get();
+      Wait.waitFor(() -> 2 == BalanceIT.countLocations(c, tableName).size());
 
       // break the balancer at the system level
       log.info("breaking manager balancer");
@@ -143,8 +134,6 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
 
       // should eventually balance across all 5 tabletsevers
       Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size());
-    } finally {
-      executor.shutdownNow();
     }
   }
 }

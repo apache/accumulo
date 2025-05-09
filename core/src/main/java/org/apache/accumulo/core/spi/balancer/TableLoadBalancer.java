@@ -90,7 +90,7 @@ public class TableLoadBalancer implements TabletBalancer {
       balancer = constructAndInitializeBalancer(clazzName, tableId);
       if (balancer == null) {
         balancer = constructAndInitializeBalancer(DoNothingBalancer.class.getName(), tableId);
-        log.warn("Fell back to balancer {} for table {}", DoNothingBalancer.class.getName(),
+        log.error("Fell back to balancer {} for table {}", DoNothingBalancer.class.getName(),
             tableId);
       }
       log.info("Loaded class {} for table {}", balancer.getClass().getName(), tableId);
