@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import java.util.Base64;
 
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.util.TextUtil;
@@ -135,5 +136,12 @@ public class ExternalCompactionFinalState {
   @Override
   public String toString() {
     return toJson();
+  }
+
+  public Mutation toMutation() {
+    String prefix = MetadataSchema.ExternalCompactionSection.getRowPrefix();
+    Mutation m = new Mutation(prefix + getExternalCompactionId().canonical());
+    m.put("", "", toJson());
+    return m;
   }
 }

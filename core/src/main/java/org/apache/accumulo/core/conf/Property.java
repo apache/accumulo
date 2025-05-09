@@ -1584,6 +1584,10 @@ public enum Property {
       "The interval at which to check for external compaction final state markers in the metadata table.",
       "2.1.0"),
   @Experimental
+  COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE(
+      "compaction.coordinator.compaction.finalizer.queue.size", "16384", PropertyType.COUNT,
+      "The number of completed compactions to buffer in memory before blocking.", "2.1.4"),
+  @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
       "The interval at which to check the tservers for external compactions.", "2.1.0"),

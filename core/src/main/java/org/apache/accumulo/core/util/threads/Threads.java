@@ -22,8 +22,13 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Halt;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Threads {
+
+  private static final Logger log = LoggerFactory.getLogger(Threads.class);
 
   public static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
 
@@ -66,4 +71,17 @@ public class Threads {
     return thread;
   }
 
+  public static Thread createCriticalThread(String name, Runnable r) {
+    Runnable wrapped = () -> {
+      try {
+        r.run();
+      } catch (RuntimeException e) {
+        String msg = "Critical thread " + name + " died";
+        log.error(msg, e);
+        Halt.halt(msg);
+      }
+    };
+
+    return createThread(name, wrapped);
+  }
 }
