@@ -1160,7 +1160,7 @@
               <goal>verify</goal>
             </goals>
             <configuration>
-              <test>org.apache.accumulo.suites.SimpleSharedMacTestSuiteIT</test>
+              <test>org.apache.accumulo.suites.SimpleSharedMacTestSuite</test>
             </configuration>
           </execution>
           <execution>
@@ -1174,7 +1174,7 @@
                 exclude tests that were run as part of the test suite and
                 the test suite itself
               -->
-              <excludedGroups>SimpleMiniClusterSuite,TestSuite</excludedGroups>
+              <excludedGroups>SimpleMiniClusterSuite</excludedGroups>
             </configuration>
           </execution>
         </executions>
