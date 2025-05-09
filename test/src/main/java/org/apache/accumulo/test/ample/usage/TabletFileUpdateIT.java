@@ -40,6 +40,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.tablets.TabletTime;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
@@ -47,12 +48,14 @@ import org.apache.accumulo.tserver.MinorCompactionReason;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
  * Tests tablet usage of ample to add a new minor compacted file to tablet. This tests edge cases,
  * the normal cases are well tested by many other ITs from simply running Accumulo.
  */
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class TabletFileUpdateIT extends SharedMiniClusterBase {
 
   @BeforeAll

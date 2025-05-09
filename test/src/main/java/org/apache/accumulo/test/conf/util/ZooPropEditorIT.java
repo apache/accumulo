@@ -24,6 +24,7 @@ import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
 import org.apache.accumulo.test.util.Wait;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ZooPropEditorIT extends SharedMiniClusterBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooPropEditorIT.class);

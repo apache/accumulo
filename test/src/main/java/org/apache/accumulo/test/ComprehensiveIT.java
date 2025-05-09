@@ -22,12 +22,14 @@ import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
 @Tag(SUNNY_DAY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ComprehensiveIT extends ComprehensiveBaseIT {
   @BeforeAll
   public static void setup() throws Exception {

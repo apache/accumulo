@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.test.functional;
 
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class MergeTabletsIT extends MergeTabletsBaseIT {
 
   @BeforeAll

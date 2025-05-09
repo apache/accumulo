@@ -40,12 +40,14 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -56,6 +58,7 @@ import org.slf4j.LoggerFactory;
  * to update the metadata table then the key will not match. The mismatch could result in duplicate
  * entries.
  */
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class FileNormalizationIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(FileNormalizationIT.class);
