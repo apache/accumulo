@@ -1238,14 +1238,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       properties.put(Property.TABLE_LOCALITY_GROUPS.getKey(), allGroups);
 
       // remove any stale locality groups that were previously set
-      for (String key : new ArrayList<>(properties.keySet())) {
-        if (key.startsWith(localityGroupPrefix)) {
-          String grp = key.substring(localityGroupPrefix.length());
-          if (!groupsToSet.containsKey(grp)) {
-            properties.remove(key);
-          }
+      properties.keySet().removeIf(property -> {
+        if (property.startsWith(localityGroupPrefix)) {
+          String group = property.substring(localityGroupPrefix.length());
+          return !groupsToSet.containsKey(group);
         }
-      }
+        return false;
+      });
     });
   }
 
@@ -1853,18 +1852,6 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  /**
-   * Removes all sampler option properties from the given properties map
-   */
-  private void clearSamplerOptions(Map<String,String> props) {
-    String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
-    for (String property : new ArrayList<>(props.keySet())) {
-      if (property.startsWith(prefix)) {
-        props.remove(property);
-      }
-    }
-  }
-
   @Override
   public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
@@ -1874,7 +1861,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
 
     modifyProperties(tableName, properties -> {
-      clearSamplerOptions(properties);
+      properties.keySet()
+          .removeIf(property -> property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey()));
       properties.putAll(props);
     });
   }
@@ -1886,7 +1874,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     modifyProperties(tableName, properties -> {
       properties.remove(Property.TABLE_SAMPLER.getKey());
-      clearSamplerOptions(properties);
+      properties.keySet()
+          .removeIf(property -> property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey()));
     });
   }
 
