@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.fate.user;
 
-import static org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily.STATUS_COLUMN;
+import static org.apache.accumulo.core.fate.user.schema.FateSchema.TxAdminColumnFamily.STATUS_COLUMN;
 
 import java.io.IOException;
 import java.util.Arrays;
