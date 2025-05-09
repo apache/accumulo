@@ -532,8 +532,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // This is final because nothing in this method should change the goal. All computation of the
       // goal should be done in TabletGoalState.compute() so that all parts of the Accumulo code
       // will compute a consistent goal.
-      final TabletGoalState goal =
-          TabletGoalState.compute(tm, state, manager.tabletBalancer, tableMgmtParams);
+      final TabletGoalState goal = TabletGoalState.compute(tm, state,
+          manager.getBalanceManager().getBalancer(), tableMgmtParams);
 
       final Set<ManagementAction> actions = mti.getActions();
 
@@ -968,8 +968,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       Map<KeyExtent,UnassignedTablet> unassigned) {
     if (!tLists.destinations.isEmpty()) {
       Map<KeyExtent,TServerInstance> assignedOut = new HashMap<>();
-      manager.getAssignments(tLists.destinations, tLists.currentTServerGrouping, unassigned,
-          assignedOut);
+      manager.getBalanceManager().getAssignments(tLists.destinations, tLists.currentTServerGrouping,
+          unassigned, assignedOut);
       for (Entry<KeyExtent,TServerInstance> assignment : assignedOut.entrySet()) {
         if (unassigned.containsKey(assignment.getKey())) {
           if (assignment.getValue() != null) {
