@@ -19,6 +19,12 @@
 
 # https://github.com/apache/infrastructure-asfyaml/blob/main/README.md
 
+notifications:
+  commits:      commits@accumulo.apache.org
+  issues:       notifications@accumulo.apache.org
+  pullrequests: notifications@accumulo.apache.org
+  jira_options: worklog
+
 github:
   description: "Apache Accumulo"
   homepage: https://accumulo.apache.org

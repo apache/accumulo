@@ -308,8 +308,6 @@ public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       createTableAndDisableCompactions(c, tableName, new NewTableConfiguration());
-      // disable compactions
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
       final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       // First write 1000 rows to a file in the default tablet

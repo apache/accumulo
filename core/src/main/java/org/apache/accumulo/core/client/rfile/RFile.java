@@ -26,6 +26,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -37,6 +38,8 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.RowRangeUtil;
 import org.apache.hadoop.fs.FileSystem;
@@ -208,17 +211,25 @@ public class RFile {
      * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
      * properties could be passed here.
      *
+     * <p>
+     * Configured iterators will have access to these properties via the
+     * {@link PluginEnvironment#getConfiguration(TableId)} (obtained by
+     * {@link IteratorEnvironment#getPluginEnv()}). The tableId used to get the configuration should
+     * be the one returned programmatically from {@link IteratorEnvironment#getTableId()}.
+     *
      * @param props iterable over Accumulo table key value properties.
      * @return this
      */
     ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
-     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
-     *      cache and crypto properties could be passed here.
+     * Any property that impacts file behavior regardless of whether it has the
+     * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
+     * properties could be passed here.
+     *
      * @param props a map instead of an Iterable
      * @return this
+     * @see #withTableProperties(Iterable)
      */
     ScannerOptions withTableProperties(Map<String,String> props);
 
@@ -296,11 +307,13 @@ public class RFile {
     SummaryOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
-     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
-     *      cache and crypto properties could be passed here.
+     * Any property that impacts file behavior regardless of whether it has the
+     * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
+     * properties could be passed here.
+     *
      * @param props a map instead of an Iterable
      * @return this
+     * @see #withTableProperties(Iterable)
      */
     SummaryOptions withTableProperties(Map<String,String> props);
 

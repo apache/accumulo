@@ -58,6 +58,7 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxAdminColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -224,8 +225,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       // attempt or was not written at all).
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(getRow(fateId));
-        scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-            TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        scanner.fetchColumn(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+            TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
         FateReservation persistedRes =
             scanner.stream().map(entry -> FateReservation.deserialize(entry.getValue().get()))
                 .findFirst().orElse(null);
@@ -270,9 +271,10 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       RowFateStatusFilter.configureScanner(scanner, statuses);
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
-      TxInfoColumnFamily.FATE_OP_COLUMN.fetch(scanner);
+      // columns fetched here must be in/added to TxAdminColumnFamily for locality group benefits
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.RESERVATION_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
@@ -296,13 +298,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           Text colq = entry.getKey().getColumnQualifier();
           Value val = entry.getValue();
           switch (colq.toString()) {
-            case TxColumnFamily.STATUS:
+            case TxAdminColumnFamily.STATUS:
               status = TStatus.valueOf(val.toString());
               break;
-            case TxColumnFamily.RESERVATION:
+            case TxAdminColumnFamily.RESERVATION:
               reservation = FateReservation.deserialize(val.get());
               break;
-            case TxInfoColumnFamily.FATE_OP:
+            case TxAdminColumnFamily.FATE_OP:
               fateOp = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
               break;
             default:
@@ -352,7 +354,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   protected TStatus _getStatus(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> TStatus.valueOf(e.getValue().toString())).findFirst()
           .orElse(TStatus.UNKNOWN);
     });
@@ -555,7 +557,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         final ColumnFQ cq;
         switch (txInfo) {
           case FATE_OP:
-            cq = TxInfoColumnFamily.FATE_OP_COLUMN;
+            cq = TxAdminColumnFamily.FATE_OP_COLUMN;
             break;
           case AUTO_CLEAN:
             cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
