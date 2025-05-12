@@ -79,7 +79,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @BeforeEach
   public void setup() throws Exception {
@@ -192,14 +192,14 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = tempDir.toPath().resolve(testName()).toFile();
+    File f = tempDir.resolve(testName()).toFile();
     assertTrue(f.createNewFile(), "Failed to create file: " + f);
     assertTrue(f.delete());
     MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
@@ -233,7 +233,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    File f = tempDir.toPath().resolve(testName()).toFile();
+    File f = tempDir.resolve(testName()).toFile();
     assertTrue(f.createNewFile(), "Failed to create file: " + f);
     assertTrue(f.delete());
     MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});

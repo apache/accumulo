@@ -81,7 +81,7 @@ public class ClientOpts extends Help {
             justification = "app is run in same security context as user providing the filename")
         @Override
         String process(String value) {
-          try (Scanner scanner = new Scanner(Path.of(value).toFile(), UTF_8)) {
+          try (Scanner scanner = new Scanner(Path.of(value), UTF_8)) {
             return scanner.nextLine();
           } catch (IOException e) {
             throw new ParameterException(e);
