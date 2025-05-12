@@ -1584,6 +1584,10 @@ public enum Property {
       "The interval at which to check for external compaction final state markers in the metadata table.",
       "2.1.0"),
   @Experimental
+  COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE(
+      "compaction.coordinator.compaction.finalizer.queue.size", "16384", PropertyType.COUNT,
+      "The number of completed compactions to buffer in memory before blocking.", "2.1.4"),
+  @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
       "The interval at which to check the tservers for external compactions.", "2.1.0"),
@@ -1928,7 +1932,8 @@ public enum Property {
       COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME,
+      COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
