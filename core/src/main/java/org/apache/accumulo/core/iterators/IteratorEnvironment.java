@@ -41,23 +41,23 @@ public interface IteratorEnvironment {
   SortedKeyValueIterator<Key,Value> reserveMapFileReader(String mapFileName) throws IOException;
 
   /**
-   * @deprecated since 2.0.0. This method was using an unstable non public type. Use
+   * @deprecated since 2.0.0. This method was using an unstable, non-public type. Use
    *             {@link #getPluginEnv()}
    */
   @Deprecated(since = "2.0.0")
   default AccumuloConfiguration getConfig() {
-    return new ConfigurationCopy(getPluginEnv().getConfiguration());
+    return new ConfigurationCopy(getPluginEnv().getConfiguration(getTableId()));
   }
 
   /**
-   * Return the executed scope of the Iterator. Value will be one of the following:
-   * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
+   * @return the executed scope of the Iterator. Value will be one of the following:
+   *         {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
    */
   IteratorScope getIteratorScope();
 
   /**
-   * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
-   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   * @return true if the compaction is a full major compaction.
+   * @throws IllegalStateException if {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    */
   boolean isFullMajorCompaction();
 
@@ -68,8 +68,9 @@ public interface IteratorEnvironment {
   void registerSideChannel(SortedKeyValueIterator<Key,Value> iter);
 
   /**
-   * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
-   * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
+   * @return the Scan Authorizations used in this Iterator.
+   * @throws UnsupportedOperationException if {@link #getIteratorScope()} !=
+   *         {@link IteratorScope#scan}.
    */
   Authorizations getAuthorizations();
 
@@ -118,13 +119,13 @@ public interface IteratorEnvironment {
 
   /**
    *
-   * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
+   * @return sampling configuration if sampling is enabled for environment, otherwise returns null.
    * @since 1.8.0
    */
   SamplerConfiguration getSamplerConfiguration();
 
   /**
-   * True if compaction was user initiated.
+   * @return true if compaction was user initiated.
    *
    * @since 2.0.0
    */
@@ -139,7 +140,7 @@ public interface IteratorEnvironment {
    * </pre>
    *
    * @since 2.0.0
-   * @deprecated since 2.1.0. This method was using a non public API type. Use
+   * @deprecated since 2.1.0. This method was using a non-public API type. Use
    *             {@link #getPluginEnv()} instead because it has better stability guarantees.
    */
   @Deprecated(since = "2.1.0")
@@ -158,7 +159,8 @@ public interface IteratorEnvironment {
   PluginEnvironment getPluginEnv();
 
   /**
-   * Return the table Id associated with this iterator.
+   * @return the table id associated with this iterator or null if there is no table id associated
+   *         (e.g., iterator for RFileScanner)
    *
    * @since 2.0.0
    */
