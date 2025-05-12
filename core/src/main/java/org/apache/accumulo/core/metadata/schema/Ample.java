@@ -224,11 +224,6 @@ public interface Ample {
     throw new UnsupportedOperationException();
   }
 
-  default void
-      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
-    throw new UnsupportedOperationException();
-  }
-
   default Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
     throw new UnsupportedOperationException();
   }

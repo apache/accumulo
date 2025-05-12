@@ -36,8 +36,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.BatchWriter;
+import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -124,14 +126,30 @@ public class CompactionFinalizer {
   }
 
   public void failCompactions(Map<ExternalCompactionId,KeyExtent> compactionsToFail) {
+    if (compactionsToFail.size() == 1) {
+      var e = compactionsToFail.entrySet().iterator().next();
+      var ecfs =
+          new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
+      sharedBatchWriter.write(ecfs.toMutation());
+    } else {
+      try (BatchWriter writer = context.createBatchWriter(Ample.DataLevel.USER.metaTable())) {
+        for (var e : compactionsToFail.entrySet()) {
+          var ecfs =
+              new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
+          writer.addMutation(ecfs.toMutation());
+        }
+      } catch (MutationsRejectedException | TableNotFoundException e) {
+        throw new RuntimeException(e);
+      }
+    }
 
-    var finalStates = compactionsToFail.entrySet().stream().map(
-        e -> new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L))
-        .collect(Collectors.toList());
-
-    context.getAmple().putExternalCompactionFinalStates(finalStates);
-
-    finalStates.forEach(pendingNotifications::offer);
+    for (var e : compactionsToFail.entrySet()) {
+      var ecfs =
+          new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
+      if (!pendingNotifications.offer(ecfs)) {
+        break;
+      }
+    }
   }
 
   private void notifyTserver(Location loc, ExternalCompactionFinalState ecfs) {

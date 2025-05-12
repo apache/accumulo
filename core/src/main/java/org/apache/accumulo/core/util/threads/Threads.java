@@ -22,7 +22,6 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.Halt;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -76,9 +75,9 @@ public class Threads {
       try {
         r.run();
       } catch (RuntimeException e) {
-        String msg = "Critical thread " + name + " died";
-        log.error(msg, e);
-        Halt.halt(msg);
+        System.err.println("Critical thread " + name + " died");
+        e.printStackTrace();
+        Runtime.getRuntime().halt(-1);
       }
     };
 

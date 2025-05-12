@@ -34,6 +34,11 @@ import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * This class supports the use case of many threads writing a single mutation to a table. It avoids
+ * each thread creating its own batch writer which creates threads and makes 3 RPCs to write the
+ * single mutation. Using this class results in much less thread creation and RPCs.
+ */
 public class SharedBatchWriter {
   private static final Logger log = LoggerFactory.getLogger(SharedBatchWriter.class);
 
@@ -93,6 +98,8 @@ public class SharedBatchWriter {
         log.trace("Wrote {} mutations in {}ms", batch.size(), timer.elapsed(TimeUnit.MILLISECONDS));
         batch.forEach(work -> work.future.complete(null));
       } catch (TableNotFoundException | MutationsRejectedException e) {
+        log.debug("Failed to process {} mutations in {}ms", batch.size(),
+            timer.elapsed(TimeUnit.MILLISECONDS), e);
         batch.forEach(work -> work.future.completeExceptionally(e));
       }
     }

@@ -295,18 +295,6 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
   }
 
   @Override
-  public void
-      putExternalCompactionFinalStates(Collection<ExternalCompactionFinalState> finalStates) {
-    try (BatchWriter writer = context.createBatchWriter(DataLevel.USER.metaTable())) {
-      for (ExternalCompactionFinalState finalState : finalStates) {
-        writer.addMutation(finalState.toMutation());
-      }
-    } catch (MutationsRejectedException | TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Override
   public Stream<ExternalCompactionFinalState> getExternalCompactionFinalStates() {
     Scanner scanner;
     try {
