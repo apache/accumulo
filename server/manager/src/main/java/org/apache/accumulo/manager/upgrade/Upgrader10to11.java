@@ -19,8 +19,7 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.ZTABLES;
-import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
+import static org.apache.accumulo.core.Constants.*;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
@@ -50,7 +49,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
@@ -234,7 +233,8 @@ public class Upgrader10to11 implements Upgrader {
   }
 
   private void cleanMetaConfig(final InstanceId iid, final PropStore propStore) {
-    var metaKey = TablePropKey.of(SystemTables.METADATA.tableId(), SystemTables.namespaceId());
+    var metaKey = new upgradePropKey(ZNAMESPACES + "/" + SystemTables.namespaceId().canonical()
+        + ZTABLES + "/" + SystemTables.METADATA.tableId().canonical() + ZCONFIG);
     var p = propStore.get(metaKey);
     var props = p.asMap();
     List<String> filtered = filterReplConfigKeys(props.keySet());
@@ -265,4 +265,11 @@ public class Upgrader10to11 implements Upgrader {
 
     return keys.stream().filter(e -> p.matcher(e).find()).collect(Collectors.toList());
   }
+
+  static class upgradePropKey extends PropStoreKey {
+    public upgradePropKey(String path) {
+      super(path);
+    }
+  }
+
 }

@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import java.util.Map;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
@@ -86,6 +87,11 @@ public class ServerConfigurationFactoryTest {
     expect(context.tableNodeExists(TID)).andReturn(true).anyTimes();
     expect(context.getPropStore()).andReturn(propStore).anyTimes();
     expect(context.getConfiguration()).andReturn(sysConfig).anyTimes();
+    try {
+      expect(context.getNamespaceId(TID)).andReturn(NSID).anyTimes();
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Unexpectedly could not find namespace Id in test setup", e);
+    }
     scf = new ServerConfigurationFactory(context, siteConfig) {
       @Override
       public NamespaceConfiguration getNamespaceConfigurationForTable(TableId tableId) {

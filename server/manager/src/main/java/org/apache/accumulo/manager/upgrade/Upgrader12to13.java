@@ -460,7 +460,8 @@ public class Upgrader12to13 implements Upgrader {
               "Source table namespace node does not exist: " + tableNamespaceNode);
         }
         String namespaceId = new String(zrw.getData(tableNamespaceNode), UTF_8);
-        String newPath = Constants.ZNAMESPACES + namespaceId + Constants.ZTABLES + tableId;
+        String newPath =
+            Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
         moveZkNode(context, oldPath, newPath);
         if (zrw.exists(tableNamespaceNode)) {
           zrw.recursiveDelete(tableNamespaceNode, NodeMissingPolicy.SKIP);

@@ -284,6 +284,7 @@ public class ZooInfoViewerTest {
           stat.setValue(s);
           return tPropBytes;
         }).once();
+    expect(context.getNamespaceId(tid)).andReturn(nid).once();
 
     context.close();
     expectLastCall().once();

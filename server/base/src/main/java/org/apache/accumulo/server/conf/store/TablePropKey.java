@@ -26,7 +26,8 @@ import org.apache.accumulo.core.data.TableId;
 public class TablePropKey extends IdBasedPropStoreKey<TableId> {
 
   private TablePropKey(final TableId tableId, final NamespaceId namespaceId) {
-    super(ZNAMESPACES + namespaceId.canonical() + ZTABLES + "/" + tableId.canonical() + ZCONFIG,
+    super(
+        ZNAMESPACES + "/" + namespaceId.canonical() + ZTABLES + "/" + tableId.canonical() + ZCONFIG,
         tableId);
   }
 
