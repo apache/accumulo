@@ -159,7 +159,8 @@ public interface IteratorEnvironment {
   PluginEnvironment getPluginEnv();
 
   /**
-   * @return the table Id associated with this iterator.
+   * @return the table id associated with this iterator or null if there is no table id associated
+   *         (e.g., iterator for RFileScanner)
    *
    * @since 2.0.0
    */

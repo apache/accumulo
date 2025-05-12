@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -61,10 +60,10 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 /**
  * Test that objects in IteratorEnvironment returned from the server are as expected.
@@ -76,6 +75,8 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   private static final String CUSTOM_PROP_KEY = "table.custom." + CUSTOM_PROP_KEY_SUFFIX;
   private static final String CUSTOM_PROP_VAL = "value1";
   private static final String EXPECTED_TABLE_ID_OPT = "expected.table.id";
+  @TempDir
+  private static File tempDir;
 
   @Override
   protected Duration defaultTimeout() {
@@ -99,8 +100,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      // Checking for compaction on a scan should throw an error.
-      testEnv(scope, options, env, true);
+      testEnv(scope, options, env);
     }
 
     @Override
@@ -121,8 +121,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      // Checking for compaction on majc should not throw an error.
-      testEnv(scope, options, env, false);
+      testEnv(scope, options, env);
     }
 
     @Override
@@ -143,8 +142,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
     public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
         IteratorEnvironment env) throws IOException {
       super.init(source, options, env);
-      // Checking for compaction on minc should throw an error.
-      testEnv(scope, options, env, true);
+      testEnv(scope, options, env);
     }
 
     @Override
@@ -158,12 +156,12 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   /**
    * Test the environment methods return what is expected.
    */
-  private static void testEnv(IteratorScope scope, Map<String,String> opts, IteratorEnvironment env,
-      boolean checkCompactionShouldThrow) {
+  private static void testEnv(IteratorScope scope, Map<String,String> opts,
+      IteratorEnvironment env) {
     String expTableIdString = opts.get(EXPECTED_TABLE_ID_OPT);
     TableId expectedTableId = expTableIdString == null ? null : TableId.of(expTableIdString);
 
-    if (checkCompactionShouldThrow) {
+    if (scope != IteratorScope.majc) {
       assertThrows(IllegalStateException.class, env::isUserCompaction,
           "Test failed - Expected to throw IllegalStateException when checking compaction");
       assertThrows(IllegalStateException.class, env::isFullMajorCompaction,
@@ -351,15 +349,12 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   }
 
   private String createRFile(FileSystem fs, TreeMap<Key,Value> data) throws Exception {
-    File dir = new File(System.getProperty("user.dir") + "/target/rfilescan-iterenv-test");
-    assertTrue(dir.mkdirs());
-    String filePath = dir.getAbsolutePath() + "/test.rf";
+    File testFile = new File(tempDir, "test.rf");
+    String filePath = testFile.getAbsolutePath();
 
     try (RFileWriter writer = RFile.newWriter().to(filePath).withFileSystem(fs).build()) {
       writer.append(data.entrySet());
     }
-
-    fs.deleteOnExit(new Path(dir.getAbsolutePath()));
 
     return filePath;
   }
