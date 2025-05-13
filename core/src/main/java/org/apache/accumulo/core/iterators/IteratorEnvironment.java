@@ -28,20 +28,21 @@ import org.apache.accumulo.core.security.Authorizations;
 public interface IteratorEnvironment {
 
   /**
-   * Return the executed scope of the Iterator. Value will be one of the following:
-   * {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
+   * @return the executed scope of the Iterator. Value will be one of the following:
+   *         {@link IteratorScope#scan}, {@link IteratorScope#minc}, {@link IteratorScope#majc}
    */
   IteratorScope getIteratorScope();
 
   /**
-   * Return true if the compaction is a full major compaction. Will throw IllegalStateException if
-   * {@link #getIteratorScope()} != {@link IteratorScope#majc}.
+   * @return true if the compaction is a full major compaction.
+   * @throws IllegalStateException if {@link #getIteratorScope()} != {@link IteratorScope#majc}.
    */
   boolean isFullMajorCompaction();
 
   /**
-   * Return the Scan Authorizations used in this Iterator. Will throw UnsupportedOperationException
-   * if {@link #getIteratorScope()} != {@link IteratorScope#scan}.
+   * @return the Scan Authorizations used in this Iterator.
+   * @throws UnsupportedOperationException if {@link #getIteratorScope()} !=
+   *         {@link IteratorScope#scan}.
    */
   Authorizations getAuthorizations();
 
@@ -90,13 +91,13 @@ public interface IteratorEnvironment {
 
   /**
    *
-   * @return sampling configuration is sampling is enabled for environment, otherwise returns null.
+   * @return sampling configuration if sampling is enabled for environment, otherwise returns null.
    * @since 1.8.0
    */
   SamplerConfiguration getSamplerConfiguration();
 
   /**
-   * True if compaction was user initiated.
+   * @return true if compaction was user initiated.
    *
    * @since 2.0.0
    */
@@ -115,7 +116,8 @@ public interface IteratorEnvironment {
   PluginEnvironment getPluginEnv();
 
   /**
-   * Return the table Id associated with this iterator.
+   * @return the table id associated with this iterator or null if there is no table id associated
+   *         (e.g., iterator for RFileScanner)
    *
    * @since 2.0.0
    */
