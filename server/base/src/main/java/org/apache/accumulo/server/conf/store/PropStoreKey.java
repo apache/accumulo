@@ -19,12 +19,9 @@
 package org.apache.accumulo.server.conf.store;
 
 import static org.apache.accumulo.core.Constants.ZCONFIG;
-import static org.apache.accumulo.core.Constants.ZNAMESPACES;
-import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import java.util.Comparator;
 import java.util.Objects;
-import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -45,10 +42,6 @@ import org.slf4j.LoggerFactory;
 public abstract class PropStoreKey implements Comparable<PropStoreKey> {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreKey.class);
-
-  // expected pattern for path to config node
-  public static final Pattern CONFIG_PATH_PATTERN =
-      Pattern.compile("^" + ZNAMESPACES + "/([^/]+)(?:" + ZTABLES + "/([^/]+))?/config$");
 
   private final String path;
 
@@ -72,15 +65,21 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
       return SystemPropKey.of();
     }
 
-    var matcher = CONFIG_PATH_PATTERN.matcher(path);
-    if (matcher.matches()) {
-      var namespaceId = matcher.group(1);
-      var tableId = matcher.group(2);
-      if (tableId != null) {
-        return TablePropKey.of(TableId.of(tableId), NamespaceId.of(namespaceId));
-      } else {
-        return NamespacePropKey.of(NamespaceId.of(namespaceId));
-      }
+    String[] parts = path.split("/");
+
+    // Expected Path: /namespaces/<namespaceId>/config
+    if (parts.length == 4 && parts[0].isEmpty() && "namespaces".equals(parts[1])
+        && "config".equals(parts[3])) {
+      String namespaceId = parts[2];
+      return NamespacePropKey.of(NamespaceId.of(namespaceId));
+    }
+
+    // Expected Path: /namespaces/<namespaceId>/tables/<tableId>/config
+    if (parts.length == 6 && parts[0].isEmpty() && "namespaces".equals(parts[1])
+        && "tables".equals(parts[3]) && "config".equals(parts[5])) {
+      String namespaceId = parts[2];
+      String tableId = parts[4];
+      return TablePropKey.of(TableId.of(tableId), NamespaceId.of(namespaceId));
     }
     // without tokens or it does not end with PROP_NAME_NAME
     log.warn("Path '{}' is an invalid path for a property cache key", path);
