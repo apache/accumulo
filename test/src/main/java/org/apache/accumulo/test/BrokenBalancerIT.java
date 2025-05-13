@@ -118,7 +118,6 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       assertEquals(2, getCluster().getConfig().getNumTservers());
       getCluster().getConfig().setNumTservers(5);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       UtilWaitThread.sleep(5000);
 
@@ -129,8 +128,6 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       log.info("fixing manager balancer");
       c.instanceOperations().setProperty(Property.MANAGER_TABLET_BALANCER.getKey(),
           TableLoadBalancer.class.getName());
-
-      getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
       // should eventually balance across all 5 tabletsevers
       Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size());
