@@ -79,7 +79,7 @@ public class ZooMutatorIT extends WithTestNames {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-    File newFolder = new File(tempDir, testName() + "/");
+    File newFolder = tempDir.toPath().resolve(testName() + "/").toFile();
     assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
     try (var testZk = new ZooKeeperTestingServer(newFolder); var zk = testZk.newClient()) {
       var zrw = zk.asReaderWriter();

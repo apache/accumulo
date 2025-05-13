@@ -109,10 +109,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     // Set up 4 different volume paths
     File baseDir = cfg.getDir();
-    volDirBase = new File(baseDir, "volumes");
-    File v1f = new File(volDirBase, "v1");
-    File v2f = new File(volDirBase, "v2");
-    File v3f = new File(volDirBase, "v3");
+    volDirBase = baseDir.toPath().resolve("volumes").toFile();
+    File v1f = volDirBase.toPath().resolve("v1").toFile();
+    File v2f = volDirBase.toPath().resolve("v2").toFile();
+    File v3f = volDirBase.toPath().resolve("v3").toFile();
     v1 = new Path("file://" + v1f.getAbsolutePath());
     v2 = new Path("file://" + v2f.getAbsolutePath());
     v3 = new Path("file://" + v3f.getAbsolutePath());

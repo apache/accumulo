@@ -26,11 +26,12 @@ import static org.apache.accumulo.server.zookeeper.ZooAclUtil.extractAuthName;
 import static org.apache.accumulo.server.zookeeper.ZooAclUtil.translateZooPerm;
 
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.ZoneOffset;
@@ -130,7 +131,7 @@ public class ZooInfoViewer implements KeywordExecutable {
       log.trace("No output file, using stdout.");
       outStream = System.out;
     } else {
-      outStream = new FileOutputStream(outfile);
+      outStream = Files.newOutputStream(Path.of(outfile));
     }
 
     try (PrintWriter writer =

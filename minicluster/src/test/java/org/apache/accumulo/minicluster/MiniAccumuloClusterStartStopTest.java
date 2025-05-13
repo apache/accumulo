@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -38,14 +39,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniAccumuloClusterStartStopTest extends WithTestNames {
 
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterStartStopTest.class);
-  private File baseDir =
-      new File(System.getProperty("user.dir") + "/target/mini-tests/" + this.getClass().getName());
+
+  private File baseDir = Path.of(System.getProperty("user.dir")).resolve("target")
+      .resolve("mini-tests").resolve(this.getClass().getName()).toFile();
   private MiniAccumuloCluster accumulo;
 
   @BeforeEach
   public void setupTestCluster() throws IOException {
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    File testDir = new File(baseDir, testName());
+    File testDir = baseDir.toPath().resolve(testName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     accumulo = new MiniAccumuloCluster(testDir, "superSecret");

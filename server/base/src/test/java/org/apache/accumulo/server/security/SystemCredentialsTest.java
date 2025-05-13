@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
@@ -46,18 +47,21 @@ public class SystemCredentialsTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
   @BeforeAll
   public static void setUp() throws IOException {
-    File testInstanceId =
-        new File(new File(new File(new File("target"), "instanceTest"), Constants.INSTANCE_ID_DIR),
-            UUID.fromString("00000000-0000-0000-0000-000000000000").toString());
+
+    Path targetDir = Path.of("target");
+    Path instanceDir = targetDir.resolve("instanceTest");
+    Path instanceIdDir = instanceDir.resolve(Constants.INSTANCE_ID_DIR);
+    File testInstanceId = instanceIdDir
+        .resolve(UUID.fromString("00000000-0000-0000-0000-000000000000").toString()).toFile();
     if (!testInstanceId.exists()) {
       assertTrue(
           testInstanceId.getParentFile().mkdirs() || testInstanceId.getParentFile().isDirectory());
       assertTrue(testInstanceId.createNewFile());
     }
 
-    File testInstanceVersion =
-        new File(new File(new File(new File("target"), "instanceTest"), Constants.VERSION_DIR),
-            AccumuloDataVersion.get() + "");
+    Path versionDir = instanceDir.resolve(Constants.VERSION_DIR);
+
+    File testInstanceVersion = versionDir.resolve(AccumuloDataVersion.get() + "").toFile();
     if (!testInstanceVersion.exists()) {
       assertTrue(testInstanceVersion.getParentFile().mkdirs()
           || testInstanceVersion.getParentFile().isDirectory());

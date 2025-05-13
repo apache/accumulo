@@ -80,7 +80,7 @@ public class BloomFilterLayerLookupTest extends WithTestNames {
 
     // get output file name
     String suffix = FileOperations.getNewFileExtension(acuconf);
-    String fname = new File(tempDir, testName() + "." + suffix).getAbsolutePath();
+    String fname = tempDir.toPath().resolve(testName() + "." + suffix).toFile().getAbsolutePath();
     FileSKVWriter bmfw = FileOperations.getInstance().newWriterBuilder()
         .forFile(UnreferencedTabletFile.of(fs, new Path(fname)), fs, conf,
             NoCryptoServiceFactory.NONE)

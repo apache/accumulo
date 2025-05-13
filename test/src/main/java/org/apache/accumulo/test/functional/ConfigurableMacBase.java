@@ -21,12 +21,11 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -95,9 +94,11 @@ public class ConfigurableMacBase extends AccumuloITBase {
     FileUtils.deleteQuietly(sslDir);
     assertTrue(sslDir.mkdir());
 
-    File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
-    File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
-    File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
+    java.nio.file.Path sslDirPath = sslDir.toPath();
+    File rootKeystoreFile = sslDirPath.resolve("root-" + cfg.getInstanceName() + ".jks").toFile();
+    File localKeystoreFile = sslDirPath.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
+    File publicTruststoreFile =
+        sslDirPath.resolve("public-" + cfg.getInstanceName() + ".jks").toFile();
     final String rootKeystorePassword = "root_keystore_password",
         truststorePassword = "truststore_password";
     try {
@@ -158,7 +159,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
     File nativePathInDevTree = NativeMapIT.nativeMapLocation();
-    File nativePathInMapReduce = new File(System.getProperty("user.dir"));
+    File nativePathInMapReduce = java.nio.file.Path.of(System.getProperty("user.dir")).toFile();
     cfg.setNativeLibPaths(nativePathInDevTree.getAbsolutePath(), nativePathInMapReduce.toString());
     Configuration coreSite = new Configuration(false);
     cfg.setProperty(Property.TSERV_NATIVEMAP_ENABLED, Boolean.TRUE.toString());
@@ -171,15 +172,15 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
-      File csFile = new File(cluster.getConfig().getConfDir(), "core-site.xml");
+      File csFile = cluster.getConfig().getConfDir().toPath().resolve("core-site.xml").toFile();
       if (csFile.exists()) {
         coreSite.addResource(new Path(csFile.getAbsolutePath()));
       }
-      File tmp = new File(csFile.getAbsolutePath() + ".tmp");
-      OutputStream out = new BufferedOutputStream(new FileOutputStream(tmp));
-      coreSite.writeXml(out);
-      out.close();
-      assertTrue(tmp.renameTo(csFile));
+      java.nio.file.Path tmp = java.nio.file.Path.of(csFile.getAbsolutePath() + ".tmp");
+      try (OutputStream out = Files.newOutputStream(tmp)) {
+        coreSite.writeXml(out);
+      }
+      assertTrue(tmp.toFile().renameTo(csFile));
     }
     beforeClusterStart(cfg);
   }

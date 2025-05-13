@@ -186,7 +186,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toFile().getAbsolutePath();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
       expect(server.getContext()).andReturn(context).anyTimes();
@@ -1125,7 +1125,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toFile().getAbsolutePath();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();

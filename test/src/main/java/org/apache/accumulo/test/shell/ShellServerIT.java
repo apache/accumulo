@@ -34,11 +34,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -187,12 +185,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("addsplits row5", true);
       ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
       ts.exec("offline " + table, true);
-      File exportDir = new File(rootPath, "ShellServerIT.export");
+      File exportDir = java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export").toFile();
       String exportUri = "file://" + exportDir;
-      String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
+      String localTmp =
+          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.tmp").toFile();
       ts.exec("exporttable -t " + table + " " + exportUri, true);
       DistCp cp = new DistCp(new Configuration(false), null);
-      String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
+      String import_ =
+          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import").toFile();
       ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
       if (info.saslEnabled()) {
         // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
@@ -210,7 +210,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
         // Implement a poor-man's DistCp
         try (BufferedReader reader =
-            new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
+            Files.newBufferedReader(exportDir.toPath().resolve("distcp.txt"), UTF_8)) {
           for (String line; (line = reader.readLine()) != null;) {
             Path exportedFile = new Path(line);
             // There isn't a cp on FileSystem??
@@ -269,7 +269,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void execfile() throws Exception {
     // execfile
-    File file = File.createTempFile("ShellServerIT.execfile", ".conf", new File(rootPath));
+    File file = File.createTempFile("ShellServerIT.execfile", ".conf",
+        java.nio.file.Path.of(rootPath).toFile());
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
     writer.println("about");
     writer.close();
@@ -1475,10 +1476,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix,
       final String nonce) throws IOException {
-    File importDir = new File(rootPath, "import_" + postfix);
+    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + postfix).toFile();
     assertTrue(importDir.mkdir());
-    String even = new File(importDir, "even.rf").toString();
-    String odd = new File(importDir, "odd.rf").toString();
+    String even = importDir.toPath().resolve("even.rf").toFile().toString();
+    String odd = importDir.toPath().resolve("odd.rf").toFile().toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
@@ -2078,7 +2079,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void importDirectoryCmdFmt() throws Exception {
     final String table = getUniqueNames(1)[0];
 
-    File importDir = new File(rootPath, "import_" + table);
+    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + table).toFile();
     assertTrue(importDir.mkdir());
 
     // expect fail - table does not exist.
@@ -2433,7 +2434,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private java.nio.file.Path createSplitsFile(final String splitsFile, final SortedSet<Text> splits)
       throws IOException {
     String fullSplitsFile = System.getProperty("user.dir") + "/target/" + splitsFile;
-    java.nio.file.Path path = Paths.get(fullSplitsFile);
+    java.nio.file.Path path = java.nio.file.Path.of(fullSplitsFile);
     try (BufferedWriter writer = Files.newBufferedWriter(path, UTF_8)) {
       for (Text text : splits) {
         writer.write(text.toString() + '\n');

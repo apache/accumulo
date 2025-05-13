@@ -34,7 +34,6 @@ import java.io.BufferedWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
@@ -300,7 +299,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -321,7 +320,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -342,7 +341,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -363,7 +362,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -384,7 +383,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -405,7 +404,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -426,7 +425,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -445,7 +444,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       assertThrows(TableNotFoundException.class,
           () -> client.tableOperations().listSplits(tableName));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -503,7 +502,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -524,7 +523,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -545,7 +544,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -566,7 +565,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -587,7 +586,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -608,7 +607,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -629,7 +628,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       Collection<Text> createdSplits = client.tableOperations().listSplits(tableName);
       assertEquals(expectedSplits, new TreeSet<>(createdSplits));
     } finally {
-      Files.delete(Paths.get(splitsFile));
+      Files.delete(Path.of(splitsFile));
     }
   }
 
@@ -655,7 +654,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     verifyTableWithTabletAvailability(createCmd, tables[2], "UNHOSTED", 1);
 
     String splitsFile = System.getProperty("user.dir") + "/target/splitsFile";
-    Path splitFilePath = Paths.get(splitsFile);
+    Path splitFilePath = Path.of(splitsFile);
     try {
       generateSplitsFile(splitsFile, 10, 12, false, false, true, false, false);
       createCmd = "createtable " + tables[3] + " -a Hosted -sf " + splitsFile;
@@ -694,7 +693,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
 
   private SortedSet<Text> readSplitsFromFile(final String splitsFile) throws IOException {
     SortedSet<Text> splits = new TreeSet<>();
-    try (BufferedReader reader = newBufferedReader(Paths.get(splitsFile))) {
+    try (BufferedReader reader = newBufferedReader(Path.of(splitsFile))) {
       String split;
       while ((split = reader.readLine()) != null) {
         Text unencodedString = decode(split);
@@ -710,7 +709,7 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       final boolean binarySplits, final boolean encoded, final boolean sort,
       final boolean addBlankLine, final boolean repeat) throws IOException {
 
-    java.nio.file.Path splitsPath = java.nio.file.Paths.get(splitsFile);
+    java.nio.file.Path splitsPath = java.nio.file.Path.of(splitsFile);
     int insertAt = (len % 2 == 0) ? len / 2 : (len + 1) / 2;
     Collection<Text> sortedSplits = null;
     Collection<Text> randomSplits;
