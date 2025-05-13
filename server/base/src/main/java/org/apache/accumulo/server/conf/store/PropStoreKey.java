@@ -48,7 +48,7 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
 
   // expected pattern for path to config node
   public static final Pattern CONFIG_PATH_PATTERN =
-      Pattern.compile("^" + ZNAMESPACES + "/([^/]*)(?:" + ZTABLES + "/([^/]*))?/config$");
+      Pattern.compile("^" + ZNAMESPACES + "/([^/]+)(?:" + ZTABLES + "/([^/]+))?/config$");
 
   private final String path;
 
