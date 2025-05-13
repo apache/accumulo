@@ -537,11 +537,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           for (DataLevel dl : DataLevel.values()) {
             // prev row needed for the extent
             try (
-                var tabletsMetadata =
-                    ample.readTablets().forLevel(dl)
-                        .fetch(TabletMetadata.ColumnType.PREV_ROW,
-                            TabletMetadata.ColumnType.MIGRATION)
-                        .build();
+                var tabletsMetadata = ample.readTablets().forLevel(dl)
+                    .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
+                        TabletMetadata.ColumnType.LOCATION)
+                    .build();
                 var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
               for (var tabletMetadata : tabletsMetadata) {
                 var migration = tabletMetadata.getMigration();

@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -817,7 +816,7 @@ public class Admin implements KeywordExecutable {
   private static File getOutputDirectory(final String directory) {
     File outputDirectory = null;
     if (directory != null) {
-      outputDirectory = new File(directory);
+      outputDirectory = Path.of(directory).toFile();
       if (!outputDirectory.isDirectory()) {
         throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
       }
@@ -851,8 +850,8 @@ public class Admin implements KeywordExecutable {
   private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
-    try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
+    Path namespaceScript = outputDirectory.toPath().resolve(namespace + NS_FILE_SUFFIX);
+    try (BufferedWriter nsWriter = Files.newBufferedWriter(namespaceScript)) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
       Map<String,String> props = ImmutableSortedMap
           .copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
@@ -873,8 +872,8 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
-    File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
-    try (BufferedWriter userWriter = new BufferedWriter(new FileWriter(userScript, UTF_8))) {
+    Path userScript = outputDirectory.toPath().resolve(user + USER_FILE_SUFFIX);
+    try (BufferedWriter userWriter = Files.newBufferedWriter(userScript)) {
       userWriter.write(createUserFormat.format(new String[] {user}));
       Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
       userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
@@ -916,8 +915,8 @@ public class Admin implements KeywordExecutable {
         conf.put(prop.getKey(), prop.getValue());
       }
     }
-    File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    try (BufferedWriter fw = new BufferedWriter(new FileWriter(siteBackup, UTF_8))) {
+    Path siteBackup = outputDirectory.toPath().resolve(ACCUMULO_SITE_BACKUP_FILE);
+    try (BufferedWriter fw = Files.newBufferedWriter(siteBackup)) {
       for (Entry<String,String> prop : conf.entrySet()) {
         fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
       }
@@ -928,8 +927,8 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
       File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
-    File tableBackup = new File(outputDirectory, tableName + ".cfg");
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
+    Path tableBackup = outputDirectory.toPath().resolve(tableName + ".cfg");
+    try (BufferedWriter writer = Files.newBufferedWriter(tableBackup)) {
       writer.write(createTableFormat.format(new String[] {tableName}));
       Map<String,String> props =
           ImmutableSortedMap.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));

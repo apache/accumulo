@@ -24,11 +24,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -537,7 +539,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = new File(configDir);
+    File accumuloDir = Path.of(configDir).toFile();
     if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
@@ -552,7 +554,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
     // Set history file
-    reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.setVariable(LineReader.HISTORY_FILE, Path.of(historyPath));
 
     // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
@@ -998,8 +1000,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
         justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      try {
+        writer = new PrintWriter(new BufferedWriter(
+            new OutputStreamWriter(Files.newOutputStream(Path.of(filename)), UTF_8)));
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error creating output stream for file: " + filename, e);
+      }
     }
 
     @Override

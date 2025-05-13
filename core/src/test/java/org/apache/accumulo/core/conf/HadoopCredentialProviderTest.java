@@ -54,7 +54,7 @@ public class HadoopCredentialProviderTest {
   private static File emptyKeyStore, populatedKeyStore;
 
   @BeforeAll
-  public static void checkCredentialProviderAvailable() {
+  public static void checkCredentialProviderAvailable() throws Exception {
     URL populatedKeyStoreUrl =
         HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName),
         emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
@@ -62,8 +62,8 @@ public class HadoopCredentialProviderTest {
     assertNotNull(populatedKeyStoreUrl, "Could not find " + populatedKeyStoreName);
     assertNotNull(emptyKeyStoreUrl, "Could not find " + emptyKeyStoreName);
 
-    populatedKeyStore = new File(populatedKeyStoreUrl.getFile());
-    emptyKeyStore = new File(emptyKeyStoreUrl.getFile());
+    populatedKeyStore = java.nio.file.Path.of(populatedKeyStoreUrl.toURI()).toFile();
+    emptyKeyStore = java.nio.file.Path.of(emptyKeyStoreUrl.toURI()).toFile();
   }
 
   protected String getKeyStoreUrl(File absoluteFilePath) {
@@ -150,8 +150,9 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void createKeystoreProvider() throws Exception {
-    File targetDir = new File(System.getProperty("user.dir") + "/target");
-    File keystoreFile = new File(targetDir, "create.jks");
+    File targetDir =
+        java.nio.file.Path.of(System.getProperty("user.dir")).resolve("target").toFile();
+    File keystoreFile = targetDir.toPath().resolve("create.jks").toFile();
     if (keystoreFile.exists()) {
       if (!keystoreFile.delete()) {
         log.error("Unable to delete {}", keystoreFile);
@@ -171,9 +172,9 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void extractFromHdfs() throws Exception {
-    File target = new File(System.getProperty("user.dir"), "target");
+    File target = java.nio.file.Path.of(System.getProperty("user.dir")).resolve("target").toFile();
     String prevValue = System.setProperty("test.build.data",
-        new File(target, this.getClass().getName() + "_minidfs").toString());
+        target.toPath().resolve(this.getClass().getName() + "_minidfs").toFile().toString());
     MiniDFSCluster dfsCluster = new MiniDFSCluster.Builder(new Configuration()).build();
     try {
       if (null != prevValue) {

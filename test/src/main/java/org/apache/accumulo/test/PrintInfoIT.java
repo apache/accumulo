@@ -119,7 +119,8 @@ public class PrintInfoIT extends SharedMiniClusterBase {
   @Test
   public void testOldRFileVersion() throws Exception {
     String resource = "/org/apache/accumulo/test/ver_7.rf";
-    File rFile = new File(tempDir, resource);
+    File rFile = tempDir.toPath().resolve("org").resolve("apache").resolve("accumulo")
+        .resolve("test").resolve("ver_7.rf").toFile();
     FileUtils.copyURLToFile(requireNonNull(PrintInfoIT.class.getResource(resource)), rFile);
     String output = execPrintInfo(rFile.getAbsolutePath(), false);
     assertTrue(output.contains("Unable to read crypto params"));

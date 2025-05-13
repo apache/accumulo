@@ -30,10 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Iterator;
@@ -77,15 +76,15 @@ public class GenerateSplitsTest {
     trf.writer.append(newKey("r6", "cf4", "cq1", "L1", 55), newValue("foo6"));
     trf.closeWriter();
 
-    File file = new File(tempDir, "testGenerateSplits.rf");
+    File file = tempDir.toPath().resolve("testGenerateSplits.rf").toFile();
     assertTrue(file.createNewFile(), "Failed to create file: " + file);
-    try (var fileOutputStream = new FileOutputStream(file)) {
+    try (var fileOutputStream = Files.newOutputStream(file.toPath())) {
       fileOutputStream.write(trf.baos.toByteArray());
     }
     rfilePath = "file:" + file.getAbsolutePath();
     log.info("Wrote to file {}", rfilePath);
 
-    File splitsFile = new File(tempDir, "testSplitsFile");
+    File splitsFile = tempDir.toPath().resolve("testSplitsFile").toFile();
     assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.getAbsolutePath();
   }
@@ -113,7 +112,7 @@ public class GenerateSplitsTest {
   }
 
   private void verifySplitsFile(boolean encoded, String... splits) throws IOException {
-    String[] gSplits = Files.readString(Paths.get(splitsFilePath)).split("\n");
+    String[] gSplits = Files.readString(Path.of(splitsFilePath)).split("\n");
     assertEquals(splits.length, gSplits.length);
     TreeSet<String> expectedSplits =
         Arrays.stream(splits).collect(Collectors.toCollection(TreeSet::new));
@@ -146,8 +145,8 @@ public class GenerateSplitsTest {
     e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
     assertTrue(e.getMessage().contains("Requested number of splits and"), e.getMessage());
 
-    File dir1 = new File(tempDir, "dir1/");
-    File dir2 = new File(tempDir, "dir2/");
+    File dir1 = tempDir.toPath().resolve("dir1/").toFile();
+    File dir2 = tempDir.toPath().resolve("dir2/").toFile();
     assertTrue(dir1.mkdir() && dir2.mkdir(), "Failed to make new sub-directories");
 
     List<String> args4 = List.of(dir1.getAbsolutePath(), dir2.getAbsolutePath(), "-n", "2");
@@ -183,15 +182,15 @@ public class GenerateSplitsTest {
     trf.writer.append(newKey("r6\0f", "cf4", "cq1", "L1", 55), newValue("foo6"));
     trf.closeWriter();
 
-    File file = new File(tempDir, "testGenerateSplitsWithNulls.rf");
+    File file = tempDir.toPath().resolve("testGenerateSplitsWithNulls.rf").toFile();
     assertTrue(file.createNewFile(), "Failed to create file: " + file);
-    try (var fileOutputStream = new FileOutputStream(file)) {
+    try (var fileOutputStream = Files.newOutputStream(file.toPath())) {
       fileOutputStream.write(trf.baos.toByteArray());
     }
     rfilePath = "file:" + file.getAbsolutePath();
     log.info("Wrote to file {}", rfilePath);
 
-    File splitsFile = new File(tempDir, "testSplitsFileWithNulls");
+    File splitsFile = tempDir.toPath().resolve("testSplitsFileWithNulls").toFile();
     assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.getAbsolutePath();
 

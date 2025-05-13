@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
@@ -61,9 +62,10 @@ public class MiniAccumuloClusterImplTest {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir =
+        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterImplTest.class.getName());
+    testDir = baseDir.toPath().resolve(MiniAccumuloClusterImplTest.class.getName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 

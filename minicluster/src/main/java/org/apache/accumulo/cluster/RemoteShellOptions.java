@@ -18,11 +18,11 @@
  */
 package org.apache.accumulo.cluster;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
+import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map.Entry;
 import java.util.Properties;
 
@@ -66,11 +66,12 @@ public class RemoteShellOptions {
     // Load properties from the specified file
     if (propertyFile != null) {
       // Check for properties provided in a file
-      File f = new File(propertyFile);
+      Path p = Path.of("file://" + propertyFile);
+      File f = p.toFile();
       if (f.exists() && f.isFile() && f.canRead()) {
-        FileReader reader = null;
+        BufferedReader reader = null;
         try {
-          reader = new FileReader(f, UTF_8);
+          reader = Files.newBufferedReader(p);
         } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }

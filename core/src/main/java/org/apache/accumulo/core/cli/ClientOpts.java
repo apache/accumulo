@@ -20,9 +20,9 @@ package org.apache.accumulo.core.cli;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -81,7 +81,7 @@ public class ClientOpts extends Help {
             justification = "app is run in same security context as user providing the filename")
         @Override
         String process(String value) {
-          try (Scanner scanner = new Scanner(new File(value), UTF_8)) {
+          try (Scanner scanner = new Scanner(Path.of(value).toFile(), UTF_8)) {
             return scanner.nextLine();
           } catch (IOException e) {
             throw new ParameterException(e);

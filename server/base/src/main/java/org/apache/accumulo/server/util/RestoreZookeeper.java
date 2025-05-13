@@ -20,8 +20,9 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Deque;
 import java.util.LinkedList;
@@ -115,7 +116,7 @@ public class RestoreZookeeper {
 
       InputStream in = System.in;
       if (file != null) {
-        in = new FileInputStream(file);
+        in = Files.newInputStream(Path.of(file));
       }
 
       SAXParserFactory factory = SAXParserFactory.newInstance();
