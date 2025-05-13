@@ -29,7 +29,6 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -81,13 +80,12 @@ public class BalanceManager {
             Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new TableLoadBalancer());
     localTabletBalancer.init(balancerEnvironment);
     tabletBalancer = localTabletBalancer;
+    log.info("Setup new balancer instance {}", tabletBalancer.getClass().getName());
   }
 
   void propertyChanged(String property) {
-    String resolved = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {});
-    if (resolved.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
+    if (property.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
       initializeBalancer();
-      log.info("tablet balancer changed to {}", tabletBalancer.getClass().getName());
     }
   }
 
