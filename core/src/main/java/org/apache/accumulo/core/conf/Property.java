@@ -55,8 +55,16 @@ public enum Property {
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
-      PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
+      PropertyType.BYTES,
+      "The maximum size of an individual message that can be received by a server. Messages over this size will be rejected.",
       "2.1.3"),
+  RPC_MAX_TOTAL_READ_SIZE("rpc.messages.total.size.max", Integer.toString(Integer.MAX_VALUE),
+      PropertyType.BYTES,
+      "The maximum size of the sum of all message sizes that a server will hold in memory at once. If a new message comes in "
+          + "and its frame size plus the sum of all frames in memory would exceed this max then reading of that frame is deferred "
+          + "until enough memory is free.  Once over this limit messages are not rejected, they are not read off the network. TODO "
+          + "document which server type support this.",
+      "2.1.4"),
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
       "Configures the TCP backlog for the server side sockets created by Thrift."
           + " This property is not used for SSL type server sockets. A value of zero"

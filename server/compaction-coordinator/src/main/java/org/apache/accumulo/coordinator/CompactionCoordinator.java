@@ -255,7 +255,8 @@ public class CompactionCoordinator extends AbstractServer implements
         "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
         Property.COMPACTION_COORDINATOR_MINTHREADS,
         Property.COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT,
-        Property.COMPACTION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
+        Property.COMPACTION_COORDINATOR_THREADCHECK, maxMessageSizeProperty,
+        Property.RPC_MAX_TOTAL_READ_SIZE);
     LOG.info("address = {}", sp.address);
     return sp;
   }
