@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.server.conf.store;
 
-import static org.apache.accumulo.core.Constants.*;
+import static org.apache.accumulo.core.Constants.ZCONFIG;
+import static org.apache.accumulo.core.Constants.ZNAMESPACES;
+import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;

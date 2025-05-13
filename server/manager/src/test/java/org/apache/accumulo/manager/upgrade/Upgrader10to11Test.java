@@ -19,8 +19,10 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.*;
 import static org.apache.accumulo.core.Constants.ZCONFIG;
+import static org.apache.accumulo.core.Constants.ZNAMESPACES;
+import static org.apache.accumulo.core.Constants.ZTABLES;
+import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.manager.upgrade.Upgrader10to11.buildRepTablePath;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;

@@ -19,7 +19,10 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static org.apache.accumulo.core.Constants.*;
+import static org.apache.accumulo.core.Constants.ZCONFIG;
+import static org.apache.accumulo.core.Constants.ZNAMESPACES;
+import static org.apache.accumulo.core.Constants.ZTABLES;
+import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
 import static org.apache.accumulo.server.util.MetadataTableUtil.EMPTY_TEXT;
 
