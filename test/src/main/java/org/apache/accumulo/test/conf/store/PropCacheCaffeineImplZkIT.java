@@ -98,8 +98,10 @@ public class PropCacheCaffeineImplZkIT {
 
   @BeforeEach
   public void setupZnodes() throws Exception {
-    var zPath = Constants.ZNAMESPACES + "/" + nid + Constants.ZTABLES;
+    var nsPath = Constants.ZNAMESPACES + "/" + nid;
+    var zPath = nsPath + Constants.ZTABLES;
     zrw.mkdirs(Constants.ZCONFIG);
+    zk.asReaderWriter().mkdirs(nsPath);
     zk.create(zPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     zk.create(zPath + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);

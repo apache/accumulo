@@ -33,6 +33,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.NamespaceId;
@@ -257,8 +258,7 @@ public class HalfClosedTabletIT extends SharedMiniClusterBase {
 
   public static void setInvalidClassLoaderContextPropertyWithoutValidation(ServerContext context,
       TableId tableId) {
-    NamespaceId namespaceId = NamespaceId.of("ns1");
-    TablePropKey key = TablePropKey.of(tableId, namespaceId);
+    TablePropKey key = TablePropKey.of(tableId, Namespace.DEFAULT.id());
     context.getPropStore().putAll(key,
         Map.of(Property.TABLE_CLASSLOADER_CONTEXT.getKey(), "invalid"));
   }

@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.minicluster.ServerType;
@@ -140,13 +141,13 @@ public class ZooCacheIT extends ConfigurableMacBase {
             case PersistentWatchRemoved:
               break;
             case NodeCreated:
-              if (eventPath.equals(Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableCreatedEvent");
                 tableCreatedEvent.set(true);
               }
               break;
             case NodeDeleted:
-              if (eventPath.equals(Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableDeletedEvent");
                 tableDeletedEvent.set(true);
               }
@@ -191,7 +192,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       final String tid = ctx.tableOperations().tableIdMap().get(tableName);
       tableId.set(tid);
       // we might miss the table created event, don't check for it
-      final String tableZPath = Constants.ZTABLES + "/" + tid;
+      final String tableZPath = Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tid;
       assertFalse(cache.childrenCached(tableZPath));
       assertNotNull(cache.getChildren(tableZPath));
       assertTrue(cache.childrenCached(tableZPath));
