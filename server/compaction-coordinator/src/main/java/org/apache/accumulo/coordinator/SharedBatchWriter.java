@@ -27,10 +27,10 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -54,9 +54,9 @@ public class SharedBatchWriter {
 
   private final BlockingQueue<Work> mutations;
   private final String table;
-  private final ServerContext context;
+  private final ClientContext context;
 
-  public SharedBatchWriter(String table, ServerContext context, int queueSize) {
+  public SharedBatchWriter(String table, ClientContext context, int queueSize) {
     this.table = table;
     this.context = context;
     this.mutations = new ArrayBlockingQueue<>(queueSize);

@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -53,27 +54,28 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.spi.compaction.CompactionFinalizer;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CompactionFinalizer {
+public class DefaultCompactionFinalizer implements CompactionFinalizer {
 
-  private static final Logger LOG = LoggerFactory.getLogger(CompactionFinalizer.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultCompactionFinalizer.class);
 
-  protected final ServerContext context;
-  private final ExecutorService ntfyExecutor;
-  private final ExecutorService backgroundExecutor;
-  private final BlockingQueue<ExternalCompactionFinalState> pendingNotifications;
-  private final long tserverCheckInterval;
-  private final SharedBatchWriter sharedBatchWriter;
+  protected ClientContext context;
+  private ExecutorService ntfyExecutor;
+  private ExecutorService backgroundExecutor;
+  private BlockingQueue<ExternalCompactionFinalState> pendingNotifications;
+  private long tserverCheckInterval;
+  private SharedBatchWriter sharedBatchWriter;
 
-  protected CompactionFinalizer(ServerContext context, ScheduledThreadPoolExecutor schedExecutor) {
+  @Override
+  public void initialize(ClientContext context, ScheduledThreadPoolExecutor schedExecutor) {
     this.context = context;
     var queueSize =
         context.getConfiguration().getCount(Property.COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE);
@@ -104,6 +106,7 @@ public class CompactionFinalizer {
         new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize);
   }
 
+  @Override
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,
       long fileEntries) {
 
@@ -125,6 +128,7 @@ public class CompactionFinalizer {
     }
   }
 
+  @Override
   public void failCompactions(Map<ExternalCompactionId,KeyExtent> compactionsToFail) {
     if (compactionsToFail.size() == 1) {
       var e = compactionsToFail.entrySet().iterator().next();

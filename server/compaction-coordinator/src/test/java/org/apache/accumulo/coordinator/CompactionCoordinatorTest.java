@@ -103,7 +103,7 @@ public class CompactionCoordinatorTest {
 
     private Set<ExternalCompactionId> metadataCompactionIds = null;
 
-    protected TestCoordinator(CompactionFinalizer finalizer, LiveTServerSet tservers,
+    protected TestCoordinator(DefaultCompactionFinalizer finalizer, LiveTServerSet tservers,
         ServerAddress client, TabletClientService.Client tabletServerClient, ServerContext context,
         AuditedSecurityOperation security) {
       super(new ServerOpts(), new String[] {}, context.getConfiguration());
@@ -142,7 +142,8 @@ public class CompactionCoordinatorTest {
     protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
 
     @Override
-    protected CompactionFinalizer createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
+    protected DefaultCompactionFinalizer
+        createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
       return null;
     }
 
@@ -268,7 +269,8 @@ public class CompactionCoordinatorTest {
         .andReturn(runningCompactions);
     expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
     expect(tservers.getCurrentServers()).andReturn(Collections.emptySet()).anyTimes();
 
@@ -324,7 +326,8 @@ public class CompactionCoordinatorTest {
         .andReturn(runningCompactions);
     expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
     TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
     expect(tservers.getCurrentServers()).andReturn(Collections.singleton(instance)).once();
@@ -392,7 +395,8 @@ public class CompactionCoordinatorTest {
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
     TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
     HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
@@ -469,7 +473,8 @@ public class CompactionCoordinatorTest {
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
     expect(context.rpcCreds()).andReturn(creds);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
     TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
     HostAndPort tserverAddress = HostAndPort.fromString("localhost:9997");
@@ -558,7 +563,8 @@ public class CompactionCoordinatorTest {
     expect(ExternalCompactionUtil.getCompactorAddrs(context)).andReturn(Map.of()).anyTimes();
     expect(ExternalCompactionUtil.countCompactors("R2DQ", context)).andReturn(3).anyTimes();
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
     TServerInstance instance = PowerMock.createNiceMock(TServerInstance.class);
     expect(tservers.getCurrentServers()).andReturn(Collections.singleton(instance)).once();
@@ -650,7 +656,8 @@ public class CompactionCoordinatorTest {
 
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);
@@ -690,7 +697,8 @@ public class CompactionCoordinatorTest {
 
     TCredentials creds = PowerMock.createNiceMock(TCredentials.class);
 
-    CompactionFinalizer finalizer = PowerMock.createNiceMock(CompactionFinalizer.class);
+    DefaultCompactionFinalizer finalizer =
+        PowerMock.createNiceMock(DefaultCompactionFinalizer.class);
     LiveTServerSet tservers = PowerMock.createNiceMock(LiveTServerSet.class);
 
     ServerAddress client = PowerMock.createNiceMock(ServerAddress.class);

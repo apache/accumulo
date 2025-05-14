@@ -69,6 +69,7 @@ import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.compaction.CompactionFinalizer;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
@@ -168,7 +169,12 @@ public class CompactionCoordinator extends AbstractServer implements
 
   protected CompactionFinalizer
       createCompactionFinalizer(ScheduledThreadPoolExecutor schedExecutor) {
-    return new CompactionFinalizer(getContext(), schedExecutor);
+
+    CompactionFinalizer finalizer = Property.createInstanceFromPropertyName(getConfiguration(),
+        Property.MANAGER_TABLET_BALANCER, CompactionFinalizer.class,
+        new DefaultCompactionFinalizer());
+    finalizer.initialize(getContext(), schedExecutor);
+    return finalizer;
   }
 
   protected LiveTServerSet createLiveTServerSet() {

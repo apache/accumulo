@@ -1573,20 +1573,29 @@ public enum Property {
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors.", "2.1.0"),
   @Experimental
+  COMPACTION_COORDINATOR_FINALIZER_IMPL("compaction.coordinator.compaction.finalizer.impl",
+      "org.apache.accumulo.coordinator.DefaultCompactionFinalizer", PropertyType.CLASSNAME,
+      "Fully qualified name of CompactionFinalizer implementation to use in the Coordinator.",
+      "2.1.4"),
+  @Experimental
   COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS(
       "compaction.coordinator.compaction.finalizer.threads.maximum", "5", PropertyType.COUNT,
-      "The maximum number of threads to use for notifying tablet servers that an external compaction has completed.",
+      "The maximum number of threads to use for notifying tablet servers that an external compaction has completed."
+          + " May only be used in the DefaultCompactionFinalizer.",
       "2.1.0"),
   @Experimental
   COMPACTION_COORDINATOR_FINALIZER_COMPLETION_CHECK_INTERVAL(
       "compaction.coordinator.compaction.finalizer.check.interval", "60s",
       PropertyType.TIMEDURATION,
-      "The interval at which to check for external compaction final state markers in the metadata table.",
+      "The interval at which to check for external compaction final state markers in the metadata table."
+          + " May only be used in the DefaultCompactionFinalizer.",
       "2.1.0"),
   @Experimental
   COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE(
       "compaction.coordinator.compaction.finalizer.queue.size", "16384", PropertyType.COUNT,
-      "The number of completed compactions to buffer in memory before blocking.", "2.1.4"),
+      "The number of completed compactions to buffer in memory before blocking."
+          + " May only be used in the DefaultCompactionFinalizer.",
+      "2.1.4"),
   @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,

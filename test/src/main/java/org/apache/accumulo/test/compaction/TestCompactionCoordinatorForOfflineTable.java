@@ -21,10 +21,11 @@ package org.apache.accumulo.test.compaction;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.coordinator.CompactionCoordinator;
-import org.apache.accumulo.coordinator.CompactionFinalizer;
+import org.apache.accumulo.coordinator.DefaultCompactionFinalizer;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -32,7 +33,7 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
-import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.core.spi.compaction.CompactionFinalizer;
 import org.apache.accumulo.server.ServerOpts;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,13 +41,15 @@ import org.slf4j.LoggerFactory;
 public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordinator
     implements CompactionCoordinatorService.Iface, ServerProcessService.Iface {
 
-  public static class NonNotifyingCompactionFinalizer extends CompactionFinalizer {
+  public static class NonNotifyingCompactionFinalizer extends DefaultCompactionFinalizer {
 
     private static final Logger LOG =
         LoggerFactory.getLogger(NonNotifyingCompactionFinalizer.class);
 
-    NonNotifyingCompactionFinalizer(ServerContext context, ScheduledThreadPoolExecutor stpe) {
-      super(context, stpe);
+    @Override
+    public void initialize(ClientContext context, ScheduledThreadPoolExecutor stpe) {
+      // TODO Auto-generated method stub
+      super.initialize(context, stpe);
     }
 
     @Override
@@ -76,7 +79,9 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
 
   @Override
   protected CompactionFinalizer createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
-    return new NonNotifyingCompactionFinalizer(getContext(), stpe);
+    CompactionFinalizer finalizer = new NonNotifyingCompactionFinalizer();
+    finalizer.initialize(getContext(), stpe);
+    return finalizer;
   }
 
   public static void main(String[] args) throws Exception {
