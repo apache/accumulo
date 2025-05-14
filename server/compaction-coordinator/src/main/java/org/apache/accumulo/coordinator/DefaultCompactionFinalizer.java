@@ -37,12 +37,15 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
@@ -75,8 +78,8 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
   private SharedBatchWriter sharedBatchWriter;
 
   @Override
-  public void initialize(ClientContext context, ScheduledThreadPoolExecutor schedExecutor) {
-    this.context = context;
+  public void initialize(AccumuloClient client, ScheduledThreadPoolExecutor schedExecutor) {
+    this.context = (ClientContext) client;
     var queueSize =
         context.getConfiguration().getCount(Property.COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE);
 
@@ -107,11 +110,11 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
   }
 
   @Override
-  public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,
+  public void commitCompaction(ExternalCompactionId ecid, TabletId extent, long fileSize,
       long fileEntries) {
 
-    var ecfs =
-        new ExternalCompactionFinalState(ecid, extent, FinalState.FINISHED, fileSize, fileEntries);
+    var ecfs = new ExternalCompactionFinalState(ecid, ((TabletIdImpl) extent).toKeyExtent(),
+        FinalState.FINISHED, fileSize, fileEntries);
 
     LOG.trace("Initiating commit for external compaction: {} {}", ecid, ecfs);
 
@@ -129,17 +132,17 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
   }
 
   @Override
-  public void failCompactions(Map<ExternalCompactionId,KeyExtent> compactionsToFail) {
+  public void failCompactions(Map<ExternalCompactionId,TabletId> compactionsToFail) {
     if (compactionsToFail.size() == 1) {
       var e = compactionsToFail.entrySet().iterator().next();
-      var ecfs =
-          new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
+      var ecfs = new ExternalCompactionFinalState(e.getKey(),
+          ((TabletIdImpl) e.getValue()).toKeyExtent(), FinalState.FAILED, 0L, 0L);
       sharedBatchWriter.write(ecfs.toMutation());
     } else {
       try (BatchWriter writer = context.createBatchWriter(Ample.DataLevel.USER.metaTable())) {
         for (var e : compactionsToFail.entrySet()) {
-          var ecfs =
-              new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
+          var ecfs = new ExternalCompactionFinalState(e.getKey(),
+              ((TabletIdImpl) e.getValue()).toKeyExtent(), FinalState.FAILED, 0L, 0L);
           writer.addMutation(ecfs.toMutation());
         }
       } catch (MutationsRejectedException | TableNotFoundException e) {
@@ -148,8 +151,8 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
     }
 
     for (var e : compactionsToFail.entrySet()) {
-      var ecfs =
-          new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
+      var ecfs = new ExternalCompactionFinalState(e.getKey(),
+          ((TabletIdImpl) e.getValue()).toKeyExtent(), FinalState.FAILED, 0L, 0L);
       if (!pendingNotifications.offer(ecfs)) {
         break;
       }

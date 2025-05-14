@@ -29,7 +29,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -63,13 +64,13 @@ public class DeadCompactionDetector {
 
     log.trace("Starting to look for dead compactions");
 
-    Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
+    Map<ExternalCompactionId,TabletId> tabletCompactions = new HashMap<>();
 
     // find what external compactions tablets think are running
     context.getAmple().readTablets().forLevel(DataLevel.USER)
         .fetch(ColumnType.ECOMP, ColumnType.PREV_ROW).build().forEach(tm -> {
           tm.getExternalCompactions().keySet().forEach(ecid -> {
-            tabletCompactions.put(ecid, tm.getExtent());
+            tabletCompactions.put(ecid, new TabletIdImpl(tm.getExtent()));
           });
         });
 

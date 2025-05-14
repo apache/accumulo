@@ -55,7 +55,9 @@ import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLockSupport.HAServiceLockWatcher;
@@ -591,7 +593,8 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
+    compactionFinalizer.commitCompaction(ecid, new TabletIdImpl(extent), stats.fileSize,
+        stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
     // corresponding external compaction.
@@ -609,10 +612,10 @@ public class CompactionCoordinator extends AbstractServer implements
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
     LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId, fromThriftExtent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+    compactionFailed(Map.of(ecid, new TabletIdImpl(KeyExtent.fromThrift(extent))));
   }
 
-  void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
+  void compactionFailed(Map<ExternalCompactionId,TabletId> compactions) {
     compactionFinalizer.failCompactions(compactions);
     compactions.forEach((k, v) -> recordCompletion(k));
   }
