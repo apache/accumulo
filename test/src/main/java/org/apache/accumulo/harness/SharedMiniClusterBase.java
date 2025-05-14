@@ -39,6 +39,8 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
@@ -163,6 +165,21 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
               log.error("Error deleting table {}", tableName, e);
             }
           }
+        }
+        try {
+          for (String namespaceName : client.namespaceOperations().list()) {
+            if (!namespaceName.equals(Namespace.ACCUMULO.name())
+                && !namespaceName.equals(Namespace.DEFAULT.name())) {
+              try {
+                client.namespaceOperations().delete(namespaceName);
+              } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
+                  | NamespaceNotEmptyException e) {
+                log.error("Error deleting namespace {}", namespaceName, e);
+              }
+            }
+          }
+        } catch (AccumuloSecurityException | AccumuloException e) {
+          log.error("Error listing namespaces", e);
         }
       }
       return;
