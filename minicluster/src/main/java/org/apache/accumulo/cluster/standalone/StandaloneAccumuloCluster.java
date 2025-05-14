@@ -20,7 +20,6 @@ package org.apache.accumulo.cluster.standalone;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
@@ -79,8 +78,10 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     this.tmp = tmp;
     this.users = users;
     this.serverAccumuloConfDir = serverAccumuloConfDir;
-    siteConfig =
-        SiteConfiguration.fromFile(new File(serverAccumuloConfDir, "accumulo.properties")).build();
+    siteConfig = SiteConfiguration
+        .fromFile(
+            java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toFile())
+        .build();
     this.contextSupplier = Suppliers.memoize(() -> ServerContext.withClientInfo(siteConfig, info));
   }
 
@@ -240,13 +241,15 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getAccumuloPropertiesPath() {
-    return new File(serverAccumuloConfDir, "accumulo.properties").toString();
+    return java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toFile()
+        .toString();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getClientPropsPath() {
-    return new File(clientAccumuloConfDir, "accumulo-client.properties").toString();
+    return java.nio.file.Path.of(clientAccumuloConfDir).resolve("accumulo-client.properties")
+        .toFile().toString();
   }
 }

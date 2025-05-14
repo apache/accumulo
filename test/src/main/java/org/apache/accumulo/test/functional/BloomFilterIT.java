@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -79,16 +81,21 @@ public class BloomFilterIT extends AccumuloClusterHarness {
           "1");
       try {
         Thread.sleep(1000);
+        TableOperations tops = c.tableOperations();
+
+        Map<String,String> props = new HashMap<>();
+        props.put(Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
+        props.put(Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
+        props.put(Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
+        props.put(Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
+        props.put(Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
+        props.put(Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64K");
+        NewTableConfiguration ntc = new NewTableConfiguration();
+        ntc.setProperties(props);
+
         final String[] tables = getUniqueNames(4);
         for (String table : tables) {
-          TableOperations tops = c.tableOperations();
-          tops.create(table);
-          tops.setProperty(table, Property.TABLE_INDEXCACHE_ENABLED.getKey(), "false");
-          tops.setProperty(table, Property.TABLE_BLOCKCACHE_ENABLED.getKey(), "false");
-          tops.setProperty(table, Property.TABLE_BLOOM_SIZE.getKey(), "2000000");
-          tops.setProperty(table, Property.TABLE_BLOOM_ERRORRATE.getKey(), "1%");
-          tops.setProperty(table, Property.TABLE_BLOOM_LOAD_THRESHOLD.getKey(), "0");
-          tops.setProperty(table, Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "64K");
+          tops.create(table, ntc);
         }
         log.info("Writing");
         write(c, tables[0], 1, 0, 2000000000, 500);

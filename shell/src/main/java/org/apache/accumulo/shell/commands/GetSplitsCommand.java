@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.TextUtil;
@@ -63,8 +63,8 @@ public class GetSplitsCommand extends Command {
     try (PrintLine p =
         outputFile == null ? new PrintShell(shellState.getReader()) : new PrintFile(outputFile)) {
       if (verbose) {
-        String systemTableToCheck = AccumuloTable.METADATA.tableName().equals(tableName)
-            ? AccumuloTable.ROOT.tableName() : AccumuloTable.METADATA.tableName();
+        String systemTableToCheck = SystemTables.METADATA.tableName().equals(tableName)
+            ? SystemTables.ROOT.tableName() : SystemTables.METADATA.tableName();
         final Scanner scanner =
             shellState.getAccumuloClient().createScanner(systemTableToCheck, Authorizations.EMPTY);
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);

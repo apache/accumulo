@@ -36,9 +36,9 @@ import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
@@ -84,7 +84,7 @@ public class UserFateIT extends FateIT {
       // It is important here to use getTableProperties() and not getConfiguration()
       // because we want only the table properties and not a merged view
       var fateTableProps =
-          client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+          client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
       // Verify properties all have a table. prefix
       assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
@@ -113,7 +113,7 @@ public class UserFateIT extends FateIT {
 
       // Verify all tablets are HOSTED
       try (var tablets =
-          client.getAmple().readTablets().forTable(AccumuloTable.FATE.tableId()).build()) {
+          client.getAmple().readTablets().forTable(SystemTables.FATE.tableId()).build()) {
         assertTrue(tablets.stream()
             .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
       }
@@ -124,7 +124,7 @@ public class UserFateIT extends FateIT {
   protected TStatus getTxStatus(ServerContext context, FateId fateId) {
     try (Scanner scanner = context.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      FateSchema.TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
       return StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
     } catch (TableNotFoundException e) {

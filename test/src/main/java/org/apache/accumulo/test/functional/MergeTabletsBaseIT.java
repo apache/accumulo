@@ -61,9 +61,9 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
@@ -188,7 +188,7 @@ public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
       // Verify that the MERGED marker was cleared
       verifyMergedMarkerCleared(getCluster().getServerContext(),
           TableId.of(c.tableOperations().tableIdMap().get(tableName)));
-      try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName())) {
+      try (Scanner s = c.createScanner(SystemTables.METADATA.tableName())) {
         String tid = c.tableOperations().tableIdMap().get(tableName);
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
@@ -308,8 +308,6 @@ public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
       String tableName = getUniqueNames(1)[0];
       createTableAndDisableCompactions(c, tableName, new NewTableConfiguration());
-      // disable compactions
-      c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
       final TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
 
       // First write 1000 rows to a file in the default tablet

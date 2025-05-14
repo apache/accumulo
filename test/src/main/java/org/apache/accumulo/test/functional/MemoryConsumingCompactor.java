@@ -30,7 +30,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
@@ -68,8 +68,8 @@ public class MemoryConsumingCompactor extends Compactor {
       MemoryConsumingIterator iter = new MemoryConsumingIterator();
       iter.init((SortedKeyValueIterator<Key,Value>) null, Map.of(),
           new TabletIteratorEnvironment(getContext(), IteratorScope.scan,
-              getContext().getTableConfiguration(AccumuloTable.METADATA.tableId()),
-              AccumuloTable.METADATA.tableId()));
+              getContext().getTableConfiguration(SystemTables.METADATA.tableId()),
+              SystemTables.METADATA.tableId()));
       iter.consume();
     } catch (IOException e) {
       throw new TException("Error consuming memory", e);

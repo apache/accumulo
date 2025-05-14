@@ -25,6 +25,8 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
@@ -69,9 +71,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
@@ -142,6 +144,7 @@ public class TabletMetadata {
   private final UnSplittableMetadata unSplittableMetadata;
   private final TabletMergeabilityMetadata mergeability;
   private final Supplier<Long> fileSize;
+  private final TServerInstance migration;
 
   private TabletMetadata(Builder tmBuilder) {
     this.tableId = tmBuilder.tableId;
@@ -185,6 +188,7 @@ public class TabletMetadata {
     });
     this.extent =
         Suppliers.memoize(() -> new KeyExtent(getTableId(), getEndRow(), getPrevEndRow()));
+    this.migration = tmBuilder.migration;
   }
 
   public static TabletMetadataBuilder builder(KeyExtent extent) {
@@ -218,7 +222,8 @@ public class TabletMetadata {
     COMPACTED,
     USER_COMPACTION_REQUESTED,
     UNSPLITTABLE,
-    MERGEABILITY;
+    MERGEABILITY,
+    MIGRATION;
 
     public static final Map<ColumnType,Set<Text>> COLUMNS_TO_FAMILIES;
     public static final Map<ColumnType,ColumnFQ> COLUMNS_TO_QUALIFIERS;
@@ -238,6 +243,7 @@ public class TabletMetadata {
           case OPID:
           case SELECTED:
           case FLUSH_NONCE:
+          case MIGRATION:
             colsToFamilies.put(column, Set.of(ServerColumnFamily.NAME));
             break;
           case FILES:
@@ -339,6 +345,9 @@ public class TabletMetadata {
             break;
           case UNSPLITTABLE:
             colsToQualifiers.put(column, UNSPLITTABLE_COLUMN);
+            break;
+          case MIGRATION:
+            colsToQualifiers.put(column, MIGRATION_COLUMN);
             break;
           default:
             throw new IllegalArgumentException("Unknown col type " + column);
@@ -585,7 +594,7 @@ public class TabletMetadata {
   }
 
   public TabletAvailability getTabletAvailability() {
-    if (AccumuloTable.allTableIds().contains(getTableId())) {
+    if (SystemTables.containsTableId(getTableId())) {
       // Override the availability for the system tables
       return TabletAvailability.HOSTED;
     }
@@ -608,6 +617,11 @@ public class TabletMetadata {
     return mergeability;
   }
 
+  public TServerInstance getMigration() {
+    ensureFetched(ColumnType.MIGRATION);
+    return migration;
+  }
+
   @Override
   public String toString() {
     return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
@@ -623,7 +637,7 @@ public class TabletMetadata {
         .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
         .append("userCompactionsRequested", userCompactionsRequested)
         .append("unSplittableMetadata", unSplittableMetadata).append("mergeability", mergeability)
-        .toString();
+        .append("migration", migration).toString();
   }
 
   public List<Entry<Key,Value>> getKeyValues() {
@@ -726,6 +740,8 @@ public class TabletMetadata {
             case SELECTED_QUAL:
               tmBuilder.selectedFiles(SelectedFiles.from(val));
               break;
+            case MIGRATION_QUAL:
+              tmBuilder.migration(new TServerInstance(val));
           }
           break;
         case DataFileColumnFamily.STR_NAME:
@@ -781,8 +797,8 @@ public class TabletMetadata {
       }
     }
 
-    if (AccumuloTable.ROOT.tableId().equals(tmBuilder.tableId)
-        || AccumuloTable.METADATA.tableId().equals(tmBuilder.tableId)) {
+    if (SystemTables.ROOT.tableId().equals(tmBuilder.tableId)
+        || SystemTables.METADATA.tableId().equals(tmBuilder.tableId)) {
       // Override the availability for the system tables
       tmBuilder.availability(TabletAvailability.HOSTED);
     }
@@ -863,6 +879,7 @@ public class TabletMetadata {
     private final ImmutableSet.Builder<FateId> userCompactionsRequested = ImmutableSet.builder();
     private UnSplittableMetadata unSplittableMetadata;
     private TabletMergeabilityMetadata mergeability = TabletMergeabilityMetadata.never();
+    private TServerInstance migration;
 
     void table(TableId tableId) {
       this.tableId = tableId;
@@ -906,6 +923,10 @@ public class TabletMetadata {
 
     void selectedFiles(SelectedFiles selectedFiles) {
       this.selectedFiles = selectedFiles;
+    }
+
+    void migration(TServerInstance tserver) {
+      this.migration = tserver;
     }
 
     void location(String val, String qual, LocationType lt, boolean suppressError) {

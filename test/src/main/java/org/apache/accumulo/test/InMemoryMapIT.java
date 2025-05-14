@@ -214,7 +214,7 @@ public class InMemoryMapIT extends WithTestNames {
 
     String[] tempFolders = new String[4];
     for (int i = 0; i < tempFolders.length; i++) {
-      File dir = new File(tempDir, testName() + "_" + i);
+      File dir = tempDir.toPath().resolve(testName() + "_" + i).toFile();
       assertTrue(dir.isDirectory() || dir.mkdir());
       tempFolders[i] = dir.getAbsolutePath();
     }

@@ -70,7 +70,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
     public Builder withTableId(TableId tableId) {
       checkState(this.tableId.isEmpty(), "TableId has already been set");
-      this.tableId = Optional.of(tableId);
+      this.tableId = Optional.ofNullable(tableId);
       return this;
     }
 
@@ -126,7 +126,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   }
 
   /**
-   * Copy constructor used for enabling sample. Only called from {@link cloneWithSamplingEnabled}.
+   * Copy constructor used for enabling sample. Only called from {@link #cloneWithSamplingEnabled}.
    */
   private ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
     this.scope = copy.scope;
@@ -197,7 +197,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public TableId getTableId() {
-    return this.tableId.orElseThrow();
+    return this.tableId.orElse(null);
   }
 
   @Override
