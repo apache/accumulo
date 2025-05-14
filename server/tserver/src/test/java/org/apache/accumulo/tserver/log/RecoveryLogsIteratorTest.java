@@ -29,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -66,21 +65,21 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RecoveryLogsIteratorTest extends WithTestNames {
 
   private VolumeManager fs;
-  private File workDir;
+  private java.nio.file.Path workDir;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
   static TabletServer server;
   static ServerContext context;
   static LogSorter logSorter;
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
     server = createMock(TabletServer.class);
-    workDir = tempDir.toPath().resolve(testName()).toFile();
-    String path = workDir.getAbsolutePath();
+    workDir = tempDir.resolve(testName());
+    String path = workDir.toString();
     fs = VolumeManagerImpl.getLocalForTesting(path);
     expect(server.getContext()).andReturn(context).anyTimes();
     expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();

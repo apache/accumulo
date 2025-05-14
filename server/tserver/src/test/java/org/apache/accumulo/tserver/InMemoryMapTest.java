@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -88,7 +89,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
@@ -803,7 +804,7 @@ public class InMemoryMapTest extends WithTestNames {
   private String[] uniqueDirPaths(int numOfDirs) {
     String[] newDirs = new String[numOfDirs];
     for (int i = 0; i < newDirs.length; i++) {
-      File newDir = tempDir.toPath().resolve(testName() + i).toFile();
+      File newDir = tempDir.resolve(testName() + i).toFile();
       assertTrue(newDir.isDirectory() || newDir.mkdir(), "Failed to create directory: " + newDir);
       newDirs[i] = newDir.getAbsolutePath();
     }

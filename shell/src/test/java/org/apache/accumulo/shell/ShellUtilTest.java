@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.List;
 
@@ -39,7 +40,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ShellUtilTest {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   // String with 3 lines, with one empty line
   private static final String FILEDATA = "line1\n\nline2";
@@ -49,7 +50,7 @@ public class ShellUtilTest {
 
   @Test
   public void testWithoutDecode() throws IOException {
-    File testFile = tempDir.toPath().resolve("testFileNoDecode.txt").toFile();
+    File testFile = tempDir.resolve("testFileNoDecode.txt").toFile();
     FileUtils.writeStringToFile(testFile, FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), false);
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);
@@ -57,7 +58,7 @@ public class ShellUtilTest {
 
   @Test
   public void testWithDecode() throws IOException {
-    File testFile = tempDir.toPath().resolve("testFileWithDecode.txt").toFile();
+    File testFile = tempDir.resolve("testFileWithDecode.txt").toFile();
     FileUtils.writeStringToFile(testFile, B64_FILEDATA, UTF_8);
     List<Text> output = ShellUtil.scanFile(testFile.getAbsolutePath(), true);
     assertEquals(List.of(new Text("line1"), new Text("line2")), output);

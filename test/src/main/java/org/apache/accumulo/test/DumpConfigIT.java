@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 
@@ -42,7 +43,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class DumpConfigIT extends ConfigurableMacBase {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Override
   protected Duration defaultTimeout() {
@@ -58,7 +59,7 @@ public class DumpConfigIT extends ConfigurableMacBase {
       justification = "user.dir is suitable test input")
   @Test
   public void test() throws Exception {
-    File folder = tempDir.toPath().resolve(testName() + "/").toFile();
+    File folder = tempDir.resolve(testName() + "/").toFile();
     assertTrue(folder.isDirectory() || folder.mkdir(), "failed to create dir: " + folder);
     File siteFileBackup = folder.toPath().resolve("accumulo.properties.bak").toFile();
     assertFalse(siteFileBackup.exists());

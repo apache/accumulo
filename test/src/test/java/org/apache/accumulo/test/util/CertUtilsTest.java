@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.PublicKey;
@@ -43,7 +44,7 @@ public class CertUtilsTest extends WithTestNames {
   private static final String RDN_STRING = "o=Apache Accumulo,cn=CertUtilsTest";
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   private CertUtils getUtils() {
     return new CertUtils(KEYSTORE_TYPE, RDN_STRING, "RSA", 4096, "SHA512WITHRSA");
@@ -53,7 +54,7 @@ public class CertUtilsTest extends WithTestNames {
   @Test
   public void createSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File tempSubDir = tempDir.toPath().resolve(testName()).toFile();
+    File tempSubDir = tempDir.resolve(testName()).toFile();
     assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
     File keyStoreFile = tempSubDir.toPath().resolve("selfsigned.jks").toFile();
     certUtils.createSelfSignedCert(keyStoreFile, "test", PASSWORD);
@@ -70,7 +71,7 @@ public class CertUtilsTest extends WithTestNames {
   @Test
   public void createPublicSelfSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File tempSubDir = tempDir.toPath().resolve(testName()).toFile();
+    File tempSubDir = tempDir.resolve(testName()).toFile();
     assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
     File rootKeyStoreFile = tempSubDir.toPath().resolve("root.jks").toFile();
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
@@ -94,7 +95,7 @@ public class CertUtilsTest extends WithTestNames {
   @Test
   public void createSigned() throws Exception {
     CertUtils certUtils = getUtils();
-    File tempSubDir = tempDir.toPath().resolve(testName()).toFile();
+    File tempSubDir = tempDir.resolve(testName()).toFile();
     assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
     File rootKeyStoreFile = tempSubDir.toPath().resolve("root.jks").toFile();
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
@@ -126,7 +127,7 @@ public class CertUtilsTest extends WithTestNames {
     // this approximates the real life scenario. the client will only have the public key of each
     // cert (the root made by us as below, but the signed cert extracted by the SSL transport)
     CertUtils certUtils = getUtils();
-    File tempSubDir = tempDir.toPath().resolve(testName()).toFile();
+    File tempSubDir = tempDir.resolve(testName()).toFile();
     assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
     File rootKeyStoreFile = tempSubDir.toPath().resolve("root.jks").toFile();
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
@@ -164,7 +165,7 @@ public class CertUtilsTest extends WithTestNames {
     // no reason the keypair we generate for the tservers need to be able to sign anything,
     // but this is a way to make sure the private and public keys created actually correspond.
     CertUtils certUtils = getUtils();
-    File tempSubDir = tempDir.toPath().resolve(testName()).toFile();
+    File tempSubDir = tempDir.resolve(testName()).toFile();
     assertTrue(tempSubDir.isDirectory() || tempSubDir.mkdir());
     File rootKeyStoreFile = tempSubDir.toPath().resolve("root.jks").toFile();
     certUtils.createSelfSignedCert(rootKeyStoreFile, "test", PASSWORD);
