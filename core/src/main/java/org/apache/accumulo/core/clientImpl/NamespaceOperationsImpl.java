@@ -57,7 +57,6 @@ import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Retry;
@@ -191,8 +190,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
-          client -> client.setNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(),
-              namespace, property, value));
+          client -> client.setNamespaceProperty(context.rpcCreds(), namespace, property, value));
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException) {
         throw (NamespaceNotFoundException) e.getCause();
@@ -208,9 +206,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
 
-    final TVersionedProperties vProperties =
-        ThriftClientTypes.CLIENT.execute(context, client -> client
-            .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
+        client -> client.getVersionedNamespaceProperties(context.rpcCreds(), namespace));
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -222,8 +219,7 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     try {
       // Send to server
       ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
-          client -> client.modifyNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(),
-              namespace, vProperties));
+          client -> client.modifyNamespaceProperties(context.rpcCreds(), namespace, vProperties));
 
       for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(namespace, property);
@@ -276,8 +272,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
     checkArgument(property != null, "property is null");
     try {
-      ThriftClientTypes.MANAGER.executeVoidTableCommand(context, client -> client
-          .removeNamespaceProperty(TraceUtil.traceInfo(), context.rpcCreds(), namespace, property));
+      ThriftClientTypes.MANAGER.executeVoidTableCommand(context,
+          client -> client.removeNamespaceProperty(context.rpcCreds(), namespace, property));
     } catch (TableNotFoundException e) {
       if (e.getCause() instanceof NamespaceNotFoundException) {
         throw (NamespaceNotFoundException) e.getCause();
@@ -294,8 +290,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
     try {
-      return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+      return ThriftClientTypes.CLIENT.execute(context,
+          client -> client.getNamespaceConfiguration(context.rpcCreds(), namespace));
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
@@ -319,8 +315,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     EXISTING_NAMESPACE_NAME.validate(namespace);
 
     try {
-      return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+      return ThriftClientTypes.CLIENT.execute(context,
+          client -> client.getNamespaceProperties(context.rpcCreds(), namespace));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {
@@ -353,9 +349,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ThriftClientTypes.CLIENT.execute(context,
-          client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
-              className, asTypeName));
+      return ThriftClientTypes.CLIENT.execute(context, client -> client
+          .checkNamespaceClass(context.rpcCreds(), namespace, className, asTypeName));
     } catch (AccumuloSecurityException | AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftTableOperationException) {

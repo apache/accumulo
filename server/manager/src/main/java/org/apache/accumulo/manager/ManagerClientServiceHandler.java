@@ -43,7 +43,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.DelegationTokenConfigSerializer;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -112,7 +111,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public long initiateFlush(TInfo tinfo, TCredentials c, String tableIdStr)
+  public long initiateFlush(TCredentials c, String tableIdStr)
       throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = TableId.of(tableIdStr);
     NamespaceId namespaceId = getNamespaceIdFromTableId(TableOperation.FLUSH, tableId);
@@ -141,7 +140,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void waitForFlush(TInfo tinfo, TCredentials c, String tableIdStr, ByteBuffer startRowBB,
+  public void waitForFlush(TCredentials c, String tableIdStr, ByteBuffer startRowBB,
       ByteBuffer endRowBB, long flushID, long maxLoops)
       throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = TableId.of(tableIdStr);
@@ -237,26 +236,25 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public ManagerMonitorInfo getManagerStats(TInfo info, TCredentials credentials) {
+  public ManagerMonitorInfo getManagerStats(TCredentials credentials) {
     return manager.getManagerMonitorInfo();
   }
 
   @Override
-  public void removeTableProperty(TInfo info, TCredentials credentials, String tableName,
-      String property)
+  public void removeTableProperty(TCredentials credentials, String tableName, String property)
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterTableProperty(credentials, tableName, property, null, TableOperation.REMOVE_PROPERTY);
   }
 
   @Override
-  public void setTableProperty(TInfo info, TCredentials credentials, String tableName,
-      String property, String value)
+  public void setTableProperty(TCredentials credentials, String tableName, String property,
+      String value)
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterTableProperty(credentials, tableName, property, value, TableOperation.SET_PROPERTY);
   }
 
   @Override
-  public void modifyTableProperties(TInfo tinfo, TCredentials credentials, String tableName,
+  public void modifyTableProperties(TCredentials credentials, String tableName,
       TVersionedProperties properties)
       throws ThriftSecurityException, ThriftTableOperationException,
       ThriftConcurrentModificationException, ThriftPropertyException {
@@ -289,8 +287,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void shutdown(TInfo info, TCredentials c, boolean stopTabletServers)
-      throws ThriftSecurityException {
+  public void shutdown(TCredentials c, boolean stopTabletServers) throws ThriftSecurityException {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -305,7 +302,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void shutdownTabletServer(TInfo info, TCredentials c, String tabletServer, boolean force)
+  public void shutdownTabletServer(TCredentials c, String tabletServer, boolean force)
       throws ThriftSecurityException {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -340,7 +337,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer)
+  public void tabletServerStopping(TCredentials credentials, String tabletServer)
       throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -351,7 +348,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void reportTabletStatus(TInfo info, TCredentials credentials, String serverName,
+  public void reportTabletStatus(TCredentials credentials, String serverName,
       TabletLoadState status, TKeyExtent ttablet) throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -383,7 +380,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void setManagerGoalState(TInfo info, TCredentials c, ManagerGoalState state)
+  public void setManagerGoalState(TCredentials c, ManagerGoalState state)
       throws ThriftSecurityException {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -393,8 +390,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void removeSystemProperty(TInfo info, TCredentials c, String property)
-      throws ThriftSecurityException {
+  public void removeSystemProperty(TCredentials c, String property) throws ThriftSecurityException {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -409,8 +405,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void setSystemProperty(TInfo info, TCredentials c, String property, String value)
-      throws TException {
+  public void setSystemProperty(TCredentials c, String property, String value) throws TException {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
@@ -428,7 +423,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void modifySystemProperties(TInfo info, TCredentials c, TVersionedProperties properties)
+  public void modifySystemProperties(TCredentials c, TVersionedProperties properties)
       throws TException {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -452,14 +447,14 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void setNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
-      String property, String value)
+  public void setNamespaceProperty(TCredentials credentials, String ns, String property,
+      String value)
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterNamespaceProperty(credentials, ns, property, value, TableOperation.SET_PROPERTY);
   }
 
   @Override
-  public void modifyNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns,
+  public void modifyNamespaceProperties(TCredentials credentials, String ns,
       TVersionedProperties properties) throws TException {
     final NamespaceId namespaceId =
         ClientServiceHandler.checkNamespaceId(context, ns, TableOperation.SET_PROPERTY);
@@ -488,8 +483,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void removeNamespaceProperty(TInfo tinfo, TCredentials credentials, String ns,
-      String property)
+  public void removeNamespaceProperty(TCredentials credentials, String ns, String property)
       throws ThriftSecurityException, ThriftTableOperationException, ThriftPropertyException {
     alterNamespaceProperty(credentials, ns, property, null, TableOperation.REMOVE_PROPERTY);
   }
@@ -564,13 +558,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void waitForBalance(TInfo tinfo) {
+  public void waitForBalance() {
     manager.waitForBalance();
   }
 
   @Override
-  public List<String> getActiveTservers(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public List<String> getActiveTservers(TCredentials credentials) throws ThriftSecurityException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
@@ -586,7 +579,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public TDelegationToken getDelegationToken(TInfo tinfo, TCredentials credentials,
+  public TDelegationToken getDelegationToken(TCredentials credentials,
       TDelegationTokenConfig tConfig) throws ThriftSecurityException, TException {
     if (!security.canObtainDelegationToken(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -613,7 +606,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void requestTabletHosting(TInfo tinfo, TCredentials credentials, String tableIdStr,
+  public void requestTabletHosting(TCredentials credentials, String tableIdStr,
       List<TKeyExtent> extents) throws ThriftSecurityException, ThriftTableOperationException {
 
     final TableId tableId = TableId.of(tableIdStr);
@@ -629,8 +622,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public List<TKeyExtent> updateTabletMergeability(TInfo tinfo, TCredentials credentials,
-      String tableName, Map<TKeyExtent,TTabletMergeability> splits)
+  public List<TKeyExtent> updateTabletMergeability(TCredentials credentials, String tableName,
+      Map<TKeyExtent,TTabletMergeability> splits)
       throws ThriftTableOperationException, ThriftSecurityException {
 
     final TableId tableId = getTableId(context, tableName);
@@ -670,8 +663,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public long getManagerTimeNanos(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public long getManagerTimeNanos(TCredentials credentials) throws ThriftSecurityException {
     security.authenticateUser(credentials, credentials);
     return manager.getSteadyTime().getNanos();
   }
