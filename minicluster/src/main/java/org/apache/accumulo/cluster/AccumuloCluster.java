@@ -104,7 +104,7 @@ public interface AccumuloCluster {
   void stop() throws Exception;
 
   /**
-   * Cleans up the AccumuloCluster. Cannot be restarted after this call.
+   * Cleans up the AccumuloCluster, stopping it if necessary. Cannot be restarted after this call.
    */
   void terminate() throws Exception;
 

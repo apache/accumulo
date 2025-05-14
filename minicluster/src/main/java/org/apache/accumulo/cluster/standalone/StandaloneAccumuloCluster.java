@@ -193,8 +193,13 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public void terminate() throws Exception {
-    Preconditions.checkState(clusterState == State.STOPPED,
-        "Cannot terminate a cluster that is not stopped.");
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
+
+    if (clusterState != State.STOPPED) {
+      stop();
+    }
+
     if (serverContextCreated.get()) {
       getServerContext().close();
     }

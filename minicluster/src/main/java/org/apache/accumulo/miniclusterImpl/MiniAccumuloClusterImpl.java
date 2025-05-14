@@ -534,10 +534,10 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
               MiniAccumuloClusterImpl.this.stop();
               MiniAccumuloClusterImpl.this.terminate();
             }
-          } catch (IOException e) {
-            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
           } catch (InterruptedException e) {
             log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
+          } catch (Exception e) {
+            log.error("Exception while attempting to stop the MiniAccumuloCluster.", e);
           }
         }));
       }
@@ -1033,9 +1033,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   @Override
-  public void terminate() {
-    Preconditions.checkState(clusterState == State.STOPPED,
-        "Cannot terminate a cluster that is not stopped.");
+  public synchronized void terminate() throws Exception {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
+
+    if (clusterState != State.STOPPED) {
+      stop();
+    }
+
     if (serverContextCreated.get()) {
       getServerContext().close();
     }
