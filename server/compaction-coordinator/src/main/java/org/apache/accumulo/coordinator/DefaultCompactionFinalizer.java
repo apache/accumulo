@@ -34,10 +34,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -62,6 +60,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,8 +77,8 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
   private SharedBatchWriter sharedBatchWriter;
 
   @Override
-  public void initialize(AccumuloClient client, ScheduledThreadPoolExecutor schedExecutor) {
-    this.context = (ClientContext) client;
+  public void init(InitParameters params) {
+    this.context = ((ServiceEnvironmentImpl) params.getServiceEnvironment()).getContext();
     var queueSize =
         context.getConfiguration().getCount(Property.COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE);
 
@@ -102,19 +101,19 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
       processPending();
     });
 
-    ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
-        this::notifyTservers, 0, tserverCheckInterval, TimeUnit.MILLISECONDS));
+    ThreadPools.watchCriticalScheduledTask(
+        params.getScheduledThreadPoolExecutor().scheduleWithFixedDelay(this::notifyTservers, 0,
+            tserverCheckInterval, TimeUnit.MILLISECONDS));
 
     this.sharedBatchWriter =
         new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize);
   }
 
   @Override
-  public void commitCompaction(ExternalCompactionId ecid, TabletId extent, long fileSize,
-      long fileEntries) {
+  public void commitCompaction(String ecid, TabletId extent, long fileSize, long fileEntries) {
 
-    var ecfs = new ExternalCompactionFinalState(ecid, ((TabletIdImpl) extent).toKeyExtent(),
-        FinalState.FINISHED, fileSize, fileEntries);
+    var ecfs = new ExternalCompactionFinalState(ExternalCompactionId.of(ecid),
+        ((TabletIdImpl) extent).toKeyExtent(), FinalState.FINISHED, fileSize, fileEntries);
 
     LOG.trace("Initiating commit for external compaction: {} {}", ecid, ecfs);
 
@@ -132,16 +131,16 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
   }
 
   @Override
-  public void failCompactions(Map<ExternalCompactionId,TabletId> compactionsToFail) {
+  public void failCompactions(Map<String,TabletId> compactionsToFail) {
     if (compactionsToFail.size() == 1) {
       var e = compactionsToFail.entrySet().iterator().next();
-      var ecfs = new ExternalCompactionFinalState(e.getKey(),
+      var ecfs = new ExternalCompactionFinalState(ExternalCompactionId.of(e.getKey()),
           ((TabletIdImpl) e.getValue()).toKeyExtent(), FinalState.FAILED, 0L, 0L);
       sharedBatchWriter.write(ecfs.toMutation());
     } else {
       try (BatchWriter writer = context.createBatchWriter(Ample.DataLevel.USER.metaTable())) {
         for (var e : compactionsToFail.entrySet()) {
-          var ecfs = new ExternalCompactionFinalState(e.getKey(),
+          var ecfs = new ExternalCompactionFinalState(ExternalCompactionId.of(e.getKey()),
               ((TabletIdImpl) e.getValue()).toKeyExtent(), FinalState.FAILED, 0L, 0L);
           writer.addMutation(ecfs.toMutation());
         }
@@ -151,7 +150,7 @@ public class DefaultCompactionFinalizer implements CompactionFinalizer {
     }
 
     for (var e : compactionsToFail.entrySet()) {
-      var ecfs = new ExternalCompactionFinalState(e.getKey(),
+      var ecfs = new ExternalCompactionFinalState(ExternalCompactionId.of(e.getKey()),
           ((TabletIdImpl) e.getValue()).toKeyExtent(), FinalState.FAILED, 0L, 0L);
       if (!pendingNotifications.offer(ecfs)) {
         break;

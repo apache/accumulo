@@ -71,7 +71,9 @@ import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionFinalizer;
+import org.apache.accumulo.core.spi.compaction.CompactionFinalizer.InitParameters;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionQueueSummary;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
@@ -86,6 +88,7 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.GarbageCollectionLogger;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
 import org.apache.accumulo.server.rpc.ServerAddress;
@@ -175,7 +178,19 @@ public class CompactionCoordinator extends AbstractServer implements
     CompactionFinalizer finalizer = Property.createInstanceFromPropertyName(getConfiguration(),
         Property.MANAGER_TABLET_BALANCER, CompactionFinalizer.class,
         new DefaultCompactionFinalizer());
-    finalizer.initialize(getContext(), schedExecutor);
+    finalizer.init(new InitParameters() {
+
+      @Override
+      public ServiceEnvironment getServiceEnvironment() {
+        return new ServiceEnvironmentImpl(getContext());
+      }
+
+      @Override
+      public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
+        return schedExecutor;
+      }
+
+    });
     return finalizer;
   }
 
@@ -593,8 +608,8 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFinalizer.commitCompaction(ecid, new TabletIdImpl(extent), stats.fileSize,
-        stats.entriesWritten);
+    compactionFinalizer.commitCompaction(externalCompactionId, new TabletIdImpl(extent),
+        stats.fileSize, stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
     // corresponding external compaction.
@@ -611,13 +626,12 @@ public class CompactionCoordinator extends AbstractServer implements
     }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
     LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId, fromThriftExtent);
-    final var ecid = ExternalCompactionId.of(externalCompactionId);
-    compactionFailed(Map.of(ecid, new TabletIdImpl(KeyExtent.fromThrift(extent))));
+    compactionFailed(Map.of(externalCompactionId, new TabletIdImpl(KeyExtent.fromThrift(extent))));
   }
 
-  void compactionFailed(Map<ExternalCompactionId,TabletId> compactions) {
+  void compactionFailed(Map<String,TabletId> compactions) {
     compactionFinalizer.failCompactions(compactions);
-    compactions.forEach((k, v) -> recordCompletion(k));
+    compactions.forEach((k, v) -> recordCompletion(ExternalCompactionId.of(k)));
   }
 
   /**

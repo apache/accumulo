@@ -22,7 +22,6 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.DefaultCompactionFinalizer;
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -34,8 +33,11 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState.FinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionFinalizer;
+import org.apache.accumulo.core.spi.compaction.CompactionFinalizer.InitParameters;
 import org.apache.accumulo.server.ServerOpts;
+import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,17 +50,15 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
         LoggerFactory.getLogger(NonNotifyingCompactionFinalizer.class);
 
     @Override
-    public void initialize(AccumuloClient context, ScheduledThreadPoolExecutor stpe) {
-      // TODO Auto-generated method stub
-      super.initialize(context, stpe);
+    public void init(InitParameters params) {
+      super.init(params);
     }
 
     @Override
-    public void commitCompaction(ExternalCompactionId ecid, TabletId extent, long fileSize,
-        long fileEntries) {
+    public void commitCompaction(String ecid, TabletId extent, long fileSize, long fileEntries) {
 
-      var ecfs = new ExternalCompactionFinalState(ecid, ((TabletIdImpl) extent).toKeyExtent(),
-          FinalState.FINISHED, fileSize, fileEntries);
+      var ecfs = new ExternalCompactionFinalState(ExternalCompactionId.of(ecid),
+          ((TabletIdImpl) extent).toKeyExtent(), FinalState.FINISHED, fileSize, fileEntries);
 
       // write metadata entry
       LOG.info("Writing completed external compaction to metadata table: {}", ecfs);
@@ -81,7 +81,19 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
   @Override
   protected CompactionFinalizer createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
     CompactionFinalizer finalizer = new NonNotifyingCompactionFinalizer();
-    finalizer.initialize(getContext(), stpe);
+    finalizer.init(new InitParameters() {
+
+      @Override
+      public ServiceEnvironment getServiceEnvironment() {
+        return new ServiceEnvironmentImpl(getContext());
+      }
+
+      @Override
+      public ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor() {
+        return stpe;
+      }
+
+    });
     return finalizer;
   }
 

@@ -21,9 +21,8 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Map;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 
-import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 /**
  * A CompactionFinalizer is used by the CompactionCoordinator to update the state of a compaction
@@ -34,12 +33,24 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 public interface CompactionFinalizer {
 
   /**
+   * This interface exists so the API can evolve and additional parameters can be passed to the
+   * method in the future.
+   *
+   * @since 2.1.4
+   */
+  public interface InitParameters {
+
+    ServiceEnvironment getServiceEnvironment();
+
+    ScheduledThreadPoolExecutor getScheduledThreadPoolExecutor();
+  }
+
+  /**
    * Initialize the CompactionFinalizer
    *
-   * @param context ClientContext
-   * @param schedExecutor general scheduled executor for any needed tasks
+   * @param params initialization parameters
    */
-  void initialize(AccumuloClient client, ScheduledThreadPoolExecutor schedExecutor);
+  void init(InitParameters params);
 
   /**
    * Called by the CompactionCoordinator when the compaction has completed successfully.
@@ -51,8 +62,7 @@ public interface CompactionFinalizer {
    * @param fileSize size of newly compacted file
    * @param fileEntries number of entries in the newly compacted file
    */
-  void commitCompaction(ExternalCompactionId ecid, TabletId extent, long fileSize,
-      long fileEntries);
+  void commitCompaction(String ecid, TabletId extent, long fileSize, long fileEntries);
 
   /**
    * Called by the CompactionCoordinator when compactions have failed. Implementations will create
@@ -62,6 +72,6 @@ public interface CompactionFinalizer {
    *
    * @param compactionsToFail map of ExternalCompactionId to KeyExtent
    */
-  void failCompactions(Map<ExternalCompactionId,TabletId> compactionsToFail);
+  void failCompactions(Map<String,TabletId> compactionsToFail);
 
 }
