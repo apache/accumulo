@@ -106,9 +106,7 @@ public class CompactionFinalizer {
   }
 
   private SharedBatchWriter getWriter(ExternalCompactionId ecid) {
-    // ExternalCompactionId string has a prefix of "ECID:", so
-    // we want the 6th character (index 5)
-    return writers.computeIfAbsent(ecid.canonical().charAt(5),
+    return writers.computeIfAbsent(ecid.getFirstUUIDChar(),
         (i) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize));
   }
 

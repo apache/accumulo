@@ -67,4 +67,14 @@ public class ExternalCompactionId extends AbstractId<ExternalCompactionId> {
     return of(ecid);
   }
 
+  /**
+   * @return first character of the UUID portion of the ExternalCompactionId.
+   */
+  public Character getFirstUUIDChar() {
+    // ExternalCompactionId string has a prefix of "ECID:", so
+    // we want the 6th character (index 5)
+    return canonical().charAt(5);
+
+  }
+
 }
