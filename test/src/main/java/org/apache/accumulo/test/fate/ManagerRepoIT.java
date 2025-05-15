@@ -74,6 +74,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
@@ -97,6 +98,7 @@ import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -104,6 +106,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.google.common.collect.Sets;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ManagerRepoIT extends SharedMiniClusterBase {
 
   @BeforeAll
