@@ -351,20 +351,20 @@ public class SecurityOperation {
    *
    * @return true if a user exists and has permission; false otherwise
    */
-  private boolean _hasTablePermission(String user, TableId table, TablePermission permission,
+  private boolean _hasTablePermission(String user, TableId tableId, TablePermission permission,
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if ((table.equals(SystemTables.METADATA.tableId()) || table.equals(SystemTables.ROOT.tableId()))
+    if ((tableId.equals(SystemTables.METADATA.tableId()) || tableId.equals(SystemTables.ROOT.tableId()))
         && permission.equals(TablePermission.READ)) {
       return true;
     }
 
     try {
       if (useCached) {
-        return permHandle.hasCachedTablePermission(user, table.canonical(), permission);
+        return permHandle.hasCachedTablePermission(user, tableId.canonical(), permission);
       }
-      return permHandle.hasTablePermission(user, table.canonical(), permission);
+      return permHandle.hasTablePermission(user, tableId.canonical(), permission);
     } catch (TableNotFoundException e) {
       throw new ThriftSecurityException(user, SecurityErrorCode.TABLE_DOESNT_EXIST);
     }

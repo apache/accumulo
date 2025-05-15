@@ -60,7 +60,7 @@ class CloneZookeeper extends ManagerRepo {
       context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
           cloneInfo.getTableName(), TableOperation.CLONE);
       environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
-          cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
+          cloneInfo.getTableName(), cloneInfo.getSrcNamespaceId(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
           cloneInfo.getPropertiesToExclude());
       context.clearTableListCache();
 

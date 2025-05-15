@@ -170,12 +170,12 @@ public class TableManager {
   }
 
   public void cloneTable(TableId srcTableId, TableId tableId, String tableName,
-      NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
+                         NamespaceId srcNamespaceId, NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
       throws KeeperException, InterruptedException {
     prepareNewTableState(tableId, namespaceId, tableName, TableState.NEW,
         NodeExistsPolicy.OVERWRITE);
 
-    String srcTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+    String srcTablePath = Constants.ZNAMESPACES + "/" + srcNamespaceId + Constants.ZTABLES + "/"
         + srcTableId + Constants.ZCONFIG;
     String newTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
         + tableId + Constants.ZCONFIG;
