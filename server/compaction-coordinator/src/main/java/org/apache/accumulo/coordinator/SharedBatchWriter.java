@@ -24,7 +24,6 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Mutation;
@@ -87,8 +86,7 @@ public class SharedBatchWriter {
         throw new IllegalStateException(e);
       }
 
-      var config = new BatchWriterConfig().setMaxWriteThreads(16);
-      try (var writer = context.createBatchWriter(table, config)) {
+      try (var writer = context.createBatchWriter(table)) {
         mutations.drainTo(batch);
         timer.restart();
         for (var work : batch) {
