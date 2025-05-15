@@ -72,7 +72,8 @@ public class LargeReadIT extends AccumuloClusterHarness {
 
   @Test
   public void testLargeMemoryLG() throws Exception {
-    // if locality groups are not set then this test will fail because all the scans will read the big key value in to memory and then filter it
+    // if locality groups are not set then this test will fail because all the scans will read the
+    // big key value in to memory and then filter it
     Map<String,Set<Text>> groups =
         Map.of("big", Set.of(new Text("big")), "small", Set.of(new Text("small")));
     NewTableConfiguration config = new NewTableConfiguration().setLocalityGroups(groups);
