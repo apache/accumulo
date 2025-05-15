@@ -38,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -45,9 +46,11 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.util.PropUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ZooKeeperPropertiesIT extends SharedMiniClusterBase {
 
   @BeforeAll

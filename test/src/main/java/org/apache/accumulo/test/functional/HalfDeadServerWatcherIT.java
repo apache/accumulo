@@ -137,7 +137,6 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
   @AfterEach
   public void afterTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    super.teardownCluster();
     USE_VERIFICATION_THREAD.set(!USE_VERIFICATION_THREAD.get());
   }
 

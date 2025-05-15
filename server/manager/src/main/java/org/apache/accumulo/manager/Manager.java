@@ -558,11 +558,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           for (DataLevel dl : DataLevel.values()) {
             // prev row needed for the extent
             try (
-                var tabletsMetadata =
-                    ample.readTablets().forLevel(dl)
-                        .fetch(TabletMetadata.ColumnType.PREV_ROW,
-                            TabletMetadata.ColumnType.MIGRATION)
-                        .build();
+                var tabletsMetadata = ample.readTablets().forLevel(dl)
+                    .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
+                        TabletMetadata.ColumnType.LOCATION)
+                    .build();
                 var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
               for (var tabletMetadata : tabletsMetadata) {
                 var migration = tabletMetadata.getMigration();
@@ -587,7 +586,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Preconditions.checkState(migration != null,
         "This method should only be called if there is a migration");
     return tableState == TableState.OFFLINE || !onlineTabletServers().contains(migration)
-        || tabletMetadata.getLocation().getServerInstance().equals(migration);
+        || (tabletMetadata.getLocation() != null
+            && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
 
   private class ScanServerZKCleaner implements Runnable {
@@ -641,8 +641,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
-      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
+      try (
+          var tabletsMetadata = getContext()
+              .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
+                  TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
+              .build()) {
         // filter out migrations that are awaiting cleanup
         tabletsMetadata.stream()
             .filter(tm -> tm.getMigration() != null && !shouldCleanupMigration(tm))

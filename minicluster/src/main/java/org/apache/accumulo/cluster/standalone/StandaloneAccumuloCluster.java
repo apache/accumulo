@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
@@ -44,6 +45,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -65,6 +67,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   private String serverCmdPrefix;
   private final SiteConfiguration siteConfig;
   private final Supplier<ServerContext> contextSupplier;
+  private volatile State clusterState = State.STOPPED;
+  private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input file name")
@@ -135,6 +139,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public ServerContext getServerContext() {
+    serverContextCreated.set(true);
     return contextSupplier.get();
   }
 
@@ -156,6 +161,8 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
 
   @Override
   public void start() throws IOException {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot start a cluster that is terminated.");
     StandaloneClusterControl control = getClusterControl();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the
@@ -166,10 +173,13 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     for (ServerType type : ALL_SERVER_TYPES) {
       control.startAllServers(type);
     }
+    clusterState = State.STARTED;
   }
 
   @Override
   public void stop() throws IOException {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
     StandaloneClusterControl control = getClusterControl();
 
     // TODO We can check the hosts files, but that requires us to be on a host with the
@@ -178,6 +188,22 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
     for (ServerType type : ALL_SERVER_TYPES) {
       control.stopAllServers(type);
     }
+    clusterState = State.STOPPED;
+  }
+
+  @Override
+  public void terminate() throws Exception {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
+
+    if (clusterState != State.STOPPED) {
+      stop();
+    }
+
+    if (serverContextCreated.get()) {
+      getServerContext().close();
+    }
+    clusterState = State.TERMINATED;
   }
 
   public Configuration getHadoopConfiguration() {
