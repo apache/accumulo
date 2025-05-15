@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_FINALIZER_NOTIFIER_POOL;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -71,11 +72,12 @@ public class CompactionFinalizer {
   private final ExecutorService backgroundExecutor;
   private final BlockingQueue<ExternalCompactionFinalState> pendingNotifications;
   private final long tserverCheckInterval;
-  private final SharedBatchWriter sharedBatchWriter;
+  private final HashMap<Character,SharedBatchWriter> writers = new HashMap<>(16);
+  private final int queueSize;
 
   protected CompactionFinalizer(ServerContext context, ScheduledThreadPoolExecutor schedExecutor) {
     this.context = context;
-    var queueSize =
+    queueSize =
         context.getConfiguration().getCount(Property.COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE);
 
     this.pendingNotifications = new ArrayBlockingQueue<>(queueSize);
@@ -100,8 +102,11 @@ public class CompactionFinalizer {
     ThreadPools.watchCriticalScheduledTask(schedExecutor.scheduleWithFixedDelay(
         this::notifyTservers, 0, tserverCheckInterval, TimeUnit.MILLISECONDS));
 
-    this.sharedBatchWriter =
-        new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize);
+  }
+
+  private SharedBatchWriter getWriter(ExternalCompactionId ecid) {
+    return writers.computeIfAbsent(ecid.canonical().charAt(0),
+        (i) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize));
   }
 
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,
@@ -110,11 +115,13 @@ public class CompactionFinalizer {
     var ecfs =
         new ExternalCompactionFinalState(ecid, extent, FinalState.FINISHED, fileSize, fileEntries);
 
+    SharedBatchWriter writer = getWriter(ecid);
+
     LOG.trace("Initiating commit for external compaction: {} {}", ecid, ecfs);
 
     // write metadata entry
     Timer timer = Timer.startNew();
-    sharedBatchWriter.write(ecfs.toMutation());
+    writer.write(ecfs.toMutation());
     LOG.trace("{} metadata compation state write completed in {}ms", ecid,
         timer.elapsed(TimeUnit.MILLISECONDS));
 
@@ -130,7 +137,7 @@ public class CompactionFinalizer {
       var e = compactionsToFail.entrySet().iterator().next();
       var ecfs =
           new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
-      sharedBatchWriter.write(ecfs.toMutation());
+      getWriter(e.getKey()).write(ecfs.toMutation());
     } else {
       try (BatchWriter writer = context.createBatchWriter(Ample.DataLevel.USER.metaTable())) {
         for (var e : compactionsToFail.entrySet()) {
