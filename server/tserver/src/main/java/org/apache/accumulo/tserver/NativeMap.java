@@ -50,6 +50,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 /**
  * This class stores data in a C++ map. Doing this allows us to store more in memory and avoid
@@ -542,17 +543,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
     private Range range;
     private AtomicBoolean interruptFlag;
     private int interruptCheckCount = 0;
+    private boolean seeked = false;
 
     private NMSKVIter(NativeMap map, AtomicBoolean interruptFlag) {
       this.map = map;
-      this.range = new Range();
-      iter = map.new ConcurrentIterator();
-      if (iter.hasNext()) {
-        entry = iter.next();
-      } else {
-        entry = null;
-      }
-
+      this.iter = null;
+      this.entry = null;
       this.interruptFlag = interruptFlag;
     }
 
@@ -572,12 +568,12 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
 
     @Override
     public boolean hasTop() {
+      Preconditions.checkState(seeked, "seek() was never called");
       return entry != null;
     }
 
     @Override
     public void next() {
-
       if (entry == null) {
         throw new NoSuchElementException();
       }
@@ -596,7 +592,6 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
       } else {
         entry = null;
       }
-
     }
 
     @Override
@@ -606,7 +601,11 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         throw new IterationInterruptedException();
       }
 
-      iter.delete();
+      if (iter != null) {
+        iter.delete();
+      } else {
+        Preconditions.checkState(!seeked);
+      }
 
       this.range = range;
 
@@ -625,6 +624,7 @@ public class NativeMap implements Iterable<Map.Entry<Key,Value>> {
         entry = null;
       }
 
+      seeked = true;
       while (hasTop() && range.beforeStartKey(getTopKey())) {
         next();
       }
