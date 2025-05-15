@@ -170,8 +170,8 @@ public class TableManager {
   }
 
   public void cloneTable(TableId srcTableId, TableId tableId, String tableName,
-                         NamespaceId srcNamespaceId, NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
-      throws KeeperException, InterruptedException {
+      NamespaceId srcNamespaceId, NamespaceId namespaceId, Map<String,String> propertiesToSet,
+      Set<String> propertiesToExclude) throws KeeperException, InterruptedException {
     prepareNewTableState(tableId, namespaceId, tableName, TableState.NEW,
         NodeExistsPolicy.OVERWRITE);
 

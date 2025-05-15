@@ -77,8 +77,8 @@ public class ZKPermHandler implements PermissionHandler {
         // maybe the table was just deleted?
         try {
           // check for existence:
-          zoo.getData(Constants.ZNAMESPACES + "/" + ctx.getNamespaceId(TableId.of(tableId)) + Constants.ZTABLES
-              + "/" + tableId);
+          zoo.getData(Constants.ZNAMESPACES + "/" + ctx.getNamespaceId(TableId.of(tableId))
+              + Constants.ZTABLES + "/" + tableId);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {

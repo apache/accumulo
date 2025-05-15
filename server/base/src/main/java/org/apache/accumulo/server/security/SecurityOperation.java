@@ -355,7 +355,8 @@ public class SecurityOperation {
       boolean useCached) throws ThriftSecurityException {
     targetUserExists(user);
 
-    if ((tableId.equals(SystemTables.METADATA.tableId()) || tableId.equals(SystemTables.ROOT.tableId()))
+    if ((tableId.equals(SystemTables.METADATA.tableId())
+        || tableId.equals(SystemTables.ROOT.tableId()))
         && permission.equals(TablePermission.READ)) {
       return true;
     }

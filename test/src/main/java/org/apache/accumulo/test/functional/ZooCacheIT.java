@@ -126,7 +126,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
           final String eventPath = event.getPath();
 
-          if (event.getType() != EventType.None && !eventPath.startsWith(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES)) {
+          if (event.getType() != EventType.None && !eventPath.startsWith(
+              Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES)) {
             return;
           }
           // LOG.info("received event {}", event);
@@ -141,13 +142,15 @@ public class ZooCacheIT extends ConfigurableMacBase {
             case PersistentWatchRemoved:
               break;
             case NodeCreated:
-              if (eventPath.equals(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id()
+                  + Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableCreatedEvent");
                 tableCreatedEvent.set(true);
               }
               break;
             case NodeDeleted:
-              if (eventPath.equals(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id()
+                  + Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableDeletedEvent");
                 tableDeletedEvent.set(true);
               }
@@ -192,7 +195,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       final String tid = ctx.tableOperations().tableIdMap().get(tableName);
       tableId.set(tid);
       // we might miss the table created event, don't check for it
-      final String tableZPath = Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tid;
+      final String tableZPath =
+          Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + tid;
       assertFalse(cache.childrenCached(tableZPath));
       assertNotNull(cache.getChildren(tableZPath));
       assertTrue(cache.childrenCached(tableZPath));
@@ -211,7 +215,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       Wait.waitFor(() -> connectionClosedEvent.get(), 30_000);
       connectionClosedEvent.set(false);
       // Cache should be cleared
-      assertFalse(cache.childrenCached(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES));
+      assertFalse(cache.childrenCached(
+          Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES));
 
       getCluster().getClusterControl().start(ServerType.ZOOKEEPER);
 
@@ -219,7 +224,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       connectionOpenEvent.set(false);
 
       // Cache should be cleared
-      assertFalse(cache.childrenCached(Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES));
+      assertFalse(cache.childrenCached(
+          Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES));
 
       // let's assume that are tableId will be one more than the previous (safe assumption)
       String newTableId = Integer.parseInt(tid) + 1 + "";
@@ -227,7 +233,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       client.tableOperations().create(tableName);
       Wait.waitFor(() -> tableCreatedEvent.get(), 60_000);
 
-      final String newTableZPath = Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id() + Constants.ZTABLES + "/" + newTableId;
+      final String newTableZPath = Constants.ZNAMESPACES + "/" + Namespace.DEFAULT.id()
+          + Constants.ZTABLES + "/" + newTableId;
       assertFalse(cache.childrenCached(newTableZPath));
       assertNotNull(cache.getChildren(newTableZPath));
       assertTrue(cache.childrenCached(newTableZPath));
