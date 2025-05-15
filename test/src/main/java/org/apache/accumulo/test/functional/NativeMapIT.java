@@ -50,7 +50,6 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.tserver.NativeMap;
 import org.apache.accumulo.tserver.memory.NativeMapLoader;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
