@@ -605,6 +605,6 @@ public class NativeMapIT {
 
     SortedKeyValueIterator<Key,Value> iter = nm.skvIterator();
     // hasTop should throw an exception if seek was never called.
-    Assertions.assertThrows(IllegalStateException.class, iter::hasTop);
+    assertThrows(IllegalStateException.class, iter::hasTop);
   }
 }

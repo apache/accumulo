@@ -49,8 +49,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Accumulo had a bug where the native map code would always read the first key in a tablet even if
- * the scan did not need it. This test is structured so that if the native map does this tablet
- * server will fail w/o an out of memory exception.
+ * the scan did not need it. This test is structured so that if the native map does this the tablet
+ * server will fail w/ an out of memory exception.
  */
 public class LargeReadIT extends AccumuloClusterHarness {
 
