@@ -26,12 +26,12 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_FINALIZER_NOTIFIER_POOL;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -72,7 +72,8 @@ public class CompactionFinalizer {
   private final ExecutorService backgroundExecutor;
   private final BlockingQueue<ExternalCompactionFinalState> pendingNotifications;
   private final long tserverCheckInterval;
-  private final HashMap<Character,SharedBatchWriter> writers = new HashMap<>(16);
+  private final ConcurrentHashMap<Character,SharedBatchWriter> writers =
+      new ConcurrentHashMap<>(16);
   private final int queueSize;
 
   protected CompactionFinalizer(ServerContext context, ScheduledThreadPoolExecutor schedExecutor) {
@@ -105,7 +106,9 @@ public class CompactionFinalizer {
   }
 
   private SharedBatchWriter getWriter(ExternalCompactionId ecid) {
-    return writers.computeIfAbsent(ecid.canonical().charAt(0),
+    // ExternalCompactionId string has a prefix of "ECID:", so
+    // we want the 6th character (index 5)
+    return writers.computeIfAbsent(ecid.canonical().charAt(5),
         (i) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize));
   }
 
