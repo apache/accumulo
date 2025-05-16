@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -38,16 +37,17 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Function;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
-public class ClusterConfigParserTest {
+public class ClusterConfigParserTest extends WithTestNames {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Test
   public void testParse() throws Exception {
@@ -55,8 +55,8 @@ public class ClusterConfigParserTest {
         .getResource("/org/apache/accumulo/core/conf/cluster/cluster.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()).toString());
     assertEquals(14, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
@@ -112,15 +112,11 @@ public class ClusterConfigParserTest {
 
     testShellOutput(configFile -> {
       try {
-        final Map<String,String> contents = ClusterConfigParser
-            .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        final Map<String,String> contents =
+            ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()).toString());
 
-        final File outputFile =
-            tempDir.toPath().resolve("ClusterConfigParserTest_testShellOutput").toFile();
-        if (!outputFile.createNewFile()) {
-          fail("Unable to create file in " + tempDir);
-        }
-        outputFile.deleteOnExit();
+        final File outputFile = tempDir.resolve(testName()).toFile();
+        assertTrue(outputFile.createNewFile(), "Unable to create file in " + tempDir);
 
         final PrintStream ps = new PrintStream(outputFile);
         ClusterConfigParser.outputShellVariables(contents, ps);
@@ -140,8 +136,7 @@ public class ClusterConfigParserTest {
     // and outputs to a given file instead of System.out when provided
     testShellOutput(configFile -> {
       try {
-        File outputFile =
-            tempDir.toPath().resolve("ClusterConfigParserTest_testShellOutputMain").toFile();
+        File outputFile = tempDir.resolve(testName()).toFile();
         ClusterConfigParser.main(new String[] {configFile.getFile(), outputFile.getAbsolutePath()});
 
         return outputFile;
@@ -201,7 +196,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -217,7 +212,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(RuntimeException.class,
@@ -233,7 +228,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -249,7 +244,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -265,7 +260,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -281,7 +276,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -297,7 +292,7 @@ public class ClusterConfigParserTest {
     assertNotNull(configFile);
 
     Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toFile().getAbsolutePath());
+        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,

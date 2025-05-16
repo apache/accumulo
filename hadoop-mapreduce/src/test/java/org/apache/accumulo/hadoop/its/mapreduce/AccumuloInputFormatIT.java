@@ -69,6 +69,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
@@ -79,6 +80,9 @@ import com.google.common.collect.Multimap;
  * @since 2.0
  */
 public class AccumuloInputFormatIT extends SharedMiniClusterBase {
+
+  @TempDir
+  public static java.nio.file.Path tempDir;
 
   AccumuloInputFormat inputFormat;
   AccumuloClient client;
@@ -325,8 +329,8 @@ public class AccumuloInputFormatIT extends SharedMiniClusterBase {
     public static int main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       return ToolRunner.run(conf, new MRTester(), args);
     }
   }

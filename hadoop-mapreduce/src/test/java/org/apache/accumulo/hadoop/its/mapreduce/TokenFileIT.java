@@ -128,16 +128,16 @@ public class TokenFileIT extends AccumuloClusterHarness {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
       Configuration conf = cluster.getServerContext().getHadoopConf();
-      conf.set("hadoop.tmp.dir", Path.of(args[0]).toFile().getParent());
+      conf.set("hadoop.tmp.dir", Path.of(args[0]).getParent().toString());
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Test
   public void testMR() throws Exception {
@@ -155,7 +155,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
         }
       }
 
-      File tf = tempDir.toPath().resolve("client.properties").toFile();
+      File tf = tempDir.resolve("client.properties").toFile();
       assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
       try (PrintStream out = new PrintStream(tf)) {
         getClientProps().store(out, "Credentials for " + getClass().getName());

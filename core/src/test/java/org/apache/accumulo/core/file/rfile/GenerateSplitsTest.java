@@ -54,7 +54,7 @@ public class GenerateSplitsTest {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplitsTest.class);
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   private static final RFileTest.TestRFile trf = new RFileTest.TestRFile(null);
   private static String rfilePath;
@@ -76,17 +76,15 @@ public class GenerateSplitsTest {
     trf.writer.append(newKey("r6", "cf4", "cq1", "L1", 55), newValue("foo6"));
     trf.closeWriter();
 
-    File file = tempDir.toPath().resolve("testGenerateSplits.rf").toFile();
-    assertTrue(file.createNewFile(), "Failed to create file: " + file);
-    try (var fileOutputStream = Files.newOutputStream(file.toPath())) {
+    Path file = tempDir.resolve("testGenerateSplits.rf");
+    try (var fileOutputStream = Files.newOutputStream(file)) {
       fileOutputStream.write(trf.baos.toByteArray());
     }
-    rfilePath = "file:" + file.getAbsolutePath();
+    rfilePath = "file:" + file.toAbsolutePath();
     log.info("Wrote to file {}", rfilePath);
 
-    File splitsFile = tempDir.toPath().resolve("testSplitsFile").toFile();
-    assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
-    splitsFilePath = splitsFile.getAbsolutePath();
+    Path splitsFile = tempDir.resolve("testSplitsFile");
+    splitsFilePath = splitsFile.toAbsolutePath().toString();
   }
 
   @Test
@@ -145,8 +143,8 @@ public class GenerateSplitsTest {
     e = assertThrows(IllegalArgumentException.class, () -> main(args3.toArray(new String[0])));
     assertTrue(e.getMessage().contains("Requested number of splits and"), e.getMessage());
 
-    File dir1 = tempDir.toPath().resolve("dir1/").toFile();
-    File dir2 = tempDir.toPath().resolve("dir2/").toFile();
+    File dir1 = tempDir.resolve("dir1/").toFile();
+    File dir2 = tempDir.resolve("dir2/").toFile();
     assertTrue(dir1.mkdir() && dir2.mkdir(), "Failed to make new sub-directories");
 
     List<String> args4 = List.of(dir1.getAbsolutePath(), dir2.getAbsolutePath(), "-n", "2");
@@ -182,7 +180,7 @@ public class GenerateSplitsTest {
     trf.writer.append(newKey("r6\0f", "cf4", "cq1", "L1", 55), newValue("foo6"));
     trf.closeWriter();
 
-    File file = tempDir.toPath().resolve("testGenerateSplitsWithNulls.rf").toFile();
+    File file = tempDir.resolve("testGenerateSplitsWithNulls.rf").toFile();
     assertTrue(file.createNewFile(), "Failed to create file: " + file);
     try (var fileOutputStream = Files.newOutputStream(file.toPath())) {
       fileOutputStream.write(trf.baos.toByteArray());
@@ -190,9 +188,8 @@ public class GenerateSplitsTest {
     rfilePath = "file:" + file.getAbsolutePath();
     log.info("Wrote to file {}", rfilePath);
 
-    File splitsFile = tempDir.toPath().resolve("testSplitsFileWithNulls").toFile();
-    assertTrue(splitsFile.createNewFile(), "Failed to create file: " + splitsFile);
-    splitsFilePath = splitsFile.getAbsolutePath();
+    Path splitsFile = tempDir.resolve("testSplitsFileWithNulls");
+    splitsFilePath = splitsFile.toAbsolutePath().toString();
 
     List<String> finalArgs = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);
     assertThrows(UnsupportedOperationException.class,
