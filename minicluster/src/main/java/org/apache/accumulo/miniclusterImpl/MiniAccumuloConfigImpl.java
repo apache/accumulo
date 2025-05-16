@@ -74,7 +74,7 @@ public class MiniAccumuloConfigImpl {
   private String rootPassword = null;
   private Map<String,String> hadoopConfOverrides = new HashMap<>();
   private Map<String,String> siteConfig = new HashMap<>();
-  private Map<String,String> configuredSiteConig = new HashMap<>();
+  private Map<String,String> configuredSiteConfig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private final EnumMap<ServerType,Class<?>> serverTypeClasses =
@@ -315,7 +315,7 @@ public class MiniAccumuloConfigImpl {
 
   private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<>(siteConfig);
-    this.configuredSiteConig = new HashMap<>(siteConfig);
+    this.configuredSiteConfig = new HashMap<>(siteConfig);
     return this;
   }
 
@@ -439,7 +439,7 @@ public class MiniAccumuloConfigImpl {
   }
 
   public Map<String,String> getConfiguredSiteConfig() {
-    return new HashMap<>(configuredSiteConig);
+    return new HashMap<>(configuredSiteConfig);
   }
 
   /**

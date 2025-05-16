@@ -116,6 +116,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
 
   @AfterAll
   public static void after() throws Exception {
+    SharedMiniClusterBase.stopMiniCluster();
     sink.close();
     metricConsumer.interrupt();
     metricConsumer.join();

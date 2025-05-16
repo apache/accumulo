@@ -20,7 +20,9 @@ package org.apache.accumulo.suites;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE;
 
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.junit.jupiter.api.Tag;
 import org.junit.platform.suite.api.AfterSuite;
 import org.junit.platform.suite.api.BeforeSuite;
 import org.junit.platform.suite.api.IncludeClassNamePatterns;
@@ -28,6 +30,20 @@ import org.junit.platform.suite.api.IncludeTags;
 import org.junit.platform.suite.api.SelectPackages;
 import org.junit.platform.suite.api.Suite;
 
+/**
+ * This test suite is used to run applicable ITs against a single, shared cluster, starting and
+ * stopping the cluster only once for the duration of the suite. This avoids starting and stopping a
+ * cluster per IT, providing some speedup. An IT is applicable if:
+ * <p>
+ * 1) It is a subclass of {@link SharedMiniClusterBase}, meaning it starts and stops a single
+ * cluster for the entire IT.
+ * <p>
+ * 2) It does not start the cluster with any custom config (i.e., it does not use
+ * {@link SharedMiniClusterBase#startMiniClusterWithConfig(MiniClusterConfigurationCallback)})
+ * <p>
+ * An IT which meets this criteria should be tagged (using JUnit {@link Tag}) with
+ * {@link #SIMPLE_MINI_CLUSTER_SUITE} to be added to the suite.
+ */
 @Suite
 @SelectPackages("org.apache.accumulo.test") // look in this package and subpackages
 @IncludeTags(SIMPLE_MINI_CLUSTER_SUITE) // for tests with this tag
