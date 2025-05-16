@@ -51,8 +51,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -555,17 +553,12 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   private void updatePlugins(String property) {
-    // resolve without warning; any warnings should have already occurred
-    String resolved = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {});
-    if (resolved.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
-      manager.initializeBalancer();
-      log.info("tablet balancer changed to {}", manager.getBalancerClass().getName());
-    }
+    manager.getBalanceManager().propertyChanged(property);
   }
 
   @Override
   public void waitForBalance(TInfo tinfo) {
-    manager.waitForBalance();
+    manager.getBalanceManager().waitForBalance();
   }
 
   @Override
