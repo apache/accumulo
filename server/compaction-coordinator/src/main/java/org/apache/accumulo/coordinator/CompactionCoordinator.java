@@ -422,7 +422,7 @@ public class CompactionCoordinator extends AbstractServer implements
     try {
       TabletClientService.Client client = null;
       try {
-        LOG.debug("Contacting tablet server {} to get external compaction summaries",
+        LOG.trace("Contacting tablet server {} to get external compaction summaries",
             tsi.getHostPort());
         client = getTabletServerConnection(tsi);
         List<TCompactionQueueSummary> summaries =
@@ -582,7 +582,7 @@ public class CompactionCoordinator extends AbstractServer implements
     }
 
     var extent = KeyExtent.fromThrift(textent);
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
+    LOG.debug("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
@@ -630,7 +630,7 @@ public class CompactionCoordinator extends AbstractServer implements
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    STATUS_LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}",
+    STATUS_LOG.trace("Compaction status update, id: {}, timestamp: {}, update: {}",
         externalCompactionId, timestamp, update);
     final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
