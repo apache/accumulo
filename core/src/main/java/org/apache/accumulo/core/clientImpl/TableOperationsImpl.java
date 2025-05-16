@@ -1220,42 +1220,32 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groups)
+  public void setLocalityGroups(String tableName, Map<String,Set<Text>> groupsToSet)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     // ensure locality groups do not overlap
-    LocalityGroupUtil.ensureNonOverlappingGroups(groups);
+    LocalityGroupUtil.ensureNonOverlappingGroups(groupsToSet);
 
-    for (Entry<String,Set<Text>> entry : groups.entrySet()) {
-      Set<Text> colFams = entry.getValue();
-      String value = LocalityGroupUtil.encodeColumnFamilies(colFams);
-      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUP_PREFIX + entry.getKey(), value);
-    }
+    final String localityGroupPrefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
 
-    try {
-      setPropertyNoChecks(tableName, Property.TABLE_LOCALITY_GROUPS.getKey(),
-          Joiner.on(",").join(groups.keySet()));
-    } catch (AccumuloException e) {
-      if (e.getCause() instanceof TableNotFoundException) {
-        throw (TableNotFoundException) e.getCause();
-      }
-      throw e;
-    }
+    modifyProperties(tableName, properties -> {
 
-    // remove anything extraneous
-    String prefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
-    for (Entry<String,String> entry : getProperties(tableName)) {
-      String property = entry.getKey();
-      if (property.startsWith(prefix)) {
-        // this property configures a locality group, find out which
-        // one:
-        String[] parts = property.split("\\.");
-        String group = parts[parts.length - 1];
+      // add/update each locality group
+      groupsToSet.forEach((groupName, colFams) -> properties.put(localityGroupPrefix + groupName,
+          LocalityGroupUtil.encodeColumnFamilies(colFams)));
 
-        if (!groups.containsKey(group)) {
-          removePropertyNoChecks(tableName, property);
+      // update the list of all locality groups
+      final String allGroups = Joiner.on(",").join(groupsToSet.keySet());
+      properties.put(Property.TABLE_LOCALITY_GROUPS.getKey(), allGroups);
+
+      // remove any stale locality groups that were previously set
+      properties.keySet().removeIf(property -> {
+        if (property.startsWith(localityGroupPrefix)) {
+          String group = property.substring(localityGroupPrefix.length());
+          return !groupsToSet.containsKey(group);
         }
-      }
-    }
+        return false;
+      });
+    });
   }
 
   @Override
@@ -1862,37 +1852,31 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
-  private void clearSamplerOptions(String tableName)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
-    EXISTING_TABLE_NAME.validate(tableName);
-
-    String prefix = Property.TABLE_SAMPLER_OPTS.getKey();
-    for (Entry<String,String> entry : getProperties(tableName)) {
-      String property = entry.getKey();
-      if (property.startsWith(prefix)) {
-        removeProperty(tableName, property);
-      }
-    }
-  }
-
   @Override
   public void setSamplerConfiguration(String tableName, SamplerConfiguration samplerConfiguration)
       throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    clearSamplerOptions(tableName);
     Map<String,String> props =
         new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
-    modifyProperties(tableName, properties -> properties.putAll(props));
+
+    modifyProperties(tableName, properties -> {
+      properties.keySet()
+          .removeIf(property -> property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey()));
+      properties.putAll(props);
+    });
   }
 
   @Override
   public void clearSamplerConfiguration(String tableName)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    removeProperty(tableName, Property.TABLE_SAMPLER.getKey());
-    clearSamplerOptions(tableName);
+    modifyProperties(tableName, properties -> {
+      properties.remove(Property.TABLE_SAMPLER.getKey());
+      properties.keySet()
+          .removeIf(property -> property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey()));
+    });
   }
 
   @Override
