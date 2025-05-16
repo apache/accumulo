@@ -27,7 +27,6 @@ import java.util.Locale;
 import org.junit.jupiter.api.Test;
 
 public class NumUtilTest {
-
   @Test
   public void testBigNumberForSize() {
     Locale.setDefault(Locale.US);
