@@ -77,4 +77,11 @@ public class AdminCommandsTest {
     Admin.StopCommand opts = new Admin.StopCommand();
     assertFalse(opts.force);
   }
+
+  @Test
+  public void testFindCompactionTmpFilesCommand() {
+    Admin.FindCompactionTmpFilesCommand filesCommand = new Admin.FindCompactionTmpFilesCommand();
+    assertNull(filesCommand.tables);
+    assertFalse(filesCommand.delete);
+  }
 }
