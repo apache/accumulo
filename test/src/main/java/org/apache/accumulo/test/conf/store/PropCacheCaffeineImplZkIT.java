@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -68,6 +69,7 @@ public class PropCacheCaffeineImplZkIT {
 
   private final TableId tIdA = TableId.of("A");
   private final TableId tIdB = TableId.of("B");
+  private final NamespaceId nid = NamespaceId.of("ns1");
 
   @TempDir
   private static File tempDir;
@@ -96,17 +98,20 @@ public class PropCacheCaffeineImplZkIT {
 
   @BeforeEach
   public void setupZnodes() throws Exception {
+    var nsPath = Constants.ZNAMESPACES + "/" + nid;
+    var zPath = nsPath + Constants.ZTABLES;
     zrw.mkdirs(Constants.ZCONFIG);
-    zk.create(Constants.ZTABLES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+    zk.asReaderWriter().mkdirs(nsPath);
+    zk.create(zPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tIdA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tIdA.canonical() + "/conf", new byte[0],
-        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tIdA.canonical() + "/conf", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
 
-    zk.create(Constants.ZTABLES + "/" + tIdB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+    zk.create(zPath + "/" + tIdB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tIdB.canonical() + "/conf", new byte[0],
-        ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tIdB.canonical() + "/conf", new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
   }
 
   @AfterEach
@@ -127,7 +132,7 @@ public class PropCacheCaffeineImplZkIT {
     VersionedProperties vProps = new VersionedProperties(props);
 
     // directly create prop node - simulate existing properties.
-    var propStoreKey = TablePropKey.of(tIdA);
+    var propStoreKey = TablePropKey.of(tIdA, nid);
     var created = zrw.putPersistentData(propStoreKey.getPath(),
         VersionedPropCodec.getDefault().toBytes(vProps), ZooUtil.NodeExistsPolicy.FAIL);
 

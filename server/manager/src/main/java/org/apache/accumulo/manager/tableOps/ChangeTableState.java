@@ -65,7 +65,7 @@ public class ChangeTableState extends ManagerRepo {
       ts = TableState.OFFLINE;
     }
 
-    env.getTableManager().transitionTableState(tableId, ts, expectedCurrStates);
+    env.getTableManager().transitionTableState(tableId, namespaceId, ts, expectedCurrStates);
     Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env, tableId, fateId, LockType.WRITE);
     LoggerFactory.getLogger(ChangeTableState.class).debug("Changed table state {} {}", tableId, ts);

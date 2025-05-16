@@ -31,6 +31,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoEnvironmentImpl;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -60,8 +61,9 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CompactionDispatcher> compactionDispatchDeriver;
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
-  public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, TablePropKey.of(tableId), parent);
+  public TableConfiguration(ServerContext context, TableId tableId, NamespaceId namespaceId,
+      NamespaceConfiguration parent) {
+    super(log, context, TablePropKey.of(tableId, namespaceId), parent);
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
