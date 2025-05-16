@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.conf;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
 
 import org.apache.accumulo.server.WithTestNames;
 import org.junit.jupiter.api.Test;
@@ -169,10 +168,9 @@ public class CheckCompactionConfigTest extends WithTestNames {
   }
 
   private String writeToFileAndReturnPath(String inputString) throws IOException {
-    File file = new File(tempDir, testName() + ".properties");
+    File file = tempDir.toPath().resolve(testName() + ".properties").toFile();
     assertTrue(file.isFile() || file.createNewFile());
-    try (FileWriter fileWriter = new FileWriter(file, UTF_8);
-        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+    try (BufferedWriter bufferedWriter = Files.newBufferedWriter(file.toPath())) {
       bufferedWriter.write(inputString);
     }
     log.info("Wrote to path: {}\nWith string:\n{}", file.getAbsolutePath(), inputString);

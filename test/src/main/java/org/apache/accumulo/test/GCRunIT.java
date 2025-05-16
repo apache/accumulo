@@ -39,12 +39,13 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.gc.Reference;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.gc.GCRun;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.hadoop.io.Text;
@@ -57,6 +58,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class GCRunIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(GCRunIT.class);
@@ -115,7 +117,7 @@ public class GCRunIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       client.securityOperations().grantTablePermission(getAdminPrincipal(),
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+          SystemTables.METADATA.tableName(), TablePermission.WRITE);
 
       String cloneId = client.tableOperations().tableIdMap().get(clone1);
 
@@ -125,7 +127,7 @@ public class GCRunIT extends SharedMiniClusterBase {
       final Text colq = new Text(DIRECTORY_QUAL);
       m.putDelete(colf, colq, new ColumnVisibility());
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName(),
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName(),
           new BatchWriterConfig().setMaxMemory(Math.max(m.estimatedMemoryUsed(), 1024))
               .setMaxWriteThreads(1).setTimeout(5_000, TimeUnit.MILLISECONDS))) {
         log.info("forcing delete of srv:dir with mutation {}", m.prettyPrint());
@@ -187,8 +189,8 @@ public class GCRunIT extends SharedMiniClusterBase {
       client.tableOperations().compact(table1, new CompactionConfig().setWait(true));
       client.tableOperations().delete(table1);
 
-      client.tableOperations().flush(AccumuloTable.METADATA.tableName(), null, null, true);
-      client.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+      client.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
 
     }
   }

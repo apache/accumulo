@@ -18,19 +18,22 @@
  */
 package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.createFateTable;
+import static org.apache.accumulo.test.fate.FateTestUtil.createFateTable;
 import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.FatePoolResizeIT;
+import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 
-public class UserFatePoolResizeIT extends FatePoolResizeIT {
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
+public class UserFatePoolsWatcherIT extends FatePoolsWatcherIT {
 
   private String table;
 

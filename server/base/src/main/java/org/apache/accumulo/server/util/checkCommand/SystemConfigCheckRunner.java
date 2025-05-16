@@ -25,7 +25,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.server.ServerContext;
@@ -133,7 +133,7 @@ public class SystemConfigCheckRunner implements CheckRunner {
     final var zrw = context.getZooSession().asReaderWriter();
     final var tableNameToId = context.tableOperations().tableIdMap();
     final Map<String,String> systemTableNameToId = new HashMap<>();
-    for (var accumuloTable : AccumuloTable.values()) {
+    for (var accumuloTable : SystemTables.values()) {
       systemTableNameToId.put(accumuloTable.tableName(), accumuloTable.tableId().canonical());
     }
 

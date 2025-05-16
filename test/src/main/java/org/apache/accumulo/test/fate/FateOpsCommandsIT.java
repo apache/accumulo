@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -63,7 +64,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -697,7 +698,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       Method listMethod = UserFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
           .withConstructor(ClientContext.class, String.class, ZooUtil.LockID.class, Predicate.class)
-          .withArgs(sctx, AccumuloTable.FATE.tableName(), null, null).addMockedMethod(listMethod)
+          .withArgs(sctx, SystemTables.FATE.tableName(), null, null).addMockedMethod(listMethod)
           .createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
@@ -767,6 +768,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
       @Override
       public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
+      }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
         return Optional.empty();
       }
     };
@@ -847,7 +853,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
     return new Fate<>(new LatchTestEnv(), store, false, Object::toString,
-        DefaultConfiguration.getInstance());
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
   }
 
   private boolean wordIsTStatus(String word) {

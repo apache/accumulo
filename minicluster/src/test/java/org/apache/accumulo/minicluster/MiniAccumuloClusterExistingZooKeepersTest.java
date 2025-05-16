@@ -18,17 +18,19 @@
  */
 package org.apache.accumulo.minicluster;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
@@ -42,8 +44,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
-  private static final File BASE_DIR = new File(System.getProperty("user.dir")
-      + "/target/mini-tests/" + MiniAccumuloClusterExistingZooKeepersTest.class.getName());
+  private static final File BASE_DIR =
+      Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests")
+          .resolve(MiniAccumuloClusterExistingZooKeepersTest.class.getName()).toFile();
 
   private static final String SECRET = "superSecret";
 
@@ -52,7 +55,7 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
   @BeforeEach
   public void setupTestCluster() {
     assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());
-    File testDir = new File(BASE_DIR, testName());
+    File testDir = BASE_DIR.toPath().resolve(testName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
@@ -74,16 +77,18 @@ public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
         String tableName = "foo";
         client.tableOperations().create(tableName);
         Map<String,String> tableIds = client.tableOperations().tableIdMap();
-        assertTrue(tableIds.containsKey(tableName));
+        String tableId = tableIds.get(tableName);
+        assertNotNull(tableId);
 
-        String zkTablePath = String.format("%s%s/%s/name",
-            ZooUtil.getRoot(client.instanceOperations().getInstanceId()), Constants.ZTABLES,
-            tableIds.get(tableName));
+        String zkTableMapPath = String.format("%s%s/%s/tables",
+            ZooUtil.getRoot(client.instanceOperations().getInstanceId()), Constants.ZNAMESPACES,
+            Namespace.DEFAULT.id());
         try (CuratorFramework curatorClient =
             CuratorFrameworkFactory.newClient(zooKeeper.getConnectString(), new RetryOneTime(1))) {
           curatorClient.start();
-          assertNotNull(curatorClient.checkExists().forPath(zkTablePath));
-          assertEquals(tableName, new String(curatorClient.getData().forPath(zkTablePath), UTF_8));
+          assertNotNull(curatorClient.checkExists().forPath(zkTableMapPath));
+          assertEquals(tableName, NamespaceMapping
+              .deserializeMap(curatorClient.getData().forPath(zkTableMapPath)).get(tableId));
         }
       }
     }

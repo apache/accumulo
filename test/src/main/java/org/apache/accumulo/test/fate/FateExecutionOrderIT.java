@@ -20,6 +20,7 @@ package org.apache.accumulo.test.fate;
 
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUCCESSFUL;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -34,6 +35,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -45,8 +47,6 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -55,21 +55,23 @@ import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
     implements FateTestRunner<FateExecutionOrderIT.FeoTestEnv> {
 
-  public static class FeoTestEnv extends TestEnv {
+  public static class FeoTestEnv extends FateTestRunner.TestEnv {
     private final AccumuloClient client;
 
     public FeoTestEnv(AccumuloClient client) {
@@ -194,10 +196,8 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
   }
 
   protected Fate<FeoTestEnv> initializeFate(AccumuloClient client, FateStore<FeoTestEnv> store) {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new FeoTestEnv(client), store, false, r -> r + "", config);
+    return new Fate<>(new FeoTestEnv(client), store, false, r -> r + "",
+        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
   }
 
   private static Entry<FateId,String> toIdStep(Entry<Key,Value> e) {
@@ -227,7 +227,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
       var txStore = store.reserve(fateIds[i]);
       try {
         txStore.push(new FirstOp());
-        txStore.setTransactionInfo(TxInfo.FATE_OP, "TEST_" + i);
+        txStore.setTransactionInfo(TxInfo.FATE_OP, TEST_FATE_OP);
         txStore.setStatus(SUBMITTED);
       } finally {
         txStore.unreserve(Duration.ZERO);
@@ -359,7 +359,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
       var txStore = store.reserve(fateIds[i]);
       try {
         txStore.push(new FirstNonInterleavingOp());
-        txStore.setTransactionInfo(TxInfo.FATE_OP, "TEST_" + i);
+        txStore.setTransactionInfo(TxInfo.FATE_OP, TEST_FATE_OP);
         txStore.setStatus(SUBMITTED);
       } finally {
         txStore.unreserve(Duration.ZERO);

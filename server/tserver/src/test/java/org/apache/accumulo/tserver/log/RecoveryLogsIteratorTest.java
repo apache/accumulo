@@ -79,7 +79,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
     server = createMock(TabletServer.class);
-    workDir = new File(tempDir, testName());
+    workDir = tempDir.toPath().resolve(testName()).toFile();
     String path = workDir.getAbsolutePath();
     fs = VolumeManagerImpl.getLocalForTesting(path);
     expect(server.getContext()).andReturn(context).anyTimes();

@@ -35,7 +35,7 @@ import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheMa
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.DeletingIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.core.spi.fs.RandomVolumeChooser;
@@ -434,22 +434,52 @@ public enum Property {
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64", PropertyType.COUNT,
-      "The number of threads used to run fault-tolerant executions (FATE)."
-          + " These are primarily table operations like merge.",
+  @Deprecated(since = "4.0.0")
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+      PropertyType.FATE_THREADPOOL_SIZE,
+      "Previously, the number of threads used to run fault-tolerant executions (FATE)."
+          + " This is no longer used in 4.0+. MANAGER_FATE_USER_CONFIG and"
+          + " MANAGER_FATE_META_CONFIG are the replacement and must be set instead.",
       "1.4.3"),
+  MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
+      "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+          + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
+          + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE\": 4,"
+          + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
+      PropertyType.FATE_USER_CONFIG,
+      "The number of threads used to run fault-tolerant executions (FATE) on user"
+          + "tables. These are primarily table operations like merge. Each key/value "
+          + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
+          + "more FATE operations and each value is the number of threads that will be assigned "
+          + "to the pool.",
+      "4.0.0"),
+  MANAGER_FATE_META_CONFIG("manager.fate.meta.config",
+      "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+          + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
+          + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
+          + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE\": 4,"
+          + "\"COMMIT_COMPACTION\": 4,\"SYSTEM_SPLIT\": 4}",
+      PropertyType.FATE_META_CONFIG,
+      "The number of threads used to run fault-tolerant executions (FATE) on Accumulo"
+          + "system tables. These are primarily table operations like merge. Each key/value "
+          + "of the provided JSON corresponds to one thread pool. Each key is a list of one or "
+          + "more FATE operations and each value is the number of threads that will be assigned "
+          + "to the pool.",
+      "4.0.0"),
   MANAGER_FATE_IDLE_CHECK_INTERVAL("manager.fate.idle.check.interval", "60m",
       PropertyType.TIMEDURATION,
       "The interval at which to check if the number of idle Fate threads has consistently been zero."
-          + " The way this is checked is an approximation. Logs a warning in the Manager log to increase"
-          + " MANAGER_FATE_THREADPOOL_SIZE. A value of zero disables this check and has a maximum value of 60m.",
+          + " The way this is checked is an approximation. Logs a warning in the Manager log to change"
+          + " MANAGER_FATE_USER_CONFIG or MANAGER_FATE_META_CONFIG. A value less than a minute disables"
+          + " this check and has a maximum value of 60m.",
       "4.0.0"),
   MANAGER_STATUS_THREAD_POOL_SIZE("manager.status.threadpool.size", "0", PropertyType.COUNT,
       "The number of threads to use when fetching the tablet server status for balancing.  Zero "
           + "indicates an unlimited number of threads will be used.",
       "1.8.0"),
   MANAGER_METADATA_SUSPENDABLE("manager.metadata.suspendable", "false", PropertyType.BOOLEAN,
-      "Allow tablets for the " + AccumuloTable.METADATA.tableName()
+      "Allow tablets for the " + SystemTables.METADATA.tableName()
           + " table to be suspended via table.suspend.duration.",
       "1.8.0"),
   MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT("manager.startup.tserver.avail.min.count", "0",
@@ -515,7 +545,7 @@ public enum Property {
       "2.1.0"),
   SSERV_CLIENTPORT("sserver.port.client", "9996", PropertyType.PORT,
       "The port used for handling client connections on the tablet servers.", "2.1.0"),
-  SSERV_MINTHREADS("sserver.server.threads.minimum", "2", PropertyType.COUNT,
+  SSERV_MINTHREADS("sserver.server.threads.minimum", "20", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   SSERV_MINTHREADS_TIMEOUT("sserver.server.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
@@ -857,6 +887,17 @@ public enum Property {
       "1.3.5"),
   TABLE_ARBITRARY_PROP_PREFIX("table.custom.", null, PropertyType.PREFIX,
       "Prefix to be used for user defined arbitrary properties.", "1.7.0"),
+  TABLE_COMPACTION_INPUT_DROP_CACHE_BEHIND("table.compaction.input.drop.cache", "ALL",
+      PropertyType.DROP_CACHE_SELECTION,
+      "FSDataInputStream.setDropBehind(true) is set on compaction input streams"
+          + " for the specified type of files. This tells the DataNode to advise the OS"
+          + " that it does not need to keep blocks for the associated file in the page cache."
+          + " 'ALL', the default, will call setDropBehind on all file types. 'NONE' will call"
+          + " setDropBehind on none of the files, which can be useful when a table is cloned."
+          + " 'NON-IMPORT' will call setDropBehind on all file types except those that are"
+          + " bulk imported, which is useful when bulk import files are mapped to many tablets"
+          + " and will be compacted at different times.",
+      "2.1.4"),
   TABLE_MINC_OUTPUT_DROP_CACHE("table.compaction.minor.output.drop.cache", "false",
       PropertyType.BOOLEAN,
       "Setting this property to true will call"
@@ -1025,6 +1066,18 @@ public enum Property {
       "1.3.5"),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type.", "1.3.5"),
+  TABLE_BULK_SKIP_THRESHOLD("table.bulk.metadata.skip.distance", "0", PropertyType.COUNT,
+      "When performing bulk v2 imports to a table, the Manager iterates over the tables metadata"
+          + " tablets sequentially. When importing files into a small table or into all or a majority"
+          + " of tablets of a large table then the tablet metadata information for most tablets will be needed."
+          + " However, when importing files into a small number of non-contiguous tablets in a large table, then"
+          + " the Manager will look at each tablets metadata when it could be skipped. The value of this"
+          + " property tells the Manager if, and when, it should set up a new scanner over the metadata"
+          + " table instead of just iterating over tablet metadata to find the matching tablet. Setting up"
+          + " a new scanner is analogous to performing a seek in an iterator, but it has a cost. A value of zero (default) disables"
+          + " this feature. A non-zero value enables this feature and the Manager will setup a new scanner"
+          + " when the tablet metadata distance is above the supplied value.",
+      "2.1.4"),
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
@@ -1166,7 +1219,7 @@ public enum Property {
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
-  COMPACTOR_MINTHREADS("compactor.threads.minimum", "1", PropertyType.COUNT,
+  COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",

@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -33,7 +34,7 @@ public class CacheTestClean {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
-    File reportDir = new File(args[1]);
+    File reportDir = Path.of(args[1]).toFile();
 
     var siteConfig = SiteConfiguration.auto();
     try (var zk = new ZooSession(CacheTestClean.class.getSimpleName(), siteConfig)) {

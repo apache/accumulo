@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.server.conf;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.server.ServerDirs;
@@ -56,7 +56,7 @@ public class CheckAccumuloProperties implements KeywordExecutable {
     Preconditions.checkArgument(args.length == 1,
         "Expected 1 argument (the properties file path), got " + args.length);
     var hadoopConfig = new Configuration();
-    var siteConfig = SiteConfiguration.fromFile(new File(args[0])).build();
+    var siteConfig = SiteConfiguration.fromFile(Path.of(args[0]).toFile()).build();
 
     VolumeManagerImpl.get(siteConfig, hadoopConfig);
     new ServerDirs(siteConfig, hadoopConfig);

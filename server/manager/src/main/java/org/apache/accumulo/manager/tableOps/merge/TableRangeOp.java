@@ -24,7 +24,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -57,9 +57,9 @@ public class TableRangeOp extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
 
-    if (AccumuloTable.ROOT.tableId().equals(data.tableId) && data.op.isMergeOp()) {
+    if (SystemTables.ROOT.tableId().equals(data.tableId) && data.op.isMergeOp()) {
       log.warn("Attempt to merge tablets for {} does nothing. It is not splittable.",
-          AccumuloTable.ROOT.tableName());
+          SystemTables.ROOT.tableName());
     }
 
     env.mustBeOnline(data.tableId);

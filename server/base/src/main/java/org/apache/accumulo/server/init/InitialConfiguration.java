@@ -27,7 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.user.schema.FateSchema;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.server.constraints.MetadataConstraints;
@@ -88,11 +88,11 @@ public class InitialConfiguration {
 
     initialFateTableConf.putAll(commonConfig);
     initialFateTableConf.put(Property.TABLE_SPLIT_THRESHOLD.getKey(), "256M");
-    // Create a locality group that contains status so its fast to scan. When fate looks for work is
-    // scans this family.
-    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "status",
-        FateSchema.TxColumnFamily.STR_NAME);
-    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "status");
+    // Create a locality group that contains tx admin columns so its fast to scan. When fate
+    // looks for work it scans this family.
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUP_PREFIX.getKey() + "txAdmin",
+        FateSchema.TxAdminColumnFamily.STR_NAME);
+    initialFateTableConf.put(Property.TABLE_LOCALITY_GROUPS.getKey(), "txAdmin");
 
     initialScanRefTableConf.putAll(commonConfig);
 
@@ -111,9 +111,8 @@ public class InitialConfiguration {
   private void setMetadataReplication(int replication, String reason) {
     String rep = System.console()
         .readLine("Your HDFS replication " + reason + " is not compatible with our default "
-            + AccumuloTable.METADATA.tableName()
-            + " replication of 5. What do you want to set your "
-            + AccumuloTable.METADATA.tableName() + " replication to? (" + replication + ") ");
+            + SystemTables.METADATA.tableName() + " replication of 5. What do you want to set your "
+            + SystemTables.METADATA.tableName() + " replication to? (" + replication + ") ");
     if (rep == null || rep.isEmpty()) {
       rep = Integer.toString(replication);
     } else {

@@ -36,6 +36,7 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
@@ -53,6 +54,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ShellIT extends SharedMiniClusterBase {
 
   @Override
@@ -513,6 +515,12 @@ public class ShellIT extends SharedMiniClusterBase {
         case PATH:
         case PREFIX:
         case STRING:
+        case FATE_THREADPOOL_SIZE:
+          // deprecated value
+        case FATE_META_CONFIG:
+          // json based type
+        case FATE_USER_CONFIG:
+          // json based type
         case JSON:
           Shell.log.debug("Skipping " + propertyType + " Property Types");
           continue;

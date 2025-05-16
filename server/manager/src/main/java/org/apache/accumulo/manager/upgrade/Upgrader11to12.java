@@ -51,8 +51,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
@@ -142,7 +142,7 @@ public class Upgrader11to12 implements Upgrader {
         String namespaceNamePath = Constants.ZNAMESPACES + "/" + namespaceId + ZNAMESPACE_NAME;
         namespaceMap.put(namespaceId, new String(zrw.getData(namespaceNamePath), UTF_8));
       }
-      byte[] mapping = NamespaceMapping.serialize(namespaceMap);
+      byte[] mapping = NamespaceMapping.serializeMap(namespaceMap);
       zrw.putPersistentData(Constants.ZNAMESPACES, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
 
       for (String namespaceId : namespaceIdList) {
@@ -293,7 +293,7 @@ public class Upgrader11to12 implements Upgrader {
       FileSystemInitializer.InitialTablet scanRefTablet =
           initializer.createScanRefTablet(context, TabletMergeabilityMetadata.never());
       // Add references to the Metadata Table
-      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
         writer.addMutation(scanRefTablet.createMutation());
       } catch (MutationsRejectedException | TableNotFoundException e) {
         log.error("Failed to write tablet refs to metadata table");
@@ -344,8 +344,8 @@ public class Upgrader11to12 implements Upgrader {
   private void removeMetadataProblemReports(ServerContext context) {
     try (
         var scanner =
-            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
-        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+            context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       scanner.setRange(ProblemSection.getRange());
       for (Map.Entry<Key,Value> entry : scanner) {
         var pr = ProblemReport.decodeMetadataEntry(entry.getKey(), entry.getValue());

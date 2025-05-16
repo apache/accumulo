@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.net.InetAddress;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -59,14 +60,15 @@ public class TestingKdc {
   }
 
   public static File computeKdcDir() {
-    File targetDir = new File(System.getProperty("user.dir"), "target");
+    Path userDir = Path.of(System.getProperty("user.dir"));
+    File targetDir = userDir.resolve("target").toFile();
     if (!targetDir.exists()) {
       assertTrue(targetDir.mkdirs());
     }
     assertTrue(targetDir.isDirectory(), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
-    File kdcDir = new File(new File(targetDir, "kerberos"), "minikdc");
+    File kdcDir = targetDir.toPath().resolve("kerberos").resolve("minikdc").toFile();
 
     assertTrue(kdcDir.mkdirs() || kdcDir.isDirectory());
 
@@ -74,12 +76,13 @@ public class TestingKdc {
   }
 
   public static File computeKeytabDir() {
-    File targetDir = new File(System.getProperty("user.dir"), "target");
+    Path userDir = Path.of(System.getProperty("user.dir"));
+    File targetDir = userDir.resolve("target").toFile();
     assertTrue(targetDir.exists() && targetDir.isDirectory(),
         "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/keytabs
-    File keytabDir = new File(new File(targetDir, "kerberos"), "keytabs");
+    File keytabDir = targetDir.toPath().resolve("kerberos").resolve("keytabs").toFile();
 
     assertTrue(keytabDir.mkdirs() || keytabDir.isDirectory());
 
@@ -119,7 +122,8 @@ public class TestingKdc {
     Thread.sleep(1000);
 
     // Create the identity for accumulo servers
-    File accumuloKeytab = new File(keytabDir, "accumulo.keytab");
+    Path keyTabDirPath = keytabDir.toPath();
+    File accumuloKeytab = keyTabDirPath.resolve("accumulo.keytab").toFile();
     String accumuloPrincipal = String.format("accumulo/%s", hostname);
 
     log.info("Creating Kerberos principal {} with keytab {}", accumuloPrincipal, accumuloKeytab);
@@ -129,7 +133,7 @@ public class TestingKdc {
 
     // Create the identity for the "root" user
     String rootPrincipal = "root";
-    File rootKeytab = new File(keytabDir, rootPrincipal + ".keytab");
+    File rootKeytab = keyTabDirPath.resolve(rootPrincipal + ".keytab").toFile();
 
     log.info("Creating Kerberos principal {} with keytab {}", rootPrincipal, rootKeytab);
     kdc.createPrincipal(rootKeytab, rootPrincipal);
@@ -140,7 +144,7 @@ public class TestingKdc {
     // Create a number of unprivileged users for tests to use
     for (int i = 1; i <= NUM_USERS; i++) {
       String clientPrincipal = "client" + i;
-      File clientKeytab = new File(keytabDir, clientPrincipal + ".keytab");
+      File clientKeytab = keyTabDirPath.resolve(clientPrincipal + ".keytab").toFile();
 
       log.info("Creating Kerberos principal {} with keytab {}", clientPrincipal, clientKeytab);
       kdc.createPrincipal(clientKeytab, clientPrincipal);

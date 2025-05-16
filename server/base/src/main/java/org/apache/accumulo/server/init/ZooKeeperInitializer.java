@@ -36,13 +36,14 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.util.tables.TableMapping;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedPropCodec;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
@@ -98,7 +99,7 @@ public class ZooKeeperInitializer {
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZNAMESPACES,
         NamespaceMapping
-            .serialize(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
+            .serializeMap(Map.of(Namespace.DEFAULT.id().canonical(), Namespace.DEFAULT.name(),
                 Namespace.ACCUMULO.id().canonical(), Namespace.ACCUMULO.name())),
         ZooUtil.NodeExistsPolicy.FAIL);
 
@@ -107,11 +108,15 @@ public class ZooKeeperInitializer {
     context.getTableManager().prepareNewNamespaceState(Namespace.ACCUMULO.id(),
         Namespace.ACCUMULO.name(), ZooUtil.NodeExistsPolicy.FAIL);
 
-    context.getTableManager().prepareNewTableState(AccumuloTable.ROOT.tableId(),
-        Namespace.ACCUMULO.id(), AccumuloTable.ROOT.tableName(), TableState.ONLINE,
+    zrwChroot.putPersistentData(TableMapping.getZTableMapPath(Namespace.ACCUMULO.id()),
+        NamespaceMapping.serializeMap(SystemTables.tableIdToSimpleNameMap()),
+        ZooUtil.NodeExistsPolicy.OVERWRITE);
+
+    context.getTableManager().prepareNewTableState(SystemTables.ROOT.tableId(),
+        Namespace.ACCUMULO.id(), SystemTables.ROOT.tableName(), TableState.ONLINE,
         ZooUtil.NodeExistsPolicy.FAIL);
-    context.getTableManager().prepareNewTableState(AccumuloTable.METADATA.tableId(),
-        Namespace.ACCUMULO.id(), AccumuloTable.METADATA.tableName(), TableState.ONLINE,
+    context.getTableManager().prepareNewTableState(SystemTables.METADATA.tableId(),
+        Namespace.ACCUMULO.id(), SystemTables.METADATA.tableName(), TableState.ONLINE,
         ZooUtil.NodeExistsPolicy.FAIL);
     // Call this separately so the upgrader code can handle the zk node creation for scan refs
     initScanRefTableState(context);
@@ -182,8 +187,8 @@ public class ZooKeeperInitializer {
 
   public void initScanRefTableState(ServerContext context) {
     try {
-      context.getTableManager().prepareNewTableState(AccumuloTable.SCAN_REF.tableId(),
-          Namespace.ACCUMULO.id(), AccumuloTable.SCAN_REF.tableName(), TableState.ONLINE,
+      context.getTableManager().prepareNewTableState(SystemTables.SCAN_REF.tableId(),
+          Namespace.ACCUMULO.id(), SystemTables.SCAN_REF.tableName(), TableState.ONLINE,
           ZooUtil.NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
@@ -192,8 +197,8 @@ public class ZooKeeperInitializer {
 
   public void initFateTableState(ServerContext context) {
     try {
-      context.getTableManager().prepareNewTableState(AccumuloTable.FATE.tableId(),
-          Namespace.ACCUMULO.id(), AccumuloTable.FATE.tableName(), TableState.ONLINE,
+      context.getTableManager().prepareNewTableState(SystemTables.FATE.tableId(),
+          Namespace.ACCUMULO.id(), SystemTables.FATE.tableName(), TableState.ONLINE,
           ZooUtil.NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);

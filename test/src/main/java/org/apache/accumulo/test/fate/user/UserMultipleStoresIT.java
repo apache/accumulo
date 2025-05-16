@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.createFateTable;
+import static org.apache.accumulo.test.fate.FateTestUtil.createFateTable;
 
 import java.util.function.Predicate;
 
@@ -30,13 +30,16 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.MultipleStoresIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class UserMultipleStoresIT extends MultipleStoresIT {
   private ClientContext client;
   private String tableName;

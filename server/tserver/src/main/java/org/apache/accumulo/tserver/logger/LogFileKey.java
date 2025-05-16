@@ -293,7 +293,9 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     row[11] = (byte) ((seq >>> 8) & mask);
     row[12] = (byte) (seq & mask);
 
-    log.trace("Convert {} {} {} to row {}", event, tabletId, seq, Arrays.toString(row));
+    if (log.isTraceEnabled()) {
+      log.trace("Convert {} {} {} to row {}", event, tabletId, seq, Arrays.toString(row));
+    }
     return row;
   }
 
@@ -347,8 +349,10 @@ public class LogFileKey implements WritableComparable<LogFileKey> {
     if (eventType(logFileKey.event) != rowParts[0]) {
       throw new AssertionError("Event in row differs from column family. Key: " + key);
     }
-    log.trace("From row {} get {} {} {}", Arrays.toString(rowParts), logFileKey.event,
-        logFileKey.tabletId, logFileKey.seq);
+    if (log.isTraceEnabled()) {
+      log.trace("From row {} get {} {} {}", Arrays.toString(rowParts), logFileKey.event,
+          logFileKey.tabletId, logFileKey.seq);
+    }
 
     // handle special cases of what is stored in the qualifier
     switch (logFileKey.event) {

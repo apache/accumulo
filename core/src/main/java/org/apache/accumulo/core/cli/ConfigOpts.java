@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -70,7 +70,8 @@ public class ConfigOpts extends Help {
     if (siteConfig == null) {
       String propsPath = getPropertiesPath();
       siteConfig = (propsPath == null ? SiteConfiguration.fromEnv()
-          : SiteConfiguration.fromFile(new File(propsPath))).withOverrides(getOverrides()).build();
+          : SiteConfiguration.fromFile(Path.of(propsPath).toFile())).withOverrides(getOverrides())
+          .build();
     }
     return siteConfig;
   }

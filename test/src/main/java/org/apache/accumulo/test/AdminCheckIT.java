@@ -44,9 +44,9 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -390,7 +390,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     final var context = getCluster().getServerContext();
     final String tableId = context.tableOperations().tableIdMap().get(table);
     final String tablet = tableId + "<";
-    try (var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+    try (var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       var mut = new Mutation(tablet);
       mut.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
           MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
@@ -423,9 +423,9 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // test a failing case
     // delete a required column for the metadata of the metadata table
     final var context = getCluster().getServerContext();
-    final String tableId = AccumuloTable.METADATA.tableId().canonical();
+    final String tableId = SystemTables.METADATA.tableId().canonical();
     final String tablet = tableId + "<";
-    try (var writer = context.createBatchWriter(AccumuloTable.ROOT.tableName())) {
+    try (var writer = context.createBatchWriter(SystemTables.ROOT.tableName())) {
       var mut = new Mutation(tablet);
       mut.putDelete(MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnFamily(),
           MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN.getColumnQualifier());
@@ -493,8 +493,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // read the root table to find where the metadata table rfile is located in HDFS then delete it
     Path path;
     ServerContext context = getCluster().getServerContext();
-    try (
-        var scanner = context.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
+    try (var scanner = context.createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY)) {
       scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
       var pathJsonData = scanner.iterator().next().getKey().getColumnQualifier().toString();
       path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
@@ -532,7 +531,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       // read the metadata for the table to find where the rfile is located in HDFS then delete it
       Path path;
       try (var scanner =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.fetchColumnFamily(MetadataSchema.TabletsSection.DataFileColumnFamily.NAME);
         var pathJsonData = scanner.iterator().next().getKey().getColumnQualifier().toString();
         path = new Path(StoredTabletFile.of(pathJsonData).getMetadataPath());
@@ -566,7 +565,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // delete the ZK data for the metadata table
     var context = getCluster().getServerContext();
     var zrw = context.getZooSession().asReaderWriter();
-    zrw.recursiveDelete(Constants.ZTABLES + "/" + AccumuloTable.METADATA.tableId(),
+    zrw.recursiveDelete(Constants.ZTABLES + "/" + SystemTables.METADATA.tableId(),
         ZooUtil.NodeMissingPolicy.FAIL);
 
     p = getCluster().exec(Admin.class, "check", "run", sysConfCheck.name());

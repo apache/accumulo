@@ -148,7 +148,7 @@ import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.manager.thrift.TFateInstanceType;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
@@ -209,7 +209,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = Timer.startNew();
     }
 
-    TreeSet<String> tableNames = new TreeSet<>(context.getTableNameToIdMap().keySet());
+    var tableNames = new TreeSet<>(context.createQualifiedTableNameToIdMap().keySet());
 
     if (timer != null) {
       log.trace("tid={} Fetched {} table names in {}", Thread.currentThread().getId(),
@@ -223,8 +223,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public boolean exists(String tableName) {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    if (tableName.equals(AccumuloTable.METADATA.tableName())
-        || tableName.equals(AccumuloTable.ROOT.tableName())) {
+    if (tableName.equals(SystemTables.METADATA.tableName())
+        || tableName.equals(SystemTables.ROOT.tableName())) {
       return true;
     }
 
@@ -235,7 +235,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       timer = Timer.startNew();
     }
 
-    boolean exists = context.getTableNameToIdMap().containsKey(tableName);
+    boolean exists = false;
+    try {
+      context.getTableId(tableName);
+      exists = true;
+    } catch (TableNotFoundException e) {
+      /* ignore */
+    }
 
     if (timer != null) {
       log.trace("tid={} Checked existence of {} in {}", Thread.currentThread().getId(), exists,
@@ -496,7 +502,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     // TODO should there be a server side check for this?
     context.requireNotOffline(tableId, tableName);
 
-    ClientTabletCache tabLocator = ClientTabletCache.getInstance(context, tableId);
+    ClientTabletCache tabLocator = context.getTabletLocationCache(tableId);
 
     SortedMap<Text,TabletMergeability> splitsTodo =
         Collections.synchronizedSortedMap(new TreeMap<>(splits));
@@ -1288,7 +1294,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     TableId tableId = context.getTableId(tableName);
-    ClientTabletCache tl = ClientTabletCache.getInstance(context, tableId);
+    ClientTabletCache tl = context.getTabletLocationCache(tableId);
     // it's possible that the cache could contain complete, but old information about a tables
     // tablets... so clear it
     tl.invalidateCache();
@@ -1511,15 +1517,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
     switch (newState) {
       case OFFLINE:
         op = TFateOperation.TABLE_OFFLINE;
-        if (tableName.equals(AccumuloTable.METADATA.tableName())
-            || tableName.equals(AccumuloTable.ROOT.tableName())) {
+        if (tableName.equals(SystemTables.METADATA.tableName())
+            || tableName.equals(SystemTables.ROOT.tableName())) {
           throw new AccumuloException("Cannot set table to offline state");
         }
         break;
       case ONLINE:
         op = TFateOperation.TABLE_ONLINE;
-        if (tableName.equals(AccumuloTable.METADATA.tableName())
-            || tableName.equals(AccumuloTable.ROOT.tableName())) {
+        if (tableName.equals(SystemTables.METADATA.tableName())
+            || tableName.equals(SystemTables.ROOT.tableName())) {
           // Don't submit a Fate operation for this, these tables can only be online.
           return;
         }
@@ -1566,14 +1572,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
   public void clearLocatorCache(String tableName) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    ClientTabletCache tabLocator =
-        ClientTabletCache.getInstance(context, context.getTableId(tableName));
+    ClientTabletCache tabLocator = context.getTabletLocationCache(context.getTableId(tableName));
     tabLocator.invalidateCache();
   }
 
   @Override
   public Map<String,String> tableIdMap() {
-    return context.getTableNameToIdMap().entrySet().stream()
+    return context.createQualifiedTableNameToIdMap().entrySet().stream()
         .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().canonical(), (v1, v2) -> {
           throw new IllegalStateException(
               String.format("Duplicate key for values %s and %s", v1, v2));
@@ -1980,7 +1985,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       rangeList = new ArrayList<>(ranges);
     }
 
-    ClientTabletCache locator = ClientTabletCache.getInstance(context, tableId);
+    ClientTabletCache locator = context.getTabletLocationCache(tableId);
     locator.invalidateCache();
 
     Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))

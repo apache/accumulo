@@ -108,11 +108,6 @@ public class RootClientTabletCache extends ClientTabletCache {
   }
 
   @Override
-  public void invalidateCache(ClientContext context, String server) {
-    // no-op see class level javadoc
-  }
-
-  @Override
   public void invalidateCache() {
     // no-op see class level javadoc
   }

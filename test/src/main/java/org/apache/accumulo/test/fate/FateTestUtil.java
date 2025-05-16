@@ -24,19 +24,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import java.io.File;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.junit.jupiter.api.Tag;
@@ -45,13 +48,12 @@ import org.junit.jupiter.api.io.TempDir;
 import com.google.common.collect.MoreCollectors;
 
 /**
- * A class with utilities for testing {@link org.apache.accumulo.core.fate.user.UserFateStore} and
- * {@link org.apache.accumulo.core.fate.zookeeper.MetaFateStore}
+ * A class with utilities for testing FATE
  */
-public class FateStoreUtil {
-  // A FateOperation for testing purposes when a FateOperation is needed but whose value doesn't
-  // matter
-  public static final Fate.FateOperation TEST_FATE_OP = Fate.FateOperation.TABLE_CREATE;
+public class FateTestUtil {
+  // A FateOperation for testing purposes when a FateOperation is needed and whose value needs to
+  // be a FateOperation workable by USER and META FATEs
+  public static final Fate.FateOperation TEST_FATE_OP = Fate.FateOperation.TABLE_COMPACT;
 
   /**
    * Create the fate table with the exact configuration as the real Fate user instance table
@@ -59,11 +61,11 @@ public class FateStoreUtil {
    */
   public static void createFateTable(ClientContext client, String table) throws Exception {
     final var fateTableProps =
-        client.tableOperations().getTableProperties(AccumuloTable.FATE.tableName());
+        client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
 
     TabletAvailability availability;
-    try (var tabletStream = client.tableOperations()
-        .getTabletInformation(AccumuloTable.FATE.tableName(), new Range())) {
+    try (var tabletStream =
+        client.tableOperations().getTabletInformation(SystemTables.FATE.tableName(), new Range())) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }
@@ -88,6 +90,22 @@ public class FateStoreUtil {
     } catch (Exception e) {
       throw new RuntimeException(e);
     }
+  }
+
+  /**
+   * Returns a config with all FATE operations assigned to a single pool of size numThreads for both
+   * USER and META FATE operations
+   */
+  public static ConfigurationCopy createTestFateConfig(int numThreads) {
+    ConfigurationCopy config = new ConfigurationCopy();
+    // this value isn't important, just needs to be set
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_USER_CONFIG, "{\"" + Fate.FateOperation.getAllUserFateOps()
+        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    config.set(Property.MANAGER_FATE_META_CONFIG, "{\"" + Fate.FateOperation.getAllMetaFateOps()
+        .stream().map(Enum::name).collect(Collectors.joining(",")) + "\": " + numThreads + "}");
+    config.set(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL, "60m");
+    return config;
   }
 
   /**

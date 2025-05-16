@@ -69,7 +69,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -94,7 +93,7 @@ import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -330,8 +329,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        () -> ClientTabletCache.clearInstances(context), jitter(), jitter(),
-        TimeUnit.MILLISECONDS));
+        () -> context.clearTabletLocationCache(), jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -919,9 +917,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private Durability getMincEventDurability(KeyExtent extent) {
     TableConfiguration conf;
     if (extent.isMeta()) {
-      conf = getContext().getTableConfiguration(AccumuloTable.ROOT.tableId());
+      conf = getContext().getTableConfiguration(SystemTables.ROOT.tableId());
     } else {
-      conf = getContext().getTableConfiguration(AccumuloTable.METADATA.tableId());
+      conf = getContext().getTableConfiguration(SystemTables.METADATA.tableId());
     }
     return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }

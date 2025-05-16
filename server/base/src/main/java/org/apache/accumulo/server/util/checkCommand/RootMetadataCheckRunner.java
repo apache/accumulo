@@ -24,8 +24,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
 import org.apache.accumulo.server.ServerContext;
@@ -59,7 +59,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
-    if (FindOfflineTablets.findOffline(context, AccumuloTable.ROOT.tableName(), false, true,
+    if (FindOfflineTablets.findOffline(context, SystemTables.ROOT.tableName(), false, true,
         log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     } else {
