@@ -48,7 +48,7 @@ public class CancelCompactions extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT_CANCEL)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true,
+        + Utils.reserveTable(env, tableId, namespaceId, fateId, LockType.READ, true,
             TableOperation.COMPACT_CANCEL);
   }
 

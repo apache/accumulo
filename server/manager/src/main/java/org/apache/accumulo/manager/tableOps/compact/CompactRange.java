@@ -83,7 +83,8 @@ public class CompactRange extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.COMPACT)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.COMPACT);
+        + Utils.reserveTable(env, tableId, namespaceId, fateId, LockType.READ, true,
+            TableOperation.COMPACT);
   }
 
   @Override

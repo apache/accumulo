@@ -56,7 +56,8 @@ public class PreDeleteTable extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.DELETE);
+        + Utils.reserveTable(env, tableId, namespaceId, fateId, LockType.READ, true,
+            TableOperation.DELETE);
   }
 
   private void preventFutureCompactions(Manager environment)

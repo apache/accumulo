@@ -81,14 +81,15 @@ public class Utils {
   static final Lock tableNameLock = new ReentrantLock();
   static final Lock idLock = new ReentrantLock();
 
-  public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
-      boolean tableMustExist, TableOperation op) throws Exception {
+  public static long reserveTable(Manager env, TableId tableId, NamespaceId namespaceId,
+      FateId fateId, LockType lockType, boolean tableMustExist, TableOperation op)
+      throws Exception {
     var context = env.getContext();
     if (getLock(context, tableId, fateId, lockType).tryLock()) {
       if (tableMustExist) {
         ZooReaderWriter zk = context.getZooSession().asReaderWriter();
-        if (!zk.exists(Constants.ZNAMESPACES + "/" + context.getNamespaceId(tableId)
-            + Constants.ZTABLES + "/" + tableId)) {
+        if (!zk.exists(
+            Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }

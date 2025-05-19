@@ -50,8 +50,8 @@ public class LockTable extends ManagerRepo {
   public long isReady(FateId fateId, Manager manager) throws Exception {
     return Utils.reserveNamespace(manager, namespaceId, fateId,
         DistributedReadWriteLock.LockType.READ, true, TableOperation.SET_TABLET_AVAILABILITY)
-        + Utils.reserveTable(manager, tableId, fateId, DistributedReadWriteLock.LockType.WRITE,
-            true, TableOperation.SET_TABLET_AVAILABILITY);
+        + Utils.reserveTable(manager, tableId, namespaceId, fateId,
+            DistributedReadWriteLock.LockType.WRITE, true, TableOperation.SET_TABLET_AVAILABILITY);
   }
 
   @Override

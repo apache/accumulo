@@ -49,8 +49,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, fateId, LockType.WRITE, false,
-        TableOperation.IMPORT);
+    return Utils.reserveTable(environment, tableInfo.tableId, tableInfo.namespaceId, fateId,
+        LockType.WRITE, false, TableOperation.IMPORT);
   }
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {

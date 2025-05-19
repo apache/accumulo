@@ -46,8 +46,8 @@ class CloneZookeeper extends ManagerRepo {
       val += Utils.reserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ,
           true, TableOperation.CLONE);
     }
-    val += Utils.reserveTable(environment, cloneInfo.getTableId(), fateId, LockType.WRITE, false,
-        TableOperation.CLONE);
+    val += Utils.reserveTable(environment, cloneInfo.getTableId(), cloneInfo.getNamespaceId(),
+        fateId, LockType.WRITE, false, TableOperation.CLONE);
     return val;
   }
 

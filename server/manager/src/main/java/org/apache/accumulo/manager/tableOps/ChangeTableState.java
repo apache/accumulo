@@ -55,7 +55,7 @@ public class ChangeTableState extends ManagerRepo {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
     return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true, top)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, top);
+        + Utils.reserveTable(env, tableId, namespaceId, fateId, LockType.WRITE, true, top);
   }
 
   @Override
