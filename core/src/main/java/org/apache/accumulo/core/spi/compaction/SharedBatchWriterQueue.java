@@ -74,8 +74,8 @@ public interface SharedBatchWriterQueue {
   /**
    * Add the {@code Work} item to the queue
    *
-   * @param work
-   * @throws InterruptedException
+   * @param work work to be added to the queue
+   * @throws InterruptedException interrupted while waiting
    * @since 2.1.4
    */
   void add(Work work) throws InterruptedException;
@@ -84,7 +84,7 @@ public interface SharedBatchWriterQueue {
    * Remove a {@code Work} item from the queue
    *
    * @return work item
-   * @throws InterruptedException
+   * @throws InterruptedException interrupted while waiting for item
    * @since 2.1.4
    */
   Work remove() throws InterruptedException;
@@ -93,7 +93,7 @@ public interface SharedBatchWriterQueue {
    * Remove all {@code Work} items from the queue and into the supplied Collection
    *
    * @param work destination for the removed items
-   * @throws InterruptedException
+   * @throws InterruptedException interrupted while filling destination
    * @since 2.1.4
    */
   void removeAll(Collection<Work> work) throws InterruptedException;

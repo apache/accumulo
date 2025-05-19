@@ -26,9 +26,9 @@ import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue;
 
 /**
  * SharedBatchWriterQueue backed by an ArrayBlockingQueue. Calls to
- * {@code #add(org.apache.accumulo.coordinator.SharedBatchWriterQueue.Work) will
- * block if the backing queue is full and will wait until the queued Work item
- * has been flushed to the underlying table.
+ * {@code #add(org.apache.accumulo.coordinator.SharedBatchWriterQueue.Work} will block if the
+ * backing queue is full and will wait until the queued Work item has been flushed to the underlying
+ * table.
  */
 public class BlockingSharedBatchWriterQueue implements SharedBatchWriterQueue {
 
