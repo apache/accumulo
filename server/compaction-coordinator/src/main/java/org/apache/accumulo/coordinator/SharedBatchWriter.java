@@ -19,14 +19,13 @@
 package org.apache.accumulo.coordinator;
 
 import java.util.ArrayList;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue;
+import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue.Work;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
@@ -36,48 +35,31 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 /**
- * This class supports the use case of many threads writing a single mutation to a table. It avoids
- * each thread creating its own batch writer which creates threads and makes 3 RPCs to write the
- * single mutation. Using this class results in much less thread creation and RPCs.
+ * This class supports the use case of many threads writing mutations to a table. Instead of each
+ * thread creating their own batch writer, each thread can add mutations to the queue that this
+ * shared batch writer reads from. This is more efficient than creating a batch writer to add a
+ * single mutation to a table as the batch writer would make 3 RPCs to write the single mutation.
+ * Using this class results in much less thread creation and RPCs.
  */
 public class SharedBatchWriter {
   private static final Logger log = LoggerFactory.getLogger(SharedBatchWriter.class);
   private final Character prefix;
 
-  private static class Work {
-    private final Mutation mutation;
-    private final CompletableFuture<Void> future;
-
-    private Work(Mutation mutation) {
-      this.mutation = mutation;
-      this.future = new CompletableFuture<>();
-    }
-  }
-
-  private final BlockingQueue<Work> mutations;
+  private final SharedBatchWriterQueue queue;
   private final String table;
   private final ServerContext context;
 
-  public SharedBatchWriter(String table, Character prefix, ServerContext context, int queueSize) {
-    Preconditions.checkArgument(queueSize > 0, "illegal queue size %s", queueSize);
+  public SharedBatchWriter(String table, Character prefix, ServerContext context, SharedBatchWriterQueue queue) {
+    Objects.requireNonNull(table, "Missing table");
+    Objects.requireNonNull(context, "Missing context");
+    Objects.requireNonNull(queue, "Missing queue");
     this.table = table;
     this.prefix = prefix;
     this.context = context;
-    this.mutations = new ArrayBlockingQueue<>(queueSize);
+    this.queue = queue;
     var thread = Threads.createCriticalThread(
         "shared batch writer for " + table + " prefix:" + prefix, this::processMutations);
     thread.start();
-  }
-
-  public void write(Mutation m) {
-    try {
-      var work = new Work(m);
-      mutations.put(work);
-      work.future.join();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new IllegalStateException(e);
-    }
   }
 
   private void processMutations() {
@@ -85,26 +67,31 @@ public class SharedBatchWriter {
     while (true) {
       ArrayList<Work> batch = new ArrayList<>();
       try {
-        batch.add(mutations.take());
+        batch.add(queue.remove());
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
         throw new IllegalStateException(e);
       }
 
       try (var writer = context.createBatchWriter(table)) {
-        mutations.drainTo(batch);
+        try {
+          queue.removeAll(batch);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(e);
+        }
         timer.restart();
         for (var work : batch) {
-          writer.addMutation(work.mutation);
+          writer.addMutation(work.getMutation());
         }
         writer.flush();
         log.trace("Wrote {} mutations in {}ms for prefix {}", batch.size(),
             timer.elapsed(TimeUnit.MILLISECONDS), prefix);
-        batch.forEach(work -> work.future.complete(null));
+        batch.forEach(work -> work.getFuture().complete(null));
       } catch (TableNotFoundException | MutationsRejectedException e) {
         log.debug("Failed to process {} mutations in {}ms for prefix {}", batch.size(),
             timer.elapsed(TimeUnit.MILLISECONDS), prefix, e);
-        batch.forEach(work -> work.future.completeExceptionally(e));
+        batch.forEach(work -> work.getFuture().completeExceptionally(e));
       }
     }
   }

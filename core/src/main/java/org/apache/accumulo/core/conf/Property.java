@@ -1584,6 +1584,16 @@ public enum Property {
       "The interval at which to check for external compaction final state markers in the metadata table.",
       "2.1.0"),
   @Experimental
+  COMPACTION_COORDINATOR_FINALIZER_SBW_QUEUE(
+      "compaction.coordinator.compaction.finalizer.queue.impl",
+      "org.apache.accumulo.coordinator.BlockingSharedBatchWriterQueue.class",
+      PropertyType.CLASSNAME,
+      "SharedBatchWriterQueue implementation class name to use when queueing mutations"
+          + " in the CompactionFinalizer. The default implementation has a fixed size, 1/16th of COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE,"
+          + " and Compactor RPC threads will block when trying to add work to the queue and will wait for the mutation to be flushed"
+          + " to the metadata table.",
+      "2.1.4"),
+  @Experimental
   COMPACTION_COORDINATOR_FINALIZER_QUEUE_SIZE(
       "compaction.coordinator.compaction.finalizer.queue.size", "16384", PropertyType.COUNT,
       "The number of completed compactions to buffer in memory before blocking.", "2.1.4"),
