@@ -107,7 +107,8 @@ public class CompactionFinalizer {
 
   private SharedBatchWriter getWriter(ExternalCompactionId ecid) {
     return writers.computeIfAbsent(ecid.getFirstUUIDChar(),
-        (i) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize));
+        (prefix) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), prefix, context,
+            queueSize / 16));
   }
 
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,
