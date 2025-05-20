@@ -26,6 +26,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 /**
@@ -93,6 +94,12 @@ public interface CompactionPlanner {
      * @see ServiceEnvironment#getTableName(TableId)
      */
     TableId getTableId();
+
+    /**
+     * @return the tablet for which a compaction is being planned
+     * @since 2.1.4
+     */
+    TabletId getTabletId();
 
     ServiceEnvironment getServiceEnvironment();
 
