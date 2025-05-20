@@ -144,7 +144,7 @@ public class BalanceIT extends ConfigurableMacBase {
     }
   }
 
-  private Map<String,Integer> countLocations(AccumuloClient client, String tableName)
+  static Map<String,Integer> countLocations(AccumuloClient client, String tableName)
       throws Exception {
     var ctx = ((ClientContext) client);
     var ample = ctx.getAmple();
