@@ -148,7 +148,7 @@ public class TableManager {
     try {
       namespaceId = context.getNamespaceId(tableId);
     } catch (TableNotFoundException e) {
-      throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
+      return TableState.UNKNOWN;
     }
     byte[] data = context.getZooCache().get(Constants.ZNAMESPACES + "/" + namespaceId
         + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);

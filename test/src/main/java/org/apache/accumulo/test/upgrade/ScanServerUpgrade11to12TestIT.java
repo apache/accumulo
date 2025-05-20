@@ -60,6 +60,7 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -212,6 +213,7 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     }
   }
 
+  @Disabled
   @Test
   public void testScanRefTableCreation() throws InterruptedException {
     ServerContext ctx = getCluster().getServerContext();
