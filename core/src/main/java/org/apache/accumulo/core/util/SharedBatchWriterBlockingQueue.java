@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.util;
 
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.concurrent.ArrayBlockingQueue;
 
-import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue;
+import org.apache.accumulo.core.spi.util.SharedBatchWriterQueue;
 
 /**
  * SharedBatchWriterQueue backed by an ArrayBlockingQueue. Calls to
@@ -30,7 +30,7 @@ import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue;
  * backing queue is full and will wait until the queued Work item has been flushed to the underlying
  * table.
  */
-public class BlockingSharedBatchWriterQueue implements SharedBatchWriterQueue {
+public class SharedBatchWriterBlockingQueue implements SharedBatchWriterQueue {
 
   private ArrayBlockingQueue<Work> queue = null;
 

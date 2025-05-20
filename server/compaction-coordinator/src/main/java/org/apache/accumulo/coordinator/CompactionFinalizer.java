@@ -72,12 +72,12 @@ public class CompactionFinalizer {
   private final ExecutorService backgroundExecutor;
   private final BlockingQueue<ExternalCompactionFinalState> pendingNotifications;
   private final long tserverCheckInterval;
-  private final ECFSSharedBatchWriters writers;
+  private final CompactionFinalizerWriters writers;
 
   protected CompactionFinalizer(ServerContext context, ScheduledThreadPoolExecutor schedExecutor) {
     this.context = context;
 
-    this.writers = new ECFSSharedBatchWriters(this.context);
+    this.writers = new CompactionFinalizerWriters(this.context);
     this.pendingNotifications = new ArrayBlockingQueue<>(writers.getQueueSize());
 
     tserverCheckInterval = this.context.getConfiguration()
@@ -118,7 +118,7 @@ public class CompactionFinalizer {
 
     // write metadata entry
     Timer timer = Timer.startNew();
-    writers.write(ecid, ecfs.toMutation());
+    writers.write(ecfs);
     LOG.trace("{} metadata compaction state write completed in {}ms", ecid,
         timer.elapsed(TimeUnit.MILLISECONDS));
 
@@ -134,7 +134,7 @@ public class CompactionFinalizer {
       var e = compactionsToFail.entrySet().iterator().next();
       var ecfs =
           new ExternalCompactionFinalState(e.getKey(), e.getValue(), FinalState.FAILED, 0L, 0L);
-      writers.write(e.getKey(), ecfs.toMutation());
+      writers.write(ecfs);
     } else {
       try (BatchWriter writer = context.createBatchWriter(Ample.DataLevel.USER.metaTable())) {
         for (var e : compactionsToFail.entrySet()) {

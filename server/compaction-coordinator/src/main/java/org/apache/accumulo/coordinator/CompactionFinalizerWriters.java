@@ -25,16 +25,22 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionFinalState;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue;
-import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue.InitParameters;
-import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue.Work;
+import org.apache.accumulo.core.spi.util.SharedBatchWriterQueue;
+import org.apache.accumulo.core.spi.util.SharedBatchWriterQueue.InitParameters;
+import org.apache.accumulo.core.spi.util.SharedBatchWriterQueue.Work;
 import org.apache.accumulo.core.util.Pair;
+import org.apache.accumulo.core.util.SharedBatchWriter;
+import org.apache.accumulo.core.util.SharedBatchWriterBlockingQueue;
 import org.apache.accumulo.server.ServerContext;
 
-public class ECFSSharedBatchWriters {
+/**
+ * Object that holds 16 SharedBatchWriters for writing ExternalCompactionFinalStates to the metadata
+ * table for the CompactionFinalizer.
+ */
+public class CompactionFinalizerWriters {
 
   private final static int NUM_WRITERS = 16;
 
@@ -45,7 +51,7 @@ public class ECFSSharedBatchWriters {
   private final ServerContext context;
   private final int totalQueueSize;
 
-  ECFSSharedBatchWriters(ServerContext ctx) {
+  CompactionFinalizerWriters(ServerContext ctx) {
     Objects.requireNonNull(ctx, "ServerContext missing");
     context = ctx;
     totalQueueSize =
@@ -57,8 +63,8 @@ public class ECFSSharedBatchWriters {
         'E', 'F'}) {
 
       final SharedBatchWriterQueue queue = Property.createInstanceFromPropertyName(
-          context.getConfiguration(), Property.COMPACTION_COORDINATOR_FINALIZER_SBW_QUEUE,
-          SharedBatchWriterQueue.class, new BlockingSharedBatchWriterQueue());
+          context.getConfiguration(), Property.COMPACTION_COORDINATOR_FINALIZER_WRITER_QUEUE,
+          SharedBatchWriterQueue.class, new SharedBatchWriterBlockingQueue());
       queue.init(new InitParameters() {
         @Override
         public int getQueueSize() {
@@ -92,9 +98,10 @@ public class ECFSSharedBatchWriters {
     return ids;
   }
 
-  public void write(ExternalCompactionId ecid, Mutation m) {
+  public void write(ExternalCompactionFinalState ecfs) {
     try {
-      var work = new Work(ecid.canonical(), m);
+      final ExternalCompactionId ecid = ecfs.getExternalCompactionId();
+      var work = new Work(ecid.canonical(), ecfs.toMutation());
       getQueue(ecid).add(work);
     } catch (InterruptedException e) {
       Thread.currentThread().interrupt();

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.coordinator;
+package org.apache.accumulo.core.util;
 
 import java.util.ArrayList;
 import java.util.Objects;
@@ -24,15 +24,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue;
-import org.apache.accumulo.core.spi.compaction.SharedBatchWriterQueue.Work;
-import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.spi.util.SharedBatchWriterQueue;
+import org.apache.accumulo.core.spi.util.SharedBatchWriterQueue.Work;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 /**
  * This class supports the use case of many threads writing mutations to a table. Instead of each
@@ -47,9 +44,10 @@ public class SharedBatchWriter {
 
   private final SharedBatchWriterQueue queue;
   private final String table;
-  private final ServerContext context;
+  private final ClientContext context;
 
-  public SharedBatchWriter(String table, Character prefix, ServerContext context, SharedBatchWriterQueue queue) {
+  public SharedBatchWriter(String table, Character prefix, ClientContext context,
+      SharedBatchWriterQueue queue) {
     Objects.requireNonNull(table, "Missing table");
     Objects.requireNonNull(context, "Missing context");
     Objects.requireNonNull(queue, "Missing queue");

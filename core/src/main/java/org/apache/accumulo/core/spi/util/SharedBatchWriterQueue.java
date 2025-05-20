@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.spi.compaction;
+package org.apache.accumulo.core.spi.util;
 
 import java.util.Collection;
 import java.util.Iterator;
