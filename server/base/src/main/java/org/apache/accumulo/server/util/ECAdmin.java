@@ -104,7 +104,7 @@ public class ECAdmin implements KeywordExecutable {
     cl.addCommand("cancel", cancelOps);
 
     ListCompactorsCommand listCompactorsOpts = new ListCompactorsCommand();
-    cl.addCommand("listCompactors", listCompactorsOpts);
+    cl.addCommand("list-compactors", listCompactorsOpts);
 
     RunningCommand runningOpts = new RunningCommand();
     cl.addCommand("running", runningOpts);
@@ -118,7 +118,7 @@ public class ECAdmin implements KeywordExecutable {
 
     ServerContext context = opts.getServerContext();
     try {
-      if (cl.getParsedCommand().equals("listCompactors")) {
+      if (cl.getParsedCommand().equals("list-compactors")) {
         listCompactorsByQueue(context);
       } else if (cl.getParsedCommand().equals("cancel")) {
         cancelCompaction(context, cancelOps.ecid);
