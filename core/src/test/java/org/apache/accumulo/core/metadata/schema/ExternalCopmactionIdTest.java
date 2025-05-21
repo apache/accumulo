@@ -57,6 +57,6 @@ public class ExternalCopmactionIdTest {
     assertThrows(IllegalArgumentException.class, () -> ExternalCompactionId.of("ECID:"));
     assertThrows(IllegalArgumentException.class, () -> ExternalCompactionId.of(""));
     assertThrows(IllegalArgumentException.class, () -> ExternalCompactionId.from(""));
-    assertThrows(IllegalArgumentException.class, () -> ExternalCompactionId.of("ECID:"));
+    assertThrows(IllegalArgumentException.class, () -> ExternalCompactionId.from("ECID:"));
   }
 }
