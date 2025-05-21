@@ -1429,7 +1429,6 @@ public class CompactableImpl implements Compactable {
       ExternalCompactionInfo ecInfo = externalCompactions.get(extCompactionId);
 
       if (ecInfo != null) {
-        log.debug("Attempting to commit external compaction {}", extCompactionId);
         Optional<StoredTabletFile> metaFile = Optional.empty();
         boolean successful = false;
         try {
@@ -1448,11 +1447,11 @@ public class CompactableImpl implements Compactable {
         } finally {
           completeCompaction(ecInfo.job, ecInfo.meta.getJobFiles(), metaFile, successful);
           externalCompactions.remove(extCompactionId);
-          log.debug("Completed commit of external compaction {}", extCompactionId);
+          log.debug("Completed commit of external compaction {} {}", extCompactionId, getExtent());
         }
       } else {
-        log.debug("Ignoring request to commit external compaction that is unknown {}",
-            extCompactionId);
+        log.debug("Ignoring request to commit external compaction that is unknown {} {}",
+            extCompactionId, getExtent());
       }
 
       tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(extCompactionId));
@@ -1487,7 +1486,8 @@ public class CompactableImpl implements Compactable {
         externalCompactions.remove(ecid);
         log.debug("Processed external compaction failure: id: {}, extent: {}", ecid, getExtent());
       } else {
-        log.debug("Ignoring request to fail external compaction that is unknown {}", ecid);
+        log.debug("Ignoring request to fail external compaction that is unknown {} {}", ecid,
+            getExtent());
       }
 
       tablet.getContext().getAmple().deleteExternalCompactionFinalStates(List.of(ecid));

@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
@@ -48,6 +49,7 @@ import org.apache.accumulo.core.util.compaction.CompactionExecutorIdImpl;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.tserver.OpeningAndOnlineCompactables;
 import org.apache.accumulo.tserver.compactions.CompactionExecutor.CType;
 import org.apache.accumulo.tserver.metrics.CompactionExecutorsMetrics;
 import org.apache.accumulo.tserver.tablet.Tablet;
@@ -63,7 +65,7 @@ public class CompactionManager {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionManager.class);
 
-  private final Iterable<Compactable> compactables;
+  private final Supplier<OpeningAndOnlineCompactables> compactables;
   private volatile Map<CompactionServiceId,CompactionService> services;
 
   private final LinkedBlockingQueue<Compactable> compactablesToCheck = new LinkedBlockingQueue<>();
@@ -119,19 +121,27 @@ public class CompactionManager {
       try {
         long passed = NANOSECONDS.toMillis(System.nanoTime() - lastCheckAllTime);
         if (passed >= maxTimeBetweenChecks) {
+          // get a snapshot of the tablets that are open and opening
+          var compactablesSnapshot = compactables.get();
           // take a snapshot of what is currently running
-          HashSet<ExternalCompactionId> runningEcids =
-              new HashSet<>(runningExternalCompactions.keySet());
-          for (Compactable compactable : compactables) {
+          HashMap<ExternalCompactionId,ExtCompInfo> runningEcids =
+              new HashMap<>(runningExternalCompactions);
+          for (Compactable compactable : compactablesSnapshot.open) {
             last = compactable;
             submitCompaction(compactable);
             // remove anything from snapshot that tablets know are running
             compactable.getExternalCompactionIds(runningEcids::remove);
           }
           lastCheckAllTime = System.nanoTime();
+
+          // remove any tablets that are currently opening, these may have been added to
+          // runningExternalCompactions while in the process of opening
+          runningEcids.values()
+              .removeIf(extCompInfo -> compactablesSnapshot.opening.contains(extCompInfo.extent));
+
           // anything left in the snapshot is unknown to any tablet and should be removed if it
           // still exists
-          runningExternalCompactions.keySet().removeAll(runningEcids);
+          runningExternalCompactions.keySet().removeAll(runningEcids.keySet());
         } else {
           var compactable = compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
           if (compactable != null) {
@@ -192,8 +202,8 @@ public class CompactionManager {
     }
   }
 
-  public CompactionManager(Iterable<Compactable> compactables, ServerContext context,
-      CompactionExecutorsMetrics ceMetrics) {
+  public CompactionManager(Supplier<OpeningAndOnlineCompactables> compactables,
+      ServerContext context, CompactionExecutorsMetrics ceMetrics) {
     this.compactables = compactables;
 
     this.currentCfg =
@@ -365,10 +375,12 @@ public class CompactionManager {
           "Unexpected extent seen on compaction commit %s %s", ecInfo.extent, extentCompacted);
       Tablet tablet = currentTablets.get(ecInfo.extent);
       if (tablet != null) {
+        log.debug("Attempting to commit external compaction {} {}", extCompactionId,
+            tablet.getExtent());
         tablet.asCompactable().commitExternalCompaction(extCompactionId, fileSize, entries);
         compactablesToCheck.add(tablet.asCompactable());
+        runningExternalCompactions.remove(extCompactionId);
       }
-      runningExternalCompactions.remove(extCompactionId);
     }
   }
 
@@ -380,10 +392,11 @@ public class CompactionManager {
           "Unexpected extent seen on compaction commit %s %s", ecInfo.extent, extentCompacted);
       Tablet tablet = currentTablets.get(ecInfo.extent);
       if (tablet != null) {
+        log.debug("Attempting to fail external compaction {} {}", ecid, tablet.getExtent());
         tablet.asCompactable().externalCompactionFailed(ecid);
         compactablesToCheck.add(tablet.asCompactable());
+        runningExternalCompactions.remove(ecid);
       }
-      runningExternalCompactions.remove(ecid);
     }
   }
 
