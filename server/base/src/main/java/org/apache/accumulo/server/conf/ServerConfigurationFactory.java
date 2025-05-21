@@ -80,7 +80,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     this.systemConfig = memoize(() -> {
       var sysConf =
           new SystemConfiguration(context, SystemPropKey.of(context.getInstanceID()), siteConfig);
-      ConfigCheckUtil.validate(sysConf);
+      ConfigCheckUtil.validate(sysConf, "system config");
       return sysConf;
     });
     tableParentConfigs =
