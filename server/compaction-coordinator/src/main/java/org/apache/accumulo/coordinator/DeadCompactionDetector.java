@@ -61,7 +61,8 @@ public class DeadCompactionDetector {
 
     // The order of obtaining information is very important to avoid race conditions.
 
-    log.trace("Starting to look for dead compactions");
+    log.trace("Starting to look for dead compactions, deadCompactions.size():{}",
+        deadCompactions.size());
 
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
 
@@ -80,6 +81,9 @@ public class DeadCompactionDetector {
       // no need to look for dead compactions when tablets don't have anything recorded as running
       return;
     }
+
+    log.trace("Read {} tablet compactions into memory from metadata table",
+        tabletCompactions.size());
 
     if (log.isTraceEnabled()) {
       tabletCompactions.forEach((ecid, extent) -> log.trace("Saw {} for {}", ecid, extent));
@@ -120,6 +124,7 @@ public class DeadCompactionDetector {
           });
     }
 
+    log.trace("deadCompactions.size() after removals {}", deadCompactions.size());
     tabletCompactions.forEach((ecid, extent) -> {
       var count = this.deadCompactions.merge(ecid, 1L, Long::sum);
       if (count == 1) {
@@ -131,6 +136,8 @@ public class DeadCompactionDetector {
         log.debug("Possible dead compaction detected {} {} {}", ecid, extent, count);
       }
     });
+
+    log.trace("deadCompactions.size() after additions {}", deadCompactions.size());
 
     // Everything left in tabletCompactions is no longer running anywhere and should be failed.
     // Its possible that a compaction committed while going through the steps above, if so then

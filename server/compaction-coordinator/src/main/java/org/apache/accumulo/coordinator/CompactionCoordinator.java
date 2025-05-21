@@ -328,6 +328,7 @@ public class CompactionCoordinator extends AbstractServer implements
         updateSummaries();
 
         long now = System.currentTimeMillis();
+        LOG.debug("Time spent checking compaction summaries: {}ms", (now - start));
 
         Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
         TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
@@ -664,6 +665,8 @@ public class CompactionCoordinator extends AbstractServer implements
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 

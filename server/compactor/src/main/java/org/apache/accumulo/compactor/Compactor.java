@@ -386,6 +386,8 @@ public class Compactor extends AbstractServer
             ThriftUtil.returnClient(coordinatorClient, getContext());
           }
         });
+    LOG.trace("Attempting to update compaction state in coordinator ECID:{}",
+        job.getExternalCompactionId());
     thriftCall.run();
   }
 

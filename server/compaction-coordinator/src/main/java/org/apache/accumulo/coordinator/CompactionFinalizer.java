@@ -247,6 +247,8 @@ public class CompactionFinalizer {
           }
         }
 
+        long waitStart = System.currentTimeMillis();
+        LOG.trace("Waiting for notify messages to complete");
         for (Future<?> future : futures) {
           try {
             future.get();
@@ -254,6 +256,7 @@ public class CompactionFinalizer {
             LOG.debug("Failed to notify tserver", e);
           }
         }
+        LOG.trace("Notify messages completed in {}ms", (System.currentTimeMillis() - waitStart));
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();
