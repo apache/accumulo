@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Files;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -155,6 +156,9 @@ public class HadoopCredentialProviderTest {
   @Test
   public void createKeystoreProvider() throws Exception {
     java.nio.file.Path keystoreFile = tempDir.resolve("create.jks");
+    if (Files.exists(keystoreFile)) {
+      Files.delete(keystoreFile);
+    }
 
     String providerUrl = "jceks://file" + keystoreFile.toAbsolutePath();
     Configuration conf = new Configuration();
