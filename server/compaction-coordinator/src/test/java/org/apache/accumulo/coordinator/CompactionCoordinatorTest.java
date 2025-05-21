@@ -37,7 +37,6 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -139,12 +138,15 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {}
+    protected void startCompactionCleaner() {}
 
     @Override
-    protected CompactionFinalizer createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
+    protected CompactionFinalizer createCompactionFinalizer() {
       return null;
     }
+
+    @Override
+    protected void startRunningCleaner() {}
 
     @Override
     protected LiveTServerSet createLiveTServerSet() {
@@ -155,7 +157,7 @@ public class CompactionCoordinatorTest {
     protected void setupSecurity() {}
 
     @Override
-    protected void startGCLogger(ScheduledThreadPoolExecutor stpe) {}
+    protected void startGCLogger() {}
 
     @Override
     protected void printStartupMsg() {}

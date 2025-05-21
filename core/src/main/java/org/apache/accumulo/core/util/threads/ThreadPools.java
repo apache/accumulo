@@ -615,7 +615,7 @@ public class ThreadPools {
     @SuppressWarnings("deprecation")
     Property oldProp = Property.GENERAL_SIMPLETIMER_THREADPOOL_SIZE;
     Property prop = conf.resolve(Property.GENERAL_THREADPOOL_SIZE, oldProp);
-    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, true);
+    return (ScheduledThreadPoolExecutor) createExecutorService(conf, prop, false);
   }
 
   /**
