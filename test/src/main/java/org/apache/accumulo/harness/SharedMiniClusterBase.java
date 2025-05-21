@@ -28,16 +28,25 @@ import java.lang.StackWalker.StackFrame;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.cluster.ClusterUsers;
+import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotEmptyException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.conf.Configuration;
@@ -67,6 +76,7 @@ import org.slf4j.LoggerFactory;
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
   private static final Logger log = LoggerFactory.getLogger(SharedMiniClusterBase.class);
   public static final String TRUE = Boolean.toString(true);
+  protected static final AtomicBoolean STOP_DISABLED = new AtomicBoolean(false);
 
   private static String rootPassword;
   private static AuthenticationToken token;
@@ -86,8 +96,12 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    *
    * @param miniClusterCallback A callback to configure the minicluster before it is started.
    */
-  public static void startMiniClusterWithConfig(
+  public static synchronized void startMiniClusterWithConfig(
       MiniClusterConfigurationCallback miniClusterCallback) throws Exception {
+    if (cluster != null) {
+      return;
+    }
+
     File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
 
@@ -132,10 +146,48 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   /**
    * Stops the MiniAccumuloCluster and related services if they are running.
    */
-  public static void stopMiniCluster() {
+  public static synchronized void stopMiniCluster() {
+    if (STOP_DISABLED.get()) {
+      // If stop is disabled, then we are likely running a
+      // test class that is part of a larger suite. We don't
+      // want to shut down the cluster, but we should clean
+      // up any tables that were created, but not deleted,
+      // by the test class. This will prevent issues with
+      // subsequent tests that count objects or initiate
+      // compactions and wait for them, but some other table
+      // from a prior test is compacting.
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+        for (String tableName : client.tableOperations().list()) {
+          if (!tableName.startsWith(Namespace.ACCUMULO.name() + ".")) {
+            try {
+              client.tableOperations().delete(tableName);
+            } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+              log.error("Error deleting table {}", tableName, e);
+            }
+          }
+        }
+        try {
+          for (String namespaceName : client.namespaceOperations().list()) {
+            if (!namespaceName.equals(Namespace.ACCUMULO.name())
+                && !namespaceName.equals(Namespace.DEFAULT.name())) {
+              try {
+                client.namespaceOperations().delete(namespaceName);
+              } catch (AccumuloException | AccumuloSecurityException | NamespaceNotFoundException
+                  | NamespaceNotEmptyException e) {
+                log.error("Error deleting namespace {}", namespaceName, e);
+              }
+            }
+          }
+        } catch (AccumuloSecurityException | AccumuloException e) {
+          log.error("Error listing namespaces", e);
+        }
+      }
+      return;
+    }
     if (cluster != null) {
       try {
         cluster.stop();
+        cluster = null;
       } catch (Exception e) {
         log.error("Failed to stop minicluster", e);
       }

@@ -123,6 +123,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Joiner;
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -144,16 +145,18 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private final MiniAccumuloConfigImpl config;
   private final Supplier<Properties> clientProperties;
   private final SiteConfiguration siteConfig;
-  private final Supplier<ServerContext> context;
   private final AtomicReference<MiniDFSCluster> miniDFS = new AtomicReference<>();
   private final List<Process> cleanup = new ArrayList<>();
   private final MiniAccumuloClusterControl clusterControl;
+  private final Supplier<ServerContext> context;
+  private final AtomicBoolean serverContextCreated = new AtomicBoolean(false);
 
   private boolean initialized = false;
   private volatile ExecutorService executor;
   private ServiceLock miniLock;
   private ZooSession miniLockZk;
   private AccumuloClient client;
+  private volatile State clusterState = State.STOPPED;
 
   /**
    *
@@ -503,6 +506,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       justification = "insecure socket used for reservation")
   @Override
   public synchronized void start() throws IOException, InterruptedException {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot start a cluster that is terminated.");
+
     if (config.useMiniDFS() && miniDFS.get() == null) {
       throw new IllegalStateException("Cannot restart mini when using miniDFS");
     }
@@ -524,11 +530,14 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       if (!initialized) {
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
           try {
-            MiniAccumuloClusterImpl.this.stop();
-          } catch (IOException e) {
-            log.error("IOException while attempting to stop the MiniAccumuloCluster.", e);
+            if (clusterState != State.TERMINATED) {
+              MiniAccumuloClusterImpl.this.stop();
+              MiniAccumuloClusterImpl.this.terminate();
+            }
           } catch (InterruptedException e) {
             log.error("The stopping of MiniAccumuloCluster was interrupted.", e);
+          } catch (Exception e) {
+            log.error("Exception while attempting to stop the MiniAccumuloCluster.", e);
           }
         }));
       }
@@ -716,6 +725,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     verifyUp((ClientContext) client, iid);
 
     printProcessSummary();
+    clusterState = State.STARTED;
 
   }
 
@@ -925,6 +935,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public ServerContext getServerContext() {
+    serverContextCreated.set(true);
     return context.get();
   }
 
@@ -935,6 +946,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
    */
   @Override
   public synchronized void stop() throws IOException, InterruptedException {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
+
     if (executor == null) {
       // keep repeated calls to stop() from failing
       return;
@@ -970,7 +984,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     // is restarted, then the processes will start right away
     // and not wait for the old locks to be cleaned up.
     try {
-      new ZooZap().zap(getServerContext(), "-manager", "-tservers", "-compactors", "-sservers");
+      new ZooZap().zap(getServerContext(), "-manager", "-tservers", "-compactors", "-sservers",
+          "--gc");
     } catch (RuntimeException e) {
       if (!e.getMessage().startsWith("Accumulo not initialized")) {
         log.error("Error zapping zookeeper locks", e);
@@ -1015,6 +1030,22 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       p.waitFor();
     }
     miniDFS.set(null);
+    clusterState = State.STOPPED;
+  }
+
+  @Override
+  public synchronized void terminate() throws Exception {
+    Preconditions.checkState(clusterState != State.TERMINATED,
+        "Cannot stop a cluster that is terminated.");
+
+    if (clusterState != State.STOPPED) {
+      stop();
+    }
+
+    if (serverContextCreated.get()) {
+      getServerContext().close();
+    }
+    clusterState = State.TERMINATED;
   }
 
   /**

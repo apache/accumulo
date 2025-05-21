@@ -107,7 +107,7 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -558,11 +558,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           for (DataLevel dl : DataLevel.values()) {
             // prev row needed for the extent
             try (
-                var tabletsMetadata =
-                    ample.readTablets().forLevel(dl)
-                        .fetch(TabletMetadata.ColumnType.PREV_ROW,
-                            TabletMetadata.ColumnType.MIGRATION)
-                        .build();
+                var tabletsMetadata = ample.readTablets().forLevel(dl)
+                    .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
+                        TabletMetadata.ColumnType.LOCATION)
+                    .build();
                 var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
               for (var tabletMetadata : tabletsMetadata) {
                 var migration = tabletMetadata.getMigration();
@@ -587,7 +586,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Preconditions.checkState(migration != null,
         "This method should only be called if there is a migration");
     return tableState == TableState.OFFLINE || !onlineTabletServers().contains(migration)
-        || tabletMetadata.getLocation().getServerInstance().equals(migration);
+        || (tabletMetadata.getLocation() != null
+            && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
 
   private class ScanServerZKCleaner implements Runnable {
@@ -641,8 +641,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
-      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
+      try (
+          var tabletsMetadata = getContext()
+              .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
+                  TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
+              .build()) {
         // filter out migrations that are awaiting cleanup
         tabletsMetadata.stream()
             .filter(tm -> tm.getMigration() != null && !shouldCleanupMigration(tm))
@@ -1816,10 +1819,22 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   }
 
   void initializeBalancer() {
-    var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new TableLoadBalancer());
-    localTabletBalancer.init(balancerEnvironment);
-    tabletBalancer = localTabletBalancer;
+    try {
+      getContext().getPropStore().getCache().removeAll();
+      getConfiguration().invalidateCache();
+      log.debug("Attempting to reinitialize balancer using class {}",
+          getConfiguration().get(Property.MANAGER_TABLET_BALANCER));
+      var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
+          Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
+    } catch (Exception e) {
+      log.warn("Failed to create balancer {} using {} instead",
+          getConfiguration().get(Property.MANAGER_TABLET_BALANCER), DoNothingBalancer.class, e);
+      var localTabletBalancer = new DoNothingBalancer();
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
+    }
   }
 
   Class<?> getBalancerClass() {
