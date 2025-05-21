@@ -39,12 +39,12 @@ public class SslConnectionParams {
   private boolean clientAuth = false;
 
   private boolean keyStoreSet;
-  private String keyStorePath;
+  private Path keyStorePath;
   private String keyStorePass;
   private String keyStoreType;
 
   private boolean trustStoreSet;
-  private String trustStorePath;
+  private Path trustStorePath;
   private String trustStorePass;
   private String trustStoreType;
 
@@ -108,7 +108,7 @@ public class SslConnectionParams {
     return keystorePassword;
   }
 
-  private static String storePathFromConf(AccumuloConfiguration conf, Property pathProperty)
+  private static Path storePathFromConf(AccumuloConfiguration conf, Property pathProperty)
       throws FileNotFoundException {
     return findKeystore(conf.getPath(pathProperty));
   }
@@ -138,12 +138,12 @@ public class SslConnectionParams {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who providing the keystore file")
-  private static String findKeystore(String keystorePath) throws FileNotFoundException {
+  private static Path findKeystore(String keystorePath) throws FileNotFoundException {
     try {
       // first just try the file
       Path path = Path.of(keystorePath);
       if (Files.exists(path)) {
-        return path.toAbsolutePath().toString();
+        return path.toAbsolutePath();
       }
       if (!path.isAbsolute()) {
         // try classpath
@@ -151,7 +151,7 @@ public class SslConnectionParams {
         if (url != null) {
           path = Path.of(url.toURI());
           if (Files.exists(path)) {
-            return path.toAbsolutePath().toString();
+            return path.toAbsolutePath();
           }
         }
       }
@@ -189,7 +189,7 @@ public class SslConnectionParams {
     return keyStoreSet;
   }
 
-  public String getKeyStorePath() {
+  public Path getKeyStorePath() {
     return keyStorePath;
   }
 
@@ -208,7 +208,7 @@ public class SslConnectionParams {
     return trustStoreSet;
   }
 
-  public String getTrustStorePath() {
+  public Path getTrustStorePath() {
     return trustStorePath;
   }
 
@@ -231,10 +231,10 @@ public class SslConnectionParams {
     TSSLTransportParameters params = new TSSLTransportParameters(clientProtocol, cipherSuites);
     params.requireClientAuth(clientAuth);
     if (keyStoreSet) {
-      params.setKeyStore(keyStorePath, keyStorePass, null, keyStoreType);
+      params.setKeyStore(keyStorePath.toString(), keyStorePass, null, keyStoreType);
     }
     if (trustStoreSet) {
-      params.setTrustStore(trustStorePath, trustStorePass, null, trustStoreType);
+      params.setTrustStore(trustStorePath.toString(), trustStorePass, null, trustStoreType);
     }
     return params;
   }
