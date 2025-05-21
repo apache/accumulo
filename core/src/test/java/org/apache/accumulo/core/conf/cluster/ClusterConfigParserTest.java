@@ -56,7 +56,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     assertNotNull(configFile);
 
     Map<String,String> contents =
-        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()).toString());
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
     assertEquals(14, contents.size());
     assertTrue(contents.containsKey("manager"));
     assertEquals("localhost1 localhost2", contents.get("manager"));
@@ -113,7 +113,7 @@ public class ClusterConfigParserTest extends WithTestNames {
     testShellOutput(configFile -> {
       try {
         final Map<String,String> contents =
-            ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()).toString());
+            ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
         final File outputFile = tempDir.resolve(testName()).toFile();
         assertTrue(outputFile.createNewFile(), "Unable to create file in " + tempDir);
@@ -195,8 +195,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/bad-server-name.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -211,8 +211,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/bad-group-name.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(RuntimeException.class,
@@ -227,8 +227,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/bad-group-suffix.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -243,8 +243,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/too-many-levels.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -259,8 +259,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/cluster-missing-compactor-group.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -275,8 +275,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/cluster-missing-tserver-group.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
@@ -291,8 +291,8 @@ public class ClusterConfigParserTest extends WithTestNames {
         .getResource("/org/apache/accumulo/core/conf/cluster/2_1_cluster.yaml");
     assertNotNull(configFile);
 
-    Map<String,String> contents = ClusterConfigParser
-        .parseConfiguration(Path.of(configFile.toURI()).toAbsolutePath().toString());
+    Map<String,String> contents =
+        ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
     try (var baos = new ByteArrayOutputStream(); var ps = new PrintStream(baos)) {
       var exception = assertThrows(IllegalArgumentException.class,
