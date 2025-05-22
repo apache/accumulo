@@ -64,7 +64,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -773,9 +772,8 @@ public class TabletServer extends AbstractServer
       // any tablets that are moving between sets
       synchronized (openingTablets) {
         synchronized (onlineTablets) {
-          var cs = onlineTablets.snapshot().values().stream().map(Tablet::asCompactable)
-              .collect(Collectors.toList());
-          return new OpeningAndOnlineCompactables(Set.copyOf(openingTablets), cs);
+          return new OpeningAndOnlineCompactables(Set.copyOf(openingTablets),
+              onlineTablets.snapshot());
         }
       }
     };

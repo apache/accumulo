@@ -18,18 +18,19 @@
  */
 package org.apache.accumulo.tserver;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.tserver.compactions.Compactable;
+import org.apache.accumulo.tserver.tablet.Tablet;
 
 public class OpeningAndOnlineCompactables {
   public final Set<KeyExtent> opening;
-  public final Iterable<Compactable> open;
+  public final Map<KeyExtent,Tablet> online;
 
   public OpeningAndOnlineCompactables(Set<KeyExtent> openingSnapshot,
-      Iterable<Compactable> openSnapshot) {
+      Map<KeyExtent,Tablet> onlineSnapshot) {
     this.opening = openingSnapshot;
-    this.open = openSnapshot;
+    this.online = onlineSnapshot;
   }
 }

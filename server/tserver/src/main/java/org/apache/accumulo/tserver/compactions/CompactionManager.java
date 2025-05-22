@@ -129,7 +129,8 @@ public class CompactionManager {
           // an opening tablet could add itself to runningExternalCompactions after this code
           // obtained the snapshot of opening and online tablets and this code would remove it.
           var compactablesSnapshot = compactables.get();
-          for (Compactable compactable : compactablesSnapshot.open) {
+          for (Tablet tablet : compactablesSnapshot.online.values()) {
+            Compactable compactable = tablet.asCompactable();
             last = compactable;
             submitCompaction(compactable);
             // remove anything from snapshot that tablets know are running
