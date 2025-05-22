@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
+import java.util.SortedMap;
 import java.util.SortedSet;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -38,6 +39,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.TableOperationsHelper;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.user.VersioningIterator;
@@ -48,7 +50,7 @@ import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.collect.ImmutableSortedSet;
+import com.google.common.collect.ImmutableSortedMap;
 
 /**
  * This object stores table creation parameters. Currently includes: {@link TimeType}, whether to
@@ -71,7 +73,7 @@ public class NewTableConfiguration {
   private Map<String,String> summarizerProps = Collections.emptyMap();
   private Map<String,String> localityProps = Collections.emptyMap();
   private final Map<String,String> iteratorProps = new HashMap<>();
-  private SortedSet<Text> splitProps = Collections.emptySortedSet();
+  private SortedMap<Text,TabletMergeability> splitProps = Collections.emptySortedMap();
   private TabletAvailability initialTabletAvailability = TabletAvailability.ONDEMAND;
 
   private void checkDisjoint(Map<String,String> props, Map<String,String> derivedProps,
@@ -188,6 +190,18 @@ public class NewTableConfiguration {
    * @since 2.0.0
    */
   public Collection<Text> getSplits() {
+    return splitProps.keySet();
+  }
+
+  /**
+   * Return Collection of split values and associated TabletMergeability.
+   *
+   * @return Collection containing splits and TabletMergeability associated with this
+   *         NewTableConfiguration object.
+   *
+   * @since 4.0.0
+   */
+  public SortedMap<Text,TabletMergeability> getSplitsMap() {
     return splitProps;
   }
 
@@ -258,10 +272,17 @@ public class NewTableConfiguration {
    *
    * @since 2.0.0
    */
+  @SuppressWarnings("unchecked")
   public NewTableConfiguration withSplits(final SortedSet<Text> splits) {
     checkArgument(splits != null, "splits set is null");
     checkArgument(!splits.isEmpty(), "splits set is empty");
-    this.splitProps = ImmutableSortedSet.copyOf(splits);
+    return withSplits(TabletMergeabilityUtil.userDefaultSplits(splits));
+  }
+
+  public NewTableConfiguration withSplits(final SortedMap<Text,TabletMergeability> splits) {
+    checkArgument(splits != null, "splits set is null");
+    checkArgument(!splits.isEmpty(), "splits set is empty");
+    this.splitProps = ImmutableSortedMap.copyOf(splits);
     return this;
   }
 

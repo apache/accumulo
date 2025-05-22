@@ -28,6 +28,8 @@ import java.util.Optional;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.DataInputBuffer;
 
 public class FateKey {
@@ -117,8 +119,12 @@ public class FateKey {
     return new FateKey(FateKeyType.COMPACTION_COMMIT, compactionId);
   }
 
+  public static FateKey forMerge(KeyExtent extent) {
+    return new FateKey(FateKeyType.MERGE, extent);
+  }
+
   public enum FateKeyType {
-    SPLIT, COMPACTION_COMMIT
+    SPLIT, COMPACTION_COMMIT, MERGE
   }
 
   private static byte[] serialize(FateKeyType type, KeyExtent ke) {
@@ -149,6 +155,7 @@ public class FateKey {
       throws IOException {
     switch (type) {
       case SPLIT:
+      case MERGE:
         return Optional.of(KeyExtent.readFrom(buffer));
       case COMPACTION_COMMIT:
         return Optional.empty();
@@ -161,11 +168,21 @@ public class FateKey {
       DataInputBuffer buffer) throws IOException {
     switch (type) {
       case SPLIT:
+      case MERGE:
         return Optional.empty();
       case COMPACTION_COMMIT:
         return Optional.of(ExternalCompactionId.of(buffer.readUTF()));
       default:
         throw new IllegalStateException("Unexpected FateInstanceType found " + type);
     }
+  }
+
+  @Override
+  public String toString() {
+    var buf = new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE);
+    buf.append("FateKeyType", type);
+    keyExtent.ifPresentOrElse(keyExtent -> buf.append("KeyExtent", keyExtent),
+        () -> buf.append("ExternalCompactionID", compactionId.orElseThrow()));
+    return buf.toString();
   }
 }

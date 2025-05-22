@@ -33,11 +33,12 @@ import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +67,7 @@ public class ListInstances {
   static Opts opts = new Opts();
   static int errors = 0;
 
-  public static void main(String[] args) {
+  public static void main(String[] args) throws InterruptedException {
     opts.parseArgs(ListInstances.class.getName(), args);
 
     if (opts.keepers == null) {
@@ -79,43 +80,45 @@ public class ListInstances {
     boolean printErrors = opts.printErrors;
 
     listInstances(keepers, printAll, printErrors);
-
   }
 
-  static synchronized void listInstances(String keepers, boolean printAll, boolean printErrors) {
+  static synchronized void listInstances(String keepers, boolean printAll, boolean printErrors)
+      throws InterruptedException {
     errors = 0;
 
     System.out.println("INFO : Using ZooKeepers " + keepers);
-    ZooReader rdr = new ZooReader(keepers, ZOOKEEPER_TIMER_MILLIS);
-    ZooCache cache = new ZooCache(rdr, null);
+    try (var zk = new ZooSession(ListInstances.class.getSimpleName(), keepers,
+        ZOOKEEPER_TIMER_MILLIS, null)) {
+      ZooReader rdr = zk.asReader();
 
-    TreeMap<String,InstanceId> instanceNames = getInstanceNames(rdr, printErrors);
+      TreeMap<String,InstanceId> instanceNames = getInstanceNames(rdr, printErrors);
 
-    System.out.println();
-    printHeader();
+      System.out.println();
+      printHeader();
 
-    for (Entry<String,InstanceId> entry : instanceNames.entrySet()) {
-      printInstanceInfo(cache, entry.getKey(), entry.getValue(), printErrors);
-    }
-
-    TreeSet<InstanceId> instancedIds = getInstanceIDs(rdr, printErrors);
-    instancedIds.removeAll(instanceNames.values());
-
-    if (printAll) {
-      for (InstanceId uuid : instancedIds) {
-        printInstanceInfo(cache, null, uuid, printErrors);
+      for (Entry<String,InstanceId> entry : instanceNames.entrySet()) {
+        printInstanceInfo(zk, entry.getKey(), entry.getValue(), printErrors);
       }
-    } else if (!instancedIds.isEmpty()) {
-      System.out.println();
-      System.out.println("INFO : " + instancedIds.size()
-          + " unnamed instances were not printed, run with --print-all to see all instances");
-    } else {
-      System.out.println();
-    }
 
-    if (!printErrors && errors > 0) {
-      System.err.println(
-          "WARN : There were " + errors + " errors, run with --print-errors to see more info");
+      TreeSet<InstanceId> instancedIds = getInstanceIDs(rdr, printErrors);
+      instancedIds.removeAll(instanceNames.values());
+
+      if (printAll) {
+        for (InstanceId uuid : instancedIds) {
+          printInstanceInfo(zk, null, uuid, printErrors);
+        }
+      } else if (!instancedIds.isEmpty()) {
+        System.out.println();
+        System.out.println("INFO : " + instancedIds.size()
+            + " unnamed instances were not printed, run with --print-all to see all instances");
+      } else {
+        System.out.println();
+      }
+
+      if (!printErrors && errors > 0) {
+        System.err.println(
+            "WARN : There were " + errors + " errors, run with --print-errors to see more info");
+      }
     }
   }
 
@@ -143,9 +146,9 @@ public class ListInstances {
 
   }
 
-  private static void printInstanceInfo(ZooCache cache, String instanceName, InstanceId iid,
+  private static void printInstanceInfo(ZooSession zs, String instanceName, InstanceId iid,
       boolean printErrors) {
-    String manager = getManager(cache, iid, printErrors);
+    String manager = getManager(zs, iid, printErrors);
     if (instanceName == null) {
       instanceName = "";
     }
@@ -158,7 +161,7 @@ public class ListInstances {
         "\"" + instanceName + "\"", iid, manager);
   }
 
-  private static String getManager(ZooCache cache, InstanceId iid, boolean printErrors) {
+  private static String getManager(ZooSession zs, InstanceId iid, boolean printErrors) {
 
     if (iid == null) {
       return null;
@@ -166,8 +169,8 @@ public class ListInstances {
 
     try {
       var zLockManagerPath =
-          ServiceLock.path(Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK);
-      Optional<ServiceLockData> sld = ServiceLock.getLockData(cache, zLockManagerPath, null);
+          ServiceLockPaths.parse(Optional.of(Constants.ZMANAGER_LOCK), Constants.ZMANAGER_LOCK);
+      Optional<ServiceLockData> sld = ServiceLock.getLockData(zs, zLockManagerPath);
       if (sld.isEmpty()) {
         return null;
       }

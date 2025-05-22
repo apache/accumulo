@@ -137,12 +137,6 @@ public class ServiceStatusReportTest {
         new TreeSet<>(List.of("default", "rg1", "rg2")), sserverByGroup, 2);
     services.put(ServiceStatusReport.ReportKey.S_SERVER, scanServerSummary);
 
-    Map<String,Set<String>> coordinatorByGroup = new TreeMap<>();
-    coordinatorByGroup.put("default", new TreeSet<>(List.of("host4:9090", "host2:9091")));
-    StatusSummary coordinatorSummary = new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR,
-        Set.of(), coordinatorByGroup, 0);
-    services.put(ServiceStatusReport.ReportKey.COORDINATOR, coordinatorSummary);
-
     Map<String,Set<String>> compactorByGroup = new TreeMap<>();
     compactorByGroup.put("q2", new TreeSet<>(List.of("host5:8080", "host2:9090", "host4:9091")));
     compactorByGroup.put("q1", new TreeSet<>(List.of("host3:8080", "host1:9091")));

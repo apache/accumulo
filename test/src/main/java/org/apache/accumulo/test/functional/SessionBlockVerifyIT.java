@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -144,10 +145,8 @@ public class SessionBlockVerifyIT extends ScanSessionTimeOutIT {
         }
 
         int sessionsFound = 0;
-        // we have configured 1 tserver, so we can grab the one and only
-        String tserver = getOnlyElement(c.instanceOperations().getTabletServers());
-
-        final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tserver);
+        var tservers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
+        final List<ActiveScan> scans = c.instanceOperations().getActiveScans(tservers);
 
         for (ActiveScan scan : scans) {
           // only here to minimize chance of seeing meta extent scans

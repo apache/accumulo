@@ -19,17 +19,20 @@
 package org.apache.accumulo.test.fate;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.seedTransaction;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.lang.reflect.Method;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -40,6 +43,7 @@ import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.TableId;
@@ -47,7 +51,9 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateKey.FateKeyType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
@@ -55,7 +61,6 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT.TestRepo;
@@ -64,22 +69,9 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.base.Throwables;
 import com.google.common.collect.Sets;
 
 public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
-
-  private static final Method fsCreateByKeyMethod;
-
-  static {
-    try {
-      // Private method, need to capture for testing
-      fsCreateByKeyMethod = AbstractFateStore.class.getDeclaredMethod("create", FateKey.class);
-      fsCreateByKeyMethod.setAccessible(true);
-    } catch (NoSuchMethodException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   @Override
   protected Duration defaultTimeout() {
@@ -112,8 +104,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     assertEquals(TStatus.SUBMITTED, txStore.getStatus());
 
     // Set a name to test setTransactionInfo()
-    txStore.setTransactionInfo(TxInfo.TX_NAME, "name");
-    assertEquals("name", txStore.getTransactionInfo(TxInfo.TX_NAME));
+    txStore.setTransactionInfo(TxInfo.FATE_OP, TEST_FATE_OP);
+    assertEquals(TEST_FATE_OP, txStore.getTransactionInfo(TxInfo.FATE_OP));
 
     // Try setting a second test op to test getStack()
     // when listing or popping TestOperation2 should be first
@@ -205,7 +197,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     try {
       // Run and verify all 10 transactions still exist and were not
       // run because of the deferral time of all the transactions
-      future = executor.submit(() -> store.runnable(keepRunning, transactions::remove));
+      future = executor.submit(() -> store.runnable(keepRunning,
+          fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
       Thread.sleep(2000);
       assertEquals(10, transactions.size());
       // Setting this flag to false should terminate the task if sleeping
@@ -230,7 +223,8 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       // Run and verify all 11 transactions were processed
       // and removed from the store
       keepRunning.set(true);
-      future = executor.submit(() -> store.runnable(keepRunning, transactions::remove));
+      future = executor.submit(() -> store.runnable(keepRunning,
+          fateIdStatus -> transactions.remove(fateIdStatus.getFateId())));
       Wait.waitFor(transactions::isEmpty);
       // Setting this flag to false should terminate the task if sleeping
       keepRunning.set(false);
@@ -259,12 +253,14 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     executeTest(this::testListStatus);
   }
 
-  protected void testListStatus(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+  protected void testListStatus(FateStore<TestEnv> store, ServerContext sctx) {
     try {
       Map<FateId,TStatus> expectedStatus = new HashMap<>();
 
+      final EnumSet<TStatus> allStatuses = EnumSet.allOf(TStatus.class);
+
       for (int i = 0; i < 5; i++) {
-        for (var status : TStatus.values()) {
+        for (var status : allStatuses) {
           var fateId = store.create();
           var txStore = store.reserve(fateId);
           txStore.setStatus(status);
@@ -272,12 +268,15 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
           expectedStatus.put(fateId, status);
         }
       }
+      for (Set<TStatus> statuses : Sets.powerSet(allStatuses)) {
+        EnumSet<TStatus> enumSet =
+            statuses.isEmpty() ? EnumSet.noneOf(TStatus.class) : EnumSet.copyOf(statuses);
 
-      for (var statuses : Sets.powerSet(Set.of(TStatus.values()))) {
         var expected =
-            expectedStatus.entrySet().stream().filter(e -> statuses.contains(e.getValue()))
+            expectedStatus.entrySet().stream().filter(e -> enumSet.contains(e.getValue()))
                 .map(Map.Entry::getKey).collect(Collectors.toSet());
-        var actual = store.list(statuses).map(FateIdStatus::getFateId).collect(Collectors.toSet());
+
+        var actual = store.list(enumSet).map(FateIdStatus::getFateId).collect(Collectors.toSet());
         assertEquals(expected, actual);
       }
     } finally {
@@ -305,18 +304,22 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey2 =
         FateKey.forCompactionCommit(ExternalCompactionId.generate(UUID.randomUUID()));
 
-    FateTxStore<TestEnv> txStore1 = store.createAndReserve(fateKey1).orElseThrow();
-    FateTxStore<TestEnv> txStore2 = store.createAndReserve(fateKey2).orElseThrow();
+    var fateId1 =
+        seedTransaction(store, TEST_FATE_OP, fateKey1, new TestRepo(), true).orElseThrow();
+    var fateId2 =
+        seedTransaction(store, TEST_FATE_OP, fateKey2, new TestRepo(), true).orElseThrow();
 
-    assertNotEquals(txStore1.getID(), txStore2.getID());
+    assertNotEquals(fateId1, fateId2);
 
+    var txStore1 = store.reserve(fateId1);
+    var txStore2 = store.reserve(fateId2);
     try {
       assertTrue(txStore1.timeCreated() > 0);
-      assertEquals(TStatus.NEW, txStore1.getStatus());
+      assertEquals(TStatus.SUBMITTED, txStore1.getStatus());
       assertEquals(fateKey1, txStore1.getKey().orElseThrow());
 
       assertTrue(txStore2.timeCreated() > 0);
-      assertEquals(TStatus.NEW, txStore2.getStatus());
+      assertEquals(TStatus.SUBMITTED, txStore2.getStatus());
       assertEquals(fateKey2, txStore2.getKey().orElseThrow());
 
       assertEquals(2, store.list().count());
@@ -337,18 +340,17 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     KeyExtent ke =
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
-    // Creating with the same key should be fine if the status is NEW
-    // A second call to createAndReserve() should just return an empty optional
-    // since it's already in reserved and in progress
     FateKey fateKey = FateKey.forSplit(ke);
-    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
+    var fateId = seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
 
     // second call is empty
-    assertTrue(store.createAndReserve(fateKey).isEmpty());
+    assertTrue(seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).isEmpty());
+    assertFalse(store.seedTransaction(TEST_FATE_OP, fateId, new TestRepo(), true));
 
+    var txStore = store.reserve(fateId);
     try {
       assertTrue(txStore.timeCreated() > 0);
-      assertEquals(TStatus.NEW, txStore.getStatus());
+      assertEquals(TStatus.SUBMITTED, txStore.getStatus());
       assertEquals(fateKey, txStore.getKey().orElseThrow());
       assertEquals(1, store.list().count());
     } finally {
@@ -368,15 +370,16 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
     FateKey fateKey = FateKey.forSplit(ke);
 
-    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey).orElseThrow();
+    var fateId = seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
 
+    var txStore = store.reserve(fateId);
     try {
       assertTrue(txStore.timeCreated() > 0);
       txStore.setStatus(TStatus.IN_PROGRESS);
 
       // We have an existing transaction with the same key in progress
       // so should return an empty Optional
-      assertTrue(create(store, fateKey).isEmpty());
+      assertTrue(seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).isEmpty());
       assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
     } finally {
       txStore.setStatus(TStatus.SUCCESSFUL);
@@ -384,14 +387,21 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       txStore.unreserve(Duration.ZERO);
     }
 
+    txStore = null;
+
     try {
       // After deletion, make sure we can create again with the same key
-      txStore = store.createAndReserve(fateKey).orElseThrow();
+      var fateId2 =
+          seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
+      txStore = store.reserve(fateId);
+      assertEquals(fateId, fateId2);
       assertTrue(txStore.timeCreated() > 0);
-      assertEquals(TStatus.NEW, txStore.getStatus());
+      assertEquals(TStatus.SUBMITTED, txStore.getStatus());
     } finally {
-      txStore.delete();
-      txStore.unreserve(Duration.ZERO);
+      if (txStore != null) {
+        txStore.delete();
+        txStore.unreserve(Duration.ZERO);
+      }
     }
 
   }
@@ -401,8 +411,18 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     // Replace the default hashing algorithm with one that always returns the same tid so
     // we can check duplicate detection with different keys
     executeTest(this::testCreateWithKeyCollision, AbstractFateStore.DEFAULT_MAX_DEFERRED,
-        (instanceType, fateKey) -> FateId.from(instanceType,
-            UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8))));
+        new AbstractFateStore.FateIdGenerator() {
+          @Override
+          public FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey) {
+            return FateId.from(instanceType,
+                UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8)));
+          }
+
+          @Override
+          public FateId newRandomId(FateInstanceType instanceType) {
+            return FateId.from(instanceType, UUID.randomUUID());
+          }
+        });
   }
 
   protected void testCreateWithKeyCollision(FateStore<TestEnv> store, ServerContext sctx) {
@@ -413,12 +433,11 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     FateKey fateKey1 = FateKey.forSplit(ke1);
     FateKey fateKey2 = FateKey.forSplit(ke2);
 
-    FateTxStore<TestEnv> txStore = store.createAndReserve(fateKey1).orElseThrow();
+    var fateId1 =
+        seedTransaction(store, TEST_FATE_OP, fateKey1, new TestRepo(), true).orElseThrow();
+    var txStore = store.reserve(fateId1);
     try {
-      var e = assertThrows(IllegalStateException.class, () -> create(store, fateKey2));
-      assertEquals(
-          "Collision detected for tid " + UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8)),
-          e.getMessage());
+      assertTrue(seedTransaction(store, TEST_FATE_OP, fateKey2, new TestRepo(), true).isEmpty());
       assertEquals(fateKey1, txStore.getKey().orElseThrow());
     } finally {
       txStore.delete();
@@ -438,25 +457,193 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
 
     FateKey fateKey = FateKey.forSplit(ke);
-    FateId fateId = create(store, fateKey).orElseThrow();
+    var fateId = seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
 
-    // After create a fate transaction using a key we can simulate a collision with
-    // a random FateId by deleting the key out of Fate and calling create again to verify
-    // it detects the key is missing. Then we can continue and see if we can still reserve
-    // and use the existing transaction, which we should.
+    // After seeding a fate transaction using a key we can simulate a collision with
+    // a random FateId by deleting the key out of Fate and calling seed again to
+    // verify it detects the key is missing. Then we can continue and see if we can still use
+    // the existing transaction.
     deleteKey(fateId, sctx);
-    var e = assertThrows(IllegalStateException.class, () -> store.createAndReserve(fateKey));
-    assertEquals("Tx Key is missing from tid " + fateId.getTxUUIDStr(), e.getMessage());
+    assertTrue(seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).isEmpty());
 
-    // We should still be able to reserve and continue when not using a key
-    // just like a normal transaction
-    FateTxStore<TestEnv> txStore = store.reserve(fateId);
+    var txStore = store.reserve(fateId);
+    // We should still be able to use the existing transaction
     try {
       assertTrue(txStore.timeCreated() > 0);
-      assertEquals(TStatus.NEW, txStore.getStatus());
+      assertEquals(TStatus.SUBMITTED, txStore.getStatus());
     } finally {
       txStore.delete();
       txStore.unreserve(Duration.ZERO);
+    }
+  }
+
+  public static final UUID DUPLICATE_UUID = UUID.randomUUID();
+
+  public static final List<UUID> UUIDS = List.of(DUPLICATE_UUID, DUPLICATE_UUID, UUID.randomUUID());
+
+  @Test
+  public void testCreate() throws Exception {
+    AtomicInteger index = new AtomicInteger(0);
+    executeTest(this::testCreate, AbstractFateStore.DEFAULT_MAX_DEFERRED,
+        new AbstractFateStore.FateIdGenerator() {
+          @Override
+          public FateId fromTypeAndKey(FateInstanceType instanceType, FateKey fateKey) {
+            return FateId.from(instanceType,
+                UUID.nameUUIDFromBytes("testing uuid".getBytes(UTF_8)));
+          }
+
+          @Override
+          public FateId newRandomId(FateInstanceType instanceType) {
+            return FateId.from(instanceType, UUIDS.get(index.getAndIncrement() % UUIDS.size()));
+          }
+        });
+  }
+
+  protected void testCreate(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+
+    var fateId1 = store.create();
+    assertEquals(UUIDS.get(0), fateId1.getTxUUID());
+
+    // This UUIDS[1] should collide with UUIDS[0] and then the code should retry and end up UUIDS[2]
+    var fateId2 = store.create();
+    assertEquals(UUIDS.get(2), fateId2.getTxUUID());
+
+    for (var fateId : List.of(fateId1, fateId2)) {
+      var txStore = store.reserve(fateId);
+      try {
+        assertEquals(TStatus.NEW, txStore.getStatus());
+        assertTrue(txStore.timeCreated() > 0);
+        assertNull(txStore.top());
+        assertTrue(txStore.getKey().isEmpty());
+        assertEquals(fateId, txStore.getID());
+        assertTrue(txStore.getStack().isEmpty());
+      } finally {
+        txStore.unreserve(Duration.ZERO);
+      }
+    }
+
+    assertEquals(Set.of(fateId1, fateId2),
+        store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+
+    var txStore = store.reserve(fateId2);
+    try {
+      txStore.delete();
+    } finally {
+      txStore.unreserve(Duration.ZERO);
+    }
+
+    assertEquals(Set.of(fateId1),
+        store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+
+    txStore = store.reserve(fateId1);
+    try {
+      txStore.setStatus(TStatus.SUBMITTED);
+      txStore.setStatus(TStatus.IN_PROGRESS);
+      txStore.push(new TestRepo());
+    } finally {
+      txStore.unreserve(Duration.ZERO);
+    }
+
+    assertEquals(Set.of(fateId1),
+        store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+
+    // should collide again with the first fate id and go to the second
+    fateId2 = store.create();
+    assertEquals(UUIDS.get(2), fateId2.getTxUUID());
+
+    assertEquals(Set.of(fateId1, fateId2),
+        store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+
+    // ensure fateId1 was not altered in anyway by creating fateid2 when it collided
+    txStore = store.reserve(fateId1);
+    try {
+      assertEquals(TStatus.IN_PROGRESS, txStore.getStatus());
+      assertNotNull(txStore.top());
+      txStore.forceDelete();
+    } finally {
+      txStore.unreserve(Duration.ZERO);
+    }
+
+    assertEquals(Set.of(fateId2),
+        store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+
+    txStore = store.reserve(fateId2);
+    try {
+      assertEquals(TStatus.NEW, txStore.getStatus());
+      txStore.delete();
+    } finally {
+      txStore.unreserve(Duration.ZERO);
+    }
+
+    // should be able to recreate something at the same id
+    fateId1 = store.create();
+    assertEquals(UUIDS.get(0), fateId1.getTxUUID());
+    txStore = store.reserve(fateId1);
+    try {
+      assertEquals(TStatus.NEW, txStore.getStatus());
+      assertTrue(txStore.timeCreated() > 0);
+      assertNull(txStore.top());
+      assertTrue(txStore.getKey().isEmpty());
+      assertEquals(fateId1, txStore.getID());
+      assertTrue(txStore.getStack().isEmpty());
+      txStore.delete();
+    } finally {
+      txStore.unreserve(Duration.ZERO);
+    }
+
+    assertEquals(Set.of(), store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
+
+  }
+
+  @Test
+  public void testConcurrent() throws Exception {
+    executeTest(this::testConcurrent);
+  }
+
+  protected void testConcurrent(FateStore<TestEnv> store, ServerContext sctx) throws Exception {
+    KeyExtent ke =
+        new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
+    FateKey fateKey = FateKey.forSplit(ke);
+
+    var executor = Executors.newFixedThreadPool(10);
+    try {
+      // have 10 threads all try to seed the same fate key, only one should succeed.
+      List<Future<Optional<FateId>>> futures = new ArrayList<>(10);
+      for (int i = 0; i < 10; i++) {
+        futures.add(executor
+            .submit(() -> seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true)));
+      }
+
+      int idsSeen = 0;
+      for (var future : futures) {
+        if (future.get().isPresent()) {
+          idsSeen++;
+        }
+      }
+
+      assertEquals(1, idsSeen);
+      assertEquals(1, store.list(FateKey.FateKeyType.SPLIT).count());
+      // All other types should be a count of 0
+      Arrays.stream(FateKeyType.values()).filter(t -> !t.equals(FateKey.FateKeyType.SPLIT))
+          .forEach(t -> assertEquals(0, store.list(t).count()));
+
+      for (var future : futures) {
+        if (future.get().isPresent()) {
+          var txStore = store.reserve(future.get().orElseThrow());
+          try {
+            txStore.delete();
+          } finally {
+            txStore.unreserve(Duration.ZERO);
+          }
+        }
+      }
+
+      // All types should be a count of 0
+      assertTrue(
+          Arrays.stream(FateKeyType.values()).allMatch(t -> store.list(t).findAny().isEmpty()));
+
+    } finally {
+      executor.shutdown();
     }
 
   }
@@ -468,19 +655,19 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
   protected void testAbsent(FateStore<TestEnv> store, ServerContext sctx) {
     // Ensure both store implementations have consistent behavior when reading a fateId that does
-    // not exists.
+    // not exist.
 
     var fateId = FateId.from(store.type(), UUID.randomUUID());
     var txStore = store.read(fateId);
 
+    assertTrue(store.tryReserve(fateId).isEmpty());
     assertEquals(TStatus.UNKNOWN, txStore.getStatus());
     assertNull(txStore.top());
-    assertNull(txStore.getTransactionInfo(TxInfo.TX_NAME));
+    assertNull(txStore.getTransactionInfo(TxInfo.FATE_OP));
     assertEquals(0, txStore.timeCreated());
     assertEquals(Optional.empty(), txStore.getKey());
     assertEquals(fateId, txStore.getID());
     assertEquals(List.of(), txStore.getStack());
-    assertEquals(new Pair<>(TStatus.UNKNOWN, Optional.empty()), txStore.getStatusAndKey());
   }
 
   @Test
@@ -496,6 +683,7 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     TableId tid1 = TableId.of("test");
     var extent1 = new KeyExtent(tid1, new Text("m"), null);
     var extent2 = new KeyExtent(tid1, null, new Text("m"));
+    var extent3 = new KeyExtent(tid1, new Text("z"), new Text("m"));
     var fateKey1 = FateKey.forSplit(extent1);
     var fateKey2 = FateKey.forSplit(extent2);
 
@@ -507,21 +695,25 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
     var fateKey3 = FateKey.forCompactionCommit(cid1);
     var fateKey4 = FateKey.forCompactionCommit(cid2);
 
+    // use one overlapping extent and one different
+    var fateKey5 = FateKey.forMerge(extent1);
+    var fateKey6 = FateKey.forMerge(extent3);
+
     Map<FateKey,FateId> fateKeyIds = new HashMap<>();
-    for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4)) {
-      var fateTx = store.createAndReserve(fateKey).orElseThrow();
-      fateKeyIds.put(fateKey, fateTx.getID());
-      fateTx.unreserve(Duration.ZERO);
+    for (FateKey fateKey : List.of(fateKey1, fateKey2, fateKey3, fateKey4, fateKey5, fateKey6)) {
+      var fateId =
+          seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true).orElseThrow();
+      fateKeyIds.put(fateKey, fateId);
     }
 
     HashSet<FateId> allIds = new HashSet<>();
     allIds.addAll(fateKeyIds.values());
     allIds.add(id1);
     assertEquals(allIds, store.list().map(FateIdStatus::getFateId).collect(Collectors.toSet()));
-    assertEquals(5, allIds.size());
+    assertEquals(7, allIds.size());
 
-    assertEquals(4, fateKeyIds.size());
-    assertEquals(4, fateKeyIds.values().stream().distinct().count());
+    assertEquals(6, fateKeyIds.size());
+    assertEquals(6, fateKeyIds.values().stream().distinct().count());
 
     HashSet<KeyExtent> seenExtents = new HashSet<>();
     store.list(FateKey.FateKeyType.SPLIT).forEach(fateKey -> {
@@ -529,9 +721,18 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
       assertNotNull(fateKeyIds.remove(fateKey));
       assertTrue(seenExtents.add(fateKey.getKeyExtent().orElseThrow()));
     });
-
-    assertEquals(2, fateKeyIds.size());
+    assertEquals(4, fateKeyIds.size());
     assertEquals(Set.of(extent1, extent2), seenExtents);
+
+    // clear set as one overlaps
+    seenExtents.clear();
+    store.list(FateKeyType.MERGE).forEach(fateKey -> {
+      assertEquals(FateKey.FateKeyType.MERGE, fateKey.getType());
+      assertNotNull(fateKeyIds.remove(fateKey));
+      assertTrue(seenExtents.add(fateKey.getKeyExtent().orElseThrow()));
+    });
+    assertEquals(2, fateKeyIds.size());
+    assertEquals(Set.of(extent1, extent3), seenExtents);
 
     HashSet<ExternalCompactionId> seenCids = new HashSet<>();
     store.list(FateKey.FateKeyType.COMPACTION_COMMIT).forEach(fateKey -> {
@@ -542,20 +743,10 @@ public abstract class FateStoreIT extends SharedMiniClusterBase implements FateT
 
     assertEquals(0, fateKeyIds.size());
     assertEquals(Set.of(cid1, cid2), seenCids);
+
     // Cleanup so we don't interfere with other tests
     store.list()
         .forEach(fateIdStatus -> store.tryReserve(fateIdStatus.getFateId()).orElseThrow().delete());
-  }
-
-  // create(fateKey) method is private so expose for testing to check error states
-  @SuppressWarnings("unchecked")
-  protected Optional<FateId> create(FateStore<TestEnv> store, FateKey fateKey) throws Exception {
-    try {
-      return (Optional<FateId>) fsCreateByKeyMethod.invoke(store, fateKey);
-    } catch (Exception e) {
-      Exception rootCause = (Exception) Throwables.getRootCause(e);
-      throw rootCause;
-    }
   }
 
   protected abstract void deleteKey(FateId fateId, ServerContext sctx);

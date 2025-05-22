@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,6 +36,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ConfigSetIT extends SharedMiniClusterBase {
   @BeforeAll
   public static void setup() throws Exception {
@@ -49,7 +51,6 @@ public class ConfigSetIT extends SharedMiniClusterBase {
   private static final Logger log = LoggerFactory.getLogger(ConfigSetIT.class);
 
   @Test
-  @SuppressWarnings("deprecation")
   public void setInvalidJson() throws Exception {
     log.debug("Starting setInvalidJson test ------------------");
 
@@ -64,6 +65,7 @@ public class ConfigSetIT extends SharedMiniClusterBase {
           validJson);
       assertThrows(AccumuloException.class, () -> client.instanceOperations()
           .setProperty(MONITOR_RESOURCES_EXTERNAL.getKey(), invalidJson));
+      client.instanceOperations().removeProperty(COMPACTION_SERVICE_DEFAULT_GROUPS.getKey());
 
     }
   }

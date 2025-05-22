@@ -35,9 +35,6 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -54,13 +51,12 @@ import org.apache.accumulo.core.dataImpl.thrift.TRowRange;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaries;
 import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -78,17 +74,18 @@ import org.apache.accumulo.core.tabletserver.thrift.ActiveCompaction;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
 import org.apache.thrift.TException;
 import org.apache.thrift.TMultiplexedProcessor;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.ZooKeeper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -270,7 +267,7 @@ public class NullTserver {
 
     @Override
     public Map<TKeyExtent,Long> allocateTimestamps(TInfo tinfo, TCredentials credentials,
-        List<TKeyExtent> tablets, int numStamps) throws TException {
+        List<TKeyExtent> tablets) throws TException {
       return Map.of();
     }
   }
@@ -295,7 +292,7 @@ public class NullTserver {
     int zkTimeOut =
         (int) DefaultConfiguration.getInstance().getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
     var siteConfig = SiteConfiguration.auto();
-    ServerContext context = ServerContext.override(siteConfig, opts.iname, opts.keepers, zkTimeOut);
+    var context = ServerContext.forTesting(siteConfig, opts.iname, opts.keepers, zkTimeOut);
     ClientServiceHandler csh = new ClientServiceHandler(context);
     NullTServerTabletClientHandler tch = new NullTServerTabletClientHandler();
 
@@ -317,10 +314,12 @@ public class NullTserver {
             TabletManagementClientService.Processor.class,
             TabletManagementClientService.Iface.class, tch, context));
 
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
-        muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
-        10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
-        context.getMetricsInfo(), false, HostAndPort.fromParts("0.0.0.0", opts.port));
+    ServerAddress sa = TServerUtils.createThriftServer(context.getConfiguration(),
+        ThriftServerType.CUSTOM_HS_HA, muxProcessor, "NullTServer", 2,
+        ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
+        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
+        HostAndPort.fromParts("0.0.0.0", opts.port));
+    sa.startThriftServer("null tserver");
 
     AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
@@ -347,30 +346,22 @@ public class NullTserver {
 
     ServiceLock miniLock = null;
     try {
-      ZooKeeper zk = context.getZooReaderWriter().getZooKeeper();
+      ZooSession zk = context.getZooSession();
       UUID nullTServerUUID = UUID.randomUUID();
-      String miniZDirPath = context.getZooKeeperRoot() + "/mini";
-      String miniZInstancePath = miniZDirPath + "/" + nullTServerUUID.toString();
+      ServiceLockPath slp = context.getServerPaths().createMiniPath(nullTServerUUID.toString());
       try {
-        context.getZooReaderWriter().putPersistentData(miniZDirPath, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP);
-        context.getZooReaderWriter().putPersistentData(miniZInstancePath, new byte[0],
-            ZooUtil.NodeExistsPolicy.SKIP);
+        zk.asReaderWriter().mkdirs(slp.toString());
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockPath path = ServiceLock.path(miniZInstancePath);
       ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
           Constants.DEFAULT_RESOURCE_GROUP_NAME);
-      miniLock = new ServiceLock(zk, path, UUID.randomUUID());
+      miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
       context.setServiceLock(miniLock);
       HostAndPort addr = HostAndPort.fromParts(InetAddress.getLocalHost().getHostName(), opts.port);
 
-      TableId tableId = context.getTableId(opts.tableName);
-
       // read the locations for the table
-      Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
       List<Assignment> assignments = new ArrayList<>();
       try (var tablets = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
         long randomSessionID = opts.port;
@@ -383,7 +374,6 @@ public class NullTserver {
         }
       }
       // point them to this server
-      final ServiceLock lock = miniLock;
       TabletStateStore store = TabletStateStore.getStoreForLevel(DataLevel.USER, context);
       store.setLocations(assignments);
 

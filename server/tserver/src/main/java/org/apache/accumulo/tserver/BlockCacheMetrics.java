@@ -18,6 +18,16 @@
  */
 package org.apache.accumulo.tserver;
 
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_DATA_EVICTIONCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_DATA_HITCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_DATA_REQUESTCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_INDEX_EVICTIONCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_INDEX_HITCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_INDEX_REQUESTCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_SUMMARY_EVICTIONCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_SUMMARY_HITCOUNT;
+import static org.apache.accumulo.core.metrics.Metric.BLOCKCACHE_SUMMARY_REQUESTCOUNT;
+
 import java.util.function.ToDoubleFunction;
 
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -44,26 +54,27 @@ public class BlockCacheMetrics implements MetricsProducer {
     ToDoubleFunction<BlockCache> getRequestCount = cache -> cache.getStats().requestCount();
     ToDoubleFunction<BlockCache> getEvictionCount = cache -> cache.getStats().evictionCount();
 
-    FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_HITCOUNT, indexCache, getHitCount)
-        .description("Index block cache hit count").register(registry);
-    FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_REQUESTCOUNT, indexCache, getRequestCount)
-        .description("Index block cache request count").register(registry);
-    FunctionCounter.builder(METRICS_BLOCKCACHE_INDEX_EVICTIONCOUNT, indexCache, getEvictionCount)
-        .description("Index block cache eviction count").register(registry);
+    FunctionCounter.builder(BLOCKCACHE_INDEX_HITCOUNT.getName(), indexCache, getHitCount)
+        .description(BLOCKCACHE_INDEX_HITCOUNT.getDescription()).register(registry);
+    FunctionCounter.builder(BLOCKCACHE_INDEX_REQUESTCOUNT.getName(), indexCache, getRequestCount)
+        .description(BLOCKCACHE_INDEX_REQUESTCOUNT.getDescription()).register(registry);
+    FunctionCounter.builder(BLOCKCACHE_INDEX_EVICTIONCOUNT.getName(), indexCache, getEvictionCount)
+        .description(BLOCKCACHE_INDEX_EVICTIONCOUNT.getDescription()).register(registry);
 
-    FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_HITCOUNT, dataCache, getHitCount)
-        .description("Data block cache hit count").register(registry);
-    FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_REQUESTCOUNT, dataCache, getRequestCount)
-        .description("Data block cache request count").register(registry);
-    FunctionCounter.builder(METRICS_BLOCKCACHE_DATA_EVICTIONCOUNT, dataCache, getEvictionCount)
-        .description("Data block cache eviction count").register(registry);
+    FunctionCounter.builder(BLOCKCACHE_DATA_HITCOUNT.getName(), dataCache, getHitCount)
+        .description(BLOCKCACHE_DATA_HITCOUNT.getDescription()).register(registry);
+    FunctionCounter.builder(BLOCKCACHE_DATA_REQUESTCOUNT.getName(), dataCache, getRequestCount)
+        .description(BLOCKCACHE_DATA_REQUESTCOUNT.getDescription()).register(registry);
+    FunctionCounter.builder(BLOCKCACHE_DATA_EVICTIONCOUNT.getName(), dataCache, getEvictionCount)
+        .description(BLOCKCACHE_DATA_EVICTIONCOUNT.getDescription()).register(registry);
 
-    FunctionCounter.builder(METRICS_BLOCKCACHE_SUMMARY_HITCOUNT, summaryCache, getHitCount)
-        .description("Summary block cache hit count").register(registry);
-    FunctionCounter.builder(METRICS_BLOCKCACHE_SUMMARY_REQUESTCOUNT, summaryCache, getRequestCount)
-        .description("Summary block cache request count").register(registry);
+    FunctionCounter.builder(BLOCKCACHE_SUMMARY_HITCOUNT.getName(), summaryCache, getHitCount)
+        .description(BLOCKCACHE_SUMMARY_HITCOUNT.getDescription()).register(registry);
     FunctionCounter
-        .builder(METRICS_BLOCKCACHE_SUMMARY_EVICTIONCOUNT, summaryCache, getEvictionCount)
-        .description("Summary block cache eviction count").register(registry);
+        .builder(BLOCKCACHE_SUMMARY_REQUESTCOUNT.getName(), summaryCache, getRequestCount)
+        .description(BLOCKCACHE_SUMMARY_REQUESTCOUNT.getDescription()).register(registry);
+    FunctionCounter
+        .builder(BLOCKCACHE_SUMMARY_EVICTIONCOUNT.getName(), summaryCache, getEvictionCount)
+        .description(BLOCKCACHE_SUMMARY_EVICTIONCOUNT.getDescription()).register(registry);
   }
 }

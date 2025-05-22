@@ -26,17 +26,16 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
-import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -86,12 +85,9 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
   public void testRefRemovalOnShutdown() throws Exception {
 
     ServerContext ctx = getCluster().getServerContext();
-    String zooRoot = ctx.getZooKeeperRoot();
-    ZooReaderWriter zrw = ctx.getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
 
-    // Wait for the ScanServer to register in ZK
-    Wait.waitFor(() -> zrw.getChildren(scanServerRoot).size() == 1);
+    Wait.waitFor(() -> !ctx.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
+        .isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -120,7 +116,8 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       }
 
       // ScanServer should stop after the 3rd batch scan closes
-      Wait.waitFor(() -> ((ClientContext) client).getScanServers().size() == 0);
+      Wait.waitFor(
+          () -> client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
 
       // The ScanServer should clean up the references on normal shutdown
       Wait.waitFor(() -> ctx.getAmple().scanServerRefs().list().count() == 0);

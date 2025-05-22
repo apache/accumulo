@@ -51,8 +51,10 @@ public class SelectedFiles {
 
   private String metadataValue;
 
-  private static final Gson GSON = new GsonBuilder()
-      .registerTypeAdapter(SelectedFiles.class, new SelectedFilesTypeAdapter()).create();
+  // This class does not need a default constructor because there is a custom TypeAdapter
+  private static final Gson GSON =
+      new GsonBuilder().registerTypeAdapter(SelectedFiles.class, new SelectedFilesTypeAdapter())
+          .disableJdkUnsafe().create();
 
   public SelectedFiles(Set<StoredTabletFile> files, boolean initiallySelectedAll, FateId fateId,
       SteadyTime selectedTime) {

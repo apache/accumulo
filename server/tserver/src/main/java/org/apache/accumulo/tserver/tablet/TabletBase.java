@@ -42,8 +42,8 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.YieldCallback;
 import org.apache.accumulo.core.iteratorsImpl.system.IterationInterruptedException;
 import org.apache.accumulo.core.iteratorsImpl.system.SourceSwitchingIterator;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -93,7 +93,7 @@ public abstract class TabletBase {
     this.context = server.getContext();
     this.server = server;
     this.extent = extent;
-    this.isUserTable = !AccumuloTable.allTableIds().contains(extent.tableId());
+    this.isUserTable = !SystemTables.containsTableId(extent.tableId());
 
     TableConfiguration tblConf = context.getTableConfiguration(extent.tableId());
     if (tblConf == null) {
@@ -110,6 +110,15 @@ public abstract class TabletBase {
       defaultSecurityLabel = tableConfiguration.newDeriver(
           conf -> new ColumnVisibility(conf.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY))
               .getExpression());
+    }
+  }
+
+  protected boolean disallowNewReservations(ScanParameters scanParameters) {
+    var scanSessId = scanParameters.getScanSessionId();
+    if (scanSessId != null) {
+      return server.getSessionManager().disallowNewReservations(scanSessId);
+    } else {
+      return true;
     }
   }
 

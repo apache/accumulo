@@ -47,18 +47,18 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
   @BeforeEach
   public void setup() throws Exception {
 
-    File folder1 = new File(tempFolder, testName() + "_1");
+    File folder1 = tempFolder.toPath().resolve(testName() + "_1").toFile();
     assertTrue(folder1.isDirectory() || folder1.mkdir(), "Failed to make a new sub-directory");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo.properties")),
-        new File(folder1, "accumulo.properties"));
-    uri1 = new File(folder1, "accumulo.properties").toURI().toString();
+        folder1.toPath().resolve("accumulo.properties").toFile());
+    uri1 = folder1.toPath().resolve("accumulo.properties").toFile().toURI().toString();
 
-    File folder2 = new File(tempFolder, testName() + "_2");
+    File folder2 = tempFolder.toPath().resolve(testName() + "_2").toFile();
     assertTrue(folder2.isDirectory() || folder2.mkdir(), "Failed to make a new sub-directory");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo2.properties")),
-        new File(folder2, "accumulo2.properties"));
+        folder2.toPath().resolve("accumulo2.properties").toFile());
     uri2 = folder2.toURI() + ".*";
 
   }

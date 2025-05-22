@@ -52,6 +52,10 @@
       <artifactId>gson</artifactId>
     </dependency>
     <dependency>
+      <groupId>com.google.flatbuffers</groupId>
+      <artifactId>flatbuffers-java</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
       <exclusions>
@@ -373,7 +377,7 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/server-properties3.md</argument>
+                <argument>${project.build.directory}/generated-docs/server-properties.md</argument>
               </arguments>
             </configuration>
           </execution>
@@ -388,7 +392,22 @@
               <classpathScope>test</classpathScope>
               <arguments>
                 <argument>--generate-markdown</argument>
-                <argument>${project.build.directory}/generated-docs/client-properties3.md</argument>
+                <argument>${project.build.directory}/generated-docs/client-properties.md</argument>
+              </arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>metrics-markdown</id>
+            <goals>
+              <goal>java</goal>
+            </goals>
+            <phase>package</phase>
+            <configuration>
+              <mainClass>org.apache.accumulo.core.metrics.MetricsDocGen</mainClass>
+              <classpathScope>test</classpathScope>
+              <arguments>
+                <argument>--generate-markdown</argument>
+                <argument>${project.build.directory}/generated-docs/metrics.md</argument>
               </arguments>
             </configuration>
           </execution>

@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.manager;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.spi.balancer.TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -47,6 +48,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
@@ -107,7 +109,6 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
   @BeforeEach
   public void setUp() throws Exception {
-
     MiniAccumuloClusterImpl mac = (MiniAccumuloClusterImpl) getCluster();
     ProcessReference defaultTabletServer =
         mac.getProcesses().get(ServerType.TABLET_SERVER).iterator().next();
@@ -196,7 +197,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
       }
       log.info("Creating table " + tableName);
       Map<String,String> properties = new HashMap<>();
-      properties.put("table.custom.assignment.group", TEST_GROUP_NAME);
+      properties.put(TABLE_ASSIGNMENT_GROUP_PROPERTY, TEST_GROUP_NAME);
       properties.put(Property.TABLE_SUSPEND_DURATION.getKey(), action.suspendTime);
 
       NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splitPoints)
@@ -317,7 +318,8 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
 
       try (AccumuloClient client =
           Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
-        Wait.waitFor(() -> client.instanceOperations().getTabletServers().size() == 1);
+        Wait.waitFor(
+            () -> client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
       }
 
     }

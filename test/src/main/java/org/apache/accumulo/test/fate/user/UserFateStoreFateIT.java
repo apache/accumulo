@@ -19,7 +19,8 @@
 package org.apache.accumulo.test.fate.user;
 
 import static org.apache.accumulo.core.fate.user.UserFateStore.getRowId;
-import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
+import static org.apache.accumulo.test.fate.FateTestUtil.createFateTable;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -31,12 +32,15 @@ import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateStoreIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class UserFateStoreFateIT extends FateStoreIT {
 
   @BeforeAll
@@ -56,8 +60,8 @@ public class UserFateStoreFateIT extends FateStoreIT {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, maxDeferred, fateIdGenerator),
-          getCluster().getServerContext());
+      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
+          fateIdGenerator), getCluster().getServerContext());
     }
   }
 

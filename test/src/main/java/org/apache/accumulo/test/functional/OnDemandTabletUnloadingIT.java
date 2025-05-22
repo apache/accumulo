@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metrics.Metric.TSERVER_TABLETS_ONLINE_ONDEMAND;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -41,13 +42,11 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -82,7 +81,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
           }
           if (line.startsWith("accumulo")) {
             TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
-            if (MetricsProducer.METRICS_TSERVER_TABLETS_ONLINE_ONDEMAND.equals(metric.getName())) {
+            if (TSERVER_TABLETS_ONLINE_ONDEMAND.getName().equals(metric.getName())) {
               Long val = Long.parseLong(metric.getValue());
               System.out.println(val);
               ONDEMAND_ONLINE_COUNT = val;
@@ -147,7 +146,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be no tablets online
       List<TabletStats> stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(0, stats.size());
-      assertEquals(0, ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+      assertEquals(0, ((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
           .getTabletHostingRequestCount());
       assertEquals(0, ONDEMAND_ONLINE_COUNT);
 
@@ -158,7 +157,7 @@ public class OnDemandTabletUnloadingIT extends SharedMiniClusterBase {
       // There should be four tablets online
       stats = ManagerAssignmentIT.getTabletStats(c, tableId);
       assertEquals(4, stats.size());
-      assertTrue(ClientTabletCache.getInstance((ClientContext) c, TableId.of(tableId))
+      assertTrue(((ClientContext) c).getTabletLocationCache(TableId.of(tableId))
           .getTabletHostingRequestCount() > 0);
       Wait.waitFor(() -> ONDEMAND_ONLINE_COUNT == 4);
 

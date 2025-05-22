@@ -36,8 +36,8 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.manager.state.TabletManagement;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -75,7 +75,7 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
     Preconditions.checkArgument(parameters.getLevel() == getLevel());
 
     final TabletIteratorEnvironment env = new TabletIteratorEnvironment(ctx, IteratorScope.scan,
-        ctx.getTableConfiguration(AccumuloTable.ROOT.tableId()), AccumuloTable.ROOT.tableId());
+        ctx.getTableConfiguration(SystemTables.ROOT.tableId()), SystemTables.ROOT.tableId());
     final TabletManagementIterator tmi = new TabletManagementIterator();
     final AtomicBoolean closed = new AtomicBoolean(false);
 

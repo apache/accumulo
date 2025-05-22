@@ -32,7 +32,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SystemCredentials;
@@ -79,11 +79,11 @@ public class SystemCredentialsIT extends ConfigurableMacBase {
         default:
           throw new RuntimeException("Incorrect usage; expected to be run by test only");
       }
-      try (AccumuloClient client = Accumulo.newClient().from(context.getProperties())
+      try (AccumuloClient client = Accumulo.newClient().from(context.properties())
           .as(creds.getPrincipal(), creds.getToken()).build()) {
         client.securityOperations().authenticateUser(creds.getPrincipal(), creds.getToken());
         try (Scanner scan =
-            client.createScanner(AccumuloTable.ROOT.tableName(), Authorizations.EMPTY)) {
+            client.createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY)) {
           scan.forEach((k, v) -> {});
         } catch (RuntimeException e) {
           e.printStackTrace(System.err);

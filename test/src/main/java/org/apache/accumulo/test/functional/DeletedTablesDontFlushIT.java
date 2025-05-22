@@ -28,12 +28,15 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 // ACCUMULO-2880
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class DeletedTablesDontFlushIT extends SharedMiniClusterBase {
 
   @Override

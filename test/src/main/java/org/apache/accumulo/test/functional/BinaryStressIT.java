@@ -20,7 +20,6 @@ package org.apache.accumulo.test.functional;
 
 import java.time.Duration;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 
@@ -33,7 +32,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -57,8 +56,6 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.TSERV_MAXMEM, "50K");
   }
 
-  private String majcDelay, maxMem;
-
   @BeforeEach
   public void alterConfig() throws Exception {
     if (getClusterType() == ClusterType.MINI) {
@@ -66,8 +63,6 @@ public class BinaryStressIT extends AccumuloClusterHarness {
     }
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
-      Map<String,String> conf = iops.getSystemConfiguration();
-      maxMem = conf.get(Property.TSERV_MAXMEM.getKey());
 
       iops.setProperty(Property.TSERV_MAXMEM.getKey(), "50K");
 
@@ -97,7 +92,7 @@ public class BinaryStressIT extends AccumuloClusterHarness {
 
   private int getTabletCount(AccumuloClient c, String tableId) throws TableNotFoundException {
     Set<Text> tablets = new HashSet<>();
-    try (Scanner s = c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (Scanner s = c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       s.setRange(Range.prefix(tableId));
       for (Entry<Key,Value> entry : s) {
         tablets.add(entry.getKey().getRow());

@@ -25,6 +25,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
@@ -34,9 +35,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -44,6 +47,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.lang.reflect.Constructor;
+import java.time.Duration;
 import java.util.AbstractMap;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
@@ -165,6 +169,9 @@ public class TabletMetadataTest {
             CompactorGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
 
+    TServerInstance tsi = new TServerInstance("localhost:9997", 5000L);
+    MIGRATION_COLUMN.put(mutation, new Value(tsi.getHostPortSession()));
+
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
 
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
@@ -202,6 +209,7 @@ public class TabletMetadataTest {
     assertEquals(unsplittableMeta, tm.getUnSplittable());
     assertEquals(ecMeta.toJson(), tm.getExternalCompactions().get(ecid).toJson());
     assertEquals(10, tm.getFlushNonce().getAsLong());
+    assertEquals(tsi, tm.getMigration());
   }
 
   @Test
@@ -369,6 +377,45 @@ public class TabletMetadataTest {
   }
 
   @Test
+  public void testValidateWithNonOverlappingFileRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("d"), new Text("b"));
+
+    Range fileRange = new Range(new Text("x\0"), true, new Text("z\0"), false);
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f1.rf"), fileRange);
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    assertThrows(IllegalStateException.class, () -> builder.build(ColumnType.values()));
+  }
+
+  @Test
+  public void testValidateWithOverlappingFileRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("2"), new Text("m"), new Text("a"));
+
+    Range fileRange = new Range(new Text("c\0"), true, new Text("e\0"), false);
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f2.rf"), fileRange);
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    assertDoesNotThrow(() -> builder.build(ColumnType.values()));
+  }
+
+  @Test
+  public void testValidateWithNoFileRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("3"), new Text("d"), new Text("b"));
+
+    Range emptyRange = new Range();
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f3.rf"), emptyRange);
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    assertDoesNotThrow(() -> builder.build(ColumnType.values()));
+  }
+
+  @Test
   public void testTmBuilderImmutable() {
     TabletMetadata.Builder b = new Builder();
     var tm = b.build(EnumSet.allOf(ColumnType.class));
@@ -408,6 +455,7 @@ public class TabletMetadataTest {
         .add(FateId.from(FateInstanceType.USER, UUID.randomUUID())));
 
     // Set some data in the collections and very they are not empty but still immutable
+    b.table(TableId.of("4"));
     b.extCompaction(ecid, ecMeta);
     b.file(stf, new DataFileValue(0, 0, 0));
     b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
@@ -416,6 +464,7 @@ public class TabletMetadataTest {
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.userCompactionsRequested(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
+    b.sawPrevEndRow(true);
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());
@@ -638,11 +687,16 @@ public class TabletMetadataTest {
     FateId compactFateId1 = FateId.from(type, UUID.randomUUID());
     FateId compactFateId2 = FateId.from(type, UUID.randomUUID());
 
+    TServerInstance migration = new TServerInstance("localhost:9999", 1000L);
+
     TabletMetadata tm = TabletMetadata.builder(extent)
         .putTabletAvailability(TabletAvailability.UNHOSTED).putLocation(Location.future(ser1))
         .putFile(sf1, dfv1).putFile(sf2, dfv2).putBulkFile(rf1, loadedFateId1)
         .putBulkFile(rf2, loadedFateId2).putFlushId(27).putDirName("dir1").putScan(sf3).putScan(sf4)
         .putCompacted(compactFateId1).putCompacted(compactFateId2).putCloned()
+        .putTabletMergeability(
+            TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)))
+        .putMigration(migration)
         .build(ECOMP, HOSTING_REQUESTED, MERGED, USER_COMPACTION_REQUESTED, UNSPLITTABLE);
 
     assertEquals(extent, tm.getExtent());
@@ -662,6 +716,9 @@ public class TabletMetadataTest {
     assertFalse(tm.hasMerged());
     assertNull(tm.getUnSplittable());
     assertEquals("OK", tm.getCloned());
+    assertEquals(TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS)),
+        tm.getTabletMergeability());
+    assertEquals(migration, tm.getMigration());
     assertThrows(IllegalStateException.class, tm::getOperationId);
     assertThrows(IllegalStateException.class, tm::getSuspend);
     assertThrows(IllegalStateException.class, tm::getTime);
@@ -688,6 +745,8 @@ public class TabletMetadataTest {
     assertThrows(IllegalStateException.class, tm2::hasMerged);
     assertThrows(IllegalStateException.class, tm2::getUserCompactionsRequested);
     assertThrows(IllegalStateException.class, tm2::getUnSplittable);
+    assertThrows(IllegalStateException.class, tm2::getTabletAvailability);
+    assertThrows(IllegalStateException.class, tm2::getMigration);
 
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm =
@@ -707,7 +766,10 @@ public class TabletMetadataTest {
         .putSuspension(ser1, SteadyTime.from(45L, TimeUnit.MILLISECONDS))
         .putTime(new MetadataTime(479, TimeType.LOGICAL)).putWal(le1).putWal(le2)
         .setHostingRequested().putSelectedFiles(selFiles).setMerged()
-        .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta).build();
+        .putUserCompactionRequested(selFilesFateId).setUnSplittable(unsplittableMeta)
+        .putTabletMergeability(TabletMergeabilityMetadata.after(Duration.ofDays(3),
+            SteadyTime.from(45L, TimeUnit.MILLISECONDS)))
+        .build();
 
     assertEquals(Set.of(ecid1), tm3.getExternalCompactions().keySet());
     assertEquals(Set.of(sf1, sf2), tm3.getExternalCompactions().get(ecid1).getJobFiles());
@@ -724,6 +786,11 @@ public class TabletMetadataTest {
     assertTrue(tm3.hasMerged());
     assertTrue(tm3.getUserCompactionsRequested().contains(selFilesFateId));
     assertEquals(unsplittableMeta, tm3.getUnSplittable());
+    var tmm = tm3.getTabletMergeability();
+    assertEquals(Duration.ofDays(3), tmm.getTabletMergeability().getDelay().orElseThrow());
+    assertEquals(SteadyTime.from(45L, TimeUnit.MILLISECONDS), tmm.getSteadyTime().orElseThrow());
+    assertTrue(tmm.isMergeable(SteadyTime.from(Duration.ofHours(73))));
+    assertFalse(tmm.isMergeable(SteadyTime.from(Duration.ofHours(72))));
   }
 
 }

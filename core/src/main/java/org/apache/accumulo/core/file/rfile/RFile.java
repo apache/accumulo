@@ -1294,24 +1294,32 @@ public class RFile {
       this(new CachableBlockFile.Reader(b));
     }
 
-    private void closeLocalityGroupReaders() {
+    private void closeLocalityGroupReaders(boolean ignoreIOExceptions) throws IOException {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
-          log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          if (ignoreIOExceptions) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          } else {
+            throw e;
+          }
         }
       }
     }
 
     @Override
-    public void closeDeepCopies() {
+    public void closeDeepCopies() throws IOException {
+      closeDeepCopies(false);
+    }
+
+    private void closeDeepCopies(boolean ignoreIOExceptions) throws IOException {
       if (deepCopy) {
         throw new IllegalStateException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
-        deepCopy.closeLocalityGroupReaders();
+        deepCopy.closeLocalityGroupReaders(ignoreIOExceptions);
       }
 
       deepCopies.clear();
@@ -1323,8 +1331,9 @@ public class RFile {
         throw new IllegalStateException("Calling close on a deep copy is not supported");
       }
 
-      closeDeepCopies();
-      closeLocalityGroupReaders();
+      // Closes as much as possible igoring and logging exceptions along the way
+      closeDeepCopies(true);
+      closeLocalityGroupReaders(true);
 
       if (sampleReaders != null) {
         for (LocalityGroupReader lgr : sampleReaders) {
@@ -1711,7 +1720,7 @@ public class RFile {
 
       // If exclusive we need to strip the last byte to get the last key that is part of the
       // actual range to return
-      final byte[] ba = key.getRow().getBytes();
+      final byte[] ba = key.getRowData().toArray();
       Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
       byte[] fba = new byte[ba.length - 1];
       System.arraycopy(ba, 0, fba, 0, ba.length - 1);

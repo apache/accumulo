@@ -21,6 +21,7 @@ package org.apache.accumulo.server.metadata;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
@@ -36,6 +37,7 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -45,7 +47,11 @@ import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedFilesIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.ConditionalTabletMutator;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
@@ -57,14 +63,18 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadataCheck;
 import org.apache.accumulo.core.metadata.schema.TabletMutatorBase;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.metadata.iterators.ColumnFamilySizeLimitIterator;
+import org.apache.accumulo.server.metadata.iterators.CurrentLocationNotEqualToIterator;
 import org.apache.accumulo.server.metadata.iterators.PresentIterator;
 import org.apache.accumulo.server.metadata.iterators.SetEncodingIterator;
 import org.apache.accumulo.server.metadata.iterators.TabletExistsIterator;
+import org.apache.accumulo.server.metadata.iterators.TabletMetadataCheckIterator;
 
 import com.google.common.base.Preconditions;
 
@@ -75,25 +85,26 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
 
   private final ConditionalMutation mutation;
   private final Consumer<ConditionalMutation> mutationConsumer;
-  private final Ample.ConditionalTabletsMutator parent;
 
   private final BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer;
 
   private final ServerContext context;
   private final ServiceLock lock;
   private final KeyExtent extent;
+  private final BiConsumer<KeyExtent,Supplier<String>> descriptionConsumer;
 
   private boolean sawOperationRequirement = false;
   private boolean checkPrevEndRow = true;
 
-  protected ConditionalTabletMutatorImpl(Ample.ConditionalTabletsMutator parent,
-      ServerContext context, KeyExtent extent, Consumer<ConditionalMutation> mutationConsumer,
-      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer) {
+  protected ConditionalTabletMutatorImpl(ServerContext context, KeyExtent extent,
+      Consumer<ConditionalMutation> mutationConsumer,
+      BiConsumer<KeyExtent,Ample.RejectionHandler> rejectionHandlerConsumer,
+      BiConsumer<KeyExtent,Supplier<String>> descriptionConsumer) {
     super(new ConditionalMutation(extent.toMetaRow()));
     this.mutation = (ConditionalMutation) super.mutation;
     this.mutationConsumer = mutationConsumer;
-    this.parent = parent;
     this.rejectionHandlerConsumer = rejectionHandlerConsumer;
+    this.descriptionConsumer = descriptionConsumer;
     this.extent = extent;
     this.context = context;
     this.lock = this.context.getServiceLock();
@@ -154,6 +165,14 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
     mutation.addCondition(condition1);
     mutation.addCondition(condition2);
 
+    return this;
+  }
+
+  @Override
+  public Ample.ConditionalTabletMutator requireCurrentLocationNotEqualTo(TServerInstance tsi) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = CurrentLocationNotEqualToIterator.createCondition(tsi);
+    mutation.addCondition(c);
     return this;
   }
 
@@ -333,6 +352,54 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
   }
 
   @Override
+  public ConditionalTabletMutator requireFiles(Set<StoredTabletFile> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, PresentIterator.class);
+    for (StoredTabletFile file : files) {
+      Condition c = new Condition(DataFileColumnFamily.STR_NAME, file.getMetadata())
+          .setValue(PresentIterator.VALUE).setIterators(is);
+      mutation.addCondition(c);
+    }
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireLessOrEqualsFiles(long limit) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition c = ColumnFamilySizeLimitIterator.createCondition(DataFileColumnFamily.NAME, limit);
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    for (ReferencedTabletFile file : files) {
+      Condition c = new Condition(BulkFileColumnFamily.STR_NAME, file.insert().getMetadata());
+      mutation.addCondition(c);
+    }
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition condition = TabletMetadataCheckIterator.createCondition(check, extent);
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
+  public ConditionalTabletMutator requireMigration(TServerInstance tserver) {
+    Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
+    Condition condition =
+        new Condition(MIGRATION_COLUMN.getColumnFamily(), MIGRATION_COLUMN.getColumnQualifier())
+            .setValue(tserver.getHostPortSession());
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
   public void submit(Ample.RejectionHandler rejectionCheck) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     Preconditions.checkState(sawOperationRequirement, "No operation requirements were seen");
@@ -343,10 +410,16 @@ public class ConditionalTabletMutatorImpl extends TabletMutatorBase<Ample.Condit
       mutation.addCondition(c);
     }
     if (putServerLock) {
-      this.putZooLock(context.getZooKeeperRoot(), lock);
+      this.putZooLock(lock);
     }
     getMutation();
     mutationConsumer.accept(mutation);
     rejectionHandlerConsumer.accept(extent, rejectionCheck);
+  }
+
+  @Override
+  public void submit(Ample.RejectionHandler rejectionHandler, Supplier<String> description) {
+    descriptionConsumer.accept(extent, description);
+    this.submit(rejectionHandler);
   }
 }

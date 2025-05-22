@@ -53,21 +53,14 @@ jobs:
       with:
         distribution: adopt
         java-version: 17
-    - name: Cache local maven repository
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository/
-          !~/.m2/repository/org/apache/accumulo
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
     - name: Show the first log message
       run: git log -n1
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat
       env:
-        MAVEN_OPTS: -Djansi.force=true
+        MAVEN_OPTS: -Djansi.force=true -Dapache.snapshots=true
   creatematrix:
     needs: fastbuild
     timeout-minutes: 5
@@ -97,14 +90,7 @@ jobs:
       with:
         distribution: adopt
         java-version: 17
-    - name: Cache local maven repository
-      uses: actions/cache@v4
-      with:
-        path: |
-          ~/.m2/repository/
-          !~/.m2/repository/org/apache/accumulo
-        key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-        restore-keys: ${{ runner.os }}-m2
+        cache: 'maven'
     - name: Override DNS to fix IP address for hostname
       run: |
         ip -br addr
@@ -124,7 +110,7 @@ jobs:
       timeout-minutes: 60
       run: mvn -B -V -e -ntp "-Dstyle.color=always" verify -PskipQA -DskipTests=false -DskipITs=false -Dtest=nomatchingtest -Dit.test="${{ matrix.profile.its }}"
       env:
-        MAVEN_OPTS: -Djansi.force=true
+        MAVEN_OPTS: -Djansi.force=true -Dapache.snapshots=true
     - name: Upload unit test results
       if: ${{ failure() }}
       uses: actions/upload-artifact@v4

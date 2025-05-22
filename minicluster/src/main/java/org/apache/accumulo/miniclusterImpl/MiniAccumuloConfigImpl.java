@@ -68,6 +68,7 @@ public class MiniAccumuloConfigImpl {
 
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
+  static final String DEFAULT_ZOOKEEPER_HOST = "127.0.0.1";
 
   private File dir = null;
   private String rootPassword = null;
@@ -139,7 +140,6 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
-  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
@@ -155,12 +155,12 @@ public class MiniAccumuloConfigImpl {
     }
 
     if (!initialized) {
-      libDir = new File(dir, "lib");
-      libExtDir = new File(libDir, "ext");
-      confDir = new File(dir, "conf");
-      accumuloDir = new File(dir, "accumulo");
-      zooKeeperDir = new File(dir, "zookeeper");
-      logDir = new File(dir, "logs");
+      libDir = dir.toPath().resolve("lib").toFile();
+      libExtDir = libDir.toPath().resolve("ext").toFile();
+      confDir = dir.toPath().resolve("conf").toFile();
+      accumuloDir = dir.toPath().resolve("accumulo").toFile();
+      zooKeeperDir = dir.toPath().resolve("zookeeper").toFile();
+      logDir = dir.toPath().resolve("logs").toFile();
 
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
@@ -188,8 +188,8 @@ public class MiniAccumuloConfigImpl {
 
       mergeProp(Property.COMPACTOR_PORTSEARCH.getKey(), "true");
 
-      mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE.getKey(),
-          Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_INITIAL_SIZE.getDefaultValue());
+      mergeProp(Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getKey(),
+          Property.MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE.getDefaultValue());
       mergeProp(Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getKey(),
           Property.COMPACTION_SERVICE_DEFAULT_PLANNER.getDefaultValue());
 
@@ -211,7 +211,7 @@ public class MiniAccumuloConfigImpl {
             zooKeeperPort = PortUtils.getRandomFreePort();
           }
 
-          zkHost = "localhost:" + zooKeeperPort;
+          zkHost = DEFAULT_ZOOKEEPER_HOST + ":" + zooKeeperPort;
         }
         siteConfig.put(Property.INSTANCE_ZK_HOST.getKey(), zkHost);
       }
@@ -228,7 +228,7 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    File keystoreFile = new File(getConfDir(), "credential-provider.jks");
+    File keystoreFile = getConfDir().toPath().resolve("credential-provider.jks").toFile();
     String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
     Configuration conf = getHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
@@ -585,14 +585,14 @@ public class MiniAccumuloConfigImpl {
   }
 
   public File getAccumuloPropsFile() {
-    return new File(getConfDir(), "accumulo.properties");
+    return getConfDir().toPath().resolve("accumulo.properties").toFile();
   }
 
   /**
    * @return location of accumulo-client.properties file for connecting to this mini cluster
    */
   public File getClientPropsFile() {
-    return new File(getConfDir(), "accumulo-client.properties");
+    return getConfDir().toPath().resolve("accumulo-client.properties").toFile();
   }
 
   /**
@@ -722,8 +722,8 @@ public class MiniAccumuloConfigImpl {
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
     accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    File coreSite = new File(hadoopConfDir, "core-site.xml");
-    File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
+    File coreSite = hadoopConfDir.toPath().resolve("core-site.xml").toFile();
+    File hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml").toFile();
 
     try {
       hadoopConf.addResource(coreSite.toURI().toURL());

@@ -19,14 +19,15 @@
 package org.apache.accumulo.manager.metrics.fate;
 
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.fate.AdminUtil;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 
 /**
  * Immutable class that holds a snapshot of fate metric values - use builder to instantiate an
@@ -34,16 +35,14 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class FateMetricValues {
 
-  private static final Logger log = LoggerFactory.getLogger(FateMetricValues.class);
-
   protected final long updateTime;
   protected final long currentFateOps;
 
-  protected final Map<String,Long> txStateCounters;
-  protected final Map<String,Long> opTypeCounters;
+  private final EnumMap<TStatus,Long> txStateCounters;
+  private final Map<String,Long> opTypeCounters;
 
   protected FateMetricValues(final long updateTime, final long currentFateOps,
-      final Map<String,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
+      final EnumMap<TStatus,Long> txStateCounters, final Map<String,Long> opTypeCounters) {
     this.updateTime = updateTime;
     this.currentFateOps = currentFateOps;
     this.txStateCounters = txStateCounters;
@@ -59,7 +58,7 @@ public abstract class FateMetricValues {
    *
    * @return a map of transaction status counters.
    */
-  public Map<String,Long> getTxStateCounters() {
+  EnumMap<TStatus,Long> getTxStateCounters() {
     return txStateCounters;
   }
 
@@ -77,7 +76,7 @@ public abstract class FateMetricValues {
   protected static <T extends AbstractBuilder<T,U>,U extends FateMetricValues> T
       getFateMetrics(final ReadOnlyFateStore<FateMetrics<U>> fateStore, T builder) {
 
-    AdminUtil<FateMetrics<U>> admin = new AdminUtil<>(false);
+    AdminUtil<FateMetrics<U>> admin = new AdminUtil<>();
 
     List<AdminUtil.TransactionStatus> currFates =
         admin.getTransactionStatus(Map.of(fateStore.type(), fateStore), null, null, null);
@@ -85,9 +84,9 @@ public abstract class FateMetricValues {
     builder.withCurrentFateOps(currFates.size());
 
     // states are enumerated - create new map with counts initialized to 0.
-    Map<String,Long> states = new TreeMap<>();
-    for (ReadOnlyFateStore.TStatus t : ReadOnlyFateStore.TStatus.values()) {
-      states.put(t.name(), 0L);
+    EnumMap<TStatus,Long> states = new EnumMap<>(TStatus.class);
+    for (TStatus t : TStatus.values()) {
+      states.put(t, 0L);
     }
 
     // op types are dynamic, no count initialization needed - clearing prev values will
@@ -96,18 +95,16 @@ public abstract class FateMetricValues {
 
     for (AdminUtil.TransactionStatus tx : currFates) {
 
-      String stateName = tx.getStatus().name();
+      TStatus stateName = tx.getStatus();
 
       // incr count for state
       states.merge(stateName, 1L, Long::sum);
 
       // incr count for op type for for in_progress transactions.
       if (ReadOnlyFateStore.TStatus.IN_PROGRESS.equals(tx.getStatus())) {
-        String opType = tx.getTxName();
-        if (opType == null || opType.isEmpty()) {
-          opType = "UNKNOWN";
-        }
-        opTypeCounters.merge(opType, 1L, Long::sum);
+        Fate.FateOperation opType = tx.getFateOp();
+        String opTypeStr = opType == null ? "UNKNOWN" : opType.name();
+        opTypeCounters.merge(opTypeStr, 1L, Long::sum);
       }
     }
 
@@ -122,14 +119,14 @@ public abstract class FateMetricValues {
       U extends FateMetricValues> {
 
     protected long currentFateOps = 0;
-    protected final Map<String,Long> txStateCounters;
+    protected final EnumMap<TStatus,Long> txStateCounters;
     protected Map<String,Long> opTypeCounters;
 
     protected AbstractBuilder() {
       // states are enumerated - create new map with counts initialized to 0.
-      txStateCounters = new TreeMap<>();
-      for (ReadOnlyFateStore.TStatus t : ReadOnlyFateStore.TStatus.values()) {
-        txStateCounters.put(t.name(), 0L);
+      txStateCounters = new EnumMap<>(TStatus.class);
+      for (TStatus t : TStatus.values()) {
+        txStateCounters.put(t, 0L);
       }
 
       opTypeCounters = Collections.emptyMap();
@@ -140,7 +137,7 @@ public abstract class FateMetricValues {
       return (T) this;
     }
 
-    public T withTxStateCounters(final Map<String,Long> txStateCounters) {
+    public T withTxStateCounters(final EnumMap<TStatus,Long> txStateCounters) {
       this.txStateCounters.putAll(txStateCounters);
       return (T) this;
     }

@@ -186,6 +186,7 @@ public class MergeTablets extends ManagerRepo {
         tabletMutator.putTabletAvailability(
             DeleteRows.getMergeTabletAvailability(range, tabletAvailabilities));
         tabletMutator.putPrevEndRow(firstTabletMeta.getPrevEndRow());
+        tabletMutator.putTabletMergeability(lastTabletMeta.getTabletMergeability());
 
         // scan entries are related to a hosted tablet, this tablet is not hosted so can safely
         // delete these
@@ -210,6 +211,11 @@ public class MergeTablets extends ManagerRepo {
         if (lastTabletMeta.getUnSplittable() != null) {
           // This is no longer the same tablet, so let's delete the unsplittable marker
           tabletMutator.deleteUnSplittable();
+        }
+
+        if (lastTabletMeta.getMigration() != null) {
+          // This is no longer the same tablet, so delete the migration
+          tabletMutator.deleteMigration();
         }
 
         // Set merged marker on the last tablet when we are finished

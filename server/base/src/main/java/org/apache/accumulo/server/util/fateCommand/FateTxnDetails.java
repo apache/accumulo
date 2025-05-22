@@ -33,11 +33,15 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
 
   private long running;
   private String status = "?";
-  private String txName = "?";
+  private String fateOp = "?";
   private String step = "?";
   private String fateId = "?";
   private List<String> locksHeld = List.of();
   private List<String> locksWaiting = List.of();
+
+  // Default constructor for Gson
+  @SuppressWarnings("unused")
+  private FateTxnDetails() {}
 
   /**
    * Create a detailed FaTE transaction that can be formatted for status reports.
@@ -69,8 +73,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     if (txnStatus.getTop() != null) {
       step = txnStatus.getTop();
     }
-    if (txnStatus.getTxName() != null) {
-      txName = txnStatus.getTxName();
+    if (txnStatus.getFateOp() != null) {
+      fateOp = txnStatus.getFateOp().name();
     }
     if (txnStatus.getFateId() != null) {
       fateId = txnStatus.getFateId().canonical();
@@ -99,8 +103,8 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     return running;
   }
 
-  public String getTxName() {
-    return txName;
+  public String getFateOp() {
+    return fateOp;
   }
 
   public String getStep() {
@@ -163,7 +167,7 @@ public class FateTxnDetails implements Comparable<FateTxnDetails> {
     String hms = String.format("%d:%02d:%02d", elapsed.toHours(), elapsed.toMinutesPart(),
         elapsed.toSecondsPart());
 
-    return hms + "\t" + fateId + "\t" + status + "\t" + txName + "\t" + step + "\theld:"
+    return hms + "\t" + fateId + "\t" + status + "\t" + fateOp + "\t" + step + "\theld:"
         + locksHeld.toString() + "\twaiting:" + locksWaiting.toString();
   }
 

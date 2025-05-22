@@ -18,15 +18,15 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.metrics.Metric.MAJC_PAUSED;
+import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.getActiveCompactions;
 import static org.apache.accumulo.test.util.Wait.waitFor;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.DoubleAdder;
 
@@ -35,9 +35,10 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.TableOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -88,7 +89,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
     }
   }
 
-  private static final DoubleAdder MAJC_PAUSED = new DoubleAdder();
+  private static final DoubleAdder MAJC_PAUSED_COUNT = new DoubleAdder();
   private static TestStatsDSink sink;
   private static Thread metricConsumer;
 
@@ -104,9 +105,9 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
           }
           if (line.startsWith("accumulo")) {
             Metric metric = TestStatsDSink.parseStatsDMetric(line);
-            if (MetricsProducer.METRICS_MAJC_PAUSED.equals(metric.getName())) {
+            if (MAJC_PAUSED.getName().equals(metric.getName())) {
               double val = Double.parseDouble(metric.getValue());
-              MAJC_PAUSED.add(val);
+              MAJC_PAUSED_COUNT.add(val);
             }
           }
         }
@@ -128,7 +129,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
   @BeforeEach
   public void beforeEach() {
     // Reset the client side counters
-    MAJC_PAUSED.reset();
+    MAJC_PAUSED_COUNT.reset();
   }
 
   @Test
@@ -139,15 +140,13 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
 
       ClientContext ctx = (ClientContext) client;
 
-      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx).size() == 1, 60_000);
-      Wait.waitFor(() -> ExternalCompactionUtil.getCompactorAddrs(ctx)
-          .get(Constants.DEFAULT_RESOURCE_GROUP_NAME).size() == 1, 60_000);
+      Wait.waitFor(() -> ctx.getServerPaths()
+          .getCompactor(rg -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME),
+              AddressSelector.all(), true)
+          .size() == 1, 60_000);
 
-      Map<String,Set<HostAndPort>> groupedCompactors =
-          ExternalCompactionUtil.getCompactorAddrs(ctx);
-      List<HostAndPort> compactorAddresses =
-          new ArrayList<>(groupedCompactors.get(Constants.DEFAULT_RESOURCE_GROUP_NAME));
-      HostAndPort compactorAddr = compactorAddresses.get(0);
+      ServerId csi = ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR).iterator().next();
+      HostAndPort compactorAddr = HostAndPort.fromParts(csi.getHost(), csi.getPort());
 
       TableOperations to = client.tableOperations();
       to.create(table);
@@ -161,7 +160,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
         }
       });
 
-      int paused = MAJC_PAUSED.intValue();
+      int paused = MAJC_PAUSED_COUNT.intValue();
       assertEquals(0, paused);
 
       // Calling getRunningCompaction on the MemoryConsumingCompactor
@@ -180,7 +179,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       ReadWriteIT.ingest(client, 100, 100, 100, 0, table);
       compactionThread.start();
 
-      waitFor(() -> MAJC_PAUSED.intValue() > 0);
+      waitFor(() -> MAJC_PAUSED_COUNT.intValue() > 0);
 
       // Calling cancel on the MemoryConsumingCompactor will free
       // the consumed memory
@@ -190,7 +189,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       compactionThread.interrupt();
       compactionThread.join();
       assertNull(error.get());
-      assertTrue(client.instanceOperations().getActiveCompactions().stream()
+      assertTrue(getActiveCompactions(client.instanceOperations()).stream()
           .anyMatch(ac -> ac.getPausedCount() > 0));
     }
 

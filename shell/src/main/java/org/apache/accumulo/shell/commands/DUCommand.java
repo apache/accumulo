@@ -27,7 +27,6 @@ import java.util.regex.Pattern;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.DiskUsage;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.shell.Shell;
@@ -64,9 +63,10 @@ public class DUCommand extends Command {
     }
 
     if (cl.hasOption(optNamespace.getOpt())) {
-      NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
-          cl.getOptionValue(optNamespace.getOpt()));
-      tables.addAll(Namespaces.getTableNames(shellState.getContext(), namespaceId));
+      String namespaceName = cl.getOptionValue(optNamespace.getOpt());
+      NamespaceId namespaceId = shellState.getContext().getNamespaceId(namespaceName);
+      tables.addAll(shellState.getContext().getTableMapping(namespaceId)
+          .createQualifiedNameToIdMap(namespaceName).keySet());
     }
 
     boolean prettyPrint = cl.hasOption(optHumanReadble.getOpt());

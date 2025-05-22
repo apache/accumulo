@@ -64,11 +64,11 @@ public class ServerConfigurationFactoryTest {
   @BeforeEach
   public void setUp() {
     propStore = createMock(ZooPropStore.class);
-    expect(propStore.get(eq(SystemPropKey.of(IID)))).andReturn(new VersionedProperties(Map.of()))
+    expect(propStore.get(eq(SystemPropKey.of()))).andReturn(new VersionedProperties(Map.of()))
         .anyTimes();
-    expect(propStore.get(eq(TablePropKey.of(IID, TID))))
-        .andReturn(new VersionedProperties(Map.of())).anyTimes();
-    expect(propStore.get(eq(NamespacePropKey.of(IID, NSID))))
+    expect(propStore.get(eq(TablePropKey.of(TID)))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    expect(propStore.get(eq(NamespacePropKey.of(NSID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
 
     propStore.registerAsListener(anyObject(), anyObject());
@@ -79,7 +79,6 @@ public class ServerConfigurationFactoryTest {
     expectLastCall().anyTimes();
 
     context = createMock(ServerContext.class);
-    expect(context.getZooKeeperRoot()).andReturn("/accumulo/" + IID).anyTimes();
     expect(context.getInstanceID()).andReturn(IID).anyTimes();
     expect(context.getZooKeepers()).andReturn(ZK_HOST).anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(ZK_TIMEOUT).anyTimes();

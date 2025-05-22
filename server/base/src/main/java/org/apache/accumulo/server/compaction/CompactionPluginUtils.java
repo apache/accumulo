@@ -27,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -211,7 +212,7 @@ public class CompactionPluginUtils {
 
   public static Map<String,String> computeOverrides(Optional<CompactionConfig> compactionConfig,
       ServerContext context, KeyExtent extent, Set<CompactableFile> inputFiles,
-      Set<CompactableFile> selectedFiles) {
+      Supplier<Set<CompactableFile>> selectedFiles) {
 
     if (compactionConfig.isPresent()
         && !UserCompactionUtils.isDefault(compactionConfig.orElseThrow().getConfigurer())) {
@@ -234,7 +235,8 @@ public class CompactionPluginUtils {
   }
 
   public static Map<String,String> computeOverrides(ServerContext context, KeyExtent extent,
-      Set<CompactableFile> inputFiles, Set<CompactableFile> selectedFiles, PluginConfig cfg) {
+      Set<CompactableFile> inputFiles, Supplier<Set<CompactableFile>> selectedFiles,
+      PluginConfig cfg) {
 
     CompactionConfigurer configurer = newInstance(context.getTableConfiguration(extent.tableId()),
         cfg.getClassName(), CompactionConfigurer.class);
@@ -266,7 +268,7 @@ public class CompactionPluginUtils {
 
       @Override
       public Set<CompactableFile> getSelectedFiles() {
-        return selectedFiles;
+        return selectedFiles.get();
       }
 
       @Override

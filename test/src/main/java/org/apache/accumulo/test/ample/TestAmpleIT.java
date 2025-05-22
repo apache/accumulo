@@ -38,17 +38,20 @@ import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import com.google.common.base.Preconditions;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class TestAmpleIT extends SharedMiniClusterBase {
 
   @BeforeAll
@@ -119,6 +122,7 @@ public class TestAmpleIT extends SharedMiniClusterBase {
           assertNotNull(tm.getExtent());
           assertNotNull(tm.getTabletAvailability());
           assertNotNull(tm.getTime());
+          assertNotNull(tm.getTabletMergeability());
           count.incrementAndGet();
         });
       }

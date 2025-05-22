@@ -60,11 +60,14 @@ public class Caches implements MetricsProducer {
     SPLITTER_UNSPLITTABLE,
     TABLE_CONFIGS,
     TABLE_ID,
+    TABLE_MAPPING_CACHE,
     TABLE_PARENT_CONFIGS,
     TABLE_ZOO_HELPER_CACHE,
     TSRM_FILE_LENGTHS,
     TINYLFU_BLOCK_CACHE,
-    VOLUME_HDFS_CONFIGS
+    VOLUME_HDFS_CONFIGS,
+    MINC_AGE,
+    ZOO_CACHE
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(Caches.class);

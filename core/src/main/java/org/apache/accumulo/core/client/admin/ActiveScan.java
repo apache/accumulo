@@ -21,6 +21,7 @@ package org.apache.accumulo.core.client.admin;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.security.Authorizations;
@@ -96,4 +97,11 @@ public abstract class ActiveScan {
    * @since 1.5.0
    */
   public abstract long getIdleTime();
+
+  /**
+   * Return the server where the scan is running.
+   *
+   * @since 4.0.0
+   */
+  public abstract ServerId getServerId();
 }

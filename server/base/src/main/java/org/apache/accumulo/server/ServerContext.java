@@ -25,12 +25,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -38,11 +37,13 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -51,13 +52,10 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -81,7 +79,6 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,10 +90,8 @@ public class ServerContext extends ClientContext {
   private static final Logger log = LoggerFactory.getLogger(ServerContext.class);
 
   private final ServerInfo info;
-  private final ZooReaderWriter zooReaderWriter;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
-  private final Supplier<String> zkUserPath;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -110,18 +105,22 @@ public class ServerContext extends ClientContext {
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
 
+  private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
+
   public ServerContext(SiteConfiguration siteConfig) {
-    this(new ServerInfo(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig));
   }
 
   private ServerContext(ServerInfo info) {
-    super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
+    super(info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
-    zooReaderWriter = new ZooReaderWriter(info.getSiteConfiguration());
     serverDirs = info.getServerDirs();
 
-    propStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooReaderWriter()));
-    zkUserPath = memoize(() -> Constants.ZROOT + "/" + getInstanceID() + Constants.ZUSERS);
+    // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
+    @SuppressWarnings("resource")
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getZooSession()));
+    propStore = tmpPropStore;
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
@@ -143,21 +142,24 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(new ServerInfo(siteConfig, instanceName, instanceID));
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID));
+  }
+
+  /**
+   * Used by server-side utilities that have a client configuration. The instance name is obtained
+   * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
+   */
+  public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info));
   }
 
   /**
    * Override properties for testing
    */
-  public static ServerContext override(SiteConfiguration siteConfig, String instanceName,
+  public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
-        new ServerInfo(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
-  }
-
-  @Override
-  public InstanceId getInstanceID() {
-    return info.getInstanceID();
+        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -211,15 +213,6 @@ public class ServerContext extends ClientContext {
 
   public VolumeManager getVolumeManager() {
     return info.getVolumeManager();
-  }
-
-  @Override
-  public ZooReader getZooReader() {
-    return getZooReaderWriter();
-  }
-
-  public ZooReaderWriter getZooReaderWriter() {
-    return zooReaderWriter;
   }
 
   /**
@@ -317,15 +310,8 @@ public class ServerContext extends ClientContext {
 
   public void waitForZookeeperAndHdfs() {
     log.info("Attempting to talk to zookeeper");
-    while (true) {
-      try {
-        getZooReaderWriter().getChildren(Constants.ZROOT);
-        break;
-      } catch (InterruptedException | KeeperException ex) {
-        log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, SECONDS);
-      }
-    }
+    // Next line blocks until connection is established
+    getZooSession();
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
@@ -419,9 +405,9 @@ public class ServerContext extends ClientContext {
     ScheduledFuture<?> future = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
-        File swappiness = new File(procFile);
-        if (swappiness.exists() && swappiness.canRead()) {
-          try (InputStream is = new FileInputStream(procFile)) {
+        java.nio.file.Path swappiness = java.nio.file.Path.of(procFile);
+        if (swappiness.toFile().exists() && swappiness.toFile().canRead()) {
+          try (InputStream is = Files.newInputStream(swappiness)) {
             byte[] buffer = new byte[10];
             int bytes = is.read(buffer);
             String setting = new String(buffer, 0, bytes, UTF_8);
@@ -442,6 +428,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    sharedSchedExecutorCreated.set(true);
     return sharedScheduledThreadPool.get();
   }
 
@@ -456,10 +443,6 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
-  }
-
-  public String zkUserPath() {
-    return zkUserPath.get();
   }
 
   public LowMemoryDetector getLowMemoryDetector() {
@@ -482,12 +465,18 @@ public class ServerContext extends ClientContext {
   }
 
   public MetricsInfo getMetricsInfo() {
+    metricsInfoCreated.set(true);
     return metricsInfoSupplier.get();
   }
 
   @Override
   public void close() {
-    getMetricsInfo().close();
+    if (metricsInfoCreated.get()) {
+      getMetricsInfo().close();
+    }
+    if (sharedSchedExecutorCreated.get()) {
+      getScheduledExecutor().shutdownNow();
+    }
     super.close();
   }
 }

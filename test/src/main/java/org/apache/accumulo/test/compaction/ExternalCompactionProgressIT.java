@@ -19,7 +19,9 @@
 package org.apache.accumulo.test.compaction;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_READ;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_ENTRIES_WRITTEN;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.GROUP1;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.compact;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.createTable;
@@ -46,13 +48,12 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
-import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
-import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -192,18 +193,16 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             break out;
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
-          if (!metric.getName().startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
+          final String metricName = metric.getName();
+          if (!metricName.startsWith("accumulo.compaction.entries")) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
-          log.debug("Found metric: {} with value: {}", metric.getName(), value);
-          switch (metric.getName()) {
-            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ:
-              totalEntriesRead.addAndGet(value);
-              break;
-            case MetricsProducer.METRICS_COMPACTOR_ENTRIES_WRITTEN:
-              totalEntriesWritten.addAndGet(value);
-              break;
+          log.debug("Found metric: {} with value: {}", metricName, value);
+          if (metricName.equals(COMPACTOR_ENTRIES_READ.getName())) {
+            totalEntriesRead.addAndGet(value);
+          } else if (metricName.equals(COMPACTOR_ENTRIES_WRITTEN.getName())) {
+            totalEntriesWritten.addAndGet(value);
           }
         }
         sleepUninterruptibly(CHECKER_THREAD_SLEEP_MS, TimeUnit.MILLISECONDS);
@@ -328,7 +327,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
       throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
     }
 
-    TExternalCompactionList ecList = getRunningCompactions(ctx, coordinatorHost);
+    TExternalCompactionMap ecList = getRunningCompactions(ctx, coordinatorHost);
     Map<String,TExternalCompaction> ecMap = ecList.getCompactions();
     if (ecMap != null) {
       ecMap.forEach((ecid, ec) -> {
@@ -336,7 +335,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
         RunningCompactionInfo rci = new RunningCompactionInfo(ec);
         RunningCompactionInfo previousRci = runningMap.put(ecid, rci);
         log.debug("ECID {} has been running for {} seconds", ecid,
-            NANOSECONDS.toSeconds(rci.duration));
+            MILLISECONDS.toSeconds(rci.duration));
         if (previousRci == null) {
           log.debug("New ECID {} with inputFiles: {}", ecid, rci.numFiles);
         } else {

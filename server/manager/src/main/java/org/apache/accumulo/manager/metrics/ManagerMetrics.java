@@ -19,6 +19,10 @@
 package org.apache.accumulo.manager.metrics;
 
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTION_SVC_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_META_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_ROOT_TGW_ERRORS;
+import static org.apache.accumulo.core.metrics.Metric.MANAGER_USER_TGW_ERRORS;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,6 +38,7 @@ import org.apache.accumulo.manager.metrics.fate.FateMetrics;
 import org.apache.accumulo.manager.metrics.fate.meta.MetaFateMetrics;
 import org.apache.accumulo.manager.metrics.fate.user.UserFateMetrics;
 
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class ManagerMetrics implements MetricsProducer {
@@ -82,11 +87,14 @@ public class ManagerMetrics implements MetricsProducer {
   @Override
   public void registerMetrics(MeterRegistry registry) {
     fateMetrics.forEach(fm -> fm.registerMetrics(registry));
-    registry.gauge(METRICS_MANAGER_ROOT_TGW_ERRORS, rootTGWErrorsGauge);
-    registry.gauge(METRICS_MANAGER_META_TGW_ERRORS, metadataTGWErrorsGauge);
-    registry.gauge(METRICS_MANAGER_USER_TGW_ERRORS, userTGWErrorsGauge);
-    registry.gauge(METRICS_MANAGER_COMPACTION_SVC_ERRORS, compactionConfigurationError,
-        AtomicInteger::get);
+    Gauge.builder(MANAGER_ROOT_TGW_ERRORS.getName(), rootTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_ROOT_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(MANAGER_META_TGW_ERRORS.getName(), metadataTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_META_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(MANAGER_USER_TGW_ERRORS.getName(), userTGWErrorsGauge, AtomicLong::get)
+        .description(MANAGER_USER_TGW_ERRORS.getDescription()).register(registry);
+    Gauge.builder(COMPACTION_SVC_ERRORS.getName(), compactionConfigurationError, AtomicInteger::get)
+        .description(COMPACTION_SVC_ERRORS.getDescription()).register(registry);
   }
 
   public List<MetricsProducer> getProducers(AccumuloConfiguration conf, Manager manager) {

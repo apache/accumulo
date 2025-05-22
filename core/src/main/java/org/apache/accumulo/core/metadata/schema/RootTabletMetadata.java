@@ -61,21 +61,16 @@ public class RootTabletMetadata {
 
   private static final int VERSION = 1;
 
-  public static String zooPath(ClientContext ctx) {
-    return ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-  }
-
   /**
    * Reads the tablet metadata for the root tablet from zookeeper
    */
   public static RootTabletMetadata read(ClientContext ctx) {
     try {
-      final String zpath = zooPath(ctx);
-      ZooReader zooReader = ctx.getZooReader();
+      ZooReader zooReader = ctx.getZooSession().asReader();
       // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
       // zookeeper
-      zooReader.sync(zpath);
-      byte[] bytes = zooReader.getData(zpath);
+      zooReader.sync(RootTable.ZROOT_TABLET);
+      byte[] bytes = zooReader.getData(RootTable.ZROOT_TABLET);
       return new RootTabletMetadata(new String(bytes, UTF_8));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
@@ -85,14 +80,17 @@ public class RootTabletMetadata {
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The data is mapped using Strings as follows:
      *
      * TreeMap<column_family, TreeMap<column_qualifier, value>>
      */
-    private final TreeMap<String,TreeMap<String,String>> columnValues;
+    private TreeMap<String,TreeMap<String,String>> columnValues;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Data() {}
 
     private Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
       this.version = version;

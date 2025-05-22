@@ -18,27 +18,38 @@
  */
 package org.apache.accumulo.test.fate.user;
 
-import static org.apache.accumulo.test.fate.user.UserFateStoreIT.createFateTable;
+import static org.apache.accumulo.test.fate.FateTestUtil.createFateTable;
+import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.stream.StreamSupport;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
+import org.apache.accumulo.core.iterators.user.VersioningIterator;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.api.Test;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class UserFateIT extends FateIT {
 
   private String table;
@@ -60,8 +71,55 @@ public class UserFateIT extends FateIT {
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, maxDeferred, fateIdGenerator),
-          getCluster().getServerContext());
+      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
+          fateIdGenerator), getCluster().getServerContext());
+    }
+  }
+
+  // UserFateStore only test:
+  // Test that configs related to the correctness of the FATE instance user table
+  // are initialized correctly
+  @Test
+  public void testFateInitialConfigCorrectness() throws Exception {
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      // It is important here to use getTableProperties() and not getConfiguration()
+      // because we want only the table properties and not a merged view
+      var fateTableProps =
+          client.tableOperations().getTableProperties(SystemTables.FATE.tableName());
+
+      // Verify properties all have a table. prefix
+      assertTrue(fateTableProps.keySet().stream().allMatch(key -> key.startsWith("table.")));
+
+      // Verify properties are correctly set
+      assertEquals("5", fateTableProps.get(Property.TABLE_FILE_REPLICATION.getKey()));
+      assertEquals("sync", fateTableProps.get(Property.TABLE_DURABILITY.getKey()));
+      assertEquals("false", fateTableProps.get(Property.TABLE_FAILURES_IGNORE.getKey()));
+      assertEquals("", fateTableProps.get(Property.TABLE_DEFAULT_SCANTIME_VISIBILITY.getKey()));
+
+      // Verify VersioningIterator related properties are correct
+      var iterClass = "10," + VersioningIterator.class.getName();
+      var maxVersions = "1";
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "scan.vers.opt.maxVersions"));
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "minc.vers.opt.maxVersions"));
+      assertEquals(iterClass,
+          fateTableProps.get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers"));
+      assertEquals(maxVersions, fateTableProps
+          .get(Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.vers.opt.maxVersions"));
+
+      // Verify all tablets are HOSTED
+      try (var tablets =
+          client.getAmple().readTablets().forTable(SystemTables.FATE.tableId()).build()) {
+        assertTrue(tablets.stream()
+            .allMatch(tm -> tm.getTabletAvailability() == TabletAvailability.HOSTED));
+      }
     }
   }
 
@@ -69,7 +127,7 @@ public class UserFateIT extends FateIT {
   protected TStatus getTxStatus(ServerContext context, FateId fateId) {
     try (Scanner scanner = context.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      FateSchema.TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
       return StreamSupport.stream(scanner.spliterator(), false)
           .map(e -> TStatus.valueOf(e.getValue().toString())).findFirst().orElse(TStatus.UNKNOWN);
     } catch (TableNotFoundException e) {

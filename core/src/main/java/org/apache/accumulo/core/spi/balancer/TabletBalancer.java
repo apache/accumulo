@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -106,6 +107,23 @@ public interface TabletBalancer {
      */
     Map<String,Set<TabletServerId>> currentResourceGroups();
 
+    /**
+     * Return the DataLevel name for which the Manager is currently balancing. Balancers should
+     * return migrations for tables within the current DataLevel.
+     *
+     * @return name of current balancing iteration data level
+     * @since 2.1.4
+     */
+    String currentLevel();
+
+    /**
+     * This is the set of tables the balancer should consider. Balancing any tables outside of this
+     * set will be ignored and result in an error in the logs.
+     *
+     * @return map of table names to table ids that should be balanced.
+     * @since 2.1.4
+     */
+    Map<String,TableId> getTablesToBalance();
   }
 
   /**

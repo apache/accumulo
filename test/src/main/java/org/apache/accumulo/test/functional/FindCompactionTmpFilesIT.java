@@ -33,6 +33,7 @@ import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
@@ -42,8 +43,10 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
 
   @BeforeAll
@@ -65,8 +68,9 @@ public class FindCompactionTmpFilesIT extends SharedMiniClusterBase {
     }
 
     for (int i = 0; i < numFiles; i++) {
-      ReferencedTabletFile rtf = TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm,
-          (s) -> {}, ExternalCompactionId.generate(UUID.randomUUID()));
+      ReferencedTabletFile rtf =
+          TabletNameGenerator.getNextDataFilenameForMajc(false, context, tm.getExtent(),
+              tm.getDirName(), (s) -> {}, ExternalCompactionId.generate(UUID.randomUUID()));
       paths.add(rtf.getPath());
     }
     return paths;

@@ -38,9 +38,9 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.rfile.AbstractRFileTest.TestRFile;
 import org.apache.accumulo.core.file.rfile.RFileTest;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -50,7 +50,7 @@ public class IndexedDocIteratorTest {
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final byte[] nullByte = {0};
 
-  private static IteratorEnvironment env = new DefaultIteratorEnvironment();
+  private static IteratorEnvironment env = ClientIteratorEnvironment.DEFAULT;
 
   Text[] columnFamilies;
   Text[] otherColumnFamilies;
@@ -129,7 +129,7 @@ public class IndexedDocIteratorTest {
           }
         }
         sb.append(" docID=").append(doc);
-        Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes()));
+        Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes(UTF_8)));
         map.put(k, new Value(sb.toString()));
       }
     }

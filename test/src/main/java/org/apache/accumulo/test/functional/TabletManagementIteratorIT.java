@@ -67,13 +67,14 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -148,7 +149,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       var unused = Iterables.size(s); // consume all the data
 
       // examine a clone of the metadata table, so we can manipulate it
-      copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
+      copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
 
       var tableId1 = getServerContext().getTableId(t1);
       var tableId3 = getServerContext().getTableId(t3);
@@ -169,7 +170,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       while (!tabletsInFlux.isEmpty()) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         UtilWaitThread.sleep(500);
-        copyTable(client, AccumuloTable.METADATA.tableName(), metaCopy1);
+        copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
         tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
       }
       expected = Map.of();
@@ -529,7 +530,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     log.debug("Gathered {} rows to create copy {}", mutations.size(), copy);
     assertEquals(10, mutations.size(),
         "Metadata should have 8 rows (2 for each table) + one row for "
-            + AccumuloTable.FATE.tableId().canonical());
+            + SystemTables.FATE.tableId().canonical());
     client.tableOperations().create(copy);
 
     try (BatchWriter writer = client.createBatchWriter(copy)) {
@@ -571,16 +572,15 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private static TabletManagementParameters createParameters(AccumuloClient client,
       Map<Path,Path> replacements) {
     var context = (ClientContext) client;
-    Set<TableId> onlineTables = Sets.filter(context.getTableIdToNameMap().keySet(),
+    Set<TableId> onlineTables = Sets.filter(context.createTableIdToQualifiedNameMap().keySet(),
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
-    for (String tserver : context.instanceOperations().getTabletServers()) {
+    for (ServiceLockPath tserver : context.getServerPaths().getTabletServer(rg -> true,
+        AddressSelector.all(), true)) {
       try {
-        var zPath = ServiceLock.path(ZooUtil.getRoot(context.instanceOperations().getInstanceId())
-            + Constants.ZTSERVERS + "/" + tserver);
-        long sessionId = ServiceLock.getSessionId(context.getZooCache(), zPath);
-        tservers.add(new TServerInstance(tserver, sessionId));
+        long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
+        tservers.add(new TServerInstance(tserver.getServer(), sessionId));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }
@@ -592,7 +592,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         onlineTables,
         new LiveTServerSet.LiveTServersSnapshot(tservers,
             Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
-        Set.of(), Map.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
+        Set.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
         SteadyTime.from(10000, TimeUnit.NANOSECONDS));
   }
 }

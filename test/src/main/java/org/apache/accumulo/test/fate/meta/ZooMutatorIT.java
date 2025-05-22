@@ -26,12 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.harness.WithTestNames;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
@@ -81,11 +79,10 @@ public class ZooMutatorIT extends WithTestNames {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-    File newFolder = new File(tempDir, testName() + "/");
+    File newFolder = tempDir.toPath().resolve(testName() + "/").toFile();
     assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
-    try (ZooKeeperTestingServer szk = new ZooKeeperTestingServer(newFolder)) {
-      szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
-      ZooReaderWriter zk = szk.getZooReaderWriter();
+    try (var testZk = new ZooKeeperTestingServer(newFolder); var zk = testZk.newClient()) {
+      var zrw = zk.asReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);
 
@@ -104,7 +101,7 @@ public class ZooMutatorIT extends WithTestNames {
             int count = -1;
             while (count < 200) {
               byte[] val =
-                  zk.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
+                  zrw.mutateOrCreate("/test-zm", initialData.getBytes(UTF_8), this::nextValue);
               int nextCount = getCount(val);
               assertTrue(nextCount > count, "nextCount <= count " + nextCount + " " + count);
               count = nextCount;
@@ -123,7 +120,7 @@ public class ZooMutatorIT extends WithTestNames {
       }
       executor.shutdown();
 
-      byte[] actual = zk.getData("/test-zm");
+      byte[] actual = zrw.getData("/test-zm");
       int settledCount = getCount(actual);
 
       assertTrue(settledCount >= 200);

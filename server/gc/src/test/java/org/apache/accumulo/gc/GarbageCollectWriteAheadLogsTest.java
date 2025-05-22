@@ -31,13 +31,14 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
 import org.apache.accumulo.core.gc.thrift.GcCycleStats;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
-import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -60,7 +61,6 @@ public class GarbageCollectWriteAheadLogsTest {
       Collections.singletonMap(server2, Collections.singletonList(id));
   private final Path path = new Path("hdfs://localhost:9000/accumulo/wal/localhost+1234/" + id);
   private final KeyExtent extent = KeyExtent.fromMetaRow(new Text("1<"));
-  private final List<LogEntry> walogs = Collections.emptyList();
   private final TabletMetadata tabletAssignedToServer1;
   private final TabletMetadata tabletAssignedToServer2;
 
@@ -82,6 +82,7 @@ public class GarbageCollectWriteAheadLogsTest {
 
   @Test
   public void testRemoveUnusedLog() throws Exception {
+    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     EasyMock.expect(fs.moveToTrash(EasyMock.anyObject())).andReturn(false).anyTimes();
@@ -90,6 +91,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -99,7 +102,7 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(fs.deleteRecursively(path)).andReturn(true).once();
     marker.removeWalMarker(server1, id);
     EasyMock.expectLastCall().once();
-    EasyMock.replay(context, fs, marker, tserverSet);
+    EasyMock.replay(conf, context, fs, marker, tserverSet);
     var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
@@ -115,11 +118,12 @@ public class GarbageCollectWriteAheadLogsTest {
     assertThrows(IllegalStateException.class, () -> gc.collect(status),
         "Should only be able to call collect once");
 
-    EasyMock.verify(context, fs, marker, tserverSet);
+    EasyMock.verify(conf, context, fs, marker, tserverSet);
   }
 
   @Test
   public void testKeepClosedLog() throws Exception {
+    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
@@ -127,14 +131,17 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
 
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers).once();
     EasyMock.expect(marker.state(server1, id)).andReturn(new Pair<>(WalState.CLOSED, path));
-    EasyMock.replay(context, marker, tserverSet, fs);
+    EasyMock.replay(conf, context, marker, tserverSet, fs);
     var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
+
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
         return Collections.emptyMap();
@@ -146,12 +153,12 @@ public class GarbageCollectWriteAheadLogsTest {
       }
     };
     gc.collect(status);
-
-    EasyMock.verify(context, marker, tserverSet, fs);
+    EasyMock.verify(conf, context, marker, tserverSet, fs);
   }
 
   @Test
   public void deleteUnreferencedLogOnDeadServer() throws Exception {
+    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     EasyMock.expect(fs.moveToTrash(EasyMock.anyObject())).andReturn(false).anyTimes();
@@ -160,6 +167,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -172,7 +181,7 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expectLastCall().once();
     marker.forget(server2);
     EasyMock.expectLastCall().once();
-    EasyMock.replay(context, fs, marker, tserverSet);
+    EasyMock.replay(conf, context, fs, marker, tserverSet);
     var gc = new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
       @Override
       protected Map<UUID,Path> getSortedWALogs() {
@@ -185,12 +194,12 @@ public class GarbageCollectWriteAheadLogsTest {
       }
     };
     gc.collect(status);
-
-    EasyMock.verify(context, fs, marker, tserverSet);
+    EasyMock.verify(conf, context, fs, marker, tserverSet);
   }
 
   @Test
   public void ignoreReferenceLogOnDeadServer() throws Exception {
+    AccumuloConfiguration conf = EasyMock.createMock(AccumuloConfiguration.class);
     ServerContext context = EasyMock.createMock(ServerContext.class);
     VolumeManager fs = EasyMock.createMock(VolumeManager.class);
     WalStateManager marker = EasyMock.createMock(WalStateManager.class);
@@ -198,6 +207,8 @@ public class GarbageCollectWriteAheadLogsTest {
 
     GCStatus status = new GCStatus(null, null, null, new GcCycleStats());
 
+    EasyMock.expect(context.getConfiguration()).andReturn(conf).times(2);
+    EasyMock.expect(conf.getCount(Property.GC_DELETE_WAL_THREADS)).andReturn(8).anyTimes();
     tserverSet.scanServers();
     EasyMock.expectLastCall();
     EasyMock.expect(tserverSet.getCurrentServers()).andReturn(Collections.singleton(server1));
@@ -205,7 +216,7 @@ public class GarbageCollectWriteAheadLogsTest {
     EasyMock.expect(marker.getAllMarkers()).andReturn(markers2).once();
     EasyMock.expect(marker.state(server2, id)).andReturn(new Pair<>(WalState.OPEN, path));
 
-    EasyMock.replay(context, fs, marker, tserverSet);
+    EasyMock.replay(conf, context, fs, marker, tserverSet);
     GarbageCollectWriteAheadLogs gc =
         new GarbageCollectWriteAheadLogs(context, fs, tserverSet, marker) {
           @Override
@@ -220,7 +231,7 @@ public class GarbageCollectWriteAheadLogsTest {
         };
     gc.collect(status);
 
-    EasyMock.verify(context, fs, marker, tserverSet);
+    EasyMock.verify(conf, context, fs, marker, tserverSet);
   }
 
 }

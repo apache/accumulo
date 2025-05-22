@@ -25,7 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
-import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -72,9 +73,10 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir =
+        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
+    testDir = baseDir.toPath().resolve(MiniAccumuloClusterTest.class.getName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
@@ -204,10 +206,10 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
   @Test
   public void testRandomPorts() throws Exception {
-    File confDir = new File(testDir, "conf");
-    File accumuloProps = new File(confDir, "accumulo.properties");
+    File confDir = testDir.toPath().resolve("conf").toFile();
+    File accumuloProps = confDir.toPath().resolve("accumulo.properties").toFile();
     var config = new PropertiesConfiguration();
-    try (var reader = new FileReader(accumuloProps, UTF_8)) {
+    try (var reader = Files.newBufferedReader(accumuloProps.toPath(), UTF_8)) {
       config.read(reader);
     }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,

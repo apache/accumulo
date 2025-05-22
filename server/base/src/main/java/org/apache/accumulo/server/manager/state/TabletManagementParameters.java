@@ -24,10 +24,7 @@ import static java.util.stream.Collectors.toSet;
 import static java.util.stream.Collectors.toUnmodifiableMap;
 import static java.util.stream.Collectors.toUnmodifiableSet;
 
-import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Arrays;
-import java.util.Base64;
+import java.net.URI;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -40,7 +37,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
@@ -48,8 +44,6 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.DataInputBuffer;
-import org.apache.hadoop.io.DataOutputBuffer;
 
 import com.google.common.base.Suppliers;
 import com.google.gson.Gson;
@@ -61,14 +55,13 @@ import com.google.gson.GsonBuilder;
  */
 public class TabletManagementParameters {
 
-  private static final Gson GSON =
-      new GsonBuilder().enableComplexMapKeySerialization().disableHtmlEscaping().create();
+  private static final Gson GSON = new GsonBuilder().enableComplexMapKeySerialization()
+      .disableHtmlEscaping().disableJdkUnsafe().create();
 
   private final ManagerState managerState;
   private final Map<Ample.DataLevel,Boolean> parentUpgradeMap;
   private final Set<TableId> onlineTables;
   private final Set<TServerInstance> serversToShutdown;
-  private final Map<KeyExtent,TServerInstance> migrations;
 
   private final Ample.DataLevel level;
 
@@ -83,9 +76,9 @@ public class TabletManagementParameters {
   public TabletManagementParameters(ManagerState managerState,
       Map<Ample.DataLevel,Boolean> parentUpgradeMap, Set<TableId> onlineTables,
       LiveTServerSet.LiveTServersSnapshot liveTServersSnapshot,
-      Set<TServerInstance> serversToShutdown, Map<KeyExtent,TServerInstance> migrations,
-      Ample.DataLevel level, Map<FateId,Map<String,String>> compactionHints,
-      boolean canSuspendTablets, Map<Path,Path> volumeReplacements, SteadyTime steadyTime) {
+      Set<TServerInstance> serversToShutdown, Ample.DataLevel level,
+      Map<FateId,Map<String,String>> compactionHints, boolean canSuspendTablets,
+      Map<Path,Path> volumeReplacements, SteadyTime steadyTime) {
     this.managerState = managerState;
     this.parentUpgradeMap = Map.copyOf(parentUpgradeMap);
     // TODO could filter by level
@@ -93,8 +86,6 @@ public class TabletManagementParameters {
     // This is already immutable, so no need to copy
     this.onlineTservers = liveTServersSnapshot.getTservers();
     this.serversToShutdown = Set.copyOf(serversToShutdown);
-    // TODO could filter by level
-    this.migrations = Map.copyOf(migrations);
     this.level = level;
     // This is already immutable, so no need to copy
     this.tserverGroups = liveTServersSnapshot.getTserverGroups();
@@ -118,9 +109,6 @@ public class TabletManagementParameters {
         jdata.onlineTservers.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
     this.serversToShutdown =
         jdata.serversToShutdown.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
-    this.migrations = jdata.migrations.entrySet().stream()
-        .collect(toUnmodifiableMap(entry -> JsonData.strToExtent(entry.getKey()),
-            entry -> new TServerInstance(entry.getValue())));
     this.level = jdata.level;
     this.compactionHints = makeImmutable(jdata.compactionHints.entrySet().stream()
         .collect(Collectors.toMap(entry -> FateId.from(entry.getKey()), Map.Entry::getValue)));
@@ -134,7 +122,8 @@ public class TabletManagementParameters {
       return Map.copyOf(resourceGroups);
     });
     this.canSuspendTablets = jdata.canSuspendTablets;
-    this.volumeReplacements = Collections.unmodifiableMap(jdata.volumeReplacements);
+    this.volumeReplacements = jdata.volumeReplacements.entrySet().stream().collect(Collectors
+        .toUnmodifiableMap(entry -> new Path(entry.getKey()), entry -> new Path(entry.getValue())));
     this.steadyTime = SteadyTime.from(jdata.steadyTime, TimeUnit.NANOSECONDS);
   }
 
@@ -160,10 +149,6 @@ public class TabletManagementParameters {
 
   public boolean isTableOnline(TableId tableId) {
     return onlineTables.contains(tableId);
-  }
-
-  public Map<KeyExtent,TServerInstance> getMigrations() {
-    return migrations;
   }
 
   public Ample.DataLevel getLevel() {
@@ -207,46 +192,25 @@ public class TabletManagementParameters {
 
   private static class JsonData {
 
-    final ManagerState managerState;
-    final Map<Ample.DataLevel,Boolean> parentUpgradeMap;
-    final Collection<String> onlineTables;
-    final Collection<String> onlineTservers;
-    final Collection<String> serversToShutdown;
-    final Map<String,String> migrations;
+    ManagerState managerState;
+    Map<Ample.DataLevel,Boolean> parentUpgradeMap;
+    Collection<String> onlineTables;
+    Collection<String> onlineTservers;
+    Collection<String> serversToShutdown;
 
-    final Ample.DataLevel level;
+    Ample.DataLevel level;
 
-    final Map<String,Set<String>> tserverGroups;
+    Map<String,Set<String>> tserverGroups;
 
-    final Map<String,Map<String,String>> compactionHints;
+    Map<String,Map<String,String>> compactionHints;
 
-    final boolean canSuspendTablets;
-    final Map<Path,Path> volumeReplacements;
-    final long steadyTime;
+    boolean canSuspendTablets;
+    Map<URI,URI> volumeReplacements;
+    long steadyTime;
 
-    private static String toString(KeyExtent extent) {
-      DataOutputBuffer buffer = new DataOutputBuffer();
-      try {
-        extent.writeTo(buffer);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-
-      return Base64.getEncoder()
-          .encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
-
-    }
-
-    private static KeyExtent strToExtent(String kes) {
-      byte[] data = Base64.getDecoder().decode(kes);
-      DataInputBuffer buffer = new DataInputBuffer();
-      buffer.reset(data, data.length);
-      try {
-        return KeyExtent.readFrom(buffer);
-      } catch (IOException e) {
-        throw new UncheckedIOException(e);
-      }
-    }
+    // Gson requires private constructor
+    @SuppressWarnings("unused")
+    private JsonData() {}
 
     JsonData(TabletManagementParameters params) {
       managerState = params.managerState;
@@ -256,8 +220,6 @@ public class TabletManagementParameters {
           .collect(toList());
       serversToShutdown = params.serversToShutdown.stream().map(TServerInstance::getHostPortSession)
           .collect(toList());
-      migrations = params.migrations.entrySet().stream().collect(
-          toMap(entry -> toString(entry.getKey()), entry -> entry.getValue().getHostPortSession()));
       level = params.level;
       tserverGroups = params.getGroupedTServers().entrySet().stream()
           .collect(toMap(Map.Entry::getKey, entry -> entry.getValue().stream()
@@ -265,7 +227,8 @@ public class TabletManagementParameters {
       compactionHints = params.compactionHints.entrySet().stream()
           .collect(Collectors.toMap(entry -> entry.getKey().canonical(), Map.Entry::getValue));
       canSuspendTablets = params.canSuspendTablets;
-      volumeReplacements = params.volumeReplacements;
+      volumeReplacements = params.volumeReplacements.entrySet().stream().collect(
+          Collectors.toMap(entry -> entry.getKey().toUri(), entry -> entry.getValue().toUri()));
       steadyTime = params.steadyTime.getNanos();
     }
 

@@ -26,8 +26,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.SortedMap;
 import java.util.SortedSet;
 
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
@@ -50,7 +53,13 @@ public class PreSplit extends ManagerRepo {
 
   private final SplitInfo splitInfo;
 
-  public PreSplit(KeyExtent expectedExtent, SortedSet<Text> splits) {
+  // Constructor used for system Splits
+  PreSplit(KeyExtent expectedExtent, SortedSet<Text> splits) {
+    this(expectedExtent, TabletMergeabilityUtil.systemDefaultSplits(splits));
+  }
+
+  // Constructor used for user splits
+  public PreSplit(KeyExtent expectedExtent, SortedMap<Text,TabletMergeability> splits) {
     Objects.requireNonNull(expectedExtent);
     Objects.requireNonNull(splits);
     Preconditions.checkArgument(!splits.isEmpty());

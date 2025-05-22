@@ -32,7 +32,9 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
@@ -73,6 +75,7 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadataBuilder;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
@@ -107,10 +110,10 @@ public class MergeTabletsTest {
    * implications for merging tablets. For a column to be in this set it means an Accumulo developer
    * has determined that merge code can handle that column OR has opened an issue about handling it.
    */
-  private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE =
-      EnumSet.of(TIME, LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED,
-          USER_COMPACTION_REQUESTED, MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE,
-          SUSPEND, AVAILABILITY, HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE);
+  private static final Set<TabletMetadata.ColumnType> COLUMNS_HANDLED_BY_MERGE = EnumSet.of(TIME,
+      LOGS, FILES, PREV_ROW, OPID, LOCATION, ECOMP, SELECTED, LOADED, USER_COMPACTION_REQUESTED,
+      MERGED, LAST, SCANS, DIR, CLONED, FLUSH_ID, FLUSH_NONCE, SUSPEND, AVAILABILITY,
+      HOSTING_REQUESTED, COMPACTED, UNSPLITTABLE, MERGEABILITY, MIGRATION);
 
   /**
    * The purpose of this test is to catch new tablet metadata columns that were added w/o
@@ -150,15 +153,19 @@ public class MergeTabletsTest {
     var availability = TabletAvailability.HOSTED;
     var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
     var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
+    var mergeability = TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS));
+    var migration = new TServerInstance("localhost:1234", 56L);
 
-    var tablet1 = TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1")
-        .putFile(file3, dfv3).putTime(MetadataTime.parse("L3"))
-        .putTabletAvailability(TabletAvailability.HOSTED).build(LOCATION, LOGS, FILES, ECOMP,
-            MERGED, COMPACTED, SELECTED, USER_COMPACTION_REQUESTED, LOADED, CLONED);
-    var tablet2 = TabletMetadata.builder(ke2).putOperation(opid).putDirName("td2")
-        .putFile(file4, dfv4).putTime(MetadataTime.parse("L2"))
-        .putTabletAvailability(TabletAvailability.HOSTED).build(LOCATION, LOGS, FILES, ECOMP,
-            MERGED, COMPACTED, SELECTED, USER_COMPACTION_REQUESTED, LOADED, CLONED);
+    var tablet1 =
+        TabletMetadata.builder(ke1).putOperation(opid).putDirName("td1").putFile(file3, dfv3)
+            .putTime(MetadataTime.parse("L3")).putTabletAvailability(TabletAvailability.HOSTED)
+            .putTabletMergeability(mergeability).build(LOCATION, LOGS, FILES, ECOMP, MERGED,
+                COMPACTED, SELECTED, USER_COMPACTION_REQUESTED, LOADED, CLONED);
+    var tablet2 =
+        TabletMetadata.builder(ke2).putOperation(opid).putDirName("td2").putFile(file4, dfv4)
+            .putTime(MetadataTime.parse("L2")).putTabletAvailability(TabletAvailability.HOSTED)
+            .putTabletMergeability(mergeability).build(LOCATION, LOGS, FILES, ECOMP, MERGED,
+                COMPACTED, SELECTED, USER_COMPACTION_REQUESTED, LOADED, CLONED);
 
     var tabletFiles = Map.of(file1, dfv1, file2, dfv2);
 
@@ -193,6 +200,8 @@ public class MergeTabletsTest {
     EasyMock.expect(lastTabletMeta.getSuspend()).andReturn(suspendingTServer).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getLast()).andReturn(lastLocation).atLeastOnce();
     EasyMock.expect(lastTabletMeta.getUnSplittable()).andReturn(unsplittableMeta).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getTabletMergeability()).andReturn(mergeability).atLeastOnce();
+    EasyMock.expect(lastTabletMeta.getMigration()).andReturn(migration).atLeastOnce();
 
     EasyMock.replay(lastTabletMeta, compactions);
 
@@ -228,6 +237,11 @@ public class MergeTabletsTest {
       EasyMock.expect(tabletMutator.deleteSuspension()).andReturn(tabletMutator);
       EasyMock.expect(tabletMutator.deleteLocation(lastLocation)).andReturn(tabletMutator);
       EasyMock.expect(tabletMutator.deleteUnSplittable()).andReturn(tabletMutator);
+      EasyMock
+          .expect(tabletMutator.putTabletMergeability(
+              TabletMergeabilityMetadata.always(SteadyTime.from(1, TimeUnit.SECONDS))))
+          .andReturn(tabletMutator).once();
+      EasyMock.expect(tabletMutator.deleteMigration()).andReturn(tabletMutator);
 
     });
 
@@ -376,17 +390,17 @@ public class MergeTabletsTest {
           .putTime(MetadataTime.parse(times[0])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
       var tablet2 = TabletMetadata.builder(ke2).putOperation(opid).putDirName("td2")
           .putTime(MetadataTime.parse(times[1])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
       var tablet3 = TabletMetadata.builder(ke3).putOperation(opid).putDirName("td3")
           .putTime(MetadataTime.parse(times[2])).putTabletAvailability(TabletAvailability.HOSTED)
           .build(LOCATION, LOGS, FILES, ECOMP, MERGED, COMPACTED, SELECTED,
               USER_COMPACTION_REQUESTED, LOADED, CLONED, SCANS, HOSTING_REQUESTED, SUSPEND, LAST,
-              UNSPLITTABLE);
+              UNSPLITTABLE, MERGEABILITY, MIGRATION);
 
       testMerge(List.of(tablet1, tablet2, tablet3), tableId, null, null, tabletMutator -> {
         EasyMock.expect(tabletMutator.putTime(MetadataTime.parse("L30"))).andReturn(tabletMutator)
@@ -396,6 +410,9 @@ public class MergeTabletsTest {
         EasyMock.expect(tabletMutator.putPrevEndRow(ke1.prevEndRow())).andReturn(tabletMutator)
             .once();
         EasyMock.expect(tabletMutator.setMerged()).andReturn(tabletMutator).once();
+        // Current default if not set is NEVER
+        EasyMock.expect(tabletMutator.putTabletMergeability(TabletMergeabilityMetadata.never()))
+            .andReturn(tabletMutator).once();
       });
     }
 
@@ -447,7 +464,7 @@ public class MergeTabletsTest {
     EasyMock.expectLastCall().once();
 
     // setup processing of conditional mutations
-    Ample.ConditionalResult cr = EasyMock.niceMock(Ample.ConditionalResult.class);
+    Ample.ConditionalResult cr = EasyMock.createMock(Ample.ConditionalResult.class);
     EasyMock.expect(cr.getStatus()).andReturn(Ample.ConditionalResult.Status.ACCEPTED)
         .atLeastOnce();
     EasyMock.expect(tabletsMutator.process()).andReturn(Map.of(lastExtent, cr)).atLeastOnce();

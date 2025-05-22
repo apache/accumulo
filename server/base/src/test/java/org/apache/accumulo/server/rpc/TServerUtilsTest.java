@@ -35,7 +35,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
@@ -46,6 +45,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.thrift.server.TServer;
@@ -58,15 +58,17 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class TServerUtilsTest {
 
   private ServerContext context;
+  private ZooSession zk;
   private MetricsInfo metricsInfo;
   private final ConfigurationCopy conf = new ConfigurationCopy(DefaultConfiguration.getInstance());
 
   @BeforeEach
   public void createMockServerContext() {
     context = createMock(ServerContext.class);
-    expect(context.getZooReader()).andReturn(null).anyTimes();
-    expect(context.getZooReaderWriter()).andReturn(null).anyTimes();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
+    zk = createMock(ZooSession.class);
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReader()).andReturn(null).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(null).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
@@ -299,9 +301,10 @@ public class TServerUtilsTest {
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(context, hostname, Property.TSERV_CLIENTPORT, processor,
-        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-
+    ServerAddress sa = TServerUtils.createThriftServer(context, hostname, Property.TSERV_CLIENTPORT,
+        processor, "TServerUtilsTest", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sa.startThriftServer("TServerUtilsTestThread");
+    return sa;
   }
 }

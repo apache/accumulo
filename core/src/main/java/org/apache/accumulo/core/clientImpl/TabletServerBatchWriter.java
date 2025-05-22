@@ -49,8 +49,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriterConfig;
@@ -65,6 +65,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutatio
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.constraints.Violations;
 import org.apache.accumulo.core.data.ConstraintViolationSummary;
 import org.apache.accumulo.core.data.Mutation;
@@ -74,7 +75,6 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.dataImpl.thrift.UpdateErrors;
-import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
@@ -212,8 +212,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.threadPools()
-        .createGeneralScheduledExecutorService(this.context.getConfiguration());
+    // This does not use ThreadPools.createGeneralScheduledExecutorService because
+    // we are disabling metrics here.
+    this.executor = (ScheduledThreadPoolExecutor) context.threadPools().createExecutorService(
+        this.context.getConfiguration(), Property.GENERAL_THREADPOOL_SIZE, false);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE
@@ -921,14 +923,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
         } catch (IOException e) {
           log.debug("failed to send mutations to {}", location, e);
 
-          HashSet<TableId> tables = new HashSet<>();
-          for (KeyExtent ke : mutationBatch.keySet()) {
-            tables.add(ke.tableId());
-          }
-
-          for (TableId table : tables) {
-            getLocator(table).invalidateCache(context, location);
-          }
+          mutationBatch.keySet().stream().collect(Collectors.groupingBy(KeyExtent::tableId))
+              .forEach((k, v) -> getLocator(k).invalidateCache(v));
 
           failedMutations.add(tsm);
         } finally {
@@ -992,7 +988,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
           // the write completed successfully so no need to close the session
           sessionCloser.clearSession();
 
-          // @formatter:off
+        // @formatter:off
             Map<KeyExtent,Long> failures = updateErrors.failedExtents.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
@@ -1000,7 +996,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
             // @formatter:on
           updatedConstraintViolations(updateErrors.violationSummaries.stream()
               .map(ConstraintViolationSummary::new).collect(toList()));
-          // @formatter:off
+        // @formatter:off
             updateAuthorizationFailures(updateErrors.authorizationFailures.entrySet().stream().collect(toMap(
                             entry -> KeyExtent.fromThrift(entry.getKey()),
                             Entry::getValue
@@ -1089,9 +1085,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
        * Checks if there is a lock held by a tserver at a specific host and port.
        */
       private boolean isALockHeld(String tserver) {
-        var root = context.getZooKeeperRoot() + Constants.ZTSERVERS;
-        var zLockPath = ServiceLock.path(root + "/" + tserver);
-        return ServiceLock.getSessionId(context.getZooCache(), zLockPath) != 0;
+        return context.getTServerLockChecker().doesTabletServerLockExist(tserver);
       }
 
       private void cancelSession() throws InterruptedException, ThriftSecurityException {

@@ -51,8 +51,8 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -107,7 +107,7 @@ class WriteExportFiles extends ManagerRepo {
     checkOffline(manager.getContext());
 
     Scanner metaScanner =
-        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+        client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetaRange());
 
     // scan for locations
@@ -232,7 +232,7 @@ class WriteExportFiles extends ManagerRepo {
     Map<String,String> uniqueFiles = new HashMap<>();
 
     Scanner metaScanner =
-        context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+        context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
     TabletColumnFamily.AVAILABILITY_COLUMN.fetch(metaScanner);
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);

@@ -26,9 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -51,6 +51,7 @@ import org.apache.accumulo.minicluster.MiniAccumuloRunner;
 import org.apache.accumulo.miniclusterImpl.MiniClusterExecutable;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.MonitorExecutable;
+import org.apache.accumulo.server.conf.CheckAccumuloProperties;
 import org.apache.accumulo.server.conf.CheckCompactionConfig;
 import org.apache.accumulo.server.conf.CheckServerConfig;
 import org.apache.accumulo.server.conf.util.ZooInfoViewer;
@@ -61,6 +62,7 @@ import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
+import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
@@ -123,11 +125,12 @@ public class KeywordStartIT {
    */
   @Test
   public void testExpectedClasses() {
-    assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
+    assumeTrue(Path.of(System.getProperty("user.dir")).resolve("src").toFile().exists());
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
     expectSet.put("check-server-config", CheckServerConfig.class);
+    expectSet.put("check-accumulo-properties", CheckAccumuloProperties.class);
     expectSet.put("compactor", CompactorExecutable.class);
     expectSet.put("create-empty", CreateEmpty.class);
     expectSet.put("create-token", CreateToken.class);
@@ -147,6 +150,7 @@ public class KeywordStartIT {
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);
+    expectSet.put("upgrade", UpgradeUtil.class);
     expectSet.put("version", Version.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);

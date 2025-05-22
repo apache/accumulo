@@ -110,7 +110,7 @@ public class CommitCompaction extends ManagerRepo {
     while (canCommitCompaction(ecid, tablet)) {
       CompactionMetadata ecm = tablet.getExternalCompactions().get(ecid);
 
-      // the compacted files should not exists in the tablet already
+      // the compacted files should not exist in the tablet already
       var tablet2 = tablet;
       newDatafile.ifPresent(
           newFile -> Preconditions.checkState(!tablet2.getFiles().contains(newFile.insert()),
@@ -118,7 +118,8 @@ public class CommitCompaction extends ManagerRepo {
 
       try (var tabletsMutator = ctx.getAmple().conditionallyMutateTablets()) {
         var tabletMutator = tabletsMutator.mutateTablet(getExtent()).requireAbsentOperation()
-            .requireCompaction(ecid).requireSame(tablet, FILES, LOCATION);
+            .requireCompaction(ecid).requireSame(tablet, LOCATION)
+            .requireFiles(commitData.getJobFiles());
 
         if (ecm.getKind() == CompactionKind.USER) {
           tabletMutator.requireSame(tablet, SELECTED, COMPACTED);
@@ -127,8 +128,9 @@ public class CommitCompaction extends ManagerRepo {
         // make the needed updates to the tablet
         updateTabletForCompaction(commitData.stats, ecid, tablet, newDatafile, ecm, tabletMutator);
 
-        tabletMutator
-            .submit(tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid));
+        tabletMutator.submit(
+            tabletMetadata -> !tabletMetadata.getExternalCompactions().containsKey(ecid),
+            () -> "commit compaction " + ecid);
 
         if (LOG.isDebugEnabled()) {
           LOG.debug("Compaction completed {} added {} removed {}", tablet.getExtent(), newDatafile,

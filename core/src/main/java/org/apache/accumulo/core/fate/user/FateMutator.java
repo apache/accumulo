@@ -18,10 +18,13 @@
  */
 package org.apache.accumulo.core.fate.user;
 
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.user.schema.FateSchema;
 
 public interface FateMutator<T> {
 
@@ -31,7 +34,48 @@ public interface FateMutator<T> {
 
   FateMutator<T> putCreateTime(long ctime);
 
-  FateMutator<T> putName(byte[] data);
+  /**
+   * Requires that nothing exists for this fate mutation.
+   */
+  FateMutator<T> requireAbsent();
+
+  /**
+   * Require that the transaction status is one of the given statuses. If no statuses are provided,
+   * require that the status column is absent.
+   *
+   * @param statuses The statuses to check against.
+   */
+  FateMutator<T> requireStatus(TStatus... statuses);
+
+  /**
+   * Require the transaction has no reservation.
+   */
+  FateMutator<T> requireUnreserved();
+
+  /**
+   * Require the transaction has no fate key set.
+   */
+  FateMutator<T> requireAbsentKey();
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxAdminColumnFamily#RESERVATION_COLUMN} that
+   * will put the reservation if there is not already a reservation present
+   *
+   * @param reservation the reservation to attempt to put
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putReservedTx(FateStore.FateReservation reservation);
+
+  /**
+   * Add a conditional mutation to {@link FateSchema.TxAdminColumnFamily#RESERVATION_COLUMN} that
+   * will delete the column if the column value matches the given reservation
+   *
+   * @param reservation the reservation to attempt to remove
+   * @return the FateMutator with this added mutation
+   */
+  FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation);
+
+  FateMutator<T> putFateOp(byte[] data);
 
   FateMutator<T> putAutoClean(byte[] data);
 
@@ -56,5 +100,7 @@ public interface FateMutator<T> {
   }
 
   Status tryMutate();
+
+  ConditionalMutation getMutation();
 
 }

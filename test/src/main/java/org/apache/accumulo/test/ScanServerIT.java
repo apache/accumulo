@@ -43,7 +43,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchScanner;
@@ -60,8 +59,8 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
@@ -116,13 +115,8 @@ public class ScanServerIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.getCluster().getClusterControl().start(ServerType.SCAN_SERVER,
         "localhost");
 
-    String zooRoot = getCluster().getServerContext().getZooKeeperRoot();
-    ZooReaderWriter zrw = getCluster().getServerContext().getZooReaderWriter();
-    String scanServerRoot = zooRoot + Constants.ZSSERVERS;
-
-    while (zrw.getChildren(scanServerRoot).size() == 0) {
-      Thread.sleep(500);
-    }
+    Wait.waitFor(() -> !getCluster().getServerContext().getServerPaths()
+        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
   }
 
   @AfterAll
@@ -446,7 +440,7 @@ public class ScanServerIT extends SharedMiniClusterBase {
   }
 
   protected static int getNumHostedTablets(AccumuloClient client, String tableId) throws Exception {
-    try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
+    try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
       scanner.setRange(new Range(tableId, tableId + "<"));
       scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
       return Iterables.size(scanner);

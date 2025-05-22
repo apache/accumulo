@@ -175,14 +175,14 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
+          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = new File(tempDir, testName());
+    File f = tempDir.toPath().resolve(testName()).toFile();
     assertTrue(f.createNewFile(), "Failed to create file: " + f);
     if (f.delete()) {
       log.debug("Deleted {}", f);
@@ -221,7 +221,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
       m.put("cf1", "cq2", "A&");
       bw.addMutation(m);
       bw.close();
-      File f = new File(tempDir, testName());
+      File f = tempDir.toPath().resolve(testName()).toFile();
       assertTrue(f.createNewFile(), "Failed to create file: " + f);
       if (f.delete()) {
         log.debug("Deleted {}", f);

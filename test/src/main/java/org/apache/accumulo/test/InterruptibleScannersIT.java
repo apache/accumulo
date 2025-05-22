@@ -23,12 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ActiveScan;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -69,10 +71,11 @@ public class InterruptibleScannersIT extends AccumuloClusterHarness {
         Thread thread = new Thread(() -> {
           try {
             // ensure the scan is running: not perfect, the metadata tables could be scanned, too.
-            String tserver = client.instanceOperations().getTabletServers().iterator().next();
+            ServerId tserver = client.instanceOperations().getServers(ServerId.Type.TABLET_SERVER)
+                .iterator().next();
             do {
               ArrayList<ActiveScan> scans =
-                  new ArrayList<>(client.instanceOperations().getActiveScans(tserver));
+                  new ArrayList<>(client.instanceOperations().getActiveScans(List.of(tserver)));
               // Remove scans not against our table and not owned by us
               scans.removeIf(scan -> !getAdminPrincipal().equals(scan.getUser())
                   || !tableName.equals(scan.getTable()));

@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.UUID;
 
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -86,22 +85,19 @@ public class WalStateManager {
     UNREFERENCED
   }
 
-  private final ClientContext context;
   private final ZooReaderWriter zoo;
 
   private volatile boolean checkedExistance = false;
 
   public WalStateManager(ServerContext context) {
-    this.context = context;
-    this.zoo = context.getZooReaderWriter();
+    this.zoo = context.getZooSession().asReaderWriter();
   }
 
   private String root() throws WalMarkerException {
-    String root = context.getZooKeeperRoot() + ZWALS;
 
     try {
-      if (!checkedExistance && !zoo.exists(root)) {
-        zoo.putPersistentData(root, new byte[0], NodeExistsPolicy.SKIP);
+      if (!checkedExistance && !zoo.exists(ZWALS)) {
+        zoo.putPersistentData(ZWALS, new byte[0], NodeExistsPolicy.SKIP);
       }
 
       checkedExistance = true;
@@ -109,7 +105,7 @@ public class WalStateManager {
       throw new WalMarkerException(e);
     }
 
-    return root;
+    return ZWALS;
   }
 
   // Tablet server exists

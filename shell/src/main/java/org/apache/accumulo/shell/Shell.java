@@ -24,11 +24,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -176,6 +178,7 @@ import org.jline.reader.impl.LineReaderImpl;
 import org.jline.terminal.Attributes;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
+import org.jline.terminal.TerminalBuilder.SystemOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -229,6 +232,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   protected String execCommand = null;
   protected boolean verbose = true;
 
+  private boolean canPaginate = false;
   private boolean tabCompletion;
   private boolean disableAuthTimeout;
   private long authTimeout;
@@ -300,7 +304,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
    */
   public boolean config(String... args) throws IOException {
     if (this.terminal == null) {
-      this.terminal = TerminalBuilder.builder().jansi(false).build();
+      this.terminal =
+          TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
       this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
@@ -377,6 +382,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         return false;
       }
     }
+
+    canPaginate = terminal.getSize().getRows() > 0;
 
     // decide whether to execute commands from a file and quit
     if (options.getExecFile() != null) {
@@ -532,7 +539,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = new File(configDir);
+    File accumuloDir = Path.of(configDir).toFile();
     if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
       log.warn("Unable to make directory for history at {}", accumuloDir);
     }
@@ -547,7 +554,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
     // Set history file
-    reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.setVariable(LineReader.HISTORY_FILE, Path.of(historyPath));
 
     // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
@@ -993,8 +1000,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
         justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      try {
+        writer = new PrintWriter(new BufferedWriter(
+            new OutputStreamWriter(Files.newOutputStream(Path.of(filename)), UTF_8)));
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error creating output stream for file: " + filename, e);
+      }
     }
 
     @Override
@@ -1030,7 +1041,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
         if (out == null) {
           if (peek != null) {
             writer.println(peek);
-            if (paginate) {
+            if (canPaginate && paginate) {
               linesPrinted += peek.isEmpty() ? 0 : Math.ceil(peek.length() * 1.0 / termWidth);
 
               // check if displaying the next line would result in

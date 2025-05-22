@@ -25,18 +25,22 @@ import static org.apache.accumulo.test.ample.metadata.ConditionalWriterIntercept
 import static org.apache.accumulo.test.ample.metadata.TestAmple.not;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.assertNoCompactionMetadata;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -45,7 +49,9 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -58,6 +64,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -67,8 +74,10 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.time.SteadyTime;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.merge.FindMergeableRangeTask.UnmergeableReason;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.compact.CompactionDriver;
 import org.apache.accumulo.manager.tableOps.merge.DeleteRows;
@@ -76,16 +85,20 @@ import org.apache.accumulo.manager.tableOps.merge.MergeInfo;
 import org.apache.accumulo.manager.tableOps.merge.MergeInfo.Operation;
 import org.apache.accumulo.manager.tableOps.merge.MergeTablets;
 import org.apache.accumulo.manager.tableOps.merge.ReserveTablets;
+import org.apache.accumulo.manager.tableOps.merge.UnreserveSystemMerge;
+import org.apache.accumulo.manager.tableOps.merge.VerifyMergeability;
 import org.apache.accumulo.manager.tableOps.split.AllocateDirsAndEnsureOnline;
 import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.manager.tableOps.split.PreSplit;
 import org.apache.accumulo.manager.tableOps.split.SplitInfo;
+import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.LargeSplitRowIT;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
 import org.apache.accumulo.test.ample.metadata.TestAmple.TestServerAmpleImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
@@ -93,6 +106,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.google.common.collect.Sets;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class ManagerRepoIT extends SharedMiniClusterBase {
 
   @BeforeAll
@@ -106,7 +120,7 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
   }
 
   @ParameterizedTest
-  @EnumSource(MergeInfo.Operation.class)
+  @EnumSource(value = MergeInfo.Operation.class, names = {"MERGE", "DELETE"})
   public void testNoWalsMergeRepos(MergeInfo.Operation operation) throws Exception {
     String[] tableNames = getUniqueNames(2);
     String metadataTable = tableNames[0] + operation;
@@ -163,6 +177,108 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testVerifyMergeability() throws Exception {
+    String[] tableNames = getUniqueNames(2);
+    String metadataTable = tableNames[0];
+    String userTable = tableNames[1];
+
+    try (ClientContext client =
+        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+
+      SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
+      splits.put(new Text("a"), TabletMergeability.always());
+      splits.put(new Text("b"), TabletMergeability.always());
+      splits.put(new Text("c"), TabletMergeability.never());
+      splits.put(new Text("d"), TabletMergeability.after(Duration.ofDays(2)));
+      splits.put(new Text("e"), TabletMergeability.always());
+
+      client.tableOperations().create(userTable,
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(),
+              "10K", Property.TABLE_MAJC_RATIO.getKey(), "9999",
+              Property.TABLE_MERGE_FILE_MAX.getKey(), "10")).withSplits(splits));
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(userTable));
+
+      // Set up Test ample and manager
+      TestAmple.createMetadataTable(client, metadataTable);
+      TestServerAmpleImpl testAmple = (TestServerAmpleImpl) TestAmple
+          .create(getCluster().getServerContext(), Map.of(DataLevel.USER, metadataTable));
+      testAmple.createMetadataFromExisting(client, tableId);
+      Manager manager =
+          mockWithAmple(getCluster().getServerContext(), testAmple, Duration.ofDays(1));
+
+      // Create a test fate id
+      var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+
+      // Tablet c is set to never merge
+      MergeInfo mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
+          null, new Text("c").getBytes(), Operation.SYSTEM_MERGE);
+      var repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.TABLET_MERGEABILITY,
+          ((UnreserveSystemMerge) repo).getReason());
+
+      // Tablets a and b are always merge
+      mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId), null,
+          new Text("b").getBytes(), Operation.SYSTEM_MERGE);
+      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, manager));
+
+      var context = manager.getContext();
+
+      // split threshold is 10k so default max merge size is 2500 bytes.
+      // this adds 6 files of 450 each which puts the tablets over teh 2500 threshold
+      addFileMetadata(context, tableId, null, new Text("c"), 3, 450);
+
+      // Data written to the first two tablets totals 2700 bytes and is too large
+      repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.MAX_TOTAL_SIZE, ((UnreserveSystemMerge) repo).getReason());
+
+      // Not enough time has passed for Tablet, should be able to merge d and e
+      mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
+          new Text("c").getBytes(), new Text("e").getBytes(), Operation.SYSTEM_MERGE);
+      repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.TABLET_MERGEABILITY,
+          ((UnreserveSystemMerge) repo).getReason());
+
+      // update time to 3 days so enough time has passed
+      manager = mockWithAmple(getCluster().getServerContext(), testAmple, Duration.ofDays(3));
+      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, manager));
+
+      // last 3 tablets should total 9 files which is < max of 10
+      mergeInfo = new MergeInfo(tableId, manager.getContext().getNamespaceId(tableId),
+          new Text("c").getBytes(), null, Operation.SYSTEM_MERGE);
+      addFileMetadata(context, tableId, new Text("c"), null, 3, 10);
+      assertInstanceOf(MergeTablets.class, new VerifyMergeability(mergeInfo).call(fateId, manager));
+
+      // last 3 tablets should total 12 files which is > max of 10
+      addFileMetadata(context, tableId, new Text("c"), null, 4, 10);
+      repo = new VerifyMergeability(mergeInfo).call(fateId, manager);
+      assertInstanceOf(UnreserveSystemMerge.class, repo);
+      assertEquals(UnmergeableReason.MAX_FILE_COUNT, ((UnreserveSystemMerge) repo).getReason());
+    }
+  }
+
+  private void addFileMetadata(ServerContext context, TableId tableId, Text start, Text end,
+      int numFiles, int fileSize) {
+    try (
+        var tablets =
+            context.getAmple().readTablets().forTable(tableId).overlapping(start, end).build();
+        var tabletsMutator = context.getAmple().mutateTablets()) {
+      for (var tabletMeta : tablets) {
+        var tabletMutator = tabletsMutator.mutateTablet(tabletMeta.getExtent());
+        for (int i = 0; i < numFiles; i++) {
+          StoredTabletFile f = StoredTabletFile.of(new org.apache.hadoop.fs.Path(
+              "file:///accumulo/tables/1/" + tabletMeta.getDirName() + "/F" + i + ".rf"));
+          DataFileValue dfv = new DataFileValue(fileSize, 100);
+          tabletMutator.putFile(f, dfv);
+        }
+        tabletMutator.mutate();
+      }
+    }
+  }
+
+  @Test
   public void testSplitOffline() throws Exception {
     String[] tableNames = getUniqueNames(2);
     String metadataTable = tableNames[0];
@@ -197,8 +313,8 @@ public class ManagerRepoIT extends SharedMiniClusterBase {
 
       assertEquals(opid, testAmple.readTablet(extent).getOperationId());
 
-      var eoRepo = new AllocateDirsAndEnsureOnline(
-          new SplitInfo(extent, new TreeSet<>(List.of(new Text("sp1")))));
+      var eoRepo = new AllocateDirsAndEnsureOnline(new SplitInfo(extent,
+          TabletMergeabilityUtil.systemDefaultSplits(new TreeSet<>(List.of(new Text("sp1"))))));
 
       // The repo should delete the opid and throw an exception
       assertThrows(ThriftTableOperationException.class, () -> eoRepo.call(fateId, manager));

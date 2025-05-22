@@ -28,16 +28,17 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MemoryConsumingCompactor extends Compactor implements CompactorService.Iface {
+public class MemoryConsumingCompactor extends Compactor {
 
   private static final Logger LOG = LoggerFactory.getLogger(MemoryConsumingCompactor.class);
 
@@ -66,20 +67,9 @@ public class MemoryConsumingCompactor extends Compactor implements CompactorServ
     try {
       MemoryConsumingIterator iter = new MemoryConsumingIterator();
       iter.init((SortedKeyValueIterator<Key,Value>) null, Map.of(),
-          new SystemIteratorEnvironment() {
-
-            @Override
-            public ServerContext getServerContext() {
-              return getContext();
-            }
-
-            @Override
-            public SortedKeyValueIterator<Key,Value>
-                getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-              return null;
-            }
-
-          });
+          new TabletIteratorEnvironment(getContext(), IteratorScope.scan,
+              getContext().getTableConfiguration(SystemTables.METADATA.tableId()),
+              SystemTables.METADATA.tableId()));
       iter.consume();
     } catch (IOException e) {
       throw new TException("Error consuming memory", e);

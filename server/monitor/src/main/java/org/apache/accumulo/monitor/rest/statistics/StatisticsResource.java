@@ -18,9 +18,6 @@
  */
 package org.apache.accumulo.monitor.rest.statistics;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -28,7 +25,6 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 
 import org.apache.accumulo.core.gc.thrift.GCStatus;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.monitor.Monitor;
 
 /**
@@ -151,136 +147,5 @@ public class StatisticsResource {
   @Path("totalLookups")
   public long getTotalLookups() {
     return monitor.getTotalLookups();
-  }
-
-  /**
-   * Generates a list with the scan rate over time
-   *
-   * @return Scan rate over time
-   */
-  @GET
-  @Path("time/scanRate")
-  public List<Pair<Long,Long>> getScanRate() {
-    return monitor.getScanRateOverTime();
-  }
-
-  /**
-   * Generates a list with the query rate over time
-   *
-   * @return Query rate over time
-   */
-  @GET
-  @Path("time/queryRate")
-  public List<Pair<Long,Long>> getQueryRate() {
-    return monitor.getQueryRateOverTime();
-  }
-
-  /**
-   * Generates a list with the scan entries over time
-   *
-   * @return Scan entries over time
-   */
-  @GET
-  @Path("time/scanEntries")
-  public List<Pair<String,List<Pair<Long,Long>>>> getScanEntries() {
-
-    List<Pair<String,List<Pair<Long,Long>>>> scanEntries = new ArrayList<>();
-
-    Pair<String,List<Pair<Long,Long>>> read = new Pair<>("Read", monitor.getScanRateOverTime());
-    Pair<String,List<Pair<Long,Long>>> returned =
-        new Pair<>("Returned", monitor.getQueryRateOverTime());
-
-    scanEntries.add(read);
-    scanEntries.add(returned);
-
-    return scanEntries;
-  }
-
-  /**
-   * Generates a list with the query byte rate over time
-   *
-   * @return Query byte rate over time
-   */
-  @GET
-  @Path("time/queryByteRate")
-  public List<Pair<Long,Double>> getQueryByteRate() {
-    return monitor.getQueryByteRateOverTime();
-  }
-
-  /**
-   * Generates a list with the load over time
-   *
-   * @return Load over time
-   */
-  @GET
-  @Path("time/load")
-  public List<Pair<Long,Double>> getLoad() {
-    return monitor.getLoadOverTime();
-  }
-
-  /**
-   * Generates a list with the ingest rate over time
-   *
-   * @return Ingest rate over time
-   */
-  @GET
-  @Path("time/ingestRate")
-  public List<Pair<Long,Double>> getIngestRate() {
-    return monitor.getIngestRateOverTime();
-  }
-
-  /**
-   * Generates a list with the ingest byte rate over time
-   *
-   * @return Ingest byte rate over time
-   */
-  @GET
-  @Path("time/ingestByteRate")
-  public List<Pair<Long,Double>> getIngestByteRate() {
-    return monitor.getIngestByteRateOverTime();
-  }
-
-  /**
-   * Generates a list with the minor compactions over time
-   *
-   * @return Minor compactions over time
-   */
-  @GET
-  @Path("time/minorCompactions")
-  public List<Pair<Long,Integer>> getMinorCompactions() {
-    return monitor.getMinorCompactionsOverTime();
-  }
-
-  /**
-   * Generates a list with the lookups over time
-   *
-   * @return Lookups over time
-   */
-  @GET
-  @Path("time/lookups")
-  public List<Pair<Long,Double>> getLookups() {
-    return monitor.getLookupsOverTime();
-  }
-
-  /**
-   * Generates a list with the index cache hit rate over time
-   *
-   * @return Index cache hit rate over time
-   */
-  @GET
-  @Path("time/indexCacheHitRate")
-  public List<Pair<Long,Double>> getIndexCacheHitRate() {
-    return monitor.getIndexCacheHitRateOverTime();
-  }
-
-  /**
-   * Generates a list with the data cache hit rate over time
-   *
-   * @return Data cache hit rate over time
-   */
-  @GET
-  @Path("time/dataCacheHitRate")
-  public List<Pair<Long,Double>> getDataCacheHitRate() {
-    return monitor.getDataCacheHitRateOverTime();
   }
 }

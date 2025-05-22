@@ -29,6 +29,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -39,13 +40,17 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateKey;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxAdminColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.hadoop.io.Text;
+
+import com.google.common.base.Preconditions;
 
 public class FateMutatorImpl<T> implements FateMutator<T> {
 
@@ -53,6 +58,8 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   private final String tableName;
   private final FateId fateId;
   private final ConditionalMutation mutation;
+  private boolean requiredUnreserved = false;
+  public static final int INITIAL_ITERATOR_PRIO = 1000000;
 
   public FateMutatorImpl(ClientContext context, String tableName, FateId fateId) {
     this.context = Objects.requireNonNull(context);
@@ -63,7 +70,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
 
   @Override
   public FateMutator<T> putStatus(TStatus status) {
-    TxColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
+    TxAdminColumnFamily.STATUS_COLUMN.put(mutation, new Value(status.name()));
     return this;
   }
 
@@ -80,8 +87,51 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   }
 
   @Override
-  public FateMutator<T> putName(byte[] data) {
-    TxInfoColumnFamily.TX_NAME_COLUMN.put(mutation, new Value(data));
+  public FateMutator<T> requireAbsent() {
+    IteratorSetting is = new IteratorSetting(INITIAL_ITERATOR_PRIO, RowExistsIterator.class);
+    Condition c = new Condition("", "").setIterators(is);
+    mutation.addCondition(c);
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> requireUnreserved() {
+    Preconditions.checkState(!requiredUnreserved);
+    Condition condition = new Condition(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    requiredUnreserved = true;
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> requireAbsentKey() {
+    Condition condition = new Condition(TxColumnFamily.TX_KEY_COLUMN.getColumnFamily(),
+        TxColumnFamily.TX_KEY_COLUMN.getColumnQualifier());
+    mutation.addCondition(condition);
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putReservedTx(FateStore.FateReservation reservation) {
+    requireUnreserved();
+    TxAdminColumnFamily.RESERVATION_COLUMN.put(mutation, new Value(reservation.getSerialized()));
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation) {
+    Condition condition = new Condition(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+        TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier())
+        .setValue(reservation.getSerialized());
+    mutation.addCondition(condition);
+    TxAdminColumnFamily.RESERVATION_COLUMN.putDelete(mutation);
+    return this;
+  }
+
+  @Override
+  public FateMutator<T> putFateOp(byte[] data) {
+    TxAdminColumnFamily.FATE_OP_COLUMN.put(mutation, new Value(data));
     return this;
   }
 
@@ -112,8 +162,8 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
   @Override
   public FateMutator<T> putTxInfo(TxInfo txInfo, byte[] data) {
     switch (txInfo) {
-      case TX_NAME:
-        putName(data);
+      case FATE_OP:
+        putFateOp(data);
         break;
       case AUTO_CLEAN:
         putAutoClean(data);
@@ -159,12 +209,7 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     return this;
   }
 
-  /**
-   * Require that the transaction status is one of the given statuses. If no statuses are provided,
-   * require that the status column is absent.
-   *
-   * @param statuses The statuses to check against.
-   */
+  @Override
   public FateMutator<T> requireStatus(TStatus... statuses) {
     Condition condition = StatusMappingIterator.createCondition(statuses);
     mutation.addCondition(condition);
@@ -215,5 +260,10 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
     } catch (TableNotFoundException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  @Override
+  public ConditionalMutation getMutation() {
+    return mutation;
   }
 }

@@ -45,7 +45,7 @@ public class CleanShutdownMacTest extends WithTestNames {
 
   @Test
   public void testExecutorServiceShutdown() throws Exception {
-    File tmp = new File(tmpDir, testName());
+    File tmp = tmpDir.toPath().resolve(testName()).toFile();
     assertTrue(tmp.isDirectory() || tmp.mkdir(), "Failed to make a new sub-directory");
     MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp, "foo");
 

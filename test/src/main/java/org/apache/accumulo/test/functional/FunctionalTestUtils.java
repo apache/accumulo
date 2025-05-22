@@ -48,7 +48,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -61,13 +60,11 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.AdminUtil.FateStatus;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.MetaFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -88,7 +85,7 @@ public class FunctionalTestUtils {
 
   public static int countRFiles(AccumuloClient c, String tableName) throws Exception {
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -105,7 +102,7 @@ public class FunctionalTestUtils {
       throws Exception {
     List<StoredTabletFile> files = new ArrayList<>();
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       TableId tableId = TableId.of(c.tableOperations().tableIdMap().get(tableName));
       scanner.setRange(TabletsSection.getRange(tableId));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -117,7 +114,7 @@ public class FunctionalTestUtils {
   static void checkRFiles(AccumuloClient c, String tableName, int minTablets, int maxTablets,
       int minRFiles, int maxRFiles) throws Exception {
     try (Scanner scanner =
-        c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+        c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = c.tableOperations().tableIdMap().get(tableName);
       scanner.setRange(new Range(new Text(tableId + ";"), true, new Text(tableId + "<"), true));
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -231,16 +228,16 @@ public class FunctionalTestUtils {
 
   private static FateStatus getFateStatus(AccumuloCluster cluster) {
     try {
-      AdminUtil<String> admin = new AdminUtil<>(false);
+      AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
-      ZooReaderWriter zk = context.getZooReaderWriter();
-      MetaFateStore<String> mfs =
-          new MetaFateStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
-      UserFateStore<String> ufs = new UserFateStore<>(context);
-      Map<FateInstanceType,ReadOnlyFateStore<String>> fateStores =
-          Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
-      var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
-      return admin.getStatus(fateStores, zk, lockPath, null, null, null);
+      var zk = context.getZooSession();
+      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+      UserFateStore<String> readOnlyUFS =
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
+      Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
+          Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
+      var lockPath = context.getServerPaths().createTableLocksPath();
+      return admin.getStatus(readOnlyFateStores, zk, lockPath, null, null, null);
     } catch (KeeperException | InterruptedException e) {
       throw new RuntimeException(e);
     }
