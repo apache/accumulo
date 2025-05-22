@@ -39,11 +39,11 @@ public class Halt {
 
   public static void halt(final int status, String msg, Runnable runnable) {
 
-    // Printing to stderr and to the log in case the message does not make
-    // it to the log. This could happen if an asynchronous logging impl is used
-    System.err.println(msg);
-    log.error(msg);
     try {
+      // Printing to stderr and to the log in case the message does not make
+      // it to the log. This could happen if an asynchronous logging impl is used
+      System.err.println(msg);
+      log.error(msg);
       // give ourselves a little time to try and do something
       Threads.createThread("Halt Thread", () -> {
         sleepUninterruptibly(100, MILLISECONDS);
