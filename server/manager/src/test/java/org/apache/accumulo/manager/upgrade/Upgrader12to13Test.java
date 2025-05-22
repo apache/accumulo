@@ -154,10 +154,10 @@ public class Upgrader12to13Test {
         "/tables/t1/tableNamespace", "ns1".getBytes(UTF_8), "/tables/t2", "data_t2".getBytes(UTF_8),
         "/tables/t2/state", "data_t2_state".getBytes(UTF_8), "/tables/t2/flush-id",
         "data_t2_flush-id".getBytes(UTF_8), "/tables/t2/tableNamespace", "ns2".getBytes(UTF_8));
+
     Map<String,List<String>> childrenMap =
-        Map.of("/tables/t1", List.of("flush-id", "state"), "/tables/t1/flush-id", List.of(),
-            "/tables/t1/state", List.of(), "/tables/t2", List.of("flush-id", "state"),
-            "/tables/t2/flush-id", List.of(), "/tables/t2/state", List.of());
+        Map.of("/tables/t1", List.of("flush-id", "state", "tableNamespace"), "/tables/t2",
+            List.of("flush-id", "state", "tableNamespace"));
 
     expect(zrw.getChildren(eq(Constants.ZTABLES))).andReturn(mockTableIds).once();
 
@@ -172,35 +172,30 @@ public class Upgrader12to13Test {
       expect(zrw.getData(eq(tableNamespaceNode)))
           .andReturn(tableToNamespace.get(tableId).getBytes(UTF_8)).once();
 
-      expectRecursiveMove(oldPath, newPath, dataMap, childrenMap, zrw);
+      expect(zrw.getData(eq(oldPath))).andReturn(dataMap.get(oldPath)).once();
+      expect(zrw.putPersistentData(eq(newPath), eq(dataMap.get(oldPath)),
+          eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
 
-      expect(zrw.exists(eq(tableNamespaceNode))).andReturn(true).once();
-      zrw.recursiveDelete(eq(tableNamespaceNode), eq(NodeMissingPolicy.SKIP));
+      List<String> children = childrenMap.get(oldPath);
+      expect(zrw.getChildren(eq(oldPath))).andReturn(children).once();
+
+      for (String child : children) {
+        if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
+          continue;
+        }
+        String fromChild = oldPath + "/" + child;
+        String toChild = newPath + "/" + child;
+        expect(zrw.getData(eq(fromChild))).andReturn(dataMap.get(fromChild)).once();
+        expect(zrw.putPersistentData(eq(toChild), eq(dataMap.get(fromChild)),
+            eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+      }
+
+      zrw.recursiveDelete(eq(oldPath), eq(NodeMissingPolicy.SKIP));
       expectLastCall().once();
     }
 
     replay(context, zk, zrw);
     upgrader.moveZkTables(context);
     verify(context, zk, zrw);
-  }
-
-  private void expectRecursiveMove(String from, String to, Map<String,byte[]> dataMap,
-      Map<String,List<String>> childrenMap, ZooReaderWriter zrw)
-      throws InterruptedException, KeeperException {
-
-    expect(zrw.getData(eq(from))).andReturn(dataMap.get(from)).once();
-    expect(zrw.putPersistentData(eq(to), eq(dataMap.get(from)),
-        eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
-
-    List<String> children = childrenMap.getOrDefault(from, List.of());
-    expect(zrw.getChildren(eq(from))).andReturn(children).once();
-
-    for (String child : children) {
-      String childFrom = from + "/" + child;
-      String childTo = to + "/" + child;
-      expectRecursiveMove(childFrom, childTo, dataMap, childrenMap, zrw);
-    }
-    zrw.recursiveDelete(eq(from), eq(NodeMissingPolicy.SKIP));
-    expectLastCall().once();
   }
 }

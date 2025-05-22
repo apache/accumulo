@@ -466,10 +466,23 @@ public class Upgrader12to13 implements Upgrader {
         String namespaceId = new String(zrw.getData(tableNamespaceNode), UTF_8);
         String newPath =
             Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
-        moveZkNode(context, oldPath, newPath);
-        if (zrw.exists(tableNamespaceNode)) {
-          zrw.recursiveDelete(tableNamespaceNode, NodeMissingPolicy.SKIP);
+
+        byte[] data = zrw.getData(oldPath);
+        zrw.putPersistentData(newPath, data, ZooUtil.NodeExistsPolicy.OVERWRITE);
+
+        // This assumes that /tables/<tableid> nodes have no grandchildren
+        List<String> children = zrw.getChildren(oldPath);
+        for (String child : children) {
+          if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
+            continue;
+          }
+          String fromChild = oldPath + "/" + child;
+          String toChild = newPath + "/" + child;
+          byte[] childData = zrw.getData(fromChild);
+          zrw.putPersistentData(toChild, childData, ZooUtil.NodeExistsPolicy.OVERWRITE);
         }
+
+        zrw.recursiveDelete(oldPath, NodeMissingPolicy.SKIP);
       }
 
     } catch (InterruptedException ex) {
@@ -480,19 +493,5 @@ public class Upgrader12to13 implements Upgrader {
       throw new IllegalStateException(
           "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
-  }
-
-  private static void moveZkNode(ServerContext context, String from, String to)
-      throws KeeperException, InterruptedException {
-    final var zrw = context.getZooSession().asReaderWriter();
-    byte[] data = zrw.getData(from);
-    zrw.putPersistentData(to, data, ZooUtil.NodeExistsPolicy.OVERWRITE);
-    for (String child : zrw.getChildren(from)) {
-      if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
-        continue;
-      }
-      moveZkNode(context, from + "/" + child, to + "/" + child);
-    }
-    zrw.recursiveDelete(from, NodeMissingPolicy.SKIP);
   }
 }
