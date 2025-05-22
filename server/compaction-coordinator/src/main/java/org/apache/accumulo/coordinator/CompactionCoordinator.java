@@ -34,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -139,8 +138,6 @@ public class CompactionCoordinator extends AbstractServer implements
 
   private ServiceLock coordinatorLock;
 
-  private final ScheduledThreadPoolExecutor schedExecutor;
-
   private final LoadingCache<String,Integer> compactorCounts;
 
   protected CompactionCoordinator(ServerOpts opts, String[] args) {
@@ -150,14 +147,13 @@ public class CompactionCoordinator extends AbstractServer implements
   protected CompactionCoordinator(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compaction-coordinator", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
-    schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    compactionFinalizer = createCompactionFinalizer(schedExecutor);
+    compactionFinalizer = createCompactionFinalizer();
     tserverSet = createLiveTServerSet();
     setupSecurity();
-    startGCLogger(schedExecutor);
+    startGCLogger();
     printStartupMsg();
-    startCompactionCleaner(schedExecutor);
-    startRunningCleaner(schedExecutor);
+    startCompactionCleaner();
+    startRunningCleaner();
     compactorCounts = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS)
         .build(queue -> ExternalCompactionUtil.countCompactors(queue, getContext()));
   }
@@ -167,9 +163,8 @@ public class CompactionCoordinator extends AbstractServer implements
     return aconf;
   }
 
-  protected CompactionFinalizer
-      createCompactionFinalizer(ScheduledThreadPoolExecutor schedExecutor) {
-    return new CompactionFinalizer(getContext(), schedExecutor);
+  protected CompactionFinalizer createCompactionFinalizer() {
+    return new CompactionFinalizer(getContext(), getContext().getScheduledExecutor());
   }
 
   protected LiveTServerSet createLiveTServerSet() {
@@ -180,22 +175,22 @@ public class CompactionCoordinator extends AbstractServer implements
     security = getContext().getSecurityOperation();
   }
 
-  protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+  protected void startGCLogger() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(
+        () -> gcLogger.logGCInfo(getConfiguration()), 0, TIME_BETWEEN_GC_CHECKS,
+        TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
+  protected void startCompactionCleaner() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
+  protected void startRunningCleaner() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -447,7 +442,7 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   protected void startDeadCompactionDetector() {
-    new DeadCompactionDetector(getContext(), this, schedExecutor).start();
+    new DeadCompactionDetector(getContext(), this, getContext().getScheduledExecutor()).start();
   }
 
   protected long getMissingCompactorWarningTime() {
