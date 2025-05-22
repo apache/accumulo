@@ -389,7 +389,13 @@ public class CompactionManager {
         compactablesToCheck.add(tablet.asCompactable());
         runningExternalCompactions.remove(extCompactionId);
         log.trace("Committed external compaction {} {}", extCompactionId, tablet.getExtent());
+      } else {
+        log.debug("Ignoring request to commit {} {} because its not in set of known tablets",
+            extCompactionId, ecInfo.extent);
       }
+    } else {
+      log.debug("Ignoring request to commit {} because its not in runningExternalCompactions",
+          extCompactionId);
     }
   }
 
@@ -406,7 +412,12 @@ public class CompactionManager {
         compactablesToCheck.add(tablet.asCompactable());
         runningExternalCompactions.remove(ecid);
         log.trace("Failed external compaction {} {}", ecid, tablet.getExtent());
+      } else {
+        log.debug("Ignoring request to fail {} {} because its not in set of known tablets", ecid,
+            ecInfo.extent);
       }
+    } else {
+      log.debug("Ignoring request to fail {} because its not in runningExternalCompactions", ecid);
     }
   }
 
