@@ -454,6 +454,10 @@ public class CompactionCoordinator extends AbstractServer implements
         .getTimeInMillis(Property.COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL);
   }
 
+  CompactionFinalizer getFinalizer() {
+    return compactionFinalizer;
+  }
+
   /**
    * Callback for the LiveTServerSet object to update current set of tablet servers, including ones
    * that were deleted and added

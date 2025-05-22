@@ -106,6 +106,21 @@ public class DeadCompactionDetector {
       }
     });
 
+    // Determine which compactions are waiting to be committed and remove those
+    Collection<ExternalCompactionId> queued =
+        coordinator.getFinalizer().getQueuedCompletedCompactions();
+
+    queued.forEach((ecid) -> {
+      if (tabletCompactions.remove(ecid) != null) {
+        log.trace("Removed compaction {} that is finished and queued for commit", ecid);
+      }
+      if (this.deadCompactions.remove(ecid) != null) {
+        log.trace("Removed {} from the dead compaction map, it's finished and queued for commit",
+            ecid);
+      }
+
+    });
+
     // Determine which compactions are currently committing and remove those
     try (
         var externalCompactionFinalStates = context.getAmple().getExternalCompactionFinalStates()) {
