@@ -119,6 +119,10 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       getCluster().getConfig().setNumTservers(5);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
+      Wait.waitFor(() -> c.instanceOperations().getTabletServers().size() == 5);
+      Wait.waitFor(() -> c.instanceOperations().getSystemConfiguration()
+          .get(Property.MANAGER_TABLET_BALANCER.getKey()).equals(balancerClass));
+      c.instanceOperations().waitForBalance();
       UtilWaitThread.sleep(5000);
 
       // should not have balanced across the two new tservers
