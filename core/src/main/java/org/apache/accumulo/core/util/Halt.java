@@ -51,8 +51,6 @@ public class Halt {
 
     try {
       // give ourselves a little time to try and do something
-      // TODO KEVIN RATHBUN doesn't matter if this is critical or not, halt() will be called in
-      // this method no matter what
       Threads.createNonCriticalThread("Halt Thread", () -> {
         sleepUninterruptibly(100, MILLISECONDS);
         Runtime.getRuntime().halt(status);

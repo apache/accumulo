@@ -736,8 +736,6 @@ public class Compactor extends AbstractServer
           final FileCompactorRunnable fcr =
               createCompactionJob(job, totalInputEntries, totalInputBytes, started, stopped, err);
 
-          // TODO KEVIN RATHBUN exists within a while(!shutdown) loop so thread is repeatedly
-          // recreated. No need to be critical. If a single job fails, that's okay.
           final Thread compactionThread = Threads.createNonCriticalThread(
               "Compaction job for tablet " + job.getExtent().toString(), fcr);
 

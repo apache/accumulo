@@ -243,8 +243,6 @@ public abstract class AbstractServer
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {
-      // TODO KEVIN RATHBUN verifying the service lock is a critical function of any process
-      // calling this and the thread would not be recreated on failures
       verificationThread = Threads.createCriticalThread("service-lock-verification-thread",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
             while (serverThread.isAlive()) {

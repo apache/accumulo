@@ -514,8 +514,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     // need to regularly fetch data so plot data is updated
-    // TODO KEVIN RATHBUN don't think this is a critical function of the Monitor (and the
-    // RuntimeException is already handled here)
     Threads.createNonCriticalThread("Data fetcher", () -> {
       while (true) {
         try {

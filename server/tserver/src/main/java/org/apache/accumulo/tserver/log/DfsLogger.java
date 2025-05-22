@@ -475,8 +475,6 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    // TODO KEVIN RATHBUN this seems like a vital thread for TabletServer, but appears that the
-    // thread will continuously be recreated, so probably fine to stay non critical
     syncThread =
         Threads.createNonCriticalThread("Accumulo WALog thread " + this, new LogSyncingTask());
     syncThread.start();

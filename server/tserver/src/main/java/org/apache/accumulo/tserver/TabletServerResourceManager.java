@@ -480,9 +480,6 @@ public class TabletServerResourceManager {
       tabletReports = Collections.synchronizedMap(new HashMap<>());
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
-      // TODO KEVIN RATHBUN guarding against excessive memory usage and initiating minor
-      // compactions are critical tasks of the tablet server. Also, these threads are only created
-      // once.
       memoryGuardThread = Threads.createCriticalThread("Accumulo Memory Guard",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), this::processTabletMemStats);
       minorCompactionInitiatorThread =

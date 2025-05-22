@@ -1110,8 +1110,6 @@ public class TabletServer extends AbstractServer
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    // TODO KEVIN RATHBUN running major compactions is a critical function of the TabletServer.
-    // also this thread is only created once.
     Threads.createCriticalThread("Split/MajC initiator", new MajorCompactor(context)).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);

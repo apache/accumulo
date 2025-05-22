@@ -1265,20 +1265,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     context.getTableManager().addObserver(this);
 
-    // TODO KEVIN RATHBUN updating the Manager state seems like a critical function. However, the
-    // thread already handles, waits, and continues in the case of any Exception, so critical or
-    // non critical doesn't make a difference here.
     Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    // TODO KEVIN RATHBUN migration cleanup may be a critical function of the manager, but the
-    // thread will already handle, wait, and continue in the case of any Exception, so critical
-    // or non critical doesn't make a difference here.
     Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
     tserverSet.startListeningForTabletServerChanges();
 
-    // TODO KEVIN RATHBUN Some ZK cleanup doesn't seem like a critical function of manager
     Threads.createNonCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     try {
@@ -1385,8 +1378,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
-      // TODO KEVIN RATHBUN managing delegation tokens seems like a critical function of the
-      // manager and this is not recreated on failures.
       authenticationTokenKeyManagerThread = Threads
           .createCriticalThread("Delegation Token Key Manager", authenticationTokenKeyManager);
       authenticationTokenKeyManagerThread.start();
@@ -1625,8 +1616,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
 
     log.info("Started replication coordinator service at " + replAddress.address);
-    // TODO KEVIN RATHBUN this thread creation exists within a task which is labeled non-critical
-    // so assuming these are as well.
     // Start the daemon to scan the replication table and make units of work
     replicationWorkThread = Threads.createNonCriticalThread("Replication Driver",
         new org.apache.accumulo.manager.replication.ReplicationDriver(this));

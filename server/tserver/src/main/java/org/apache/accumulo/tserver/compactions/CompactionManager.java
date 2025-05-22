@@ -298,8 +298,6 @@ public class CompactionManager {
 
   public void start() {
     log.debug("Started compaction manager");
-    // TODO KEVIN RATHBUN This is a critical thread for the TabletServer to run properly and is
-    // only called once.
     Threads.createCriticalThread("Compaction Manager", () -> mainLoop()).start();
   }
 

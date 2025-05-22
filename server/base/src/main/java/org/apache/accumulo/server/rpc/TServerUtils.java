@@ -659,7 +659,6 @@ public class TServerUtils {
 
     final TServer finalServer = serverAddress.server;
 
-    // TODO KEVIN RATHBUN I can't imagine that the process would be healthy if this is not running
     Threads.createCriticalThread(threadName, finalServer::serve).start();
 
     while (!finalServer.isServing()) {

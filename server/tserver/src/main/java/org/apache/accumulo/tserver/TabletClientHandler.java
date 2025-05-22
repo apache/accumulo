@@ -1249,9 +1249,6 @@ public class TabletClientHandler implements TabletClientService.Iface {
     // Root tablet assignment must take place immediately
 
     if (extent.isRootTablet()) {
-      // TODO KEVIN RATHBUN I think this should remain non critical. This method is ultimately
-      // called by TabletGroupWatcher.flushChanges which is always called within a loop, so will
-      // continue to retry/recreate the thread
       Threads.createNonCriticalThread("Root Tablet Assignment", () -> {
         ah.run();
         if (server.getOnlineTablets().containsKey(extent)) {

@@ -119,9 +119,6 @@ public class SecurityUtil {
    * @param renewalPeriod The amount of time between attempting renewals.
    */
   static void startTicketRenewalThread(final UserGroupInformation ugi, final long renewalPeriod) {
-    // TODO KEVIN RATHBUN this renewal seems like a critical task of any process running it, as not
-    // renewing the ticket would probably lead to authentication problems. This thread is also only
-    // created once.
     Threads.createCriticalThread("Kerberos Ticket Renewal", () -> {
       while (true) {
         try {
