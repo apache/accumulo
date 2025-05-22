@@ -204,7 +204,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private final AtomicReference<TabletBalancer> tabletBalancer = new AtomicReference<>();
+  private final Object tabletBalancerLock = new Object();
+  private volatile TabletBalancer tabletBalancer = null;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
 
@@ -1066,7 +1067,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             tserverStatusForBalancerLevel;
         params = BalanceParamsImpl.fromThrift(statusForBalancerLevel, tserverStatusForLevel,
             migrations.snapshot(dl), dl.name(), getTablesForLevel(dl));
-        wait = Math.max(tabletBalancer.get().balance(params), wait);
+        wait = Math.max(tabletBalancer.balance(params), wait);
         long migrationsOutForLevel = 0;
         for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
             params.migrationsOut(), dl)) {
@@ -1922,26 +1923,26 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   private void initializeBalancer() {
-    synchronized (tabletBalancer) {
+    synchronized (tabletBalancerLock) {
       try {
         log.debug("Attempting to reinitialize balancer using class {}",
             getConfiguration().get(Property.MANAGER_TABLET_BALANCER));
         var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
             Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
         localTabletBalancer.init(balancerEnvironment);
-        tabletBalancer.set(localTabletBalancer);
+        tabletBalancer = localTabletBalancer;
       } catch (Exception e) {
         log.warn("Failed to create balancer {} using {} instead",
             getConfiguration().get(Property.MANAGER_TABLET_BALANCER), DoNothingBalancer.class, e);
         var localTabletBalancer = new DoNothingBalancer();
         localTabletBalancer.init(balancerEnvironment);
-        tabletBalancer.set(localTabletBalancer);
+        tabletBalancer = localTabletBalancer;
       }
     }
   }
 
   Class<?> getBalancerClass() {
-    return tabletBalancer.get().getClass();
+    return tabletBalancer.getClass();
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
@@ -1950,7 +1951,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         unassigned.entrySet().stream().collect(HashMap::new,
             (m, e) -> m.put(e.getKey(), e.getValue().getServerInstance()), Map::putAll),
         assignedOut);
-    tabletBalancer.get().getAssignments(params);
+    tabletBalancer.getAssignments(params);
   }
 
   @Override
@@ -1962,9 +1963,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
     // We registered to listen to SystemPropStore events.
     // When this method is called, then a system property has changed.
-    synchronized (tabletBalancer) {
+    synchronized (tabletBalancerLock) {
       String configuredClass = getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
-      String currentBalancer = tabletBalancer.get().getClass().getName();
+      String currentBalancer = tabletBalancer.getClass().getName();
       if (!configuredClass.equals(currentBalancer)) {
         log.info("tablet balancer changed from {} to {}", currentBalancer, configuredClass);
         initializeBalancer();
