@@ -55,6 +55,11 @@ class NamedThreadFactory implements ThreadFactory {
       threadName =
           String.format(FORMAT, name, r.getClass().getSimpleName(), threadNum.getAndIncrement());
     }
-    return Threads.createThread(threadName, priority, r, handler);
+    // TODO KEVIN RATHBUN I don't believe this needs to be critical (or needs to have a way of
+    // configuring whether or not the thread is critical). This class is used in the ThreadPools
+    // class to create a ThreadPoolExecutor. Tasks submitted to this pool are configured to be
+    // critical or not with watchCriticalScheduledTask, watchCriticalFixedDelay, and
+    // watchNonCriticalScheduledTask
+    return Threads.createNonCriticalThread(threadName, priority, r, handler);
   }
 }

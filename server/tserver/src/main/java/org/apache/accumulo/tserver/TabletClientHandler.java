@@ -1246,11 +1246,13 @@ public class TabletClientHandler implements TabletClientService.Iface {
     TabletLogger.loading(extent, server.getTabletSession());
 
     final AssignmentHandler ah = new AssignmentHandler(server, extent);
-    // final Runnable ah = new LoggingRunnable(log, );
     // Root tablet assignment must take place immediately
 
     if (extent.isRootTablet()) {
-      Threads.createThread("Root Tablet Assignment", () -> {
+      // TODO KEVIN RATHBUN I think this should remain non critical. This method is ultimately
+      // called by TabletGroupWatcher.flushChanges which is always called within a loop, so will
+      // continue to retry/recreate the thread
+      Threads.createNonCriticalThread("Root Tablet Assignment", () -> {
         ah.run();
         if (server.getOnlineTablets().containsKey(extent)) {
           log.info("Root tablet loaded: {}", extent);
@@ -1258,12 +1260,10 @@ public class TabletClientHandler implements TabletClientService.Iface {
           log.info("Root tablet failed to load");
         }
       }).start();
+    } else if (extent.isMeta()) {
+      server.resourceManager.addMetaDataAssignment(extent, log, ah);
     } else {
-      if (extent.isMeta()) {
-        server.resourceManager.addMetaDataAssignment(extent, log, ah);
-      } else {
-        server.resourceManager.addAssignment(extent, log, ah);
-      }
+      server.resourceManager.addAssignment(extent, log, ah);
     }
   }
 

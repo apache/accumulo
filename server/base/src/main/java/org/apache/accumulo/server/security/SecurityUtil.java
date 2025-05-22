@@ -63,7 +63,7 @@ public class SecurityUtil {
 
     if (login(principal, keyTab)) {
       try {
-        startTicketRenewalThread(acuConf, UserGroupInformation.getCurrentUser(),
+        startTicketRenewalThread(UserGroupInformation.getCurrentUser(),
             acuConf.getTimeInMillis(Property.GENERAL_KERBEROS_RENEWAL_PERIOD));
         return;
       } catch (IOException e) {
@@ -115,13 +115,14 @@ public class SecurityUtil {
   /**
    * Start a thread that periodically attempts to renew the current Kerberos user's ticket.
    *
-   * @param conf Accumulo configuration
    * @param ugi The current Kerberos user.
    * @param renewalPeriod The amount of time between attempting renewals.
    */
-  static void startTicketRenewalThread(AccumuloConfiguration conf, final UserGroupInformation ugi,
-      final long renewalPeriod) {
-    Threads.createThread("Kerberos Ticket Renewal", () -> {
+  static void startTicketRenewalThread(final UserGroupInformation ugi, final long renewalPeriod) {
+    // TODO KEVIN RATHBUN this renewal seems like a critical task of any process running it, as not
+    // renewing the ticket would probably lead to authentication problems. This thread is also only
+    // created once.
+    Threads.createCriticalThread("Kerberos Ticket Renewal", () -> {
       while (true) {
         try {
           renewalLog.debug("Invoking renewal attempt for Kerberos ticket");

@@ -87,8 +87,9 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         Caffeine.newBuilder().expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
 
     refresher = new ConfigRefreshRunner();
-    Runtime.getRuntime()
-        .addShutdownHook(Threads.createThread("config-refresh-shutdownHook", refresher::shutdown));
+    // TODO KEVIN RATHBUN JVM already shutting down, no need to be critical
+    Runtime.getRuntime().addShutdownHook(
+        Threads.createNonCriticalThread("config-refresh-shutdownHook", refresher::shutdown));
   }
 
   public ServerContext getServerContext() {

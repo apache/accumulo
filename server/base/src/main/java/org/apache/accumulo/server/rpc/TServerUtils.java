@@ -47,7 +47,6 @@ import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.UGIAssumingTransportFactory;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -660,13 +659,8 @@ public class TServerUtils {
 
     final TServer finalServer = serverAddress.server;
 
-    Threads.createThread(threadName, () -> {
-      try {
-        finalServer.serve();
-      } catch (Error e) {
-        Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
-      }
-    }).start();
+    // TODO KEVIN RATHBUN I can't imagine that the process would be healthy if this is not running
+    Threads.createCriticalThread(threadName, finalServer::serve).start();
 
     while (!finalServer.isServing()) {
       // Wait for the thread to start and for the TServer to start

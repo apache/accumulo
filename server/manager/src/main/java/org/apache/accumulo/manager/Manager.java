@@ -1265,14 +1265,21 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     context.getTableManager().addObserver(this);
 
-    Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
+    // TODO KEVIN RATHBUN updating the Manager state seems like a critical function. However, the
+    // thread already handles, waits, and continues in the case of any Exception, so critical or
+    // non critical doesn't make a difference here.
+    Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    // TODO KEVIN RATHBUN migration cleanup may be a critical function of the manager, but the
+    // thread will already handle, wait, and continue in the case of any Exception, so critical
+    // or non critical doesn't make a difference here.
+    Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
 
     tserverSet.startListeningForTabletServerChanges();
 
-    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
+    // TODO KEVIN RATHBUN Some ZK cleanup doesn't seem like a critical function of manager
+    Threads.createNonCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     try {
       blockForTservers();
@@ -1378,8 +1385,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
-      authenticationTokenKeyManagerThread =
-          Threads.createThread("Delegation Token Key Manager", authenticationTokenKeyManager);
+      // TODO KEVIN RATHBUN managing delegation tokens seems like a critical function of the
+      // manager and this is not recreated on failures.
+      authenticationTokenKeyManagerThread = Threads
+          .createCriticalThread("Delegation Token Key Manager", authenticationTokenKeyManager);
       authenticationTokenKeyManagerThread.start();
       boolean logged = false;
       while (!authenticationTokenKeyManager.isInitialized()) {
@@ -1616,14 +1625,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
 
     log.info("Started replication coordinator service at " + replAddress.address);
+    // TODO KEVIN RATHBUN this thread creation exists within a task which is labeled non-critical
+    // so assuming these are as well.
     // Start the daemon to scan the replication table and make units of work
-    replicationWorkThread = Threads.createThread("Replication Driver",
+    replicationWorkThread = Threads.createNonCriticalThread("Replication Driver",
         new org.apache.accumulo.manager.replication.ReplicationDriver(this));
     replicationWorkThread.start();
 
     // Start the daemon to assign work to tservers to replicate to our peers
     var wd = new org.apache.accumulo.manager.replication.WorkDriver(this);
-    replicationAssignerThread = Threads.createThread(wd.getName(), wd);
+    replicationAssignerThread = Threads.createNonCriticalThread(wd.getName(), wd);
     replicationAssignerThread.start();
 
     // Advertise that port we used so peers don't have to be told what it is
