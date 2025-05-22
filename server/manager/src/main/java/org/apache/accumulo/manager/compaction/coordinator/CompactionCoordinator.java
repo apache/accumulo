@@ -1231,6 +1231,8 @@ public class CompactionCoordinator
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     final Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     final Set<ExternalCompactionId> idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 
