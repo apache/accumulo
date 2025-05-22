@@ -1150,6 +1150,36 @@
         </executions>
       </plugin>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>run-integration-test-suite</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <test>org.apache.accumulo.suites.SimpleSharedMacTestSuite</test>
+            </configuration>
+          </execution>
+          <execution>
+            <id>run-integration-tests</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <!--
+                exclude tests that were run as part of the test suite and
+                the test suite itself
+              -->
+              <excludedGroups>SimpleMiniClusterSuite</excludedGroups>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-maven-plugin</artifactId>
         <executions>
@@ -1673,88 +1703,6 @@
                 </path>
               </annotationProcessorPaths>
             </configuration>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!--
-        failsafe plugin case 1:
-        If there are no specific ITs configured to run (via it.test variable), this profile will be
-        active. This profile runs all ITs.
-      -->
-      <id>run-integration-tests</id>
-      <activation>
-        <property>
-          <name>!it.test</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <!-- Run the JUnit 5 test suite SimpleSharedMacTestSuite -->
-              <execution>
-                <id>run-integration-tests-suite</id>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <test>org.apache.accumulo.suites.SimpleSharedMacTestSuite</test>
-                </configuration>
-              </execution>
-              <!-- Run all other tests -->
-              <execution>
-                <id>run-integration-tests-non-suite</id>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <!--
-                    exclude tests that were run as part of the test suite and
-                    the test suite itself
-                  -->
-                  <excludedGroups>SimpleMiniClusterSuite</excludedGroups>
-                  <excludes>
-                    <exclude>org.apache.accumulo.suites.SimpleSharedMacTestSuite</exclude>
-                  </excludes>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
-    <profile>
-      <!--
-        failsafe plugin case 2:
-        If there are specific ITs configured to run (via it.test variable), this profile will be
-        active. This profile runs only the specified ITs.
-      -->
-      <id>run-integration-tests-specific</id>
-      <activation>
-        <property>
-          <name>it.test</name>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>run-integration-tests-specific</id>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-              </execution>
-            </executions>
           </plugin>
         </plugins>
       </build>
