@@ -379,6 +379,8 @@ public class Compactor extends AbstractServer
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
+            LOG.trace("Attempting to update compaction state in coordinator {}",
+                job.getExternalCompactionId());
             coordinatorClient.updateCompactionStatus(TraceUtil.traceInfo(), getContext().rpcCreds(),
                 job.getExternalCompactionId(), update, System.currentTimeMillis());
             return "";
@@ -386,8 +388,6 @@ public class Compactor extends AbstractServer
             ThriftUtil.returnClient(coordinatorClient, getContext());
           }
         });
-    LOG.trace("Attempting to update compaction state in coordinator ECID:{}",
-        job.getExternalCompactionId());
     thriftCall.run();
   }
 
