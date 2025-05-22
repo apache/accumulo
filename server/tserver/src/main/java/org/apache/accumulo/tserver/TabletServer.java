@@ -769,7 +769,7 @@ public class TabletServer extends AbstractServer
         clientAddress, ""));
 
     Supplier<OpeningAndOnlineCompactables> compactables = () -> {
-      // synchronize on both sets to get a consistent snapshot acros both sets, this avoids missing
+      // synchronize on both sets to get a consistent snapshot across both sets, this avoids missing
       // any tablets that are moving between sets
       synchronized (openingTablets) {
         synchronized (onlineTablets) {

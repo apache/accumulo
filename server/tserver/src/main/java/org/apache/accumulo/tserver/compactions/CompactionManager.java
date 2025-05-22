@@ -121,11 +121,14 @@ public class CompactionManager {
       try {
         long passed = NANOSECONDS.toMillis(System.nanoTime() - lastCheckAllTime);
         if (passed >= maxTimeBetweenChecks) {
-          // get a snapshot of the tablets that are open and opening
-          var compactablesSnapshot = compactables.get();
           // take a snapshot of what is currently running
           HashMap<ExternalCompactionId,ExtCompInfo> runningEcids =
               new HashMap<>(runningExternalCompactions);
+          // Get a snapshot of the tablets that are online and opening, this must be obtained after
+          // getting the runningExternalCompactions snapshot above. If it were obtained before then
+          // an opening tablet could add itself to runningExternalCompactions after this code
+          // obtained the snapshot of opening and online tablets and this code would remove it.
+          var compactablesSnapshot = compactables.get();
           for (Compactable compactable : compactablesSnapshot.open) {
             last = compactable;
             submitCompaction(compactable);
@@ -141,6 +144,9 @@ public class CompactionManager {
 
           // anything left in the snapshot is unknown to any tablet and should be removed if it
           // still exists
+          runningEcids.forEach((ecid, info) -> log.debug(
+              "Removing unknown external compaction {} {} from runningExternalCompactions", ecid,
+              info.extent));
           runningExternalCompactions.keySet().removeAll(runningEcids.keySet());
         } else {
           var compactable = compactablesToCheck.poll(maxTimeBetweenChecks - passed, MILLISECONDS);
@@ -348,7 +354,8 @@ public class CompactionManager {
     if (ecJob != null) {
       runningExternalCompactions.put(ecJob.getExternalCompactionId(),
           new ExtCompInfo(ecJob.getExtent(), extCE.getId()));
-      log.debug("Reserved external compaction {}", ecJob.getExternalCompactionId());
+      log.debug("Reserved external compaction {} {}", ecJob.getExternalCompactionId(),
+          ecJob.getExtent());
     }
     return ecJob;
   }
@@ -364,6 +371,7 @@ public class CompactionManager {
   public void registerExternalCompaction(ExternalCompactionId ecid, KeyExtent extent,
       CompactionExecutorId ceid) {
     runningExternalCompactions.put(ecid, new ExtCompInfo(extent, ceid));
+    log.trace("registered external compaction {} {}", ecid, extent);
   }
 
   public void commitExternalCompaction(ExternalCompactionId extCompactionId,
@@ -380,6 +388,7 @@ public class CompactionManager {
         tablet.asCompactable().commitExternalCompaction(extCompactionId, fileSize, entries);
         compactablesToCheck.add(tablet.asCompactable());
         runningExternalCompactions.remove(extCompactionId);
+        log.trace("Committed external compaction {} {}", extCompactionId, tablet.getExtent());
       }
     }
   }
@@ -396,6 +405,7 @@ public class CompactionManager {
         tablet.asCompactable().externalCompactionFailed(ecid);
         compactablesToCheck.add(tablet.asCompactable());
         runningExternalCompactions.remove(ecid);
+        log.trace("Failed external compaction {} {}", ecid, tablet.getExtent());
       }
     }
   }
@@ -437,6 +447,10 @@ public class CompactionManager {
   public void compactableClosed(KeyExtent extent, Set<CompactionServiceId> servicesUsed,
       Set<ExternalCompactionId> ecids) {
     runningExternalCompactions.keySet().removeAll(ecids);
+    if (log.isTraceEnabled()) {
+      ecids.forEach(ecid -> log.trace(
+          "Removed {} from runningExternalCompactions for {} as part of close", ecid, extent));
+    }
     servicesUsed.stream().map(services::get).filter(Objects::nonNull)
         .forEach(compService -> compService.compactableClosed(extent));
   }
