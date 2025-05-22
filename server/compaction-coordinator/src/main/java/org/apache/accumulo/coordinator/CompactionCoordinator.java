@@ -19,6 +19,7 @@
 package org.apache.accumulo.coordinator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.Property.COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_SUMMARY_POOL;
 
@@ -328,6 +329,7 @@ public class CompactionCoordinator extends AbstractServer implements
         updateSummaries();
 
         long now = System.currentTimeMillis();
+        LOG.debug("Time spent checking compaction summaries: {}ms", (now - start));
 
         Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
         TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
@@ -387,8 +389,11 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   private void updateSummaries() {
-    ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(COMPACTION_COORDINATOR_SUMMARY_POOL).numCoreThreads(10).build();
+    int maxThreads =
+        Integer.parseInt(getConfiguration().get(COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS));
+    ExecutorService executor =
+        ThreadPools.getServerThreadPools().getPoolBuilder(COMPACTION_COORDINATOR_SUMMARY_POOL)
+            .numCoreThreads(10).numMaxThreads(maxThreads).build();
     try {
       Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 
@@ -664,6 +669,8 @@ public class CompactionCoordinator extends AbstractServer implements
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 

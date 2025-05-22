@@ -1588,6 +1588,11 @@ public enum Property {
       "compaction.coordinator.compaction.finalizer.queue.size", "16384", PropertyType.COUNT,
       "The number of completed compactions to buffer in memory before blocking.", "2.1.4"),
   @Experimental
+  COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS(
+      "compaction.coordinator.compaction.summaries.threads.maximum", "10", PropertyType.COUNT,
+      "The maximum number of threads to use for checking tserver external compaction summaries.",
+      "2.1.4"),
+  @Experimental
   COMPACTION_COORDINATOR_TSERVER_COMPACTION_CHECK_INTERVAL(
       "compaction.coordinator.tserver.check.interval", "1m", PropertyType.TIMEDURATION,
       "The interval at which to check the tservers for external compactions.", "2.1.0"),
@@ -1929,7 +1934,8 @@ public enum Property {
       TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
       COMPACTION_COORDINATOR_MINTHREADS, COMPACTION_COORDINATOR_MINTHREADS_TIMEOUT,
       MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT, COMPACTOR_MINTHREADS,
-      COMPACTOR_MINTHREADS_TIMEOUT,
+      COMPACTOR_MINTHREADS_TIMEOUT, COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS,
+      COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS,
 
       // others
       TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
@@ -1957,6 +1963,7 @@ public enum Property {
     return key.startsWith(Property.TABLE_PREFIX.getKey())
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.SSERV_PREFIX.getKey())
+        || key.startsWith(Property.COMPACTION_COORDINATOR_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.MASTER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
