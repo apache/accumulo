@@ -30,25 +30,19 @@ public class Halt {
 
   public static void halt(final String msg) {
     // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-    halt(0, new Runnable() {
-      @Override
-      public void run() {
-        log.error("FATAL {}", msg);
-      }
-    });
+    halt(0, "FATAL " + msg, null);
   }
 
   public static void halt(final String msg, int status) {
-    halt(status, new Runnable() {
-      @Override
-      public void run() {
-        log.error("FATAL {}", msg);
-      }
-    });
+    halt(status, "FATAL " + msg, null);
   }
 
-  public static void halt(final int status, Runnable runnable) {
+  public static void halt(final int status, String msg, Runnable runnable) {
 
+    // Printing to stderr and to the log in case the message does not make
+    // it to the log. This could happen if an asynchronous logging impl is used
+    System.err.println(msg);
+    log.error(msg);
     try {
       // give ourselves a little time to try and do something
       Threads.createThread("Halt Thread", () -> {

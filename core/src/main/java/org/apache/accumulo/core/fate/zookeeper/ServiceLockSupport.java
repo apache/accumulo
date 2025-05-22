@@ -63,9 +63,8 @@ public class ServiceLockSupport {
     @Override
     public void unableToMonitorLockNode(final Exception e) {
       // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      Halt.halt(-1,
-          () -> LOG.error("FATAL: No longer able to monitor {} lock node", serviceName, e));
-
+      Halt.halt(-1, "FATAL: No longer able to monitor " + serviceName + " lock node",
+          () -> e.printStackTrace());
     }
 
     @Override
@@ -145,16 +144,15 @@ public class ServiceLockSupport {
         LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
             serviceName, reason);
       } else {
-        Halt.halt(1, () -> {
-          LOG.error("{} lost lock (reason = {}), exiting.", serviceName, reason);
-          lostLockAction.accept(serviceName);
-        });
+        Halt.halt(1, serviceName + " lost lock (reason = " + reason + "), exiting.",
+            () -> lostLockAction.accept(serviceName));
       }
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(1, () -> LOG.error("Lost ability to monitor {} lock, exiting.", serviceName, e));
+      Halt.halt(1, "Lost ability to monitor " + serviceName + " lock, exiting.",
+          () -> e.printStackTrace());
     }
 
   }

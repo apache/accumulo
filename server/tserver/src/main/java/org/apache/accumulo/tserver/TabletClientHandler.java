@@ -1155,11 +1155,11 @@ public class TabletClientHandler implements TabletClientService.Iface {
     log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
     if (server.getLock() != null && server.getLock().wasLockAcquired()
         && !server.getLock().isLocked()) {
-      Halt.halt(1, () -> {
-        log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
-            request);
-        server.getGcLogger().logGCInfo(server.getConfiguration());
-      });
+      Halt.halt(1,
+          "Tablet server no longer holds lock during checkPermission() : " + request + ", exiting",
+          () -> {
+            server.getGcLogger().logGCInfo(server.getConfiguration());
+          });
     }
 
     if (lock != null) {
@@ -1344,8 +1344,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
     checkPermission(context, server, credentials, lock, "halt");
 
-    Halt.halt(0, () -> {
-      log.info("Manager requested tablet server halt");
+    Halt.halt(0, "Manager requested tablet server halt", () -> {
       server.gcLogger.logGCInfo(server.getConfiguration());
       server.requestStop();
       try {
