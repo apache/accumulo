@@ -63,6 +63,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Durability;
@@ -169,7 +170,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.collect.Iterators;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -767,9 +767,18 @@ public class TabletServer extends AbstractServer
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
         clientAddress, ""));
 
-    this.compactionManager = new CompactionManager(() -> Iterators
-        .transform(onlineTablets.snapshot().values().iterator(), Tablet::asCompactable),
-        getContext(), ceMetrics);
+    Supplier<OpeningAndOnlineCompactables> compactables = () -> {
+      // synchronize on both sets to get a consistent snapshot across both sets, this avoids missing
+      // any tablets that are moving between sets
+      synchronized (openingTablets) {
+        synchronized (onlineTablets) {
+          return new OpeningAndOnlineCompactables(Set.copyOf(openingTablets),
+              onlineTablets.snapshot());
+        }
+      }
+    };
+
+    this.compactionManager = new CompactionManager(compactables, getContext(), ceMetrics);
     compactionManager.start();
 
     announceExistence();
