@@ -47,7 +47,9 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionExecutorId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
@@ -245,6 +247,11 @@ public class CompactionService {
     @Override
     public TableId getTableId() {
       return comp.getTableId();
+    }
+
+    @Override
+    public TabletId getTabletId() {
+      return new TabletIdImpl(comp.getExtent());
     }
 
     @Override

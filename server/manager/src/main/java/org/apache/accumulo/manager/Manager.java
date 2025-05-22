@@ -98,7 +98,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -1918,10 +1918,22 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   void initializeBalancer() {
-    var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new TableLoadBalancer());
-    localTabletBalancer.init(balancerEnvironment);
-    tabletBalancer = localTabletBalancer;
+    try {
+      getContext().getPropStore().getCache().removeAll();
+      getConfiguration().invalidateCache();
+      log.debug("Attempting to reinitialize balancer using class {}",
+          getConfiguration().get(Property.MANAGER_TABLET_BALANCER));
+      var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
+          Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
+    } catch (Exception e) {
+      log.warn("Failed to create balancer {} using {} instead",
+          getConfiguration().get(Property.MANAGER_TABLET_BALANCER), DoNothingBalancer.class, e);
+      var localTabletBalancer = new DoNothingBalancer();
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
+    }
   }
 
   Class<?> getBalancerClass() {
