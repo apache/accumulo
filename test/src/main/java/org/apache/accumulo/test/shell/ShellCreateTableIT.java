@@ -781,7 +781,8 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       PropStore propStore = getCluster().getServerContext().getPropStore();
 
       TableId destId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(destTable));
-      NamespaceId namespaceId = NamespaceId.of(accumuloClient.namespaceOperations().namespaceIdMap().get(srcNS));
+      NamespaceId namespaceId =
+          NamespaceId.of(accumuloClient.namespaceOperations().namespaceIdMap().get(srcNS));
       // the Zk node should have all effective properties copied from configuration
       var vp1 = propStore.get(TablePropKey.of(destId, namespaceId));
       assertEquals(sysPropValue1, vp1.asMap().get(sysPropName));
@@ -798,14 +799,12 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
       ts.exec("config -s " + nsPropName + "=" + nsPropValue2 + " -ns " + srcNS);
 
       // source will still inherit from sys and namespace (no prop values)
-      var vp2 =
-          propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable)), namespaceId));
+      var vp2 = propStore.get(TablePropKey.of(TableId.of(tids.get(srcTable)), namespaceId));
       assertNull(vp2.asMap().get(sysPropName));
       assertNull(vp2.asMap().get(nsPropName));
 
       // dest (copied props) should remain local to the table, overriding sys and namespace
-      var vp3 =
-          propStore.get(TablePropKey.of(TableId.of(tids.get(destTable)), namespaceId));
+      var vp3 = propStore.get(TablePropKey.of(TableId.of(tids.get(destTable)), namespaceId));
       assertEquals(sysPropValue1, vp3.asMap().get(sysPropName));
       assertEquals(nsPropValue1, vp3.asMap().get(nsPropName));
 
@@ -850,7 +849,8 @@ public class ShellCreateTableIT extends SharedMiniClusterBase {
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProps()).build()) {
       Map<String,String> tids = accumuloClient.tableOperations().tableIdMap();
 
-      NamespaceId namespaceId = NamespaceId.of(accumuloClient.namespaceOperations().namespaceIdMap().get(srcNS));
+      NamespaceId namespaceId =
+          NamespaceId.of(accumuloClient.namespaceOperations().namespaceIdMap().get(srcNS));
 
       // only table unique values should be stored in Zk node for the table.
       var vp1 = getCluster().getServerContext().getPropStore()
