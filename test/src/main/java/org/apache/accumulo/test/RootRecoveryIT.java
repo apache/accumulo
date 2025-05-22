@@ -49,12 +49,13 @@ public class RootRecoveryIT extends SharedMiniClusterBase {
 
   private static final int ZK_TIMEOUT_MS = 5000;
   private static final Logger LOG = LoggerFactory.getLogger(RootRecoveryIT.class);
-  
-  private static class RootRecoveryITConfigurationCallback implements MiniClusterConfigurationCallback {
+
+  private static class RootRecoveryITConfigurationCallback
+      implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
-      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, ZK_TIMEOUT_MS+"ms");
-    } 
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, ZK_TIMEOUT_MS + "ms");
+    }
   }
 
   @Override
