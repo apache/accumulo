@@ -123,7 +123,9 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       Wait.waitFor(() -> c.instanceOperations().getSystemConfiguration()
           .get(Property.MANAGER_TABLET_BALANCER.getKey()).equals(balancerClass));
       c.instanceOperations().waitForBalance();
-      UtilWaitThread.sleep(5000);
+
+      // Give enough time for property change and Status Thread in Manager
+      UtilWaitThread.sleep(30000);
 
       // should not have balanced across the two new tservers
       assertEquals(2, BalanceIT.countLocations(c, tableName).size());
@@ -134,7 +136,7 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
           TableLoadBalancer.class.getName());
 
       // should eventually balance across all 5 tabletsevers
-      Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size());
+      Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size(), 60_000);
     }
   }
 }

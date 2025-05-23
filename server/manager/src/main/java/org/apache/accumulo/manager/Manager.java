@@ -118,9 +118,6 @@ import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.HighlyAvailableService;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServerOpts;
-import org.apache.accumulo.server.conf.store.PropChangeListener;
-import org.apache.accumulo.server.conf.store.PropStoreKey;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.LiveTServerSet.TServerConnection;
@@ -168,7 +165,7 @@ import io.opentelemetry.context.Scope;
  * The manager will also coordinate log recoveries and reports general status.
  */
 public class Manager extends AbstractServer implements LiveTServerSet.Listener, TableObserver,
-    CurrentState, HighlyAvailableService, ServerProcessService.Iface, PropChangeListener {
+    CurrentState, HighlyAvailableService, ServerProcessService.Iface {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
@@ -204,7 +201,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private final Object tabletBalancerLock = new Object();
   private volatile TabletBalancer tabletBalancer = null;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
@@ -429,7 +425,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     log.info("Instance {}", getInstanceID());
     timeKeeper = new ManagerTime(this, aconf);
     tserverSet = new LiveTServerSet(context, this);
-    context.getPropStore().registerAsListener(SystemPropKey.of(context), this);
     initializeBalancer();
 
     this.security = context.getSecurityOperation();
@@ -1026,6 +1021,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     private long balanceTablets() {
+
+      // Check for balancer property change
+      initializeBalancer();
 
       final int tabletsNotHosted = notHosted();
       BalanceParamsImpl params = null;
@@ -1923,21 +1921,24 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   }
 
   private void initializeBalancer() {
-    synchronized (tabletBalancerLock) {
-      try {
-        log.debug("Attempting to reinitialize balancer using class {}",
-            getConfiguration().get(Property.MANAGER_TABLET_BALANCER));
+    String configuredBalancerClass = getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
+    try {
+      if (tabletBalancer == null
+          || !tabletBalancer.getClass().getName().equals(configuredBalancerClass)) {
+        log.debug("Attempting to initialize balancer using class {}, was {}",
+            configuredBalancerClass,
+            tabletBalancer == null ? "null" : tabletBalancer.getClass().getName());
         var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
             Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
         localTabletBalancer.init(balancerEnvironment);
         tabletBalancer = localTabletBalancer;
-      } catch (Exception e) {
-        log.warn("Failed to create balancer {} using {} instead",
-            getConfiguration().get(Property.MANAGER_TABLET_BALANCER), DoNothingBalancer.class, e);
-        var localTabletBalancer = new DoNothingBalancer();
-        localTabletBalancer.init(balancerEnvironment);
-        tabletBalancer = localTabletBalancer;
       }
+    } catch (Exception e) {
+      log.warn("Failed to create balancer {} using {} instead", configuredBalancerClass,
+          DoNothingBalancer.class, e);
+      var localTabletBalancer = new DoNothingBalancer();
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
     }
   }
 
@@ -1958,28 +1959,4 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   public ServiceLock getLock() {
     return managerLock;
   }
-
-  @Override
-  public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
-    // We registered to listen to SystemPropStore events.
-    // When this method is called, then a system property has changed.
-    synchronized (tabletBalancerLock) {
-      String configuredClass = getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
-      String currentBalancer = tabletBalancer.getClass().getName();
-      if (!configuredClass.equals(currentBalancer)) {
-        log.info("tablet balancer changed from {} to {}", currentBalancer, configuredClass);
-        initializeBalancer();
-      }
-    }
-  }
-
-  @Override
-  public void cacheChangeEvent(PropStoreKey<?> propStoreKey) {}
-
-  @Override
-  public void deleteEvent(PropStoreKey<?> propStoreKey) {}
-
-  @Override
-  public void connectionEvent() {}
-
 }
