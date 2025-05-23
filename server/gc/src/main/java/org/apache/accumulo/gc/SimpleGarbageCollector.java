@@ -428,10 +428,11 @@ public class SimpleGarbageCollector extends AbstractServer
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
     long maxMessageSize = getConfiguration().getAsBytes(maxMessageSizeProperty);
+    // TODO duplicated maxMessageSize
     ServerAddress server = TServerUtils.startTServer(getConfiguration(),
         getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
         "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
-        getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+        maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
         getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
         addresses);
     log.debug("Starting garbage collector listening on " + server.address);
