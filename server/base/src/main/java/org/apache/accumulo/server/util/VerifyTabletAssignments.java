@@ -88,7 +88,7 @@ public class VerifyTabletAssignments {
       System.out.println("Checking table " + tableName + " again, failures " + check.size());
     }
 
-    TableId tableId = context.getTableNameToIdMap().get(tableName);
+    TableId tableId = context.createQualifiedTableNameToIdMap().get(tableName);
 
     final HashSet<KeyExtent> failures = new HashSet<>();
 

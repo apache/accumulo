@@ -27,25 +27,17 @@ public class FateSchema {
     public static final String STR_NAME = "tx";
     public static final Text NAME = new Text(STR_NAME);
 
-    public static final String STATUS = "status";
-    public static final ColumnFQ STATUS_COLUMN = new ColumnFQ(NAME, new Text(STATUS));
-
     public static final String TX_KEY = "txkey";
     public static final ColumnFQ TX_KEY_COLUMN = new ColumnFQ(NAME, new Text(TX_KEY));
 
     public static final String CREATE_TIME = "ctime";
     public static final ColumnFQ CREATE_TIME_COLUMN = new ColumnFQ(NAME, new Text(CREATE_TIME));
 
-    public static final String RESERVATION = "reservation";
-    public static final ColumnFQ RESERVATION_COLUMN = new ColumnFQ(NAME, new Text(RESERVATION));
   }
 
   public static class TxInfoColumnFamily {
     public static final String STR_NAME = "txinfo";
     public static final Text NAME = new Text(STR_NAME);
-
-    public static final String TX_NAME = "txname";
-    public static final ColumnFQ TX_NAME_COLUMN = new ColumnFQ(NAME, new Text(TX_NAME));
 
     public static final String AUTO_CLEAN = "autoclean";
     public static final ColumnFQ AUTO_CLEAN_COLUMN = new ColumnFQ(NAME, new Text(AUTO_CLEAN));
@@ -63,6 +55,21 @@ public class FateSchema {
   public static class RepoColumnFamily {
     public static final String STR_NAME = "repos";
     public static final Text NAME = new Text(STR_NAME);
+  }
+
+  // when FATE looks for work, this is the family scanned
+  public static class TxAdminColumnFamily {
+    public static final String STR_NAME = "txadmin";
+    public static final Text NAME = new Text(STR_NAME);
+
+    public static final String STATUS = "status";
+    public static final ColumnFQ STATUS_COLUMN = new ColumnFQ(NAME, new Text(STATUS));
+
+    public static final String RESERVATION = "reservation";
+    public static final ColumnFQ RESERVATION_COLUMN = new ColumnFQ(NAME, new Text(RESERVATION));
+
+    public static final String FATE_OP = "fateop";
+    public static final ColumnFQ FATE_OP_COLUMN = new ColumnFQ(NAME, new Text(FATE_OP));
   }
 
 }

@@ -77,7 +77,7 @@ public class SystemConfigurationTest {
     propStore.registerAsListener(anyObject(), anyObject());
     expectLastCall().anyTimes();
 
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -104,7 +104,7 @@ public class SystemConfigurationTest {
 
   @Test
   public void testFromFixed() {
-    var sysPropKey = SystemPropKey.of(instanceId);
+    var sysPropKey = SystemPropKey.of();
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
     assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config

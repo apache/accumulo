@@ -203,7 +203,13 @@ public class MetadataSchema {
        * Holds the location of the tablet in the DFS file system
        */
       public static final String DIRECTORY_QUAL = "dir";
-      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL));
+      public static final ColumnFQ DIRECTORY_COLUMN = new ColumnFQ(NAME, new Text(DIRECTORY_QUAL)) {
+        @Override
+        public void put(Mutation m, Value v) {
+          validateDirCol(v.toString());
+          super.put(m, v);
+        }
+      };
       /**
        * Initial tablet directory name for the default tablet in all tables
        */
@@ -303,6 +309,14 @@ public class MetadataSchema {
        */
       public static final String SELECTED_QUAL = "selected";
       public static final ColumnFQ SELECTED_COLUMN = new ColumnFQ(NAME, new Text(SELECTED_QUAL));
+
+      /**
+       * This column is used to indicate that a tablet is in the process of being migrated from one
+       * tablet server to another. The destination of the migration is the value. The tserver being
+       * migrated is the row this is set on.
+       */
+      public static final String MIGRATION_QUAL = "migration";
+      public static final ColumnFQ MIGRATION_COLUMN = new ColumnFQ(NAME, new Text(MIGRATION_QUAL));
     }
 
     /**

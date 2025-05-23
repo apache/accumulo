@@ -29,10 +29,12 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.fate.Fate.FateOperation;
 import org.apache.accumulo.core.util.Pair;
 
 /**
@@ -53,13 +55,21 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public Optional<FateId> seedTransaction(Fate.FateOperation txName, FateKey fateKey,
-      Repo<String> repo, boolean autoCleanUp) {
-    return Optional.empty();
+  public Seeder<String> beginSeeding() {
+    return new Seeder<>() {
+      @Override
+      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+          FateKey fateKey, Repo<String> repo, boolean autoCleanUp) {
+        return CompletableFuture.completedFuture(Optional.empty());
+      }
+
+      @Override
+      public void close() {}
+    };
   }
 
   @Override
-  public boolean seedTransaction(Fate.FateOperation txName, FateId fateId, Repo<String> repo,
+  public boolean seedTransaction(Fate.FateOperation fateOp, FateId fateId, Repo<String> repo,
       boolean autoCleanUp) {
     return false;
   }
@@ -243,6 +253,12 @@ public class TestStore implements FateStore<String> {
         throw new UnsupportedOperationException(
             "Only the 'reserved' set should be used for reservations in the test store");
       }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
+        throw new UnsupportedOperationException("Test not configured or expected to be calling "
+            + "this method. Functionality can be added if needed.");
+      }
     });
   }
 
@@ -257,7 +273,7 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
     throw new UnsupportedOperationException();
   }
 

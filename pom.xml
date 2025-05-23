@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>31</version>
+    <version>34</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -146,14 +146,15 @@
     <!-- dependency and plugin versions managed with properties -->
     <version.accumulo-access>1.0.0-SNAPSHOT</version.accumulo-access>
     <version.auto-service>1.1.1</version.auto-service>
-    <version.bouncycastle>1.78.1</version.bouncycastle>
-    <version.curator>5.5.0</version.curator>
-    <version.errorprone>2.24.1</version.errorprone>
+    <version.bouncycastle>1.80</version.bouncycastle>
+    <version.curator>5.8.0</version.curator>
+    <version.errorprone>2.35.0</version.errorprone>
+    <version.flatbuffers>24.3.25</version.flatbuffers>
     <version.hadoop>3.4.0</version.hadoop>
-    <version.log4j>2.24.0</version.log4j>
-    <version.opentelemetry>1.34.1</version.opentelemetry>
+    <version.log4j>2.24.3</version.log4j>
+    <version.opentelemetry>1.48.0</version.opentelemetry>
     <version.powermock>2.0.9</version.powermock>
-    <version.slf4j>2.0.12</version.slf4j>
+    <version.slf4j>2.0.17</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
     <version.zookeeper>3.9.2</version.zookeeper>
   </properties>
@@ -162,14 +163,14 @@
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
         <artifactId>jackson-bom</artifactId>
-        <version>2.16.1</version>
+        <version>2.18.3</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
       <dependency>
         <groupId>io.micrometer</groupId>
         <artifactId>micrometer-bom</artifactId>
-        <version>1.12.2</version>
+        <version>1.14.5</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -205,7 +206,7 @@
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-bom</artifactId>
-        <version>11.0.19</version>
+        <version>11.0.23</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -234,7 +235,7 @@
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>5.10.1</version>
+        <version>5.12.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -251,12 +252,12 @@
       <dependency>
         <groupId>com.github.ben-manes.caffeine</groupId>
         <artifactId>caffeine</artifactId>
-        <version>3.1.8</version>
+        <version>3.2.0</version>
       </dependency>
       <dependency>
         <groupId>com.github.spotbugs</groupId>
         <artifactId>spotbugs-annotations</artifactId>
-        <version>4.8.3</version>
+        <version>4.9.3</version>
       </dependency>
       <dependency>
         <groupId>com.google.auto.service</groupId>
@@ -271,13 +272,18 @@
       <dependency>
         <groupId>com.google.code.gson</groupId>
         <artifactId>gson</artifactId>
-        <version>2.10.1</version>
+        <version>2.12.1</version>
       </dependency>
       <dependency>
         <!-- converge transitive dependency version between guava and caffeine -->
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
         <version>${version.errorprone}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.google.flatbuffers</groupId>
+        <artifactId>flatbuffers-java</artifactId>
+        <version>${version.flatbuffers}</version>
       </dependency>
       <dependency>
         <!-- this is a runtime dependency of guava, no longer included with guava as of 27.1 -->
@@ -288,7 +294,7 @@
       <dependency>
         <groupId>com.google.guava</groupId>
         <artifactId>guava</artifactId>
-        <version>33.0.0-jre</version>
+        <version>33.4.6-jre</version>
       </dependency>
       <dependency>
         <groupId>com.lmax</groupId>
@@ -299,22 +305,22 @@
       <dependency>
         <groupId>commons-cli</groupId>
         <artifactId>commons-cli</artifactId>
-        <version>1.6.0</version>
+        <version>1.9.0</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
         <artifactId>commons-codec</artifactId>
-        <version>1.16.0</version>
+        <version>1.18.0</version>
       </dependency>
       <dependency>
         <groupId>commons-io</groupId>
         <artifactId>commons-io</artifactId>
-        <version>2.15.1</version>
+        <version>2.18.0</version>
       </dependency>
       <dependency>
         <groupId>commons-logging</groupId>
         <artifactId>commons-logging</artifactId>
-        <version>1.3.3</version>
+        <version>1.3.5</version>
       </dependency>
       <dependency>
         <groupId>org.apache.accumulo</groupId>
@@ -405,7 +411,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-configuration2</artifactId>
-        <version>2.10.1</version>
+        <version>2.11.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -420,7 +426,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.14.0</version>
+        <version>3.17.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -430,7 +436,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-text</artifactId>
-        <version>1.11.0</version>
+        <version>1.13.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.curator</groupId>
@@ -543,17 +549,17 @@
       <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
-        <version>3.42.0</version>
+        <version>3.49.2</version>
       </dependency>
       <dependency>
         <groupId>org.easymock</groupId>
         <artifactId>easymock</artifactId>
-        <version>5.2.0</version>
+        <version>5.5.0</version>
       </dependency>
       <dependency>
         <groupId>org.freemarker</groupId>
         <artifactId>freemarker</artifactId>
-        <version>2.3.32</version>
+        <version>2.3.34</version>
       </dependency>
       <dependency>
         <groupId>org.glassfish</groupId>
@@ -622,7 +628,7 @@
       <dependency>
         <groupId>org.yaml</groupId>
         <artifactId>snakeyaml</artifactId>
-        <version>2.2</version>
+        <version>2.4</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -640,12 +646,12 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.16.2</version>
+          <version>2.18.0</version>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
-          <version>4.3</version>
+          <version>5.0.0</version>
           <configuration>
             <licenseSets>
               <licenseSet>
@@ -668,13 +674,14 @@
               <h>SLASHSTAR_STYLE</h>
               <java>SLASHSTAR_STYLE</java>
               <thrift>SLASHSTAR_STYLE</thrift>
+              <fbs>SLASHSTAR_STYLE</fbs>
             </mapping>
           </configuration>
         </plugin>
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>2.7.0</version>
+          <version>3.1.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -688,6 +695,7 @@
             <effort>Max</effort>
             <failOnError>true</failOnError>
             <includeTests>true</includeTests>
+            <maxHeap>1024</maxHeap>
             <maxRank>16</maxRank>
             <jvmArgs>-Dcom.overstock.findbugs.ignore=com.google.common.util.concurrent.RateLimiter,com.google.common.hash.Hasher,com.google.common.hash.HashCode,com.google.common.hash.HashFunction,com.google.common.hash.Hashing,com.google.common.cache.Cache,com.google.common.io.CountingOutputStream,com.google.common.io.ByteStreams,com.google.common.cache.LoadingCache,com.google.common.base.Stopwatch,com.google.common.cache.RemovalNotification,com.google.common.util.concurrent.Uninterruptibles,com.google.common.reflect.ClassPath,com.google.common.reflect.ClassPath$ClassInfo,com.google.common.base.Throwables,com.google.common.collect.Iterators</jvmArgs>
             <plugins combine.children="append">
@@ -702,7 +710,7 @@
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>3.3.0</version>
+          <version>4.0.0</version>
           <configuration>
             <createBackupFile>false</createBackupFile>
             <expandEmptyElements>false</expandEmptyElements>
@@ -719,7 +727,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>1.0.1</version>
+          <version>1.1.0</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -825,12 +833,12 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.6.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.1.1</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -840,7 +848,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.23.0</version>
+          <version>2.26.0</version>
           <configuration>
             <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
@@ -878,7 +886,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.9.0</version>
+          <version>1.12.0</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,jakarta.,org.,com.</groups>
@@ -937,6 +945,7 @@
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
+                <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1109,7 +1118,7 @@
           </checkstyleRules>
           <violationSeverity>warning</violationSeverity>
           <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <excludes>**/thrift/*.java</excludes>
+          <excludes>**/thrift/*.java,**/flatbuffers/*.java</excludes>
         </configuration>
         <dependencies>
           <dependency>
@@ -1145,11 +1154,28 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <executions>
           <execution>
+            <id>run-integration-test-suite</id>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <test>org.apache.accumulo.suites.SimpleSharedMacTestSuite</test>
+            </configuration>
+          </execution>
+          <execution>
             <id>run-integration-tests</id>
             <goals>
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
+            <configuration>
+              <!--
+                exclude tests that were run as part of the test suite and
+                the test suite itself
+              -->
+              <excludedGroups>SimpleMiniClusterSuite</excludedGroups>
+            </configuration>
           </execution>
         </executions>
       </plugin>
@@ -1508,6 +1534,36 @@
       </build>
     </profile>
     <profile>
+      <id>add-flatbuffers-java-source</id>
+      <activation>
+        <file>
+          <exists>src/main/flatbuffers-gen-java</exists>
+        </file>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>build-helper-maven-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>add-flatbuffers-java-source</id>
+                <goals>
+                  <goal>add-source</goal>
+                </goals>
+                <phase>generate-sources</phase>
+                <configuration>
+                  <sources>
+                    <source>src/main/flatbuffers-gen-java</source>
+                  </sources>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>add-thrift-java-source</id>
       <activation>
         <file>
@@ -1611,7 +1667,7 @@
                 <arg>-XDcompilePolicy=simple</arg>
                 <arg>
                   -Xplugin:ErrorProne \
-                  -XepExcludedPaths:.*/(thrift|generated-sources|src/test)/.* \
+                  -XepExcludedPaths:.*/(flatbuffers|thrift|generated-sources|src/test)/.* \
                   -XepDisableWarningsInGeneratedCode \
                   -XepDisableAllWarnings \
                   <!-- ERROR patterns to specifically ignore -->

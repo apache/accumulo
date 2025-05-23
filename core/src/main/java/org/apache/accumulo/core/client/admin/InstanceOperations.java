@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -357,4 +358,14 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   InstanceId getInstanceId();
+
+  /**
+   * Return the current manager time. This duration represents the amount of time an accumulo
+   * manager process has been running. The duration is persisted and should only increase over the
+   * lifetime of an Accumulo instance.
+   *
+   * @return current time
+   * @since 4.0.0
+   */
+  Duration getManagerTime() throws AccumuloException, AccumuloSecurityException;
 }

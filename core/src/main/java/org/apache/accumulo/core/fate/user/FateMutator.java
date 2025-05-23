@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.user;
 
+import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.fate.FateStore;
@@ -57,8 +58,8 @@ public interface FateMutator<T> {
   FateMutator<T> requireAbsentKey();
 
   /**
-   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
-   * put the reservation if there is not already a reservation present
+   * Add a conditional mutation to {@link FateSchema.TxAdminColumnFamily#RESERVATION_COLUMN} that
+   * will put the reservation if there is not already a reservation present
    *
    * @param reservation the reservation to attempt to put
    * @return the FateMutator with this added mutation
@@ -66,15 +67,15 @@ public interface FateMutator<T> {
   FateMutator<T> putReservedTx(FateStore.FateReservation reservation);
 
   /**
-   * Add a conditional mutation to {@link FateSchema.TxColumnFamily#RESERVATION_COLUMN} that will
-   * delete the column if the column value matches the given reservation
+   * Add a conditional mutation to {@link FateSchema.TxAdminColumnFamily#RESERVATION_COLUMN} that
+   * will delete the column if the column value matches the given reservation
    *
    * @param reservation the reservation to attempt to remove
    * @return the FateMutator with this added mutation
    */
   FateMutator<T> putUnreserveTx(FateStore.FateReservation reservation);
 
-  FateMutator<T> putName(byte[] data);
+  FateMutator<T> putFateOp(byte[] data);
 
   FateMutator<T> putAutoClean(byte[] data);
 
@@ -99,5 +100,7 @@ public interface FateMutator<T> {
   }
 
   Status tryMutate();
+
+  ConditionalMutation getMutation();
 
 }

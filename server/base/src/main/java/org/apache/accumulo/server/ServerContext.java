@@ -25,12 +25,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +37,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -52,12 +52,10 @@ import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
-import org.apache.accumulo.core.singletons.SingletonReservation;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -81,7 +79,6 @@ import org.apache.accumulo.server.tables.TableManager;
 import org.apache.accumulo.server.tablets.UniqueNameAllocator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.security.UserGroupInformation;
-import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -95,7 +92,6 @@ public class ServerContext extends ClientContext {
   private final ServerInfo info;
   private final ServerDirs serverDirs;
   private final Supplier<ZooPropStore> propStore;
-  private final Supplier<String> zkUserPath;
 
   // lazily loaded resources, only loaded when needed
   private final Supplier<TableManager> tableManager;
@@ -109,20 +105,22 @@ public class ServerContext extends ClientContext {
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
 
+  private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
+
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig));
   }
 
   private ServerContext(ServerInfo info) {
-    super(SingletonReservation.noop(), info, info.getSiteConfiguration(), Threads.UEH);
+    super(info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     serverDirs = info.getServerDirs();
 
     // the PropStore shouldn't close the ZooKeeper, since ServerContext is responsible for that
     @SuppressWarnings("resource")
-    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getInstanceID(), getZooSession()));
+    var tmpPropStore = memoize(() -> ZooPropStore.initialize(getZooSession()));
     propStore = tmpPropStore;
-    zkUserPath = memoize(() -> ZooUtil.getRoot(getInstanceID()) + Constants.ZUSERS);
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
@@ -312,15 +310,8 @@ public class ServerContext extends ClientContext {
 
   public void waitForZookeeperAndHdfs() {
     log.info("Attempting to talk to zookeeper");
-    while (true) {
-      try {
-        getZooSession().asReaderWriter().getChildren(Constants.ZROOT);
-        break;
-      } catch (InterruptedException | KeeperException ex) {
-        log.info("Waiting for accumulo to be initialized");
-        sleepUninterruptibly(1, SECONDS);
-      }
-    }
+    // Next line blocks until connection is established
+    getZooSession();
     log.info("ZooKeeper connected and initialized, attempting to talk to HDFS");
     long sleep = 1000;
     int unknownHostTries = 3;
@@ -414,9 +405,9 @@ public class ServerContext extends ClientContext {
     ScheduledFuture<?> future = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
-        File swappiness = new File(procFile);
-        if (swappiness.exists() && swappiness.canRead()) {
-          try (InputStream is = new FileInputStream(procFile)) {
+        java.nio.file.Path swappiness = java.nio.file.Path.of(procFile);
+        if (swappiness.toFile().exists() && swappiness.toFile().canRead()) {
+          try (InputStream is = Files.newInputStream(swappiness)) {
             byte[] buffer = new byte[10];
             int bytes = is.read(buffer);
             String setting = new String(buffer, 0, bytes, UTF_8);
@@ -437,6 +428,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    sharedSchedExecutorCreated.set(true);
     return sharedScheduledThreadPool.get();
   }
 
@@ -451,10 +443,6 @@ public class ServerContext extends ClientContext {
 
   public AuditedSecurityOperation getSecurityOperation() {
     return securityOperation.get();
-  }
-
-  public String zkUserPath() {
-    return zkUserPath.get();
   }
 
   public LowMemoryDetector getLowMemoryDetector() {
@@ -477,12 +465,18 @@ public class ServerContext extends ClientContext {
   }
 
   public MetricsInfo getMetricsInfo() {
+    metricsInfoCreated.set(true);
     return metricsInfoSupplier.get();
   }
 
   @Override
   public void close() {
-    getMetricsInfo().close();
+    if (metricsInfoCreated.get()) {
+      getMetricsInfo().close();
+    }
+    if (sharedSchedExecutorCreated.get()) {
+      getScheduledExecutor().shutdownNow();
+    }
     super.close();
   }
 }

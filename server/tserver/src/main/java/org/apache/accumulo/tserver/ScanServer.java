@@ -50,6 +50,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -65,7 +66,6 @@ import org.apache.accumulo.core.dataImpl.thrift.ScanResult;
 import org.apache.accumulo.core.dataImpl.thrift.TColumn;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
@@ -133,6 +133,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
 import com.google.common.net.HostAndPort;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 public class ScanServer extends AbstractServer
     implements TabletScanClientService.Iface, TabletHostingServer {
 
@@ -198,16 +200,13 @@ public class ScanServer extends AbstractServer
   private final TabletServerResourceManager resourceManager;
   HostAndPort clientAddress;
 
-  protected volatile boolean serverStopRequested = false;
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
   private ScanServerMetrics scanServerMetrics;
   private BlockCacheMetrics blockCacheMetrics;
 
-  private final ZooCache managerLockCache;
-
   public ScanServer(ConfigOpts opts, String[] args) {
-    super("sserver", opts, ServerContext::new, args);
+    super(ServerId.Type.SCAN_SERVER, opts, ServerContext::new, args);
 
     context = super.getContext();
     LOG.info("Version " + Constants.VERSION);
@@ -215,8 +214,6 @@ public class ScanServer extends AbstractServer
     this.sessionManager = new SessionManager(context);
 
     this.resourceManager = new TabletServerResourceManager(context, this);
-
-    this.managerLockCache = new ZooCache(context.getZooSession());
 
     var readWriteLock = new ReentrantReadWriteLock();
     reservationsReadLock = readWriteLock.readLock();
@@ -305,13 +302,14 @@ public class ScanServer extends AbstractServer
     // to set up the ThriftProcessor using this class, not the delegate.
     ClientServiceHandler clientHandler = new ClientServiceHandler(context);
     TProcessor processor =
-        ThriftProcessorTypes.getScanServerTProcessor(clientHandler, this, getContext());
+        ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getHostname(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK);
-
+        Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
+        Property.SSERV_THREADCHECK);
+    sp.startThriftServer("Thrift Client Server");
+    setHostname(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -335,7 +333,7 @@ public class ScanServer extends AbstractServer
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
-      LockWatcher lw = new ServiceLockWatcher(Type.SCAN_SERVER, () -> serverStopRequested,
+      LockWatcher lw = new ServiceLockWatcher(Type.SCAN_SERVER, () -> getShutdownComplete().get(),
           (type) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
@@ -365,7 +363,16 @@ public class ScanServer extends AbstractServer
   }
 
   @Override
+  @SuppressFBWarnings(value = "DM_EXIT", justification = "main class can call System.exit")
   public void run() {
+
+    try {
+      waitForUpgrade();
+    } catch (InterruptedException e) {
+      LOG.error("Interrupted while waiting for upgrade to complete, exiting...");
+      System.exit(1);
+    }
+
     SecurityUtil.serverLogin(getConfiguration());
 
     ServerAddress address = null;
@@ -373,7 +380,7 @@ public class ScanServer extends AbstractServer
       address = startScanServerClientService();
       clientAddress = address.getAddress();
     } catch (UnknownHostException e1) {
-      throw new RuntimeException("Failed to start the compactor client service", e1);
+      throw new RuntimeException("Failed to start the scan server client service", e1);
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
@@ -394,7 +401,7 @@ public class ScanServer extends AbstractServer
 
     int threadPoolSize = getConfiguration().getCount(Property.SSERV_WAL_SORT_MAX_CONCURRENT);
     if (threadPoolSize > 0) {
-      final LogSorter logSorter = new LogSorter(context, getConfiguration());
+      final LogSorter logSorter = new LogSorter(this);
       try {
         // Attempt to process all existing log sorting work and start a background
         // thread to look for log sorting work in the future
@@ -409,18 +416,38 @@ public class ScanServer extends AbstractServer
     }
 
     try {
-      while (!serverStopRequested) {
-        UtilWaitThread.sleep(1000);
-        updateIdleStatus(
-            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
+      while (!isShutdownRequested()) {
+        if (Thread.currentThread().isInterrupted()) {
+          LOG.info("Server process thread has been interrupted, shutting down");
+          break;
+        }
+        try {
+          Thread.sleep(1000);
+          updateIdleStatus(sessionManager.getActiveScans().isEmpty()
+              && tabletMetadataCache.estimatedSize() == 0);
+        } catch (InterruptedException e) {
+          LOG.info("Interrupt Exception received, shutting down");
+          gracefulShutdown(getContext().rpcCreds());
+        }
       }
     } finally {
-      LOG.info("Stopping Thrift Servers");
+      // Wait for scans to got to zero
+      while (!sessionManager.getActiveScans().isEmpty()) {
+        LOG.debug("Waiting on {} active scans to complete.",
+            sessionManager.getActiveScans().size());
+        UtilWaitThread.sleep(1000);
+      }
+
+      LOG.debug("Stopping Thrift Servers");
       address.server.stop();
 
-      LOG.info("Removing server scan references");
-      this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
-          serverLockUUID);
+      try {
+        LOG.info("Removing server scan references");
+        this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
+            serverLockUUID);
+      } catch (Exception e) {
+        LOG.warn("Failed to remove scan server refs from metadata location", e);
+      }
 
       try {
         LOG.debug("Closing filesystems");
@@ -438,6 +465,7 @@ public class ScanServer extends AbstractServer
       }
 
       context.getLowMemoryDetector().logGCInfo(getConfiguration());
+      getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
       try {
         if (null != lock) {
@@ -933,6 +961,11 @@ public class ScanServer extends AbstractServer
       long busyTimeout) throws ThriftSecurityException, NotServingTabletException,
       TooManyFilesException, TSampleNotPresentException, TException {
 
+    if (isShutdownRequested()) {
+      // Prevent scans from starting if shutting down
+      throw new ScanServerBusyException();
+    }
+
     KeyExtent extent = getKeyExtent(textent);
 
     if (extent.isSystemTable() && !isSystemUser(credentials)) {
@@ -993,6 +1026,11 @@ public class ScanServer extends AbstractServer
       TSamplerConfiguration tSamplerConfig, long batchTimeOut, String contextArg,
       Map<String,String> executionHints, long busyTimeout)
       throws ThriftSecurityException, TSampleNotPresentException, TException {
+
+    if (isShutdownRequested()) {
+      // Prevent scans from starting if shutting down
+      throw new ScanServerBusyException();
+    }
 
     if (tbatch.size() == 0) {
       throw new TException("Scan Server batch must include at least one extent");
@@ -1105,11 +1143,6 @@ public class ScanServer extends AbstractServer
   @Override
   public ServiceLock getLock() {
     return scanServerLock;
-  }
-
-  @Override
-  public ZooCache getManagerLockCache() {
-    return managerLockCache;
   }
 
   @Override

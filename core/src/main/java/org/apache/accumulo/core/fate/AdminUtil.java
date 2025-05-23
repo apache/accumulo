@@ -33,12 +33,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.SortedSet;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.FateIdStatus;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.ReadOnlyFateTxStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.FateLock;
 import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockPath;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -55,17 +57,6 @@ import org.slf4j.LoggerFactory;
 public class AdminUtil<T> {
   private static final Logger log = LoggerFactory.getLogger(AdminUtil.class);
 
-  private final boolean exitOnError;
-
-  /**
-   * Constructor
-   *
-   * @param exitOnError <code>System.exit(1)</code> on error if true
-   */
-  public AdminUtil(boolean exitOnError) {
-    this.exitOnError = exitOnError;
-  }
-
   /**
    * FATE transaction status, including lock information.
    */
@@ -74,20 +65,20 @@ public class AdminUtil<T> {
     private final FateId fateId;
     private final FateInstanceType instanceType;
     private final TStatus status;
-    private final Fate.FateOperation txName;
+    private final Fate.FateOperation fateOp;
     private final List<String> hlocks;
     private final List<String> wlocks;
     private final String top;
     private final long timeCreated;
 
     private TransactionStatus(FateId fateId, FateInstanceType instanceType, TStatus status,
-        Fate.FateOperation txName, List<String> hlocks, List<String> wlocks, String top,
+        Fate.FateOperation fateOp, List<String> hlocks, List<String> wlocks, String top,
         Long timeCreated) {
 
       this.fateId = fateId;
       this.instanceType = instanceType;
       this.status = status;
-      this.txName = txName;
+      this.fateOp = fateOp;
       this.hlocks = Collections.unmodifiableList(hlocks);
       this.wlocks = Collections.unmodifiableList(wlocks);
       this.top = top;
@@ -114,8 +105,8 @@ public class AdminUtil<T> {
     /**
      * @return The name of the transaction running.
      */
-    public Fate.FateOperation getTxName() {
-      return txName;
+    public Fate.FateOperation getFateOp() {
+      return fateOp;
     }
 
     /**
@@ -286,24 +277,21 @@ public class AdminUtil<T> {
     List<String> lockedIds = zr.getChildren(lockPath.toString());
 
     for (String id : lockedIds) {
-
       try {
-
         FateLockPath fLockPath = FateLock.path(lockPath + "/" + id);
-        List<String> lockNodes =
-            FateLock.validateAndSort(fLockPath, zr.getChildren(fLockPath.toString()));
+        SortedSet<FateLock.NodeName> lockNodes =
+            FateLock.validateAndWarn(fLockPath, zr.getChildren(fLockPath.toString()));
 
         int pos = 0;
         boolean sawWriteLock = false;
 
-        for (String node : lockNodes) {
+        for (FateLock.NodeName node : lockNodes) {
           try {
-            byte[] data = zr.getData(lockPath + "/" + id + "/" + node);
-            // Example data: "READ:<FateId>". FateId contains ':' hence the limit of 2
-            String[] lda = new String(data, UTF_8).split(":", 2);
-            FateId fateId = FateId.from(lda[1]);
+            FateLock.FateLockEntry fateLockEntry = node.fateLockEntry.get();
+            var fateId = fateLockEntry.getFateId();
+            var lockType = fateLockEntry.getLockType();
 
-            if (lda[0].charAt(0) == 'W') {
+            if (lockType == LockType.WRITE) {
               sawWriteLock = true;
             }
 
@@ -311,13 +299,14 @@ public class AdminUtil<T> {
 
             if (pos == 0) {
               locks = heldLocks;
-            } else if (lda[0].charAt(0) == 'R' && !sawWriteLock) {
+            } else if (lockType == LockType.READ && !sawWriteLock) {
               locks = heldLocks;
             } else {
               locks = waitingLocks;
             }
 
-            locks.computeIfAbsent(fateId, k -> new ArrayList<>()).add(lda[0].charAt(0) + ":" + id);
+            locks.computeIfAbsent(fateId, k -> new ArrayList<>())
+                .add(lockType.name().charAt(0) + ":" + id);
 
           } catch (Exception e) {
             log.error("{}", e.getMessage(), e);
@@ -364,9 +353,9 @@ public class AdminUtil<T> {
         fateIds.forEach(fateId -> {
 
           ReadOnlyFateTxStore<T> txStore = store.read(fateId);
-          // tx name will not be set if the tx is not seeded with work (it is NEW)
-          Fate.FateOperation txName = txStore.getTransactionInfo(Fate.TxInfo.TX_NAME) == null ? null
-              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.TX_NAME));
+          // fate op will not be set if the tx is not seeded with work (it is NEW)
+          Fate.FateOperation fateOp = txStore.getTransactionInfo(Fate.TxInfo.FATE_OP) == null ? null
+              : ((Fate.FateOperation) txStore.getTransactionInfo(Fate.TxInfo.FATE_OP));
 
           List<String> hlocks = heldLocks.remove(fateId);
 
@@ -392,7 +381,7 @@ public class AdminUtil<T> {
 
           if (includeByStatus(status, statusFilter) && includeByFateId(fateId, fateIdFilter)
               && includeByInstanceType(fateId.getType(), typesFilter)) {
-            statuses.add(new TransactionStatus(fateId, type, status, txName, hlocks, wlocks, top,
+            statuses.add(new TransactionStatus(fateId, type, status, fateOp, hlocks, wlocks, top,
                 timeCreated));
           }
         });
@@ -429,7 +418,7 @@ public class AdminUtil<T> {
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
           "%-15s fateId: %s  status: %-18s locked: %-15s locking: %-15s op: %-15s created: %s%n",
-          txStatus.getTxName(), txStatus.getFateId(), txStatus.getStatus(), txStatus.getHeldLocks(),
+          txStatus.getFateOp(), txStatus.getFateId(), txStatus.getStatus(), txStatus.getHeldLocks(),
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());

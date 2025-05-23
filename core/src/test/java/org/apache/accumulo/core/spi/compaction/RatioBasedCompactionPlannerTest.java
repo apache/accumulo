@@ -34,7 +34,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.IntStream;
 
@@ -45,6 +44,9 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
@@ -632,7 +634,7 @@ public class RatioBasedCompactionPlannerTest {
     // that a compaction is not planned
     all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
     var job = new CompactionJobImpl((short) 1, CompactorGroupId.of("ee1"), createCFs("F1", "1000"),
-        CompactionKind.SYSTEM, Optional.of(false));
+        CompactionKind.SYSTEM);
     params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
 
@@ -668,7 +670,7 @@ public class RatioBasedCompactionPlannerTest {
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
-    return new CompactionPlanImpl.BuilderImpl(kind, all, all)
+    return new CompactionPlanImpl.BuilderImpl(kind, all)
         .addJob((short) all.size(), CompactorGroupId.of("small"), files).build().getJobs()
         .iterator().next();
   }
@@ -778,6 +780,11 @@ public class RatioBasedCompactionPlannerTest {
       }
 
       @Override
+      public TabletId getTabletId() {
+        return new TabletIdImpl(new KeyExtent(getTableId(), null, null));
+      }
+
+      @Override
       public ServiceEnvironment getServiceEnvironment() {
         ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
         EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
@@ -818,7 +825,7 @@ public class RatioBasedCompactionPlannerTest {
 
       @Override
       public Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, all, candidates);
+        return new CompactionPlanImpl.BuilderImpl(kind, candidates);
       }
     };
   }

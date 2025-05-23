@@ -90,7 +90,6 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
 
   @Override
   public T putDirName(String dirName) {
-    ServerColumnFamily.validateDirCol(dirName);
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
     ServerColumnFamily.DIRECTORY_COLUMN.put(mutation, new Value(dirName));
     return getThis();
@@ -194,10 +193,9 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
     return getThis();
   }
 
-  protected T putZooLock(String zookeeperRoot, ServiceLock zooLock) {
+  protected T putZooLock(ServiceLock zooLock) {
     Preconditions.checkState(updatesEnabled, "Cannot make updates after calling mutate.");
-    ServerColumnFamily.LOCK_COLUMN.put(mutation,
-        new Value(zooLock.getLockID().serialize(zookeeperRoot + "/")));
+    ServerColumnFamily.LOCK_COLUMN.put(mutation, new Value(zooLock.getLockID().serialize()));
     return getThis();
   }
 
@@ -394,6 +392,18 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   public T putTabletMergeability(TabletMergeabilityMetadata tabletMergeability) {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(mutation,
         TabletMergeabilityMetadata.toValue(tabletMergeability));
+    return getThis();
+  }
+
+  @Override
+  public T putMigration(TServerInstance tserver) {
+    ServerColumnFamily.MIGRATION_COLUMN.put(mutation, new Value(tserver.getHostPortSession()));
+    return getThis();
+  }
+
+  @Override
+  public T deleteMigration() {
+    ServerColumnFamily.MIGRATION_COLUMN.putDelete(mutation);
     return getThis();
   }
 

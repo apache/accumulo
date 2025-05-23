@@ -36,10 +36,10 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.ScanServerRefStore;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -81,8 +81,8 @@ public interface Ample {
    */
   public enum DataLevel {
     ROOT(null, null),
-    METADATA(AccumuloTable.ROOT.tableName(), AccumuloTable.ROOT.tableId()),
-    USER(AccumuloTable.METADATA.tableName(), AccumuloTable.METADATA.tableId());
+    METADATA(SystemTables.ROOT.tableName(), SystemTables.ROOT.tableId()),
+    USER(SystemTables.METADATA.tableName(), SystemTables.METADATA.tableId());
 
     private final String table;
     private final TableId id;
@@ -113,9 +113,9 @@ public interface Ample {
     }
 
     public static DataLevel of(TableId tableId) {
-      if (tableId.equals(AccumuloTable.ROOT.tableId())) {
+      if (tableId.equals(SystemTables.ROOT.tableId())) {
         return DataLevel.ROOT;
-      } else if (tableId.equals(AccumuloTable.METADATA.tableId())) {
+      } else if (tableId.equals(SystemTables.METADATA.tableId())) {
         return DataLevel.METADATA;
       } else {
         return DataLevel.USER;
@@ -259,10 +259,11 @@ public interface Ample {
   interface ConditionalResult {
 
     /**
-     * This enum was created instead of using {@link ConditionalWriter.Status} because Ample has
-     * automated handling for most of the statuses of the conditional writer and therefore only a
-     * subset are expected to be passed out of Ample. This enum represents the subset that Ample
-     * will actually return.
+     * This enum was created instead of using
+     * {@link org.apache.accumulo.core.client.ConditionalWriter.Status} because Ample has automated
+     * handling for most of the statuses of the conditional writer and therefore only a subset are
+     * expected to be passed out of Ample. This enum represents the subset that Ample will actually
+     * return.
      */
     enum Status {
       ACCEPTED, REJECTED
@@ -400,6 +401,10 @@ public interface Ample {
      * false.
      */
     T automaticallyPutServerLock(boolean b);
+
+    T putMigration(TServerInstance tserver);
+
+    T deleteMigration();
   }
 
   interface TabletMutator extends TabletUpdates<TabletMutator> {
@@ -499,6 +504,8 @@ public interface Ample {
      */
     ConditionalTabletMutator requireLocation(Location location);
 
+    ConditionalTabletMutator requireCurrentLocationNotEqualTo(TServerInstance tsi);
+
     /**
      * Requires the tablet to have the specified tablet availability before any changes are made.
      */
@@ -534,9 +541,15 @@ public interface Ample {
     ConditionalTabletMutator requireAbsentLoaded(Set<ReferencedTabletFile> files);
 
     /**
-     * Requires the given set of files are not currently involved in any running compactions.
+     * This check will run atomically on the server side and must pass in order for the tablet to be
+     * updated.
      */
-    ConditionalTabletMutator requireNotCompacting(Set<StoredTabletFile> files);
+    ConditionalTabletMutator requireCheckSuccess(TabletMetadataCheck check);
+
+    /**
+     * Requires that a tablet be migrating to the given tserver
+     */
+    ConditionalTabletMutator requireMigration(TServerInstance tserver);
 
     /**
      * <p>

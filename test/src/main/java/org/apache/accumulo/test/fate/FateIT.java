@@ -25,7 +25,7 @@ import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRES
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.NEW;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.SUBMITTED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.UNKNOWN;
-import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -38,13 +38,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.accumulo.core.conf.ConfigurationCopy;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -532,14 +531,15 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     assertDoesNotThrow(() -> txStore.push(repo));
     assertDoesNotThrow(() -> txStore.setStatus(ReadOnlyFateStore.TStatus.SUCCESSFUL));
     assertDoesNotThrow(txStore::pop);
-    assertDoesNotThrow(() -> txStore.setTransactionInfo(Fate.TxInfo.TX_NAME, "name"));
+    assertDoesNotThrow(() -> txStore.setTransactionInfo(Fate.TxInfo.FATE_OP, TEST_FATE_OP));
     assertDoesNotThrow(txStore::delete);
 
     // test that all write ops result in an exception since the tx has been deleted
     assertThrows(Exception.class, () -> txStore.push(repo));
     assertThrows(Exception.class, () -> txStore.setStatus(ReadOnlyFateStore.TStatus.SUCCESSFUL));
     assertThrows(Exception.class, txStore::pop);
-    assertThrows(Exception.class, () -> txStore.setTransactionInfo(Fate.TxInfo.TX_NAME, "name"));
+    assertThrows(Exception.class,
+        () -> txStore.setTransactionInfo(Fate.TxInfo.FATE_OP, TEST_FATE_OP));
     assertThrows(Exception.class, txStore::delete);
   }
 
@@ -553,10 +553,8 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
   }
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
-    ConfigurationCopy config = new ConfigurationCopy();
-    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-    return new Fate<>(new TestEnv(), store, false, r -> r + "", config);
+    return new Fate<>(new TestEnv(), store, false, r -> r + "",
+        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);

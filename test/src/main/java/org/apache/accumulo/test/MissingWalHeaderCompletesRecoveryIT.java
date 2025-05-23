@@ -35,7 +35,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
@@ -82,9 +82,9 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   public void setupMetadataPermission() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       rootHasWritePermission = client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+          SystemTables.METADATA.tableName(), TablePermission.WRITE);
       if (!rootHasWritePermission) {
-        client.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
+        client.securityOperations().grantTablePermission("root", SystemTables.METADATA.tableName(),
             TablePermission.WRITE);
         // Make sure it propagates through ZK
         Thread.sleep(5000);
@@ -97,15 +97,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
       // Final state doesn't match the original
       if (rootHasWritePermission != client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE)) {
+          SystemTables.METADATA.tableName(), TablePermission.WRITE)) {
         if (rootHasWritePermission) {
           // root had write permission when starting, ensure root still does
           client.securityOperations().grantTablePermission("root",
-              AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+              SystemTables.METADATA.tableName(), TablePermission.WRITE);
         } else {
           // root did not have write permission when starting, ensure that it does not
           client.securityOperations().revokeTablePermission("root",
-              AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
+              SystemTables.METADATA.tableName(), TablePermission.WRITE);
         }
       }
     }
@@ -120,16 +120,17 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
+      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
+      File emptyWalog = walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
 
       log.info("Created empty WAL at {}", emptyWalog.toURI());
 
       fs.create(new Path(emptyWalog.toURI())).close();
 
       assertTrue(client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE),
+          SystemTables.METADATA.tableName(), TablePermission.WRITE),
           "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
@@ -149,7 +150,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       logEntry.addToMutation(m);
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(m);
       }
 
@@ -175,9 +176,11 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
+      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
+      File partialHeaderWalog =
+          walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
 
       log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
 
@@ -188,7 +191,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       wal.close();
 
       assertTrue(client.securityOperations().hasTablePermission("root",
-          AccumuloTable.METADATA.tableName(), TablePermission.WRITE),
+          SystemTables.METADATA.tableName(), TablePermission.WRITE),
           "root user did not have write permission to metadata table");
 
       String tableName = getUniqueNames(1)[0];
@@ -208,7 +211,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       Mutation m = new Mutation(row);
       logEntry.addToMutation(m);
 
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(m);
       }
 

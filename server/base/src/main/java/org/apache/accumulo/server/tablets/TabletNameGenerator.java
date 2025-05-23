@@ -27,7 +27,6 @@ import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
@@ -63,17 +62,17 @@ public class TabletNameGenerator {
     String extension =
         FileOperations.getNewFileExtension(context.getTableConfiguration(extent.tableId()));
     return new ReferencedTabletFile(
-        new Path(chooseTabletDir(context, extent, dirName, dirCreator) + "/" + prefix.toPrefix()
+        new Path(chooseTabletDir(context, extent, dirName, dirCreator) + "/" + prefix.getPrefix()
             + context.getUniqueNameAllocator().getNextName() + "." + extension));
   }
 
   public static ReferencedTabletFile getNextDataFilenameForMajc(boolean propagateDeletes,
-      ServerContext context, TabletMetadata tabletMetadata, Consumer<String> dirCreator,
+      ServerContext context, KeyExtent extent, String tabletDir, Consumer<String> dirCreator,
       ExternalCompactionId ecid) {
-    String tmpFileName = getNextDataFilename(
-        !propagateDeletes ? FilePrefix.MAJOR_COMPACTION_ALL_FILES : FilePrefix.MAJOR_COMPACTION,
-        context, tabletMetadata.getExtent(), tabletMetadata.getDirName(), dirCreator).insert()
-        .getMetadataPath() + "_tmp_" + ecid.canonical();
+    String tmpFileName =
+        getNextDataFilename(!propagateDeletes ? FilePrefix.FULL_COMPACTION : FilePrefix.COMPACTION,
+            context, extent, tabletDir, dirCreator).insert().getMetadataPath() + "_tmp_"
+            + ecid.canonical();
     return new ReferencedTabletFile(new Path(tmpFileName));
   }
 

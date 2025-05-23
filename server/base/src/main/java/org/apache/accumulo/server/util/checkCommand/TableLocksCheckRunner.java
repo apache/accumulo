@@ -21,7 +21,6 @@ package org.apache.accumulo.server.util.checkCommand;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.fate.AdminUtil;
@@ -29,7 +28,7 @@ import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
@@ -59,14 +58,12 @@ public class TableLocksCheckRunner implements CheckRunner {
   private static Admin.CheckCommand.CheckStatus checkTableLocks(ServerContext context,
       Admin.CheckCommand.CheckStatus status)
       throws InterruptedException, KeeperException, AccumuloException, AccumuloSecurityException {
-    final AdminUtil<Admin> admin = new AdminUtil<>(true);
-    final String zkRoot = context.getZooKeeperRoot();
+    final AdminUtil<Admin> admin = new AdminUtil<>();
     final var zTableLocksPath = context.getServerPaths().createTableLocksPath();
-    final String fateZkPath = zkRoot + Constants.ZFATE;
     final var zk = context.getZooSession();
-    final MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, null, null);
+    final MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, null, null);
     final UserFateStore<Admin> ufs =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
 
     log.trace("Ensuring table and namespace locks are valid...");
 

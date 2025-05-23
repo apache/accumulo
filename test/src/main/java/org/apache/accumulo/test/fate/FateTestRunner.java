@@ -43,7 +43,7 @@ public interface FateTestRunner<T extends TestEnv> {
     void execute(FateStore<T> store, ServerContext sctx) throws Exception;
   }
 
-  class TestEnv {
+  static class TestEnv {
 
   }
 }

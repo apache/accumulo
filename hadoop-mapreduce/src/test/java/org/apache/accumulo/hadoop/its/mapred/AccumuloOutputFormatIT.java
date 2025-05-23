@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
@@ -191,8 +190,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
+          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

@@ -45,7 +45,6 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Namespace;
-import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.AdminUtil;
 import org.apache.accumulo.core.fate.Fate;
@@ -53,9 +52,8 @@ import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
@@ -251,19 +249,17 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
     int maxRetries = 3;
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    AdminUtil<String> admin = new AdminUtil<>();
 
     while (maxRetries > 0) {
 
       try {
 
-        InstanceId instanceId = context.getInstanceID();
         var zk = context.getZooSession();
-        MetaFateStore<String> readOnlyMFS =
-            new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk, null, null);
+        MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
         UserFateStore<String> readOnlyUFS =
-            new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
-        var lockPath = context.getServerPaths().createTableLocksPath(tableId.toString());
+            new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
+        var lockPath = context.getServerPaths().createTableLocksPath(tableId);
         Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
             Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
 
@@ -343,7 +339,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
    */
   private boolean lookupFateInZookeeper(final String tableName) throws KeeperException {
 
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    AdminUtil<String> admin = new AdminUtil<>();
 
     try {
 
@@ -351,11 +347,9 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
 
       log.trace("tid: {}", tableId);
 
-      InstanceId instanceId = context.getInstanceID();
       var zk = context.getZooSession();
-      MetaFateStore<String> readOnlyMFS =
-          new MetaFateStore<>(ZooUtil.getRoot(instanceId) + Constants.ZFATE, zk, null, null);
-      var lockPath = context.getServerPaths().createTableLocksPath(tableId.toString());
+      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+      var lockPath = context.getServerPaths().createTableLocksPath(tableId);
       AdminUtil.FateStatus fateStatus =
           admin.getStatus(readOnlyMFS, zk, lockPath, null, null, null);
 
@@ -377,7 +371,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
   }
 
   private boolean lookupFateInAccumulo(final String tableName) throws KeeperException {
-    AdminUtil<String> admin = new AdminUtil<>(false);
+    AdminUtil<String> admin = new AdminUtil<>();
 
     try {
       TableId tableId = context.getTableId(tableName);
@@ -385,7 +379,7 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
       log.trace("tid: {}", tableId);
 
       UserFateStore<String> readOnlyUFS =
-          new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
       AdminUtil.FateStatus fateStatus = admin.getStatus(readOnlyUFS, null, null, null);
 
       log.trace("current fates: {}", fateStatus.getTransactions().size());
@@ -421,10 +415,10 @@ public class FateConcurrencyIT extends AccumuloClusterHarness {
     log.trace("Fate id: {}, status: {}", tx.getFateId(), tx.getStatus());
 
     String top = tx.getTop();
-    Fate.FateOperation txName = tx.getTxName();
+    Fate.FateOperation fateOp = tx.getFateOp();
 
-    return top != null && txName != null && top.contains("CompactionDriver")
-        && txName == Fate.FateOperation.TABLE_COMPACT;
+    return top != null && fateOp != null && top.contains("CompactionDriver")
+        && fateOp == Fate.FateOperation.TABLE_COMPACT;
   }
 
   /**

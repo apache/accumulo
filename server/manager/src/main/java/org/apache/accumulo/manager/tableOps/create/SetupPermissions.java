@@ -25,7 +25,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.TableInfo;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.slf4j.LoggerFactory;
 
 class SetupPermissions extends ManagerRepo {
@@ -41,7 +40,7 @@ class SetupPermissions extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
     // give all table permissions to the creator
-    SecurityOperation security = env.getContext().getSecurityOperation();
+    var security = env.getContext().getSecurityOperation();
     if (!tableInfo.getUser().equals(env.getContext().getCredentials().getPrincipal())) {
       for (TablePermission permission : TablePermission.values()) {
         try {

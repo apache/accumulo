@@ -42,10 +42,12 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionList;
+import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
@@ -53,6 +55,9 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.rpc.ThriftUtil;
+import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.core.util.compaction.RunningCompactionInfo;
@@ -69,6 +74,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -86,6 +92,11 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
   @BeforeAll
   public static void beforeTests() throws Exception {
     startMiniClusterWithConfig(new ExternalCompaction3Config());
+  }
+
+  @AfterAll
+  public static void afterTests() {
+    stopMiniCluster();
   }
 
   @Test
@@ -193,6 +204,10 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       } while (originalRunningInfo == null
           || originalRunningInfo.values().stream().allMatch(rci -> rci.duration == 0));
 
+      Map<String,TExternalCompactionList> longestRunning = getLongRunningCompactions(ctx);
+      assertTrue(longestRunning.containsKey(GROUP2));
+      assertEquals(originalRunningInfo.size(), longestRunning.get(GROUP2).getCompactions().size());
+
       // Stop the Manager (Coordinator)
       getCluster().getClusterControl().stop(ServerType.MANAGER);
 
@@ -212,6 +227,11 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
         assertTrue(lastState.equals(TCompactionState.IN_PROGRESS.name()));
       }
 
+      longestRunning = getLongRunningCompactions(ctx);
+      assertTrue(longestRunning.containsKey(GROUP2));
+      assertEquals(postRestartRunningInfo.size(),
+          longestRunning.get(GROUP2).getCompactions().size());
+
       // We need to cancel the compaction or delete the table here because we initiate a user
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
@@ -226,7 +246,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
     final Map<ExternalCompactionId,RunningCompactionInfo> results = new HashMap<>();
 
     while (results.isEmpty()) {
-      TExternalCompactionList running = null;
+      TExternalCompactionMap running = null;
       while (running == null || running.getCompactions() == null) {
         try {
           Optional<HostAndPort> coordinatorHost =
@@ -254,6 +274,33 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
           }
           results.put(ecid, new RunningCompactionInfo(tec));
         }
+      }
+    }
+    return results;
+  }
+
+  private Map<String,TExternalCompactionList> getLongRunningCompactions(ServerContext ctx)
+      throws InterruptedException {
+
+    Map<String,TExternalCompactionList> results = new HashMap<>();
+
+    while (results.isEmpty()) {
+      try {
+        Optional<HostAndPort> coordinatorHost =
+            ExternalCompactionUtil.findCompactionCoordinator(ctx);
+        if (coordinatorHost.isEmpty()) {
+          throw new TTransportException(
+              "Unable to get CompactionCoordinator address from ZooKeeper");
+        }
+        CompactionCoordinatorService.Client client =
+            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, coordinatorHost.orElseThrow(), ctx);
+        try {
+          results = client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
+        } finally {
+          ThriftUtil.returnClient(client, ctx);
+        }
+      } catch (TException t) {
+        Thread.sleep(2000);
       }
     }
     return results;

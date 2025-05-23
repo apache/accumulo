@@ -18,14 +18,11 @@
  */
 package org.apache.accumulo.manager.tableOps.namespace.rename;
 
-import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -53,13 +50,9 @@ public class RenameNamespace extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    ZooReaderWriter zoo = manager.getContext().getZooSession().asReaderWriter();
-
     Utils.getTableNameLock().lock();
     try {
-      NamespaceMapping.rename(zoo, manager.getContext().getZooKeeperRoot() + Constants.ZNAMESPACES,
-          namespaceId, oldName, newName);
-
+      manager.getContext().getNamespaceMapping().rename(namespaceId, oldName, newName);
       manager.getContext().clearTableListCache();
     } finally {
       Utils.getTableNameLock().unlock();

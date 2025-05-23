@@ -23,6 +23,7 @@ import static org.apache.accumulo.tserver.logger.LogEvents.OPEN;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +49,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
 import org.apache.accumulo.server.log.SortedLogState;
+import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.logger.LogFileKey;
 import org.apache.accumulo.tserver.logger.LogFileValue;
@@ -66,6 +68,7 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   private VolumeManager fs;
   private File workDir;
   static final KeyExtent extent = new KeyExtent(TableId.of("table"), null, null);
+  static TabletServer server;
   static ServerContext context;
   static LogSorter logSorter;
 
@@ -75,21 +78,23 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @BeforeEach
   public void setUp() throws Exception {
     context = createMock(ServerContext.class);
-
-    workDir = new File(tempDir, testName());
+    server = createMock(TabletServer.class);
+    workDir = tempDir.toPath().resolve(testName()).toFile();
     String path = workDir.getAbsolutePath();
     fs = VolumeManagerImpl.getLocalForTesting(path);
+    expect(server.getContext()).andReturn(context).anyTimes();
     expect(context.getCryptoFactory()).andReturn(new GenericCryptoServiceFactory()).anyTimes();
     expect(context.getVolumeManager()).andReturn(fs).anyTimes();
     expect(context.getConfiguration()).andReturn(DefaultConfiguration.getInstance()).anyTimes();
-    replay(context);
+    replay(server, context);
 
-    logSorter = new LogSorter(context, DefaultConfiguration.getInstance());
+    logSorter = new LogSorter(server);
   }
 
   @AfterEach
   public void tearDown() throws Exception {
     fs.close();
+    verify(server, context);
   }
 
   static class KeyValue implements Comparable<KeyValue> {

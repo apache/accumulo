@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
 
@@ -105,7 +105,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
       }
 
       String tokenFile = args[0];
-      Properties cp = Accumulo.newClientProperties().from(Paths.get(tokenFile)).build();
+      Properties cp = Accumulo.newClientProperties().from(Path.of(tokenFile)).build();
       String table1 = args[1];
       String table2 = args[2];
 
@@ -134,10 +134,10 @@ public class TokenFileIT extends AccumuloClusterHarness {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
       Configuration conf = cluster.getServerContext().getHadoopConf();
-      conf.set("hadoop.tmp.dir", new File(args[0]).getParent());
+      conf.set("hadoop.tmp.dir", Path.of(args[0]).toFile().getParent());
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
+          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
@@ -161,7 +161,7 @@ public class TokenFileIT extends AccumuloClusterHarness {
         }
       }
 
-      File tf = new File(tempDir, "client.properties");
+      File tf = tempDir.toPath().resolve("client.properties").toFile();
       assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
       try (PrintStream out = new PrintStream(tf)) {
         getClientProps().store(out, "Credentials for " + getClass().getName());

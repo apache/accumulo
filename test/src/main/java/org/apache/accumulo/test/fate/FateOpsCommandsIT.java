@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.fate;
 
-import static org.apache.accumulo.test.fate.FateStoreUtil.TEST_FATE_OP;
+import static org.apache.accumulo.test.fate.FateTestUtil.TEST_FATE_OP;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
@@ -41,11 +41,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -64,7 +64,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -466,7 +466,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       // Validate transaction name and transaction step from summary command
 
       for (FateTxnDetails d : report.getFateDetails()) {
-        assertEquals("TABLE_COMPACT", d.getTxName());
+        assertEquals("TABLE_COMPACT", d.getFateOp());
         assertEquals("CompactionDriver", d.getStep());
         fateIdsStarted.add(d.getFateId());
       }
@@ -698,14 +698,13 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       Method listMethod = UserFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(UserFateStore.class)
           .withConstructor(ClientContext.class, String.class, ZooUtil.LockID.class, Predicate.class)
-          .withArgs(sctx, AccumuloTable.FATE.tableName(), null, null).addMockedMethod(listMethod)
+          .withArgs(sctx, SystemTables.FATE.tableName(), null, null).addMockedMethod(listMethod)
           .createMock();
     } else {
       Method listMethod = MetaFateStore.class.getMethod("list");
       mockedStore = EasyMock.createMockBuilder(MetaFateStore.class)
-          .withConstructor(String.class, ZooSession.class, ZooUtil.LockID.class, Predicate.class)
-          .withArgs(sctx.getZooKeeperRoot() + Constants.ZFATE, sctx.getZooSession(), null, null)
-          .addMockedMethod(listMethod).createMock();
+          .withConstructor(ZooSession.class, ZooUtil.LockID.class, Predicate.class)
+          .withArgs(sctx.getZooSession(), null, null).addMockedMethod(listMethod).createMock();
     }
 
     // 3 FateIds, two that exist and one that does not. We are simulating that a transaction that
@@ -743,7 +742,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
         List.of(ReadOnlyFateStore.TStatus.NEW, ReadOnlyFateStore.TStatus.UNKNOWN,
             ReadOnlyFateStore.TStatus.NEW));
     // None of them should have a name since none of them were seeded with work
-    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTxName)
+    assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getFateOp)
         .collect(Collectors.toList()), Arrays.asList(null, null, null));
     // None of them should have a Repo since none of them were seeded with work
     assertEquals(status.getTransactions().stream().map(AdminUtil.TransactionStatus::getTop)
@@ -769,6 +768,11 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
       @Override
       public Optional<FateStore.FateReservation> getFateReservation() {
+        return Optional.empty();
+      }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
         return Optional.empty();
       }
     };
@@ -832,7 +836,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
       assertTrue(fateIdsStarted.contains(d.getFateId()));
       assertEquals("NEW", d.getStatus());
       assertEquals("?", d.getStep());
-      assertEquals("?", d.getTxName());
+      assertEquals("?", d.getFateOp());
       assertNotEquals(0, d.getRunning());
       assertEquals("[]", d.getLocksHeld().toString());
       assertEquals("[]", d.getLocksWaiting().toString());
@@ -849,7 +853,7 @@ public abstract class FateOpsCommandsIT extends ConfigurableMacBase
 
   protected Fate<LatchTestEnv> initFateNoDeadResCleaner(FateStore<LatchTestEnv> store) {
     return new Fate<>(new LatchTestEnv(), store, false, Object::toString,
-        DefaultConfiguration.getInstance());
+        DefaultConfiguration.getInstance(), new ScheduledThreadPoolExecutor(2));
   }
 
   private boolean wordIsTStatus(String word) {

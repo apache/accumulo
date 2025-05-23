@@ -47,7 +47,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -175,7 +175,7 @@ public class TestAmple {
     public void createMetadataFromExisting(AccumuloClient client, TableId tableId,
         BiPredicate<Key,Value> includeColumn) throws Exception {
       try (Scanner scanner =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.setRange(TabletsSection.getRange(tableId));
         IteratorSetting iterSetting = new IteratorSetting(100, WholeRowIterator.class);
         scanner.addScanIterator(iterSetting);
@@ -187,12 +187,13 @@ public class TestAmple {
                 WholeRowIterator.decodeRow(entry.getKey(), entry.getValue());
             Text row = decodedRow.firstKey().getRow();
             Mutation m = new Mutation(row);
-
             decodedRow.entrySet().stream().filter(e -> includeColumn.test(e.getKey(), e.getValue()))
                 .forEach(e -> m.put(e.getKey().getColumnFamily(), e.getKey().getColumnQualifier(),
                     e.getKey().getColumnVisibilityParsed(), e.getKey().getTimestamp(),
                     e.getValue()));
-            bw.addMutation(m);
+            if (!m.getUpdates().isEmpty()) {
+              bw.addMutation(m);
+            }
           }
         }
       }
@@ -262,11 +263,11 @@ public class TestAmple {
 
   public static void createMetadataTable(ClientContext client, String table) throws Exception {
     final var metadataTableProps =
-        client.tableOperations().getTableProperties(AccumuloTable.METADATA.tableName());
+        client.tableOperations().getTableProperties(SystemTables.METADATA.tableName());
 
     TabletAvailability availability;
     try (var tabletStream = client.tableOperations()
-        .getTabletInformation(AccumuloTable.METADATA.tableName(), new Range())) {
+        .getTabletInformation(SystemTables.METADATA.tableName(), new Range())) {
       availability = tabletStream.map(TabletInformation::getTabletAvailability).distinct()
           .collect(MoreCollectors.onlyElement());
     }

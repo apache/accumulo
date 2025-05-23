@@ -46,9 +46,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
@@ -64,6 +64,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class PropStoreConfigIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreConfigIT.class);
@@ -165,8 +166,8 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       TableId tid = TableId.of(tableIdMap.get(table));
 
       // check zk nodes exist
-      assertTrue(context.getPropStore().exists(NamespacePropKey.of(context, nid)));
-      assertTrue(context.getPropStore().exists(TablePropKey.of(context, tid)));
+      assertTrue(context.getPropStore().exists(NamespacePropKey.of(nid)));
+      assertTrue(context.getPropStore().exists(TablePropKey.of(tid)));
       // check ServerConfigurationFactory
       assertNotNull(context.getNamespaceConfiguration(nid));
       assertNotNull(context.getTableConfiguration(tid));
@@ -176,8 +177,8 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       Thread.sleep(100);
 
       // check zk nodes deleted
-      assertFalse(context.getPropStore().exists(NamespacePropKey.of(context, nid)));
-      assertFalse(context.getPropStore().exists(TablePropKey.of(context, tid)));
+      assertFalse(context.getPropStore().exists(NamespacePropKey.of(nid)));
+      assertFalse(context.getPropStore().exists(TablePropKey.of(tid)));
       // check ServerConfigurationFactory deleted - should return null
       assertNull(context.getTableConfiguration(tid));
     }
@@ -246,20 +247,20 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
       ZooReaderWriter zrw = serverContext.getZooSession().asReaderWriter();
 
       // validate that a world-readable node has expected perms to validate test method
-      var noAcl = zrw.getACL(ZooUtil.getRoot(serverContext.getInstanceID()));
+      var noAcl = zrw.getACL("/");
       assertTrue(noAcl.size() > 1);
       assertTrue(
           noAcl.get(0).toString().contains("world") || noAcl.get(1).toString().contains("world"));
 
-      var sysAcl = zrw.getACL(SystemPropKey.of(serverContext).getPath());
+      var sysAcl = zrw.getACL(SystemPropKey.of().getPath());
       assertEquals(1, sysAcl.size());
       assertFalse(sysAcl.get(0).toString().contains("world"));
 
       for (Map.Entry<String,String> nsEntry : client.namespaceOperations().namespaceIdMap()
           .entrySet()) {
         log.debug("Check acl on namespace name: {}, id: {}", nsEntry.getKey(), nsEntry.getValue());
-        var namespaceAcl = zrw.getACL(
-            NamespacePropKey.of(serverContext, NamespaceId.of(nsEntry.getValue())).getPath());
+        var namespaceAcl =
+            zrw.getACL(NamespacePropKey.of(NamespaceId.of(nsEntry.getValue())).getPath());
         log.debug("namespace permissions: {}", namespaceAcl);
         assertEquals(1, namespaceAcl.size());
         assertFalse(namespaceAcl.get(0).toString().contains("world"));
@@ -267,8 +268,7 @@ public class PropStoreConfigIT extends SharedMiniClusterBase {
 
       for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
         log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
-        var tableAcl =
-            zrw.getACL(TablePropKey.of(serverContext, TableId.of(tEntry.getValue())).getPath());
+        var tableAcl = zrw.getACL(TablePropKey.of(TableId.of(tEntry.getValue())).getPath());
         log.debug("Received ACLs of: {}", tableAcl);
         assertEquals(1, tableAcl.size());
         assertFalse(tableAcl.get(0).toString().contains("world"));

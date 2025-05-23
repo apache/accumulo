@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.spi.balancer.TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -46,7 +47,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
@@ -123,7 +124,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     ntc1.withSplits(splits);
 
     Map<String,String> properties = new HashMap<>();
-    properties.put("table.custom.assignment.group", "GROUP1");
+    properties.put(TABLE_ASSIGNMENT_GROUP_PROPERTY, "GROUP1");
 
     NewTableConfiguration ntc2 = new NewTableConfiguration();
     ntc2.withInitialTabletAvailability(TabletAvailability.HOSTED);
@@ -173,7 +174,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     IntStream.range(97, 122).forEach(i -> splits.add(new Text(new String("" + i))));
 
     Map<String,String> properties = new HashMap<>();
-    properties.put("table.custom.assignment.group", "GROUP2");
+    properties.put(TABLE_ASSIGNMENT_GROUP_PROPERTY, "GROUP2");
 
     NewTableConfiguration ntc1 = new NewTableConfiguration();
     ntc1.withInitialTabletAvailability(TabletAvailability.HOSTED);
@@ -214,13 +215,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       } finally {
         client.tableOperations().delete(tableName);
-        // Stop all tablet servers because there is no way to just stop
-        // the GROUP2 server yet.
-        getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-        getCluster().getConfig().getClusterServerConfiguration().clearTServerResourceGroups();
-        getCluster().getConfig().getClusterServerConfiguration()
-            .addTabletServerResourceGroup("GROUP1", 1);
-        getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
+        getCluster().getClusterControl().stopTabletServerGroup("GROUP2");
       }
     }
   }
@@ -259,8 +254,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.instanceOperations().waitForBalance();
-      testResourceGroupPropertyChange(client, AccumuloTable.METADATA.tableName(),
-          getCountOfHostedTablets(client, AccumuloTable.METADATA.tableName()));
+      testResourceGroupPropertyChange(client, SystemTables.METADATA.tableName(),
+          getCountOfHostedTablets(client, SystemTables.METADATA.tableName()));
     }
   }
 
@@ -270,8 +265,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
         Accumulo.newClient().from(getCluster().getClientProperties()).build()) {
 
       client.instanceOperations().waitForBalance();
-      testResourceGroupPropertyChange(client, AccumuloTable.ROOT.tableName(),
-          getCountOfHostedTablets(client, AccumuloTable.ROOT.tableName()));
+      testResourceGroupPropertyChange(client, SystemTables.ROOT.tableName(),
+          getCountOfHostedTablets(client, SystemTables.ROOT.tableName()));
     }
   }
 
@@ -297,7 +292,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
 
     // change the resource group property for the table
-    client.tableOperations().setProperty(tableName, "table.custom.assignment.group", "GROUP1");
+    client.tableOperations().setProperty(tableName, TABLE_ASSIGNMENT_GROUP_PROPERTY, "GROUP1");
 
     locations = getLocations(ample, tableId);
     // wait for GROUP1 to show up in the list of locations as the current location
@@ -332,8 +327,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
   private int getCountOfHostedTablets(AccumuloClient client, String tableName) throws Exception {
 
-    ClientTabletCache locator = ClientTabletCache.getInstance((ClientContext) client,
-        TableId.of(client.tableOperations().tableIdMap().get(tableName)));
+    ClientTabletCache locator = ((ClientContext) client)
+        .getTabletLocationCache(TableId.of(client.tableOperations().tableIdMap().get(tableName)));
     locator.invalidateCache();
     AtomicInteger locations = new AtomicInteger(0);
     locator.findTablets((ClientContext) client, Collections.singletonList(new Range()), (ct, r) -> {

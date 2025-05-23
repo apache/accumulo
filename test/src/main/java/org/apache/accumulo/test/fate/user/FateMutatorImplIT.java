@@ -38,14 +38,17 @@ import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.FateMutator;
 import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.harness.AccumuloITBase;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.fate.FateIT;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
 public class FateMutatorImplIT extends SharedMiniClusterBase {
 
   Logger log = LoggerFactory.getLogger(FateMutatorImplIT.class);

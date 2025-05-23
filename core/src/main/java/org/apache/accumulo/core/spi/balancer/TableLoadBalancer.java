@@ -93,6 +93,17 @@ public class TableLoadBalancer implements TabletBalancer {
     return Constants.DEFAULT_RESOURCE_GROUP_NAME;
   }
 
+  private TabletBalancer constructAndInitializeBalancer(String clazzName, TableId tableId) {
+    try {
+      var balancer = constructNewBalancerForTable(clazzName, tableId);
+      balancer.init(environment);
+      return balancer;
+    } catch (Exception e) {
+      log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
+      return null;
+    }
+  }
+
   protected TabletBalancer getBalancerForTable(TableId tableId) {
     TabletBalancer balancer = perTableBalancers.get(tableId);
 
@@ -101,34 +112,16 @@ public class TableLoadBalancer implements TabletBalancer {
     if (clazzName == null) {
       clazzName = SimpleLoadBalancer.class.getName();
     }
-    if (balancer != null) {
-      if (!clazzName.equals(balancer.getClass().getName())) {
-        // the balancer class for this table does not match the class specified in the configuration
-        try {
-          balancer = constructNewBalancerForTable(clazzName, tableId);
-          perTableBalancers.put(tableId, balancer);
-          balancer.init(environment);
 
-          log.info("Loaded new class {} for table {}", clazzName, tableId);
-        } catch (Exception e) {
-          log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-        }
-      }
-    }
-    if (balancer == null) {
-      try {
-        balancer = constructNewBalancerForTable(clazzName, tableId);
-        log.info("Loaded class {} for table {}", clazzName, tableId);
-      } catch (Exception e) {
-        log.warn("Failed to load table balancer class {} for table {}", clazzName, tableId, e);
-      }
-
+    if (balancer == null || !clazzName.equals(balancer.getClass().getName())) {
+      balancer = constructAndInitializeBalancer(clazzName, tableId);
       if (balancer == null) {
-        log.info("Using balancer {} for table {}", SimpleLoadBalancer.class.getName(), tableId);
-        balancer = new SimpleLoadBalancer(tableId);
+        balancer = constructAndInitializeBalancer(DoNothingBalancer.class.getName(), tableId);
+        log.error("Fell back to balancer {} for table {}", DoNothingBalancer.class.getName(),
+            tableId);
       }
+      log.info("Loaded class {} for table {}", balancer.getClass().getName(), tableId);
       perTableBalancers.put(tableId, balancer);
-      balancer.init(environment);
     }
     return balancer;
   }
@@ -210,9 +203,10 @@ public class TableLoadBalancer implements TabletBalancer {
   @Override
   public long balance(BalanceParameters params) {
     long minBalanceTime = 5_000;
-    // Iterate over the tables and balance each of them
     final DataLevel currentDataLevel = DataLevel.valueOf(params.currentLevel());
-    for (TableId tableId : environment.getTableIdMap().values()) {
+    for (Entry<String,TableId> entry : params.getTablesToBalance().entrySet()) {
+      String tableName = entry.getKey();
+      TableId tableId = entry.getValue();
       final String tableResourceGroup = getResourceGroupNameForTable(tableId);
       // get the group of tservers for this table
       SortedMap<TabletServerId,TServerStatus> groupedTServers = getCurrentSetForTable(
@@ -222,9 +216,10 @@ public class TableLoadBalancer implements TabletBalancer {
         continue;
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
-      long tableBalanceTime = getBalancerForTable(tableId)
-          .balance(new BalanceParamsImpl(groupedTServers, params.currentResourceGroups(),
-              params.currentMigrations(), newMigrations, currentDataLevel));
+      long tableBalanceTime =
+          getBalancerForTable(tableId).balance(new BalanceParamsImpl(groupedTServers,
+              params.currentResourceGroups(), params.currentMigrations(), newMigrations,
+              currentDataLevel, Map.of(tableName, tableId)));
       if (tableBalanceTime < minBalanceTime) {
         minBalanceTime = tableBalanceTime;
       }

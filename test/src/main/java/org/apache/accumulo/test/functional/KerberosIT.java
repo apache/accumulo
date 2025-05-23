@@ -59,7 +59,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -176,8 +176,8 @@ public class KerberosIT extends AccumuloITBase {
       }
 
       // and the ability to modify the root and metadata tables
-      for (String table : Arrays.asList(AccumuloTable.ROOT.tableName(),
-          AccumuloTable.METADATA.tableName())) {
+      for (String table : Arrays.asList(SystemTables.ROOT.tableName(),
+          SystemTables.METADATA.tableName())) {
         assertTrue(client.securityOperations().hasTablePermission(client.whoami(), table,
             TablePermission.ALTER_TABLE));
       }
@@ -189,7 +189,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testNewUser() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab = kdc.getKeytabDir().toPath().resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }
@@ -244,7 +244,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesThroughGrant() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab = kdc.getKeytabDir().toPath().resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -307,7 +307,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesForTable() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab = kdc.getKeytabDir().toPath().resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -481,7 +481,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab = kdc.getKeytabDir().toPath().resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }

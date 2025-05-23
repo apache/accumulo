@@ -34,11 +34,9 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -80,7 +78,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
@@ -187,12 +185,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("addsplits row5", true);
       ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
       ts.exec("offline " + table, true);
-      File exportDir = new File(rootPath, "ShellServerIT.export");
+      File exportDir = java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export").toFile();
       String exportUri = "file://" + exportDir;
-      String localTmp = "file://" + new File(rootPath, "ShellServerIT.tmp");
+      String localTmp =
+          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.tmp").toFile();
       ts.exec("exporttable -t " + table + " " + exportUri, true);
       DistCp cp = new DistCp(new Configuration(false), null);
-      String import_ = "file://" + new File(rootPath, "ShellServerIT.import");
+      String import_ =
+          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import").toFile();
       ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
       if (info.saslEnabled()) {
         // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
@@ -210,7 +210,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
         // Implement a poor-man's DistCp
         try (BufferedReader reader =
-            new BufferedReader(new FileReader(new File(exportDir, "distcp.txt"), UTF_8))) {
+            Files.newBufferedReader(exportDir.toPath().resolve("distcp.txt"), UTF_8)) {
           for (String line; (line = reader.readLine()) != null;) {
             Path exportedFile = new Path(line);
             // There isn't a cp on FileSystem??
@@ -269,7 +269,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   @Test
   public void execfile() throws Exception {
     // execfile
-    File file = File.createTempFile("ShellServerIT.execfile", ".conf", new File(rootPath));
+    File file = File.createTempFile("ShellServerIT.execfile", ".conf",
+        java.nio.file.Path.of(rootPath).toFile());
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
     writer.println("about");
     writer.close();
@@ -326,18 +327,18 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("users", true, "xyzzy", true);
     String perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms
-        .contains("Table permissions (" + AccumuloTable.METADATA.tableName() + "): Table.READ"));
+        .contains("Table permissions (" + SystemTables.METADATA.tableName() + "): Table.READ"));
     ts.exec("grant -u xyzzy -s System.CREATE_TABLE", true);
     perms = ts.exec("userpermissions -u xyzzy", true);
     assertTrue(perms.contains(""));
     ts.exec(
-        "grant -u " + getPrincipal() + " -t " + AccumuloTable.METADATA.tableName() + " Table.WRITE",
+        "grant -u " + getPrincipal() + " -t " + SystemTables.METADATA.tableName() + " Table.WRITE",
         true);
     ts.exec(
-        "grant -u " + getPrincipal() + " -t " + AccumuloTable.METADATA.tableName() + " Table.GOOFY",
+        "grant -u " + getPrincipal() + " -t " + SystemTables.METADATA.tableName() + " Table.GOOFY",
         false);
     ts.exec("grant -u " + getPrincipal() + " -s foo", false);
-    ts.exec("grant -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " foo", false);
+    ts.exec("grant -u xyzzy -t " + SystemTables.METADATA.tableName() + " foo", false);
     if (!kerberosEnabled) {
       ts.input.set("secret\nsecret\n");
       ts.exec("user xyzzy", true);
@@ -352,9 +353,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("revoke -u xyzzy -s System.CREATE_TABLE", true);
     ts.exec("revoke -u xyzzy -s System.GOOFY", false);
     ts.exec("revoke -u xyzzy -s foo", false);
-    ts.exec("revoke -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " Table.WRITE", true);
-    ts.exec("revoke -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " Table.GOOFY", false);
-    ts.exec("revoke -u xyzzy -t " + AccumuloTable.METADATA.tableName() + " foo", false);
+    ts.exec("revoke -u xyzzy -t " + SystemTables.METADATA.tableName() + " Table.WRITE", true);
+    ts.exec("revoke -u xyzzy -t " + SystemTables.METADATA.tableName() + " Table.GOOFY", false);
+    ts.exec("revoke -u xyzzy -t " + SystemTables.METADATA.tableName() + " foo", false);
     ts.exec("deleteuser xyzzy", true, "deleteuser { xyzzy } (yes|no)?", true);
     ts.exec("deleteuser -f xyzzy", true);
     ts.exec("users", true, "xyzzy", false);
@@ -1015,7 +1016,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     final String table = getUniqueNames(1)[0];
 
     // constraint
-    ts.exec("constraint -l -t " + AccumuloTable.METADATA.tableName(), true, "MetadataConstraints=1",
+    ts.exec("constraint -l -t " + SystemTables.METADATA.tableName(), true, "MetadataConstraints=1",
         true);
     ts.exec("createtable " + table + " -evc");
 
@@ -1249,8 +1250,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
     assertTrue(result.contains("Sets the tablet availability"));
     ts.exec("setavailability -t " + table + " -b a -e a -a unhosted");
     ts.exec("setavailability -t " + table + " -b c -e e -ee -a Hosted");
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build(); Scanner s =
-        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        Scanner s = client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       String tableId = getTableId(table);
       s.setRange(new Range(tableId, tableId + "<"));
       s.fetchColumn(new Column(TabletColumnFamily.AVAILABILITY_COLUMN.getColumnFamily(),
@@ -1475,10 +1476,10 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix,
       final String nonce) throws IOException {
-    File importDir = new File(rootPath, "import_" + postfix);
+    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + postfix).toFile();
     assertTrue(importDir.mkdir());
-    String even = new File(importDir, "even.rf").toString();
-    String odd = new File(importDir, "odd.rf").toString();
+    String even = importDir.toPath().resolve("even.rf").toFile().toString();
+    String odd = importDir.toPath().resolve("odd.rf").toFile().toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
@@ -1573,12 +1574,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("merge --all", true);
     ts.exec("getsplits", true, "z", false);
     ts.exec("deletetable -f " + table);
-    ts.exec("getsplits -t " + AccumuloTable.METADATA.tableName(), true);
+    ts.exec("getsplits -t " + SystemTables.METADATA.tableName(), true);
     assertEquals(2, ts.output.get().split("\n").length);
     ts.exec("getsplits -t accumulo.root", true);
     assertEquals(1, ts.output.get().split("\n").length);
-    ts.exec("merge --all -t " + AccumuloTable.METADATA.tableName());
-    ts.exec("getsplits -t " + AccumuloTable.METADATA.tableName(), true);
+    ts.exec("merge --all -t " + SystemTables.METADATA.tableName());
+    ts.exec("getsplits -t " + SystemTables.METADATA.tableName(), true);
     assertEquals(1, ts.output.get().split("\n").length);
   }
 
@@ -2078,7 +2079,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void importDirectoryCmdFmt() throws Exception {
     final String table = getUniqueNames(1)[0];
 
-    File importDir = new File(rootPath, "import_" + table);
+    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + table).toFile();
     assertTrue(importDir.mkdir());
 
     // expect fail - table does not exist.
@@ -2168,7 +2169,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private List<String> getFiles(String tableId) {
     ts.output.clear();
 
-    ts.exec("scan -t " + AccumuloTable.METADATA.tableName() + " -c file -b " + tableId + " -e "
+    ts.exec("scan -t " + SystemTables.METADATA.tableName() + " -c file -b " + tableId + " -e "
         + tableId + "~");
 
     log.debug("countFiles(): {}", ts.output.get());
@@ -2433,7 +2434,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
   private java.nio.file.Path createSplitsFile(final String splitsFile, final SortedSet<Text> splits)
       throws IOException {
     String fullSplitsFile = System.getProperty("user.dir") + "/target/" + splitsFile;
-    java.nio.file.Path path = Paths.get(fullSplitsFile);
+    java.nio.file.Path path = java.nio.file.Path.of(fullSplitsFile);
     try (BufferedWriter writer = Files.newBufferedWriter(path, UTF_8)) {
       for (Text text : splits) {
         writer.write(text.toString() + '\n');

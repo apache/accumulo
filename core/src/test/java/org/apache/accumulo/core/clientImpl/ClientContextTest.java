@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.io.File;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -53,10 +54,10 @@ public class ClientContextTest {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "provided keystoreUrl path isn't user provided")
   @BeforeAll
-  public static void setUpBeforeAll() {
+  public static void setUpBeforeAll() throws Exception {
     URL keystoreUrl = ClientContextTest.class.getResource(keystoreName);
     assertNotNull(keystoreUrl, "Could not find " + keystoreName);
-    keystore = new File(keystoreUrl.getFile());
+    keystore = Path.of(keystoreUrl.toURI()).toFile();
   }
 
   protected String getKeyStoreUrl(File absoluteFilePath) {

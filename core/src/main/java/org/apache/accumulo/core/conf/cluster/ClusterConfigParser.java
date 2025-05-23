@@ -23,7 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
@@ -80,7 +80,7 @@ public class ClusterConfigParser {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
   public static Map<String,String> parseConfiguration(String configFile) throws IOException {
     Map<String,String> results = new HashMap<>();
-    try (InputStream fis = Files.newInputStream(Paths.get(configFile), StandardOpenOption.READ)) {
+    try (InputStream fis = Files.newInputStream(Path.of(configFile), StandardOpenOption.READ)) {
       Yaml y = new Yaml();
       Map<String,Object> config = y.load(fis);
       config.forEach((k, v) -> flatten("", k, v, results));
@@ -226,7 +226,7 @@ public class ClusterConfigParser {
     try {
       if (args.length == 2) {
         // Write to a file instead of System.out if provided as an argument
-        try (OutputStream os = Files.newOutputStream(Paths.get(args[1]), StandardOpenOption.CREATE);
+        try (OutputStream os = Files.newOutputStream(Path.of(args[1]));
             PrintStream out = new PrintStream(os)) {
           outputShellVariables(parseConfiguration(args[0]), new PrintStream(out));
         }

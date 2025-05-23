@@ -22,11 +22,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NavigableMap;
 import java.util.Objects;
-import java.util.Set;
-import java.util.SortedSet;
+import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -68,8 +69,8 @@ public class UpdateTablets extends ManagerRepo {
 
     if (tabletMetadata == null) {
       // check to see if this operation has already succeeded.
-      TabletMetadata newTabletMetadata =
-          manager.getContext().getAmple().readTablet(splitInfo.getTablets().last());
+      TabletMetadata newTabletMetadata = manager.getContext().getAmple()
+          .readTablet(splitInfo.getTablets().navigableKeySet().last());
 
       if (newTabletMetadata != null && opid.equals(newTabletMetadata.getOperationId())) {
         // have already created the new tablet and failed before we could return the next step, so
@@ -123,12 +124,12 @@ public class UpdateTablets extends ManagerRepo {
    * split.
    */
   static Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> getNewTabletFiles(
-      Set<KeyExtent> newTablets, TabletMetadata tabletMetadata,
+      SortedMap<KeyExtent,TabletMergeability> newTablets, TabletMetadata tabletMetadata,
       Function<StoredTabletFile,Splitter.FileInfo> fileInfoProvider) {
 
     Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> tabletsFiles = new TreeMap<>();
 
-    newTablets.forEach(extent -> tabletsFiles.put(extent, new HashMap<>()));
+    newTablets.keySet().forEach(extent -> tabletsFiles.put(extent, new HashMap<>()));
 
     // determine which files overlap which tablets and their estimated sizes
     tabletMetadata.getFilesMap().forEach((file, dataFileValue) -> {
@@ -157,7 +158,7 @@ public class UpdateTablets extends ManagerRepo {
       }
 
       // count how many of the new tablets the file will overlap
-      double numOverlapping = newTablets.stream().map(KeyExtent::toDataRange)
+      double numOverlapping = newTablets.keySet().stream().map(KeyExtent::toDataRange)
           .filter(range -> range.clip(fileRange, true) != null).count();
 
       Preconditions.checkState(numOverlapping > 0);
@@ -167,7 +168,7 @@ public class UpdateTablets extends ManagerRepo {
       double entriesPerTablet = dataFileValue.getNumEntries() / numOverlapping;
 
       // add the file to the tablets it overlaps
-      newTablets.forEach(newTablet -> {
+      newTablets.keySet().forEach(newTablet -> {
         if (newTablet.toDataRange().clip(fileRange, true) != null) {
           DataFileValue ndfv = new DataFileValue((long) sizePerTablet, (long) entriesPerTablet,
               dataFileValue.getTime());
@@ -194,13 +195,16 @@ public class UpdateTablets extends ManagerRepo {
   }
 
   private void addNewTablets(FateId fateId, Manager manager, TabletMetadata tabletMetadata,
-      TabletOperationId opid, SortedSet<KeyExtent> newTablets,
+      TabletOperationId opid, NavigableMap<KeyExtent,TabletMergeability> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
     Iterator<String> dirNameIter = dirNames.iterator();
 
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-      for (var newExtent : newTablets) {
-        if (newExtent.equals(newTablets.last())) {
+      for (var entry : newTablets.entrySet()) {
+        var newExtent = entry.getKey();
+        var mergeability = entry.getValue();
+
+        if (newExtent.equals(newTablets.navigableKeySet().last())) {
           // Skip the last tablet, its done after successfully adding all new tablets
           continue;
         }
@@ -219,9 +223,12 @@ public class UpdateTablets extends ManagerRepo {
             .debug("{} copying compacted marker to new child tablet {}", fateId, compactedFateId));
 
         mutator.putTabletAvailability(tabletMetadata.getTabletAvailability());
+
+        // Null is only expected for the last tablet which is skipped
+        Preconditions.checkState(mergeability != null,
+            "Null TabletMergeability for extent %s is unexpected", newExtent);
         mutator.putTabletMergeability(
-            splitInfo.isSystemCreated() ? TabletMergeabilityMetadata.always(manager.getSteadyTime())
-                : TabletMergeabilityMetadata.never());
+            TabletMergeabilityMetadata.toMetadata(mergeability, manager.getSteadyTime()));
         tabletMetadata.getLoaded().forEach((k, v) -> mutator.putBulkFile(k.getTabletFile(), v));
 
         newTabletsFiles.get(newExtent).forEach(mutator::putFile);
@@ -240,10 +247,10 @@ public class UpdateTablets extends ManagerRepo {
   }
 
   private void updateExistingTablet(FateId fateId, Manager manager, TabletMetadata tabletMetadata,
-      TabletOperationId opid, SortedSet<KeyExtent> newTablets,
+      TabletOperationId opid, NavigableMap<KeyExtent,TabletMergeability> newTablets,
       Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> newTabletsFiles) {
     try (var tabletsMutator = manager.getContext().getAmple().conditionallyMutateTablets()) {
-      var newExtent = newTablets.last();
+      var newExtent = newTablets.navigableKeySet().last();
 
       var mutator = tabletsMutator.mutateTablet(splitInfo.getOriginal()).requireOperation(opid)
           .requireAbsentLocation().requireAbsentLogs();
@@ -305,6 +312,14 @@ public class UpdateTablets extends ManagerRepo {
       if (tabletMetadata.getUnSplittable() != null) {
         mutator.deleteUnSplittable();
         log.debug("{} deleting unsplittable metadata from {} because of split", fateId, newExtent);
+      }
+
+      var migration = tabletMetadata.getMigration();
+      if (migration != null) {
+        // This is no longer the same tablet, so delete the migration
+        mutator.deleteMigration();
+        log.debug("{} deleting migration {} metadata from {} because of split", fateId, migration,
+            newExtent);
       }
 
       // if the tablet no longer exists (because changed prev end row, then the update was

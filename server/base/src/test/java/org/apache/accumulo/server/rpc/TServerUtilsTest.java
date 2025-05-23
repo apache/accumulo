@@ -35,7 +35,6 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.UnknownHostException;
 import java.util.Map;
-import java.util.Properties;
 
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Iface;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService.Processor;
@@ -70,7 +69,6 @@ public class TServerUtilsTest {
     expect(context.getZooSession()).andReturn(zk).anyTimes();
     expect(zk.asReader()).andReturn(null).anyTimes();
     expect(zk.asReaderWriter()).andReturn(null).anyTimes();
-    expect(context.getProperties()).andReturn(new Properties()).anyTimes();
     expect(context.getZooKeepers()).andReturn("").anyTimes();
     expect(context.getInstanceName()).andReturn("instance").anyTimes();
     expect(context.getZooKeepersSessionTimeOut()).andReturn(1).anyTimes();
@@ -303,9 +301,10 @@ public class TServerUtilsTest {
     // misconfiguration)
     String hostname = "localhost";
 
-    return TServerUtils.startServer(context, hostname, Property.TSERV_CLIENTPORT, processor,
-        "TServerUtilsTest", "TServerUtilsTestThread", Property.TSERV_PORTSEARCH,
-        Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-
+    ServerAddress sa = TServerUtils.createThriftServer(context, hostname, Property.TSERV_CLIENTPORT,
+        processor, "TServerUtilsTest", Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+        Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sa.startThriftServer("TServerUtilsTestThread");
+    return sa;
   }
 }

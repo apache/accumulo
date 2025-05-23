@@ -20,7 +20,6 @@ package org.apache.accumulo.tserver;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.spi.cache.BlockCacheManager;
 import org.apache.accumulo.core.spi.scan.ScanServerInfo;
@@ -57,8 +56,6 @@ public interface TabletHostingServer {
   TableConfiguration getTableConfiguration(KeyExtent threadPoolExtent);
 
   ServiceLock getLock();
-
-  ZooCache getManagerLockCache();
 
   BlockCacheManager.Configuration getBlockCacheConfiguration(AccumuloConfiguration acuConf);
 }

@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -40,10 +41,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
@@ -135,7 +136,7 @@ public class MetadataConstraintsTest {
 
     assertTrue(violations.isEmpty());
 
-    m = new Mutation(new Text(AccumuloTable.METADATA.tableId().canonical() + "<"));
+    m = new Mutation(new Text(SystemTables.METADATA.tableId().canonical() + "<"));
     TabletColumnFamily.PREV_ROW_COLUMN.put(m, new Value("bar"));
 
     violations = mc.check(createEnv(), m);
@@ -634,7 +635,8 @@ public class MetadataConstraintsTest {
     assertTrue(violations.isEmpty());
 
     m = new Mutation(new Text("0;foo"));
-    ServerColumnFamily.DIRECTORY_COLUMN.put(m, new Value("/invalid"));
+    m.put(ServerColumnFamily.DIRECTORY_COLUMN.getColumnFamily(),
+        ServerColumnFamily.DIRECTORY_COLUMN.getColumnQualifier(), new Value("/invalid"));
     violations = mc.check(createEnv(), m);
     assertFalse(violations.isEmpty());
     assertEquals(1, violations.size());
@@ -663,7 +665,7 @@ public class MetadataConstraintsTest {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":1,\"never\"=true}"));
     assertViolation(mc, m, (short) 4006);
 
-    // SteadyTime must be set if delay positive
+    // SteadyTime must be set if delay is set
     m = new Mutation(new Text("0;foo"));
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m, new Value("{\"delay\":10,\"never\"=false}"));
     assertViolation(mc, m, (short) 4006);
@@ -684,6 +686,22 @@ public class MetadataConstraintsTest {
     TabletColumnFamily.MERGEABILITY_COLUMN.put(m,
         TabletMergeabilityMetadata.toValue(TabletMergeabilityMetadata.after(Duration.ofDays(3),
             SteadyTime.from(Duration.ofHours(1)))));
+    violations = mc.check(createEnv(), m);
+    assertTrue(violations.isEmpty());
+  }
+
+  @Test
+  public void testAvailabilityColumn() {
+    MetadataConstraints mc = new MetadataConstraints();
+    Mutation m;
+    List<Short> violations;
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value("INVALID"));
+    assertViolation(mc, m, (short) 4005);
+
+    m = new Mutation(new Text("0;foo"));
+    TabletColumnFamily.AVAILABILITY_COLUMN.put(m, new Value(TabletAvailability.UNHOSTED.name()));
     violations = mc.check(createEnv(), m);
     assertTrue(violations.isEmpty());
   }

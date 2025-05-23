@@ -24,6 +24,7 @@ import static java.util.Objects.requireNonNull;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Properties;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
@@ -37,8 +38,6 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
@@ -57,7 +56,8 @@ public class ServerInfo implements ClientInfo {
   static ServerInfo fromServerConfig(SiteConfiguration siteConfig) {
     final Function<ServerInfo,String> instanceNameFromZk = si -> {
       try (var zk =
-          si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceId()").get()) {
+          si.getZooKeeperSupplier(ServerInfo.class.getSimpleName() + ".getInstanceName()", "")
+              .get()) {
         return ZooUtil.getInstanceName(zk, si.getInstanceId());
       }
     };
@@ -109,7 +109,7 @@ public class ServerInfo implements ClientInfo {
   private final Supplier<InstanceId> instanceId;
   private final Supplier<String> instanceName;
   private final Supplier<Credentials> credentials;
-  private final Function<String,ZooSession> zooSessionForName;
+  private final BiFunction<String,String,ZooSession> zooSessionForName;
 
   // set up everything to be lazily loaded with memoized suppliers, so if nothing is used, the cost
   // is low; to support different scenarios, plug in the functionality to retrieve certain items
@@ -120,7 +120,6 @@ public class ServerInfo implements ClientInfo {
   private ServerInfo(SiteConfiguration siteConfig, Function<ServerInfo,String> zkHostsFunction,
       ToIntFunction<ServerInfo> zkTimeoutFunction, Function<ServerInfo,String> instanceNameFunction,
       Function<ServerInfo,InstanceId> instanceIdFunction) {
-    SingletonManager.setMode(Mode.SERVER);
     this.siteConfig = requireNonNull(siteConfig);
     requireNonNull(zkHostsFunction);
     requireNonNull(zkTimeoutFunction);
@@ -139,7 +138,7 @@ public class ServerInfo implements ClientInfo {
     this.credentials =
         memoize(() -> SystemCredentials.get(getInstanceId(), getSiteConfiguration()));
 
-    this.zooSessionForName = name -> new ZooSession(name, getZooKeepers(),
+    this.zooSessionForName = (name, rootPath) -> new ZooSession(name, getZooKeepers() + rootPath,
         getZooKeepersSessionTimeOut(), getSiteConfiguration().get(Property.INSTANCE_SECRET));
 
     // from here on, set up the suppliers based on what was passed in, to support different cases
@@ -163,8 +162,8 @@ public class ServerInfo implements ClientInfo {
   }
 
   @Override
-  public Supplier<ZooSession> getZooKeeperSupplier(String clientName) {
-    return () -> zooSessionForName.apply(clientName);
+  public Supplier<ZooSession> getZooKeeperSupplier(String clientName, String rootPath) {
+    return () -> zooSessionForName.apply(requireNonNull(clientName), requireNonNull(rootPath));
   }
 
   @Override
@@ -193,7 +192,7 @@ public class ServerInfo implements ClientInfo {
   }
 
   @Override
-  public Properties getProperties() {
+  public Properties getClientProperties() {
     Properties properties = ClientConfConverter.toProperties(getSiteConfiguration());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS.getKey(), getZooKeepers());
     properties.setProperty(ClientProperty.INSTANCE_ZOOKEEPERS_TIMEOUT.getKey(),

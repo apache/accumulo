@@ -40,22 +40,38 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.harness.AccumuloITBase;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.checkCommand.CheckRunner;
-import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.easymock.EasyMock;
 import org.easymock.IAnswer;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import com.beust.jcommander.JCommander;
 import com.google.common.collect.Sets;
 
-public class AdminCheckIT extends ConfigurableMacBase {
+@Tag(AccumuloITBase.SIMPLE_MINI_CLUSTER_SUITE)
+public class AdminCheckIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
   private static final PrintStream ORIGINAL_OUT = System.out;
 
   @AfterEach
@@ -308,7 +324,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     String table = getUniqueNames(1)[0];
     Admin.CheckCommand.Check tableLocksCheck = Admin.CheckCommand.Check.TABLE_LOCKS;
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.tableOperations().create(table);
 
       ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
@@ -400,7 +416,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
     // Tests the USER_FILES check in the case where it should pass
     Admin.CheckCommand.Check userFilesCheck = Admin.CheckCommand.Check.USER_FILES;
 
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       // create a table, insert some data, and flush so there's a file to check
       String table = getUniqueNames(1)[0];
       client.tableOperations().create(table);
@@ -447,7 +463,7 @@ public class AdminCheckIT extends ConfigurableMacBase {
       Admin.CheckCommand dummyCheckCommand = new DummyCheckCommand(checksPass);
       cl.addCommand("check", dummyCheckCommand);
       cl.parse(args);
-      Admin.executeCheckCommand(getServerContext(), dummyCheckCommand, opts);
+      Admin.executeCheckCommand(getCluster().getServerContext(), dummyCheckCommand, opts);
       return null;
     });
     EasyMock.replay(admin);

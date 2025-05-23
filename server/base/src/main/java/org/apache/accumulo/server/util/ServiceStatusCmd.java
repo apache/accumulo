@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -38,8 +39,6 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.beust.jcommander.Parameter;
-import com.beust.jcommander.Parameters;
 import com.google.common.annotations.VisibleForTesting;
 
 public class ServiceStatusCmd {
@@ -55,10 +54,10 @@ public class ServiceStatusCmd {
    * Read the service statuses from ZooKeeper, build the status report and then output the report to
    * stdout.
    */
-  public void execute(final ServerContext context, final Opts opts) {
+  public void execute(final ServerContext context, final boolean json, final boolean noHosts) {
 
     if (LOG.isTraceEnabled()) {
-      LOG.trace("zooRoot: {}", context.getZooKeeperRoot());
+      LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
     }
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
@@ -70,9 +69,9 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
     services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
 
-    ServiceStatusReport report = new ServiceStatusReport(services, opts.noHosts);
+    ServiceStatusReport report = new ServiceStatusReport(services, noHosts);
 
-    if (opts.json) {
+    if (json) {
       System.out.println(report.toJson());
     } else {
       StringBuilder sb = new StringBuilder(8192);
@@ -235,20 +234,10 @@ public class ServiceStatusCmd {
     return new Result<>(errorCount.get(), data);
   }
 
-  @Parameters(commandDescription = "show service status")
-  public static class Opts {
-    @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
-    boolean json = false;
-    @Parameter(names = "--noHosts",
-        description = "provide a summary of service counts without host details")
-    boolean noHosts = false;
-  }
-
   /**
    * Provides explicit method names instead of generic getFirst to get the error count and getSecond
    * hosts information
    *
-   * @param <A> errorCount
    * @param <B> hosts
    */
   private static class Result<B> extends Pair<Integer,B> {

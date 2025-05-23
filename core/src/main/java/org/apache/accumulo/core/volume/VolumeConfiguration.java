@@ -19,14 +19,10 @@
 package org.apache.accumulo.core.volume;
 
 import java.io.IOException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.LinkedHashSet;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
@@ -39,34 +35,12 @@ public class VolumeConfiguration {
   }
 
   public static Set<String> getVolumeUris(AccumuloConfiguration conf) {
-    String volumes = conf.get(Property.INSTANCE_VOLUMES);
+    var volumes = conf.get(Property.INSTANCE_VOLUMES);
     if (volumes == null || volumes.isBlank()) {
       throw new IllegalArgumentException(
           "Missing required property " + Property.INSTANCE_VOLUMES.getKey());
     }
-    String[] volArray = volumes.split(",");
-    LinkedHashSet<String> deduplicated =
-        Arrays.stream(volArray).map(VolumeConfiguration::normalizeVolume)
-            .collect(Collectors.toCollection(LinkedHashSet::new));
-    if (deduplicated.size() < volArray.length) {
-      throw new IllegalArgumentException(
-          Property.INSTANCE_VOLUMES.getKey() + " contains duplicate volumes (" + volumes + ")");
-    }
-    return deduplicated;
-  }
-
-  private static String normalizeVolume(String volume) {
-    if (volume == null || volume.isBlank() || !volume.contains(":")) {
-      throw new IllegalArgumentException("Expected fully qualified URI for "
-          + Property.INSTANCE_VOLUMES.getKey() + " got " + volume);
-    }
-    try {
-      // pass through URI to unescape hex encoded chars (e.g. convert %2C to "," char)
-      return new Path(new URI(volume.strip())).toString();
-    } catch (URISyntaxException e) {
-      throw new IllegalArgumentException(Property.INSTANCE_VOLUMES.getKey() + " contains '" + volume
-          + "' which has a syntax error", e);
-    }
+    return ConfigurationTypeHelper.getVolumeUris(volumes);
   }
 
 }

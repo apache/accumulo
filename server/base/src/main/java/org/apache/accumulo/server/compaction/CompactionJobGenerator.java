@@ -25,7 +25,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -36,6 +35,8 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.logging.ConditionalLogger;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -254,6 +255,11 @@ public class CompactionJobGenerator {
       }
 
       @Override
+      public TabletId getTabletId() {
+        return new TabletIdImpl(tablet.getExtent());
+      }
+
+      @Override
       public ServiceEnvironment getServiceEnvironment() {
         return (ServiceEnvironment) env;
       }
@@ -285,7 +291,7 @@ public class CompactionJobGenerator {
           Collection<CompactableFile> files = ecMeta.getJobFiles().stream()
               .map(f -> new CompactableFileImpl(f, allFiles2.get(f))).collect(Collectors.toList());
           CompactionJob job = new CompactionJobImpl(ecMeta.getPriority(),
-              ecMeta.getCompactionGroupId(), files, ecMeta.getKind(), Optional.empty());
+              ecMeta.getCompactionGroupId(), files, ecMeta.getKind());
           return job;
         }).collect(Collectors.toUnmodifiableList());
       }
@@ -297,7 +303,7 @@ public class CompactionJobGenerator {
 
       @Override
       public CompactionPlan.Builder createPlanBuilder() {
-        return new CompactionPlanImpl.BuilderImpl(kind, allFiles, candidates);
+        return new CompactionPlanImpl.BuilderImpl(kind, candidates);
       }
     };
     return planCompactions(planner, params, serviceId);

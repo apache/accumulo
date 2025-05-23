@@ -18,13 +18,11 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Objects.requireNonNull;
-
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -73,7 +71,6 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
@@ -81,20 +78,19 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
-import org.apache.accumulo.core.util.tables.TableMap;
+import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
@@ -109,6 +105,7 @@ import org.apache.accumulo.server.util.checkCommand.TableLocksCheckRunner;
 import org.apache.accumulo.server.util.checkCommand.UserFilesCheckRunner;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.start.spi.KeywordExecutable;
+import org.apache.thrift.TException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -130,27 +127,36 @@ public class Admin implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(Admin.class);
   private final CountDownLatch lockAcquiredLatch = new CountDownLatch(1);
 
-  static class AdminOpts extends ServerUtilOpts {
-    @Parameter(names = {"-f", "--force"},
-        description = "force the given server to stop by removing its lock")
-    boolean force = false;
+  private static class SubCommandOpts {
+    @Parameter(names = {"-h", "-?", "--help", "-help"}, help = true)
+    public boolean help = false;
+  }
+
+  @Parameters(
+      commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
+  static class GracefulShutdownCommand extends SubCommandOpts {
+    @Parameter(required = true, names = {"-a", "--address"}, description = "<host:port>")
+    String address = null;
   }
 
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
-  static class StopCommand {
+  static class StopCommand extends SubCommandOpts {
+    @Parameter(names = {"-f", "--force"},
+        description = "force the given server to stop by removing its lock")
+    boolean force = false;
     @Parameter(description = "<host> {<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandDescription = "Ping tablet servers.  If no arguments, pings all.")
-  static class PingCommand {
+  static class PingCommand extends SubCommandOpts {
     @Parameter(description = "{<host> ... }")
     List<String> args = new ArrayList<>();
   }
 
   @Parameters(commandNames = "check",
       commandDescription = "Performs checks for problems in Accumulo.")
-  public static class CheckCommand {
+  public static class CheckCommand extends SubCommandOpts {
     @Parameter(names = "list",
         description = "Lists the different checks that can be run, the description of each check, and the other check(s) each check depends on.")
     boolean list;
@@ -243,13 +249,13 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "stop the manager")
-  static class StopManagerCommand {}
+  static class StopManagerCommand extends SubCommandOpts {}
 
   @Parameters(commandDescription = "stop all tablet servers and the manager")
-  static class StopAllCommand {}
+  static class StopAllCommand extends SubCommandOpts {}
 
   @Parameters(commandDescription = "list Accumulo instances in zookeeper")
-  static class ListInstancesCommand {
+  static class ListInstancesCommand extends SubCommandOpts {
     @Parameter(names = "--print-errors", description = "display errors while listing instances")
     boolean printErrors = false;
     @Parameter(names = "--print-all",
@@ -258,13 +264,13 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Accumulo volume utility")
-  static class VolumesCommand {
+  static class VolumesCommand extends SubCommandOpts {
     @Parameter(names = {"-l", "--list"}, description = "list volumes currently in use")
     boolean printErrors = false;
   }
 
   @Parameters(commandDescription = "print out non-default configuration settings")
-  static class DumpConfigCommand {
+  static class DumpConfigCommand extends SubCommandOpts {
     @Parameter(names = {"-a", "--all"},
         description = "print the system and all table configurations")
     boolean allConfiguration = false;
@@ -282,7 +288,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Verify all Tablets are assigned to tablet servers")
-  static class VerifyTabletAssignmentsCommand {
+  static class VerifyTabletAssignmentsCommand extends SubCommandOpts {
     @Parameter(names = {"-v", "--verbose"},
         description = "verbose mode (prints locations of tablets)")
     boolean verbose = false;
@@ -297,14 +303,14 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(
       commandDescription = "List or delete Tablet Server locks. Default with no arguments is to list the locks.")
-  static class TabletServerLocksCommand {
+  static class TabletServerLocksCommand extends SubCommandOpts {
     @Parameter(names = "-delete", description = "specify a tablet server lock to delete")
     String delete = null;
   }
 
   @Parameters(
       commandDescription = "Deletes specific instance name or id from zookeeper or cleans up all old instances.")
-  static class DeleteZooInstanceCommand {
+  static class DeleteZooInstanceCommand extends SubCommandOpts {
     @Parameter(names = {"-i", "--instance"}, description = "the instance name or id to delete")
     String instance;
     @Parameter(names = {"-c", "--clean"},
@@ -317,7 +323,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(commandDescription = "Restore Zookeeper data from a file.")
-  static class RestoreZooCommand {
+  static class RestoreZooCommand extends SubCommandOpts {
     @Parameter(names = "--overwrite")
     boolean overwrite = false;
 
@@ -327,7 +333,7 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandNames = "fate",
       commandDescription = "Operations performed on the Manager FaTE system.")
-  static class FateOpsCommand {
+  static class FateOpsCommand extends SubCommandOpts {
     @Parameter(description = "[<FateId>...]")
     List<String> fateIdList = new ArrayList<>();
 
@@ -394,6 +400,15 @@ public class Admin implements KeywordExecutable {
     }
   }
 
+  @Parameters(commandDescription = "show service status")
+  public static class ServiceStatusCmdOpts extends SubCommandOpts {
+    @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
+    boolean json = false;
+    @Parameter(names = "--noHosts",
+        description = "provide a summary of service counts without host details")
+    boolean noHosts = false;
+  }
+
   public static void main(String[] args) {
     new Admin().execute(args);
   }
@@ -416,14 +431,15 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "DM_EXIT", justification = "System.exit okay for CLI tool")
   @Override
   public void execute(final String[] args) {
-    boolean everything;
 
-    AdminOpts opts = new AdminOpts();
+    ServerUtilOpts opts = new ServerUtilOpts();
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
 
+
     ServiceStatusCmd.Opts serviceStatusCommandOpts = new ServiceStatusCmd.Opts();
     cl.addCommand("service-status", serviceStatusCommandOpts);
+
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
     cl.addCommand("change-secret", changeSecretCommand);
@@ -439,6 +455,9 @@ public class Admin implements KeywordExecutable {
 
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
+
+    GracefulShutdownCommand gracefulShutdownCommand = new GracefulShutdownCommand();
+    cl.addCommand("signalShutdown", gracefulShutdownCommand);
 
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand("list-instances", listInstancesOpts);
@@ -470,9 +489,19 @@ public class Admin implements KeywordExecutable {
 
     cl.parse(args);
 
-    if (opts.help || cl.getParsedCommand() == null) {
+    if (cl.getParsedCommand() == null) {
       cl.usage();
       return;
+    }
+
+    for (var command : cl.getCommands().entrySet()) {
+      var objects = command.getValue().getObjects();
+      for (var obj : objects) {
+        if (obj instanceof SubCommandOpts && ((SubCommandOpts) obj).help) {
+          command.getValue().usage();
+          return;
+        }
+      }
     }
 
     try (ServerContext context = opts.getServerContext()) {
@@ -493,8 +522,11 @@ public class Admin implements KeywordExecutable {
           rc = 4;
         }
       } else if (cl.getParsedCommand().equals("stop")) {
+
         stopTabletServer(context, stopOpts.args, opts.force);
       } else if (cl.getParsedCommand().equals("dump-config")) {
+
+   
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
@@ -512,6 +544,7 @@ public class Admin implements KeywordExecutable {
             tServerLocksOpts.delete);
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
+
       } else if (cl.getParsedCommand().equals("service-status")) {
         printServiceStatus(context, serviceStatusCommandOpts);
       } else if (cl.getParsedCommand().equals("check")) {
@@ -524,6 +557,8 @@ public class Admin implements KeywordExecutable {
         }
 
         stopServer(context, everything);
+      } else {
+        cl.usage();
       }
 
       if (rc != 0) {
@@ -538,14 +573,7 @@ public class Admin implements KeywordExecutable {
     } catch (Exception e) {
       log.error("{}", e.getMessage(), e);
       System.exit(3);
-    } finally {
-      SingletonManager.setMode(Mode.CLOSED);
     }
-  }
-
-  private static void printServiceStatus(ServerContext context, ServiceStatusCmd.Opts opts) {
-    ServiceStatusCmd ssc = new ServiceStatusCmd();
-    ssc.execute(context, opts);
   }
 
   private static int ping(ClientContext context, List<String> args) {
@@ -582,9 +610,9 @@ public class Admin implements KeywordExecutable {
 
     Runnable flushTask = () -> {
       try {
-        Set<String> tables = context.tableOperations().tableIdMap().keySet();
+        Set<String> tables = context.tableOperations().list();
         for (String table : tables) {
-          if (table.equals(AccumuloTable.METADATA.tableName())) {
+          if (table.equals(SystemTables.METADATA.tableName())) {
             continue;
           }
           try {
@@ -642,6 +670,25 @@ public class Admin implements KeywordExecutable {
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
+  // Visible for tests
+  public static void signalGracefulShutdown(final ClientContext context, String address) {
+
+    Objects.requireNonNull(address, "address not set");
+    final HostAndPort hp = HostAndPort.fromString(address);
+    ServerProcessService.Client client = null;
+    try {
+      client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
+          hp.getHost(), hp.getPort());
+      client.gracefulShutdown(context.rpcCreds());
+    } catch (TException e) {
+      throw new RuntimeException("Error invoking graceful shutdown for server: " + hp, e);
+    } finally {
+      if (client != null) {
+        ThriftUtil.returnClient(client, context);
+      }
+    }
+  }
+
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
     if (context.instanceOperations().getServers(ServerId.Type.MANAGER).isEmpty()) {
@@ -670,17 +717,6 @@ public class Admin implements KeywordExecutable {
             .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }
     }
-  }
-
-  /**
-   * Get the parent ZNode for tservers for the given instance
-   *
-   * @param context ClientContext
-   * @return The tservers znode for the instance
-   */
-  static String getTServersZkPath(ClientContext context) {
-    requireNonNull(context);
-    return context.getZooKeeperRoot() + Constants.ZTSERVERS;
   }
 
   /**
@@ -782,7 +818,7 @@ public class Admin implements KeywordExecutable {
   private static File getOutputDirectory(final String directory) {
     File outputDirectory = null;
     if (directory != null) {
-      outputDirectory = new File(directory);
+      outputDirectory = Path.of(directory).toFile();
       if (!outputDirectory.isDirectory()) {
         throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
       }
@@ -816,8 +852,8 @@ public class Admin implements KeywordExecutable {
   private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
-    try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
+    Path namespaceScript = outputDirectory.toPath().resolve(namespace + NS_FILE_SUFFIX);
+    try (BufferedWriter nsWriter = Files.newBufferedWriter(namespaceScript)) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
       Map<String,String> props = ImmutableSortedMap
           .copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
@@ -838,8 +874,8 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
-    File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
-    try (BufferedWriter userWriter = new BufferedWriter(new FileWriter(userScript, UTF_8))) {
+    Path userScript = outputDirectory.toPath().resolve(user + USER_FILE_SUFFIX);
+    try (BufferedWriter userWriter = Files.newBufferedWriter(userScript)) {
       userWriter.write(createUserFormat.format(new String[] {user}));
       Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
       userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
@@ -881,8 +917,8 @@ public class Admin implements KeywordExecutable {
         conf.put(prop.getKey(), prop.getValue());
       }
     }
-    File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    try (BufferedWriter fw = new BufferedWriter(new FileWriter(siteBackup, UTF_8))) {
+    Path siteBackup = outputDirectory.toPath().resolve(ACCUMULO_SITE_BACKUP_FILE);
+    try (BufferedWriter fw = Files.newBufferedWriter(siteBackup)) {
       for (Entry<String,String> prop : conf.entrySet()) {
         fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
       }
@@ -892,10 +928,9 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
-      File outputDirectory)
-      throws AccumuloSecurityException, AccumuloException, TableNotFoundException, IOException {
-    File tableBackup = new File(outputDirectory, tableName + ".cfg");
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
+      File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
+    Path tableBackup = outputDirectory.toPath().resolve(tableName + ".cfg");
+    try (BufferedWriter writer = Files.newBufferedWriter(tableBackup)) {
       writer.write(createTableFormat.format(new String[] {tableName}));
       Map<String,String> props =
           ImmutableSortedMap.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));
@@ -916,14 +951,13 @@ public class Admin implements KeywordExecutable {
 
   // Fate Operations
   private void executeFateOpsCommand(ServerContext context, FateOpsCommand fateOpsCommand)
-      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
+      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException,
+      NamespaceNotFoundException {
 
     validateFateUserInput(fateOpsCommand);
 
-    AdminUtil<Admin> admin = new AdminUtil<>(true);
-    final String zkRoot = context.getZooKeeperRoot();
+    AdminUtil<Admin> admin = new AdminUtil<>();
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
-    String fateZkPath = zkRoot + Constants.ZFATE;
     var zk = context.getZooSession();
     ServiceLock adminLock = null;
     Map<FateInstanceType,FateStore<Admin>> fateStores;
@@ -934,7 +968,7 @@ public class Admin implements KeywordExecutable {
         cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
       } else if (fateOpsCommand.fail) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, fateZkPath, adminLock);
+        fateStores = createFateStores(context, zk, adminLock);
         for (String fateIdStr : fateOpsCommand.fateIdList) {
           if (!admin.prepFail(fateStores, fateIdStr)) {
             throw new AccumuloException("Could not fail transaction: " + fateIdStr);
@@ -942,7 +976,7 @@ public class Admin implements KeywordExecutable {
         }
       } else if (fateOpsCommand.delete) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, fateZkPath, adminLock);
+        fateStores = createFateStores(context, zk, adminLock);
         for (String fateIdStr : fateOpsCommand.fateIdList) {
           if (!admin.prepDelete(fateStores, fateIdStr)) {
             throw new AccumuloException("Could not delete transaction: " + fateIdStr);
@@ -958,7 +992,7 @@ public class Admin implements KeywordExecutable {
             getCmdLineStatusFilters(fateOpsCommand.states);
         EnumSet<FateInstanceType> typesFilter =
             getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
-        readOnlyFateStores = createReadOnlyFateStores(context, zk, fateZkPath);
+        readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
         admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
             fateIdFilter, statusFilter, typesFilter);
         // print line break at the end
@@ -967,7 +1001,7 @@ public class Admin implements KeywordExecutable {
 
       if (fateOpsCommand.summarize) {
         if (readOnlyFateStores == null) {
-          readOnlyFateStores = createReadOnlyFateStores(context, zk, fateZkPath);
+          readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
         }
         summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
       }
@@ -979,21 +1013,20 @@ public class Admin implements KeywordExecutable {
   }
 
   private Map<FateInstanceType,FateStore<Admin>> createFateStores(ServerContext context,
-      ZooSession zk, String fateZkPath, ServiceLock adminLock)
-      throws InterruptedException, KeeperException {
+      ZooSession zk, ServiceLock adminLock) throws InterruptedException, KeeperException {
     var lockId = adminLock.getLockID();
-    MetaFateStore<Admin> mfs = new MetaFateStore<>(fateZkPath, zk, lockId, null);
+    MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, lockId, null);
     UserFateStore<Admin> ufs =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), lockId, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), lockId, null);
     return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
   }
 
   private Map<FateInstanceType,ReadOnlyFateStore<Admin>>
       createReadOnlyFateStores(ServerContext context, ZooSession zk, String fateZkPath)
           throws InterruptedException, KeeperException {
-    MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(fateZkPath, zk, null, null);
+    MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
     UserFateStore<Admin> readOnlyUFS =
-        new UserFateStore<>(context, AccumuloTable.FATE.tableName(), null, null);
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
     return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
   }
 
@@ -1068,14 +1101,15 @@ public class Admin implements KeywordExecutable {
 
   private void summarizeFateTx(ServerContext context, FateOpsCommand cmd, AdminUtil<Admin> admin,
       Map<FateInstanceType,ReadOnlyFateStore<Admin>> fateStores, ServiceLockPath tableLocksPath)
-      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException {
+      throws InterruptedException, AccumuloException, AccumuloSecurityException, KeeperException,
+      NamespaceNotFoundException {
 
     var zk = context.getZooSession();
     var transactions = admin.getStatus(fateStores, zk, tableLocksPath, null, null, null);
 
     // build id map - relies on unique ids for tables and namespaces
     // used to look up the names of either table or namespace by id.
-    Map<TableId,String> tidToNameMap = new TableMap(context).getIdtoNameMap();
+    Map<TableId,String> tidToNameMap = context.createTableIdToQualifiedNameMap();
     Map<String,String> idsToNameMap = new HashMap<>(tidToNameMap.size() * 2);
     tidToNameMap.forEach((tid, name) -> idsToNameMap.put(tid.canonical(), "t:" + name));
     context.namespaceOperations().namespaceIdMap().forEach((name, nsid) -> {

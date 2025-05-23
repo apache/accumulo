@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -322,8 +323,9 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
 
     // Prepare to export the table
-    File exportDir = new File(getCluster().getConfig().getDir() + "/export");
-    File exportDirBulk = new File(getCluster().getConfig().getDir() + "/export_bulk");
+    Path confDirPath = getCluster().getConfig().getDir().toPath();
+    File exportDir = confDirPath.resolve("export").toFile();
+    File exportDirBulk = confDirPath.resolve("export_bulk").toFile();
     assertTrue(exportDirBulk.mkdir() || exportDirBulk.isDirectory());
 
     auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME, true);
@@ -331,7 +333,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
 
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path
     // to re-import it
-    File distCpTxt = new File(exportDir + "/distcp.txt");
+    File distCpTxt = exportDir.toPath().resolve("distcp.txt").toFile();
     File importFile = null;
 
     // Just grab the first rf file, it will do for now.
@@ -342,7 +344,7 @@ public class AuditMessageIT extends ConfigurableMacBase {
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
         if (pattern.matcher(line).matches()) {
-          importFile = new File(line.replaceFirst(filePrefix, ""));
+          importFile = Path.of(line.replaceFirst(filePrefix, "")).toFile();
         }
       }
     }
