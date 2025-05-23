@@ -121,20 +121,21 @@ public class ZooBasedConfigIT {
 
   @BeforeEach
   public void initPaths() throws Exception {
+    var zPath = Constants.ZNAMESPACES + "/" + nsId + Constants.ZTABLES;
     context = createMock(ServerContext.class);
     expect(context.getZooSession()).andReturn(zk);
-
-    zk.create(Constants.ZTABLES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
-
-    zk.create(Constants.ZTABLES + "/" + tidA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-        CreateMode.PERSISTENT);
-    zk.create(Constants.ZTABLES + "/" + tidB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
-        CreateMode.PERSISTENT);
 
     zk.create(Constants.ZNAMESPACES, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
         CreateMode.PERSISTENT);
     zk.create(Constants.ZNAMESPACES + "/" + nsId.canonical(), new byte[0],
         ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+    zk.create(zPath, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
+
+    zk.create(zPath + "/" + tidA.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
+    zk.create(zPath + "/" + tidB.canonical(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
+        CreateMode.PERSISTENT);
 
     ticker = new TestTicker();
 
@@ -212,9 +213,9 @@ public class ZooBasedConfigIT {
     assertThrows(IllegalStateException.class,
         () -> propStore.create(NamespacePropKey.of(nsId), Map.of()));
 
-    propStore.create(TablePropKey.of(tidA), Map.of());
+    propStore.create(TablePropKey.of(tidA, nsId), Map.of());
     assertThrows(IllegalStateException.class,
-        () -> propStore.create(TablePropKey.of(tidA), Map.of()));
+        () -> propStore.create(TablePropKey.of(tidA, nsId), Map.of()));
   }
 
   @Test
@@ -264,7 +265,7 @@ public class ZooBasedConfigIT {
     // advance well past unload period.
     ticker.advance(2, TimeUnit.HOURS);
 
-    var tableBPropKey = TablePropKey.of(tidB);
+    var tableBPropKey = TablePropKey.of(tidB, nsId);
     propStore.create(tableBPropKey, Map.of());
     Thread.sleep(150);
 

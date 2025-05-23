@@ -50,6 +50,7 @@ public class CompactionDriverTest {
 
   private static final InstanceId instance = InstanceId.of(UUID.randomUUID());
   private static final TableId tableId = TableId.of("testTable");
+  private static final NamespaceId namespaceId = NamespaceId.of("testNamespace");
 
   private static class CompactionTestDriver extends CompactionDriver {
     private static final long serialVersionUID = 1L;
@@ -64,7 +65,7 @@ public class CompactionDriverTest {
     }
 
     private CompactionTestDriver(boolean cancelled) {
-      super(NamespaceId.of("testNamespace"), tableId, new byte[0], new byte[0]);
+      super(namespaceId, tableId, new byte[0], new byte[0]);
       this.cancelled = cancelled;
     }
 
@@ -101,7 +102,7 @@ public class CompactionDriverTest {
 
   @Test
   public void testTableBeingDeleted() throws Exception {
-    String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId);
+    String deleteMarkerPath = PreDeleteTable.createDeleteMarkerPath(instance, tableId, namespaceId);
     expect(zk.exists(deleteMarkerPath, null)).andReturn(new Stat());
     runDriver(CompactionTestDriver.notCancelled(), TableOperationsImpl.TABLE_DELETED_MSG);
   }

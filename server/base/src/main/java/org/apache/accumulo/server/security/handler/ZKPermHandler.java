@@ -65,11 +65,11 @@ public class ZKPermHandler implements PermissionHandler {
   }
 
   @Override
-  public boolean hasTablePermission(String user, String table, TablePermission permission)
+  public boolean hasTablePermission(String user, String tableId, TablePermission permission)
       throws TableNotFoundException {
     byte[] serializedPerms;
     try {
-      String path = Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + table;
+      String path = Constants.ZUSERS + "/" + user + ZKUserTablePerms + "/" + tableId;
       zoo.sync(path);
       serializedPerms = zoo.getData(path);
     } catch (KeeperException e) {
@@ -77,7 +77,8 @@ public class ZKPermHandler implements PermissionHandler {
         // maybe the table was just deleted?
         try {
           // check for existence:
-          zoo.getData(Constants.ZTABLES + "/" + table);
+          zoo.getData(Constants.ZNAMESPACES + "/" + ctx.getNamespaceId(TableId.of(tableId))
+              + Constants.ZTABLES + "/" + tableId);
           // it's there, you don't have permission
           return false;
         } catch (InterruptedException ex) {
@@ -86,7 +87,7 @@ public class ZKPermHandler implements PermissionHandler {
         } catch (KeeperException ex) {
           // not there, throw an informative exception
           if (e.code() == Code.NONODE) {
-            throw new TableNotFoundException(null, table, "while checking permissions");
+            throw new TableNotFoundException(null, tableId, "while checking permissions");
           }
           log.warn("Unhandled InterruptedException, failing closed for table permission check", e);
         }
