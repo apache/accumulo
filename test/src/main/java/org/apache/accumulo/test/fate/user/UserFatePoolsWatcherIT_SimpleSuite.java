@@ -25,19 +25,34 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.test.fate.FateExecutionOrderIT_SimpleSuite;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 
-public class UserFateExecutionOrderIT extends FateExecutionOrderIT_SimpleSuite {
+public class UserFatePoolsWatcherIT_SimpleSuite extends FatePoolsWatcherIT {
+
+  private String table;
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
   @Override
-  public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
+  public void executeTest(FateTestExecutor<PoolResizeTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    var table = getUniqueNames(1)[0];
+    table = getUniqueNames(1)[0];
     try (ClientContext client =
         (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
       createFateTable(client, table);
       testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
           fateIdGenerator), getCluster().getServerContext());
-      client.tableOperations().delete(table);
     }
   }
 }

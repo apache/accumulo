@@ -119,7 +119,7 @@ public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
 
-  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT_SimpleSuite.class);
 
   @Test
   public void testBulkImport() throws Exception {
