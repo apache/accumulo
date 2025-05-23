@@ -60,6 +60,7 @@ import org.apache.accumulo.core.logging.ConditionalLogger.EscalatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -484,7 +485,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
-      if (manager.getTableManager().getTableState(tableId) == null) {
+      if (manager.getTableManager().getTableState(tableId) == TableState.UNKNOWN) {
         continue;
       }
 
