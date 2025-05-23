@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -121,8 +122,8 @@ public class FileSystemMonitor {
             try {
               checkMount(mount);
             } catch (final Exception e) {
-              Halt.halt(-42, "Exception while checking mount points, halting process",
-                  () -> e.printStackTrace());
+              Halt.halt(1, "Exception while checking mount points, halting process",
+                  Optional.of(e));
             }
           }));
     }

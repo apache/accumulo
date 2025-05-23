@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -62,9 +63,8 @@ public class ServiceLockSupport {
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
       Halt.halt(-1, "FATAL: No longer able to monitor " + serviceName + " lock node",
-          () -> e.printStackTrace());
+          Optional.of(e));
     }
 
     @Override
@@ -151,8 +151,7 @@ public class ServiceLockSupport {
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(1, "Lost ability to monitor " + serviceName + " lock, exiting.",
-          () -> e.printStackTrace());
+      Halt.halt(1, "Lost ability to monitor " + serviceName + " lock, exiting.", Optional.of(e));
     }
 
   }

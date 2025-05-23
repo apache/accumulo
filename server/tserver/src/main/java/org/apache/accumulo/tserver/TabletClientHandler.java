@@ -1157,9 +1157,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
         && !server.getLock().isLocked()) {
       Halt.halt(1,
           "Tablet server no longer holds lock during checkPermission() : " + request + ", exiting",
-          () -> {
-            server.getGcLogger().logGCInfo(server.getConfiguration());
-          });
+          () -> server.getGcLogger().logGCInfo(server.getConfiguration()));
     }
 
     if (lock != null) {

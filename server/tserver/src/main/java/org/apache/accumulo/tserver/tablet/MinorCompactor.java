@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
@@ -103,7 +104,7 @@ public class MinorCompactor extends FileCompactor {
             if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
               log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
                   + " Halting...", getExtent(), e);
-              Halt.halt("TabletServer lock does not exist", -1);
+              Halt.halt(-1, "TabletServer lock does not exist", Optional.of(e));
             } else {
               throw e;
             }

@@ -21,6 +21,8 @@ package org.apache.accumulo.core.util;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
+import java.util.Optional;
+
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,21 +31,35 @@ public class Halt {
   private static final Logger log = LoggerFactory.getLogger(Halt.class);
 
   public static void halt(final String msg) {
-    // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-    halt(0, "FATAL " + msg, null);
+    halt(0, msg, Optional.empty(), null);
   }
 
-  public static void halt(final String msg, int status) {
-    halt(status, "FATAL " + msg, null);
+  public static void halt(final String msg, final int status) {
+    halt(status, msg, Optional.empty(), null);
   }
 
-  public static void halt(final int status, String msg, Runnable runnable) {
+  public static void halt(final int status, final String msg, final Optional<Throwable> exception) {
+    halt(status, msg, exception, null);
+  }
 
+  public static void halt(final int status, final String msg, final Runnable runnable) {
+    halt(status, msg, Optional.empty(), runnable);
+  }
+
+  public static void halt(final int status, final String msg, final Optional<Throwable> exception,
+      final Runnable runnable) {
     try {
       // Printing to stderr and to the log in case the message does not make
       // it to the log. This could happen if an asynchronous logging impl is used
-      System.err.println(msg);
-      log.error(msg);
+      System.err.println("FATAL " + msg);
+      if (exception.isPresent()) {
+        Throwable t = exception.orElseThrow();
+        t.printStackTrace();
+        log.error("FATAL " + msg, t);
+      } else {
+        log.error("FATAL " + msg);
+      }
+      System.err.flush();
       // give ourselves a little time to try and do something
       Threads.createThread("Halt Thread", () -> {
         sleepUninterruptibly(100, MILLISECONDS);
