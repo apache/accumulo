@@ -47,6 +47,7 @@ import java.util.TreeSet;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.WithTestNames;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
@@ -83,17 +84,18 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path is set by test, not user")
-public class RFileClientTest {
+public class RFileClientTest extends WithTestNames {
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   private String createTmpTestFile() throws IOException {
-    File dir = java.nio.file.Path.of(System.getProperty("user.dir")).resolve("target")
-        .resolve("rfile-test").toFile();
-    assertTrue(dir.mkdirs() || dir.isDirectory());
-    File testFile = File.createTempFile("test", ".rf", dir);
+    File testFile = File.createTempFile("test", ".rf", tempDir.toFile());
     assertTrue(testFile.delete() || !testFile.exists());
     return testFile.getAbsolutePath();
   }
@@ -244,7 +246,7 @@ public class RFileClientTest {
 
     Range range = new Range(rowStr(3), false, rowStr(14), true);
     Scanner scanner = RFile.newScanner()
-        .from(new FencedPath(new Path(java.nio.file.Path.of(testFile).toFile().toURI()), range))
+        .from(new FencedPath(new Path(java.nio.file.Path.of(testFile).toUri()), range))
         .withFileSystem(localFs).build();
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
@@ -266,7 +268,7 @@ public class RFileClientTest {
     // Lastly only the row portion of a key is allowed.
 
     // Test valid Row Ranges
-    URI testFileURI = java.nio.file.Path.of(testFile).toFile().toURI();
+    URI testFileURI = java.nio.file.Path.of(testFile).toUri();
     new FencedPath(new Path(testFileURI), new Range());
     // This constructor converts to the proper inclusive/exclusive rows
     new FencedPath(new Path(testFileURI), new Range(rowStr(3), false, rowStr(14), true));

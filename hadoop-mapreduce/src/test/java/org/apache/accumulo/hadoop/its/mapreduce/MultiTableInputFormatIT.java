@@ -42,8 +42,12 @@ import org.apache.hadoop.mapreduce.lib.output.NullOutputFormat;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class MultiTableInputFormatIT extends AccumuloClusterHarness {
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   private static AssertionError e1 = null;
   private static AssertionError e2 = null;
@@ -115,8 +119,8 @@ public class MultiTableInputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }

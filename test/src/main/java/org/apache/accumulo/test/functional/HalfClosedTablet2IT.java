@@ -53,7 +53,7 @@ public class HalfClosedTablet2IT extends SharedMiniClusterBase {
       cfg.setProperty("general.custom.volume.chooser.default",
           PreferredVolumeChooser.class.getName());
       cfg.setProperty("general.custom.volume.preferred.default",
-          Path.of(cfg.getDir().getAbsolutePath()).resolve("accumulo").toFile().toURI().toString());
+          Path.of(cfg.getDir().getAbsolutePath()).resolve("accumulo").toUri().toString());
     }
   }
 

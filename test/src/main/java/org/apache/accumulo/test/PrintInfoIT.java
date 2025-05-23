@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Path;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -65,7 +66,7 @@ public class PrintInfoIT extends SharedMiniClusterBase {
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   // Create an RFile that does not contain any summary info. Call PrintInfo/rfile-info on the RFile
   // twice.
@@ -122,8 +123,8 @@ public class PrintInfoIT extends SharedMiniClusterBase {
   @Test
   public void testOldRFileVersion() throws Exception {
     String resource = "/org/apache/accumulo/test/ver_7.rf";
-    File rFile = tempDir.toPath().resolve("org").resolve("apache").resolve("accumulo")
-        .resolve("test").resolve("ver_7.rf").toFile();
+    File rFile = tempDir.resolve("org").resolve("apache").resolve("accumulo").resolve("test")
+        .resolve("ver_7.rf").toFile();
     FileUtils.copyURLToFile(requireNonNull(PrintInfoIT.class.getResource(resource)), rFile);
     String output = execPrintInfo(rFile.getAbsolutePath(), false);
     assertTrue(output.contains("Unable to read crypto params"));
