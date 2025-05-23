@@ -23,9 +23,7 @@ import java.time.Duration;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
@@ -84,8 +82,6 @@ public class RootRecoveryIT extends SharedMiniClusterBase {
           TabletColumnFamily.AVAILABILITY_COLUMN.getColumnQualifier());
       writer.addMutation(mutation);
       writer.flush();
-    } catch (TableNotFoundException | MutationsRejectedException e) {
-      throw new RuntimeException(e);
     }
 
     // Compact the metadata table, which will end up writing mutations
