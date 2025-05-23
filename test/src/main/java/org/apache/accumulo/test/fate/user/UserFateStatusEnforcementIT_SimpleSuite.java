@@ -23,21 +23,40 @@ import static org.apache.accumulo.test.fate.TestLock.createDummyLockID;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.test.fate.FateExecutionOrderIT_SimpleSuite;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.test.fate.FateStatusEnforcementIT;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 
-public class UserFateExecutionOrderIT extends FateExecutionOrderIT_SimpleSuite {
-  @Override
-  public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
-      AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
-    var table = getUniqueNames(1)[0];
-    try (ClientContext client =
-        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
-      createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
-          fateIdGenerator), getCluster().getServerContext());
-      client.tableOperations().delete(table);
-    }
+public class UserFateStatusEnforcementIT_SimpleSuite extends FateStatusEnforcementIT {
+  private ClientContext client;
+  private String table;
+
+  @BeforeAll
+  public static void beforeAllSetup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterAll
+  public static void afterAllTeardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
+
+  @BeforeEach
+  public void beforeEachSetup() throws Exception {
+    client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
+    table = getUniqueNames(1)[0];
+    createFateTable(client, table);
+    store = new UserFateStore<>(client, table, createDummyLockID(), null);
+    fateId = store.create();
+    txStore = store.reserve(fateId);
+  }
+
+  @AfterEach
+  public void afterEachTeardown() {
+    client.close();
   }
 }

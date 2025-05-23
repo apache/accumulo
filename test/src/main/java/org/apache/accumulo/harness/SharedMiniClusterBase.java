@@ -49,7 +49,7 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
-import org.apache.accumulo.suites.SimpleSharedMacTestSuite;
+import org.apache.accumulo.suites.SimpleSharedMacTestSuiteIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
  * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
  * <p>
  * Implementations of this class should also consider if they can be added to
- * {@link SimpleSharedMacTestSuite}. See the suites description to determine if they can be added.
+ * {@link SimpleSharedMacTestSuiteIT}. See the suites description to determine if they can be added.
  */
 @Tag(MINI_CLUSTER_ONLY)
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
@@ -89,7 +89,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
 
   /**
    * Starts a MiniAccumuloCluster instance with the default configuration. This method is
-   * idempotent: necessitated by {@link SimpleSharedMacTestSuite}.
+   * idempotent: necessitated by {@link SimpleSharedMacTestSuiteIT}.
    */
   public static void startMiniCluster() throws Exception {
     startMiniClusterWithConfig(MiniClusterConfigurationCallback.NO_CALLBACK);
@@ -98,7 +98,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   /**
    * Starts a MiniAccumuloCluster instance with the default configuration but also provides the
    * caller the opportunity to update the configuration before the MiniAccumuloCluster is started.
-   * This method is idempotent: necessitated by {@link SimpleSharedMacTestSuite}.
+   * This method is idempotent: necessitated by {@link SimpleSharedMacTestSuiteIT}.
    *
    * @param miniClusterCallback A callback to configure the minicluster before it is started.
    */
