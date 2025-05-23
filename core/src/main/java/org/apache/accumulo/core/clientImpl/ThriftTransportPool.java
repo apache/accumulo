@@ -73,7 +73,7 @@ public class ThriftTransportPool {
 
   private ThriftTransportPool(LongSupplier maxAgeMillis) {
     this.maxAgeMillis = maxAgeMillis;
-    this.checkThread = Threads.createThread("Thrift Connection Pool Checker", () -> {
+    this.checkThread = Threads.createNonCriticalThread("Thrift Connection Pool Checker", () -> {
       try {
         final long minNanos = MILLISECONDS.toNanos(250);
         final long maxNanos = MINUTES.toNanos(1);

@@ -116,7 +116,7 @@ public class ExternalCompactionMetricsIT extends SharedMiniClusterBase {
       final LinkedBlockingQueue<Metric> queueMetrics = new LinkedBlockingQueue<>();
       final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
 
-      Thread thread = Threads.createThread("metric-tailer", () -> {
+      Thread thread = Threads.createNonCriticalThread("metric-tailer", () -> {
         while (!shutdownTailer.get()) {
           List<String> statsDMetrics = sink.getLines();
           for (String s : statsDMetrics) {

@@ -51,7 +51,7 @@ public class Halt {
 
     try {
       // give ourselves a little time to try and do something
-      Threads.createThread("Halt Thread", () -> {
+      Threads.createNonCriticalThread("Halt Thread", () -> {
         sleepUninterruptibly(100, MILLISECONDS);
         Runtime.getRuntime().halt(status);
       }).start();

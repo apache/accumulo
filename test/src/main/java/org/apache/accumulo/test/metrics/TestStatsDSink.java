@@ -103,7 +103,7 @@ public class TestStatsDSink implements Closeable {
   public TestStatsDSink() throws SocketException {
     sock = new DatagramSocket();
     int len = sock.getReceiveBufferSize();
-    Threads.createThread("test-server-thread", () -> {
+    Threads.createNonCriticalThread("test-server-thread", () -> {
       while (!sock.isClosed()) {
         byte[] buf = new byte[len];
         DatagramPacket packet = new DatagramPacket(buf, len);
