@@ -66,11 +66,10 @@ public class CompressionConfigurer implements CompactionConfigurer {
     if (largeThresh != null && largeCompress != null) {
       this.largeThresh = ConfigurationTypeHelper.getFixedMemoryAsBytes(largeThresh);
       this.largeCompress = largeCompress;
-    } else if (largeThresh != null ^ largeCompress != null) {
-      throw new IllegalArgumentException(
-          "Must set both of " + Property.TABLE_COMPACTION_CONFIGURER_OPTS.getKey() + " ("
-              + LARGE_FILE_COMPRESSION_TYPE + " and " + LARGE_FILE_COMPRESSION_THRESHOLD
-              + ") or neither for " + this.getClass().getName());
+    } else {
+      throw new IllegalArgumentException("Must set both of "
+          + Property.TABLE_COMPACTION_CONFIGURER_OPTS.getKey() + " (" + LARGE_FILE_COMPRESSION_TYPE
+          + " and " + LARGE_FILE_COMPRESSION_THRESHOLD + ") for " + this.getClass().getName());
     }
   }
 
