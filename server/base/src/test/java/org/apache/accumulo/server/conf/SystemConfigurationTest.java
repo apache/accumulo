@@ -79,8 +79,6 @@ public class SystemConfigurationTest {
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
-    propStore.invalidate(sysPropKey);
-    expectLastCall().anyTimes();
     replay(propStore);
 
     ConfigurationCopy defaultConfig =
@@ -120,7 +118,7 @@ public class SystemConfigurationTest {
             TABLE_BLOOM_ENABLED.getKey(), "false", TABLE_BLOOM_SIZE.getKey(), "2048"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysUpdateProps).anyTimes();
     propStore.invalidate(sysPropKey);
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
     replay(propStore);
 
     sysConfig.zkChangeEvent(sysPropKey);

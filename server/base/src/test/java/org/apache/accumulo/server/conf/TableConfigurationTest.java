@@ -101,8 +101,6 @@ public class TableConfigurationTest {
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
-    propStore.invalidate(tablePropKey);
-    expectLastCall().anyTimes();
 
     ConfigurationCopy defaultConfig =
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
@@ -141,7 +139,7 @@ public class TableConfigurationTest {
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
     propStore.invalidate(propKey);
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
     replay(propStore);
 
     tableConfig.zkChangeEvent(propKey);
@@ -164,7 +162,7 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(TablePropKey.of(instanceId, TID))))
         .andReturn(new VersionedProperties(Map.of())).anyTimes();
     propStore.invalidate(NamespacePropKey.of(instanceId, NID));
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
     replay(propStore);
 
     nsConfig.zkChangeEvent(NamespacePropKey.of(instanceId, NID));
@@ -191,9 +189,9 @@ public class TableConfigurationTest {
         .andReturn(new VersionedProperties(4, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
     propStore.invalidate(TablePropKey.of(instanceId, TID));
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
     propStore.invalidate(NamespacePropKey.of(instanceId, NID));
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
 
     replay(propStore);
 
@@ -232,9 +230,9 @@ public class TableConfigurationTest {
         Instant.now(), Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
         .anyTimes();
     propStore.invalidate(TablePropKey.of(instanceId, TID));
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
     propStore.invalidate(NamespacePropKey.of(instanceId, NID));
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
 
     replay(propStore);
 
@@ -272,7 +270,7 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(39, Instant.now(), Map.of(p.getKey(), "sekrit"))).once();
     propStore.invalidate(propKey);
-    expectLastCall().anyTimes();
+    expectLastCall().atLeastOnce();
 
     replay(propStore);
 

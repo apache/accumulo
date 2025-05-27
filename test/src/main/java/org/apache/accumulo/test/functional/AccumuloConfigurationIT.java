@@ -20,10 +20,11 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -62,9 +63,9 @@ public class AccumuloConfigurationIT extends SharedMiniClusterBase {
     final ServerContext ctx = getCluster().getServerContext();
     String initialThreads = ctx.getConfiguration().get(fakeProperty);
 
-    long startTime = 0;
+    Timer timer = null;
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
-      startTime = System.nanoTime();
+      timer = Timer.startNew();
       c.instanceOperations().setProperty(fakeProperty, "4");
     }
 
@@ -75,9 +76,8 @@ public class AccumuloConfigurationIT extends SharedMiniClusterBase {
       oldValueReturned++;
       Thread.sleep(25);
     }
-    long stopTime = System.nanoTime();
     System.out.println("Configuration returned old value " + oldValueReturned + " times and took "
-        + Duration.ofNanos(stopTime - startTime).toMillis() + "ms");
+        + timer.elapsed(TimeUnit.MILLISECONDS) + "ms");
 
     assertEquals("4", ctx.getConfiguration().get(fakeProperty));
     assertEquals(0, oldValueReturned);
