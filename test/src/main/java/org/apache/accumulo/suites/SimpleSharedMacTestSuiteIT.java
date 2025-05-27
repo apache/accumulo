@@ -39,6 +39,9 @@ import org.junit.platform.suite.api.Suite;
  * <p>
  * An IT which meets this criteria should have the class name end with "IT_SimpleSuite" to be added
  * to the suite.
+ *
+ * IMPORTANT NOTE: Only the concrete classes should be marked with "IT_SimpleSuite". For example,
+ * marking an abstract class will not add its implementations to the suite.
  */
 @Suite
 // look in this package and subpackages

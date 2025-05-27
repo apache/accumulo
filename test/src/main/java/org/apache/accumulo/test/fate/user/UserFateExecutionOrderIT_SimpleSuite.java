@@ -25,9 +25,9 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
-import org.apache.accumulo.test.fate.FateExecutionOrderIT_SimpleSuite;
+import org.apache.accumulo.test.fate.FateExecutionOrderIT;
 
-public class UserFateExecutionOrderIT extends FateExecutionOrderIT_SimpleSuite {
+public class UserFateExecutionOrderIT_SimpleSuite extends FateExecutionOrderIT {
   @Override
   public void executeTest(FateTestExecutor<FeoTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {

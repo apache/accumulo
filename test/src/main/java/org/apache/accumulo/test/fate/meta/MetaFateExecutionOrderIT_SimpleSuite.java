@@ -28,9 +28,9 @@ import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.accumulo.test.fate.FateExecutionOrderIT_SimpleSuite;
+import org.apache.accumulo.test.fate.FateExecutionOrderIT;
 
-public class MetaFateExecutionOrderIT extends FateExecutionOrderIT_SimpleSuite {
+public class MetaFateExecutionOrderIT_SimpleSuite extends FateExecutionOrderIT {
 
   // put the fate data for the test in a different location than what accumulo is using
   private static final InstanceId IID = InstanceId.of(UUID.randomUUID());
