@@ -53,7 +53,7 @@ import org.junit.jupiter.api.Test;
 import com.google.common.collect.Iterables;
 
 @Tag(MINI_CLUSTER_ONLY)
-public class ScanServerIT_NoServers extends SharedMiniClusterBase {
+public class ScanServer_NoServersIT extends SharedMiniClusterBase {
 
   // This is the same as ScanServerIT, but without any scan servers running.
   // This tests the cases where the client falls back to the Tablet Servers
