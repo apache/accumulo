@@ -1932,6 +1932,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
             Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
         localTabletBalancer.init(balancerEnvironment);
         tabletBalancer = localTabletBalancer;
+        log.info("tablet balancer changed to {}", localTabletBalancer.getClass().getName());
       }
     } catch (Exception e) {
       log.warn("Failed to create balancer {} using {} instead", configuredBalancerClass,
@@ -1940,10 +1941,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       localTabletBalancer.init(balancerEnvironment);
       tabletBalancer = localTabletBalancer;
     }
-  }
-
-  Class<?> getBalancerClass() {
-    return tabletBalancer.getClass();
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
