@@ -1272,7 +1272,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     tserverSet.startListeningForTabletServerChanges();
 
-    Threads.createNonCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
+    Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     try {
       blockForTservers();
