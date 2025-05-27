@@ -104,7 +104,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
           final TableId tid = ke.tableId();
           String tableZPath = null;
           try {
-            tableZPath = Constants.ZNAMESPACES + getContext().getNamespaceId(tid)
+            tableZPath = Constants.ZNAMESPACES + "/" + getContext().getNamespaceId(tid)
                 + Constants.ZTABLES + "/" + tid.canonical();
             this.getContext().getZooSession().asReader().exists(tableZPath, new StuckWatcher());
           } catch (KeeperException | InterruptedException e) {
