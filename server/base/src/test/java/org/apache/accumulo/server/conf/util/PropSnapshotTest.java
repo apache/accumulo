@@ -70,6 +70,8 @@ class PropSnapshotTest {
     // after update
     expect(propStore.get(eq(SystemPropKey.of(instanceId))))
         .andReturn(new VersionedProperties(124, Instant.now(), Map.of("k3", "v3"))).once();
+    propStore.invalidate(SystemPropKey.of(instanceId));
+    expectLastCall().anyTimes();
 
     replay(propStore);
     PropSnapshot snapshot = PropSnapshot.create(SystemPropKey.of(instanceId), propStore);
@@ -97,6 +99,8 @@ class PropSnapshotTest {
     expect(propStore.get(eq(sysPropKey))).andReturn(
         new VersionedProperties(100, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false")))
         .once();
+    propStore.invalidate(SystemPropKey.of(instanceId));
+    expectLastCall().anyTimes();
 
     replay(propStore);
 
@@ -120,6 +124,8 @@ class PropSnapshotTest {
 
     expect(propStore.get(eq(sysPropKey))).andThrow(new IllegalStateException("Fake node delete"))
         .once();
+    propStore.invalidate(sysPropKey);
+    expectLastCall().anyTimes();
 
     replay(propStore);
     PropSnapshot snapshot = PropSnapshot.create(sysPropKey, propStore);
