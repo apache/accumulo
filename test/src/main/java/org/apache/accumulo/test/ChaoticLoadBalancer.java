@@ -57,6 +57,8 @@ public class ChaoticLoadBalancer implements TabletBalancer {
 
   public ChaoticLoadBalancer() {}
 
+  public ChaoticLoadBalancer(TableId tableId) {}
+
   @Override
   public void init(BalancerEnvironment balancerEnvironment) {
     this.environment = balancerEnvironment;

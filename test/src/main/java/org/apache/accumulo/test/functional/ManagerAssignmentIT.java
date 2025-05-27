@@ -110,6 +110,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   @AfterAll
   public static void afterAll() {
     client.close();
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @BeforeEach

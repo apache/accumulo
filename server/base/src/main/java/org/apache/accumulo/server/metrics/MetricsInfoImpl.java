@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,6 +162,9 @@ public class MetricsInfoImpl implements MetricsInfo {
         LOG.warn("Could not load registry {}", factoryName, ex);
       }
     }
+
+    // Set the MeterRegistry on the ThreadPools
+    ThreadPools.getServerThreadPools().setMeterRegistry(Metrics.globalRegistry);
 
     if (jvmMetricsEnabled) {
       LOG.info("enabling detailed jvm, classloader, jvm gc and process metrics");
