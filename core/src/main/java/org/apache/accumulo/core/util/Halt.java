@@ -49,17 +49,25 @@ public class Halt {
   public static void halt(final int status, final String msg, final Optional<Throwable> exception,
       final Runnable runnable) {
     try {
+      final String errorMessage = "FATAL " + msg;
+
+      Throwable t = null;
+      if (exception.isPresent()) {
+        t = exception.orElseThrow();
+      }
       // Printing to stderr and to the log in case the message does not make
       // it to the log. This could happen if an asynchronous logging impl is used
-      System.err.println("FATAL " + msg);
-      if (exception.isPresent()) {
-        Throwable t = exception.orElseThrow();
+      System.err.println(errorMessage);
+      if (t != null) {
         t.printStackTrace();
-        log.error("FATAL " + msg, t);
-      } else {
-        log.error("FATAL " + msg);
       }
       System.err.flush();
+
+      if (t != null) {
+        log.error(errorMessage, t);
+      } else {
+        log.error(errorMessage);
+      }
       // give ourselves a little time to try and do something
       Threads.createThread("Halt Thread", () -> {
         sleepUninterruptibly(100, MILLISECONDS);
