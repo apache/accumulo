@@ -43,7 +43,6 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
