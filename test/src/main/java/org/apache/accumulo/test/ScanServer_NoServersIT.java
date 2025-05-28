@@ -50,10 +50,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 @Tag(MINI_CLUSTER_ONLY)
-public class ScanServerIT_NoServers extends SharedMiniClusterBase {
+public class ScanServer_NoServersIT extends SharedMiniClusterBase {
 
   // This is the same as ScanServerIT, but without any scan servers running.
   // This tests the cases where the client falls back to the Tablet Servers
@@ -109,12 +107,12 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(new Range());
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+        assertEquals(ingestedEntryCount, scanner.stream().count(),
             "Scanner did not see ingested and flushed entries");
         final int additionalIngestedEntryCount =
             ingest(client, tableName, 10, 10, 10, "colf", false);
         // since there are no scan servers, and we are reading from tservers, we should see update
-        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, Iterables.size(scanner),
+        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, scanner.stream().count(),
             "Scanning against tserver should have resulted in seeing all ingested entries");
       } // when the scanner is closed, all open sessions should be closed
     }
@@ -140,12 +138,12 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
       try (BatchScanner scanner = client.createBatchScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRanges(Collections.singletonList(new Range()));
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-        assertEquals(ingestedEntryCount, Iterables.size(scanner),
+        assertEquals(ingestedEntryCount, scanner.stream().count(),
             "Scanner did not see ingested and flushed entries");
         final int additionalIngestedEntryCount =
             ingest(client, tableName, 10, 10, 10, "colf", false);
         // since there are no scan servers, and we are reading from tservers, we should see update
-        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, Iterables.size(scanner),
+        assertEquals(ingestedEntryCount + additionalIngestedEntryCount, scanner.stream().count(),
             "Scanning against tserver should have resulted in seeing all ingested entries");
       } // when the scanner is closed, all open sessions should be closed
     }
@@ -163,7 +161,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
           scanner.setRange(new Range());
           scanner.setTimeout(1, TimeUnit.SECONDS);
           scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          assertEquals(100, Iterables.size(scanner));
+          assertEquals(100, scanner.stream().count());
         } // when the scanner is closed, all open sessions should be closed
       });
     }
@@ -181,7 +179,7 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
           scanner.setRanges(List.of(new Range()));
           scanner.setTimeout(1, TimeUnit.SECONDS);
           scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
-          assertEquals(100, Iterables.size(scanner));
+          assertEquals(100, scanner.stream().count());
         } // when the scanner is closed, all open sessions should be closed
       });
     }
@@ -199,17 +197,17 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // Throws an exception because no scan servers and falls back to tablet server with tablets
         // with UNHOSTED availability
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        assertThrows(RuntimeException.class, () -> scanner.stream().count());
         // Throws an exception because of the tablets with UNHOSTED availability
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        assertThrows(RuntimeException.class, () -> scanner.stream().count());
 
         // Test that hosted ranges work
         scanner.setRange(new Range(null, "row_0000000003"));
-        assertEquals(40, Iterables.size(scanner));
+        assertEquals(40, scanner.stream().count());
 
         scanner.setRange(new Range("row_0000000008", null));
-        assertEquals(20, Iterables.size(scanner));
+        assertEquals(20, scanner.stream().count());
 
       } // when the scanner is closed, all open sessions should be closed
     }
@@ -227,17 +225,17 @@ public class ScanServerIT_NoServers extends SharedMiniClusterBase {
         scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
         // Throws an exception because no scan servers and falls back to tablet server with tablets
         // with UNHOSTED availability
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        assertThrows(RuntimeException.class, () -> scanner.stream().count());
         // Throws an exception because of the tablets with UNHOSTED availability
         scanner.setConsistencyLevel(ConsistencyLevel.IMMEDIATE);
-        assertThrows(RuntimeException.class, () -> Iterables.size(scanner));
+        assertThrows(RuntimeException.class, () -> scanner.stream().count());
 
         // Test that hosted ranges work
         Collection<Range> ranges = new ArrayList<>();
         ranges.add(new Range(null, "row_0000000003"));
         ranges.add(new Range("row_0000000008", null));
         scanner.setRanges(ranges);
-        assertEquals(60, Iterables.size(scanner));
+        assertEquals(60, scanner.stream().count());
       } // when the scanner is closed, all open sessions should be closed
     }
   }

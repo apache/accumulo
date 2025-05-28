@@ -73,8 +73,6 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
-
 public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
 
   @BeforeAll
@@ -246,7 +244,7 @@ public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
         // ensure non sample data can be scanned after scanning sample data
         for (ScannerBase sb : Arrays.asList(scanner, bScanner, isoScanner, csiScanner, oScanner)) {
           sb.clearSamplerConfiguration();
-          assertEquals(20000, Iterables.size(sb));
+          assertEquals(20000, sb.stream().count());
           sb.setSamplerConfiguration(SC1);
         }
 
@@ -363,10 +361,6 @@ public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
     return someRow;
   }
 
-  private int countEntries(Iterable<Entry<Key,Value>> scanner) {
-    return Iterables.size(scanner);
-  }
-
   private void setRange(Range range, List<? extends ScannerBase> scanners) {
     for (ScannerBase s : scanners) {
       if (s instanceof Scanner) {
@@ -428,7 +422,7 @@ public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
         // the iterator should see less than 10 entries in sample data, and return data
         setRange(range1, scanners);
         for (ScannerBase s : scanners) {
-          assertEquals(2954, countEntries(s));
+          assertEquals(2954, s.stream().count());
         }
 
         Range range2 = new Range(keys.get(5), true, keys.get(18), true);
@@ -436,7 +430,7 @@ public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
 
         // the iterator should see more than 10 entries in sample data, and return no data
         for (ScannerBase s : scanners) {
-          assertEquals(0, countEntries(s));
+          assertEquals(0, s.stream().count());
         }
 
         // flush an rerun same test against files
@@ -455,12 +449,12 @@ public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
 
         setRange(range1, scanners);
         for (ScannerBase s : scanners) {
-          assertEquals(2954, countEntries(s));
+          assertEquals(2954, s.stream().count());
         }
 
         setRange(range2, scanners);
         for (ScannerBase s : scanners) {
-          assertEquals(0, countEntries(s));
+          assertEquals(0, s.stream().count());
         }
 
         updateSamplingConfig(client, tableName, SC2);
@@ -472,7 +466,7 @@ public class SampleIT_SimpleSuite extends SharedMiniClusterBase {
         scanners = Arrays.asList(scanner, isoScanner, bScanner, csiScanner, oScanner);
 
         for (ScannerBase s : scanners) {
-          assertThrows(SampleNotPresentException.class, () -> countEntries(s),
+          assertThrows(SampleNotPresentException.class, () -> s.stream().count(),
               "Expected SampleNotPresentException, but it did not happen : "
                   + s.getClass().getSimpleName());
         }

@@ -84,7 +84,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -425,12 +424,12 @@ public class KerberosIT extends AccumuloITBase {
     // krb credentials
     UserGroupInformation userWithoutPrivs =
         UserGroupInformation.createUserForTesting("fake_user", new String[0]);
-    int recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Integer>) () -> {
+    long recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Long>) () -> {
       AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), delegationToken);
 
       try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singleton(new Range()));
-        return Iterables.size(bs);
+        return bs.stream().count();
       }
     });
 

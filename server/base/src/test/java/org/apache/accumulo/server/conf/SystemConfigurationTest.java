@@ -124,6 +124,8 @@ public class SystemConfigurationTest {
         Map.of(GC_PORT.getKey(), "3456", TSERV_SCAN_MAX_OPENFILES.getKey(), "27",
             TABLE_BLOOM_ENABLED.getKey(), "false", TABLE_BLOOM_SIZE.getKey(), "2048"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysUpdateProps).anyTimes();
+    propStore.invalidate(sysPropKey);
+    expectLastCall().atLeastOnce();
     replay(propStore);
 
     sysConfig.zkChangeEvent(sysPropKey);
