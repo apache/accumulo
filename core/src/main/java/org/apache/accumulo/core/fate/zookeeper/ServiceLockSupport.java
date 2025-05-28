@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
-import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -57,14 +56,13 @@ public class ServiceLockSupport {
         LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
             serviceName, reason);
       } else {
-        Halt.halt(serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!", -1);
+        Halt.halt(-1, serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!");
       }
     }
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(-1, "FATAL: No longer able to monitor " + serviceName + " lock node",
-          Optional.of(e));
+      Halt.halt(-1, "FATAL: No longer able to monitor " + serviceName + " lock node", e);
     }
 
     @Override
@@ -72,7 +70,7 @@ public class ServiceLockSupport {
       LOG.debug("Acquired {} lock", serviceName);
 
       if (acquiredLock || failedToAcquireLock) {
-        Halt.halt("Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock, -1);
+        Halt.halt(-1, "Zoolock in unexpected state AL " + acquiredLock + " " + failedToAcquireLock);
       }
 
       acquiredLock = true;
@@ -87,12 +85,12 @@ public class ServiceLockSupport {
         String msg =
             "Failed to acquire " + serviceName + " lock due to incorrect ZooKeeper authentication.";
         LOG.error("{} Ensure instance.secret is consistent across Accumulo configuration", msg, e);
-        Halt.halt(msg, -1);
+        Halt.halt(-1, msg);
       }
 
       if (acquiredLock) {
-        Halt.halt("Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock,
-            -1);
+        Halt.halt(-1,
+            "Zoolock in unexpected state acquiredLock true with FAL " + failedToAcquireLock);
       }
 
       failedToAcquireLock = true;
@@ -151,7 +149,7 @@ public class ServiceLockSupport {
 
     @Override
     public void unableToMonitorLockNode(final Exception e) {
-      Halt.halt(1, "Lost ability to monitor " + serviceName + " lock, exiting.", Optional.of(e));
+      Halt.halt(1, "Lost ability to monitor " + serviceName + " lock, exiting.", e);
     }
 
   }

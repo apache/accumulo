@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -466,7 +465,7 @@ public class LiveTServerSet implements Watcher {
       context.getZooReaderWriter().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {
       String msg = "error removing tablet server lock";
-      Halt.halt(-1, msg, Optional.of(e));
+      Halt.halt(-1, msg, e);
     }
     getZooCache().clear(fullpath);
   }

@@ -26,7 +26,6 @@ import java.nio.channels.ClosedChannelException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -252,7 +251,7 @@ public class TabletServerLogger {
         }
       } else {
         // We didn't have retries or we failed too many times.
-        Halt.halt(1, "Experienced too many errors creating WALs, giving up", Optional.of(t));
+        Halt.halt(1, "Experienced too many errors creating WALs, giving up", t);
       }
 
       // The exception will trigger the log creation to be re-attempted.
@@ -395,7 +394,7 @@ public class TabletServerLogger {
 
     boolean success = false;
     while (!success) {
-      Optional<Throwable> sawWriteFailure = Optional.empty();
+      Throwable sawWriteFailure = null;
       try {
         // get a reference to the loggers that no other thread can touch
         AtomicInteger currentId = new AtomicInteger(-1);
@@ -450,7 +449,7 @@ public class TabletServerLogger {
         writeRetry.logRetry(log, "Logs closed while writing", ex);
       } catch (Exception t) {
         writeRetry.logRetry(log, "Failed to write to WAL", t);
-        sawWriteFailure = Optional.of(t);
+        sawWriteFailure = t;
         try {
           // Backoff
           writeRetry.waitForNextAttempt(log, "write to WAL");
@@ -467,9 +466,8 @@ public class TabletServerLogger {
       final int finalCurrent = currentLogId;
       if (!success) {
         final ServiceLock tabletServerLock = tserver.getLock();
-        if (sawWriteFailure.isPresent()) {
-          log.info("WAL write failure, validating server lock in ZooKeeper",
-              sawWriteFailure.orElseThrow());
+        if (sawWriteFailure != null) {
+          log.info("WAL write failure, validating server lock in ZooKeeper", sawWriteFailure);
           if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
             Halt.halt(-1, "Writing to WAL has failed and TabletServer lock does not exist",
                 sawWriteFailure);

@@ -21,8 +21,6 @@ package org.apache.accumulo.core.util;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
-import java.util.Optional;
-
 import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,41 +28,33 @@ import org.slf4j.LoggerFactory;
 public class Halt {
   private static final Logger log = LoggerFactory.getLogger(Halt.class);
 
-  public static void halt(final String msg) {
-    halt(0, msg, Optional.empty(), null);
+  public static void halt(final int status, final String msg) {
+    halt(status, msg, null, null);
   }
 
-  public static void halt(final String msg, final int status) {
-    halt(status, msg, Optional.empty(), null);
-  }
-
-  public static void halt(final int status, final String msg, final Optional<Throwable> exception) {
+  public static void halt(final int status, final String msg, final Throwable exception) {
     halt(status, msg, exception, null);
   }
 
   public static void halt(final int status, final String msg, final Runnable runnable) {
-    halt(status, msg, Optional.empty(), runnable);
+    halt(status, msg, null, runnable);
   }
 
-  public static void halt(final int status, final String msg, final Optional<Throwable> exception,
+  public static void halt(final int status, final String msg, final Throwable exception,
       final Runnable runnable) {
     try {
       final String errorMessage = "FATAL " + msg;
 
-      Throwable t = null;
-      if (exception.isPresent()) {
-        t = exception.orElseThrow();
-      }
       // Printing to stderr and to the log in case the message does not make
       // it to the log. This could happen if an asynchronous logging impl is used
       System.err.println(errorMessage);
-      if (t != null) {
-        t.printStackTrace();
+      if (exception != null) {
+        exception.printStackTrace();
       }
       System.err.flush();
 
-      if (t != null) {
-        log.error(errorMessage, t);
+      if (exception != null) {
+        log.error(errorMessage, exception);
       } else {
         log.error(errorMessage);
       }

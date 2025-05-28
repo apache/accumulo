@@ -46,7 +46,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -938,7 +937,7 @@ public class TabletServer extends AbstractServer
       iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
           getClientAddressString());
     } catch (TException e) {
-      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", Optional.of(e));
+      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
     }

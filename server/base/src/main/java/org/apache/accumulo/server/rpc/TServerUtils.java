@@ -31,7 +31,6 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -665,7 +664,7 @@ public class TServerUtils {
       try {
         finalServer.serve();
       } catch (Error e) {
-        Halt.halt(1, "Unexpected error in TThreadPoolServer " + e + ", halting.", Optional.of(e));
+        Halt.halt(1, "Unexpected error in TThreadPoolServer " + e + ", halting.", e);
       }
     }).start();
 

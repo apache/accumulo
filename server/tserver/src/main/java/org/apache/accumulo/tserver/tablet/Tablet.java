@@ -516,7 +516,7 @@ public class Tablet extends TabletBase {
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
           log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
               + " Halting...", getExtent(), e);
-          Halt.halt(-1, "TabletServer lock does not exist", Optional.of(e));
+          Halt.halt(-1, "TabletServer lock does not exist", e);
         } else {
           TraceUtil.setException(span2, e, true);
           throw e;
