@@ -22,7 +22,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class MergeTabletsIT_SimpleSuite extends MergeTabletsBaseIT {
+public class MergeTabletsIT_SimpleSuite extends MergeTabletsITBase {
 
   @BeforeAll
   public static void setup() throws Exception {

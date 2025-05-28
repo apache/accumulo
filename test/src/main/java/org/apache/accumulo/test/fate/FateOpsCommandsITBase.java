@@ -72,8 +72,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
-import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
-import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestRepo;
+import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
+import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestRepo;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -82,7 +82,7 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public abstract class FateOpsCommandsIT extends ConfigurableMacBase
+public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     implements FateTestRunner<LatchTestEnv> {
 
   @Override

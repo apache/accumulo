@@ -32,16 +32,16 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.function.Executable;
 
-public abstract class FateStatusEnforcementIT extends SharedMiniClusterBase {
+public abstract class FateStatusEnforcementITBase extends SharedMiniClusterBase {
 
   protected FateId fateId;
   protected FateStore<FateTestRunner.TestEnv> store;
-  protected FateStore.FateTxStore<FateIT.TestEnv> txStore;
+  protected FateStore.FateTxStore<FateITBase.TestEnv> txStore;
 
   @Test
   public void push() throws Exception {
     testOperationWithStatuses(() -> {}, // No special setup needed for push
-        () -> txStore.push(new FateIT.TestRepo("testOp")), AbstractFateStore.REQ_PUSH_STATUS);
+        () -> txStore.push(new FateITBase.TestRepo("testOp")), AbstractFateStore.REQ_PUSH_STATUS);
   }
 
   @Test
@@ -50,7 +50,7 @@ public abstract class FateStatusEnforcementIT extends SharedMiniClusterBase {
       // Setup for pop: Ensure there something to pop by first pushing
       try {
         txStore.setStatus(ReadOnlyFateStore.TStatus.NEW);
-        txStore.push(new FateIT.TestRepo("testOp"));
+        txStore.push(new FateITBase.TestRepo("testOp"));
       } catch (Exception e) {
         throw new RuntimeException("Failed to setup for pop", e);
       }

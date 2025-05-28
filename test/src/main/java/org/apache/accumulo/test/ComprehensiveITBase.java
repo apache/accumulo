@@ -114,7 +114,7 @@ import com.google.common.collect.Sets;
  * It provides a quick test that verifies a lot of functionality is working for basic use. This test
  * does not provide deep coverage of the features it tests.
  */
-public abstract class ComprehensiveBaseIT extends SharedMiniClusterBase {
+public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
 
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");

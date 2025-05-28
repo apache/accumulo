@@ -39,7 +39,7 @@ import org.apache.accumulo.core.fate.user.FateMutator;
 import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.FateIT;
+import org.apache.accumulo.test.fate.FateITBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -79,21 +79,26 @@ public class FateMutatorImplIT_SimpleSuite extends SharedMiniClusterBase {
           FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
 
       // add some repos in order
-      FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, fateId);
-      fateMutator.putRepo(100, new FateIT.TestRepo("test")).mutate();
-      FateMutatorImpl<FateIT.TestEnv> fateMutator1 = new FateMutatorImpl<>(context, table, fateId);
-      fateMutator1.putRepo(99, new FateIT.TestRepo("test")).mutate();
-      FateMutatorImpl<FateIT.TestEnv> fateMutator2 = new FateMutatorImpl<>(context, table, fateId);
-      fateMutator2.putRepo(98, new FateIT.TestRepo("test")).mutate();
+      FateMutatorImpl<FateITBase.TestEnv> fateMutator =
+          new FateMutatorImpl<>(context, table, fateId);
+      fateMutator.putRepo(100, new FateITBase.TestRepo("test")).mutate();
+      FateMutatorImpl<FateITBase.TestEnv> fateMutator1 =
+          new FateMutatorImpl<>(context, table, fateId);
+      fateMutator1.putRepo(99, new FateITBase.TestRepo("test")).mutate();
+      FateMutatorImpl<FateITBase.TestEnv> fateMutator2 =
+          new FateMutatorImpl<>(context, table, fateId);
+      fateMutator2.putRepo(98, new FateITBase.TestRepo("test")).mutate();
 
       // make sure we cant add a repo that has already been added
-      FateMutatorImpl<FateIT.TestEnv> fateMutator3 = new FateMutatorImpl<>(context, table, fateId);
+      FateMutatorImpl<FateITBase.TestEnv> fateMutator3 =
+          new FateMutatorImpl<>(context, table, fateId);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator3.putRepo(98, new FateIT.TestRepo("test")).mutate(),
+          () -> fateMutator3.putRepo(98, new FateITBase.TestRepo("test")).mutate(),
           "Repo in position 98 already exists. Expected to not be able to add it again.");
-      FateMutatorImpl<FateIT.TestEnv> fateMutator4 = new FateMutatorImpl<>(context, table, fateId);
+      FateMutatorImpl<FateITBase.TestEnv> fateMutator4 =
+          new FateMutatorImpl<>(context, table, fateId);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator4.putRepo(99, new FateIT.TestRepo("test")).mutate(),
+          () -> fateMutator4.putRepo(99, new FateITBase.TestRepo("test")).mutate(),
           "Repo in position 99 already exists. Expected to not be able to add it again.");
     }
   }

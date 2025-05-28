@@ -26,11 +26,11 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
+import org.apache.accumulo.test.fate.FatePoolsWatcherITBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class UserFatePoolsWatcherIT_SimpleSuite extends FatePoolsWatcherIT {
+public class UserFatePoolsWatcherIT_SimpleSuite extends FatePoolsWatcherITBase {
 
   private String table;
 

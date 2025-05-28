@@ -65,8 +65,8 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
-    implements FateTestRunner<FateExecutionOrderIT.FeoTestEnv> {
+public abstract class FateExecutionOrderITBase extends SharedMiniClusterBase
+    implements FateTestRunner<FateExecutionOrderITBase.FeoTestEnv> {
 
   public static class FeoTestEnv extends FateTestRunner.TestEnv {
     private final AccumuloClient client;
@@ -80,7 +80,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
     }
   }
 
-  public static class FirstOp implements Repo<FateExecutionOrderIT.FeoTestEnv> {
+  public static class FirstOp implements Repo<FateExecutionOrderITBase.FeoTestEnv> {
 
     private static final long serialVersionUID = 1L;
 
@@ -245,7 +245,7 @@ public abstract class FateExecutionOrderIT extends SharedMiniClusterBase
       }
 
       Scanner scanner = client.createScanner(FATE_TRACKING_TABLE);
-      var iter = scanner.stream().map(FateExecutionOrderIT::toIdStep).iterator();
+      var iter = scanner.stream().map(FateExecutionOrderITBase::toIdStep).iterator();
 
       // we should see the following execution order for all fate ids:
       // FirstOp::isReady1, FirstOp::isReady2, FirstOp::call,

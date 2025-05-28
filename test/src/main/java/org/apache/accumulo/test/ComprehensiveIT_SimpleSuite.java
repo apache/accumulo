@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
 @Tag(SUNNY_DAY)
-public class ComprehensiveIT_SimpleSuite extends ComprehensiveBaseIT {
+public class ComprehensiveIT_SimpleSuite extends ComprehensiveITBase {
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();

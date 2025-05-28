@@ -63,7 +63,7 @@ import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT.TestRepo;
+import org.apache.accumulo.test.fate.FateITBase.TestRepo;
 import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.io.Text;
@@ -71,7 +71,8 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Sets;
 
-public abstract class FateStoreIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
+public abstract class FateStoreITBase extends SharedMiniClusterBase
+    implements FateTestRunner<TestEnv> {
 
   @Override
   protected Duration defaultTimeout() {

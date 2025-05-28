@@ -34,11 +34,11 @@ import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateStoreIT;
+import org.apache.accumulo.test.fate.FateStoreITBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
-public class UserFateStoreFateIT_SimpleSuite extends FateStoreIT {
+public class UserFateStoreFateIT_SimpleSuite extends FateStoreITBase {
 
   @BeforeAll
   public static void setup() throws Exception {

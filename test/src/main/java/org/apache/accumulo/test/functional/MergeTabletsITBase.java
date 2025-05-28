@@ -84,9 +84,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
+public abstract class MergeTabletsITBase extends SharedMiniClusterBase {
 
-  private static final Logger log = LoggerFactory.getLogger(MergeTabletsBaseIT.class);
+  private static final Logger log = LoggerFactory.getLogger(MergeTabletsITBase.class);
 
   SortedSet<Text> splits(String[] points) {
     SortedSet<Text> result = new TreeSet<>();

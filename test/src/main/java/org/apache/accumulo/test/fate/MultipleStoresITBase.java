@@ -55,9 +55,9 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
 
-public abstract class MultipleStoresIT extends SharedMiniClusterBase {
+public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
 
-  private static final Logger LOG = LoggerFactory.getLogger(MultipleStoresIT.class);
+  private static final Logger LOG = LoggerFactory.getLogger(MultipleStoresITBase.class);
 
   @Test
   public void testReserveUnreserve() throws Exception {

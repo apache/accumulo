@@ -44,8 +44,8 @@ import org.junit.jupiter.api.Test;
 /**
  * Tests the functionality of the FATE pools watcher task
  */
-public abstract class FatePoolsWatcherIT extends SharedMiniClusterBase
-    implements FateTestRunner<FatePoolsWatcherIT.PoolResizeTestEnv> {
+public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
+    implements FateTestRunner<FatePoolsWatcherITBase.PoolResizeTestEnv> {
 
   private static final Set<Fate.FateOperation> ALL_USER_FATE_OPS =
       Fate.FateOperation.getAllUserFateOps();

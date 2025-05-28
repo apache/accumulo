@@ -31,13 +31,13 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.MultipleStoresIT;
+import org.apache.accumulo.test.fate.MultipleStoresITBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
-public class UserMultipleStoresIT_SimpleSuite extends MultipleStoresIT {
+public class UserMultipleStoresIT_SimpleSuite extends MultipleStoresITBase {
   private ClientContext client;
   private String tableName;
 
