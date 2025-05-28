@@ -30,8 +30,8 @@ function findallabstractITproblems() {
   # -R for recursive, -P for perl matching, -l for matching files
   local opts='-RPl'
   if [[ $1 == 'print' ]]; then
-      # -R for recursive, -P for perl matching, -l for matching files, -H for always showing filenames
-      opts='-RPlH'
+    # -R for recursive, -P for perl matching, -l for matching files, -H for always showing filenames
+    opts='-RPlH'
   fi
   # find any abstract classes ending in 'IT', except those allowed
   grep "$opts" --include='*.java' ' abstract class [^ ]*IT ' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
