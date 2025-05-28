@@ -32,7 +32,7 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -42,20 +42,36 @@ public class ExtCEnv implements CompactionEnv {
   private final TExternalCompactionJob job;
   private final String queueName;
 
-  public static class CompactorIterEnv extends TabletIteratorEnvironment {
+  public static class CompactorIterEnv extends SystemIteratorEnvironmentImpl {
+
+    private static class Builder extends SystemIteratorEnvironmentImpl.Builder {
+
+      private final String queueName;
+
+      public Builder(ServerContext context, String queueName) {
+        super(context);
+        this.queueName = queueName;
+      }
+
+      @Override
+      public SystemIteratorEnvironmentImpl build() {
+        return new CompactorIterEnv(this);
+      }
+
+    }
 
     private final String queueName;
 
-    public CompactorIterEnv(ServerContext context, IteratorScope scope, boolean fullMajC,
-        AccumuloConfiguration tableConfig, TableId tableId, CompactionKind kind, String queueName) {
-      super(context, scope, fullMajC, tableConfig, tableId, kind);
-      this.queueName = queueName;
+    public CompactorIterEnv(Builder builder) {
+      super(builder);
+      this.queueName = builder.queueName;
     }
 
     @VisibleForTesting
     public String getQueueName() {
       return queueName;
     }
+
   }
 
   ExtCEnv(CompactionJobHolder jobHolder, String queueName) {
@@ -87,9 +103,19 @@ public class ExtCEnv implements CompactionEnv {
   @Override
   public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
       AccumuloConfiguration acuTableConf, TableId tableId) {
-    return new CompactorIterEnv(context, IteratorScope.majc,
-        !jobHolder.getJob().isPropagateDeletes(), acuTableConf, tableId,
-        CompactionKind.valueOf(job.getKind().name()), queueName);
+
+    CompactorIterEnv.Builder builder = new CompactorIterEnv.Builder(context, queueName);
+    builder.withScope(IteratorScope.majc).withTableId(tableId);
+
+    if (CompactionKind.valueOf(job.getKind().name()) == CompactionKind.USER) {
+      builder.isUserCompaction();
+    }
+
+    if (!jobHolder.getJob().isPropagateDeletes()) {
+      builder.isFullMajorCompaction();
+    }
+
+    return builder.build();
   }
 
   @Override

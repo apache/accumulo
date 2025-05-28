@@ -49,7 +49,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     private Optional<TableId> tableId = Optional.empty();
     private Optional<SamplerConfiguration> samplerConfig = Optional.empty();
     private boolean samplingEnabled = false;
-    protected Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
+    protected Optional<ServiceEnvironment> env = Optional.empty();
 
     public Builder withScope(IteratorScope scope) {
       checkState(this.scope.isEmpty(), "Scope has already been set");
@@ -117,9 +117,9 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   private final Optional<TableId> tableId;
   private final Optional<SamplerConfiguration> samplerConfig;
   private final boolean samplingEnabled;
-  private final Optional<ClientServiceEnvironmentImpl> env;
+  private final Optional<ServiceEnvironment> env;
 
-  private ClientIteratorEnvironment(Builder builder) {
+  protected ClientIteratorEnvironment(Builder builder) {
     this.scope = builder.scope;
     this.isFullMajorCompaction = builder.isFullMajorCompaction;
     this.auths = builder.auths;
@@ -133,7 +133,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   /**
    * Copy constructor used for enabling sample. Only called from {@link #cloneWithSamplingEnabled}.
    */
-  private ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
+  protected ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
     this.scope = copy.scope;
     this.isFullMajorCompaction = copy.isFullMajorCompaction;
     this.auths = copy.auths;

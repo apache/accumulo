@@ -39,6 +39,7 @@ import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.dataImpl.thrift.TCMResult;
 import org.apache.accumulo.core.dataImpl.thrift.TCMStatus;
 import org.apache.accumulo.core.dataImpl.thrift.TCondition;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorBuilder;
@@ -46,7 +47,7 @@ import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.tserver.data.ServerConditionalMutation;
 import org.apache.hadoop.io.Text;
 
@@ -55,7 +56,7 @@ public class ConditionCheckerContext {
 
   private final List<IterInfo> tableIters;
   private final Map<String,Map<String,String>> tableIterOpts;
-  private final TabletIteratorEnvironment tie;
+  private final IteratorEnvironment ie;
   private final String context;
 
   private static class MergedIterConfig {
@@ -80,8 +81,8 @@ public class ConditionCheckerContext {
     tableIterOpts = pic.getOpts();
     this.context = pic.getServiceEnv();
 
-    tie = new TabletIteratorEnvironment(context, IteratorScope.scan, tableConf,
-        tableConf.getTableId());
+    ie = new SystemIteratorEnvironmentImpl.Builder(context).withScope(IteratorScope.scan)
+        .withTableId(tableConf.getTableId()).build();
   }
 
   SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,
@@ -104,8 +105,8 @@ public class ConditionCheckerContext {
       mergedIterCache.put(key, mic);
     }
 
-    var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts)
-        .env(tie).useClassLoader(context).useClassCache(true).build();
+    var iteratorBuilder = IteratorBuilder.builder(mic.mergedIters).opts(mic.mergedItersOpts).env(ie)
+        .useClassLoader(context).useClassCache(true).build();
     return IteratorConfigUtil.loadIterators(systemIter, iteratorBuilder);
   }
 
