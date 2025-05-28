@@ -60,9 +60,9 @@ public class Halt {
       System.err.flush();
 
       if (exception != null) {
-        log.error(errorMessage, exception);
+        log.error("{}", errorMessage, exception);
       } else {
-        log.error(errorMessage);
+        log.error("{}", errorMessage);
       }
 
       if (runnable != null) {
