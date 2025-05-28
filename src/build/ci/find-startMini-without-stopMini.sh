@@ -23,9 +23,6 @@
 # with stopMiniCluster.
 NUM_EXPECTED=0
 ALLOWED=(
-  #Uncomment when merging to main
-  #test/src/main/java/org/apache/accumulo/test/compaction/ExternalCompaction_2_IT.java
-  #test/src/main/java/org/apache/accumulo/test/compaction/FlakyExternalCompaction2IT.java
 )
 
 ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x"; done; } | paste -sd'|')
