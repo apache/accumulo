@@ -84,8 +84,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
 
   private static final Logger log = LoggerFactory.getLogger(MergeTabletsBaseIT.class);
@@ -193,7 +191,7 @@ public abstract class MergeTabletsBaseIT extends SharedMiniClusterBase {
         s.setRange(new Range(tid + ";g"));
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
         TabletColumnFamily.AVAILABILITY_COLUMN.fetch(s);
-        assertEquals(2, Iterables.size(s));
+        assertEquals(2, s.stream().count());
         for (Entry<Key,Value> rows : s) {
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(rows.getKey())) {
             assertEquals("c", TabletColumnFamily.decodePrevEndRow(rows.getValue()).toString());
