@@ -43,8 +43,14 @@ public class Halt {
   public static void halt(final int status, final String msg, final Throwable exception,
       final Runnable runnable) {
     try {
-      final String errorMessage = "FATAL " + msg;
 
+      // give ourselves a little time to try and do something
+      Threads.createThread("Halt Thread", () -> {
+        sleepUninterruptibly(100, MILLISECONDS);
+        Runtime.getRuntime().halt(status);
+      }).start();
+
+      final String errorMessage = "FATAL " + msg;
       // Printing to stderr and to the log in case the message does not make
       // it to the log. This could happen if an asynchronous logging impl is used
       System.err.println(errorMessage);
@@ -58,11 +64,6 @@ public class Halt {
       } else {
         log.error(errorMessage);
       }
-      // give ourselves a little time to try and do something
-      Threads.createThread("Halt Thread", () -> {
-        sleepUninterruptibly(100, MILLISECONDS);
-        Runtime.getRuntime().halt(status);
-      }).start();
 
       if (runnable != null) {
         runnable.run();
