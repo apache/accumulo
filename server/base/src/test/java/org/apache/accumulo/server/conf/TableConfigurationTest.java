@@ -138,6 +138,8 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
+    propStore.invalidate(propKey);
+    expectLastCall().atLeastOnce();
     replay(propStore);
 
     tableConfig.zkChangeEvent(propKey);
@@ -157,8 +159,10 @@ public class TableConfigurationTest {
         Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "123", Property.INSTANCE_SECRET.getKey(), expectedPass)))
         .anyTimes();
-    expect(propStore.get(eq(TablePropKey.of(TID, NID))))
-        .andReturn(new VersionedProperties(Map.of())).anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(TID, NID)))).andReturn(new VersionedProperties(Map.of()))
+        .anyTimes();
+    propStore.invalidate(NamespacePropKey.of(NID));
+    expectLastCall().atLeastOnce();
     replay(propStore);
 
     nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
@@ -184,6 +188,10 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(TablePropKey.of(TID, NID))))
         .andReturn(new VersionedProperties(4, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
+    propStore.invalidate(TablePropKey.of(TID, NID));
+    expectLastCall().atLeastOnce();
+    propStore.invalidate(NamespacePropKey.of(NID));
+    expectLastCall().atLeastOnce();
 
     replay(propStore);
 
@@ -220,6 +228,10 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(TablePropKey.of(TID, NID)))).andReturn(new VersionedProperties(4,
         Instant.now(), Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
         .anyTimes();
+    propStore.invalidate(TablePropKey.of(TID, NID));
+    expectLastCall().atLeastOnce();
+    propStore.invalidate(NamespacePropKey.of(NID));
+    expectLastCall().atLeastOnce();
 
     replay(propStore);
 
@@ -256,6 +268,8 @@ public class TableConfigurationTest {
         .once();
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(39, Instant.now(), Map.of(p.getKey(), "sekrit"))).once();
+    propStore.invalidate(propKey);
+    expectLastCall().atLeastOnce();
 
     replay(propStore);
 

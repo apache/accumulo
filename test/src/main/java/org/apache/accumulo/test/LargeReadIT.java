@@ -33,7 +33,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
-import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -144,7 +143,7 @@ public class LargeReadIT extends AccumuloClusterHarness {
       }
 
       // expected data to be in memory for this part of the test, so verify that
-      var ctx = ((ClientContext) client);
+      var ctx = getCluster().getServerContext();
       try (var tablets = ctx.getAmple().readTablets().forTable(ctx.getTableId(tableName))
           .fetch(TabletMetadata.ColumnType.FILES).build()) {
         assertEquals(0, tablets.stream().count());

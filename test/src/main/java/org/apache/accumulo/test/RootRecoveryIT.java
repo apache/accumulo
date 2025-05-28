@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -40,8 +42,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.collect.Iterables;
 
 public class RootRecoveryIT extends SharedMiniClusterBase {
 
@@ -106,8 +106,7 @@ public class RootRecoveryIT extends SharedMiniClusterBase {
 
       LOG.info("Scanning root table");
       Scanner s = c.createScanner(SystemTables.ROOT.tableName());
-      @SuppressWarnings("unused")
-      int ignoredSize = Iterables.size(s);
+      assertTrue(s.stream().count() > 0);
     }
 
   }

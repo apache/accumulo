@@ -350,8 +350,8 @@ public class TabletMetadataTest {
 
     // MERGED Column not fetched
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.PREV_ROW), true, false);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(PREV_ROW),
+        true, false);
     assertThrows(IllegalStateException.class, tm::hasMerged);
   }
 

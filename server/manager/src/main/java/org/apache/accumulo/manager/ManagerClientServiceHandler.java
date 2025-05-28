@@ -51,8 +51,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationEx
 import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
-import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -402,7 +400,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       SystemPropUtil.removeSystemProperty(context, property);
-      updatePlugins(property);
     } catch (Exception e) {
       Manager.log.error("Problem removing config property in zookeeper", e);
       throw new RuntimeException(e.getMessage());
@@ -418,7 +415,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       SystemPropUtil.setSystemProperty(context, property, value);
-      updatePlugins(property);
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
       throw new ThriftPropertyException(property, value, "Property is invalid");
@@ -437,9 +433,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
     try {
       SystemPropUtil.modifyProperties(context, properties.getVersion(), properties.getProperties());
-      for (Map.Entry<String,String> entry : properties.getProperties().entrySet()) {
-        updatePlugins(entry.getKey());
-      }
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
       throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
@@ -554,15 +547,6 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
               + tableId.canonical() + " to: " + property + "=" + value);
     } catch (IllegalArgumentException iae) {
       throw new ThriftPropertyException(property, value, iae.getMessage());
-    }
-  }
-
-  private void updatePlugins(String property) {
-    // resolve without warning; any warnings should have already occurred
-    String resolved = DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {});
-    if (resolved.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
-      manager.initializeBalancer();
-      log.info("tablet balancer changed to {}", manager.getBalancerClass().getName());
     }
   }
 
