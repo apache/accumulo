@@ -465,9 +465,7 @@ public class LiveTServerSet implements Watcher {
       context.getZooReaderWriter().recursiveDelete(fullpath, SKIP);
     } catch (Exception e) {
       String msg = "error removing tablet server lock";
-      // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-      log.error("FATAL: {}", msg, e);
-      Halt.halt(msg, -1);
+      Halt.halt(-1, msg, e);
     }
     getZooCache().clear(fullpath);
   }
