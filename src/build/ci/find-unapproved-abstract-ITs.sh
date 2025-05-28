@@ -34,7 +34,7 @@ function findallabstractITproblems() {
       opts='-RPlH'
   fi
   # find any abstract classes ending in 'IT', except those allowed
-  grep "$opts" --include='*.java' 'abstract class.+IT ' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
+  grep "$opts" --include='*.java' ' abstract class [^ ]*IT ' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
 }
 
 function comparecounts() {
