@@ -18,34 +18,33 @@
 # under the License.
 #
 
-# The purpose of this ci script is to ensure that a pull request doesn't
-# unintentionally add a test with startMiniCluster without stopping it
-# with stopMiniCluster.
+# The purpose of this ci script is to ensure that a pull request doesn't unintentionally add an
+# abstract class ending with 'IT'.
 NUM_EXPECTED=0
 ALLOWED=(
 )
 
 ALLOWED_PIPE_SEP=$({ for x in "${ALLOWED[@]}"; do echo "$x"; done; } | paste -sd'|')
 
-function findallstopminiproblems() {
-  # -F for fixed-string matching, -R for recursive, -l for matching files
-  local opts='-FRL'
+function findallabstractITproblems() {
+  # -R for recursive, -P for perl matching, -l for matching files
+  local opts='-RPl'
   if [[ $1 == 'print' ]]; then
-    # -F for fixed-string matching, -R for recursive, -l for matching files, -H for always showing filenames
-    opts='-FRLH'
+    # -R for recursive, -P for perl matching, -l for matching files, -H for always showing filenames
+    opts='-RPlH'
   fi
-  # find any new classes using startMiniCluster without using stopMiniCluster, except those allowed
-  grep -FRl --include='*.java' startMiniCluster | xargs grep "$opts" stopMiniCluster | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
+  # find any abstract classes ending in 'IT', except those allowed
+  grep "$opts" --include='*.java' ' abstract class [^ ]*IT ' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
 }
 
 function comparecounts() {
   local count
-  count=$(findallstopminiproblems | wc -l)
+  count=$(findallabstractITproblems | wc -l)
   if [[ $NUM_EXPECTED -ne $count ]]; then
-    echo "Expected $NUM_EXPECTED, but found $count unapproved classes using startMiniCluster without stopMiniCluster:"
-    findallstopminiproblems 'print'
+    echo "Expected $NUM_EXPECTED, but found $count unapproved abstract classes ending in 'IT'"
+    findallabstractITproblems 'print'
     return 1
   fi
 }
 
-comparecounts && echo "Found exactly $NUM_EXPECTED unapproved uses of startMiniCluster without stopMiniCluster, as expected"
+comparecounts && echo "Found exactly $NUM_EXPECTED unapproved abstract classes ending in 'IT', as expected"
