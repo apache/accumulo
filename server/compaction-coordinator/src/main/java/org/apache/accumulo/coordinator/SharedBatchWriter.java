@@ -33,6 +33,8 @@ import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * This class supports the use case of many threads writing a single mutation to a table. It avoids
  * each thread creating its own batch writer which creates threads and makes 3 RPCs to write the
@@ -40,6 +42,7 @@ import org.slf4j.LoggerFactory;
  */
 public class SharedBatchWriter {
   private static final Logger log = LoggerFactory.getLogger(SharedBatchWriter.class);
+  private final Character prefix;
 
   private static class Work {
     private final Mutation mutation;
@@ -55,12 +58,14 @@ public class SharedBatchWriter {
   private final String table;
   private final ServerContext context;
 
-  public SharedBatchWriter(String table, ServerContext context, int queueSize) {
+  public SharedBatchWriter(String table, Character prefix, ServerContext context, int queueSize) {
+    Preconditions.checkArgument(queueSize > 0, "illegal queue size %s", queueSize);
     this.table = table;
+    this.prefix = prefix;
     this.context = context;
     this.mutations = new ArrayBlockingQueue<>(queueSize);
-    var thread =
-        Threads.createCriticalThread("shared batch writer for " + table, this::processMutations);
+    var thread = Threads.createCriticalThread(
+        "shared batch writer for " + table + " prefix:" + prefix, this::processMutations);
     thread.start();
   }
 
@@ -93,11 +98,12 @@ public class SharedBatchWriter {
           writer.addMutation(work.mutation);
         }
         writer.flush();
-        log.trace("Wrote {} mutations in {}ms", batch.size(), timer.elapsed(TimeUnit.MILLISECONDS));
+        log.trace("Wrote {} mutations in {}ms for prefix {}", batch.size(),
+            timer.elapsed(TimeUnit.MILLISECONDS), prefix);
         batch.forEach(work -> work.future.complete(null));
       } catch (TableNotFoundException | MutationsRejectedException e) {
-        log.debug("Failed to process {} mutations in {}ms", batch.size(),
-            timer.elapsed(TimeUnit.MILLISECONDS), e);
+        log.debug("Failed to process {} mutations in {}ms for prefix {}", batch.size(),
+            timer.elapsed(TimeUnit.MILLISECONDS), prefix, e);
         batch.forEach(work -> work.future.completeExceptionally(e));
       }
     }

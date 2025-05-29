@@ -19,6 +19,7 @@
 package org.apache.accumulo.coordinator;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.conf.Property.COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS;
 import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COMPACTION_COORDINATOR_SUMMARY_POOL;
 
@@ -33,7 +34,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -138,8 +138,6 @@ public class CompactionCoordinator extends AbstractServer implements
 
   private ServiceLock coordinatorLock;
 
-  private final ScheduledThreadPoolExecutor schedExecutor;
-
   private final LoadingCache<String,Integer> compactorCounts;
 
   protected CompactionCoordinator(ServerOpts opts, String[] args) {
@@ -149,14 +147,13 @@ public class CompactionCoordinator extends AbstractServer implements
   protected CompactionCoordinator(ServerOpts opts, String[] args, AccumuloConfiguration conf) {
     super("compaction-coordinator", opts, args);
     aconf = conf == null ? super.getConfiguration() : conf;
-    schedExecutor = ThreadPools.getServerThreadPools().createGeneralScheduledExecutorService(aconf);
-    compactionFinalizer = createCompactionFinalizer(schedExecutor);
+    compactionFinalizer = createCompactionFinalizer();
     tserverSet = createLiveTServerSet();
     setupSecurity();
-    startGCLogger(schedExecutor);
+    startGCLogger();
     printStartupMsg();
-    startCompactionCleaner(schedExecutor);
-    startRunningCleaner(schedExecutor);
+    startCompactionCleaner();
+    startRunningCleaner();
     compactorCounts = Caffeine.newBuilder().expireAfterWrite(30, TimeUnit.SECONDS)
         .build(queue -> ExternalCompactionUtil.countCompactors(queue, getContext()));
   }
@@ -166,9 +163,8 @@ public class CompactionCoordinator extends AbstractServer implements
     return aconf;
   }
 
-  protected CompactionFinalizer
-      createCompactionFinalizer(ScheduledThreadPoolExecutor schedExecutor) {
-    return new CompactionFinalizer(getContext(), schedExecutor);
+  protected CompactionFinalizer createCompactionFinalizer() {
+    return new CompactionFinalizer(getContext(), getContext().getScheduledExecutor());
   }
 
   protected LiveTServerSet createLiveTServerSet() {
@@ -179,22 +175,22 @@ public class CompactionCoordinator extends AbstractServer implements
     security = getContext().getSecurityOperation();
   }
 
-  protected void startGCLogger(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(() -> gcLogger.logGCInfo(getConfiguration()), 0,
-            TIME_BETWEEN_GC_CHECKS, TimeUnit.MILLISECONDS);
+  protected void startGCLogger() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor().scheduleWithFixedDelay(
+        () -> gcLogger.logGCInfo(getConfiguration()), 0, TIME_BETWEEN_GC_CHECKS,
+        TimeUnit.MILLISECONDS);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  protected void startCompactionCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
+  protected void startCompactionCleaner() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(this::cleanUpCompactors, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  protected void startRunningCleaner(ScheduledThreadPoolExecutor schedExecutor) {
-    ScheduledFuture<?> future =
-        schedExecutor.scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
+  protected void startRunningCleaner() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(this::cleanUpRunning, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
@@ -328,6 +324,7 @@ public class CompactionCoordinator extends AbstractServer implements
         updateSummaries();
 
         long now = System.currentTimeMillis();
+        LOG.debug("Time spent checking compaction summaries: {}ms", (now - start));
 
         Map<String,List<HostAndPort>> idleCompactors = getIdleCompactors();
         TIME_COMPACTOR_LAST_CHECKED.forEach((queue, lastCheckTime) -> {
@@ -387,8 +384,11 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   private void updateSummaries() {
-    ExecutorService executor = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(COMPACTION_COORDINATOR_SUMMARY_POOL).numCoreThreads(10).build();
+    int maxThreads =
+        Integer.parseInt(getConfiguration().get(COMPACTION_COORDINATOR_SUMMARIES_MAXTHREADS));
+    ExecutorService executor =
+        ThreadPools.getServerThreadPools().getPoolBuilder(COMPACTION_COORDINATOR_SUMMARY_POOL)
+            .numCoreThreads(10).numMaxThreads(maxThreads).build();
     try {
       Set<String> queuesSeen = new ConcurrentSkipListSet<>();
 
@@ -422,7 +422,7 @@ public class CompactionCoordinator extends AbstractServer implements
     try {
       TabletClientService.Client client = null;
       try {
-        LOG.debug("Contacting tablet server {} to get external compaction summaries",
+        LOG.trace("Contacting tablet server {} to get external compaction summaries",
             tsi.getHostPort());
         client = getTabletServerConnection(tsi);
         List<TCompactionQueueSummary> summaries =
@@ -442,7 +442,7 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   protected void startDeadCompactionDetector() {
-    new DeadCompactionDetector(getContext(), this, schedExecutor).start();
+    new DeadCompactionDetector(getContext(), this, getContext().getScheduledExecutor()).start();
   }
 
   protected long getMissingCompactorWarningTime() {
@@ -582,7 +582,7 @@ public class CompactionCoordinator extends AbstractServer implements
     }
 
     var extent = KeyExtent.fromThrift(textent);
-    LOG.info("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
+    LOG.debug("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
     compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
@@ -630,7 +630,7 @@ public class CompactionCoordinator extends AbstractServer implements
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
-    STATUS_LOG.debug("Compaction status update, id: {}, timestamp: {}, update: {}",
+    STATUS_LOG.trace("Compaction status update, id: {}, timestamp: {}, update: {}",
         externalCompactionId, timestamp, update);
     final RunningCompaction rc = RUNNING_CACHE.get(ExternalCompactionId.of(externalCompactionId));
     if (null != rc) {
@@ -664,6 +664,8 @@ public class CompactionCoordinator extends AbstractServer implements
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 

@@ -22,12 +22,8 @@ import java.lang.Thread.UncaughtExceptionHandler;
 import java.util.OptionalInt;
 
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class Threads {
-
-  private static final Logger log = LoggerFactory.getLogger(Threads.class);
 
   public static final UncaughtExceptionHandler UEH = new AccumuloUncaughtExceptionHandler();
 

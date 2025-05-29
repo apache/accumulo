@@ -98,7 +98,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.replication.thrift.ReplicationCoordinator;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -201,7 +201,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   ServiceLock managerLock = null;
   private TServer clientService = null;
-  private volatile TabletBalancer tabletBalancer;
+  private volatile TabletBalancer tabletBalancer = null;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
 
@@ -1021,6 +1021,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     }
 
     private long balanceTablets() {
+
+      // Check for balancer property change
+      initializeBalancer();
 
       final int tabletsNotHosted = notHosted();
       BalanceParamsImpl params = null;
@@ -1917,15 +1920,27 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return upgradeCoordinator.getStatus() != UpgradeCoordinator.UpgradeStatus.COMPLETE;
   }
 
-  void initializeBalancer() {
-    var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
-        Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new TableLoadBalancer());
-    localTabletBalancer.init(balancerEnvironment);
-    tabletBalancer = localTabletBalancer;
-  }
-
-  Class<?> getBalancerClass() {
-    return tabletBalancer.getClass();
+  private void initializeBalancer() {
+    String configuredBalancerClass = getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
+    try {
+      if (tabletBalancer == null
+          || !tabletBalancer.getClass().getName().equals(configuredBalancerClass)) {
+        log.debug("Attempting to initialize balancer using class {}, was {}",
+            configuredBalancerClass,
+            tabletBalancer == null ? "null" : tabletBalancer.getClass().getName());
+        var localTabletBalancer = Property.createInstanceFromPropertyName(getConfiguration(),
+            Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
+        localTabletBalancer.init(balancerEnvironment);
+        tabletBalancer = localTabletBalancer;
+        log.info("tablet balancer changed to {}", localTabletBalancer.getClass().getName());
+      }
+    } catch (Exception e) {
+      log.warn("Failed to create balancer {} using {} instead", configuredBalancerClass,
+          DoNothingBalancer.class, e);
+      var localTabletBalancer = new DoNothingBalancer();
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
+    }
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
@@ -1941,5 +1956,4 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   public ServiceLock getLock() {
     return managerLock;
   }
-
 }

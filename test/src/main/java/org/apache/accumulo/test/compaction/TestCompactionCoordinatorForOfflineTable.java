@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.coordinator.CompactionFinalizer;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -45,8 +43,8 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
     private static final Logger LOG =
         LoggerFactory.getLogger(NonNotifyingCompactionFinalizer.class);
 
-    NonNotifyingCompactionFinalizer(ServerContext context, ScheduledThreadPoolExecutor stpe) {
-      super(context, stpe);
+    NonNotifyingCompactionFinalizer(ServerContext context) {
+      super(context, context.getScheduledExecutor());
     }
 
     @Override
@@ -75,8 +73,8 @@ public class TestCompactionCoordinatorForOfflineTable extends CompactionCoordina
   }
 
   @Override
-  protected CompactionFinalizer createCompactionFinalizer(ScheduledThreadPoolExecutor stpe) {
-    return new NonNotifyingCompactionFinalizer(getContext(), stpe);
+  protected CompactionFinalizer createCompactionFinalizer() {
+    return new NonNotifyingCompactionFinalizer(getContext());
   }
 
   public static void main(String[] args) throws Exception {

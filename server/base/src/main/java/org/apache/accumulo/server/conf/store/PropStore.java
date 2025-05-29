@@ -129,4 +129,11 @@ public interface PropStore {
    * @return true if the stored version matches the provided expected version.
    */
   boolean validateDataVersion(PropStoreKey<?> storeKey, long expectedVersion);
+
+  /**
+   * Invalidate the properties associated with the provided key so that they are re-fetched.
+   *
+   * @param storeKey the prop cache key
+   */
+  void invalidate(PropStoreKey<?> storeKey);
 }

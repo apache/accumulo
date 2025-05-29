@@ -117,6 +117,7 @@ import io.opentelemetry.context.Scope;
 public class TabletServerBatchWriter implements AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(TabletServerBatchWriter.class);
+  private static final AtomicInteger numWritersCreated = new AtomicInteger(0);
 
   // basic configuration
   private final ClientContext context;
@@ -210,8 +211,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
-    this.executor = context.threadPools()
-        .createGeneralScheduledExecutorService(this.context.getConfiguration());
+    this.executor = context.threadPools().createScheduledExecutorService(2,
+        "BatchWriterThreads-" + numWritersCreated.incrementAndGet(), true);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE

@@ -68,7 +68,7 @@ public class CompactionFinalizer {
   private static final Logger LOG = LoggerFactory.getLogger(CompactionFinalizer.class);
 
   protected final ServerContext context;
-  private final ExecutorService ntfyExecutor;
+  private final ExecutorService notifyExecutor;
   private final ExecutorService backgroundExecutor;
   private final BlockingQueue<ExternalCompactionFinalState> pendingNotifications;
   private final long tserverCheckInterval;
@@ -88,7 +88,7 @@ public class CompactionFinalizer {
     int max = this.context.getConfiguration()
         .getCount(Property.COMPACTION_COORDINATOR_FINALIZER_TSERVER_NOTIFIER_MAXTHREADS);
 
-    this.ntfyExecutor = ThreadPools.getServerThreadPools()
+    this.notifyExecutor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COORDINATOR_FINALIZER_NOTIFIER_POOL).numCoreThreads(3).numMaxThreads(max)
         .withTimeOut(1L, MINUTES).enableThreadPoolMetrics().build();
 
@@ -107,7 +107,8 @@ public class CompactionFinalizer {
 
   private SharedBatchWriter getWriter(ExternalCompactionId ecid) {
     return writers.computeIfAbsent(ecid.getFirstUUIDChar(),
-        (i) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), context, queueSize));
+        (prefix) -> new SharedBatchWriter(Ample.DataLevel.USER.metaTable(), prefix, context,
+            queueSize / 16));
   }
 
   public void commitCompaction(ExternalCompactionId ecid, KeyExtent extent, long fileSize,
@@ -123,7 +124,7 @@ public class CompactionFinalizer {
     // write metadata entry
     Timer timer = Timer.startNew();
     writer.write(ecfs.toMutation());
-    LOG.trace("{} metadata compation state write completed in {}ms", ecid,
+    LOG.trace("{} metadata compaction state write completed in {}ms", ecid,
         timer.elapsed(TimeUnit.MILLISECONDS));
 
     if (!pendingNotifications.offer(ecfs)) {
@@ -216,8 +217,8 @@ public class CompactionFinalizer {
 
           TabletMetadata tabletMetadata = tabletsMetadata.get(ecfs.getExtent());
 
-          if (tabletMetadata == null || !tabletMetadata.getExternalCompactions().keySet()
-              .contains(ecfs.getExternalCompactionId())) {
+          if (tabletMetadata == null || !tabletMetadata.getExternalCompactions()
+              .containsKey(ecfs.getExternalCompactionId())) {
             // there is not per tablet external compaction entry, so delete its final state marker
             // from metadata table
             LOG.debug(
@@ -226,8 +227,8 @@ public class CompactionFinalizer {
             statusesToDelete.add(ecfs.getExternalCompactionId());
           } else if (tabletMetadata.getLocation() != null
               && tabletMetadata.getLocation().getType() == LocationType.CURRENT) {
-            futures
-                .add(ntfyExecutor.submit(() -> notifyTserver(tabletMetadata.getLocation(), ecfs)));
+            futures.add(
+                notifyExecutor.submit(() -> notifyTserver(tabletMetadata.getLocation(), ecfs)));
           } else {
             LOG.trace(
                 "External compaction {} is completed, but there is no location for tablet.  Unable to notify tablet, will try again later.",
@@ -246,6 +247,8 @@ public class CompactionFinalizer {
           }
         }
 
+        long waitStart = System.currentTimeMillis();
+        LOG.trace("Waiting for notify messages to complete");
         for (Future<?> future : futures) {
           try {
             future.get();
@@ -253,6 +256,7 @@ public class CompactionFinalizer {
             LOG.debug("Failed to notify tserver", e);
           }
         }
+        LOG.trace("Notify messages completed in {}ms", (System.currentTimeMillis() - waitStart));
 
       } catch (InterruptedException e) {
         Thread.currentThread().interrupt();

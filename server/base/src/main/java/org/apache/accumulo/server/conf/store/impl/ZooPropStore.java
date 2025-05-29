@@ -450,4 +450,9 @@ public class ZooPropStore implements PropStore, PropChangeListener {
     return true;
   }
 
+  @Override
+  public void invalidate(PropStoreKey<?> storeKey) {
+    cache.remove(storeKey);
+  }
+
 }
