@@ -28,6 +28,8 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -96,7 +98,8 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       }
       var props = Map.of(Property.TABLE_LOAD_BALANCER.getKey(), balancerClass);
       NewTableConfiguration ntc =
-          new NewTableConfiguration().withSplits(splits).setProperties(props);
+          new NewTableConfiguration().withInitialTabletAvailability(TabletAvailability.HOSTED)
+              .withSplits(splits).setProperties(props);
       c.tableOperations().create(tableName, ntc);
 
       assertEquals(Map.of(" none", 11), BalanceIT.countLocations(c, tableName));
@@ -121,7 +124,13 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
       getCluster().getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(5);
       getCluster().getClusterControl().start(ServerType.TABLET_SERVER);
 
-      UtilWaitThread.sleep(5000);
+      Wait.waitFor(
+          () -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 5);
+      Wait.waitFor(() -> c.instanceOperations().getSystemConfiguration()
+          .get(Property.MANAGER_TABLET_BALANCER.getKey()).equals(balancerClass));
+
+      // Give enough time for property change and Status Thread in Manager
+      UtilWaitThread.sleep(30000);
 
       // should not have balanced across the two new tservers
       assertEquals(2, BalanceIT.countLocations(c, tableName).size());
@@ -132,7 +141,7 @@ public class BrokenBalancerIT extends ConfigurableMacBase {
           TableLoadBalancer.class.getName());
 
       // should eventually balance across all 5 tabletsevers
-      Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size());
+      Wait.waitFor(() -> 5 == BalanceIT.countLocations(c, tableName).size(), 60_000);
     }
   }
 }

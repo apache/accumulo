@@ -240,8 +240,6 @@ public class CompactionCoordinator
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
 
-  private final ScheduledThreadPoolExecutor schedExecutor;
-
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
   private final Cache<Path,Integer> tabletDirCache;
@@ -260,7 +258,6 @@ public class CompactionCoordinator
   public CompactionCoordinator(Manager manager,
       AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
     this.ctx = manager.getContext();
-    this.schedExecutor = this.ctx.getScheduledExecutor();
     this.security = ctx.getSecurityOperation();
     this.manager = Objects.requireNonNull(manager);
 
@@ -294,7 +291,7 @@ public class CompactionCoordinator
         .maximumWeight(10485760L).weigher(weigher).build();
 
     deadCompactionDetector =
-        new DeadCompactionDetector(this.ctx, this, schedExecutor, fateInstances);
+        new DeadCompactionDetector(this.ctx, this, ctx.getScheduledExecutor(), fateInstances);
 
     var rootReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
         ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT, true);
@@ -367,8 +364,8 @@ public class CompactionCoordinator
   public void run() {
 
     this.coordinatorStartTime = System.currentTimeMillis();
-    startConfigMonitor(schedExecutor);
-    startCompactorZKCleaner(schedExecutor);
+    startConfigMonitor(ctx.getScheduledExecutor());
+    startCompactorZKCleaner(ctx.getScheduledExecutor());
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -393,7 +390,7 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
-    startInternalStateCleaner(schedExecutor);
+    startInternalStateCleaner(ctx.getScheduledExecutor());
 
     try {
       shutdown.await();
@@ -1231,6 +1228,8 @@ public class CompactionCoordinator
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     final Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     final Set<ExternalCompactionId> idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 

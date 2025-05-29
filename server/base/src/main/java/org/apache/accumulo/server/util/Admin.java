@@ -375,9 +375,9 @@ public class Admin implements KeywordExecutable {
     public void lostLock(ServiceLock.LockLossReason reason) {
       String msg = "Admin lost lock: " + reason.toString();
       if (reason == ServiceLock.LockLossReason.LOCK_DELETED) {
-        Halt.halt(msg, 0);
+        Halt.halt(0, msg);
       } else {
-        Halt.halt(msg, 1);
+        Halt.halt(1, msg);
       }
     }
 
@@ -385,7 +385,7 @@ public class Admin implements KeywordExecutable {
     public void unableToMonitorLockNode(Exception e) {
       String msg = "Admin unable to monitor lock: " + e.getMessage();
       log.warn(msg);
-      Halt.halt(msg, 1);
+      Halt.halt(1, msg);
     }
 
     @Override

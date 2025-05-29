@@ -32,7 +32,7 @@ import org.junit.jupiter.api.BeforeAll;
  * {@link org.apache.accumulo.test.ample.FlakyAmpleServerContext} because it will make a lot of
  * metadata updates using Ample.
  */
-public class ComprehensiveFlakyAmpleIT extends ComprehensiveBaseIT {
+public class ComprehensiveFlakyAmpleIT extends ComprehensiveITBase {
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {

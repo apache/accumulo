@@ -24,7 +24,7 @@ import org.apache.accumulo.test.ample.FlakyAmpleManager;
 import org.apache.accumulo.test.ample.FlakyAmpleTserver;
 import org.apache.hadoop.conf.Configuration;
 
-public class WALFlakyAmpleIT extends WALSunnyDayBaseIT {
+public class WALFlakyAmpleIT extends WALSunnyDayITBase {
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configure(cfg, hadoopCoreSite);

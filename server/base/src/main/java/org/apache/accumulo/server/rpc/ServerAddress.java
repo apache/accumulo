@@ -51,7 +51,7 @@ public class ServerAddress {
       try {
         server.serve();
       } catch (Error e) {
-        Halt.halt("Unexpected error in TThreadPoolServer " + e + ", halting.", 1);
+        Halt.halt(1, "Unexpected error in TThreadPoolServer " + e + ", halting.", e);
       }
     }).start();
 
