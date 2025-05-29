@@ -231,7 +231,10 @@ public class PreferredVolumeChooser extends RandomVolumeChooser {
     // preferred volumes should also exist in the original options (typically, from
     // instance.volumes)
     if (Collections.disjoint(preferred, options)) {
-      String msg = "Some volumes in " + preferred + " are not valid volumes from " + options;
+      String offendingVols = preferred.stream().filter(vol -> !options.contains(vol))
+          .collect(Collectors.joining(", "));
+      String msg = "Some volumes in " + preferred + " are not valid volumes from " + options + ". "
+          + offendingVols;
       throw new IllegalArgumentException(msg);
     }
 

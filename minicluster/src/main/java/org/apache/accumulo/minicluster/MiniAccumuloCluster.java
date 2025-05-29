@@ -20,6 +20,7 @@ package org.apache.accumulo.minicluster;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Properties;
 import java.util.Set;
@@ -151,8 +152,8 @@ public class MiniAccumuloCluster implements AutoCloseable {
    */
   public static Properties getClientProperties(File directory) {
     Path dir = directory.toPath();
-    File clientProps = dir.resolve("conf").resolve("accumulo-client.properties").toFile();
-    Preconditions.checkArgument(clientProps.exists());
-    return ClientInfoImpl.toProperties(clientProps.toPath());
+    Path clientProps = dir.resolve("conf").resolve("accumulo-client.properties");
+    Preconditions.checkArgument(Files.exists(clientProps), "Client properties file does not exist");
+    return ClientInfoImpl.toProperties(clientProps);
   }
 }

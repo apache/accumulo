@@ -52,12 +52,12 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -67,20 +67,17 @@ public class MiniAccumuloClusterTest extends WithTestNames {
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
+  @TempDir
+  private static Path tempDir;
+
   public static File testDir;
 
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir =
-        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = baseDir.toPath().resolve(MiniAccumuloClusterTest.class.getName()).toFile();
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-
-    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
+    MiniAccumuloConfig config =
+        new MiniAccumuloConfig(tempDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
@@ -206,10 +203,9 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
   @Test
   public void testRandomPorts() throws Exception {
-    File confDir = testDir.toPath().resolve("conf").toFile();
-    File accumuloProps = confDir.toPath().resolve("accumulo.properties").toFile();
+    Path accumuloProps = tempDir.resolve("conf").resolve("accumulo.properties");
     var config = new PropertiesConfiguration();
-    try (var reader = Files.newBufferedReader(accumuloProps.toPath(), UTF_8)) {
+    try (var reader = Files.newBufferedReader(accumuloProps, UTF_8)) {
       config.read(reader);
     }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,

@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,7 +55,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
@@ -65,14 +66,15 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir =
-        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = baseDir.toPath().resolve(MiniAccumuloClusterTest.class.getName()).toFile();
+    Path baseDir = Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests");
+    if (!Files.isDirectory(baseDir)) {
+      Files.createDirectories(baseDir);
+    }
+    testDir = baseDir.resolve(MiniAccumuloClusterTest.class.getName()).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
 
-    jarFile = tempDir.toPath().resolve("iterator.jar").toFile();
+    jarFile = tempDir.resolve("iterator.jar").toFile();
     FileUtils.copyURLToFile(
         requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
         jarFile);

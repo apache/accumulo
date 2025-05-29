@@ -21,12 +21,13 @@ package org.apache.accumulo.hadoop.its.mapred;
 import static com.google.common.collect.MoreCollectors.onlyElement;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Properties;
@@ -134,16 +135,18 @@ public class TokenFileIT extends AccumuloClusterHarness {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
     public static void main(String[] args) throws Exception {
       Configuration conf = cluster.getServerContext().getHadoopConf();
-      conf.set("hadoop.tmp.dir", Path.of(args[0]).toFile().getParent());
+      Path parent = Path.of(args[0]).getParent();
+      assertNotNull(parent);
+      conf.set("hadoop.tmp.dir", parent.toString());
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTokenFileTester(), args));
     }
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Test
   public void testMR() throws Exception {
@@ -161,13 +164,13 @@ public class TokenFileIT extends AccumuloClusterHarness {
         }
       }
 
-      File tf = tempDir.toPath().resolve("client.properties").toFile();
-      assertTrue(tf.createNewFile(), "Failed to create file: " + tf);
-      try (PrintStream out = new PrintStream(tf)) {
+      Path tf = Files.createFile(tempDir.resolve("client.properties"));
+      assertTrue(Files.exists(tf), "Failed to create file: " + tf);
+      try (OutputStream out = Files.newOutputStream(tf)) {
         getClientProps().store(out, "Credentials for " + getClass().getName());
       }
 
-      MRTokenFileTester.main(new String[] {tf.getAbsolutePath(), table1, table2});
+      MRTokenFileTester.main(new String[] {tf.toAbsolutePath().toString(), table1, table2});
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {

@@ -814,17 +814,17 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "app is run in same security context as user providing the filename")
   private static File getOutputDirectory(final String directory) {
-    File outputDirectory = null;
-    if (directory != null) {
-      outputDirectory = Path.of(directory).toFile();
-      if (!outputDirectory.isDirectory()) {
-        throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
-      }
-      if (!outputDirectory.canWrite()) {
-        throw new IllegalArgumentException(directory + " is not writable");
-      }
+    if (directory == null) {
+      return null;
     }
-    return outputDirectory;
+    Path outputDirectory = Path.of(directory);
+    if (!Files.isDirectory(outputDirectory)) {
+      throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
+    }
+    if (!Files.isWritable(outputDirectory)) {
+      throw new IllegalArgumentException(directory + " is not writable");
+    }
+    return outputDirectory.toFile();
   }
 
   private String getDefaultConfigValue(String key) {

@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -125,7 +126,7 @@ public class KeywordStartIT {
    */
   @Test
   public void testExpectedClasses() {
-    assumeTrue(Path.of(System.getProperty("user.dir")).resolve("src").toFile().exists());
+    assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);

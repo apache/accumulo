@@ -539,9 +539,13 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = Path.of(configDir).toFile();
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
-      log.warn("Unable to make directory for history at {}", accumuloDir);
+    Path accumuloDir = Path.of(configDir);
+    if (!Files.exists(accumuloDir)) {
+      try {
+        Files.createDirectories(accumuloDir);
+      } catch (IOException e) {
+        log.warn("Unable to make directory for history at {}", accumuloDir, e);
+      }
     }
 
     // Disable shell highlighting

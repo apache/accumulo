@@ -32,6 +32,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -76,6 +77,7 @@ import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
@@ -93,6 +95,9 @@ import com.google.common.collect.Sets;
  * ACCUMULO-3215
  */
 public class ImportExportIT extends AccumuloClusterHarness {
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   private static final Logger log = LoggerFactory.getLogger(ImportExportIT.class);
 

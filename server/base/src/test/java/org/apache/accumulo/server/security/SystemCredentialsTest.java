@@ -21,8 +21,8 @@ package org.apache.accumulo.server.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 
@@ -51,21 +51,22 @@ public class SystemCredentialsTest {
     Path targetDir = Path.of("target");
     Path instanceDir = targetDir.resolve("instanceTest");
     Path instanceIdDir = instanceDir.resolve(Constants.INSTANCE_ID_DIR);
-    File testInstanceId = instanceIdDir
-        .resolve(UUID.fromString("00000000-0000-0000-0000-000000000000").toString()).toFile();
-    if (!testInstanceId.exists()) {
-      assertTrue(
-          testInstanceId.getParentFile().mkdirs() || testInstanceId.getParentFile().isDirectory());
-      assertTrue(testInstanceId.createNewFile());
-    }
+    Path testInstanceId =
+        instanceIdDir.resolve(UUID.fromString("00000000-0000-0000-0000-000000000000").toString());
+    ensureFileExists(testInstanceId);
 
     Path versionDir = instanceDir.resolve(Constants.VERSION_DIR);
+    Path testInstanceVersion = versionDir.resolve(AccumuloDataVersion.get() + "");
+    ensureFileExists(testInstanceVersion);
+  }
 
-    File testInstanceVersion = versionDir.resolve(AccumuloDataVersion.get() + "").toFile();
-    if (!testInstanceVersion.exists()) {
-      assertTrue(testInstanceVersion.getParentFile().mkdirs()
-          || testInstanceVersion.getParentFile().isDirectory());
-      assertTrue(testInstanceVersion.createNewFile());
+  private static void ensureFileExists(Path testInstanceVersion) throws IOException {
+    if (!Files.exists(testInstanceVersion)) {
+      Path parentDir = testInstanceVersion.getParent();
+      if (parentDir != null && !Files.isDirectory(parentDir)) {
+        Files.createDirectories(parentDir);
+      }
+      Files.createFile(testInstanceVersion);
     }
   }
 

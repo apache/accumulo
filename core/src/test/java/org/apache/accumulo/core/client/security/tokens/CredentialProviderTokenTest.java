@@ -53,7 +53,7 @@ public class CredentialProviderTokenTest {
   public static void setup() throws Exception {
     URL keystoreUrl = CredentialProviderTokenTest.class.getResource("/passwords.jceks");
     assertNotNull(keystoreUrl);
-    keystorePath = "jceks://file/" + Path.of(keystoreUrl.toURI()).toFile().getAbsolutePath();
+    keystorePath = "jceks://file/" + Path.of(keystoreUrl.toURI()).toAbsolutePath();
   }
 
   @Test

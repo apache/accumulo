@@ -184,14 +184,13 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("addsplits row5", true);
       ts.exec("config -t " + table + " -s table.split.threshold=345M", true);
       ts.exec("offline " + table, true);
-      File exportDir = java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export").toFile();
+      java.nio.file.Path exportDir =
+          java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export");
       String exportUri = "file://" + exportDir;
-      String localTmp =
-          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.tmp").toFile();
+      String localTmp = "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.tmp");
       ts.exec("exporttable -t " + table + " " + exportUri, true);
       DistCp cp = new DistCp(new Configuration(false), null);
-      String import_ =
-          "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import").toFile();
+      String import_ = "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import");
       ClientInfo info = ClientInfo.from(getCluster().getClientProperties());
       if (info.saslEnabled()) {
         // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
@@ -209,7 +208,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
         // Implement a poor-man's DistCp
         try (BufferedReader reader =
-            Files.newBufferedReader(exportDir.toPath().resolve("distcp.txt"), UTF_8)) {
+            Files.newBufferedReader(exportDir.resolve("distcp.txt"), UTF_8)) {
           for (String line; (line = reader.readLine()) != null;) {
             Path exportedFile = new Path(line);
             // There isn't a cp on FileSystem??
@@ -1440,7 +1439,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Configuration conf = new Configuration();
     String nonce = generateNonce();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = createRFiles(conf, fs, table, nonce);
+    java.nio.file.Path importDir = createRFiles(conf, fs, table, nonce);
     ts.exec("createtable " + table, true);
     ts.exec("importdirectory " + importDir + " true", true);
     ts.exec("scan -r 00000000", true, "0-->" + nonce, true);
@@ -1456,7 +1455,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
     Configuration conf = new Configuration();
     String nonce = generateNonce();
     FileSystem fs = FileSystem.get(conf);
-    File importDir = createRFiles(conf, fs, table, nonce);
+    java.nio.file.Path importDir = createRFiles(conf, fs, table, nonce);
     ts.exec("createtable " + table, true);
     ts.exec("notable", true);
     ts.exec("importdirectory -t " + table + " -i " + importDir + " true", true);
@@ -1473,12 +1472,12 @@ public class ShellServerIT extends SharedMiniClusterBase {
     ts.exec("deletetable -f " + table);
   }
 
-  private File createRFiles(final Configuration conf, final FileSystem fs, final String postfix,
-      final String nonce) throws IOException {
-    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + postfix).toFile();
-    assertTrue(importDir.mkdir());
-    String even = importDir.toPath().resolve("even.rf").toFile().toString();
-    String odd = importDir.toPath().resolve("odd.rf").toFile().toString();
+  private java.nio.file.Path createRFiles(final Configuration conf, final FileSystem fs,
+      final String postfix, final String nonce) throws IOException {
+    java.nio.file.Path importDir = java.nio.file.Path.of(rootPath).resolve("import_" + postfix);
+    Files.createDirectories(importDir);
+    String even = importDir.resolve("even.rf").toString();
+    String odd = importDir.resolve("odd.rf").toString();
     AccumuloConfiguration aconf = DefaultConfiguration.getInstance();
     FileSKVWriter evenWriter = FileOperations.getInstance().newWriterBuilder()
         .forFile(UnreferencedTabletFile.of(fs, new Path(even)), fs, conf,
@@ -2078,8 +2077,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   public void importDirectoryCmdFmt() throws Exception {
     final String table = getUniqueNames(1)[0];
 
-    File importDir = java.nio.file.Path.of(rootPath).resolve("import_" + table).toFile();
-    assertTrue(importDir.mkdir());
+    java.nio.file.Path importDir = java.nio.file.Path.of(rootPath).resolve("import_" + table);
+    Files.createDirectories(importDir);
 
     // expect fail - table does not exist.
     ts.exec(String.format("importdirectory -t %s %s false", table, importDir), false,

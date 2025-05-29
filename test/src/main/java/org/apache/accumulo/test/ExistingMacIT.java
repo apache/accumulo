@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -76,9 +77,9 @@ public class ExistingMacIT extends ConfigurableMacBase {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
-  private void createEmptyConfig(File confFile) throws IOException {
+  private void createEmptyConfig(Path confFile) throws IOException {
     Configuration conf = new Configuration(false);
-    try (OutputStream hcOut = Files.newOutputStream(confFile.toPath())) {
+    try (OutputStream hcOut = Files.newOutputStream(confFile)) {
       conf.writeXml(hcOut);
     }
   }
@@ -123,8 +124,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
     File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf");
     FileUtils.deleteQuietly(hadoopConfDir);
     assertTrue(hadoopConfDir.mkdirs());
-    createEmptyConfig(hadoopConfDir.toPath().resolve("core-site.xml").toFile());
-    createEmptyConfig(hadoopConfDir.toPath().resolve("hdfs-site.xml").toFile());
+    createEmptyConfig(hadoopConfDir.toPath().resolve("core-site.xml"));
+    createEmptyConfig(hadoopConfDir.toPath().resolve("hdfs-site.xml"));
 
     File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_2");
     FileUtils.deleteQuietly(testDir2);
@@ -165,8 +166,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
       File hadoopConfDir = createTestDir(ExistingMacIT.class.getSimpleName() + "_hadoop_conf_2");
       FileUtils.deleteQuietly(hadoopConfDir);
       assertTrue(hadoopConfDir.mkdirs());
-      createEmptyConfig(hadoopConfDir.toPath().resolve("core-site.xml").toFile());
-      createEmptyConfig(hadoopConfDir.toPath().resolve("hdfs-site.xml").toFile());
+      createEmptyConfig(hadoopConfDir.toPath().resolve("core-site.xml"));
+      createEmptyConfig(hadoopConfDir.toPath().resolve("hdfs-site.xml"));
 
       File testDir2 = createTestDir(ExistingMacIT.class.getSimpleName() + "_3");
       FileUtils.deleteQuietly(testDir2);
@@ -176,8 +177,8 @@ public class ExistingMacIT extends ConfigurableMacBase {
           getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties").toFile(),
           hadoopConfDir);
 
-      System.out.println("conf "
-          + getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties").toFile());
+      System.out.println(
+          "conf " + getCluster().getConfig().getConfDir().toPath().resolve("accumulo.properties"));
 
       MiniAccumuloClusterImpl accumulo2 = new MiniAccumuloClusterImpl(macConfig2);
 
