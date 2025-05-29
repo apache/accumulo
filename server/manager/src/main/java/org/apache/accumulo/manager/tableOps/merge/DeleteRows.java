@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -113,7 +114,7 @@ public class DeleteRows extends ManagerRepo {
 
           // Create the ranges for fencing the files, this takes the place of
           // chop compactions and splits
-          final List<Range> ranges = createRangesForDeletion(tabletMetadata, range);
+          final List<Range> ranges = createRangesForDeletion(fateId, tabletMetadata, range);
           Preconditions.checkState(!ranges.isEmpty(),
               "No ranges found that overlap deletion range.");
 
@@ -274,7 +275,7 @@ public class DeleteRows extends ManagerRepo {
 
   // Instead of splitting or chopping tablets for a delete we instead create ranges
   // to exclude the portion of the tablet that should be deleted
-  private List<Range> createRangesForDeletion(TabletMetadata tabletMetadata,
+  private List<Range> createRangesForDeletion(FateId fateId, TabletMetadata tabletMetadata,
       final KeyExtent deleteRange) {
     final KeyExtent tabletExtent = tabletMetadata.getExtent();
 
@@ -287,23 +288,24 @@ public class DeleteRows extends ManagerRepo {
 
     if (deleteRange.overlaps(tabletExtent)) {
       if (deleteRange.prevEndRow() != null
-          && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))) {
-        log.trace("Fencing tablet {} files to ({},{}]", tabletExtent, tabletExtent.prevEndRow(),
-            deleteRange.prevEndRow());
+          && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))
+          && !Objects.equals(tabletExtent.prevEndRow(), deleteRange.prevEndRow())) {
+        log.trace("{} Fencing tablet {} files to ({},{}]", fateId, tabletExtent,
+            tabletExtent.prevEndRow(), deleteRange.prevEndRow());
         ranges.add(new Range(tabletExtent.prevEndRow(), false, deleteRange.prevEndRow(), true));
       }
 
       // This covers the case of when a deletion range overlaps the last tablet. We need to create a
       // range that excludes the deletion.
-      if (deleteRange.endRow() != null
-          && tabletMetadata.getExtent().contains(deleteRange.endRow())) {
-        log.trace("Fencing tablet {} files to ({},{}]", tabletExtent, deleteRange.endRow(),
-            tabletExtent.endRow());
+      if (deleteRange.endRow() != null && tabletMetadata.getExtent().contains(deleteRange.endRow())
+          && !Objects.equals(deleteRange.endRow(), tabletExtent.endRow())) {
+        log.trace("{} Fencing tablet {} files to ({},{}]", fateId, tabletExtent,
+            deleteRange.endRow(), tabletExtent.endRow());
         ranges.add(new Range(deleteRange.endRow(), false, tabletExtent.endRow(), true));
       }
     } else {
-      log.trace("Fencing tablet {} files to itself because it does not overlap delete range",
-          tabletExtent);
+      log.trace("{} Fencing tablet {} files to itself because it does not overlap delete range",
+          fateId, tabletExtent);
       ranges.add(tabletExtent.toDataRange());
     }
 

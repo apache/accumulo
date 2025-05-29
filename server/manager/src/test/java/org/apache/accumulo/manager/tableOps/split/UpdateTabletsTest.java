@@ -152,8 +152,9 @@ public class UpdateTabletsTest {
     EasyMock.expect(tabletMeta.getFilesMap()).andReturn(tabletFiles).anyTimes();
     EasyMock.replay(tabletMeta);
 
+    var fid = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> results =
-        UpdateTablets.getNewTabletFiles(newExtents, tabletMeta, firstAndLastKeys::get);
+        UpdateTablets.getNewTabletFiles(fid, newExtents, tabletMeta, firstAndLastKeys::get);
 
     assertEquals(expected.keySet(), results.keySet());
     expected.forEach(((extent, files) -> {
@@ -174,7 +175,7 @@ public class UpdateTabletsTest {
     EasyMock.replay(tabletMeta);
 
     Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> results2 =
-        UpdateTablets.getNewTabletFiles(newExtents, tabletMeta, firstAndLastKeys::get);
+        UpdateTablets.getNewTabletFiles(fid, newExtents, tabletMeta, firstAndLastKeys::get);
     assertEquals(expected.keySet(), results2.keySet());
     expected.forEach(((extent, files) -> {
       assertEquals(files, results2.get(extent));
