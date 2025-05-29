@@ -22,14 +22,18 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.converters.IParameterSplitter;
 
@@ -106,4 +110,95 @@ public class ConfigOpts extends Help {
       }
     }
   }
+
+  @Override
+  public void printUsage(JCommander commander, String programName) {
+
+    final String indent = "    ";
+    final Set<String> validPrefixes = new HashSet<>();
+
+    switch (programName) {
+      case "compactor":
+        validPrefixes.add(Property.COMPACTOR_PREFIX.getKey());
+        break;
+      case "compaction-coordinator":
+        validPrefixes.add(Property.COMPACTION_COORDINATOR_PREFIX.getKey());
+        break;
+      case "gc":
+        validPrefixes.add(Property.GC_PREFIX.getKey());
+        break;
+      case "manager":
+        validPrefixes.add(Property.MANAGER_PREFIX.getKey());
+        break;
+      case "monitor":
+        validPrefixes.add(Property.MONITOR_PREFIX.getKey());
+        break;
+      case "sserver":
+        validPrefixes.add(Property.SSERV_PREFIX.getKey());
+        break;
+      case "tserver":
+        validPrefixes.add(Property.TSERV_PREFIX.getKey());
+        break;
+      default:
+        break;
+    }
+
+    super.printUsage(commander, programName);
+    // If the program name is a server process, then print out
+    // possible property overrides for the -o argument.
+    if (!validPrefixes.isEmpty()) {
+      validPrefixes.add(Property.GENERAL_PREFIX.getKey());
+      validPrefixes.add(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey());
+      validPrefixes.add(Property.RPC_PREFIX.getKey());
+
+      int maxPropLength = 0;
+      int maxDefaultLength = 0;
+
+      for (Property prop : Property.values()) {
+        if (prop.getKey().length() > maxPropLength) {
+          maxPropLength = prop.getKey().length();
+        }
+        if (prop.getDefaultValue() != null && prop.getDefaultValue().length() > maxDefaultLength) {
+          maxDefaultLength = prop.getDefaultValue().length();
+        }
+      }
+
+      final String propOnlyFormat =
+          "%1$" + maxPropLength + "s %2$" + Math.min(52, maxDefaultLength) + "s";
+      final String deprecatedOnlyFormat = propOnlyFormat + " (deprecated)";
+      final String replacedFormat = propOnlyFormat + " (deprecated - replaced by %3$s)";
+
+      StringBuilder sb = new StringBuilder();
+      sb.append(indent).append(
+          "Below are the properties, and their default values, that can be used with the '-o' (overrides) option.\n");
+      sb.append(indent).append(" Long default values will be truncated.\n");
+      sb.append(indent).append(
+          " See the user guide at https://accumulo.apache.org/ for more information about each property.\n");
+      sb.append("\n");
+      for (Property prop : Property.values()) {
+        if (prop.getType() == PropertyType.PREFIX) {
+          continue;
+        }
+        for (String prefix : validPrefixes) {
+          String key = prop.getKey();
+          if (key.startsWith(prefix)) {
+            String value = prop.getDefaultValue();
+            if (value.length() > 40) {
+              value = value.substring(0, 40) + " (truncated)";
+            }
+            if (!prop.isDeprecated() && !prop.isReplaced()) {
+              sb.append(String.format(propOnlyFormat, key, value));
+            } else if (prop.isDeprecated() && !prop.isReplaced()) {
+              sb.append(String.format(deprecatedOnlyFormat, key, value));
+            } else {
+              sb.append(String.format(replacedFormat, key, value, prop.replacedBy().getKey()));
+            }
+            sb.append("\n");
+          }
+        }
+      }
+      commander.getConsole().println(sb.toString());
+    }
+  }
+
 }

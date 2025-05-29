@@ -24,7 +24,8 @@ import com.beust.jcommander.Parameter;
 
 public class ServerOpts extends ConfigOpts {
 
-  @Parameter(names = {"-a", "--address"}, description = "address to bind to")
+  @Parameter(names = {"-a", "--address"},
+      description = "address to bind to (deprecated - use rpc.bind.addr instead)")
   private String address = null;
 
   public String getAddress() {

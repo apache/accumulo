@@ -40,9 +40,13 @@ public class Help {
       exitWithError(ex.getMessage(), 1);
     }
     if (help) {
-      commander.usage();
+      printUsage(commander, programName);
       exit(0);
     }
+  }
+
+  public void printUsage(JCommander commander, String programName) {
+    commander.usage();
   }
 
   public void exit(int status) {

@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server;
 
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,8 +64,19 @@ public abstract class AbstractServer
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
-    this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
+    String oldBindParameter = opts.getAddress();
+    String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    if (oldBindParameter == null && newBindParameter.equals("")) {
+      throw new IllegalStateException(
+          "Bind address not specified via '-a' or '-o rpc.bind.addr=<address>'");
+    }
+    if (oldBindParameter == null
+        || oldBindParameter.equals("0.0.0.0") && !newBindParameter.equals("")) {
+      this.hostname = newBindParameter;
+    } else {
+      this.hostname = oldBindParameter;
+    }
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
