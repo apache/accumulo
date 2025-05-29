@@ -80,6 +80,7 @@ public class InMemoryMapTest extends WithTestNames {
     EasyMock.expect(context.getTableConfiguration(EasyMock.anyObject())).andReturn(tConf)
         .anyTimes();
     EasyMock.expect(tConf.getCryptoService()).andReturn(NoCryptoServiceFactory.NONE).anyTimes();
+    EasyMock.expect(tConf.get(Property.TABLE_SAMPLER)).andReturn("").anyTimes();
     EasyMock.expect(context.getHadoopConf()).andReturn(hadoopConf).anyTimes();
     EasyMock.replay(context, tConf);
     return context;

@@ -22,23 +22,30 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.SampleNotPresentException;
+import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
+import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 
+/**
+ * IteratorEnvironment used on the server side that has a little different handling for Sampling and
+ * provides access to the ServerContext and top level iterators.
+ */
 public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
     implements SystemIteratorEnvironment {
 
   public static class Builder extends ClientIteratorEnvironment.Builder {
 
     private final ServerContext ctx;
-    private Optional<ArrayList<SortedKeyValueIterator<Key,Value>>> topLevelIterators =
-        Optional.empty();
+    private ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators = new ArrayList<>();
 
     public Builder(ServerContext ctx) {
       this.ctx = ctx;
@@ -47,7 +54,7 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
 
     public Builder
         withTopLevelIterators(ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators) {
-      this.topLevelIterators = Optional.of(topLevelIterators);
+      this.topLevelIterators = topLevelIterators;
       return this;
     }
 
@@ -65,7 +72,7 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
   }
 
   private final ServerContext ctx;
-  private final Optional<ArrayList<SortedKeyValueIterator<Key,Value>>> topLevelIterators;
+  private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators;
 
   protected SystemIteratorEnvironmentImpl(SystemIteratorEnvironmentImpl.Builder builder) {
     super(builder);
@@ -80,10 +87,55 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
   }
 
   @Override
+  public boolean isFullMajorCompaction() {
+    if (getIteratorScope() != IteratorScope.majc) {
+      throw new IllegalStateException(
+          "Asked about major compaction type when scope is " + getIteratorScope());
+    }
+    return super.isFullMajorCompaction();
+  }
+
+  @Override
+  public boolean isUserCompaction() {
+    if (getIteratorScope() != IteratorScope.majc) {
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
+    }
+    return super.isUserCompaction();
+  }
+
+  @Override
+  public boolean isSamplingEnabled() {
+    if (getSamplerConfiguration() == null) {
+      return false;
+    } else {
+      return true;
+    }
+  }
+
+  @Override
+  public SamplerConfiguration getSamplerConfiguration() {
+    // Server-side we take into account the table configuration for sampling
+    if (samplerConfig == null || samplerConfig.isEmpty()) {
+      // only create this once so that it stays the same, even if config changes
+      SamplerConfigurationImpl sci =
+          SamplerConfigurationImpl.newSamplerConfig(ctx.getTableConfiguration(getTableId()));
+      if (sci == null) {
+        return null;
+      }
+      samplerConfig = Optional.of(sci.toSamplerConfiguration());
+    }
+    return samplerConfig.orElse(null);
+  }
+
+  @Override
   public IteratorEnvironment cloneWithSamplingEnabled() {
-    // This will throw a SampleNotPresentException
-    // if the SamplerConfiguration is not set
-    getSamplerConfiguration();
+    if (!getIteratorScope().equals(IteratorScope.scan)) {
+      throw new UnsupportedOperationException();
+    }
+    if (getSamplerConfiguration() == null) {
+      throw new SampleNotPresentException();
+    }
     return new SystemIteratorEnvironmentImpl(this);
   }
 
@@ -98,8 +150,7 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
     if (topLevelIterators.isEmpty()) {
       return iter;
     }
-    ArrayList<SortedKeyValueIterator<Key,Value>> allIters =
-        new ArrayList<>(topLevelIterators.orElseThrow());
+    ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
     allIters.add(iter);
     return new MultiIterator(allIters, false);
   }

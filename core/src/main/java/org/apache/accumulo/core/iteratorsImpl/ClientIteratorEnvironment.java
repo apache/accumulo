@@ -46,8 +46,8 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     private boolean isFullMajorCompaction = false;
     private Optional<Authorizations> auths = Optional.empty();
     private boolean isUserCompaction = false;
-    private Optional<TableId> tableId = Optional.empty();
-    private Optional<SamplerConfiguration> samplerConfig = Optional.empty();
+    protected Optional<TableId> tableId = Optional.empty();
+    protected Optional<SamplerConfiguration> samplerConfig = Optional.empty();
     private boolean samplingEnabled = false;
     protected Optional<ServiceEnvironment> env = Optional.empty();
 
@@ -115,7 +115,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   private final Optional<Authorizations> auths;
   private final boolean isUserCompaction;
   private final Optional<TableId> tableId;
-  private final Optional<SamplerConfiguration> samplerConfig;
+  protected Optional<SamplerConfiguration> samplerConfig;
   private final boolean samplingEnabled;
   private final Optional<ServiceEnvironment> env;
 
@@ -173,7 +173,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   @Override
   public Authorizations getAuthorizations() {
     if (getIteratorScope() != IteratorScope.scan) {
-      throw new IllegalStateException("Iterator scope is not scan");
+      throw new UnsupportedOperationException("Iterator scope is not scan");
     }
     return auths.orElseThrow();
   }
