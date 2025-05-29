@@ -25,13 +25,13 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.FateStatusEnforcementIT;
+import org.apache.accumulo.test.fate.FateStatusEnforcementITBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 
-public class UserFateStatusEnforcementIT_SimpleSuite extends FateStatusEnforcementIT {
+public class UserFateStatusEnforcementIT_SimpleSuite extends FateStatusEnforcementITBase {
   private ClientContext client;
   private String table;
 

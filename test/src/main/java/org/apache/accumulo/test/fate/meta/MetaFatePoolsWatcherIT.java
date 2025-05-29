@@ -28,13 +28,13 @@ import java.io.File;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
+import org.apache.accumulo.test.fate.FatePoolsWatcherITBase;
 import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
-public class MetaFatePoolsWatcherIT extends FatePoolsWatcherIT {
+public class MetaFatePoolsWatcherIT extends FatePoolsWatcherITBase {
   @TempDir
   private static File tempDir;
 

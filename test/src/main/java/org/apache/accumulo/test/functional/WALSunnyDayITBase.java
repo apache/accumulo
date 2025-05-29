@@ -70,7 +70,7 @@ import org.junit.jupiter.api.Test;
 
 import com.google.common.collect.Iterators;
 
-public abstract class WALSunnyDayBaseIT extends ConfigurableMacBase {
+public abstract class WALSunnyDayITBase extends ConfigurableMacBase {
 
   private static final Text CF = new Text(new byte[0]);
 

@@ -35,7 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
  * that rejection handlers such as the handler used for
  * CompactionCoordinator.compactionFailedForLevel work.
  */
-public class FlakyExternalCompaction2IT extends ExternalCompaction2BaseIT {
+public class FlakyExternalCompaction2IT extends ExternalCompaction2ITBase {
 
   static class FlakyExternalCompaction2Config extends ExternalCompaction2Config {
     @Override

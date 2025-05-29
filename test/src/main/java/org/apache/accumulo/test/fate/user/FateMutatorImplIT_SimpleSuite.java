@@ -33,13 +33,13 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.FateStore;
+import org.apache.accumulo.core.fate.FateStore.FateReservation;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
-import org.apache.accumulo.core.fate.user.FateMutator;
 import org.apache.accumulo.core.fate.user.FateMutatorImpl;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.fate.FateIT;
+import org.apache.accumulo.test.fate.FateITBase.TestRepo;
+import org.apache.accumulo.test.fate.FateTestRunner.TestEnv;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -75,25 +75,24 @@ public class FateMutatorImplIT_SimpleSuite extends SharedMiniClusterBase {
 
       ClientContext context = (ClientContext) client;
 
-      FateId fateId =
-          FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
+      var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
       // add some repos in order
-      FateMutatorImpl<FateIT.TestEnv> fateMutator = new FateMutatorImpl<>(context, table, fateId);
-      fateMutator.putRepo(100, new FateIT.TestRepo("test")).mutate();
-      FateMutatorImpl<FateIT.TestEnv> fateMutator1 = new FateMutatorImpl<>(context, table, fateId);
-      fateMutator1.putRepo(99, new FateIT.TestRepo("test")).mutate();
-      FateMutatorImpl<FateIT.TestEnv> fateMutator2 = new FateMutatorImpl<>(context, table, fateId);
-      fateMutator2.putRepo(98, new FateIT.TestRepo("test")).mutate();
+      var fateMutator = new FateMutatorImpl<TestEnv>(context, table, fateId);
+      fateMutator.putRepo(100, new TestRepo("test")).mutate();
+      var fateMutator1 = new FateMutatorImpl<TestEnv>(context, table, fateId);
+      fateMutator1.putRepo(99, new TestRepo("test")).mutate();
+      var fateMutator2 = new FateMutatorImpl<TestEnv>(context, table, fateId);
+      fateMutator2.putRepo(98, new TestRepo("test")).mutate();
 
       // make sure we cant add a repo that has already been added
-      FateMutatorImpl<FateIT.TestEnv> fateMutator3 = new FateMutatorImpl<>(context, table, fateId);
+      var fateMutator3 = new FateMutatorImpl<TestEnv>(context, table, fateId);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator3.putRepo(98, new FateIT.TestRepo("test")).mutate(),
+          () -> fateMutator3.putRepo(98, new TestRepo("test")).mutate(),
           "Repo in position 98 already exists. Expected to not be able to add it again.");
-      FateMutatorImpl<FateIT.TestEnv> fateMutator4 = new FateMutatorImpl<>(context, table, fateId);
+      var fateMutator4 = new FateMutatorImpl<TestEnv>(context, table, fateId);
       assertThrows(IllegalStateException.class,
-          () -> fateMutator4.putRepo(99, new FateIT.TestRepo("test")).mutate(),
+          () -> fateMutator4.putRepo(99, new TestRepo("test")).mutate(),
           "Repo in position 99 already exists. Expected to not be able to add it again.");
     }
   }
@@ -106,8 +105,7 @@ public class FateMutatorImplIT_SimpleSuite extends SharedMiniClusterBase {
 
       ClientContext context = (ClientContext) client;
 
-      FateId fateId =
-          FateId.from(FateInstanceType.fromNamespaceOrTableName(table), UUID.randomUUID());
+      var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
 
       // use require status passing all statuses. without the status column present this should fail
       assertThrows(IllegalStateException.class,
@@ -180,15 +178,13 @@ public class FateMutatorImplIT_SimpleSuite extends SharedMiniClusterBase {
 
       ClientContext context = (ClientContext) client;
 
-      FateId fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
-      ZooUtil.LockID lockID = new ZooUtil.LockID("/locks", "L1", 50);
-      FateStore.FateReservation reservation =
-          FateStore.FateReservation.from(lockID, UUID.randomUUID());
-      FateStore.FateReservation wrongReservation =
-          FateStore.FateReservation.from(lockID, UUID.randomUUID());
+      var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+      var lockID = new ZooUtil.LockID("/locks", "L1", 50);
+      var reservation = FateReservation.from(lockID, UUID.randomUUID());
+      var wrongReservation = FateReservation.from(lockID, UUID.randomUUID());
 
       // Ensure that reserving is the only thing we can do
-      FateMutator.Status status =
+      var status =
           new FateMutatorImpl<>(context, table, fateId).putUnreserveTx(reservation).tryMutate();
       assertEquals(REJECTED, status);
       status = new FateMutatorImpl<>(context, table, fateId).putReservedTx(reservation).tryMutate();

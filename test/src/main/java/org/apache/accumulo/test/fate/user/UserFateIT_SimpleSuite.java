@@ -42,12 +42,12 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT;
+import org.apache.accumulo.test.fate.FateITBase;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class UserFateIT_SimpleSuite extends FateIT {
+public class UserFateIT_SimpleSuite extends FateITBase {
 
   private String table;
 

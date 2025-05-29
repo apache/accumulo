@@ -60,9 +60,9 @@ import org.junit.jupiter.api.Timeout;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class FateIT extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
+public abstract class FateITBase extends SharedMiniClusterBase implements FateTestRunner<TestEnv> {
 
-  private static final Logger LOG = LoggerFactory.getLogger(FateIT.class);
+  private static final Logger LOG = LoggerFactory.getLogger(FateITBase.class);
 
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
@@ -99,7 +99,7 @@ public abstract class FateIT extends SharedMiniClusterBase implements FateTestRu
     public Repo<TestEnv> call(FateId fateId, TestEnv environment) throws Exception {
       LOG.debug("Entering call {}", fateId);
       try {
-        FateIT.inCall();
+        FateITBase.inCall();
         return null;
       } finally {
         LOG.debug("Leaving call {}", fateId);

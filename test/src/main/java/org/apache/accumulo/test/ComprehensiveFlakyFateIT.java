@@ -30,7 +30,7 @@ import org.junit.jupiter.api.BeforeAll;
  * This test touches a lot of the Accumulo API, so it's a good candidate to run using
  * {@link org.apache.accumulo.test.fate.FlakyFate} because it will run a lot of FATE operations.
  */
-public class ComprehensiveFlakyFateIT extends ComprehensiveBaseIT {
+public class ComprehensiveFlakyFateIT extends ComprehensiveITBase {
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(

@@ -48,12 +48,12 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class CompactionBaseIT extends AccumuloClusterHarness {
+public abstract class CompactionITBase extends AccumuloClusterHarness {
 
   public static final String COMPACTOR_GROUP_1 = "cg1";
   public static final String COMPACTOR_GROUP_2 = "cg2";
   protected static final int MAX_DATA = 1000;
-  private static final Logger log = LoggerFactory.getLogger(CompactionBaseIT.class);
+  private static final Logger log = LoggerFactory.getLogger(CompactionITBase.class);
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
@@ -65,9 +65,9 @@ public abstract class CompactionBaseIT extends AccumuloClusterHarness {
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
 
     cfg.getClusterServerConfiguration()
-        .addCompactorResourceGroup(CompactionBaseIT.COMPACTOR_GROUP_1, 1);
+        .addCompactorResourceGroup(CompactionITBase.COMPACTOR_GROUP_1, 1);
     cfg.getClusterServerConfiguration()
-        .addCompactorResourceGroup(CompactionBaseIT.COMPACTOR_GROUP_2, 1);
+        .addCompactorResourceGroup(CompactionITBase.COMPACTOR_GROUP_2, 1);
   }
 
   @Test
