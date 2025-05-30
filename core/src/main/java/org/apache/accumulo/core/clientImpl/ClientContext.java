@@ -242,11 +242,11 @@ public class ClientContext implements AccumuloClient {
     } else {
       // Provide a default UEH that just logs the error
       if (ueh == null) {
-        clientThreadPools = ThreadPools.getClientThreadPools((t, e) -> {
+        clientThreadPools = ThreadPools.getClientThreadPools(serverConf, (t, e) -> {
           log.error("Caught an Exception in client background thread: {}. Thread is dead.", t, e);
         });
       } else {
-        clientThreadPools = ThreadPools.getClientThreadPools(ueh);
+        clientThreadPools = ThreadPools.getClientThreadPools(serverConf, ueh);
       }
     }
   }
