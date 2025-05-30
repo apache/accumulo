@@ -287,6 +287,8 @@ public class DeleteRows extends ManagerRepo {
     final List<Range> ranges = new ArrayList<>();
 
     if (deleteRange.overlaps(tabletExtent)) {
+      // Following checks that deleteRange.prevEndRow() is > tabletExtent.prevEndRow() and falls
+      // within tabletExtent.
       if (deleteRange.prevEndRow() != null
           && tabletExtent.contains(followingRow(deleteRange.prevEndRow()))
           && !Objects.equals(tabletExtent.prevEndRow(), deleteRange.prevEndRow())) {
@@ -296,7 +298,8 @@ public class DeleteRows extends ManagerRepo {
       }
 
       // This covers the case of when a deletion range overlaps the last tablet. We need to create a
-      // range that excludes the deletion.
+      // range that excludes the deletion. Following checks that deleteRange.endRow() is <
+      // tabletExtent.endRow() and falls within tabletExtent.
       if (deleteRange.endRow() != null && tabletMetadata.getExtent().contains(deleteRange.endRow())
           && !Objects.equals(deleteRange.endRow(), tabletExtent.endRow())) {
         log.trace("{} Fencing tablet {} files to ({},{}]", fateId, tabletExtent,
