@@ -49,7 +49,7 @@ import com.google.gson.stream.JsonWriter;
 public class LoadMappingIteratorTest {
   private LoadMappingIterator createLoadMappingIter(Map<KeyExtent,String> loadRanges)
       throws IOException {
-    Map<KeyExtent,Bulk.Files> unorderedMapping = new LinkedHashMap<>();
+    Map<KeyExtent,Bulk.Files> mapping = new LinkedHashMap<>();
 
     loadRanges.forEach((extent, files) -> {
       Bulk.Files testFiles = new Bulk.Files();
@@ -59,13 +59,13 @@ public class LoadMappingIteratorTest {
         testFiles.add(new Bulk.FileInfo(f, c, c));
       }
 
-      unorderedMapping.put(extent, testFiles);
+      mapping.put(extent, testFiles);
     });
 
     // Serialize unordered mapping directly
     byte[] serializedData;
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-      writeLoadMappingWithoutSorting(unorderedMapping, "/some/dir", p -> baos);
+      writeLoadMappingWithoutSorting(mapping, "/some/dir", p -> baos);
       serializedData = baos.toByteArray();
     }
     ByteArrayInputStream bais = new ByteArrayInputStream(serializedData);
