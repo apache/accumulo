@@ -316,7 +316,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           // Create a fake file+size entry that predicts what this projected compaction would
           // produce
           var futureFile = getExpectedFile(group, nextExpected);
-          Preconditions.checkState(expectedFiles.add(futureFile));
+          Preconditions.checkState(expectedFiles.add(futureFile), "Unexpected duplicate %s in %s",
+              futureFile, expectedFiles);
           // look for any compaction work in the remaining set of files
           group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
               maxSizeToCompact);
