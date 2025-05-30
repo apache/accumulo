@@ -25,7 +25,6 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.Help;
@@ -114,7 +113,6 @@ public class ZooZap implements KeywordExecutable {
     Opts opts = new Opts();
     opts.parseArgs(keyword(), args);
 
-    final Predicate<String> groupPredicate;
     final AddressSelector addressSelector;
 
     if (opts.hostPortExcludeFile != null) {

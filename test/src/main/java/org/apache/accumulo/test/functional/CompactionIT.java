@@ -120,7 +120,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
-public class CompactionIT extends CompactionBaseIT {
+public class CompactionIT extends CompactionITBase {
 
   public static class TestFilter extends Filter {
 

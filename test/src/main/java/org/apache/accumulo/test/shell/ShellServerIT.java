@@ -106,7 +106,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -1152,8 +1151,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
     ts.exec("deletetable -f formatter_test", true);
 
-    assertTrue(Iterables.elementsEqual(expectedDefault, new ArrayList<>(actualDefault)));
-    assertTrue(Iterables.elementsEqual(expectedFormatted, new ArrayList<>(actualFormatted)));
+    assertEquals(expectedDefault, actualDefault);
+    assertEquals(expectedFormatted, actualFormatted);
   }
 
   /**
@@ -1933,9 +1932,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
         Scanner s = client.createScanner(table, Authorizations.EMPTY);
         BatchScanner bs = client.createBatchScanner(table)) {
-      assertThrows(RuntimeException.class, () -> Iterables.size(s));
+      assertThrows(RuntimeException.class, () -> s.stream().count());
       bs.setRanges(Collections.singleton(new Range()));
-      assertThrows(RuntimeException.class, () -> Iterables.size(bs));
+      assertThrows(RuntimeException.class, () -> bs.stream().count());
     }
 
   }

@@ -1567,6 +1567,7 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.COMPACTION_SERVICE_PREFIX.getKey())
         || key.startsWith(Property.SSERV_PREFIX.getKey())
+        || key.startsWith(Property.COMPACTION_COORDINATOR_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
