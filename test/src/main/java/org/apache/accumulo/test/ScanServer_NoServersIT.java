@@ -187,7 +187,19 @@ public class ScanServer_NoServersIT extends SharedMiniClusterBase {
 
   @Test
   public void testScanWithTabletAvailabilityMix() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+    // create client config that sets timeToWaitForScanServers to zero so that tserver fallback is
+    // immediate when no scan servers are present.
+    var clientProps = new Properties();
+    clientProps.putAll(getClientProps());
+    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'0s',"
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
+    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
+    clientProps.put("scan.server.selector.opts.profiles",
+        scanServerSelectorProfiles.replace("'", "\""));
+
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
       String tableName = getUniqueNames(1)[0];
 
       setupTableWithTabletAvailabilityMix(client, tableName);
@@ -215,7 +227,19 @@ public class ScanServer_NoServersIT extends SharedMiniClusterBase {
 
   @Test
   public void testBatchScanWithTabletAvailabilityMix() throws Exception {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+
+    // create client config that sets timeToWaitForScanServers to zero so that tserver fallback is
+    // immediate when no scan servers are present.
+    var clientProps = new Properties();
+    clientProps.putAll(getClientProps());
+    String scanServerSelectorProfiles = "[{'isDefault':true,'maxBusyTimeout':'5m',"
+        + "'busyTimeoutMultiplier':8, 'scanTypeActivations':[], 'timeToWaitForScanServers':'0s',"
+        + "'attemptPlans':[{'servers':'3', 'busyTimeout':'1s'}]}]";
+    clientProps.put("scan.server.selector.impl", ConfigurableScanServerSelector.class.getName());
+    clientProps.put("scan.server.selector.opts.profiles",
+        scanServerSelectorProfiles.replace("'", "\""));
+
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
       final String tableName = getUniqueNames(1)[0];
 
       setupTableWithTabletAvailabilityMix(client, tableName);
