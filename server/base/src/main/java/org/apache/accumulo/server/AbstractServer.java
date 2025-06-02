@@ -22,7 +22,6 @@ import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -181,28 +180,15 @@ public abstract class AbstractServer
    * </pre>
    */
   public void runServer() throws Exception {
-    final AtomicReference<Throwable> err = new AtomicReference<>();
     serverThread = new Thread(TraceUtil.wrap(this), applicationName);
-    serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
+    serverThread.setUncaughtExceptionHandler(Threads.UEH);
     serverThread.start();
     serverThread.join();
     if (verificationThread != null) {
       verificationThread.interrupt();
       verificationThread.join();
     }
-    Throwable thrown = err.get();
-    if (thrown == null) {
-      log.info("{} process shut down.", getClass().getSimpleName());
-    } else {
-      log.error("{} process failure.", getClass().getSimpleName(), thrown);
-      if (thrown instanceof Error) {
-        throw (Error) thrown;
-      }
-      if (thrown instanceof Exception) {
-        throw (Exception) thrown;
-      }
-      throw new RuntimeException("Weird throwable type thrown", thrown);
-    }
+    log.info("{} process shut down.", getClass().getSimpleName());
   }
 
   @Override
