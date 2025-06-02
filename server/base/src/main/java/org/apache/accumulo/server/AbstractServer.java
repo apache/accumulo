@@ -190,9 +190,11 @@ public abstract class AbstractServer
       verificationThread.interrupt();
       verificationThread.join();
     }
-    log.info(getClass().getSimpleName() + " process shut down.");
     Throwable thrown = err.get();
-    if (thrown != null) {
+    if (thrown == null) {
+      log.info("{} process shut down.", getClass().getSimpleName());
+    } else {
+      log.error("{} process failure.", getClass().getSimpleName(), thrown);
       if (thrown instanceof Error) {
         throw (Error) thrown;
       }
