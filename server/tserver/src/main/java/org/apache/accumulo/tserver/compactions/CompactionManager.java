@@ -315,7 +315,7 @@ public class CompactionManager {
 
   public void start() {
     log.debug("Started compaction manager");
-    Threads.createThread("Compaction Manager", () -> mainLoop()).start();
+    Threads.createCriticalThread("Compaction Manager", () -> mainLoop()).start();
   }
 
   public CompactionServices getServices() {
