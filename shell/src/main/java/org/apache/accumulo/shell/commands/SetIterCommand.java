@@ -65,6 +65,7 @@ public class SetIterCommand extends Command {
   Option versionTypeOpt;
   Option reqvisTypeOpt;
   Option classnameTypeOpt;
+
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,

@@ -98,12 +98,10 @@ public class ThriftTransportKeyTest {
     SaslConnectionParams saslParams2 =
         user1.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
-    ThriftTransportKey ttk1 =
-        new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromParts("localhost", 9997),
-            1L, null, saslParams1);
-    ThriftTransportKey ttk2 =
-            new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromParts("localhost", 9997),
-                    1L, null, saslParams2);
+    ThriftTransportKey ttk1 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
+        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams1);
+    ThriftTransportKey ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
+        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
 
     // Should equals() and hashCode() to make sure we don't throw away thrift cnxns
     assertEquals(ttk1, ttk2);
@@ -121,11 +119,10 @@ public class ThriftTransportKeyTest {
     SaslConnectionParams saslParams2 =
         user2.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
-    ThriftTransportKey ttk1 =
-        new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromParts("localhost", 9997),
-            1L, null, saslParams1);
+    ThriftTransportKey ttk1 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
+        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams1);
     ThriftTransportKey ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-            HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
+        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
 
     assertNotEquals(ttk1, ttk2);
     assertNotEquals(ttk1.hashCode(), ttk2.hashCode());

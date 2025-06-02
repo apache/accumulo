@@ -339,8 +339,8 @@ public class AuthenticationTokenSecretManagerTest extends WithTestNames {
     // Make 2 keys, and add only one. The second has double the expiration of the first
     AuthenticationKey authKey1 =
         new AuthenticationKey(1, then, then + tokenLifetime, keyGen.generateKey());
-    AuthenticationKey authKey2 = new AuthenticationKey(2, then + tokenLifetime, then + tokenLifetime * 2,
-            keyGen.generateKey());
+    AuthenticationKey authKey2 = new AuthenticationKey(2, then + tokenLifetime,
+        then + tokenLifetime * 2, keyGen.generateKey());
     secretManager.addKey(authKey1);
 
     keyDistributor.remove(authKey1);

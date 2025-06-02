@@ -56,7 +56,8 @@ public class HadoopCredentialProviderTest {
 
   @BeforeAll
   public static void checkCredentialProviderAvailable() throws Exception {
-    URL populatedKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName);
+    URL populatedKeyStoreUrl =
+        HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName);
     URL emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
 
     assertNotNull(populatedKeyStoreUrl, "Could not find " + populatedKeyStoreName);

@@ -191,7 +191,8 @@ public class AuthenticationTokenKeyManagerTest {
     SecretKey secretKey2 = keyGen.generateKey();
 
     AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1);
-    AuthenticationKey authKey2 = new AuthenticationKey(2, tokenLifetime, tokenLifetime * 2, secretKey2);
+    AuthenticationKey authKey2 =
+        new AuthenticationKey(2, tokenLifetime, tokenLifetime * 2, secretKey2);
     AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
         zooDistributor, updateInterval, tokenLifetime);
 
