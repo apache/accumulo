@@ -35,6 +35,7 @@ import java.util.TreeSet;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.InvalidTabletHostingRequestException;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.ScannerBase;
@@ -54,7 +55,7 @@ public class TabletAvailabilityIT extends AccumuloClusterHarness {
   public void testSystemFails() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       for (SystemTables t : SystemTables.values()) {
-        assertThrows(IllegalArgumentException.class, () -> client.tableOperations()
+        assertThrows(AccumuloException.class, () -> client.tableOperations()
             .setTabletAvailability(t.tableName(), new Range(), UNHOSTED));
       }
     }

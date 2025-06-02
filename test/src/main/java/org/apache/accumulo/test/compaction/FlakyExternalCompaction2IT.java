@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.test.compaction;
 
-import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.ample.FlakyAmpleManager;
 import org.apache.accumulo.test.ample.FlakyAmpleServerContext;
 import org.apache.accumulo.test.ample.FlakyAmpleTserver;
 import org.apache.hadoop.conf.Configuration;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 
 /**
@@ -37,7 +35,7 @@ import org.junit.jupiter.api.BeforeAll;
  * that rejection handlers such as the handler used for
  * CompactionCoordinator.compactionFailedForLevel work.
  */
-public class FlakyExternalCompaction2IT extends ExternalCompaction2BaseIT {
+public class FlakyExternalCompaction2IT extends ExternalCompaction2ITBase {
 
   static class FlakyExternalCompaction2Config extends ExternalCompaction2Config {
     @Override
@@ -51,10 +49,5 @@ public class FlakyExternalCompaction2IT extends ExternalCompaction2BaseIT {
   @BeforeAll
   public static void setup() throws Exception {
     startMiniClusterWithConfig(new FlakyExternalCompaction2Config());
-  }
-
-  @AfterAll
-  public static void teardown() {
-    SharedMiniClusterBase.stopMiniCluster();
   }
 }

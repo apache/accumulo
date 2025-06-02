@@ -1154,28 +1154,11 @@
         <artifactId>maven-failsafe-plugin</artifactId>
         <executions>
           <execution>
-            <id>run-integration-test-suite</id>
-            <goals>
-              <goal>integration-test</goal>
-              <goal>verify</goal>
-            </goals>
-            <configuration>
-              <test>org.apache.accumulo.suites.SimpleSharedMacTestSuite</test>
-            </configuration>
-          </execution>
-          <execution>
             <id>run-integration-tests</id>
             <goals>
               <goal>integration-test</goal>
               <goal>verify</goal>
             </goals>
-            <configuration>
-              <!--
-                exclude tests that were run as part of the test suite and
-                the test suite itself
-              -->
-              <excludedGroups>SimpleMiniClusterSuite</excludedGroups>
-            </configuration>
           </execution>
         </executions>
       </plugin>

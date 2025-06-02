@@ -439,7 +439,7 @@ function control_services() {
         hosts="SSERVER_HOSTS_$group"
         for sserver in ${!hosts}; do
           if canRunOnHost "$sserver"; then
-            execute_command "$operation" "$sserver" sserver "$group" "-g" "$group"
+            execute_command "$operation" "$sserver" sserver "$group" "-o" "sserver.group=$group"
           fi
         done
       done

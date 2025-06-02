@@ -35,7 +35,7 @@ function findalljunitproblems() {
     opts='-PRlH'
   fi
   # find any new classes using something other than the jupiter API, except those allowed
-  grep "$opts" --include='*.java' 'org[.]junit[.](?!(jupiter|platform[.]suite)' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
+  grep "$opts" --include='*.java' 'org[.]junit[.](?!(jupiter|platform[.]suite))' | grep -Pv "^(${ALLOWED_PIPE_SEP//./[.]})\$"
   if ((${#ALLOWED[@]} != 0)); then
     # find any uses of the jupiter API in the allowed vintage classes
     grep "$opts" 'org[.]junit[.]jupiter' "${ALLOWED[@]}"
