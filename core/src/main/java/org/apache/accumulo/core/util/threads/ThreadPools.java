@@ -259,6 +259,9 @@ public class ThreadPools {
   }
 
   private final UncaughtExceptionHandler handler;
+  private final AtomicBoolean metricsEnabled = new AtomicBoolean(true);
+  private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
+  private final List<ExecutorServiceMetrics> earlyExecutorServices = new ArrayList<>();
 
   private ThreadPools(UncaughtExceptionHandler ueh) {
     handler = ueh;
@@ -724,10 +727,6 @@ public class ThreadPools {
     return result;
   }
 
-  private final AtomicBoolean metricsEnabled = new AtomicBoolean(true);
-  private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
-  private final List<ExecutorServiceMetrics> earlyExecutorServices = new ArrayList<>();
-
   private void addExecutorServiceMetrics(ExecutorService executor, String name) {
     if (!metricsEnabled.get()) {
       return;
@@ -747,6 +746,7 @@ public class ThreadPools {
     if (registry.compareAndSet(null, r)) {
       synchronized (earlyExecutorServices) {
         earlyExecutorServices.forEach(e -> e.bindTo(r));
+        earlyExecutorServices.clear();
       }
     } else {
       throw new IllegalStateException("setMeterRegistry called more than once");
