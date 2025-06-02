@@ -246,7 +246,7 @@ public class ClientContext implements AccumuloClient {
           log.error("Caught an Exception in client background thread: {}. Thread is dead.", t, e);
         });
       } else {
-        clientThreadPools = ThreadPools.getClientThreadPools(serverConf, ueh);
+        clientThreadPools = ThreadPools.getClientThreadPools(getConfiguration(), ueh);
       }
     }
   }
