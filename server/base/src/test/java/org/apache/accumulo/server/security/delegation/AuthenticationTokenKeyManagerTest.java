@@ -187,10 +187,11 @@ public class AuthenticationTokenKeyManagerTest {
   public void testExistingKeysAreAddedAtStartup() throws Exception {
     long updateInterval = 0;
     long tokenLifetime = 100_000L;
-    SecretKey secretKey1 = keyGen.generateKey(), secretKey2 = keyGen.generateKey();
+    SecretKey secretKey1 = keyGen.generateKey();
+    SecretKey secretKey2 = keyGen.generateKey();
 
-    AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1),
-        authKey2 = new AuthenticationKey(2, tokenLifetime, tokenLifetime * 2, secretKey2);
+    AuthenticationKey authKey1 = new AuthenticationKey(1, 0, tokenLifetime, secretKey1);
+    AuthenticationKey authKey2 = new AuthenticationKey(2, tokenLifetime, tokenLifetime * 2, secretKey2);
     AuthenticationTokenKeyManager keyManager = new AuthenticationTokenKeyManager(secretManager,
         zooDistributor, updateInterval, tokenLifetime);
 

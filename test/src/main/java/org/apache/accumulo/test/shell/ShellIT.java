@@ -502,7 +502,8 @@ public class ShellIT extends SharedMiniClusterBase {
 
     for (Property property : Property.values()) {
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
 
       // Skip test if we can't set this property via shell
       if (!Property.isValidZooPropertyKey(property.getKey())) {

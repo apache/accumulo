@@ -170,7 +170,8 @@ public class CloneTestIT extends SharedMiniClusterBase {
       s.setRange(Range.prefix(tableId));
 
       Key k;
-      Text cf = new Text(), cq = new Text();
+      Text cf = new Text();
+      Text cq = new Text();
       int itemsInspected = 0;
       var pattern = Pattern.compile("[tc]-[0-9a-z]+");
       for (Entry<Key,Value> entry : s) {

@@ -583,7 +583,8 @@ public class Tablet extends TabletBase {
   private MinorCompactionTask createMinorCompactionTask(long flushId,
       MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
-    long t1, t2;
+    long t1;
+    long t2;
 
     StringBuilder logMessage = null;
 

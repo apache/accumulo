@@ -47,7 +47,10 @@ import org.apache.hadoop.io.Text;
 
 public class GetSplitsCommand extends Command {
 
-  private Option outputFileOpt, maxSplitsOpt, base64Opt, verboseOpt;
+  private Option outputFileOpt;
+  private Option maxSplitsOpt;
+  private Option base64Opt;
+  private Option verboseOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

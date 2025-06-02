@@ -681,7 +681,10 @@ public class NamespacesIT extends SharedMiniClusterBase {
    */
   @Test
   public void testPermissions() throws Exception {
-    ClusterUser user1 = getUser(0), user2 = getUser(1), root = getAdminUser();
+    ClusterUser user1 = getUser(0);
+    ClusterUser user2 = getUser(1);
+    ClusterUser root = getAdminUser();
+
     String u1 = user1.getPrincipal();
     String u2 = user2.getPrincipal();
     PasswordToken pass =

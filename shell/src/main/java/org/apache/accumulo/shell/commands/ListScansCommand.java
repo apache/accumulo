@@ -43,7 +43,10 @@ import com.google.common.collect.Lists;
 
 public class ListScansCommand extends Command {
 
-  private Option serverOpt, tserverOption, rgOpt, disablePaginationOpt;
+  private Option serverOpt;
+  private Option tserverOption;
+  private Option rgOpt;
+  private Option disablePaginationOpt;
 
   @Override
   public String description() {

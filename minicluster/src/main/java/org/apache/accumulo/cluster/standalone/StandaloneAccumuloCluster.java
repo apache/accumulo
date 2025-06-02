@@ -60,7 +60,10 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
           ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private final ClientInfo info;
-  private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
+  private String accumuloHome;
+  private String clientAccumuloConfDir;
+  private String serverAccumuloConfDir;
+  private String hadoopConfDir;
   private final Path tmp;
   private final List<ClusterUser> users;
   private String clientCmdPrefix;

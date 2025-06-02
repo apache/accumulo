@@ -33,10 +33,7 @@ import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
-import org.apache.accumulo.core.data.ConstraintViolationSummary;
-import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.TabletId;
-import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.data.*;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.shell.Shell;
@@ -47,7 +44,8 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class InsertCommand extends Command {
-  private Option insertOptAuths, timestampOpt;
+  private Option insertOptAuths;
+  private Option timestampOpt;
   private Option timeoutOption;
   private Option durabilityOption;
 

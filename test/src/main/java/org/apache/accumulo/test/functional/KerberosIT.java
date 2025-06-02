@@ -396,7 +396,8 @@ public class KerberosIT extends AccumuloITBase {
         rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    final int numRows = 100, numColumns = 10;
+    final int numRows = 100;
+    final int numColumns = 10;
 
     // As the "root" user, open up the connection and get a delegation token
     final AuthenticationToken delegationToken =

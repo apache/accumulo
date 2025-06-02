@@ -251,7 +251,8 @@ public class CollectTabletStats {
     private int count;
     private long t1;
     private long t2;
-    private CountDownLatch startCdl, finishCdl;
+    private CountDownLatch startCdl;
+    private CountDownLatch finishCdl;
     private KeyExtent ke;
 
     Test(KeyExtent ke) {

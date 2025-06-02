@@ -757,7 +757,8 @@ public class Admin implements KeywordExecutable {
       new MessageFormat("setauths -u {0} -s {1}\n");
 
   private DefaultConfiguration defaultConfig;
-  private Map<String,String> siteConfig, systemConfig;
+  private Map<String,String> siteConfig;
+  private Map<String,String> systemConfig;
   private List<String> localUsers;
 
   public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {

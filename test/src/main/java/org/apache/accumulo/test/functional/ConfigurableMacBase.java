@@ -99,8 +99,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
     File localKeystoreFile = sslDirPath.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
     File publicTruststoreFile =
         sslDirPath.resolve("public-" + cfg.getInstanceName() + ".jks").toFile();
-    final String rootKeystorePassword = "root_keystore_password",
-        truststorePassword = "truststore_password";
+    final String rootKeystorePassword = "root_keystore_password";
+    final String truststorePassword = "truststore_password";
     try {
       String hostname = InetAddress.getLocalHost().getHostName();
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),

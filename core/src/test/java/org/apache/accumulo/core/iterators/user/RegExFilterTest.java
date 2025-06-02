@@ -248,8 +248,10 @@ public class RegExFilterTest {
   public void testNullByteInKey() throws IOException {
     TreeMap<Key,Value> tm = new TreeMap<>();
 
-    String s1 = "first", s2 = "second";
-    byte[] b1 = s1.getBytes(UTF_8), b2 = s2.getBytes(UTF_8), ball;
+    String s1 = "first";
+    String s2 = "second";
+    byte[] b1 = s1.getBytes(UTF_8);
+    byte[] b2 = s2.getBytes(UTF_8), ball;
     ball = new byte[b1.length + b2.length + 1];
     System.arraycopy(b1, 0, ball, 0, b1.length);
     ball[b1.length] = (byte) 0;

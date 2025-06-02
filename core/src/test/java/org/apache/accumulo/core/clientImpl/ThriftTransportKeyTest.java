@@ -100,9 +100,10 @@ public class ThriftTransportKeyTest {
 
     ThriftTransportKey ttk1 =
         new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromParts("localhost", 9997),
-            1L, null, saslParams1),
-        ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-            HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
+            1L, null, saslParams1);
+    ThriftTransportKey ttk2 =
+            new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromParts("localhost", 9997),
+                    1L, null, saslParams2);
 
     // Should equals() and hashCode() to make sure we don't throw away thrift cnxns
     assertEquals(ttk1, ttk2);
@@ -122,8 +123,8 @@ public class ThriftTransportKeyTest {
 
     ThriftTransportKey ttk1 =
         new ThriftTransportKey(ThriftClientTypes.CLIENT, HostAndPort.fromParts("localhost", 9997),
-            1L, null, saslParams1),
-        ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
+            1L, null, saslParams1);
+    ThriftTransportKey ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
             HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
 
     assertNotEquals(ttk1, ttk2);

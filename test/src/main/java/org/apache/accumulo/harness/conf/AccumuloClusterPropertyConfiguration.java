@@ -55,7 +55,8 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static AccumuloClusterPropertyConfiguration get() {
 
-    String clusterTypeValue = null, clientConf = null;
+    String clusterTypeValue = null;
+    String clientConf = null;
     String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     if (propertyFile != null) {
