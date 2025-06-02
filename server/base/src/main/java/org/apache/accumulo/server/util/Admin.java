@@ -141,10 +141,10 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandDescription = "Compaction Temp Files Utility")
   static class FindCompactionTmpFilesCommand {
-    @Parameter(names = "--tables", description = "comma separated list of table names")
+    @Parameter(names = {"-t", "--tables"}, description = "comma separated list of table names")
     String tables;
 
-    @Parameter(names = "--delete", description = "if true, will delete tmp files")
+    @Parameter(names = {"-d", "--delete"}, description = "if true, will delete tmp files")
     boolean delete = false;
   }
 

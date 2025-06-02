@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
+import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles;
 import org.apache.accumulo.server.util.FindCompactionTmpFiles.DeleteStats;
 import org.apache.hadoop.fs.FileSystem;
@@ -212,6 +214,59 @@ public class FindCompactionTmpFilesIT_SimpleSuite extends SharedMiniClusterBase 
 
       foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
       assertEquals(0, foundPaths.size());
+
+    }
+  }
+
+  @Test
+  public void testFindCompactionTmpFilesAdminCommand() throws Exception {
+
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+
+      String tableName = getUniqueNames(1)[0];
+      c.tableOperations().create(tableName);
+      ReadWriteIT.ingest(c, 100, 1, 1, 0, tableName);
+      c.tableOperations().flush(tableName);
+
+      String tableId = c.tableOperations().tableIdMap().get(tableName);
+      TableId tid = TableId.of(tableId);
+
+      ServerContext ctx = getCluster().getServerContext();
+      FileSystem fs = getCluster().getFileSystem();
+
+      Set<String> tablesDirs = ctx.getTablesDirs();
+      assertEquals(1, tablesDirs.size());
+
+      String tdir = tablesDirs.iterator().next() + "/" + tid.canonical() + "/default_tablet";
+      Path defaultTabletPath = new Path(tdir);
+      assertTrue(fs.exists(defaultTabletPath));
+
+      Set<Path> generatedPaths = generateTmpFilePaths(ctx, tid, defaultTabletPath, 100);
+      for (Path p : generatedPaths) {
+        assertFalse(fs.exists(p));
+        assertTrue(fs.createNewFile(p));
+        assertTrue(fs.exists(p));
+      }
+
+      Set<Path> foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
+      assertEquals(100, foundPaths.size());
+      assertEquals(foundPaths, generatedPaths);
+
+      System.setProperty("accumulo.properties",
+          "file://" + getCluster().getAccumuloPropertiesPath());
+      assertEquals(0, getCluster().exec(Admin.class, "compactionTempFiles", "-t", tableName)
+          .getProcess().waitFor());
+
+      foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
+      assertEquals(100, foundPaths.size());
+      assertEquals(foundPaths, generatedPaths);
+
+      assertEquals(0, getCluster().exec(Admin.class, "compactionTempFiles", "-t", tableName, "-d")
+          .getProcess().waitFor());
+
+      foundPaths = FindCompactionTmpFiles.findTempFiles(ctx, tid.canonical());
+      assertEquals(0, foundPaths.size());
+      assertNotSame(foundPaths, generatedPaths);
 
     }
   }
