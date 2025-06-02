@@ -428,7 +428,6 @@ public class CompactionCoordinator extends AbstractServer implements
         if (client != null) {
           List<TCompactionQueueSummary> summaries =
               client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
-          LOG.trace("Got summaries {} {} ", tsi.getHostAndPort(), summaries);
           QUEUE_SUMMARIES.update(tsi, summaries);
           summaries.forEach(summary -> {
             queuesSeen.add(summary.getQueue());
