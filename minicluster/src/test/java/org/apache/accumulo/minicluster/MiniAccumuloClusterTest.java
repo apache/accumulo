@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
@@ -69,8 +68,6 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
   @TempDir
   private static Path tempDir;
-
-  public static File testDir;
 
   private static MiniAccumuloCluster accumulo;
 

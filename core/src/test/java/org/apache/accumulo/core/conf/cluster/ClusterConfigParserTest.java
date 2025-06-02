@@ -114,8 +114,7 @@ public class ClusterConfigParserTest extends WithTestNames {
         final Map<String,String> contents =
             ClusterConfigParser.parseConfiguration(Path.of(configFile.toURI()));
 
-        final Path outputFile = tempDir.resolve(testName());
-        Files.createFile(outputFile);
+        final Path outputFile = Files.createFile(tempDir.resolve(testName()));
 
         try (var out = Files.newOutputStream(outputFile); var ps = new PrintStream(out)) {
           ClusterConfigParser.outputShellVariables(contents, ps);

@@ -21,54 +21,20 @@ package org.apache.accumulo.server.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.commons.codec.digest.Crypt;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SystemCredentialsTest {
 
   private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
   private InstanceId instanceId =
       InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
-  @BeforeAll
-  public static void setUp() throws IOException {
-
-    Path targetDir = Path.of("target");
-    Path instanceDir = targetDir.resolve("instanceTest");
-    Path instanceIdDir = instanceDir.resolve(Constants.INSTANCE_ID_DIR);
-    Path testInstanceId =
-        instanceIdDir.resolve(UUID.fromString("00000000-0000-0000-0000-000000000000").toString());
-    ensureFileExists(testInstanceId);
-
-    Path versionDir = instanceDir.resolve(Constants.VERSION_DIR);
-    Path testInstanceVersion = versionDir.resolve(AccumuloDataVersion.get() + "");
-    ensureFileExists(testInstanceVersion);
-  }
-
-  private static void ensureFileExists(Path testInstanceVersion) throws IOException {
-    if (!Files.exists(testInstanceVersion)) {
-      Path parentDir = testInstanceVersion.getParent();
-      if (parentDir != null && !Files.isDirectory(parentDir)) {
-        Files.createDirectories(parentDir);
-      }
-      Files.createFile(testInstanceVersion);
-    }
-  }
 
   @Test
   public void testWireVersion() {

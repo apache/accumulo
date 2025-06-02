@@ -92,7 +92,7 @@ public class MiniAccumuloConfigImpl {
   private Path libDir;
   private Path libExtDir;
   private Path confDir;
-  private Path hadoopConfDir = null;
+  private File hadoopConfDir = null;
   private Path zooKeeperDir;
   private Path accumuloDir;
   private Path logDir;
@@ -721,11 +721,11 @@ public class MiniAccumuloConfigImpl {
     this.existingInstance = Boolean.TRUE;
 
     System.setProperty("accumulo.properties", "accumulo.properties");
-    this.hadoopConfDir = hadoopConfDir.toPath();
+    this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
     accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    Path coreSite = this.hadoopConfDir.resolve("core-site.xml");
-    Path hdfsSite = this.hadoopConfDir.resolve("hdfs-site.xml");
+    Path coreSite = this.hadoopConfDir.toPath().resolve("core-site.xml");
+    Path hdfsSite = this.hadoopConfDir.toPath().resolve("hdfs-site.xml");
 
     try {
       hadoopConf.addResource(coreSite.toUri().toURL());
@@ -758,7 +758,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.2
    */
   public File getHadoopConfDir() {
-    return dir.toFile();
+    return hadoopConfDir;
   }
 
   /**

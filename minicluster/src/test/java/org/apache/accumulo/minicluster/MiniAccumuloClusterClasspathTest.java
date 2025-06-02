@@ -21,7 +21,6 @@ package org.apache.accumulo.minicluster;
 import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.nio.file.Files;
@@ -60,26 +59,21 @@ public class MiniAccumuloClusterClasspathTest extends WithTestNames {
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
-  public static File testDir;
   private static File jarFile;
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    Path baseDir = Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests");
-    if (!Files.isDirectory(baseDir)) {
-      Files.createDirectories(baseDir);
-    }
-    testDir = baseDir.resolve(MiniAccumuloClusterTest.class.getName()).toFile();
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
+    Path testDir = tempDir.resolve(MiniAccumuloClusterTest.class.getName());
+    Files.createDirectories(testDir);
 
     jarFile = tempDir.resolve("iterator.jar").toFile();
     FileUtils.copyURLToFile(
         requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
         jarFile);
 
-    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
+    MiniAccumuloConfig config =
+        new MiniAccumuloConfig(testDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1G");

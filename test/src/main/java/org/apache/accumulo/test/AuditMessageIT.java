@@ -125,11 +125,14 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Grab the audit messages
     System.out.println("Start of captured audit messages for step " + stepName);
 
-    ArrayList<String> result;
-    final var pattern = Pattern.compile(
+    final var matchesAuditLogPattern = Pattern.compile(
         ".* \\[" + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
-            + "\\] .*");
+            + "\\] .*")
+        .asPredicate();
+
+    ArrayList<String> result;
     try (var paths = Files.list(getCluster().getConfig().getLogDir().toPath())) {
+      // keep only the files ending with .out
       result = paths.filter(file -> file.getFileName().toString().contains(".out"))
           .filter(file -> Files.isRegularFile(file) && Files.isReadable(file)).flatMap(path -> {
             try {
@@ -137,9 +140,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
             } catch (IOException e) {
               throw new RuntimeException(e);
             }
-          }).filter(pattern.asPredicate())
+            // keep only the lines that match the audit log pattern
+          }).filter(matchesAuditLogPattern)
+          // only keep the message if there is no previous timestamp (first run)
+          // or if the timestamp is after the lastAuditTimestamp (newer message)
           .filter(line -> lastAuditTimestamp == null
               || line.substring(0, 23).compareTo(lastAuditTimestamp) > 0)
+          // sort chronologically, print for debugging, and collect
           .sorted().peek(System.out::println).collect(Collectors.toCollection(ArrayList::new));
     }
 
