@@ -212,7 +212,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   public TabletServerBatchWriter(ClientContext context, BatchWriterConfig config) {
     this.context = context;
     this.executor = context.threadPools().createScheduledExecutorService(2,
-        "BatchWriterThreads-" + numWritersCreated.incrementAndGet(), true);
+        "BatchWriterThreads-" + numWritersCreated.incrementAndGet(), false);
     this.failedMutations = new FailedMutations();
     this.maxMem = config.getMaxMemory();
     this.maxLatency = config.getMaxLatency(MILLISECONDS) <= 0 ? Long.MAX_VALUE

@@ -61,7 +61,7 @@ public class DeadCompactionDetector {
 
     // The order of obtaining information is very important to avoid race conditions.
 
-    log.trace("Starting to look for dead compactions, deadCompactions.size():{}",
+    log.debug("Starting to look for dead compactions, deadCompactions.size():{}",
         deadCompactions.size());
 
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
@@ -82,7 +82,7 @@ public class DeadCompactionDetector {
       return;
     }
 
-    log.trace("Read {} tablet compactions into memory from metadata table",
+    log.debug("tabletCompactions.size():{} read into memory from metadata table",
         tabletCompactions.size());
 
     if (log.isTraceEnabled()) {
@@ -137,7 +137,7 @@ public class DeadCompactionDetector {
       }
     });
 
-    log.trace("deadCompactions.size() after additions {}", deadCompactions.size());
+    log.debug("deadCompactions.size() after additions {}", deadCompactions.size());
 
     // Everything left in tabletCompactions is no longer running anywhere and should be failed.
     // Its possible that a compaction committed while going through the steps above, if so then

@@ -664,16 +664,19 @@ public class CompactionCoordinator extends AbstractServer implements
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
-    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
-    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
+    LOG.debug("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.debug("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     var idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 
     // remove ids that are in the running set but not in the metadata table
-    idsToRemove.forEach(ecid -> recordCompletion(ecid));
+    idsToRemove.forEach(this::recordCompletion);
 
-    if (idsToRemove.size() > 0) {
-      LOG.debug("Removed stale entries from RUNNING_CACHE : {}", idsToRemove);
+    if (!idsToRemove.isEmpty()) {
+      LOG.debug("Removed {} stale entries from RUNNING_CACHE", idsToRemove.size());
+      if (LOG.isTraceEnabled()) {
+        idsToRemove.forEach(ecid -> LOG.trace("Removing stale entry: {} from RUNNING_CACHE", ecid));
+      }
     }
   }
 
