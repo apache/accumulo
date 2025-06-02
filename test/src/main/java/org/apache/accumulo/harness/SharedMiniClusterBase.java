@@ -49,6 +49,7 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
+import org.apache.accumulo.suites.SimpleSharedMacTestSuiteIT;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.CommonConfigurationKeysPublic;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -60,17 +61,20 @@ import org.slf4j.LoggerFactory;
  * Integration-Test base class which starts one MAC for the entire Integration Test. This IT type is
  * faster and more geared for testing typical, expected behavior of a cluster. For more advanced
  * testing see {@link AccumuloClusterHarness}
- *
+ * <p>
  * There isn't a good way to build this off of the {@link AccumuloClusterHarness} (as would be the
  * logical place) because we need to start the MiniAccumuloCluster in a static BeforeAll-annotated
  * method. Because it is static and invoked before any other BeforeAll methods in the
  * implementation, the actual test classes can't expose any information to tell the base class that
  * it is to perform the one-MAC-per-class semantics.
- *
+ * <p>
  * Implementations of this class must be sure to invoke {@link #startMiniCluster()} or
  * {@link #startMiniClusterWithConfig(MiniClusterConfigurationCallback)} in a method annotated with
  * the {@link org.junit.jupiter.api.BeforeAll} JUnit annotation and {@link #stopMiniCluster()} in a
  * method annotated with the {@link org.junit.jupiter.api.AfterAll} JUnit annotation.
+ * <p>
+ * Implementations of this class should also consider if they can be added to
+ * {@link SimpleSharedMacTestSuiteIT}. See the suites description to determine if they can be added.
  */
 @Tag(MINI_CLUSTER_ONLY)
 public abstract class SharedMiniClusterBase extends AccumuloITBase implements ClusterUsers {
@@ -84,7 +88,8 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   private static TestingKdc krb;
 
   /**
-   * Starts a MiniAccumuloCluster instance with the default configuration.
+   * Starts a MiniAccumuloCluster instance with the default configuration. This method is
+   * idempotent: necessitated by {@link SimpleSharedMacTestSuiteIT}.
    */
   public static void startMiniCluster() throws Exception {
     startMiniClusterWithConfig(MiniClusterConfigurationCallback.NO_CALLBACK);
@@ -93,6 +98,7 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   /**
    * Starts a MiniAccumuloCluster instance with the default configuration but also provides the
    * caller the opportunity to update the configuration before the MiniAccumuloCluster is started.
+   * This method is idempotent: necessitated by {@link SimpleSharedMacTestSuiteIT}.
    *
    * @param miniClusterCallback A callback to configure the minicluster before it is started.
    */
@@ -148,14 +154,11 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
    */
   public static synchronized void stopMiniCluster() {
     if (STOP_DISABLED.get()) {
-      // If stop is disabled, then we are likely running a
-      // test class that is part of a larger suite. We don't
-      // want to shut down the cluster, but we should clean
-      // up any tables that were created, but not deleted,
-      // by the test class. This will prevent issues with
-      // subsequent tests that count objects or initiate
-      // compactions and wait for them, but some other table
-      // from a prior test is compacting.
+      // If stop is disabled, then we are likely running a test class that is part of a larger
+      // suite. We don't want to shut down the cluster, but we should clean up any tables or
+      // namespaces that were created, but not deleted, by the test class. This will prevent issues
+      // with subsequent tests that count objects or initiate compactions and wait for them, but
+      // some other table from a prior test is compacting.
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
         for (String tableName : client.tableOperations().list()) {
           if (!tableName.startsWith(Namespace.ACCUMULO.name() + ".")) {

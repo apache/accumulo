@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -117,11 +117,19 @@ public class ChaoticLoadBalancerTest {
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
 
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
-        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, servers.keySet()), metadataTable,
-        assignments));
+    Map<TabletId,TabletServerId> unassigned = new HashMap<>(metadataTable);
 
-    assertEquals(assignments.size(), metadataTable.size());
+    while (!unassigned.isEmpty()) {
+      balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
+          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, servers.keySet()), unassigned,
+          assignments));
+      assignments.forEach((tablet, tserver) -> {
+        servers.get(tserver).tablets.add(tablet);
+        assertTrue(unassigned.containsKey(tablet));
+        unassigned.remove(tablet);
+      });
+      assignments.clear();
+    }
   }
 
   SortedMap<TabletServerId,TServerStatus> getAssignments(Map<TabletServerId,FakeTServer> servers) {

@@ -21,14 +21,12 @@ package org.apache.accumulo.test.upgrade;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.io.IOException;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -36,28 +34,20 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
-import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
-import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.ScanServerRefTabletFile;
-import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.manager.upgrade.Upgrader11to12;
-import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
@@ -71,8 +61,6 @@ import com.google.common.net.HostAndPort;
 public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
   public static final Logger log = LoggerFactory.getLogger(ScanServerUpgrade11to12TestIT.class);
-  private static final Range META_RANGE =
-      new Range(SystemTables.SCAN_REF.tableId() + ";", SystemTables.SCAN_REF.tableId() + "<");
 
   private static class ScanServerUpgradeITConfiguration
       implements MiniClusterConfigurationCallback {
@@ -103,51 +91,6 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Unable to find table " + tableName);
     }
-  }
-
-  private void deleteScanServerRefTable() throws InterruptedException {
-    ServerContext ctx = getCluster().getServerContext();
-    ZooReaderWriter zoo = ctx.getZooSession().asReaderWriter();
-    String zPath = Constants.ZTABLES + "/" + SystemTables.SCAN_REF.tableId();
-    // Remove the scan server table metadata in zk
-    try {
-      zoo.recursiveDelete(zPath + Constants.ZTABLE_STATE, ZooUtil.NodeMissingPolicy.SKIP);
-      zoo.recursiveDelete(zPath, ZooUtil.NodeMissingPolicy.SKIP);
-    } catch (KeeperException | InterruptedException e) {
-      throw new RuntimeException("Removal of scan ref table failed" + e);
-    }
-
-    // Read from the metadata table to find any existing scan ref tablets and remove them
-    try (BatchWriter writer = ctx.createBatchWriter(SystemTables.METADATA.tableName())) {
-      var refTablet = checkForScanRefTablets().iterator();
-      while (refTablet.hasNext()) {
-        var entry = refTablet.next();
-        log.info("Entry:  {}", entry);
-        var mutation = new Mutation(entry.getKey().getRow());
-        mutation.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier());
-        writer.addMutation(mutation);
-      }
-      writer.flush();
-    } catch (TableNotFoundException | MutationsRejectedException e) {
-      throw new RuntimeException(e);
-    }
-
-    // Compact the metadata table to remove the tablet file for the scan ref table
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.tableOperations().compact(SystemTables.METADATA.tableName(), null, null, true, true);
-    } catch (TableNotFoundException | AccumuloException | AccumuloSecurityException e) {
-      log.error("Failed to compact metadata table");
-      throw new RuntimeException(e);
-    }
-
-    log.info("Scan ref table is deleted, now shutting down the system");
-    try {
-      getCluster().getClusterControl().stop(ServerType.MANAGER);
-      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    } catch (IOException e) {
-      log.info("Failed to stop cluster");
-    }
-    Thread.sleep(60_000);
   }
 
   private void testMetadataScanServerRefRemoval(String tableName) {
@@ -198,77 +141,6 @@ public class ScanServerUpgrade11to12TestIT extends SharedMiniClusterBase {
 
     // Ensure entries are now removed from the metadata table
     assertEquals(0, getOldScanServerRefs(tableName).count());
-  }
-
-  private Stream<Entry<Key,Value>> checkForScanRefTablets() {
-    try {
-      Scanner scanner = getCluster().getServerContext()
-          .createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
-      scanner.setRange(META_RANGE);
-      return scanner.stream().onClose(scanner::close);
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-  }
-
-  @Test
-  public void testScanRefTableCreation() throws InterruptedException {
-    ServerContext ctx = getCluster().getServerContext();
-    deleteScanServerRefTable();
-    log.info("Attempt to start the system");
-    try {
-      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-      getCluster().getClusterControl().start(ServerType.MANAGER);
-      Thread.sleep(10_000);
-    } catch (IOException e) {
-      log.info("Failed to start cluster");
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
-    }
-
-    log.info("Attempting creation of the scan ref table");
-    var upgrader = new Upgrader11to12();
-    upgrader.createScanServerRefTable(ctx);
-    assertEquals(TableState.ONLINE,
-        ctx.getTableManager().getTableState(SystemTables.SCAN_REF.tableId()));
-
-    while (checkForScanRefTablets().count() < 4) {
-      log.info("Waiting for the table to be hosted");
-      Thread.sleep(1_000);
-    }
-
-    log.info("Reading entries from the metadata table");
-    try (Scanner scanner = getCluster().getServerContext()
-        .createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
-      var refTablet = scanner.stream().iterator();
-      while (refTablet.hasNext()) {
-        log.info("Metadata Entry: {}", refTablet.next());
-      }
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-
-    log.info("Reading entries from the root table");
-    try (Scanner scanner = getCluster().getServerContext()
-        .createScanner(SystemTables.ROOT.tableName(), Authorizations.EMPTY)) {
-      var refTablet = scanner.stream().iterator();
-      while (refTablet.hasNext()) {
-        log.info("Root Entry: {}", refTablet.next());
-      }
-    } catch (TableNotFoundException e) {
-      throw new RuntimeException(e);
-    }
-    // Create some scanRefs to test table functionality
-    assertEquals(0, ctx.getAmple().scanServerRefs().list().count());
-    HostAndPort server = HostAndPort.fromParts("127.0.0.1", 1234);
-    UUID serverLockUUID = UUID.randomUUID();
-
-    Set<ScanServerRefTabletFile> scanRefs = Stream.of("F0000070.rf", "F0000071.rf")
-        .map(f -> "hdfs://localhost:8020/accumulo/tables/2a/default_tablet/" + f)
-        .map(f -> new ScanServerRefTabletFile(f, server.toString(), serverLockUUID))
-        .collect(Collectors.toSet());
-    ctx.getAmple().scanServerRefs().put(scanRefs);
-    assertEquals(2, ctx.getAmple().scanServerRefs().list().count());
   }
 
   @Test

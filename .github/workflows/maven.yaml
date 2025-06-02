@@ -50,6 +50,10 @@ jobs:
       run: src/build/ci/find-unapproved-chars.sh
     - name: Check for unapproved JUnit API usage
       run: src/build/ci/find-unapproved-junit.sh
+    - name: Check for unapproved use of startMiniCluster without stopMiniCluster
+      run: src/build/ci/find-startMini-without-stopMini.sh
+    - name: Check for unapproved use of abstract classes ending in IT
+      run: src/build/ci/find-unapproved-abstract-ITs.sh
     - name: Build with Maven (Fast Build)
       timeout-minutes: 20
       run: mvn -B -V -e -ntp "-Dstyle.color=always" clean package dependency:resolve -DskipTests -DskipFormat -DverifyFormat

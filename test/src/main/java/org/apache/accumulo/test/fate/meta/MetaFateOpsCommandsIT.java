@@ -26,15 +26,15 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateOpsCommandsIT;
-import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
+import org.apache.accumulo.test.fate.FateOpsCommandsITBase;
+import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
 import org.apache.accumulo.test.fate.TestLock;
 
-public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
+public class MetaFateOpsCommandsIT extends FateOpsCommandsITBase {
   /**
    * This should be used for tests that will not seed a txn with work/reserve a txn. Note that this
    * should be used in conjunction with
-   * {@link FateOpsCommandsIT#initFateNoDeadResCleaner(FateStore)}
+   * {@link FateOpsCommandsITBase#initFateNoDeadResCleaner(FateStore)}
    */
   @Override
   public void executeTest(FateTestExecutor<LatchTestEnv> testMethod, int maxDeferred,
@@ -48,7 +48,7 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsIT {
   /**
    * This should be used for tests that will seed a txn with work/reserve a txn. Note that this
    * should be used in conjunction with
-   * {@link FateOpsCommandsIT#initFateWithDeadResCleaner(FateStore, LatchTestEnv)}
+   * {@link FateOpsCommandsITBase#initFateWithDeadResCleaner(FateStore, LatchTestEnv)}
    */
   @Override
   public void stopManagerAndExecuteTest(FateTestExecutor<LatchTestEnv> testMethod)

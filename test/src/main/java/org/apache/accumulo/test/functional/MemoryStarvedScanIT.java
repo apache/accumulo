@@ -66,8 +66,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class MemoryStarvedScanIT extends SharedMiniClusterBase {
 
   public static class MemoryStarvedITConfiguration implements MiniClusterConfigurationCallback {
@@ -188,7 +186,7 @@ public class MemoryStarvedScanIT extends SharedMiniClusterBase {
     try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
       IteratorSetting is = new IteratorSetting(11, MemoryFreeingIterator.class, Map.of());
       scanner.addScanIterator(is);
-      assertNotEquals(0, Iterables.size(scanner)); // consume the key/values
+      assertNotEquals(0, scanner.stream().count()); // consume the key/values
     }
   }
 
