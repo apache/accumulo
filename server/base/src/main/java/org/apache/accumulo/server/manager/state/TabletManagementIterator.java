@@ -51,7 +51,7 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
-import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
@@ -185,9 +185,15 @@ public class TabletManagementIterator extends WholeRowIterator {
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     BalancerEnvironmentImpl benv =
         new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());
-    balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
-        TabletBalancer.class, new SimpleLoadBalancer());
-    balancer.init(benv);
+    try {
+      balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
+          TabletBalancer.class, new DoNothingBalancer());
+      balancer.init(benv);
+    } catch (Exception e) {
+      LOG.warn("Failed to create balancer falling back to {}", DoNothingBalancer.class, e);
+      balancer = new DoNothingBalancer();
+      balancer.init(benv);
+    }
   }
 
   @Override
