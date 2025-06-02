@@ -181,7 +181,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
    */
   private static Thread getMetricsCheckerThread(AtomicLong totalEntriesRead,
       AtomicLong totalEntriesWritten) {
-    return Threads.createThread("metric-tailer", () -> {
+    return Threads.createNonCriticalThread("metric-tailer", () -> {
       log.info("Starting metric tailer");
 
       sink.getLines().clear();
@@ -305,7 +305,7 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
   }
 
   public Thread startChecker() {
-    return Threads.createThread("RC checker", () -> {
+    return Threads.createNonCriticalThread("RC checker", () -> {
       try {
         while (!stopCheckerThread.get()) {
           checkRunning();

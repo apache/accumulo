@@ -473,7 +473,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = Threads.createThread("Accumulo WALog thread " + this,
+    syncThread = Threads.createCriticalThread("Accumulo WALog thread " + this,
         new LogSyncingTask(syncCounter, flushCounter, slowFlushMillis));
     syncThread.start();
     op.await();
