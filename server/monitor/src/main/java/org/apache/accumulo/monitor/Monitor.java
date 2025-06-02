@@ -514,7 +514,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     // need to regularly fetch data so plot data is updated
-    Threads.createThread("Data fetcher", () -> {
+    Threads.createCriticalThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();

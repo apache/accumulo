@@ -53,8 +53,8 @@ public class ServiceLockSupport {
     @Override
     public void lostLock(LockLossReason reason) {
       if (shutdownComplete.get()) {
-        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
-            serviceName, reason);
+        Halt.halt(0, serviceName + " lock in zookeeper lost (reason = " + reason
+            + "), exiting cleanly because shutdown is complete.");
       } else {
         Halt.halt(-1, serviceName + " lock in zookeeper lost (reason = " + reason + "), exiting!");
       }
@@ -139,8 +139,10 @@ public class ServiceLockSupport {
     @Override
     public void lostLock(final LockLossReason reason) {
       if (shutdownComplete.get()) {
-        LOG.warn("{} lost lock (reason = {}), not halting because shutdown is complete.",
-            serviceName, reason);
+        Halt.halt(0,
+            serviceName + " lost lock (reason = " + reason
+                + "), exiting cleanly because shutdown is complete.",
+            () -> lostLockAction.accept(serviceName));
       } else {
         Halt.halt(1, serviceName + " lost lock (reason = " + reason + "), exiting.",
             () -> lostLockAction.accept(serviceName));
