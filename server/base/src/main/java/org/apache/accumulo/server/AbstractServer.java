@@ -67,7 +67,7 @@ public abstract class AbstractServer
     var siteConfig = opts.getSiteConfiguration();
     String oldBindParameter = opts.getAddress();
     String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
-    if (oldBindParameter == ServerOpts.BIND_ALL_ADDRESSES && !newBindParameter.equals("")) {
+    if (!oldBindParameter.equals(ServerOpts.BIND_ALL_ADDRESSES) && !newBindParameter.equals("")) {
       throw new IllegalStateException(
           "Bind address specified via '-a' and '-o rpc.bind.addr=<address>'");
     }
