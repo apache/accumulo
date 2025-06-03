@@ -452,8 +452,8 @@ public class CloneIT_SimpleSuite extends SharedMiniClusterBase {
           // Pass in up to 3 arguments of infinite ranges to test non-ranged files
           Arguments.of(new Range(), new Range(), new Range()),
           // For second run pass in up to 3 arguments with the first two non-infinite ranges
-          Arguments.of(new Range(null, false, "row_0", true),
-              new Range("row_0", false, "row_1", true), new Range()));
+          Arguments.of(new Range(null, false, "row_0", true), new Range("row_0", false, null, true),
+              new Range()));
     }
   }
 

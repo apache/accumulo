@@ -194,7 +194,7 @@ class AssignmentHandler implements Runnable {
               AssignmentHandler handler = new AssignmentHandler(server, extent, retryAttempt + 1);
               if (extent.isMeta()) {
                 if (extent.isRootTablet()) {
-                  Threads.createThread("Root tablet assignment retry", handler).start();
+                  Threads.createNonCriticalThread("Root tablet assignment retry", handler).start();
                 } else {
                   server.resourceManager.addMetaDataAssignment(extent, log, handler);
                 }
