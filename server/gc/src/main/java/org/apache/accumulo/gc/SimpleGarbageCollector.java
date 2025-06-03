@@ -169,7 +169,8 @@ public class SimpleGarbageCollector extends AbstractServer
     HostAndPort address = startStatsService();
 
     try {
-      getZooLock(address);
+      getZooLock(getAdvertiseAddress() != null
+          ? HostAndPort.fromParts(getAdvertiseAddress(), address.getPort()) : address);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
@@ -423,7 +424,8 @@ public class SimpleGarbageCollector extends AbstractServer
   private HostAndPort startStatsService() {
     var processor = ThriftProcessorTypes.getGcTProcessor(this, this, getContext());
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
-    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
+    String hostname = HostAndPort.fromString(getBindAddress()).getHost();
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(hostname, port);
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);

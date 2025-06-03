@@ -51,7 +51,7 @@ public class EmbeddedWebServer {
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
 
     connector = new ServerConnector(server, getConnectionFactories(conf, secure));
-    connector.setHost(monitor.getHostname());
+    connector.setHost(monitor.getAdvertiseAddress());
     connector.setPort(port);
 
     handler =

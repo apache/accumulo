@@ -481,7 +481,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(e);
     }
 
-    String advertiseHost = getHostname();
+    String advertiseHost = getAdvertiseAddress();
     if (advertiseHost.equals(ServerOpts.BIND_ALL_ADDRESSES)) {
       try {
         advertiseHost = InetAddress.getLocalHost().getHostName();

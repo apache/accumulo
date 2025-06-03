@@ -50,7 +50,9 @@ public abstract class AbstractServer
 
   private final ServerContext context;
   protected final String applicationName;
-  private final String hostname;
+  private final String advertiseAddress; // used for everything but the Thrift server (e.g. ZK,
+                                         // metadata, etc).
+  private final String bindAddress; // used for the Thrift server
   private final Logger log;
   private final ProcessMetrics processMetrics;
   protected final long idleReportingPeriodNanos;
@@ -81,12 +83,22 @@ public abstract class AbstractServer
     // If new bind parameter passed on command line or in file, then use it.
     if (newBindParameterSpecified
         || !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
-      this.hostname = newBindParameter;
+      this.bindAddress = newBindParameter;
     } else if (oldBindParameterSpecifiedOnCmdLine) {
-      this.hostname = opts.getAddress();
+      this.bindAddress = opts.getAddress();
     } else {
-      this.hostname = ServerOpts.BIND_ALL_ADDRESSES;
+      this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
     }
+    String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
+    if (advertAddr != null && !advertAddr.isBlank()) {
+      if (advertAddr.equals(ServerOpts.BIND_ALL_ADDRESSES)) {
+        throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
+      }
+      advertiseAddress = advertAddr;
+    } else {
+      advertiseAddress = null;
+    }
+    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
@@ -231,8 +243,12 @@ public abstract class AbstractServer
     }
   }
 
-  public String getHostname() {
-    return hostname;
+  public String getAdvertiseAddress() {
+    return advertiseAddress;
+  }
+
+  public String getBindAddress() {
+    return bindAddress;
   }
 
   public ServerContext getContext() {

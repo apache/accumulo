@@ -54,6 +54,9 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_PROCESS_ADVERTISE_ADDRESS("rpc.advertise.addr", "", PropertyType.STRING,
+      "The IP address or hostname to use when registering this server in ZooKeeper. Defaults to rpc.bind.addr property value.",
+      "2.1.4"),
   RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic. If not set then the process binds to all addresses.",
       "2.1.4"),
