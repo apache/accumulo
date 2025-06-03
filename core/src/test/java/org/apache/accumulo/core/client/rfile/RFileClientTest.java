@@ -90,7 +90,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class RFileClientTest {
 
   private String createTmpTestFile() throws IOException {
-    File dir = new File(System.getProperty("user.dir") + "/target/rfile-test");
+    File dir = java.nio.file.Path.of(System.getProperty("user.dir")).resolve("target")
+        .resolve("rfile-test").toFile();
     assertTrue(dir.mkdirs() || dir.isDirectory());
     File testFile = File.createTempFile("test", ".rf", dir);
     assertTrue(testFile.delete() || !testFile.exists());
@@ -242,9 +243,9 @@ public class RFileClientTest {
     LocalFileSystem localFs = FileSystem.getLocal(new Configuration());
 
     Range range = new Range(rowStr(3), false, rowStr(14), true);
-    Scanner scanner =
-        RFile.newScanner().from(new FencedPath(new Path(new File(testFile).toURI()), range))
-            .withFileSystem(localFs).build();
+    Scanner scanner = RFile.newScanner()
+        .from(new FencedPath(new Path(java.nio.file.Path.of(testFile).toFile().toURI()), range))
+        .withFileSystem(localFs).build();
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
 
@@ -265,32 +266,27 @@ public class RFileClientTest {
     // Lastly only the row portion of a key is allowed.
 
     // Test valid Row Ranges
-    new FencedPath(new Path(new File(testFile).toURI()), new Range());
+    URI testFileURI = java.nio.file.Path.of(testFile).toFile().toURI();
+    new FencedPath(new Path(testFileURI), new Range());
     // This constructor converts to the proper inclusive/exclusive rows
-    new FencedPath(new Path(new File(testFile).toURI()),
-        new Range(rowStr(3), false, rowStr(14), true));
-    new FencedPath(new Path(new File(testFile).toURI()),
-        new Range(new Key(rowStr(3)).followingKey(PartialKey.ROW), true,
-            new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
+    new FencedPath(new Path(testFileURI), new Range(rowStr(3), false, rowStr(14), true));
+    new FencedPath(new Path(testFileURI), new Range(new Key(rowStr(3)).followingKey(PartialKey.ROW),
+        true, new Key(rowStr(14)).followingKey(PartialKey.ROW), false));
 
     // Test invalid Row Ranges
     // Missing 0x00 byte
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), false)));
     // End key inclusive
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), true, new Key(rowStr(14)), true)));
     // Start key exclusive
-    assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
+    assertThrows(IllegalArgumentException.class, () -> new FencedPath(new Path(testFileURI),
+        new Range(new Key(rowStr(3)), false, new Key(rowStr(14)), false)));
     // CF is set which is not allowed
     assertThrows(IllegalArgumentException.class,
-        () -> new FencedPath(new Path(new File(testFile).toURI()),
-            new Range(new Key(rowStr(3), colStr(3)), true,
-                new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
+        () -> new FencedPath(new Path(testFileURI), new Range(new Key(rowStr(3), colStr(3)), true,
+            new Key(rowStr(14)).followingKey(PartialKey.ROW), false)));
   }
 
   @Test
@@ -303,8 +299,8 @@ public class RFileClientTest {
 
     Range range = new Range(rowStr(3), false, rowStr(14), true);
 
-    RFileSKVIterator reader =
-        getReader(localFs, UnreferencedTabletFile.ofRanged(localFs, new File(testFile), range));
+    RFileSKVIterator reader = getReader(localFs,
+        UnreferencedTabletFile.ofRanged(localFs, java.nio.file.Path.of(testFile).toFile(), range));
     reader.seek(new Range(), List.of(), false);
 
     TreeMap<Key,Value> expected = new TreeMap<>(testData);
@@ -331,8 +327,8 @@ public class RFileClientTest {
     writer.append(testData1.entrySet());
     writer.close();
 
-    RFileSKVIterator reader =
-        getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
+    RFileSKVIterator reader = getReader(localFs,
+        UnreferencedTabletFile.of(localFs, java.nio.file.Path.of(testFile).toFile()));
     FileSKVIterator iiter = reader.getIndex();
 
     int count = 0;
@@ -394,8 +390,8 @@ public class RFileClientTest {
 
     scanner.close();
 
-    Reader reader =
-        (Reader) getReader(localFs, UnreferencedTabletFile.of(localFs, new File(testFile)));
+    Reader reader = (Reader) getReader(localFs,
+        UnreferencedTabletFile.of(localFs, java.nio.file.Path.of(testFile).toFile()));
     Map<String,ArrayList<ByteSequence>> lGroups = reader.getLocalityGroupCF();
     assertTrue(lGroups.containsKey("z"));
     assertEquals(2, lGroups.get("z").size());

@@ -29,6 +29,6 @@ import org.junit.jupiter.api.Tag;
  * the SUNNY_DAY tag which is not desirable.
  */
 @Tag(SUNNY_DAY)
-public class WALSunnyDayIT extends WALSunnyDayBaseIT {
+public class WALSunnyDayIT extends WALSunnyDayITBase {
 
 }

@@ -23,7 +23,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.URI;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
@@ -76,7 +75,7 @@ public class LoadPlan {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "this code is validating the input")
   private static String checkFileName(String fileName) {
-    Preconditions.checkArgument(Paths.get(fileName).getNameCount() == 1,
+    Preconditions.checkArgument(java.nio.file.Path.of(fileName).getNameCount() == 1,
         "Expected only filename, but got %s", fileName);
     return fileName;
   }

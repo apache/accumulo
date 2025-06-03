@@ -139,6 +139,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     if (testLock != null) {
       testLock.unlock();
     }
+    stopMiniCluster();
   }
 
   public static class TestFilter extends Filter {

@@ -56,7 +56,7 @@ public class ServerDirsTest extends WithTestNames {
   public void setup() throws IOException {
     String uuid = UUID.randomUUID().toString();
 
-    File folder = new File(tempDir, testName());
+    File folder = tempDir.toPath().resolve(testName()).toFile();
     assertTrue(folder.isDirectory() || folder.mkdir(), "Failed to create folder");
 
     var vols = init(folder, List.of(uuid), List.of(AccumuloDataVersion.get()));
@@ -77,7 +77,7 @@ public class ServerDirsTest extends WithTestNames {
 
     File[] folders = new File[8];
     for (int i = 0; i < folders.length; i++) {
-      File newFolder = new File(tempDir, testName() + i);
+      File newFolder = tempDir.toPath().resolve(testName() + i).toFile();
       assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "Failed to create folder");
       folders[i] = newFolder;
     }

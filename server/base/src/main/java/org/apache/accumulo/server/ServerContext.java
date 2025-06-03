@@ -25,12 +25,11 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +37,7 @@ import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -104,6 +104,9 @@ public class ServerContext extends ClientContext {
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
+
+  private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig));
@@ -402,9 +405,9 @@ public class ServerContext extends ClientContext {
     ScheduledFuture<?> future = getScheduledExecutor().scheduleWithFixedDelay(() -> {
       try {
         String procFile = "/proc/sys/vm/swappiness";
-        File swappiness = new File(procFile);
-        if (swappiness.exists() && swappiness.canRead()) {
-          try (InputStream is = new FileInputStream(procFile)) {
+        java.nio.file.Path swappiness = java.nio.file.Path.of(procFile);
+        if (swappiness.toFile().exists() && swappiness.toFile().canRead()) {
+          try (InputStream is = Files.newInputStream(swappiness)) {
             byte[] buffer = new byte[10];
             int bytes = is.read(buffer);
             String setting = new String(buffer, 0, bytes, UTF_8);
@@ -425,6 +428,7 @@ public class ServerContext extends ClientContext {
   }
 
   public ScheduledThreadPoolExecutor getScheduledExecutor() {
+    sharedSchedExecutorCreated.set(true);
     return sharedScheduledThreadPool.get();
   }
 
@@ -461,12 +465,18 @@ public class ServerContext extends ClientContext {
   }
 
   public MetricsInfo getMetricsInfo() {
+    metricsInfoCreated.set(true);
     return metricsInfoSupplier.get();
   }
 
   @Override
   public void close() {
-    getMetricsInfo().close();
+    if (metricsInfoCreated.get()) {
+      getMetricsInfo().close();
+    }
+    if (sharedSchedExecutorCreated.get()) {
+      getScheduledExecutor().shutdownNow();
+    }
     super.close();
   }
 }

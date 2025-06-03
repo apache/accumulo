@@ -84,7 +84,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -189,7 +188,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testNewUser() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab = kdc.getKeytabDir().toPath().resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }
@@ -244,7 +243,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesThroughGrant() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab = kdc.getKeytabDir().toPath().resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -307,7 +306,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesForTable() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab = kdc.getKeytabDir().toPath().resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -425,12 +424,12 @@ public class KerberosIT extends AccumuloITBase {
     // krb credentials
     UserGroupInformation userWithoutPrivs =
         UserGroupInformation.createUserForTesting("fake_user", new String[0]);
-    int recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Integer>) () -> {
+    long recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Long>) () -> {
       AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), delegationToken);
 
       try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singleton(new Range()));
-        return Iterables.size(bs);
+        return bs.stream().count();
       }
     });
 
@@ -481,7 +480,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab = kdc.getKeytabDir().toPath().resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }

@@ -35,6 +35,8 @@ import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.logging.ConditionalLogger;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
@@ -250,6 +252,11 @@ public class CompactionJobGenerator {
       @Override
       public TableId getTableId() {
         return tablet.getTableId();
+      }
+
+      @Override
+      public TabletId getTabletId() {
+        return new TabletIdImpl(tablet.getExtent());
       }
 
       @Override

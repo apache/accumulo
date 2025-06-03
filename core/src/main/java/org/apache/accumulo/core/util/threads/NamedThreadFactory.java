@@ -55,6 +55,6 @@ class NamedThreadFactory implements ThreadFactory {
       threadName =
           String.format(FORMAT, name, r.getClass().getSimpleName(), threadNum.getAndIncrement());
     }
-    return Threads.createThread(threadName, priority, r, handler);
+    return Threads.createNonCriticalThread(threadName, priority, r, handler);
   }
 }

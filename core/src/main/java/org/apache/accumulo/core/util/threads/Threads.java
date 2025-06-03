@@ -51,19 +51,36 @@ public class Threads {
     return new NamedRunnable(name, r);
   }
 
-  public static Thread createThread(String name, Runnable r) {
-    return createThread(name, OptionalInt.empty(), r, UEH);
+  public static Thread createNonCriticalThread(String name, Runnable r) {
+    return createNonCriticalThread(name, OptionalInt.empty(), r, UEH);
   }
 
-  public static Thread createThread(String name, OptionalInt priority, Runnable r) {
-    return createThread(name, priority, r, UEH);
+  public static Thread createNonCriticalThread(String name, OptionalInt priority, Runnable r) {
+    return createNonCriticalThread(name, priority, r, UEH);
   }
 
-  public static Thread createThread(String name, OptionalInt priority, Runnable r,
+  public static Thread createNonCriticalThread(String name, OptionalInt priority, Runnable r,
       UncaughtExceptionHandler ueh) {
     Thread thread = new AccumuloDaemonThread(TraceUtil.wrap(r), name, ueh);
     priority.ifPresent(thread::setPriority);
     return thread;
   }
 
+  public static Thread createCriticalThread(String name, Runnable r) {
+    return createCriticalThread(name, OptionalInt.empty(), r);
+  }
+
+  public static Thread createCriticalThread(String name, OptionalInt priority, Runnable r) {
+    Runnable wrapped = () -> {
+      try {
+        r.run();
+      } catch (RuntimeException e) {
+        System.err.println("Critical thread " + name + " died");
+        e.printStackTrace();
+        Runtime.getRuntime().halt(-1);
+      }
+    };
+
+    return createNonCriticalThread(name, priority, wrapped);
+  }
 }

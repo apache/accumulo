@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
@@ -167,7 +167,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName).toFile())) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine().trim();
@@ -205,7 +205,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName).toFile())) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine();
@@ -313,7 +313,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     Map<String,String> props = new HashMap<>();
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName).toFile())) {
       while (scanner.hasNext()) {
         String line = scanner.nextLine();
         if (line.contains("=")) {
@@ -358,7 +358,7 @@ public class ZooInfoViewerTest {
 
     String line;
     Map<String,String> ids = new HashMap<>();
-    try (Scanner in = new Scanner(new File(testFileName))) {
+    try (Scanner in = new Scanner(Path.of(testFileName).toFile())) {
       while (in.hasNext()) {
         line = in.nextLine().trim();
         if (line.contains("=>") && !line.contains("ID Mapping")) {

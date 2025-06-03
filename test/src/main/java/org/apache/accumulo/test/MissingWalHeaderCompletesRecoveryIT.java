@@ -56,8 +56,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
-
 public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
   private static final Logger log =
       LoggerFactory.getLogger(MissingWalHeaderCompletesRecoveryIT.class);
@@ -120,9 +118,10 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File emptyWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
+      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
+      File emptyWalog = walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
 
       log.info("Created empty WAL at {}", emptyWalog.toURI());
 
@@ -161,7 +160,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Reading the table implies that recovery completed successfully (the empty file was ignored)
       // otherwise the tablet will never come online and we won't be able to read it.
       try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals(0, Iterables.size(s));
+        assertEquals(0, s.stream().count());
       }
     }
   }
@@ -175,9 +174,11 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs = new File(cluster.getConfig().getAccumuloDir(), Constants.WAL_DIR);
-      File walogServerDir = new File(walogs, fakeServer.replace(':', '+'));
-      File partialHeaderWalog = new File(walogServerDir, UUID.randomUUID().toString());
+      File walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
+      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
+      File partialHeaderWalog =
+          walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
 
       log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
 
@@ -220,7 +221,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Reading the table implies that recovery completed successfully (the empty file was ignored)
       // otherwise the tablet will never come online and we won't be able to read it.
       try (Scanner s = client.createScanner(tableName, Authorizations.EMPTY)) {
-        assertEquals(0, Iterables.size(s));
+        assertEquals(0, s.stream().count());
       }
     }
   }

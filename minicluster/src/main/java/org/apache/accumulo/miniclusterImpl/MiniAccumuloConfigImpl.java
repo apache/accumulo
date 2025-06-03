@@ -74,7 +74,7 @@ public class MiniAccumuloConfigImpl {
   private String rootPassword = null;
   private Map<String,String> hadoopConfOverrides = new HashMap<>();
   private Map<String,String> siteConfig = new HashMap<>();
-  private Map<String,String> configuredSiteConig = new HashMap<>();
+  private Map<String,String> configuredSiteConfig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private final EnumMap<ServerType,Class<?>> serverTypeClasses =
@@ -140,7 +140,6 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
-  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
@@ -156,12 +155,12 @@ public class MiniAccumuloConfigImpl {
     }
 
     if (!initialized) {
-      libDir = new File(dir, "lib");
-      libExtDir = new File(libDir, "ext");
-      confDir = new File(dir, "conf");
-      accumuloDir = new File(dir, "accumulo");
-      zooKeeperDir = new File(dir, "zookeeper");
-      logDir = new File(dir, "logs");
+      libDir = dir.toPath().resolve("lib").toFile();
+      libExtDir = libDir.toPath().resolve("ext").toFile();
+      confDir = dir.toPath().resolve("conf").toFile();
+      accumuloDir = dir.toPath().resolve("accumulo").toFile();
+      zooKeeperDir = dir.toPath().resolve("zookeeper").toFile();
+      logDir = dir.toPath().resolve("logs").toFile();
 
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
@@ -229,7 +228,7 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    File keystoreFile = new File(getConfDir(), "credential-provider.jks");
+    File keystoreFile = getConfDir().toPath().resolve("credential-provider.jks").toFile();
     String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
     Configuration conf = getHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
@@ -316,7 +315,7 @@ public class MiniAccumuloConfigImpl {
 
   private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<>(siteConfig);
-    this.configuredSiteConig = new HashMap<>(siteConfig);
+    this.configuredSiteConfig = new HashMap<>(siteConfig);
     return this;
   }
 
@@ -440,7 +439,7 @@ public class MiniAccumuloConfigImpl {
   }
 
   public Map<String,String> getConfiguredSiteConfig() {
-    return new HashMap<>(configuredSiteConig);
+    return new HashMap<>(configuredSiteConfig);
   }
 
   /**
@@ -586,14 +585,14 @@ public class MiniAccumuloConfigImpl {
   }
 
   public File getAccumuloPropsFile() {
-    return new File(getConfDir(), "accumulo.properties");
+    return getConfDir().toPath().resolve("accumulo.properties").toFile();
   }
 
   /**
    * @return location of accumulo-client.properties file for connecting to this mini cluster
    */
   public File getClientPropsFile() {
-    return new File(getConfDir(), "accumulo-client.properties");
+    return getConfDir().toPath().resolve("accumulo-client.properties").toFile();
   }
 
   /**
@@ -723,8 +722,8 @@ public class MiniAccumuloConfigImpl {
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
     accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    File coreSite = new File(hadoopConfDir, "core-site.xml");
-    File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
+    File coreSite = hadoopConfDir.toPath().resolve("core-site.xml").toFile();
+    File hdfsSite = hadoopConfDir.toPath().resolve("hdfs-site.xml").toFile();
 
     try {
       hadoopConf.addResource(coreSite.toURI().toURL());

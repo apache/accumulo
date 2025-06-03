@@ -87,7 +87,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.collect.Iterables;
 import com.google.common.net.HostAndPort;
 
 public class ManagerAssignmentIT extends SharedMiniClusterBase {
@@ -110,6 +109,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   @AfterAll
   public static void afterAll() {
     client.close();
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @BeforeEach
@@ -270,7 +270,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     Scanner s = client.createScanner(tableName);
     s.setRange(scanRange);
     // Should return keys for a, b, c
-    assertEquals(3, Iterables.size(s));
+    assertEquals(3, s.stream().count());
 
     List<TabletStats> stats = getTabletStats(client, tableId);
     // There should be one tablet online
@@ -288,7 +288,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (Scanner s = client.createScanner(tableName)) {
       s.setRange(new Range("a", "s"));
-      assertEquals(19, Iterables.size(s));
+      assertEquals(19, s.stream().count());
     }
 
     List<TabletStats> stats = getTabletStats(client, tableId);
@@ -301,7 +301,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     // all others should be loaded.
     try (Scanner s = client.createScanner(tableName)) {
       s.setRange(new Range("a", "t"));
-      assertEquals(20, Iterables.size(s));
+      assertEquals(20, s.stream().count());
     }
 
     stats = getTabletStats(client, tableId);
@@ -321,7 +321,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     try (BatchScanner s = client.createBatchScanner(tableName)) {
       s.setRanges(List.of(new Range("a", "c")));
       // Should return keys for a, b, c
-      assertEquals(3, Iterables.size(s));
+      assertEquals(3, s.stream().count());
     }
 
     List<TabletStats> stats = getTabletStats(client, tableId);
@@ -340,7 +340,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
 
     try (BatchScanner s = client.createBatchScanner(tableName)) {
       s.setRanges(List.of(new Range("a", "s")));
-      assertEquals(19, Iterables.size(s));
+      assertEquals(19, s.stream().count());
     }
 
     List<TabletStats> stats = getTabletStats(client, tableId);
@@ -352,7 +352,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
     // Run another scan, all tablets should be loaded
     try (BatchScanner s = client.createBatchScanner(tableName)) {
       s.setRanges(List.of(new Range("a", "t")));
-      assertEquals(20, Iterables.size(s));
+      assertEquals(20, s.stream().count());
     }
 
     stats = getTabletStats(client, tableId);
