@@ -87,15 +87,6 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
   }
 
   @Override
-  public boolean isSamplingEnabled() {
-    if (getSamplerConfiguration() == null) {
-      return false;
-    } else {
-      return true;
-    }
-  }
-
-  @Override
   public SamplerConfiguration getSamplerConfiguration() {
     // Server-side we take into account the table configuration for sampling
     if (samplerConfig == null || samplerConfig.isEmpty()) {
