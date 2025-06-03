@@ -167,7 +167,7 @@ public class ConfigOpts extends Help {
     }
 
     final String propOnlyFormat =
-        "%1$" + maxPropLength + "s %2$" + Math.min(52, maxDefaultLength) + "s";
+        "%1$-" + maxPropLength + "s %2$-" + Math.min(52, maxDefaultLength) + "s";
     final String deprecatedOnlyFormat = propOnlyFormat + " (deprecated)";
     final String replacedFormat = propOnlyFormat + " (deprecated - replaced by %3$s)";
 
