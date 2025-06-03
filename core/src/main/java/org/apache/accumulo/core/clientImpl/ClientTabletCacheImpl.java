@@ -693,19 +693,11 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     if (ptl == null) {
       return;
     }
-
-    CachedTablet now = findTabletInCache(row);
-    if (now != null) {
-      if (now.getTserverLocation().isPresent() && lcSession.checkLock(now) != null) {
-        return;
-      }
-    }
-    // Only allow a single lookup at time per parent tablet. For example if a tables tablets are
-    // all stored in three metadata tablets, then that table could have up to three concurrent
-    // metadata lookups.
+    // detect if another thread populated cache while waiting for lock
+    CachedTablet before = findTabletInCache(row);
     try (var unused = lookupLocks.lock(ptl.getExtent())) {
-      now = findTabletInCache(row);
-      if (now != null && now.getTserverLocation().isPresent() && lcSession.checkLock(now) != null) {
+      CachedTablet after = findTabletInCache(row);
+      if (after != null && after != before && lcSession.checkLock(after) != null) {
         return;
       }
       // Lookup tablets in metadata table and update cache. Also updating the cache while holding
