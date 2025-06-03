@@ -475,7 +475,8 @@ public class DfsLogger implements Comparable<DfsLogger> {
       throw new IOException(ex);
     }
 
-    syncThread = Threads.createThread("Accumulo WALog thread " + this, new LogSyncingTask());
+    syncThread =
+        Threads.createCriticalThread("Accumulo WALog thread " + this, new LogSyncingTask());
     syncThread.start();
     op.await();
     log.debug("Got new write-ahead log: {}", this);

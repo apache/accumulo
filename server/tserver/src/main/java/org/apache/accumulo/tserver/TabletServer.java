@@ -1118,7 +1118,7 @@ public class TabletServer extends AbstractServer
 
   private void config() {
     log.info("Tablet server starting on {}", getHostname());
-    Threads.createThread("Split/MajC initiator", new MajorCompactor(context)).start();
+    Threads.createCriticalThread("Split/MajC initiator", new MajorCompactor(context)).start();
 
     clientAddress = HostAndPort.fromParts(getHostname(), 0);
 

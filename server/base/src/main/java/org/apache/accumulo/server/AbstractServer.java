@@ -253,7 +253,7 @@ public abstract class AbstractServer
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {
-      verificationThread = Threads.createThread("service-lock-verification-thread",
+      verificationThread = Threads.createCriticalThread("service-lock-verification-thread",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
             while (serverThread.isAlive()) {
               ServiceLock lock = getLock();
