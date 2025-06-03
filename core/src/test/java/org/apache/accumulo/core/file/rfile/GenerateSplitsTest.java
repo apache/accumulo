@@ -84,7 +84,7 @@ public class GenerateSplitsTest {
     log.info("Wrote to file {}", rfilePath);
 
     Path splitsFile = Files.createFile(tempDir.resolve("testSplitsFile"));
-    assertTrue(Files.exists(splitsFile), "Failed to create file: " + file);
+    assertTrue(Files.exists(splitsFile), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.toAbsolutePath().toString();
   }
 
@@ -191,7 +191,7 @@ public class GenerateSplitsTest {
     log.info("Wrote to file {}", rfilePath);
 
     Path splitsFile = Files.createFile(tempDir.resolve("testSplitsFileWithNulls"));
-    assertTrue(Files.exists(splitsFile), "Failed to create file: " + file);
+    assertTrue(Files.exists(splitsFile), "Failed to create file: " + splitsFile);
     splitsFilePath = splitsFile.toAbsolutePath().toString();
 
     List<String> finalArgs = List.of(rfilePath, "--num", "2", "-sf", splitsFilePath);

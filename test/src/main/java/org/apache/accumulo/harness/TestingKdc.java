@@ -64,7 +64,7 @@ public class TestingKdc {
   public static Path computeKdcDir() throws IOException {
     Path userDir = Path.of(System.getProperty("user.dir"));
     Path targetDir = userDir.resolve("target");
-    if (!Files.exists(targetDir)) {
+    if (Files.notExists(targetDir)) {
       Files.createDirectories(targetDir);
     }
     assertTrue(Files.isDirectory(targetDir), "Could not find Maven target directory: " + targetDir);
@@ -82,7 +82,7 @@ public class TestingKdc {
   public static Path computeKeytabDir() throws IOException {
     Path userDir = Path.of(System.getProperty("user.dir"));
     Path targetDir = userDir.resolve("target");
-    if (!Files.exists(targetDir)) {
+    if (Files.notExists(targetDir)) {
       Files.createDirectories(targetDir);
     }
     assertTrue(Files.isDirectory(targetDir), "Could not find Maven target directory: " + targetDir);

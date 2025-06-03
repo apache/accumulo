@@ -92,7 +92,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     Path path = Path.of(opts.filePath);
-    if (!Files.exists(path)) {
+    if (Files.notExists(path)) {
       throw new FileNotFoundException("File at given path could not be found");
     }
 

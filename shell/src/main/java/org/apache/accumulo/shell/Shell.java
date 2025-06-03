@@ -540,7 +540,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
     Path accumuloDir = Path.of(configDir);
-    if (!Files.exists(accumuloDir)) {
+    if (Files.notExists(accumuloDir)) {
       try {
         Files.createDirectories(accumuloDir);
       } catch (IOException e) {

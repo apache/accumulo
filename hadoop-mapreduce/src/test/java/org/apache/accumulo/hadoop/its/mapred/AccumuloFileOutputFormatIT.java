@@ -196,7 +196,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
         return;
       }
       java.nio.file.Path path = stream.collect(onlyElement());
-      Files.exists(path);
+      assertTrue(Files.exists(path), "Expected file does not exist: " + path);
 
       Configuration conf = cluster.getServerContext().getHadoopConf();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
