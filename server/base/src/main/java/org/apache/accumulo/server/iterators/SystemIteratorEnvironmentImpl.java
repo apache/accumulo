@@ -87,24 +87,6 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
   }
 
   @Override
-  public boolean isFullMajorCompaction() {
-    if (getIteratorScope() != IteratorScope.majc) {
-      throw new IllegalStateException(
-          "Asked about major compaction type when scope is " + getIteratorScope());
-    }
-    return super.isFullMajorCompaction();
-  }
-
-  @Override
-  public boolean isUserCompaction() {
-    if (getIteratorScope() != IteratorScope.majc) {
-      throw new IllegalStateException(
-          "Asked about user initiated compaction type when scope is " + getIteratorScope());
-    }
-    return super.isUserCompaction();
-  }
-
-  @Override
   public boolean isSamplingEnabled() {
     if (getSamplerConfiguration() == null) {
       return false;

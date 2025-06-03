@@ -201,9 +201,15 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public boolean isUserCompaction() {
+    // check for scan scope
     if (getIteratorScope() == IteratorScope.scan) {
       throw new IllegalStateException(
           "scan iterator scope is incompatible with a possible user compaction");
+    }
+    // check for minc scope
+    if (getIteratorScope() != IteratorScope.majc) {
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
     }
     return this.isUserCompaction;
   }
