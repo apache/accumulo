@@ -24,14 +24,16 @@ import com.beust.jcommander.Parameter;
 
 public class ServerOpts extends ConfigOpts {
 
+  public static final String BIND_ALL_ADDRESSES = "0.0.0.0";
+
   @Parameter(names = {"-a", "--address"},
-      description = "address to bind to (deprecated - use rpc.bind.addr instead)")
+      description = "address to bind to (deprecated - use rpc.bind.addr with -o option instead)")
   private String address = null;
 
   public String getAddress() {
     if (address != null) {
       return address;
     }
-    return "0.0.0.0";
+    return BIND_ALL_ADDRESSES;
   }
 }
