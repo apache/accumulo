@@ -71,6 +71,7 @@ class MapImportFileNames extends ManagerRepo {
 
         mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 
+        var names = namer.getNextNames(files.length);
         for (FileStatus fileStatus : files) {
           String fileName = fileStatus.getPath().getName();
           log.info("filename " + fileStatus.getPath());
@@ -88,8 +89,7 @@ class MapImportFileNames extends ManagerRepo {
             continue;
           }
 
-          String newName =
-              FilePrefix.BULK_IMPORT.createFileName(namer.getNextName() + "." + extension);
+          String newName = FilePrefix.BULK_IMPORT.createFileName(names.next() + "." + extension);
 
           mappingsWriter.append(fileName);
           mappingsWriter.append(':');

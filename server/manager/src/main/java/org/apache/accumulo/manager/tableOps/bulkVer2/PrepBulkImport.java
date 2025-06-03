@@ -291,10 +291,12 @@ public class PrepBulkImport extends ManagerRepo {
 
     Map<String,String> oldToNewNameMap = new HashMap<>();
 
+    Iterator<String> names = namer.getNextNames(files.size());
+
     for (FileStatus file : files) {
       // since these are only valid files we know it has an extension
       String newName = FilePrefix.BULK_IMPORT.createFileName(
-          namer.getNextName() + "." + FilenameUtils.getExtension(file.getPath().getName()));
+          names.next() + "." + FilenameUtils.getExtension(file.getPath().getName()));
       oldToNewNameMap.put(file.getPath().getName(), new Path(bulkDir, newName).getName());
     }
 
