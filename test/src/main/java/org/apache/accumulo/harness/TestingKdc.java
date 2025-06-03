@@ -46,10 +46,12 @@ public class TestingKdc {
   public static final long MAX_TICKET_LIFETIME_MILLIS = 86400000; // one day
 
   protected MiniKdc kdc = null;
-  protected ClusterUser accumuloServerUser = null, accumuloAdmin = null;
+  protected ClusterUser accumuloServerUser = null;
+  protected ClusterUser accumuloAdmin = null;
   protected List<ClusterUser> clientPrincipals = null;
 
-  public final String ORG_NAME = "EXAMPLE", ORG_DOMAIN = "COM";
+  public final String ORG_NAME = "EXAMPLE";
+  public final String ORG_DOMAIN = "COM";
 
   private String hostname;
   private File keytabDir;

@@ -90,7 +90,8 @@ public class MultiTableBatchWriterIT_SimpleSuite extends SharedMiniClusterBase {
 
     try {
       final String[] names = getUniqueNames(2);
-      final String table1 = names[0], table2 = names[1];
+      final String table1 = names[0];
+      final String table2 = names[1];
 
       TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
@@ -155,14 +156,17 @@ public class MultiTableBatchWriterIT_SimpleSuite extends SharedMiniClusterBase {
 
     try {
       final String[] names = getUniqueNames(4);
-      final String table1 = names[0], table2 = names[1];
-      final String newTable1 = names[2], newTable2 = names[3];
+      final String table1 = names[0];
+      final String table2 = names[1];
+      final String newTable1 = names[2];
+      final String newTable2 = names[3];
 
       TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
-      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+      BatchWriter bw1 = mtbw.getBatchWriter(table1);
+      BatchWriter bw2 = mtbw.getBatchWriter(table2);
 
       Mutation m1 = new Mutation("foo");
       m1.put("col1", "", "val1");
@@ -212,14 +216,17 @@ public class MultiTableBatchWriterIT_SimpleSuite extends SharedMiniClusterBase {
 
     try {
       final String[] names = getUniqueNames(4);
-      final String table1 = names[0], table2 = names[1];
-      final String newTable1 = names[2], newTable2 = names[3];
+      final String table1 = names[0];
+      final String table2 = names[1];
+      final String newTable1 = names[2];
+      final String newTable2 = names[3];
 
       TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
-      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+      BatchWriter bw1 = mtbw.getBatchWriter(table1);
+      BatchWriter bw2 = mtbw.getBatchWriter(table2);
 
       Mutation m1 = new Mutation("foo");
       m1.put("col1", "", "val1");
@@ -282,14 +289,17 @@ public class MultiTableBatchWriterIT_SimpleSuite extends SharedMiniClusterBase {
 
     try {
       final String[] names = getUniqueNames(4);
-      final String table1 = names[0], table2 = names[1];
-      final String newTable1 = names[2], newTable2 = names[3];
+      final String table1 = names[0];
+      final String table2 = names[1];
+      final String newTable1 = names[2];
+      final String newTable2 = names[3];
 
       TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
-      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+      BatchWriter bw1 = mtbw.getBatchWriter(table1);
+      BatchWriter bw2 = mtbw.getBatchWriter(table2);
 
       Mutation m1 = new Mutation("foo");
       m1.put("col1", "", "val1");
@@ -319,13 +329,15 @@ public class MultiTableBatchWriterIT_SimpleSuite extends SharedMiniClusterBase {
 
     try {
       final String[] names = getUniqueNames(2);
-      final String table1 = names[0], table2 = names[1];
+      final String table1 = names[0];
+      final String table2 = names[1];
 
       TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
-      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+      BatchWriter bw1 = mtbw.getBatchWriter(table1);
+      BatchWriter bw2 = mtbw.getBatchWriter(table2);
 
       Mutation m1 = new Mutation("foo");
       m1.put("col1", "", "val1");
@@ -370,13 +382,15 @@ public class MultiTableBatchWriterIT_SimpleSuite extends SharedMiniClusterBase {
 
     try {
       final String[] names = getUniqueNames(2);
-      final String table1 = names[0], table2 = names[1];
+      final String table1 = names[0];
+      final String table2 = names[1];
 
       TableOperations tops = accumuloClient.tableOperations();
       tops.create(table1);
       tops.create(table2);
 
-      BatchWriter bw1 = mtbw.getBatchWriter(table1), bw2 = mtbw.getBatchWriter(table2);
+      BatchWriter bw1 = mtbw.getBatchWriter(table1);
+      BatchWriter bw2 = mtbw.getBatchWriter(table2);
 
       Mutation m1 = new Mutation("foo");
       m1.put("col1", "", "val1");

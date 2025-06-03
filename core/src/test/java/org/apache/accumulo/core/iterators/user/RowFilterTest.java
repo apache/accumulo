@@ -182,7 +182,8 @@ public class RowFilterTest {
     List<Mutation> mutations = createMutations();
     TreeMap<Key,Value> keyValues = new TreeMap<>();
 
-    final Text cf = new Text(), cq = new Text();
+    final Text cf = new Text();
+    final Text cq = new Text();
     for (Mutation m : mutations) {
       final Text row = new Text(m.getRow());
       for (ColumnUpdate update : m.getUpdates()) {
