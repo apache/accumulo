@@ -425,12 +425,18 @@ public class CompactionCoordinator extends AbstractServer implements
         LOG.trace("Contacting tablet server {} to get external compaction summaries",
             tsi.getHostPort());
         client = getTabletServerConnection(tsi);
-        List<TCompactionQueueSummary> summaries =
-            client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
-        QUEUE_SUMMARIES.update(tsi, summaries);
-        summaries.forEach(summary -> {
-          queuesSeen.add(summary.getQueue());
-        });
+        if (client != null) {
+          List<TCompactionQueueSummary> summaries =
+              client.getCompactionQueueInfo(TraceUtil.traceInfo(), getContext().rpcCreds());
+          QUEUE_SUMMARIES.update(tsi, summaries);
+          summaries.forEach(summary -> {
+            queuesSeen.add(summary.getQueue());
+          });
+        } else {
+          LOG.trace("Connection to get summaries could not be established {} ",
+              tsi.getHostAndPort());
+          QUEUE_SUMMARIES.remove(Set.of(tsi));
+        }
       } finally {
         ThriftUtil.returnClient(client, getContext());
       }
@@ -506,13 +512,20 @@ public class CompactionCoordinator extends AbstractServer implements
       TabletClientService.Client client = null;
       try {
         client = getTabletServerConnection(tserver);
+        if (client == null) {
+          LOG.trace("No connection established for queue {} on tserver {}, trying next tserver",
+              queue, tserver.getHostAndPort());
+          QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
+          prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
+          continue;
+        }
+
         TExternalCompactionJob job =
             client.reserveCompactionJob(TraceUtil.traceInfo(), getContext().rpcCreds(), queue,
                 prioTserver.prio, compactorAddress, externalCompactionId);
         if (null == job.getExternalCompactionId()) {
           LOG.trace("No compactions found for queue {} on tserver {}, trying next tserver", queue,
               tserver.getHostAndPort());
-
           QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
           prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
           continue;
@@ -555,6 +568,9 @@ public class CompactionCoordinator extends AbstractServer implements
   protected TabletClientService.Client getTabletServerConnection(TServerInstance tserver)
       throws TTransportException {
     TServerConnection connection = tserverSet.getConnection(tserver);
+    if (connection == null) {
+      return null;
+    }
     ServerContext serverContext = getContext();
     TTransport transport = serverContext.getTransportPool().getTransport(
         ThriftClientTypes.TABLET_SERVER, connection.getAddress(), 0, serverContext, true);
