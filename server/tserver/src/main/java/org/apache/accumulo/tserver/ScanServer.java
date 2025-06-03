@@ -311,7 +311,7 @@ public class ScanServer extends AbstractServer
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.startServer(getContext(), getBindAddress(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
         Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
@@ -392,7 +392,8 @@ public class ScanServer extends AbstractServer
     ServerAddress address = null;
     try {
       address = startScanServerClientService();
-      clientAddress = address.getAddress();
+      clientAddress = getAdvertiseAddress() != null ? HostAndPort.fromString(getAdvertiseAddress())
+          : address.getAddress();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the scan server client service", e1);
     }

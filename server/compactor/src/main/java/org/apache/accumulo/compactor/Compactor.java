@@ -323,7 +323,7 @@ public class Compactor extends AbstractServer
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.startServer(getContext(), getBindAddress(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
         Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK,
@@ -674,7 +674,8 @@ public class Compactor extends AbstractServer
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
-    final HostAndPort clientAddress = compactorAddress.getAddress();
+    final HostAndPort clientAddress = getAdvertiseAddress() != null
+        ? HostAndPort.fromString(getAdvertiseAddress()) : compactorAddress.getAddress();
 
     try {
       announceExistence(clientAddress);

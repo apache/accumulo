@@ -50,7 +50,9 @@ public abstract class AbstractServer
 
   private final ServerContext context;
   protected final String applicationName;
-  private final String hostname;
+  private final String advertiseAddress; // used for everything but the Thrift server (e.g. ZK,
+                                         // metadata, etc).
+  private final String bindAddress; // used for the Thrift server
   private final Logger log;
   private final ProcessMetrics processMetrics;
   protected final long idleReportingPeriodNanos;
@@ -73,9 +75,15 @@ public abstract class AbstractServer
     }
     if (oldBindParameter == null
         || oldBindParameter.equals("0.0.0.0") && !newBindParameter.equals("")) {
-      this.hostname = newBindParameter;
+      this.bindAddress = newBindParameter;
     } else {
-      this.hostname = oldBindParameter;
+      this.bindAddress = oldBindParameter;
+    }
+    String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
+    if (advertAddr != null && !advertAddr.isBlank()) {
+      advertiseAddress = advertAddr;
+    } else {
+      advertiseAddress = null;
     }
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
@@ -221,8 +229,12 @@ public abstract class AbstractServer
     }
   }
 
-  public String getHostname() {
-    return hostname;
+  public String getAdvertiseAddress() {
+    return advertiseAddress;
+  }
+
+  public String getBindAddress() {
+    return bindAddress;
   }
 
   public ServerContext getContext() {

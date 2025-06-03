@@ -550,7 +550,7 @@ public class TabletServer extends AbstractServer
     }
   }
 
-  private HostAndPort startServer(String address, TProcessor processor)
+  private ServerAddress startServer(String address, TProcessor processor)
       throws UnknownHostException {
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
@@ -560,7 +560,7 @@ public class TabletServer extends AbstractServer
         Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
         Property.TSERV_THREADCHECK, maxMessageSizeProperty);
     this.server = sp.server;
-    return sp.address;
+    return sp;
   }
 
   private HostAndPort getManagerAddress() {
@@ -609,7 +609,7 @@ public class TabletServer extends AbstractServer
     ThriftUtil.returnClient(client, context);
   }
 
-  private HostAndPort startTabletClientService() throws UnknownHostException {
+  private ServerAddress startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     TransactionWatcher watcher = new TransactionWatcher(context);
     WriteTracker writeTracker = new WriteTracker();
@@ -619,9 +619,9 @@ public class TabletServer extends AbstractServer
 
     TProcessor processor = ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler,
         thriftClientHandler, scanClientHandler, getContext());
-    HostAndPort address = startServer(clientAddress.getHost(), processor);
-    log.info("address = {}", address);
-    return address;
+    ServerAddress sp = startServer(getBindAddress(), processor);
+    log.info("address = {}", sp.address);
+    return sp;
   }
 
   @Deprecated
@@ -745,8 +745,11 @@ public class TabletServer extends AbstractServer
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
+    ServerAddress address = null;
     try {
-      clientAddress = startTabletClientService();
+      address = startTabletClientService();
+      clientAddress = getAdvertiseAddress() != null ? HostAndPort.fromString(getAdvertiseAddress())
+          : address.getAddress();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
@@ -1117,10 +1120,10 @@ public class TabletServer extends AbstractServer
   }
 
   private void config() {
-    log.info("Tablet server starting on {}", getHostname());
+    log.info("Tablet server starting on {}", getBindAddress());
     Threads.createCriticalThread("Split/MajC initiator", new MajorCompactor(context)).start();
 
-    clientAddress = HostAndPort.fromParts(getHostname(), 0);
+    clientAddress = HostAndPort.fromParts(getBindAddress(), 0);
 
     final AccumuloConfiguration aconf = getConfiguration();
 
