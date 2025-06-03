@@ -104,6 +104,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.HasMigrationFilter;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -641,11 +642,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
-      try (
-          var tabletsMetadata = getContext()
-              .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
-                  TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
-              .build()) {
+      try (var tabletsMetadata = getContext()
+          .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
+              TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
+          .filter(new HasMigrationFilter()).build()) {
         // filter out migrations that are awaiting cleanup
         tabletsMetadata.stream()
             .filter(tm -> tm.getMigration() != null && !shouldCleanupMigration(tm))
