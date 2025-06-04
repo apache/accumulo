@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
+import io.micrometer.core.instrument.config.MeterFilter;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -153,10 +155,21 @@ public class MetricsInfoImpl implements MetricsInfo {
     String userRegistryFactories =
         context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
 
+    // Fetch the patterns to filter from the meter registry.
+    String filterPatterns = context.getConfiguration().get(Property.GENERAL_MICROMETER_ID_FILTERS);
+    MeterFilter meterFilter = null;
+    if (StringUtils.isNotEmpty(filterPatterns)) {
+      meterFilter = MeterRegistryFactory.getMeterFilter(filterPatterns);
+    }
+
+
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
         registry.config().commonTags(commonTags);
+        if(meterFilter != null) {
+          registry.config().meterFilter(meterFilter);
+        }
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
         LOG.warn("Could not load registry {}", factoryName, ex);

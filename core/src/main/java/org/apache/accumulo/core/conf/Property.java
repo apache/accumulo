@@ -362,6 +362,8 @@ public enum Property {
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
       "4.0.0"),
+  GENERAL_MICROMETER_ID_FILTERS("general.micrometer.id.filters", "", PropertyType.STRING,
+          "A comma separated list of patterns to deny meters with matching id names. Example: \"foo.*,bar\".", "4.0"),
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
