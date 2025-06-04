@@ -22,12 +22,13 @@ import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
-import com.google.common.base.Preconditions;
-import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.config.MeterFilter;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
+import com.google.common.base.Preconditions;
+
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.config.MeterFilter;
 
 /**
  * The Micrometer metrics allows for different monitoring systems. and can be enabled within
@@ -74,8 +75,10 @@ public interface MeterRegistryFactory {
    * @return a Micrometer registry that will be added to the metrics configuration.
    */
   MeterRegistry create(final InitParameters params);
+
   /**
    * Description of what the function does.
+   *
    * @param patternList Description of what this variable is, i.e. comma-delimited regext patterns
    * @return description of what this function returns, i.e. a predicate
    */
@@ -98,7 +101,8 @@ public interface MeterRegistryFactory {
         // This is the first pattern. Establish the initial predicate.
         finalPredicate = predicate;
       } else {
-        // Conjoin the pattern into the final predicates. The final predicate will return true if the name of the ID matches any of its conjoined predicates.
+        // Conjoin the pattern into the final predicates. The final predicate will return true if
+        // the name of the ID matches any of its conjoined predicates.
         finalPredicate = finalPredicate.or(predicate);
       }
     }
