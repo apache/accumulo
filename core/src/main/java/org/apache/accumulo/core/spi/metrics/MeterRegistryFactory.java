@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.metrics;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Map;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
@@ -83,7 +85,7 @@ public interface MeterRegistryFactory {
    * @return description of what this function returns, i.e. a predicate
    */
   static MeterFilter getMeterFilter(String patternList) {
-    Preconditions.checkNotNull(patternList, "patternList must not be null");
+    requireNonNull(patternList, "patternList must not be null");
     Preconditions.checkArgument(!patternList.isEmpty(), "patternList must not be empty");
 
     String[] patterns = patternList.split(",");

@@ -26,7 +26,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
-import io.micrometer.core.instrument.config.MeterFilter;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -50,6 +49,7 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
+import io.micrometer.core.instrument.config.MeterFilter;
 
 public class MetricsInfoImpl implements MetricsInfo {
 
@@ -162,12 +162,11 @@ public class MetricsInfoImpl implements MetricsInfo {
       meterFilter = MeterRegistryFactory.getMeterFilter(filterPatterns);
     }
 
-
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
         registry.config().commonTags(commonTags);
-        if(meterFilter != null) {
+        if (meterFilter != null) {
           registry.config().meterFilter(meterFilter);
         }
         Metrics.globalRegistry.add(registry);
