@@ -27,7 +27,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import com.google.common.collect.Iterators;
 import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
@@ -40,6 +39,7 @@ import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Iterators;
 
 public abstract class TabletMetadataFilter extends WrappingIterator {
   private Iterator<TabletMetadata> filteredTablets;
@@ -88,7 +88,8 @@ public abstract class TabletMetadataFilter extends WrappingIterator {
     seachIterator.seek(range, resolvedFamilies, true);
     var rowsIter = new RowIterator(new IteratorAdapter(seachIterator));
     var cols = EnumSet.copyOf(getColumns());
-    var tabletsIter = Iterators.transform(rowsIter, rowIter -> TabletMetadata.convertRow(rowIter, cols, true, false));
+    var tabletsIter = Iterators.transform(rowsIter,
+        rowIter -> TabletMetadata.convertRow(rowIter, cols, true, false));
     var predicate = acceptTablet();
     filteredTablets = Iterators.filter(tabletsIter, predicate::test);
     seekToNextTablet();
