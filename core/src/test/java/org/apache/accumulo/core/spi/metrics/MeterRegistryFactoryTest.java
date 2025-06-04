@@ -4,7 +4,7 @@ import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.micrometer.core.instrument.config.MeterFilterReply;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import java.util.regex.PatternSyntaxException;
 
