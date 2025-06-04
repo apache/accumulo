@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.tableImport;
 
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -34,10 +32,8 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -61,10 +57,8 @@ class MoveExportedFiles extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    int poolSize = manager.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
     VolumeManager fs = manager.getVolumeManager();
-    ExecutorService workerPool = ThreadPools.getServerThreadPools()
-        .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
+    ExecutorService workerPool = manager.getWorkerPool();
     Map<Path,Path> oldToNewPaths = new HashMap<>();
 
     for (ImportedTableInfo.DirectoryMapping dm : tableInfo.directories) {
