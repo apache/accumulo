@@ -261,7 +261,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
-      String srcTable = tableNames[0], destTable = tableNames[1];
+      String srcTable = tableNames[0];
+      String destTable = tableNames[1];
       client.tableOperations().create(srcTable);
 
       try (BatchWriter bw = client.createBatchWriter(srcTable)) {
@@ -409,7 +410,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
-      String srcTable = tableNames[0], destTable = tableNames[1];
+      String srcTable = tableNames[0];
+      String destTable = tableNames[1];
 
       client.tableOperations().create(srcTable);
       String srcTableId = client.tableOperations().tableIdMap().get(srcTable);
@@ -603,13 +605,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
   private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable,
       int expected) throws Exception {
     Iterator<Entry<Key,Value>> src =
-        client.createScanner(srcTable, Authorizations.EMPTY).iterator(),
-        dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
+        client.createScanner(srcTable, Authorizations.EMPTY).iterator();
+    Iterator<Entry<Key,Value>> dest =
+        client.createScanner(destTable, Authorizations.EMPTY).iterator();
     assertTrue(src.hasNext(), "Could not read any data from source table");
     assertTrue(dest.hasNext(), "Could not read any data from destination table");
     int entries = 0;
     while (src.hasNext() && dest.hasNext()) {
-      Entry<Key,Value> orig = src.next(), copy = dest.next();
+      Entry<Key,Value> orig = src.next();
+      Entry<Key,Value> copy = dest.next();
       assertEquals(orig.getKey(), copy.getKey());
       assertEquals(orig.getValue(), copy.getValue());
       entries++;

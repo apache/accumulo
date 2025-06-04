@@ -158,8 +158,8 @@ public class MiniClusterHarness {
     File rootKeystoreFile = sslDir.resolve("root-" + cfg.getInstanceName() + ".jks").toFile();
     File localKeystoreFile = sslDir.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
     File publicTruststoreFile = sslDir.resolve("public-" + cfg.getInstanceName() + ".jks").toFile();
-    final String rootKeystorePassword = "root_keystore_password",
-        truststorePassword = "truststore_password";
+    final String rootKeystorePassword = "root_keystore_password";
+    final String truststorePassword = "truststore_password";
     try {
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
           "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 4096, "SHA512WITHRSA").createAll(

@@ -54,15 +54,16 @@ public class HadoopCredentialProviderTest {
   private static final Configuration hadoopConf = new Configuration();
   private static final Logger log = LoggerFactory.getLogger(HadoopCredentialProviderTest.class);
 
-  private static final String populatedKeyStoreName = "/accumulo.jceks",
-      emptyKeyStoreName = "/empty.jceks";
-  private static File emptyKeyStore, populatedKeyStore;
+  private static final String populatedKeyStoreName = "/accumulo.jceks";
+  private static final String emptyKeyStoreName = "/empty.jceks";
+  private static File emptyKeyStore;
+  private static File populatedKeyStore;
 
   @BeforeAll
   public static void checkCredentialProviderAvailable() throws Exception {
     URL populatedKeyStoreUrl =
-        HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName),
-        emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
+        HadoopCredentialProviderTest.class.getResource(populatedKeyStoreName);
+    URL emptyKeyStoreUrl = HadoopCredentialProviderTest.class.getResource(emptyKeyStoreName);
 
     assertNotNull(populatedKeyStoreUrl, "Could not find " + populatedKeyStoreName);
     assertNotNull(emptyKeyStoreUrl, "Could not find " + emptyKeyStoreName);
@@ -122,8 +123,8 @@ public class HadoopCredentialProviderTest {
 
   @Test
   public void testEmptyAndPopulatedKeyStores() {
-    String populatedAbsPath = getKeyStoreUrl(populatedKeyStore),
-        emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
+    String populatedAbsPath = getKeyStoreUrl(populatedKeyStore);
+    String emptyAbsPath = getKeyStoreUrl(emptyKeyStore);
     Configuration conf = new Configuration();
     HadoopCredentialProvider.setPath(conf, populatedAbsPath + "," + emptyAbsPath);
     Map<String,String> expectations = new HashMap<>();

@@ -53,10 +53,18 @@ import org.jline.reader.LineReader;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt;
+  private Option tableOpt;
+  private Option deleteOpt;
+  private Option setOpt;
+  private Option forceOpt;
+  private Option filterOpt;
+  private Option filterWithValuesOpt;
+  private Option disablePaginationOpt;
+  private Option outputFileOpt;
+  private Option namespaceOpt;
 
-  private int COL1 = 10, COL2 = 7;
+  private int COL1 = 10;
+  private int COL2 = 7;
   private LineReader reader;
 
   @Override

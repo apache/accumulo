@@ -80,7 +80,9 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value();
   private java.nio.file.Path volDirBase;
-  private Path v1, v2, v3;
+  private Path v1;
+  private Path v2;
+  private Path v3;
   public static String[] alpha_rows =
       "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;

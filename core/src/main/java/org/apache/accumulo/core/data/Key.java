@@ -565,9 +565,20 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @since 3.1.0
    */
   public Key(ByteSequence row, ByteSequence cf, ByteSequence cq, ByteSequence cv, long ts) {
-    byte[] rowBytes, cfBytes, cqBytes, cvBytes;
-    int rowOffset, cfOffset, cqOffset, cvOffset;
-    int rowLen, cfLen, cqLen, cvLen;
+    byte[] rowBytes;
+    byte[] cfBytes;
+    byte[] cqBytes;
+    byte[] cvBytes;
+
+    int rowOffset;
+    int cfOffset;
+    int cqOffset;
+    int cvOffset;
+
+    int rowLen;
+    int cfLen;
+    int cqLen;
+    int cvLen;
 
     if (row.isBackedByArray()) {
       rowBytes = row.getBackingArray();

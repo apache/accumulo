@@ -479,7 +479,8 @@ public class TServerUtils {
 
     TServerSocket transport = new TServerSocket(args);
 
-    String hostname, fqdn;
+    String hostname;
+    String fqdn;
     try {
       hostname = InetAddress.getByName(address.getHost()).getCanonicalHostName();
       fqdn = InetAddress.getLocalHost().getCanonicalHostName();
