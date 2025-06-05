@@ -216,6 +216,13 @@ public class NamespacesIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void createNamespaceWithSystemUser() throws Exception {
+    String testNamespace = "ns_" + getUniqueNames(1)[0];
+    AccumuloClient client = getCluster().getServerContext();
+    client.namespaceOperations().create(testNamespace);
+  }
+
+  @Test
   public void createAndDeleteNamespace() throws Exception {
     String t1 = namespace + ".1";
     String t2 = namespace + ".2";
