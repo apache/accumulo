@@ -392,7 +392,8 @@ public class ScanServer extends AbstractServer
     ServerAddress address = null;
     try {
       address = startScanServerClientService();
-      clientAddress = getAdvertiseAddress() != null ? HostAndPort.fromString(getAdvertiseAddress())
+      clientAddress = getAdvertiseAddress() != null
+          ? HostAndPort.fromParts(getAdvertiseAddress(), address.address.getPort())
           : address.getAddress();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the scan server client service", e1);

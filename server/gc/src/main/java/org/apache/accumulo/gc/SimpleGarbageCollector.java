@@ -169,8 +169,8 @@ public class SimpleGarbageCollector extends AbstractServer
     HostAndPort address = startStatsService();
 
     try {
-      getZooLock(
-          getAdvertiseAddress() != null ? HostAndPort.fromString(getAdvertiseAddress()) : address);
+      getZooLock(getAdvertiseAddress() != null
+          ? HostAndPort.fromParts(getAdvertiseAddress(), address.getPort()) : address);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);

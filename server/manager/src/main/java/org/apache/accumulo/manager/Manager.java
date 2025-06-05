@@ -1250,8 +1250,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     clientService = sa.server;
     log.info("Started Manager client service at {}", sa.address);
 
-    final HostAndPort clientAddress =
-        getAdvertiseAddress() != null ? HostAndPort.fromString(getAdvertiseAddress()) : sa.address;
+    final HostAndPort clientAddress = getAdvertiseAddress() != null
+        ? HostAndPort.fromParts(getAdvertiseAddress(), sa.address.getPort()) : sa.address;
 
     // block until we can obtain the ZK lock for the manager
     try {

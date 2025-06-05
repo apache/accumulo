@@ -675,7 +675,8 @@ public class Compactor extends AbstractServer
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
     final HostAndPort clientAddress = getAdvertiseAddress() != null
-        ? HostAndPort.fromString(getAdvertiseAddress()) : compactorAddress.getAddress();
+        ? HostAndPort.fromParts(getAdvertiseAddress(), compactorAddress.address.getPort())
+        : compactorAddress.getAddress();
 
     try {
       announceExistence(clientAddress);

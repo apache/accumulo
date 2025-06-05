@@ -499,7 +499,7 @@ public class TServerUtils {
 
     // If we can't get a real hostname from the provided host test, use the hostname from DNS for
     // localhost
-    if ("0.0.0.0".equals(hostname)) {
+    if (ServerOpts.BIND_ALL_ADDRESSES.equals(hostname)) {
       hostname = fqdn;
     }
 
