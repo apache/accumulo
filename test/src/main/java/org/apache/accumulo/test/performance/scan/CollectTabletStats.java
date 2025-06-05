@@ -52,6 +52,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
@@ -72,7 +73,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -450,8 +451,8 @@ public class CollectTabletStats {
 
     if (useTableIterators) {
       var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      TabletIteratorEnvironment iterEnv =
-          new TabletIteratorEnvironment(context, IteratorScope.scan, conf, ke.tableId());
+      IteratorEnvironment iterEnv = new SystemIteratorEnvironmentImpl.Builder(context)
+          .withScope(IteratorScope.scan).withTableId(ke.tableId()).build();
       var iteratorBuilder = ibEnv.env(iterEnv).useClassLoader("test").build();
       return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }
