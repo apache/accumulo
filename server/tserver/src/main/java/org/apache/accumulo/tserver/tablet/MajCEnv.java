@@ -30,7 +30,7 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 
 public class MajCEnv implements FileCompactor.CompactionEnv {
   private final CompactionKind kind;
@@ -71,8 +71,19 @@ public class MajCEnv implements FileCompactor.CompactionEnv {
   @Override
   public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
       AccumuloConfiguration acuTableConf, TableId tableId) {
-    return new TabletIteratorEnvironment(context, IteratorUtil.IteratorScope.majc,
-        !propagateDeletes, acuTableConf, tableId, kind);
+
+    var builder = new SystemIteratorEnvironmentImpl.Builder(context)
+        .withScope(IteratorUtil.IteratorScope.majc).withTableId(tableId);
+
+    if (kind == CompactionKind.USER) {
+      builder.isUserCompaction();
+    }
+
+    if (!propagateDeletes) {
+      builder.isFullMajorCompaction();
+    }
+    return (SystemIteratorEnvironment) builder.build();
+
   }
 
   @Override
