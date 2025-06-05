@@ -121,7 +121,7 @@ public class ListTabletsCommand extends Command {
       throws NamespaceNotFoundException {
 
     final TableOperations tableOps = shellState.getAccumuloClient().tableOperations();
-    final Map<String, String> tableIdMap = tableOps.tableIdMap();
+    final Map<String,String> tableIdMap = tableOps.tableIdMap();
 
     Set<TableInfo> tableSet = new TreeSet<>();
 
