@@ -63,6 +63,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 public class DefaultCompactionPlannerTest {
 
@@ -185,6 +186,71 @@ public class DefaultCompactionPlannerTest {
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
     assertEquals(CompactionExecutorIdImpl.internalId(csid, "medium"), job.getExecutor());
+  }
+
+  @Test
+  public void testRunningCompactionLookAhead() {
+    String executors = "[{'name':'small','type': 'internal','maxSize':'32M','numThreads':1},"
+        + "{'name':'medium','type': 'internal','maxSize':'128M','numThreads':2},"
+        + "{'name':'large','type': 'internal','maxSize':'512M','numThreads':3},"
+        + "{'name':'huge','type': 'internal','numThreads':4}]";
+
+    var planner = createPlanner(defaultConf, executors);
+
+    int count = 0;
+
+    // create 4 files of size 10 as compacting
+    List<String> compactingString = new ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+      compactingString.add("F" + count++);
+      compactingString.add(10 + "");
+    }
+
+    // create 4 files of size 100,1000,10_000, and 100_000 as the tablets files
+    List<String> candidateStrings = new ArrayList<>();
+    for (int size = 100; size < 1_000_000; size *= 10) {
+      for (int i = 0; i < 4; i++) {
+        candidateStrings.add("F" + count++);
+        candidateStrings.add(size + "");
+      }
+    }
+
+    var compacting = createCFs(compactingString.toArray(new String[0]));
+    var candidates = createCFs(candidateStrings.toArray(new String[0]));
+    var all = Sets.union(compacting, candidates);
+    var jobs = Set.of(createJob(CompactionKind.SYSTEM, all, compacting));
+    var params = createPlanningParams(all, candidates, jobs, 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+
+    // the size 100 files should be excluded because the job running over size 10 files will produce
+    // a file in their size range, so should see the 1000 size files planned for compaction
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(4, job.getFiles().size());
+    assertTrue(job.getFiles().stream().allMatch(f -> f.getEstimatedSize() == 1_000));
+
+    // try planning again incorporating the job returned from previous plan
+    var jobs2 = Sets.union(jobs, Set.copyOf(plan.getJobs()));
+    var candidates2 = new HashSet<>(candidates);
+    candidates2.removeAll(job.getFiles());
+    params = createPlanningParams(all, candidates2, jobs2, 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    // The two running jobs are over 10 and 1000 sized files. The jobs should exclude 100 and 10_000
+    // sized files because they would produce a file in those size ranges. This leaves the 100_000
+    // sized files available to compact.
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(4, job.getFiles().size());
+    assertTrue(job.getFiles().stream().allMatch(f -> f.getEstimatedSize() == 100_000));
+
+    // try planning again incorporating the job returned from previous plan
+    var jobs3 = Sets.union(jobs2, Set.copyOf(plan.getJobs()));
+    var candidates3 = new HashSet<>(candidates2);
+    candidates3.removeAll(job.getFiles());
+    params = createPlanningParams(all, candidates3, jobs3, 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    // should find nothing to compact at this point
+    assertEquals(0, plan.getJobs().size());
   }
 
   /**
