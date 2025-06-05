@@ -21,6 +21,7 @@ package org.apache.accumulo.core.spi.metrics;
 import static java.util.Objects.requireNonNull;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
@@ -110,6 +111,6 @@ public interface MeterRegistryFactory {
     }
 
     // Assert that meter filter reply == MeterFilterReply.DENY;
-    return MeterFilter.deny(finalPredicate);
+      return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
   }
 }
