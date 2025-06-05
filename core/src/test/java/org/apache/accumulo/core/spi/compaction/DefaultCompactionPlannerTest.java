@@ -525,13 +525,14 @@ public class DefaultCompactionPlannerTest {
     overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
     var conf = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides).build());
 
-    // For this case need to compact three files and the highest ratio that achieves that is 1.8
+    // The highest ratio is 1.9 so should compact this. Will need a subsequent compaction to bring
+    // it below the limit.
     var planner = createPlanner(conf, executors);
     var all = createCFs(1000, 1.1, 1.9, 1.8, 1.6, 1.3, 1.4, 1.3, 1.2, 1.1);
     var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(1000, 1.1, 1.9, 1.8), job.getFiles());
+    assertEquals(createCFs(1000, 1.1, 1.9), job.getFiles());
 
     // For this case need to compact two files and the highest ratio that achieves that is 2.9
     all = createCFs(1000, 2, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3);
@@ -564,21 +565,26 @@ public class DefaultCompactionPlannerTest {
       assertEquals(createCFs(1000, 1.9), job.getFiles());
     }
 
-    // In this case the tablet can be brought below the max limit in single compaction, so it should
-    // find this
+    // The max compaction ratio is the first two files, so should compact these. Will require
+    // multiple compactions to bring the tablet below the limit.
     all =
         createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1), job.getFiles());
+    assertEquals(createCFs(1000, 1.9), job.getFiles());
+
+    all = createCFs(10, 1.3, 2.2, 2.51, 1.02, 1.7, 2.54, 2.3, 1.7, 1.5, 1.4);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(10, 1.3, 2.2, 2.51, 1.02, 1.7, 2.54), job.getFiles());
 
     // each file is 10x the size of the file smaller than it
     all = createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
-    job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1), job.getFiles());
+    assertTrue(plan.getJobs().isEmpty());
 
     // test with some files growing 20x, ensure those are not included
     for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
@@ -588,7 +594,6 @@ public class DefaultCompactionPlannerTest {
       job = getOnlyElement(plan.getJobs());
       assertEquals(createCFs(10, 1.05, 1.05, 1.25, 1.75), job.getFiles());
     }
-
   }
 
   @Test
@@ -621,12 +626,24 @@ public class DefaultCompactionPlannerTest {
 
     assertTrue(plan.getJobs().isEmpty());
 
-    // a really bad situation, each file is 20 times the size of its smaller file. The algorithm
-    // does not search that for ratios that low.
-    all = createCFs(10, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
+    // a really bad situation, each file is 20 times the size of its smaller file. By default, the
+    // algorithm does not search that for ratios that low.
+    all = createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
     assertTrue(plan.getJobs().isEmpty());
+
+    // adjust the config for the lowest search ratio and recreate the planner, this should allow a
+    // compaction to happen
+    var overrides2 = new HashMap<>(overrides);
+    overrides2.put(
+        Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.lowestRatio", "1.04");
+    var conf2 = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides2).build());
+    var planner2 = createPlanner(conf2, executors);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner2.makePlan(params);
+    var job2 = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05), job2.getFiles());
   }
 
   // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
@@ -648,7 +665,7 @@ public class DefaultCompactionPlannerTest {
     var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4), job.getFiles());
+    assertEquals(createCFs(1000, 1.9), job.getFiles());
   }
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
@@ -811,14 +828,16 @@ public class DefaultCompactionPlannerTest {
   private static CompactionPlanner.InitParameters getInitParams(Configuration conf,
       String executors) {
 
-    String maxOpen =
-        conf.get(Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.maxOpen");
     Map<String,String> options = new HashMap<>();
-    options.put("executors", executors.replaceAll("'", "\""));
 
-    if (maxOpen != null) {
-      options.put("maxOpen", maxOpen);
-    }
+    String prefix = Property.TSERV_COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.";
+
+    conf.forEach(e -> {
+      if (e.getKey().startsWith(prefix)) {
+        options.put(e.getKey().substring(prefix.length()), e.getValue());
+      }
+    });
+    options.put("executors", executors.replaceAll("'", "\""));
 
     ServiceEnvironment senv = EasyMock.createMock(ServiceEnvironment.class);
     EasyMock.expect(senv.getConfiguration()).andReturn(conf).anyTimes();
