@@ -45,7 +45,8 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.hadoop.fs.Path;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +75,10 @@ class ZooTabletStateStore extends AbstractTabletStateStore implements TabletStat
       TabletManagementParameters parameters) {
     Preconditions.checkArgument(parameters.getLevel() == getLevel());
 
-    final TabletIteratorEnvironment env = new TabletIteratorEnvironment(ctx, IteratorScope.scan,
-        ctx.getTableConfiguration(SystemTables.ROOT.tableId()), SystemTables.ROOT.tableId());
+    final SystemIteratorEnvironment env =
+        (SystemIteratorEnvironment) new SystemIteratorEnvironmentImpl.Builder(ctx)
+            .withScope(IteratorScope.scan).withTableId(SystemTables.ROOT.tableId()).build();
+
     final TabletManagementIterator tmi = new TabletManagementIterator();
     final AtomicBoolean closed = new AtomicBoolean(false);
 

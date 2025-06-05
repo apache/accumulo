@@ -56,7 +56,7 @@ import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.split.SplitUtils;
 import org.apache.hadoop.io.Text;
@@ -184,7 +184,7 @@ public class TabletManagementIterator extends WholeRowIterator {
         tabletMgmtParams.getCompactionHints(), tabletMgmtParams.getSteadyTime());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     BalancerEnvironmentImpl benv =
-        new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());
+        new BalancerEnvironmentImpl(((SystemIteratorEnvironment) env).getServerContext());
     try {
       balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
           TabletBalancer.class, new DoNothingBalancer());
