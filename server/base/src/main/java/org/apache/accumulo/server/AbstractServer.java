@@ -82,10 +82,14 @@ public abstract class AbstractServer
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
+      if (advertAddr.equals(ServerOpts.BIND_ALL_ADDRESSES)) {
+        throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
+      }
       advertiseAddress = advertAddr;
     } else {
       advertiseAddress = null;
     }
+    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
