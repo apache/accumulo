@@ -1118,9 +1118,14 @@ public class ClientContext implements AccumuloClient {
   }
 
   public synchronized ThriftTransportPool getTransportPool() {
+    return getTransportPoolImpl(false);
+  }
+
+  protected synchronized ThriftTransportPool getTransportPoolImpl(boolean shouldHalt) {
     ensureOpen();
     if (thriftTransportPool == null) {
-      thriftTransportPool = ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis);
+      thriftTransportPool =
+          ThriftTransportPool.startNew(this::getTransportPoolMaxAgeMillis, shouldHalt);
     }
     return thriftTransportPool;
   }
