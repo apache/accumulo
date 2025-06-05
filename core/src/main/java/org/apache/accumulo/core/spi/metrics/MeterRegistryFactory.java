@@ -111,6 +111,6 @@ public interface MeterRegistryFactory {
     }
 
     // Assert that meter filter reply == MeterFilterReply.DENY;
-      return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
+    return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
   }
 }
