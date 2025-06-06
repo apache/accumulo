@@ -107,7 +107,6 @@ import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderPara
 import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.UnloaderParamsImpl;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.MapCounter;
@@ -678,8 +677,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     // to assign tablets.
     ManagerClientService.Client iface = managerConnection(getManagerAddress());
     try {
-      iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-          getClientAddressString());
+      iface.tabletServerStopping(getContext().rpcCreds(), getClientAddressString());
     } catch (TException e) {
       Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
