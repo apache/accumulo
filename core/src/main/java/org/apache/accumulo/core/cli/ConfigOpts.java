@@ -160,9 +160,9 @@ public class ConfigOpts extends Help {
         .filter(Objects::nonNull).mapToInt(String::length).max().orElse(0);
 
     final String propOnlyFormat =
-        "%1$-" + maxPropLength + "s %2$-" + Math.min(52, maxDefaultLength) + "s";
+        "%-" + maxPropLength + "s %-" + Math.min(52, maxDefaultLength) + "s";
     final String deprecatedOnlyFormat = propOnlyFormat + " (deprecated)";
-    final String replacedFormat = propOnlyFormat + " (deprecated - replaced by %3$s)";
+    final String replacedFormat = propOnlyFormat + " (deprecated - replaced by %s)";
 
     StringBuilder sb = new StringBuilder();
     sb.append(
