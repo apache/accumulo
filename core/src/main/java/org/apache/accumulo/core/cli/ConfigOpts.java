@@ -172,16 +172,9 @@ public class ConfigOpts extends Help {
         "\tSee the user guide at https://accumulo.apache.org/ for more information about each property.\n");
     sb.append("\n");
 
-    final SortedSet<Property> sortedProperties = new TreeSet<>(new Comparator<Property>() {
-      @Override
-      public int compare(Property arg0, Property arg1) {
-        return arg0.getKey().compareTo(arg1.getKey());
-      }
-    });
-
-    for (Property p : Property.values()) {
-      sortedProperties.add(p);
-    }
+    final SortedSet<Property> sortedProperties =
+        new TreeSet<>(Comparator.comparing(Property::getKey));
+    sortedProperties.addAll(EnumSet.allOf(Property.class));
 
     for (Property prop : sortedProperties) {
       if (prop.getType() == PropertyType.PREFIX) {
