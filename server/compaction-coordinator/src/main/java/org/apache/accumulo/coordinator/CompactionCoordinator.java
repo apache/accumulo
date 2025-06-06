@@ -278,9 +278,8 @@ public class CompactionCoordinator extends AbstractServer implements
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the coordinator service", e1);
     }
-    final HostAndPort clientAddress = getAdvertiseAddress() != null
-        ? HostAndPort.fromParts(getAdvertiseAddress(), coordinatorAddress.address.getPort())
-        : coordinatorAddress.address;
+    updateAdvertiseAddress(coordinatorAddress.getAddress());
+    final HostAndPort clientAddress = getAdvertiseAddress();
 
     try {
       getCoordinatorLock(clientAddress);

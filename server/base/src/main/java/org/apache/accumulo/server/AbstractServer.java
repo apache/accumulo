@@ -34,6 +34,7 @@ import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -50,8 +51,8 @@ public abstract class AbstractServer
 
   private final ServerContext context;
   protected final String applicationName;
-  private final String advertiseAddress; // used for everything but the Thrift server (e.g. ZK,
-                                         // metadata, etc).
+  private HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g. ZK,
+                                        // metadata, etc).
   private final String bindAddress; // used for the Thrift server
   private final Logger log;
   private final ProcessMetrics processMetrics;
@@ -91,10 +92,11 @@ public abstract class AbstractServer
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
-      if (advertAddr.equals(ServerOpts.BIND_ALL_ADDRESSES)) {
+      HostAndPort advertHP = HostAndPort.fromString(advertAddr);
+      if (advertHP.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
-      advertiseAddress = advertAddr;
+      advertiseAddress = advertHP;
     } else {
       advertiseAddress = null;
     }
@@ -243,12 +245,21 @@ public abstract class AbstractServer
     }
   }
 
-  public String getAdvertiseAddress() {
+  public HostAndPort getAdvertiseAddress() {
     return advertiseAddress;
   }
 
   public String getBindAddress() {
     return bindAddress;
+  }
+
+  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    if (advertiseAddress == null) {
+      advertiseAddress = thriftBindAddress;
+    } else if (!advertiseAddress.hasPort()) {
+      advertiseAddress =
+          HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
+    }
   }
 
   public ServerContext getContext() {

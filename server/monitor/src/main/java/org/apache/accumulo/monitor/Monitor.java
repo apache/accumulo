@@ -481,15 +481,18 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(e);
     }
 
-    String advertiseHost = getAdvertiseAddress();
-    if (advertiseHost.equals(ServerOpts.BIND_ALL_ADDRESSES)) {
+    String updateHostName = null;
+    if (getAdvertiseAddress() == null) {
       try {
-        advertiseHost = InetAddress.getLocalHost().getHostName();
+        updateHostName = InetAddress.getLocalHost().getHostName();
       } catch (UnknownHostException e) {
         log.error("Unable to get hostname", e);
       }
+    } else {
+      updateHostName = getAdvertiseAddress().getHost();
     }
-    HostAndPort monitorHostAndPort = HostAndPort.fromParts(advertiseHost, livePort);
+    updateAdvertiseAddress(HostAndPort.fromParts(updateHostName, livePort));
+    HostAndPort monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
     try {
       monitorLock.replaceLockData(monitorHostAndPort.toString().getBytes(UTF_8));
@@ -502,7 +505,8 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
         monitorHostAndPort, ""));
 
     try {
-      URL url = new URL(server.isSecure() ? "https" : "http", advertiseHost, server.getPort(), "/");
+      URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
+          server.getPort(), "/");
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       final ZooReaderWriter zoo = context.getZooReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired

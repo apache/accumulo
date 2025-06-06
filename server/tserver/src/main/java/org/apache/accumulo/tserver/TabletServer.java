@@ -748,9 +748,8 @@ public class TabletServer extends AbstractServer
     ServerAddress address = null;
     try {
       address = startTabletClientService();
-      clientAddress = getAdvertiseAddress() != null
-          ? HostAndPort.fromParts(getAdvertiseAddress(), address.address.getPort())
-          : address.getAddress();
+      updateAdvertiseAddress(address.getAddress());
+      clientAddress = getAdvertiseAddress();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
