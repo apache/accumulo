@@ -151,7 +151,6 @@ public class ConfigOpts extends Help {
 
     // print out possible property overrides for the -o argument.
     validPrefixes.add(Property.GENERAL_PREFIX.getKey());
-    validPrefixes.add(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey());
     validPrefixes.add(Property.RPC_PREFIX.getKey());
 
     // Determine format lengths based on property names and default values
