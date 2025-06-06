@@ -27,7 +27,7 @@ public class ServerOpts extends ConfigOpts {
   public static final String BIND_ALL_ADDRESSES = "0.0.0.0";
 
   @Parameter(names = {"-a", "--address"},
-      description = "address to bind to (deprecated - use rpc.bind.addr with -o option instead)")
+      description = "address to bind to (deprecated, use `-o rpc.bind.addr=<address>` instead)")
   private String address = null;
 
   public String getAddress() {
