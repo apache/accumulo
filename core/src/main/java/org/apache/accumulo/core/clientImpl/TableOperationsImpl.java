@@ -1132,7 +1132,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (AccumuloException ae) {
       Throwable cause = ae.getCause();
       if (cause instanceof TableNotFoundException) {
-        throw (TableNotFoundException) cause;
+        throw new TableNotFoundException(context.getTableId(tableName).canonical(), tableName,
+            ae.getMessage(), ae);
       }
       throw ae;
     }
