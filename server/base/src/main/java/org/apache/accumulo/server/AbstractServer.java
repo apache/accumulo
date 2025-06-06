@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server;
 
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -65,8 +64,30 @@ public abstract class AbstractServer
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
-    this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
+    boolean oldBindParameterSpecifiedOnCmdLine = false;
+    boolean newBindParmeterSpecifiedOnCmdLine = false;
+    for (String arg : args) {
+      if (arg.equals("-a") || arg.equals("--address")) {
+        oldBindParameterSpecifiedOnCmdLine = true;
+      } else if (arg.startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getKey() + "=")) {
+        newBindParmeterSpecifiedOnCmdLine = true;
+      }
+    }
+    if (oldBindParameterSpecifiedOnCmdLine && newBindParmeterSpecifiedOnCmdLine) {
+      throw new IllegalStateException(
+          "Arguments '-a' and '-o rpc.bind.addr=<address>' cannot be used together.");
+    }
+    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    // If new bind parameter passed on command line or in file, then use it.
+    if (newBindParmeterSpecifiedOnCmdLine
+        || !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      this.hostname = newBindParameter;
+    } else if (oldBindParameterSpecifiedOnCmdLine) {
+      this.hostname = opts.getAddress();
+    } else {
+      this.hostname = ServerOpts.BIND_ALL_ADDRESSES;
+    }
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
