@@ -53,6 +53,7 @@ import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.hadoop.security.SaslRpcServer;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.thrift.TProcessor;
@@ -498,7 +499,7 @@ public class TServerUtils {
 
     // If we can't get a real hostname from the provided host test, use the hostname from DNS for
     // localhost
-    if ("0.0.0.0".equals(hostname)) {
+    if (ServerOpts.BIND_ALL_ADDRESSES.equals(hostname)) {
       hostname = fqdn;
     }
 
@@ -669,7 +670,7 @@ public class TServerUtils {
     }
 
     // check for the special "bind to everything address"
-    if (serverAddress.address.getHost().equals("0.0.0.0")) {
+    if (serverAddress.address.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
       try {
         serverAddress = new ServerAddress(finalServer, HostAndPort

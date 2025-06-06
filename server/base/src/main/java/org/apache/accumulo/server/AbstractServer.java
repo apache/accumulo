@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server;
 
-import java.util.Objects;
 import java.util.OptionalInt;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +34,7 @@ import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Halt;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -51,7 +51,9 @@ public abstract class AbstractServer
 
   private final ServerContext context;
   protected final String applicationName;
-  private final String hostname;
+  private HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g. ZK,
+                                        // metadata, etc).
+  private final String bindAddress; // used for the Thrift server
   private final Logger log;
   private final ProcessMetrics processMetrics;
   protected final long idleReportingPeriodNanos;
@@ -65,8 +67,31 @@ public abstract class AbstractServer
     this.log = LoggerFactory.getLogger(getClass().getName());
     this.applicationName = appName;
     opts.parseArgs(appName, args);
-    this.hostname = Objects.requireNonNull(opts.getAddress());
     var siteConfig = opts.getSiteConfiguration();
+    final String oldBindParameter = opts.getAddress();
+    if (!oldBindParameter.equals(ServerOpts.BIND_ALL_ADDRESSES)
+        && siteConfig.isPropertySet(Property.RPC_PROCESS_BIND_ADDRESS)) {
+      throw new IllegalStateException(
+          "Bind address specified via '-a' and '-o rpc.bind.addr=<address>'");
+    }
+    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    if (oldBindParameter.equals(ServerOpts.BIND_ALL_ADDRESSES)
+        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      this.bindAddress = newBindParameter;
+    } else {
+      this.bindAddress = oldBindParameter;
+    }
+    String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
+    if (advertAddr != null && !advertAddr.isBlank()) {
+      HostAndPort advertHP = HostAndPort.fromString(advertAddr);
+      if (advertHP.getHost().equals(ServerOpts.BIND_ALL_ADDRESSES)) {
+        throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
+      }
+      advertiseAddress = advertHP;
+    } else {
+      advertiseAddress = null;
+    }
+    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
     SecurityUtil.serverLogin(siteConfig);
     context = new ServerContext(siteConfig);
     final String upgradePrepNode = context.getZooKeeperRoot() + Constants.ZPREPARE_FOR_UPGRADE;
@@ -211,8 +236,21 @@ public abstract class AbstractServer
     }
   }
 
-  public String getHostname() {
-    return hostname;
+  public HostAndPort getAdvertiseAddress() {
+    return advertiseAddress;
+  }
+
+  public String getBindAddress() {
+    return bindAddress;
+  }
+
+  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    if (advertiseAddress == null) {
+      advertiseAddress = thriftBindAddress;
+    } else if (!advertiseAddress.hasPort()) {
+      advertiseAddress =
+          HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
+    }
   }
 
   public ServerContext getContext() {

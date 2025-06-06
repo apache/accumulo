@@ -54,6 +54,14 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_PROCESS_ADVERTISE_ADDRESS("rpc.advertise.addr", "", PropertyType.STRING,
+      "The address to use when registering this server in ZooKeeper. This could be an"
+          + " IP address or hostname and defaults to rpc.bind.addr property value. Port "
+          + "numbers, if not specified, will default to the port property for the specific server type.",
+      "2.1.4"),
+  RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
+      "The local IP address to which this server should bind for sending and receiving network traffic.",
+      "2.1.4"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
       PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
       "2.1.3"),

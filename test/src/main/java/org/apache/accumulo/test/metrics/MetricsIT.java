@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.hadoop.conf.Configuration;
@@ -206,7 +207,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             var t = a.getTags();
             log.trace("METRICS, name: '{}' num tags: {}, tags: {}", a.getName(), t.size(), t);
             // check hostname is always set and is valid
-            assertNotEquals("0.0.0.0", a.getTags().get("host"));
+            assertNotEquals(ServerOpts.BIND_ALL_ADDRESSES, a.getTags().get("host"));
             assertNotNull(a.getTags().get("instance.name"));
 
             // check the length of the tag value is sane

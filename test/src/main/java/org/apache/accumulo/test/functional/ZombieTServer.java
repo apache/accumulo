@@ -48,6 +48,7 @@ import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
@@ -126,7 +127,7 @@ public class ZombieTServer {
         ThriftServerType.CUSTOM_HS_HA, muxProcessor, "ZombieTServer", "walking dead", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
         context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
-        HostAndPort.fromParts("0.0.0.0", port));
+        HostAndPort.fromParts(ServerOpts.BIND_ALL_ADDRESSES, port));
 
     String addressString = serverPort.address.toString();
     var zLockPath =
