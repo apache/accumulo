@@ -1118,6 +1118,26 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
   }
 
+  /**
+   * Like modifyProperties(...), but if an AccumuloException is caused by a TableNotFoundException,
+   * unwrap and rethrow the TNFE directly. This is a hacky, temporary workaround that we can use
+   * until we are able to change the public API and throw TNFE directly from all applicable methods.
+   */
+  private Map<String,String> modifyPropertiesUnwrapped(String tableName,
+      Consumer<Map<String,String>> mapMutator) throws TableNotFoundException, AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException {
+
+    try {
+      return modifyProperties(tableName, mapMutator);
+    } catch (AccumuloException ae) {
+      Throwable cause = ae.getCause();
+      if (cause instanceof TableNotFoundException) {
+        throw (TableNotFoundException) cause;
+      }
+      throw ae;
+    }
+  }
+
   private void setPropertyNoChecks(final String tableName, final String property,
       final String value)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
@@ -1225,7 +1245,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     final String localityGroupPrefix = Property.TABLE_LOCALITY_GROUP_PREFIX.getKey();
 
-    modifyProperties(tableName, properties -> {
+    modifyPropertiesUnwrapped(tableName, properties -> {
 
       // add/update each locality group
       groupsToSet.forEach((groupName, colFams) -> properties.put(localityGroupPrefix + groupName,
@@ -1856,7 +1876,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     Map<String,String> props =
         new SamplerConfigurationImpl(samplerConfiguration).toTablePropertiesMap();
 
-    modifyProperties(tableName, properties -> {
+    modifyPropertiesUnwrapped(tableName, properties -> {
       properties.keySet()
           .removeIf(property -> property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey()));
       properties.putAll(props);
@@ -1865,10 +1885,10 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
   @Override
   public void clearSamplerConfiguration(String tableName)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
     EXISTING_TABLE_NAME.validate(tableName);
 
-    modifyProperties(tableName, properties -> {
+    modifyPropertiesUnwrapped(tableName, properties -> {
       properties.remove(Property.TABLE_SAMPLER.getKey());
       properties.keySet()
           .removeIf(property -> property.startsWith(Property.TABLE_SAMPLER_OPTS.getKey()));
