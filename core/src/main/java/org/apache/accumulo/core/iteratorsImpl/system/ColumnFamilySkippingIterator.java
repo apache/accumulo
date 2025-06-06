@@ -26,6 +26,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.data.ByteSequence;
+import org.apache.accumulo.core.data.Column;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
@@ -121,13 +122,20 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
 
     if (inclusive) {
       sortedColFams = new TreeSet<>(colFamSet);
+      if (sortedColFams.isEmpty()) {
+        this.range = range;
+      } else {
+        // Limit the range based on the min and max column families
+        this.range = range.bound(new Column(sortedColFams.first().toArray(), null, null),
+            new Column(sortedColFams.last().toArray(), null, null));
+      }
     } else {
       sortedColFams = null;
+      this.range = range;
     }
 
-    this.range = range;
     this.inclusive = inclusive;
-    super.seek(range, colFamSet, inclusive);
+    super.seek(this.range, colFamSet, inclusive);
   }
 
   @Override
