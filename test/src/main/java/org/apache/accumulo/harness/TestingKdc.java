@@ -23,7 +23,9 @@ import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.InetAddress;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,48 +56,54 @@ public class TestingKdc {
   public final String ORG_DOMAIN = "COM";
 
   private String hostname;
-  private File keytabDir;
+  private Path keytabDir;
   private boolean started = false;
 
   public TestingKdc() throws Exception {
     this(computeKdcDir(), computeKeytabDir(), MAX_TICKET_LIFETIME_MILLIS);
   }
 
-  public static File computeKdcDir() {
+  public static Path computeKdcDir() throws IOException {
     Path userDir = Path.of(System.getProperty("user.dir"));
-    File targetDir = userDir.resolve("target").toFile();
-    if (!targetDir.exists()) {
-      assertTrue(targetDir.mkdirs());
+    Path targetDir = userDir.resolve("target");
+    if (Files.notExists(targetDir)) {
+      Files.createDirectories(targetDir);
     }
-    assertTrue(targetDir.isDirectory(), "Could not find Maven target directory: " + targetDir);
+    assertTrue(Files.isDirectory(targetDir), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/minikdc
-    File kdcDir = targetDir.toPath().resolve("kerberos").resolve("minikdc").toFile();
+    Path kdcDir = targetDir.resolve("kerberos").resolve("minikdc");
 
-    assertTrue(kdcDir.mkdirs() || kdcDir.isDirectory());
+    if (!Files.isDirectory(kdcDir)) {
+      Files.createDirectories(kdcDir);
+    }
 
     return kdcDir;
   }
 
-  public static File computeKeytabDir() {
+  public static Path computeKeytabDir() throws IOException {
     Path userDir = Path.of(System.getProperty("user.dir"));
-    File targetDir = userDir.resolve("target").toFile();
-    assertTrue(targetDir.exists() && targetDir.isDirectory(),
-        "Could not find Maven target directory: " + targetDir);
+    Path targetDir = userDir.resolve("target");
+    if (Files.notExists(targetDir)) {
+      Files.createDirectories(targetDir);
+    }
+    assertTrue(Files.isDirectory(targetDir), "Could not find Maven target directory: " + targetDir);
 
     // Create the directories: target/kerberos/keytabs
-    File keytabDir = targetDir.toPath().resolve("kerberos").resolve("keytabs").toFile();
+    Path keytabDir = targetDir.resolve("kerberos").resolve("keytabs");
 
-    assertTrue(keytabDir.mkdirs() || keytabDir.isDirectory());
+    if (!Files.isDirectory(keytabDir)) {
+      Files.createDirectories(keytabDir);
+    }
 
     return keytabDir;
   }
 
-  public TestingKdc(File kdcDir, File keytabDir) throws Exception {
+  public TestingKdc(Path kdcDir, Path keytabDir) throws Exception {
     this(kdcDir, keytabDir, MAX_TICKET_LIFETIME_MILLIS);
   }
 
-  public TestingKdc(File kdcDir, File keytabDir, long maxTicketLifetime) throws Exception {
+  public TestingKdc(Path kdcDir, Path keytabDir, long maxTicketLifetime) throws Exception {
     requireNonNull(kdcDir, "KDC directory was null");
     requireNonNull(keytabDir, "Keytab directory was null");
     checkArgument(maxTicketLifetime > 0, "Ticket lifetime must be positive");
@@ -110,7 +118,7 @@ public class TestingKdc {
     kdcConf.setProperty(MiniKdc.ORG_DOMAIN, ORG_DOMAIN);
     kdcConf.setProperty(MiniKdc.MAX_TICKET_LIFETIME, Long.toString(maxTicketLifetime));
     // kdcConf.setProperty(MiniKdc.DEBUG, "true");
-    kdc = new MiniKdc(kdcConf, kdcDir);
+    kdc = new MiniKdc(kdcConf, kdcDir.toFile());
   }
 
   /**
@@ -124,7 +132,7 @@ public class TestingKdc {
     Thread.sleep(1000);
 
     // Create the identity for accumulo servers
-    Path keyTabDirPath = keytabDir.toPath();
+    Path keyTabDirPath = keytabDir;
     File accumuloKeytab = keyTabDirPath.resolve("accumulo.keytab").toFile();
     String accumuloPrincipal = String.format("accumulo/%s", hostname);
 
@@ -166,7 +174,7 @@ public class TestingKdc {
   /**
    * A directory where the automatically-created keytab files are written
    */
-  public File getKeytabDir() {
+  public Path getKeytabDir() {
     return keytabDir;
   }
 

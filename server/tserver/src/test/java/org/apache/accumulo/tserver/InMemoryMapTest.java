@@ -23,8 +23,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -89,7 +90,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public void mutate(InMemoryMap imm, String row, String column, long ts, String value) {
     Mutation m = new Mutation(new Text(row));
@@ -710,7 +711,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
-  public void testDifferentSampleConfig() {
+  public void testDifferentSampleConfig() throws IOException {
     SamplerConfigurationImpl sampleConfig = new SamplerConfigurationImpl(RowSampler.class.getName(),
         Map.of("hasher", "murmur3_32", "modulus", "7"));
 
@@ -730,7 +731,7 @@ public class InMemoryMapTest extends WithTestNames {
   }
 
   @Test
-  public void testNoSampleConfig() {
+  public void testNoSampleConfig() throws IOException {
     InMemoryMap imm = newInMemoryMap(false, uniqueDirPaths(1)[0]);
 
     mutate(imm, "r", "cf:cq", 5, "b");
@@ -801,12 +802,14 @@ public class InMemoryMapTest extends WithTestNames {
         () -> finalIter.seek(new Range(), Set.of(), false));
   }
 
-  private String[] uniqueDirPaths(int numOfDirs) {
+  private String[] uniqueDirPaths(int numOfDirs) throws IOException {
     String[] newDirs = new String[numOfDirs];
     for (int i = 0; i < newDirs.length; i++) {
-      File newDir = tempDir.toPath().resolve(testName() + i).toFile();
-      assertTrue(newDir.isDirectory() || newDir.mkdir(), "Failed to create directory: " + newDir);
-      newDirs[i] = newDir.getAbsolutePath();
+      Path newDir = tempDir.resolve(testName() + i);
+      if (!Files.isDirectory(newDir)) {
+        Files.createDirectories(newDir);
+      }
+      newDirs[i] = newDir.toAbsolutePath().toString();
     }
     return newDirs;
   }

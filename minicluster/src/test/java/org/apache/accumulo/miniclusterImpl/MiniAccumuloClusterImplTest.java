@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
@@ -39,11 +38,11 @@ import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.minicluster.ServerType;
-import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.Iterators;
 
@@ -51,7 +50,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterImplTest {
-  public static File testDir;
+
+  @TempDir
+  private static Path tempDir;
 
   private static MiniAccumuloClusterImpl accumulo;
 
@@ -62,15 +63,8 @@ public class MiniAccumuloClusterImplTest {
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir =
-        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = baseDir.toPath().resolve(MiniAccumuloClusterImplTest.class.getName()).toFile();
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-
     MiniAccumuloConfigImpl config =
-        new MiniAccumuloConfigImpl(testDir, "superSecret").setJDWPEnabled(true);
+        new MiniAccumuloConfigImpl(tempDir.toFile(), "superSecret").setJDWPEnabled(true);
     // expressly set number of tservers since we assert it later, in case the default changes
     config.getClusterServerConfiguration().setNumDefaultTabletServers(NUM_TSERVERS);
     accumulo = new MiniAccumuloClusterImpl(config);

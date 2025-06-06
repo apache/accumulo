@@ -81,8 +81,8 @@ public class StandaloneClusterControl implements ClusterControl {
 
     Path home = Path.of(accumuloHome);
     Path bin = home.resolve("bin");
-    this.accumuloServicePath = bin.resolve(ACCUMULO_SERVICE_SCRIPT).toFile().getAbsolutePath();
-    this.accumuloPath = bin.resolve(ACCUMULO_SCRIPT).toFile().getAbsolutePath();
+    this.accumuloServicePath = bin.resolve(ACCUMULO_SERVICE_SCRIPT).toAbsolutePath().toString();
+    this.accumuloPath = bin.resolve(ACCUMULO_SCRIPT).toAbsolutePath().toString();
   }
 
   protected Entry<Integer,String> exec(String hostname, String[] command) throws IOException {

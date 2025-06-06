@@ -406,7 +406,7 @@ public class ServerContext extends ClientContext {
       try {
         String procFile = "/proc/sys/vm/swappiness";
         java.nio.file.Path swappiness = java.nio.file.Path.of(procFile);
-        if (swappiness.toFile().exists() && swappiness.toFile().canRead()) {
+        if (Files.exists(swappiness) && Files.isReadable(swappiness)) {
           try (InputStream is = Files.newInputStream(swappiness)) {
             byte[] buffer = new byte[10];
             int bytes = is.read(buffer);

@@ -42,7 +42,7 @@ public class SiteConfigurationTest {
     // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
     assertNotNull(keystore);
-    String credProvPath = "jceks://file" + Path.of(keystore.getFile()).toFile().getAbsolutePath();
+    String credProvPath = "jceks://file" + Path.of(keystore.getFile()).toAbsolutePath();
 
     var overrides =
         Map.of(Property.GENERAL_SECURITY_CREDENTIAL_PROVIDER_PATHS.getKey(), credProvPath);

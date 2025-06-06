@@ -25,8 +25,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -75,7 +75,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   private static final String CUSTOM_PROP_VAL = "value1";
   private static final String EXPECTED_TABLE_ID_OPT = "expected.table.id";
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @Override
   protected Duration defaultTimeout() {
@@ -339,8 +339,7 @@ public class IteratorEnvIT extends AccumuloClusterHarness {
   }
 
   private String createRFile(FileSystem fs, TreeMap<Key,Value> data) throws Exception {
-    File testFile = tempDir.toPath().resolve("test.rf").toFile();
-    String filePath = testFile.getAbsolutePath();
+    String filePath = tempDir.resolve("test.rf").toAbsolutePath().toString();
 
     try (RFileWriter writer = RFile.newWriter().to(filePath).withFileSystem(fs).build()) {
       writer.append(data.entrySet());

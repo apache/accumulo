@@ -172,15 +172,16 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
-      File csFile = cluster.getConfig().getConfDir().toPath().resolve("core-site.xml").toFile();
-      if (csFile.exists()) {
-        coreSite.addResource(new Path(csFile.getAbsolutePath()));
+      java.nio.file.Path csFile =
+          cluster.getConfig().getConfDir().toPath().resolve("core-site.xml");
+      if (Files.exists(csFile)) {
+        coreSite.addResource(new Path(csFile.toAbsolutePath().toString()));
       }
-      java.nio.file.Path tmp = java.nio.file.Path.of(csFile.getAbsolutePath() + ".tmp");
+      java.nio.file.Path tmp = java.nio.file.Path.of(csFile.toAbsolutePath() + ".tmp");
       try (OutputStream out = Files.newOutputStream(tmp)) {
         coreSite.writeXml(out);
       }
-      assertTrue(tmp.toFile().renameTo(csFile));
+      Files.move(tmp, csFile);
     }
     beforeClusterStart(cfg);
   }

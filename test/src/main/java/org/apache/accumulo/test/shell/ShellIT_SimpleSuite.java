@@ -22,11 +22,11 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,7 +111,7 @@ public class ShellIT_SimpleSuite extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  private File config;
+  private Path config;
   public LineReader reader;
   public Terminal terminal;
 
@@ -163,7 +163,7 @@ public class ShellIT_SimpleSuite extends SharedMiniClusterBase {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
     input = new StringInputStream();
-    config = Files.createTempFile(null, null).toFile();
+    config = Files.createTempFile(null, null);
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -175,10 +175,10 @@ public class ShellIT_SimpleSuite extends SharedMiniClusterBase {
 
   @AfterEach
   public void teardownShell() {
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
+    try {
+      Files.deleteIfExists(config);
+    } catch (IOException e) {
+      log.error("Unable to delete {}", config, e);
     }
     shell.shutdown();
   }
