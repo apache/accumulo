@@ -97,7 +97,7 @@ public class TableConfigurationTest {
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(TID);
+    var tablePropKey = TablePropKey.of(TID, NID);
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -119,7 +119,7 @@ public class TableConfigurationTest {
     if (tid == null) {
       throw new IllegalStateException("missing test tableId");
     }
-    tableConfig = new TableConfiguration(context, tid, nsConfig);
+    tableConfig = new TableConfiguration(context, tid, nsid, nsConfig);
 
   }
 
@@ -134,7 +134,7 @@ public class TableConfigurationTest {
     Property p = Property.INSTANCE_SECRET;
     reset(propStore);
 
-    var propKey = TablePropKey.of(TID);
+    var propKey = TablePropKey.of(TID, NID);
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(37, Instant.now(), Map.of(p.getKey(), "sekrit")))
         .anyTimes();
@@ -159,8 +159,8 @@ public class TableConfigurationTest {
         Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "123", Property.INSTANCE_SECRET.getKey(), expectedPass)))
         .anyTimes();
-    expect(propStore.get(eq(TablePropKey.of(TID)))).andReturn(new VersionedProperties(Map.of()))
-        .anyTimes();
+    expect(propStore.get(eq(TablePropKey.of(TID, NID))))
+        .andReturn(new VersionedProperties(Map.of())).anyTimes();
     propStore.invalidate(NamespacePropKey.of(NID));
     expectLastCall().atLeastOnce();
     replay(propStore);
@@ -185,10 +185,10 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(NamespacePropKey.of(NID))))
         .andReturn(new VersionedProperties(2, Instant.now(), Map.of("dog", "bark", "cat", "meow")));
 
-    expect(propStore.get(eq(TablePropKey.of(TID))))
+    expect(propStore.get(eq(TablePropKey.of(TID, NID))))
         .andReturn(new VersionedProperties(4, Instant.now(), Map.of("foo", "bar", "tick", "tock")))
         .anyTimes();
-    propStore.invalidate(TablePropKey.of(TID));
+    propStore.invalidate(TablePropKey.of(TID, NID));
     expectLastCall().atLeastOnce();
     propStore.invalidate(NamespacePropKey.of(NID));
     expectLastCall().atLeastOnce();
@@ -197,7 +197,7 @@ public class TableConfigurationTest {
 
     Map<String,String> props = new java.util.HashMap<>();
 
-    tableConfig.zkChangeEvent(TablePropKey.of(TID));
+    tableConfig.zkChangeEvent(TablePropKey.of(TID, NID));
     nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
 
     tableConfig.getProperties(props, all);
@@ -225,17 +225,17 @@ public class TableConfigurationTest {
     expect(propStore.get(eq(NamespacePropKey.of(NID)))).andReturn(new VersionedProperties(2,
         Instant.now(), Map.of("dog", "bark", "cat", "meow", "filter", "from_parent")));
 
-    expect(propStore.get(eq(TablePropKey.of(TID)))).andReturn(new VersionedProperties(4,
+    expect(propStore.get(eq(TablePropKey.of(TID, NID)))).andReturn(new VersionedProperties(4,
         Instant.now(), Map.of("filter", "not_returned_by_table", "foo", "bar", "tick", "tock")))
         .anyTimes();
-    propStore.invalidate(TablePropKey.of(TID));
+    propStore.invalidate(TablePropKey.of(TID, NID));
     expectLastCall().atLeastOnce();
     propStore.invalidate(NamespacePropKey.of(NID));
     expectLastCall().atLeastOnce();
 
     replay(propStore);
 
-    tableConfig.zkChangeEvent(TablePropKey.of(TID));
+    tableConfig.zkChangeEvent(TablePropKey.of(TID, NID));
     nsConfig.zkChangeEvent(NamespacePropKey.of(NID));
 
     Map<String,String> props = new java.util.HashMap<>();
@@ -261,7 +261,7 @@ public class TableConfigurationTest {
 
     reset(propStore);
 
-    var propKey = TablePropKey.of(TID);
+    var propKey = TablePropKey.of(TID, NID);
 
     expect(propStore.get(eq(propKey)))
         .andReturn(new VersionedProperties(23, Instant.now(), Map.of(p.getKey(), "invalid")))
