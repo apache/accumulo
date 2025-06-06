@@ -155,16 +155,10 @@ public class ConfigOpts extends Help {
     validPrefixes.add(Property.RPC_PREFIX.getKey());
 
     // Determine format lengths based on property names and default values
-    int maxPropLength = 0;
-    int maxDefaultLength = 0;
-    for (Property prop : Property.values()) {
-      if (prop.getKey().length() > maxPropLength) {
-        maxPropLength = prop.getKey().length();
-      }
-      if (prop.getDefaultValue() != null && prop.getDefaultValue().length() > maxDefaultLength) {
-        maxDefaultLength = prop.getDefaultValue().length();
-      }
-    }
+    int maxPropLength =
+        Stream.of(Property.values()).mapToInt(p -> p.getKey().length()).max().orElse(0);
+    int maxDefaultLength = Stream.of(Property.values()).map(Property::getDefaultValue)
+        .filter(Objects::nonNull).mapToInt(String::length).max().orElse(0);
 
     final String propOnlyFormat =
         "%1$-" + maxPropLength + "s %2$-" + Math.min(52, maxDefaultLength) + "s";
