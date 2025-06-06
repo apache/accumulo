@@ -95,7 +95,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @Test
   public void systemPermissionsTest() throws Exception {
-    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
 
     // verify that the test is being run by root
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -149,7 +150,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private void testMissingSystemPermission(String tableNamePrefix, AccumuloClient root_client,
       ClusterUser rootUser, AccumuloClient test_user_client, ClusterUser testUser,
       SystemPermission perm) throws Exception {
-    String tableName, user, password = "password", namespace;
+    String tableName;
+    String user;
+    String password = "password";
+    String namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
 
@@ -459,7 +463,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private void testGrantedSystemPermission(String tableNamePrefix, AccumuloClient root_client,
       ClusterUser rootUser, AccumuloClient test_user_client, ClusterUser testUser,
       SystemPermission perm) throws Exception {
-    String tableName, user, password = "password", namespace;
+    String tableName;
+    String user;
+    String password = "password";
+    String namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
 
@@ -676,7 +683,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Test
   public void tablePermissionTest() throws Exception {
     // create the test user
-    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
 
     String principal = testUser.getPrincipal();
     AuthenticationToken token = testUser.getToken();

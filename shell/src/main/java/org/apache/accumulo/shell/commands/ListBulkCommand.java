@@ -29,7 +29,8 @@ import org.apache.commons.cli.Options;
 
 public class ListBulkCommand extends Command {
 
-  private Option tserverOption, disablePaginationOpt;
+  private Option tserverOption;
+  private Option disablePaginationOpt;
 
   @Override
   public String description() {

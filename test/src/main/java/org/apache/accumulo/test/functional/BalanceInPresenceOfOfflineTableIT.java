@@ -83,7 +83,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
 
   private static final int NUM_SPLITS = 200;
 
-  private String UNUSED_TABLE, TEST_TABLE;
+  private String UNUSED_TABLE;
+  private String TEST_TABLE;
 
   private AccumuloClient accumuloClient;
 
@@ -188,7 +189,8 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
             List.of(tabletsPerServer));
         continue;
       }
-      long min = NumberUtils.min(tabletsPerServer), max = NumberUtils.max(tabletsPerServer);
+      long min = NumberUtils.min(tabletsPerServer);
+      long max = NumberUtils.max(tabletsPerServer);
       log.debug("Min={}, Max={}", min, max);
       if ((min / ((double) max)) < 0.5) {
         log.debug(

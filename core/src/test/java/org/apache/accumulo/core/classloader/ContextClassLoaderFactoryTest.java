@@ -19,10 +19,11 @@
 package org.apache.accumulo.core.classloader;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.net.URL;
 import java.net.URLClassLoader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Objects;
 
 import org.apache.accumulo.core.WithTestNames;
@@ -39,27 +40,33 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ContextClassLoaderFactoryTest extends WithTestNames {
 
   @TempDir
-  private static File tempFolder;
+  private static Path tempFolder;
 
-  private String uri1;
-  private String uri2;
+  private URL uri1;
+  private URL uri2;
 
   @BeforeEach
   public void setup() throws Exception {
 
-    File folder1 = new File(tempFolder, testName() + "_1");
-    assertTrue(folder1.isDirectory() || folder1.mkdir(), "Failed to make a new sub-directory");
+    Path folder1 = tempFolder.resolve(testName() + "_1");
+    if (!Files.isDirectory(folder1)) {
+      Files.createDirectories(folder1);
+    }
+    Path propsFile = folder1.resolve("accumulo.properties");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo.properties")),
-        new File(folder1, "accumulo.properties"));
-    uri1 = new File(folder1, "accumulo.properties").toURI().toString();
+        propsFile.toFile());
+    uri1 = propsFile.toUri().toURL();
 
-    File folder2 = new File(tempFolder, testName() + "_2");
-    assertTrue(folder2.isDirectory() || folder2.mkdir(), "Failed to make a new sub-directory");
+    Path folder2 = tempFolder.resolve(testName() + "_2");
+    if (!Files.isDirectory(folder2)) {
+      Files.createDirectories(folder2);
+    }
+    Path propsFile2 = folder2.resolve("accumulo2.properties");
     FileUtils.copyURLToFile(
         Objects.requireNonNull(this.getClass().getResource("/accumulo2.properties")),
-        new File(folder2, "accumulo2.properties"));
-    uri2 = folder2.toURI() + ".*";
+        propsFile2.toFile());
+    uri2 = propsFile2.toUri().toURL();
 
   }
 
@@ -72,15 +79,17 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
     ClassLoaderUtil.resetContextFactoryForTests();
     ClassLoaderUtil.initContextFactory(cc);
 
-    URLClassLoader cl1 = (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri1);
+    URLClassLoader cl1 =
+        (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri1.toString());
     var urls1 = cl1.getURLs();
     assertEquals(1, urls1.length);
-    assertEquals(uri1, urls1[0].toString());
+    assertEquals(uri1, urls1[0]);
 
-    URLClassLoader cl2 = (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri2);
+    URLClassLoader cl2 =
+        (URLClassLoader) ClassLoaderUtil.getContextFactory().getClassLoader(uri2.toString());
     var urls2 = cl2.getURLs();
     assertEquals(1, urls2.length);
-    assertEquals(uri2, urls2[0].toString());
+    assertEquals(uri2, urls2[0]);
 
   }
 

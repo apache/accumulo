@@ -78,7 +78,8 @@ class PopulateMetadataTable extends ManagerRepo {
     try (var fsDis = fs.open(new Path(importDir, IMPORT_MAPPINGS_FILE));
         var isr = new InputStreamReader(fsDis, UTF_8);
         BufferedReader in = new BufferedReader(isr)) {
-      String line, prev;
+      String line;
+      String prev;
       while ((line = in.readLine()) != null) {
         String[] sa = line.split(":", 2);
         prev = fileNameMappings.put(sa[0], importDir + "/" + sa[1]);

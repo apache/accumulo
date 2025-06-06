@@ -33,7 +33,6 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URI;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
@@ -1321,7 +1320,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       justification = "path provided by test; sha-1 is okay for test")
   public static String hash(String filename) {
     try {
-      byte[] data = Files.readAllBytes(Paths.get(filename.replaceFirst("^file:", "")));
+      byte[] data = Files.readAllBytes(java.nio.file.Path.of(filename.replaceFirst("^file:", "")));
       byte[] hash = MessageDigest.getInstance("SHA1").digest(data);
       return new BigInteger(1, hash).toString(16);
     } catch (IOException | NoSuchAlgorithmException e) {

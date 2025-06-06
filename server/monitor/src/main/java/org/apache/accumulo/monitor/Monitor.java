@@ -415,7 +415,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     }
 
     // need to regularly fetch data so plot data is updated
-    Threads.createThread("Data fetcher", () -> {
+    Threads.createCriticalThread("Data fetcher", () -> {
       while (true) {
         try {
           fetchData();
@@ -425,7 +425,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
         sleepUninterruptibly(333, TimeUnit.MILLISECONDS);
       }
     }).start();
-    Threads.createThread("Metric Fetcher Thread", fetcher).start();
+    Threads.createCriticalThread("Metric Fetcher Thread", fetcher).start();
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {

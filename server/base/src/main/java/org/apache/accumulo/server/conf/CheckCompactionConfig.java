@@ -21,6 +21,7 @@ package org.apache.accumulo.server.conf;
 import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME;
 
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -91,7 +92,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     Path path = Path.of(opts.filePath);
-    if (!path.toFile().exists()) {
+    if (Files.notExists(path)) {
       throw new FileNotFoundException("File at given path could not be found");
     }
 

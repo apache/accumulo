@@ -1335,7 +1335,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       }
 
       String[] tables = getUniqueNames(3);
-      String table1 = tables[0], table2 = tables[1], table3 = tables[2];
+      String table1 = tables[0];
+      String table2 = tables[1];
+      String table3 = tables[2];
 
       // Create three tables
       client.tableOperations().create(table1);

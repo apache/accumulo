@@ -25,13 +25,13 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.test.fate.FateTestUtil;
-import org.apache.accumulo.test.fate.MultipleStoresIT;
+import org.apache.accumulo.test.fate.MultipleStoresITBase;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
-public class MetaMultipleStoresIT extends MultipleStoresIT {
+public class MetaMultipleStoresIT extends MultipleStoresITBase {
   @TempDir
   private static File tempDir;
 

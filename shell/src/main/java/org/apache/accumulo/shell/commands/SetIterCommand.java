@@ -53,9 +53,18 @@ import org.jline.reader.LineReader;
 
 public class SetIterCommand extends Command {
 
-  private Option allScopeOpt, mincScopeOpt, majcScopeOpt, scanScopeOpt;
-  Option profileOpt, priorityOpt, nameOpt;
-  Option ageoffTypeOpt, regexTypeOpt, versionTypeOpt, reqvisTypeOpt, classnameTypeOpt;
+  private Option allScopeOpt;
+  private Option mincScopeOpt;
+  private Option majcScopeOpt;
+  private Option scanScopeOpt;
+  Option profileOpt;
+  Option priorityOpt;
+  Option nameOpt;
+  Option ageoffTypeOpt;
+  Option regexTypeOpt;
+  Option versionTypeOpt;
+  Option reqvisTypeOpt;
+  Option classnameTypeOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

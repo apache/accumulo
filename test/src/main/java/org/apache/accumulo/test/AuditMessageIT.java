@@ -19,21 +19,24 @@
 package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -59,7 +62,6 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -123,36 +125,31 @@ public class AuditMessageIT extends ConfigurableMacBase {
     // Grab the audit messages
     System.out.println("Start of captured audit messages for step " + stepName);
 
-    ArrayList<String> result = new ArrayList<>();
-    File[] files = getCluster().getConfig().getLogDir().listFiles();
-    assertNotNull(files);
-    for (File file : files) {
-      // We want to grab the files called .out
-      if (file.getName().contains(".out") && file.isFile() && file.canRead()) {
-        try (java.util.Scanner it = new java.util.Scanner(file, UTF_8)) {
-          // strip off prefix, because log4j.properties does
-          final var pattern = Pattern.compile(".* \\["
-              + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
-              + "\\] .*");
-          while (it.hasNext()) {
-            String line = it.nextLine();
-            if (pattern.matcher(line).matches()) {
-              // Only include the message if startTimestamp is null. or the message occurred after
-              // the startTimestamp value
-              if ((lastAuditTimestamp == null)
-                  || (line.substring(0, 23).compareTo(lastAuditTimestamp) > 0)) {
-                result.add(line);
-              }
-            }
-          }
-        }
-      }
-    }
-    Collections.sort(result);
+    final var matchesAuditLogPattern = Pattern.compile(
+        ".* \\[" + AuditedSecurityOperation.AUDITLOG.replace("org.apache.", "").replace(".", "[.]")
+            + "\\] .*")
+        .asPredicate();
 
-    for (String s : result) {
-      System.out.println(s);
+    ArrayList<String> result;
+    try (var paths = Files.list(getCluster().getConfig().getLogDir().toPath())) {
+      // keep only the files ending with .out
+      result = paths.filter(file -> file.getFileName().toString().contains(".out"))
+          .filter(file -> Files.isRegularFile(file) && Files.isReadable(file)).flatMap(path -> {
+            try {
+              return Files.lines(path, UTF_8);
+            } catch (IOException e) {
+              throw new RuntimeException(e);
+            }
+            // keep only the lines that match the audit log pattern
+          }).filter(matchesAuditLogPattern)
+          // only keep the message if there is no previous timestamp (first run)
+          // or if the timestamp is after the lastAuditTimestamp (newer message)
+          .filter(line -> lastAuditTimestamp == null
+              || line.substring(0, 23).compareTo(lastAuditTimestamp) > 0)
+          // sort chronologically, print for debugging, and collect
+          .sorted().peek(System.out::println).collect(Collectors.toCollection(ArrayList::new));
     }
+
     System.out.println("End of captured audit messages for step " + stepName);
     if (!result.isEmpty()) {
       lastAuditTimestamp = result.get(result.size() - 1).substring(0, 23);
@@ -322,17 +319,20 @@ public class AuditMessageIT extends ConfigurableMacBase {
     }
 
     // Prepare to export the table
-    File exportDir = new File(getCluster().getConfig().getDir() + "/export");
-    File exportDirBulk = new File(getCluster().getConfig().getDir() + "/export_bulk");
-    assertTrue(exportDirBulk.mkdir() || exportDirBulk.isDirectory());
+    Path confDirPath = getCluster().getConfig().getDir().toPath();
+    Path exportDir = confDirPath.resolve("export");
+    Path exportDirBulk = confDirPath.resolve("export_bulk");
+    if (!Files.isDirectory(exportDirBulk)) {
+      Files.createDirectories(exportDirBulk);
+    }
 
     auditAccumuloClient.tableOperations().offline(OLD_TEST_TABLE_NAME, true);
     auditAccumuloClient.tableOperations().exportTable(OLD_TEST_TABLE_NAME, exportDir.toString());
 
     // We've exported the table metadata to the MiniAccumuloCluster root dir. Grab the .rf file path
     // to re-import it
-    File distCpTxt = new File(exportDir + "/distcp.txt");
-    File importFile = null;
+    Path distCpTxt = exportDir.resolve("distcp.txt");
+    Path importFile = null;
 
     // Just grab the first rf file, it will do for now.
     String filePrefix = "file:";
@@ -342,12 +342,13 @@ public class AuditMessageIT extends ConfigurableMacBase {
       while (it.hasNext() && importFile == null) {
         String line = it.nextLine();
         if (pattern.matcher(line).matches()) {
-          importFile = new File(line.replaceFirst(filePrefix, ""));
+          importFile = Path.of(line.replaceFirst(filePrefix, ""));
         }
       }
     }
-    FileUtils.copyFileToDirectory(importFile, exportDir);
-    FileUtils.copyFileToDirectory(importFile, exportDirBulk);
+    Path fileName = importFile.getFileName();
+    Files.copy(importFile, exportDir.resolve(fileName), REPLACE_EXISTING);
+    Files.copy(importFile, exportDirBulk.resolve(fileName), REPLACE_EXISTING);
     auditAccumuloClient.tableOperations().importTable(NEW_TEST_TABLE_NAME,
         Collections.singleton(exportDir.toString()), ImportConfiguration.empty());
 

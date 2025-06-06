@@ -349,7 +349,7 @@ public abstract class AbstractServer
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {
-      verificationThread = Threads.createThread("service-lock-verification-thread",
+      verificationThread = Threads.createCriticalThread("service-lock-verification-thread",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
             while (serverThread.isAlive()) {
               ServiceLock lock = getLock();
@@ -357,7 +357,7 @@ public abstract class AbstractServer
                 log.trace(
                     "ServiceLockVerificationThread - checking ServiceLock existence in ZooKeeper");
                 if (lock != null && !lock.verifyLockAtSource()) {
-                  Halt.halt("Lock verification thread could not find lock", -1);
+                  Halt.halt(-1, "Lock verification thread could not find lock");
                 }
                 // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
                 // so that this thread does not get immediately rescheduled.

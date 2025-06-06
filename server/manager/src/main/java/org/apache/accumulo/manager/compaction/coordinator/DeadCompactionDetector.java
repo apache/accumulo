@@ -140,7 +140,8 @@ public class DeadCompactionDetector {
      * compactors, then it could result in false positives. If compactors were queried before the
      * metadata table, then it could cause false positives.
      */
-    log.debug("Starting to look for dead compactions");
+    log.trace("Starting to look for dead compactions, deadCompactions.size():{}",
+        deadCompactions.size());
 
     Map<ExternalCompactionId,KeyExtent> tabletCompactions = new HashMap<>();
 
@@ -166,6 +167,8 @@ public class DeadCompactionDetector {
       this.deadCompactions.clear();
       // no need to look for dead compactions when tablets don't have anything recorded as running
     } else {
+      log.trace("Read {} tablet compactions into memory from metadata table",
+          tabletCompactions.size());
       if (log.isTraceEnabled()) {
         tabletCompactions.forEach((ecid, extent) -> log.trace("Saw {} for {}", ecid, extent));
       }
@@ -211,10 +214,12 @@ public class DeadCompactionDetector {
         }
       }
 
+      log.trace("deadCompactions.size() after removals {}", deadCompactions.size());
       tabletCompactions.forEach((ecid, extent) -> {
         log.info("Possible dead compaction detected {} {}", ecid, extent);
         this.deadCompactions.merge(ecid, 1L, Long::sum);
       });
+      log.trace("deadCompactions.size() after additions {}", deadCompactions.size());
 
       // Everything left in tabletCompactions is no longer running anywhere and should be failed.
       // Its possible that a compaction committed while going through the steps above, if so then
