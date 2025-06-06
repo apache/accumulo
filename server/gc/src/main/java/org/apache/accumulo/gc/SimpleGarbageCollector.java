@@ -167,10 +167,10 @@ public class SimpleGarbageCollector extends AbstractServer
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
     HostAndPort address = startStatsService();
+    updateAdvertiseAddress(address);
 
     try {
-      getZooLock(getAdvertiseAddress() != null
-          ? HostAndPort.fromParts(getAdvertiseAddress(), address.getPort()) : address);
+      getZooLock(getAdvertiseAddress());
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
