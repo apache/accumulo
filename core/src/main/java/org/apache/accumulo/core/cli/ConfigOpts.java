@@ -31,6 +31,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.conf.Property;
@@ -154,6 +155,7 @@ public class ConfigOpts extends Help {
 
     // print out possible property overrides for the -o argument.
     validPrefixes.add(Property.GENERAL_PREFIX.getKey());
+    validPrefixes.add(Property.INSTANCE_PREFIX.getKey());
     validPrefixes.add(Property.RPC_PREFIX.getKey());
 
     // Determine format lengths based on property names and default values
@@ -169,45 +171,39 @@ public class ConfigOpts extends Help {
 
     StringBuilder sb = new StringBuilder();
     sb.append(
-        "\tBelow are the properties, and their default values, that can be used with the '-o' (overrides) option.\n");
-    sb.append("\tLong default values will be truncated.\n");
+        "    Below are most of the known properties, and their default values, that can be used with the '-o' (overrides) option for the server process used in the command line.\n");
     sb.append(
-        "\tSee the user guide at https://accumulo.apache.org/ for more information about each property.\n");
+        "    Long default values will be truncated. Replication, VFS classloader, and custom properties are not included here.\n");
+    sb.append(
+        "    Instance properties, if overridden, should be the same across the cluster or connection errors will occur.\n");
+    sb.append(
+        "    See the user guide at https://accumulo.apache.org/ for more information about each property.\n");
     sb.append("\n");
 
     final SortedSet<Property> sortedProperties =
         new TreeSet<>(Comparator.comparing(Property::getKey));
     sortedProperties.addAll(EnumSet.allOf(Property.class));
 
-    for (Property prop : sortedProperties) {
-      if (prop.getType() == PropertyType.PREFIX) {
-        continue;
-      }
-      final String key = prop.getKey();
-      boolean valid = false;
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          valid = true;
-          break;
-        }
-      }
-      if (!valid) {
-        continue;
-      }
-      String value = prop.getDefaultValue();
-      if (value.length() > 40) {
-        value = value.substring(0, 40) + " (truncated)";
-      }
-      if (!prop.isDeprecated() && !prop.isReplaced()) {
-        sb.append(String.format(propOnlyFormat, key, value));
-      } else if (prop.isDeprecated() && !prop.isReplaced()) {
-        sb.append(String.format(deprecatedOnlyFormat, key, value));
-      } else {
-        sb.append(String.format(replacedFormat, key, value, prop.replacedBy().getKey()));
-      }
-      sb.append("\n");
-    }
+    Stream.of(Property.values()).filter(p -> p.getType() != PropertyType.PREFIX)
+        .collect(
+            Collectors.toCollection(() -> new TreeSet<>(Comparator.comparing(Property::getKey))))
+        .forEach(prop -> {
+          final String key = prop.getKey();
+          validPrefixes.stream().filter(key::startsWith).findFirst().ifPresent(prefix -> {
+            String value = prop.getDefaultValue();
+            if (value.length() > 40) {
+              value = value.substring(0, 40) + " (truncated)";
+            }
+            if (!prop.isDeprecated() && !prop.isReplaced()) {
+              sb.append(String.format(propOnlyFormat, key, value));
+            } else if (prop.isDeprecated() && !prop.isReplaced()) {
+              sb.append(String.format(deprecatedOnlyFormat, key, value));
+            } else {
+              sb.append(String.format(replacedFormat, key, value, prop.replacedBy().getKey()));
+            }
+            sb.append("\n");
+          });
+        });
     return sb.toString();
   }
-
 }
