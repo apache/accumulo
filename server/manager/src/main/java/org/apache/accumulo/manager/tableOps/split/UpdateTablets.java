@@ -107,7 +107,7 @@ public class UpdateTablets extends ManagerRepo {
 
     var newTablets = splitInfo.getTablets();
 
-    var newTabletsFiles = getNewTabletFiles(newTablets, tabletMetadata,
+    var newTabletsFiles = getNewTabletFiles(fateId, newTablets, tabletMetadata,
         file -> manager.getSplitter().getCachedFileInfo(splitInfo.getOriginal().tableId(), file));
 
     addNewTablets(fateId, manager, tabletMetadata, opid, newTablets, newTabletsFiles);
@@ -123,7 +123,7 @@ public class UpdateTablets extends ManagerRepo {
    * Determine which files from the original tablet go to each new tablet being created by the
    * split.
    */
-  static Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> getNewTabletFiles(
+  static Map<KeyExtent,Map<StoredTabletFile,DataFileValue>> getNewTabletFiles(FateId fateId,
       SortedMap<KeyExtent,TabletMergeability> newTablets, TabletMetadata tabletMetadata,
       Function<StoredTabletFile,Splitter.FileInfo> fileInfoProvider) {
 
@@ -179,14 +179,14 @@ public class UpdateTablets extends ManagerRepo {
 
     if (log.isTraceEnabled()) {
       tabletMetadata.getFilesMap().forEach((f, v) -> {
-        log.trace("{} original file {} {} {}", tabletMetadata.getExtent(), f.getFileName(),
-            v.getSize(), v.getNumEntries());
+        log.trace("{} {} original file {} {} {} {}", fateId, tabletMetadata.getExtent(),
+            f.getFileName(), f.getRange(), v.getSize(), v.getNumEntries());
       });
 
       tabletsFiles.forEach((extent, files) -> {
         files.forEach((f, v) -> {
-          log.trace("{} split file {} {} {}", extent, f.getFileName(), v.getSize(),
-              v.getNumEntries());
+          log.trace("{} {} split file {} {} {} {}", fateId, extent, f.getFileName(), f.getRange(),
+              v.getSize(), v.getNumEntries());
         });
       });
     }

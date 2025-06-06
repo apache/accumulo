@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -46,7 +47,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Utility that generates single line tablet info. The output of this could be fed to sort, awk,
- * grep, etc. in order to answer questions like which tablets have the most files.
+ * grep, etc. to answer questions like which tablets have the most files.
  */
 public class ListTabletsCommand extends Command {
 
@@ -147,13 +148,13 @@ public class ListTabletsCommand extends Command {
       throws NamespaceNotFoundException {
 
     final TableOperations tableOps = shellState.getAccumuloClient().tableOperations();
-    var tableIdMap = tableOps.tableIdMap();
+    final Map<String,String> tableIdMap = tableOps.tableIdMap();
 
     Set<TableInfo> tableSet = new TreeSet<>();
 
     if (cl.hasOption(optTablePattern.getOpt())) {
       Pattern tablePattern = Pattern.compile(cl.getOptionValue(optTablePattern.getOpt()));
-      for (String table : tableOps.list()) {
+      for (String table : tableIdMap.keySet()) {
         if (tablePattern.matcher(table).matches()) {
           TableId id = TableId.of(tableIdMap.get(table));
           tableSet.add(new TableInfo(table, id));

@@ -58,7 +58,8 @@ public class ThriftUtil {
       new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
 
-  public static final String GSSAPI = "GSSAPI", DIGEST_MD5 = "DIGEST-MD5";
+  public static final String GSSAPI = "GSSAPI";
+  public static final String DIGEST_MD5 = "DIGEST-MD5";
 
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 

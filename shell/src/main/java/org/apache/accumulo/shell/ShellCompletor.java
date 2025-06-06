@@ -61,7 +61,9 @@ public class ShellCompletor implements Completer {
   }
 
   private int _complete(String fullBuffer, int cursor, List<String> candidates) {
-    boolean inTableFlag = false, inUserFlag = false, inNamespaceFlag = false;
+    boolean inTableFlag = false;
+    boolean inUserFlag = false;
+    boolean inNamespaceFlag = false;
     // Only want to grab the buffer up to the cursor because
     // the user could be trying to tab complete in the middle
     // of the line

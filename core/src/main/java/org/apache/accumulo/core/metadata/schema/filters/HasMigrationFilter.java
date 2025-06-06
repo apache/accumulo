@@ -16,22 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.rpc;
+package org.apache.accumulo.core.metadata.schema.filters;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import java.util.Set;
+import java.util.function.Predicate;
 
-import org.junit.jupiter.api.Test;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 
-public class SaslClientDigestCallbackHandlerTest {
+import com.google.common.collect.Sets;
 
-  @Test
-  public void testEquality() {
-    SaslClientDigestCallbackHandler handler1 =
-        new SaslClientDigestCallbackHandler("user", "mypass".toCharArray());
-    SaslClientDigestCallbackHandler handler2 =
-        new SaslClientDigestCallbackHandler("user", "mypass".toCharArray());
-    assertEquals(handler1, handler2);
-    assertEquals(handler1.hashCode(), handler2.hashCode());
+public class HasMigrationFilter extends TabletMetadataFilter {
+
+  private static final Set<ColumnType> COLUMNS =
+      Sets.immutableEnumSet(TabletMetadata.ColumnType.MIGRATION);
+  private static final Predicate<TabletMetadata> FILTER = TabletMetadata::hasMigration;
+
+  @Override
+  public Set<ColumnType> getColumns() {
+    return COLUMNS;
+  }
+
+  @Override
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return FILTER;
   }
 
 }

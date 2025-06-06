@@ -93,7 +93,7 @@ public class FateExecutor<T> {
         ThreadPools.getServerThreadPools().getPoolBuilder(transactionRunnerPoolName)
             .numCoreThreads(poolSize).enableThreadPoolMetrics().build();
 
-    this.workFinder = Threads.createThread(workFinderThreadName, new WorkFinder());
+    this.workFinder = Threads.createCriticalThread(workFinderThreadName, new WorkFinder());
     this.workFinder.start();
   }
 

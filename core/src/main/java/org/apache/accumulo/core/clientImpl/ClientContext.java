@@ -168,7 +168,7 @@ public class ClientContext implements AccumuloClient {
   private final TableOperationsImpl tableops;
   private final NamespaceOperations namespaceops;
   private InstanceOperations instanceops = null;
-  private final ThreadPools clientThreadPools;
+  private final Supplier<ThreadPools> clientThreadPools;
   private ThreadPoolExecutor cleanupThreadPool;
   private ThreadPoolExecutor scannerReadaheadPool;
   private MeterRegistry micrometer;
@@ -274,15 +274,15 @@ public class ClientContext implements AccumuloClient {
     this.namespaceops = new NamespaceOperationsImpl(this, tableops);
     this.serverPaths = Suppliers.memoize(() -> new ServiceLockPaths(this.getZooCache()));
     if (ueh == Threads.UEH) {
-      clientThreadPools = ThreadPools.getServerThreadPools();
+      clientThreadPools = () -> ThreadPools.getServerThreadPools();
     } else {
       // Provide a default UEH that just logs the error
       if (ueh == null) {
-        clientThreadPools = ThreadPools.getClientThreadPools((t, e) -> {
+        clientThreadPools = () -> ThreadPools.getClientThreadPools(getConfiguration(), (t, e) -> {
           log.error("Caught an Exception in client background thread: {}. Thread is dead.", t, e);
         });
       } else {
-        clientThreadPools = ThreadPools.getClientThreadPools(ueh);
+        clientThreadPools = () -> ThreadPools.getClientThreadPools(getConfiguration(), ueh);
       }
     }
     this.namespaceMapping = memoize(() -> new NamespaceMapping(this));
@@ -300,7 +300,7 @@ public class ClientContext implements AccumuloClient {
       submitScannerReadAheadTask(Callable<List<KeyValue>> c) {
     ensureOpen();
     if (scannerReadaheadPool == null) {
-      scannerReadaheadPool = clientThreadPools.getPoolBuilder(SCANNER_READ_AHEAD_POOL)
+      scannerReadaheadPool = clientThreadPools.get().getPoolBuilder(SCANNER_READ_AHEAD_POOL)
           .numCoreThreads(0).numMaxThreads(Integer.MAX_VALUE).withTimeOut(3L, SECONDS)
           .withQueue(new SynchronousQueue<>()).build();
     }
@@ -310,7 +310,7 @@ public class ClientContext implements AccumuloClient {
   public synchronized void executeCleanupTask(Runnable r) {
     ensureOpen();
     if (cleanupThreadPool == null) {
-      cleanupThreadPool = clientThreadPools.getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
+      cleanupThreadPool = clientThreadPools.get().getPoolBuilder(CONDITIONAL_WRITER_CLEANUP_POOL)
           .numCoreThreads(1).withTimeOut(3L, SECONDS).build();
     }
     this.cleanupThreadPool.execute(r);
@@ -321,7 +321,7 @@ public class ClientContext implements AccumuloClient {
    */
   public ThreadPools threadPools() {
     ensureOpen();
-    return clientThreadPools;
+    return clientThreadPools.get();
   }
 
   /**
