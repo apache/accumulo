@@ -49,7 +49,6 @@ import org.apache.accumulo.core.spi.fs.VolumeChooser;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
-import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.accumulo.core.volume.VolumeImpl;
@@ -323,11 +322,9 @@ public class VolumeManagerImpl implements VolumeManager {
   }
 
   @Override
-  public void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName,
-      FateId fateId) throws IOException {
+  public void bulkRename(Map<Path,Path> oldToNewPathMap, ExecutorService workerPool, FateId fateId)
+      throws IOException {
     List<Future<Void>> results = new ArrayList<>();
-    ExecutorService workerPool = ThreadPools.getServerThreadPools().getPoolBuilder(poolName)
-        .numCoreThreads(poolSize).build();
     oldToNewPathMap.forEach((oldPath, newPath) -> results.add(workerPool.submit(() -> {
       boolean success;
       try {
