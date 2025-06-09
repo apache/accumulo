@@ -128,4 +128,9 @@ public class SystemIteratorEnvironmentImpl extends ClientIteratorEnvironment
     return new MultiIterator(allIters, false);
   }
 
+  @Override
+  public boolean isRunningLowOnMemory() {
+    return getServerContext().getLowMemoryDetector().isRunningLowOnMemory();
+  }
+
 }
