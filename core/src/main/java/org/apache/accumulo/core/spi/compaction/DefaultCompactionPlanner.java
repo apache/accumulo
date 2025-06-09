@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -285,7 +286,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           // more than logarithmic work across multiple comapctions.
 
           filesCopy.removeAll(group);
-          filesCopy.add(getExpected(group, 0));
+          filesCopy.add(getExpectedFile(group, new AtomicInteger(0)));
 
           if (findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
               maxSizeToCompact).isEmpty()) {
@@ -302,7 +303,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         // to complete.
 
         // The set of files running compactions may produce
-        var expectedFiles = getExpected(params.getRunningCompactions());
+        AtomicInteger nextExpected = new AtomicInteger(0);
+        var expectedFiles = getExpected(params.getRunningCompactions(), nextExpected);
 
         if (!Collections.disjoint(filesCopy, expectedFiles)) {
           throw new AssertionError();
@@ -312,6 +314,20 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
         group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
             maxSizeToCompact);
+
+        while (!group.isEmpty() && !Collections.disjoint(group, expectedFiles)) {
+          // remove these files as compaction candidates because they include a file that a running
+          // compaction would produce
+          filesCopy.removeAll(group);
+          // Create a fake file+size entry that predicts what this projected compaction would
+          // produce
+          var futureFile = getExpectedFile(group, nextExpected);
+          Preconditions.checkState(expectedFiles.add(futureFile), "Unexpected duplicate %s in %s",
+              futureFile, expectedFiles);
+          // look for any compaction work in the remaining set of files
+          group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+              maxSizeToCompact);
+        }
 
         if (!Collections.disjoint(group, expectedFiles)) {
           // file produced by running compaction will eventually compact with existing files, so
@@ -461,12 +477,12 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return Long.MAX_VALUE;
   }
 
-  private CompactableFile getExpected(Collection<CompactableFile> files, int count) {
+  private CompactableFile getExpectedFile(Collection<CompactableFile> files, AtomicInteger next) {
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
     try {
-      return CompactableFile.create(
-          new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
-          0);
+      return CompactableFile.create(new URI(
+          "hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + next.getAndIncrement() + ".rf"),
+          size, 0);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }
@@ -475,15 +491,13 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   /**
    * @return the expected files sizes for sets of compacting files.
    */
-  private Set<CompactableFile> getExpected(Collection<CompactionJob> compacting) {
+  private Set<CompactableFile> getExpected(Collection<CompactionJob> compacting,
+      AtomicInteger next) {
 
     Set<CompactableFile> expected = new HashSet<>();
 
-    int count = 0;
-
     for (CompactionJob job : compacting) {
-      count++;
-      expected.add(getExpected(job.getFiles(), count));
+      expected.add(getExpectedFile(job.getFiles(), next));
     }
 
     return expected;
