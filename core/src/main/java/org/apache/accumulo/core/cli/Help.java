@@ -41,16 +41,8 @@ public class Help {
     }
     if (help) {
       commander.usage();
-      String extra = getAdditionalHelpInformation(programName);
-      if (extra != null) {
-        commander.getConsole().println(extra);
-      }
       exit(0);
     }
-  }
-
-  public String getAdditionalHelpInformation(String programName) {
-    return null;
   }
 
   public void exit(int status) {
