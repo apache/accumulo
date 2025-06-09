@@ -66,21 +66,20 @@ public abstract class AbstractServer
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
     boolean oldBindParameterSpecifiedOnCmdLine = false;
-    boolean newBindParmeterSpecifiedOnCmdLine = false;
+    boolean newBindParameterSpecified = false;
     for (String arg : args) {
       if (arg.equals("-a") || arg.equals("--address")) {
         oldBindParameterSpecifiedOnCmdLine = true;
-      } else if (arg.startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getKey() + "=")) {
-        newBindParmeterSpecifiedOnCmdLine = true;
+      } else if (siteConfig.isPropertySet(Property.RPC_PROCESS_BIND_ADDRESS)) {
+        newBindParameterSpecified = true;
       }
     }
-    if (oldBindParameterSpecifiedOnCmdLine && newBindParmeterSpecifiedOnCmdLine) {
-      throw new IllegalStateException(
-          "Arguments '-a' and '-o rpc.bind.addr=<address>' cannot be used together.");
+    if (oldBindParameterSpecifiedOnCmdLine && newBindParameterSpecified) {
+      throw new IllegalStateException("Argument '-a' cannot be used with property 'rpc.bind.addr'");
     }
     final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
     // If new bind parameter passed on command line or in file, then use it.
-    if (newBindParmeterSpecifiedOnCmdLine
+    if (newBindParameterSpecified
         || !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       this.hostname = newBindParameter;
     } else if (oldBindParameterSpecifiedOnCmdLine) {
