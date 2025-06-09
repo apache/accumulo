@@ -21,17 +21,11 @@ package org.apache.accumulo.core.cli;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -112,113 +106,4 @@ public class ConfigOpts extends Help {
       }
     }
   }
-
-  @Override
-  public String getAdditionalHelpInformation(String programName) {
-
-    final Set<String> validPrefixes = new HashSet<>();
-
-    switch (programName) {
-      case "compactor":
-        validPrefixes.add(Property.COMPACTOR_PREFIX.getKey());
-        break;
-      case "compaction-coordinator":
-        validPrefixes.add(Property.COMPACTION_COORDINATOR_PREFIX.getKey());
-        break;
-      case "gc":
-        validPrefixes.add(Property.GC_PREFIX.getKey());
-        break;
-      case "manager":
-        validPrefixes.add(Property.MANAGER_PREFIX.getKey());
-        break;
-      case "monitor":
-        validPrefixes.add(Property.MONITOR_PREFIX.getKey());
-        break;
-      case "sserver":
-        validPrefixes.add(Property.SSERV_PREFIX.getKey());
-        break;
-      case "tserver":
-        validPrefixes.add(Property.TSERV_PREFIX.getKey());
-        break;
-      default:
-        break;
-    }
-
-    if (validPrefixes.isEmpty()) {
-      // We only provide extra help information for server processes
-      return null;
-    }
-
-    // print out possible property overrides for the -o argument.
-    validPrefixes.add(Property.GENERAL_PREFIX.getKey());
-    validPrefixes.add(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey());
-    validPrefixes.add(Property.RPC_PREFIX.getKey());
-
-    // Determine format lengths based on property names and default values
-    int maxPropLength = 0;
-    int maxDefaultLength = 0;
-    for (Property prop : Property.values()) {
-      if (prop.getKey().length() > maxPropLength) {
-        maxPropLength = prop.getKey().length();
-      }
-      if (prop.getDefaultValue() != null && prop.getDefaultValue().length() > maxDefaultLength) {
-        maxDefaultLength = prop.getDefaultValue().length();
-      }
-    }
-
-    final String propOnlyFormat =
-        "%1$-" + maxPropLength + "s %2$-" + Math.min(52, maxDefaultLength) + "s";
-    final String deprecatedOnlyFormat = propOnlyFormat + " (deprecated)";
-    final String replacedFormat = propOnlyFormat + " (deprecated - replaced by %3$s)";
-
-    StringBuilder sb = new StringBuilder();
-    sb.append(
-        "\tBelow are the properties, and their default values, that can be used with the '-o' (overrides) option.\n");
-    sb.append("\tLong default values will be truncated.\n");
-    sb.append(
-        "\tSee the user guide at https://accumulo.apache.org/ for more information about each property.\n");
-    sb.append("\n");
-
-    final SortedSet<Property> sortedProperties = new TreeSet<>(new Comparator<Property>() {
-      @Override
-      public int compare(Property arg0, Property arg1) {
-        return arg0.getKey().compareTo(arg1.getKey());
-      }
-    });
-
-    for (Property p : Property.values()) {
-      sortedProperties.add(p);
-    }
-
-    for (Property prop : sortedProperties) {
-      if (prop.getType() == PropertyType.PREFIX) {
-        continue;
-      }
-      final String key = prop.getKey();
-      boolean valid = false;
-      for (String prefix : validPrefixes) {
-        if (key.startsWith(prefix)) {
-          valid = true;
-          break;
-        }
-      }
-      if (!valid) {
-        continue;
-      }
-      String value = prop.getDefaultValue();
-      if (value.length() > 40) {
-        value = value.substring(0, 40) + " (truncated)";
-      }
-      if (!prop.isDeprecated() && !prop.isReplaced()) {
-        sb.append(String.format(propOnlyFormat, key, value));
-      } else if (prop.isDeprecated() && !prop.isReplaced()) {
-        sb.append(String.format(deprecatedOnlyFormat, key, value));
-      } else {
-        sb.append(String.format(replacedFormat, key, value, prop.replacedBy().getKey()));
-      }
-      sb.append("\n");
-    }
-    return sb.toString();
-  }
-
 }

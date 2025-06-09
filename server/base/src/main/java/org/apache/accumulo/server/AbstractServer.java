@@ -68,18 +68,27 @@ public abstract class AbstractServer
     this.applicationName = appName;
     opts.parseArgs(appName, args);
     var siteConfig = opts.getSiteConfiguration();
-    final String oldBindParameter = opts.getAddress();
-    if (!oldBindParameter.equals(ServerOpts.BIND_ALL_ADDRESSES)
-        && siteConfig.isPropertySet(Property.RPC_PROCESS_BIND_ADDRESS)) {
-      throw new IllegalStateException(
-          "Bind address specified via '-a' and '-o rpc.bind.addr=<address>'");
+    boolean oldBindParameterSpecifiedOnCmdLine = false;
+    boolean newBindParameterSpecified = false;
+    for (String arg : args) {
+      if (arg.equals("-a") || arg.equals("--address")) {
+        oldBindParameterSpecifiedOnCmdLine = true;
+      } else if (siteConfig.isPropertySet(Property.RPC_PROCESS_BIND_ADDRESS)) {
+        newBindParameterSpecified = true;
+      }
+    }
+    if (oldBindParameterSpecifiedOnCmdLine && newBindParameterSpecified) {
+      throw new IllegalStateException("Argument '-a' cannot be used with property 'rpc.bind.addr'");
     }
     final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
-    if (oldBindParameter.equals(ServerOpts.BIND_ALL_ADDRESSES)
-        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    // If new bind parameter passed on command line or in file, then use it.
+    if (newBindParameterSpecified
+        || !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       this.bindAddress = newBindParameter;
+    } else if (oldBindParameterSpecifiedOnCmdLine) {
+      this.bindAddress = opts.getAddress();
     } else {
-      this.bindAddress = oldBindParameter;
+      this.bindAddress = ServerOpts.BIND_ALL_ADDRESSES;
     }
     String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
     if (advertAddr != null && !advertAddr.isBlank()) {
