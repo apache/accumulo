@@ -1125,15 +1125,14 @@ public class TableOperationsImpl extends TableOperationsHelper {
    */
   private Map<String,String> modifyPropertiesUnwrapped(String tableName,
       Consumer<Map<String,String>> mapMutator) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException, IllegalArgumentException {
+      AccumuloSecurityException {
 
     try {
       return modifyProperties(tableName, mapMutator);
     } catch (AccumuloException ae) {
       Throwable cause = ae.getCause();
       if (cause instanceof TableNotFoundException) {
-        throw new TableNotFoundException(context.getTableId(tableName).canonical(), tableName,
-            ae.getMessage(), ae);
+        throw new TableNotFoundException(null, tableName, null, ae);
       }
       throw ae;
     }
