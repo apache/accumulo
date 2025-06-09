@@ -132,8 +132,8 @@ public class TServerUtils {
   public static ServerAddress startServer(ServerContext context, String hostname,
       Property portHintProperty, TProcessor processor, String serverName, String threadName,
       Property portSearchProperty, Property minThreadProperty, Property threadTimeOutProperty,
-      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty)
-      throws UnknownHostException {
+      Property timeBetweenThreadChecksProperty, Property maxMessageSizeProperty,
+      Property maxTotalReadBufferProperty) throws UnknownHostException {
     final AccumuloConfiguration config = context.getConfiguration();
 
     final IntStream portHint = config.getPortStream(portHintProperty);
@@ -158,6 +158,11 @@ public class TServerUtils {
       maxMessageSize = config.getAsBytes(maxMessageSizeProperty);
     }
 
+    long maxTotalReadBuffering = Integer.MAX_VALUE;
+    if (maxTotalReadBufferProperty != null) {
+      maxTotalReadBuffering = config.getAsBytes(maxTotalReadBufferProperty);
+    }
+
     boolean portSearch = false;
     if (portSearchProperty != null) {
       portSearch = config.getBoolean(portSearchProperty);
@@ -180,8 +185,8 @@ public class TServerUtils {
     try {
       return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
           minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
-          context.getServerSslParams(), context.getSaslParams(), context.getClientTimeoutInMillis(),
-          backlog, portSearch, addresses);
+          maxTotalReadBuffering, context.getServerSslParams(), context.getSaslParams(),
+          context.getClientTimeoutInMillis(), backlog, portSearch, addresses);
     } catch (TTransportException e) {
       if (portSearch) {
         // Build a list of reserved ports - as identified by properties of type PropertyType.PORT
@@ -205,7 +210,7 @@ public class TServerUtils {
             HostAndPort addr = HostAndPort.fromParts(hostname, port);
             return TServerUtils.startTServer(serverType, timedProcessor, serverName, threadName,
                 minThreads, threadTimeOut, config, timeBetweenThreadChecks, maxMessageSize,
-                context.getServerSslParams(), context.getSaslParams(),
+                maxTotalReadBuffering, context.getServerSslParams(), context.getSaslParams(),
                 context.getClientTimeoutInMillis(), backlog, portSearch, addr);
           } catch (TTransportException tte) {
             log.info("Unable to use port {}, retrying. (Thread Name = {})", port, threadName);
@@ -265,7 +270,7 @@ public class TServerUtils {
   private static ServerAddress createNonBlockingServer(HostAndPort address, TProcessor processor,
       TProtocolFactory protocolFactory, final String serverName, final int numThreads,
       final long threadTimeOut, final AccumuloConfiguration conf, long timeBetweenThreadChecks,
-      long maxMessageSize, int backlog) throws TTransportException {
+      long maxMessageSize, long maxTotalBuffered, int backlog) throws TTransportException {
 
     NonblockingAbstractServerSocketArgs args = new NonblockingAbstractServerSocketArgs()
         .backlog(backlog).bindAddr(new InetSocketAddress(address.getHost(), address.getPort()))
@@ -276,7 +281,7 @@ public class TServerUtils {
 
     options.protocolFactory(protocolFactory);
     options.transportFactory(ThriftUtil.transportFactory(maxMessageSize));
-    options.maxReadBufferBytes = maxMessageSize;
+    options.maxReadBufferBytes = maxTotalBuffered;
     options.stopTimeoutVal(5);
 
     // Create our own very special thread pool.
@@ -569,9 +574,9 @@ public class TServerUtils {
   public static ServerAddress startTServer(final AccumuloConfiguration conf,
       ThriftServerType serverType, TProcessor processor, String serverName, String threadName,
       int numThreads, long threadTimeOut, long timeBetweenThreadChecks, long maxMessageSize,
-      SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, MetricsInfo metricsInfo, boolean portSearch,
-      HostAndPort... addresses) {
+      long maxTotalReadBuffering, SslConnectionParams sslParams,
+      SaslServerConnectionParams saslParams, long serverSocketTimeout, int backlog,
+      MetricsInfo metricsInfo, boolean portSearch, HostAndPort... addresses) {
 
     if (serverType == ThriftServerType.SASL) {
       processor = updateSaslProcessor(serverType, processor);
@@ -580,7 +585,8 @@ public class TServerUtils {
     try {
       return startTServer(serverType, new TimedProcessor(processor, metricsInfo), serverName,
           threadName, numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
-          sslParams, saslParams, serverSocketTimeout, backlog, portSearch, addresses);
+          maxTotalReadBuffering, sslParams, saslParams, serverSocketTimeout, backlog, portSearch,
+          addresses);
     } catch (TTransportException e) {
       throw new IllegalStateException(e);
     }
@@ -596,9 +602,9 @@ public class TServerUtils {
   private static ServerAddress startTServer(ThriftServerType serverType, TimedProcessor processor,
       String serverName, String threadName, int numThreads, long threadTimeOut,
       final AccumuloConfiguration conf, long timeBetweenThreadChecks, long maxMessageSize,
-      SslConnectionParams sslParams, SaslServerConnectionParams saslParams,
-      long serverSocketTimeout, int backlog, boolean portSearch, HostAndPort... addresses)
-      throws TTransportException {
+      long maxTotalReadBuffering, SslConnectionParams sslParams,
+      SaslServerConnectionParams saslParams, long serverSocketTimeout, int backlog,
+      boolean portSearch, HostAndPort... addresses) throws TTransportException {
     TProtocolFactory protocolFactory = ThriftUtil.protocolFactory();
     // This is presently not supported. It's hypothetically possible, I believe, to work, but it
     // would require changes in how the transports
@@ -638,7 +644,8 @@ public class TServerUtils {
           case CUSTOM_HS_HA:
             log.debug("Instantiating unsecure custom half-async Thrift server");
             serverAddress = createNonBlockingServer(address, processor, protocolFactory, serverName,
-                numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize, backlog);
+                numThreads, threadTimeOut, conf, timeBetweenThreadChecks, maxMessageSize,
+                maxTotalReadBuffering, backlog);
             break;
           default:
             throw new IllegalArgumentException("Unknown server type " + serverType);

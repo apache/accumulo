@@ -311,10 +311,11 @@ public class ScanServer extends AbstractServer
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
-        Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        "Thrift Client Server", Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS,
-        Property.SSERV_MINTHREADS_TIMEOUT, Property.SSERV_THREADCHECK, maxMessageSizeProperty);
+    ServerAddress sp =
+        TServerUtils.startServer(getContext(), getHostname(), Property.SSERV_CLIENTPORT, processor,
+            this.getClass().getSimpleName(), "Thrift Client Server", Property.SSERV_PORTSEARCH,
+            Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
+            Property.SSERV_THREADCHECK, maxMessageSizeProperty, Property.RPC_MAX_TOTAL_READ_SIZE);
 
     LOG.info("address = {}", sp.address);
     return sp;

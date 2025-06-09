@@ -22,7 +22,9 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
+import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.thrift.server.AbstractNonblockingServer;
 import org.apache.thrift.server.THsHaServer;
 import org.apache.thrift.server.TNonblockingServer;
 import org.apache.thrift.transport.TNonblockingServerTransport;
@@ -41,15 +43,26 @@ public class CustomNonBlockingServer extends THsHaServer {
   private static final Logger log = LoggerFactory.getLogger(CustomNonBlockingServer.class);
   private final Field selectAcceptThreadField;
 
+  private final AtomicLong readBufferBytesAllocated2;
+
   public CustomNonBlockingServer(Args args) {
     super(args);
 
     try {
       selectAcceptThreadField = TNonblockingServer.class.getDeclaredField("selectAcceptThread_");
       selectAcceptThreadField.setAccessible(true);
+
+      Field rbbaField =
+          AbstractNonblockingServer.class.getDeclaredField("readBufferBytesAllocated");
+      rbbaField.setAccessible(true);
+      readBufferBytesAllocated2 = (AtomicLong) rbbaField.get(this);
+      Field mrbbField = AbstractNonblockingServer.class.getDeclaredField("MAX_READ_BUFFER_BYTES");
+      mrbbField.setAccessible(true);
+      log.debug("MAX_READ_BUFFER_BYTES={}", mrbbField.getLong(this));
     } catch (Exception e) {
       throw new RuntimeException("Failed to access required field in Thrift code.", e);
     }
+
   }
 
   @Override
@@ -126,27 +139,45 @@ public class CustomNonBlockingServer extends THsHaServer {
       // On invoke() set the clientAddress on the ThreadLocal so that it can be accessed elsewhere
       // in the same thread that called invoke() on the buffer
       TServerUtils.clientAddress.set(clientAddress);
+      log.trace("CustomFrameBuffer.invoke before client:{} total_buffers_size:{}", clientAddress,
+          readBufferBytesAllocated2.get());
       super.invoke();
+      log.trace("CustomFrameBuffer.invoke after client:{} total_buffers_size:{}", clientAddress,
+          readBufferBytesAllocated2.get());
     }
 
     @Override
     public boolean read() {
+      log.trace(
+          "CustomFrameBuffer.read before read client: {} buffer_size:{} state:{} total_buffers_size:{}",
+          clientAddress, buffer_.array().length, state_, readBufferBytesAllocated2.get());
       boolean result = super.read();
-      if (!result) {
-        log.trace("CustomFrameBuffer.read returned false when reading data from client: {}",
-            clientAddress);
-      }
+      // if (!result) {
+      log.trace(
+          "CustomFrameBuffer.read returned {} when reading data from client: {} buffer_size:{} state:{} total_buffers_size:{}",
+          result, clientAddress, buffer_.array().length, state_, readBufferBytesAllocated2.get());
+      // }
       return result;
     }
 
     @Override
     public boolean write() {
       boolean result = super.write();
-      if (!result) {
-        log.trace("CustomFrameBuffer.write returned false when writing data to client: {}",
-            clientAddress);
-      }
+      // if (!result) {
+      log.trace(
+          "CustomFrameBuffer.write returned {} when writing data to client: {} buffer_size:{} state:{}",
+          result, clientAddress, buffer_.array().length, state_);
+      // }
       return result;
+    }
+
+    @Override
+    public void close() {
+      log.trace("CustomFrameBuffer.close before client:{} total_buffers_size:{}", clientAddress,
+          readBufferBytesAllocated2.get());
+      super.close();
+      log.trace("CustomFrameBuffer.close after client:{} total_buffers_size:{}", clientAddress,
+          readBufferBytesAllocated2.get());
     }
 
     /*
