@@ -43,7 +43,7 @@ public class ServerOptsTest {
   @Test
   public void testGetAddress_NOne() {
     opts.parseArgs(ServerOptsTest.class.getName(), new String[] {});
-    assertEquals("0.0.0.0", opts.getAddress());
+    assertEquals(ServerOpts.BIND_ALL_ADDRESSES, opts.getAddress());
   }
 
   @Test
