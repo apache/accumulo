@@ -125,7 +125,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * For example, given a tablet with 20 files, and table.file.max is 15 and no compactions are
  * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
  * ratio less than 3 that results in a compaction. The lowest compaction ratio that will be
- * considered in this search defaults to 1.1. Starting in 2.1.4, thw lower bound for the search can
+ * considered in this search defaults to 1.1. Starting in 2.1.4, the lower bound for the search can
  * be set using {@code tserver.compaction.major.service.<service>.opts.lowestRatio}
  *
  * @since 2.1.0
