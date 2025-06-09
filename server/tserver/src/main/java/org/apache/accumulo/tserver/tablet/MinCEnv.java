@@ -29,7 +29,7 @@ import org.apache.accumulo.core.util.ratelimit.RateLimiter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.tserver.MinorCompactionReason;
 
 public class MinCEnv implements FileCompactor.CompactionEnv {
@@ -64,8 +64,10 @@ public class MinCEnv implements FileCompactor.CompactionEnv {
   @Override
   public SystemIteratorEnvironment createIteratorEnv(ServerContext context,
       AccumuloConfiguration acuTableConf, TableId tableId) {
-    return new TabletIteratorEnvironment(context, IteratorUtil.IteratorScope.minc, acuTableConf,
-        tableId);
+
+    return (SystemIteratorEnvironment) new SystemIteratorEnvironmentImpl.Builder(context)
+        .withScope(IteratorUtil.IteratorScope.minc).withTableId(tableId).build();
+
   }
 
   @Override
