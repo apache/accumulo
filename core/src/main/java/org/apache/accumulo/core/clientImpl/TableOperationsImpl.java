@@ -1124,8 +1124,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
    * until we are able to change the public API and throw TNFE directly from all applicable methods.
    */
   private Map<String,String> modifyPropertiesUnwrapped(String tableName,
-      Consumer<Map<String,String>> mapMutator) throws TableNotFoundException, AccumuloException,
-      AccumuloSecurityException {
+      Consumer<Map<String,String>> mapMutator)
+      throws TableNotFoundException, AccumuloException, AccumuloSecurityException {
 
     try {
       return modifyProperties(tableName, mapMutator);
