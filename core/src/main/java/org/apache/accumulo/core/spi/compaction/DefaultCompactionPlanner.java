@@ -392,13 +392,18 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         for (int i = 1; i < filesInWindow.size(); i++) {
           long size = filesInWindow.get(i).getEstimatedSize();
           sum += size;
-          // This is the compaction ratio needed to compact these files
-          double neededCompactionRatio = sum / (double) size;
-          log.trace("neededCompactionRatio:{} files:{}", neededCompactionRatio,
-              filesInWindow.subList(0, i + 1));
-          if (neededCompactionRatio >= largestRatioSeen) {
-            largestRatioSeen = neededCompactionRatio;
-            found = filesInWindow.subList(0, i + 1);
+          if (size > 0) {
+            // This is the compaction ratio needed to compact these files
+            double neededCompactionRatio = sum / (double) size;
+            log.trace("neededCompactionRatio:{} files:{}", neededCompactionRatio,
+                filesInWindow.subList(0, i + 1));
+            if (neededCompactionRatio >= largestRatioSeen) {
+              largestRatioSeen = neededCompactionRatio;
+              found = filesInWindow.subList(0, i + 1);
+            }
+          } else {
+            log.warn("Unexpected size seen for file {} {} {}", params.getTabletId(),
+                filesInWindow.get(i).getFileName(), size);
           }
         }
 
