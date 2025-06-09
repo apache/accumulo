@@ -71,32 +71,32 @@ public class SortedLogRecovery {
 
   static LogFileKey maxKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
-    key.event = event;
-    key.tabletId = Integer.MAX_VALUE;
-    key.seq = Long.MAX_VALUE;
+    key.setEvent(event);
+    key.setTabletId(Integer.MAX_VALUE);
+    key.setSeq(Long.MAX_VALUE);
     return key;
   }
 
   static LogFileKey maxKey(LogEvents event, int tabletId) {
     LogFileKey key = maxKey(event);
-    key.tabletId = tabletId;
+    key.setTabletId(tabletId);
     return key;
   }
 
   static LogFileKey minKey(LogEvents event) {
     LogFileKey key = new LogFileKey();
-    key.event = event;
+    key.setEvent(event);
     // see GitHub issue #477. There was a bug that caused -1 to end up in tabletId. If this happens
     // want to detect it and fail since recovery is dubious in this situation . Other code should
     // fail if the id is actually -1 in data.
-    key.tabletId = -1;
-    key.seq = 0;
+    key.setTabletId(-1);
+    key.setSeq(0);
     return key;
   }
 
   static LogFileKey minKey(LogEvents event, int tabletId) {
     LogFileKey key = minKey(event);
-    key.tabletId = tabletId;
+    key.setTabletId(tabletId);
     return key;
   }
 
@@ -114,15 +114,16 @@ public class SortedLogRecovery {
       while (rli.hasNext()) {
         LogFileKey key = rli.next().getKey();
 
-        checkState(key.event == DEFINE_TABLET); // should only fail if bug elsewhere
+        checkState(key.getEvent() == DEFINE_TABLET); // should only fail if bug elsewhere
 
-        if (key.tablet.equals(extent) || key.tablet.equals(alternative)) {
-          checkState(key.tabletId >= 0, "tabletId %s for %s is negative", key.tabletId, extent);
-          checkState(tabletId == -1 || key.tabletId >= tabletId); // should only fail if bug in
+        if (key.getTablet().equals(extent) || key.getTablet().equals(alternative)) {
+          checkState(key.getTabletId() >= 0, "tabletId %s for %s is negative", key.getTabletId(),
+              extent);
+          checkState(tabletId == -1 || key.getTabletId() >= tabletId); // should only fail if bug in
           // RecoveryLogsIterator
 
-          if (tabletId != key.tabletId) {
-            tabletId = key.tabletId;
+          if (tabletId != key.getTabletId()) {
+            tabletId = key.getTabletId();
           }
         }
       }
@@ -217,28 +218,30 @@ public class SortedLogRecovery {
       while (ddi.hasNext()) {
         LogFileKey key = ddi.next().getKey();
 
-        checkState(key.seq >= 0, "Unexpected negative seq %s for tabletId %s", key.seq, tabletId);
-        checkState(key.tabletId == tabletId); // should only fail if bug elsewhere
-        checkState(key.seq >= Math.max(lastFinish, lastStart)); // should only fail if bug elsewhere
+        checkState(key.getSeq() >= 0, "Unexpected negative seq %s for tabletId %s", key.getSeq(),
+            tabletId);
+        checkState(key.getTabletId() == tabletId); // should only fail if bug elsewhere
+        checkState(key.getSeq() >= Math.max(lastFinish, lastStart)); // should only fail if bug
+                                                                     // elsewhere
 
-        switch (key.event) {
+        switch (key.getEvent()) {
           case COMPACTION_START:
-            lastStart = key.seq;
-            lastStartFile = key.filename;
+            lastStart = key.getSeq();
+            lastStartFile = key.getFilename();
             break;
           case COMPACTION_FINISH:
-            checkState(key.seq > lastStart, "Compaction finish <= start %s %s %s", key.tabletId,
-                key.seq, lastStart);
+            checkState(key.getSeq() > lastStart, "Compaction finish <= start %s %s %s",
+                key.getTabletId(), key.getSeq(), lastStart);
             checkState(lastEvent != COMPACTION_FINISH,
-                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.tabletId, lastFinish,
-                key.seq);
-            lastFinish = key.seq;
+                "Saw consecutive COMPACTION_FINISH events %s %s %s", key.getTabletId(), lastFinish,
+                key.getSeq());
+            lastFinish = key.getSeq();
             break;
           default:
-            throw new IllegalStateException("Non compaction event seen " + key.event);
+            throw new IllegalStateException("Non compaction event seen " + key.getEvent());
         }
 
-        lastEvent = key.event;
+        lastEvent = key.getEvent();
       }
 
       if (lastEvent == COMPACTION_START && suffixes.contains(getPathSuffix(lastStartFile))) {
@@ -258,7 +261,7 @@ public class SortedLogRecovery {
   private void playbackMutations(List<Path> recoveryLogs, MutationReceiver mr, int tabletId,
       long recoverySeq) throws IOException {
     LogFileKey start = minKey(MUTATION, tabletId);
-    start.seq = recoverySeq;
+    start.setSeq(recoverySeq);
 
     LogFileKey end = maxKey(MUTATION, tabletId);
 
@@ -267,17 +270,17 @@ public class SortedLogRecovery {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
         LogFileKey logFileKey = entry.getKey();
 
-        checkState(logFileKey.tabletId == tabletId); // should only fail if bug elsewhere
-        checkState(logFileKey.seq >= recoverySeq); // should only fail if bug elsewhere
+        checkState(logFileKey.getTabletId() == tabletId); // should only fail if bug elsewhere
+        checkState(logFileKey.getSeq() >= recoverySeq); // should only fail if bug elsewhere
 
         LogFileValue val = entry.getValue();
-        if (logFileKey.event == MUTATION || logFileKey.event == MANY_MUTATIONS) {
-          log.debug("Recover {} mutation(s) for {}", val.mutations.size(), entry.getKey());
-          for (Mutation m : val.mutations) {
+        if (logFileKey.getEvent() == MUTATION || logFileKey.getEvent() == MANY_MUTATIONS) {
+          log.debug("Recover {} mutation(s) for {}", val.getMutations().size(), entry.getKey());
+          for (Mutation m : val.getMutations()) {
             mr.receive(m);
           }
         } else {
-          throw new IllegalStateException("Non mutation event seen " + logFileKey.event);
+          throw new IllegalStateException("Non mutation event seen " + logFileKey.getEvent());
         }
       }
     }

@@ -64,7 +64,7 @@ public class MiniAccumuloClusterTest extends WithTestNames {
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
-  public static File testDir;
+  private static File testDir;
 
   private static MiniAccumuloCluster accumulo;
 

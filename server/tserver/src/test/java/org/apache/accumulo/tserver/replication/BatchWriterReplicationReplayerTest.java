@@ -74,9 +74,9 @@ public class BatchWriterReplicationReplayerTest {
     bwCfg.setMaxMemory(1L);
 
     LogFileKey key = new LogFileKey();
-    key.event = LogEvents.MANY_MUTATIONS;
-    key.seq = 1;
-    key.tabletId = 1;
+    key.setEvent(LogEvents.MANY_MUTATIONS);
+    key.setSeq(1);
+    key.setTabletId(1);
 
     WalEdits edits = new WalEdits();
 
@@ -140,9 +140,9 @@ public class BatchWriterReplicationReplayerTest {
     bwCfg.setMaxMemory(1L);
 
     LogFileKey key = new LogFileKey();
-    key.event = LogEvents.MANY_MUTATIONS;
-    key.seq = 1;
-    key.tabletId = 1;
+    key.setEvent(LogEvents.MANY_MUTATIONS);
+    key.setSeq(1);
+    key.setTabletId(1);
 
     WalEdits edits = new WalEdits();
 

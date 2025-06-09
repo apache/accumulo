@@ -22,6 +22,8 @@
 // Protobuf Java Version: 3.25.6
 package org.apache.accumulo.server.replication.proto;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @SuppressWarnings("unused") public final class Replication {
   private Replication() {}
   public static void registerAllExtensions(
@@ -135,6 +137,7 @@ package org.apache.accumulo.server.replication.proto;
   /**
    * Protobuf type {@code Status}
    */
+  @SuppressFBWarnings(value = "SING_SINGLETON_IMPLEMENTS_SERIALIZABLE", justification = "generated code")
   public static final class Status extends
       com.google.protobuf.GeneratedMessageV3 implements
       // @@protoc_insertion_point(message_implements:Status)

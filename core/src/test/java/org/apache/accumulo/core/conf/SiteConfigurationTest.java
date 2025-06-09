@@ -38,8 +38,6 @@ public class SiteConfigurationTest {
   @Test
   public void testOnlySensitivePropertiesExtractedFromCredentialProvider()
       throws SecurityException {
-    // site-cfg.jceks={'ignored.property'=>'ignored', 'instance.secret'=>'mysecret',
-    // 'general.rpc.timeout'=>'timeout'}
     URL keystore = SiteConfigurationTest.class.getResource("/site-cfg.jceks");
     assertNotNull(keystore);
     String credProvPath = "jceks://file" + new File(keystore.getFile()).getAbsolutePath();
@@ -78,7 +76,7 @@ public class SiteConfigurationTest {
     assertEquals("256M", conf.get(Property.TSERV_WAL_MAX_SIZE));
     assertEquals("org.apache.accumulo.core.spi.crypto.PerTableCryptoServiceFactory",
         conf.get(Property.INSTANCE_CRYPTO_FACTORY));
-    assertEquals(System.getenv("USER"), conf.get("general.test.user.name"));
+    assertEquals(System.getProperty("user.name"), conf.get("general.test.user.name"));
     assertEquals("/tmp/test/dir", conf.get("general.test.user.dir"));
   }
 

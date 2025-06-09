@@ -567,7 +567,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     String home = System.getProperty("HOME");
     if (home == null) {
-      home = System.getenv("HOME");
+      home = System.getProperty("user.home");
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;

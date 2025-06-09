@@ -119,38 +119,38 @@ public class UnusedWalDoesntCloseReplicationStatusIT extends ConfigurableMacBase
     LogFileKey key = new LogFileKey();
     LogFileValue value = new LogFileValue();
 
-    key.event = OPEN;
-    key.tserverSession = tserverWal.getAbsolutePath();
-    key.filename = tserverWal.getAbsolutePath();
+    key.setEvent(OPEN);
+    key.setTserverSession(tserverWal.getAbsolutePath());
+    key.setFilename(tserverWal.getAbsolutePath());
     key.write(out);
     value.write(out);
 
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of(Integer.toString(fakeTableId)), null, null);
-    key.seq = 1L;
-    key.tabletId = 1;
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of(Integer.toString(fakeTableId)), null, null));
+    key.setSeq(1L);
+    key.setTabletId(1);
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.filename = tserverWal.getAbsolutePath();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setFilename(tserverWal.getAbsolutePath());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.COMPACTION_START;
-    key.filename =
-        accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId + "/t-000001/A000001.rf";
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.COMPACTION_START);
+    key.setFilename(
+        accumuloDir.getAbsolutePath() + "/tables/" + fakeTableId + "/t-000001/A000001.rf");
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.COMPACTION_FINISH;
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.COMPACTION_FINISH);
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);

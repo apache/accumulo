@@ -117,8 +117,8 @@ public class ShellIT extends SharedMiniClusterBase {
   private TestOutputStream output;
   private Shell shell;
   private File config;
-  public LineReader reader;
-  public Terminal terminal;
+  private LineReader reader;
+  private Terminal terminal;
 
   void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
       throws IOException {
