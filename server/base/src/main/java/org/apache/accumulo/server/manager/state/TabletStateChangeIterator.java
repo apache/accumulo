@@ -100,11 +100,10 @@ public class TabletStateChangeIterator extends SkippingIterator {
     if (migrations == null) {
       return Collections.emptySet();
     }
-    try {
+    byte[] data = Base64.getDecoder().decode(migrations);
+    try (DataInputStream input =
+        new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(data)))) {
       Set<KeyExtent> result = new HashSet<>();
-      byte[] data = Base64.getDecoder().decode(migrations);
-      DataInputStream input =
-          new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(data)));
       while (input.available() > 0) {
         result.add(KeyExtent.readFrom(input));
       }
@@ -271,13 +270,13 @@ public class TabletStateChangeIterator extends SkippingIterator {
   }
 
   static String encodeMigrations(Collection<KeyExtent> migrations) {
-    try {
-      ByteArrayOutputStream baos = new ByteArrayOutputStream();
-      GZIPOutputStream gzo = new GZIPOutputStream(baos);
-      DataOutputStream dos = new DataOutputStream(gzo);
+    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        GZIPOutputStream gzo = new GZIPOutputStream(baos);
+        DataOutputStream dos = new DataOutputStream(gzo);) {
       for (KeyExtent extent : migrations) {
         extent.writeTo(dos);
       }
+      // close to flush compression data before reading
       dos.close();
       return Base64.getEncoder().encodeToString(baos.toByteArray());
     } catch (Exception ex) {

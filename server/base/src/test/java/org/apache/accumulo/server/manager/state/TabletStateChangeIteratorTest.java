@@ -43,6 +43,5 @@ public class TabletStateChangeIteratorTest {
     String encodeMigrations =
         TabletStateChangeIterator.encodeMigrations(Collections.unmodifiableSet(migrations));
     assertEquals(migrations, TabletStateChangeIterator.decodeMigrations(encodeMigrations));
-
   }
 }
