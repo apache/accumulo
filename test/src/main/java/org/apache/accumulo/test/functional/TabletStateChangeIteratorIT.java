@@ -209,7 +209,8 @@ public class TabletStateChangeIteratorIT extends AccumuloClusterHarness {
       if (table.equals(RootTable.NAME)) {
         currentDataLevel = DataLevel.METADATA;
       }
-      MetaDataTableScanner.configureScanner(scanner, state, currentDataLevel);
+      MetaDataTableScanner.configureScanner(((ClientContext) client).getConfiguration(), scanner,
+          state, currentDataLevel);
       log.debug("Current state = {}", state);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {

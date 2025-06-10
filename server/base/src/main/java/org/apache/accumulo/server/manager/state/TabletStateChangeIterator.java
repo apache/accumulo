@@ -18,10 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.DataInput;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,14 +30,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.GZIPOutputStream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -49,6 +45,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.server.iterators.ServerIteratorOptions;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
@@ -78,11 +75,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    current = parseServers(options.get(SERVERS_OPTION));
-    onlineTables = parseTableIDs(options.get(TABLES_OPTION));
+    current = parseServers(ServerIteratorOptions.decompressOption(options, SERVERS_OPTION));
+    onlineTables = parseTableIDs(ServerIteratorOptions.decompressOption(options, TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
-    migrations = decodeMigrations(options.get(MIGRATIONS_OPTION), "none");
+    migrations = ServerIteratorOptions.decompressOption(options, MIGRATIONS_OPTION,
+        TabletStateChangeIterator::decodeMigrations);
     try {
       managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
     } catch (Exception ex) {
@@ -90,34 +88,26 @@ public class TabletStateChangeIterator extends SkippingIterator {
         log.error("Unable to decode managerState {}", options.get(MANAGER_STATE_OPTION));
       }
     }
-    Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
+    Set<TServerInstance> shuttingDown =
+        parseServers(ServerIteratorOptions.decompressOption(options, SHUTTING_DOWN_OPTION));
     if (current != null && shuttingDown != null) {
       current.removeAll(shuttingDown);
     }
   }
 
-  static Set<KeyExtent> decodeMigrations(String migrations, String compressionAlgorithm) {
-    if (migrations == null) {
+  static Set<KeyExtent> decodeMigrations(DataInput input) throws IOException {
+    if (input == null) {
       return Collections.emptySet();
     }
-    byte[] data = Base64.getDecoder().decode(migrations);
-    var algo = Compression.getCompressionAlgorithmByName(compressionAlgorithm);
-    var decompressor = algo.getDecompressor();
-    try (DataInputStream input = new DataInputStream(
-        algo.createDecompressionStream(new ByteArrayInputStream(data), decompressor, 32 * 1024))) {
-      Set<KeyExtent> result = new HashSet<>();
-      if()
-      int size = input.readInt();
-      while (size > 0) {
-        result.add(KeyExtent.readFrom(input));
-        size--;
-      }
-      return result;
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    } finally {
-      algo.returnDecompressor(decompressor);
+    Set<KeyExtent> result = new HashSet<>();
+    // TODO this integer will make this code incompat w/ 2.1.3 even when not using compression.
+    // Could not get the InputStream.available() function to work reliably for compressed data of
+    // the empty string/set.
+    int size = input.readInt();
+    for (int i = 0; i < size; i++) {
+      result.add(KeyExtent.readFrom(input));
     }
+    return result;
   }
 
   private Set<TableId> parseTableIDs(String tableIDs) {
@@ -243,17 +233,20 @@ public class TabletStateChangeIterator extends SkippingIterator {
     throw new UnsupportedOperationException();
   }
 
-  public static void setCurrentServers(IteratorSetting cfg, Set<TServerInstance> goodServers) {
+  public static void setCurrentServers(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Set<TServerInstance> goodServers) {
     if (goodServers != null) {
       List<String> servers = new ArrayList<>();
       for (TServerInstance server : goodServers) {
         servers.add(server.getHostPortSession());
       }
-      cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
+      ServerIteratorOptions.compressOption(aconf, cfg, SERVERS_OPTION,
+          Joiner.on(",").join(servers));
     }
   }
 
   public static void setOnlineTables(IteratorSetting cfg, Set<TableId> onlineTables) {
+    // TODO compress
     if (onlineTables != null) {
       cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
     }
@@ -277,37 +270,25 @@ public class TabletStateChangeIterator extends SkippingIterator {
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
-  static String encodeMigrations(Collection<KeyExtent> migrations, String compressionAlgorithm) {
-    var algo = Compression.getCompressionAlgorithmByName(compressionAlgorithm);
-    var compressor = algo.getCompressor();
-    try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        DataOutputStream dos = new DataOutputStream(algo.createCompressionStream(baos, compressor, 256 * 1024))) {
-      dos.writeInt(migrations.size());
+  public static void setMigrations(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Collection<KeyExtent> migrations) {
+    ServerIteratorOptions.compressOption(aconf, cfg, MIGRATIONS_OPTION, dataOutput -> {
+      dataOutput.writeInt(migrations.size());
       for (KeyExtent extent : migrations) {
-        extent.writeTo(dos);
+        extent.writeTo(dataOutput);
       }
-      // close to flush compression data before reading
-      dos.close();
-      return Base64.getEncoder().encodeToString(baos.toByteArray());
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    }finally {
-      algo.returnCompressor(compressor);
-    }
-  }
-
-  public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
-    cfg.addOption(MIGRATIONS_OPTION, encodeMigrations(migrations, "none"));
+    });
   }
 
   public static void setManagerState(IteratorSetting cfg, ManagerState state) {
     cfg.addOption(MANAGER_STATE_OPTION, state.toString());
   }
 
-  public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {
+  public static void setShuttingDown(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Set<TServerInstance> servers) {
     if (servers != null) {
-      cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
+      ServerIteratorOptions.compressOption(aconf, cfg, SHUTTING_DOWN_OPTION,
+          Joiner.on(",").join(servers));
     }
   }
-
 }

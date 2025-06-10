@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -78,13 +79,13 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
     cleanable = CleanerUtil.unclosed(this, MetaDataTableScanner.class, closed, log, mdScanner);
-    configureScanner(mdScanner, state, level);
+    configureScanner(context.getConfiguration(), mdScanner, state, level);
     mdScanner.setRanges(Collections.singletonList(range));
     iter = mdScanner.iterator();
   }
 
-  public static void configureScanner(ScannerBase scanner, CurrentState state,
-      DataLevel dataLevel) {
+  public static void configureScanner(AccumuloConfiguration aconf, ScannerBase scanner,
+      CurrentState state, DataLevel dataLevel) {
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(scanner);
     scanner.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
     scanner.fetchColumnFamily(FutureLocationColumnFamily.NAME);
@@ -96,12 +97,13 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
     if (state != null) {
-      TabletStateChangeIterator.setCurrentServers(tabletChange, state.onlineTabletServers());
+      TabletStateChangeIterator.setCurrentServers(aconf, tabletChange, state.onlineTabletServers());
       TabletStateChangeIterator.setOnlineTables(tabletChange, state.onlineTables());
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
-      TabletStateChangeIterator.setMigrations(tabletChange, state.migrationsSnapshot(dataLevel));
+      TabletStateChangeIterator.setMigrations(aconf, tabletChange,
+          state.migrationsSnapshot(dataLevel));
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
-      TabletStateChangeIterator.setShuttingDown(tabletChange, state.shutdownServers());
+      TabletStateChangeIterator.setShuttingDown(aconf, tabletChange, state.shutdownServers());
     }
     scanner.addScanIterator(tabletChange);
   }

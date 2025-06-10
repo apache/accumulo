@@ -92,7 +92,8 @@ class CleanUp extends ManagerRepo {
     boolean done = true;
     Range tableRange = new KeyExtent(tableId, null, null).toMetaRange();
     Scanner scanner = manager.getContext().createScanner(MetadataTable.NAME, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, manager, DataLevel.of(tableId));
+    MetaDataTableScanner.configureScanner(manager.getConfiguration(), scanner, manager,
+        DataLevel.of(tableId));
     scanner.setRange(tableRange);
 
     for (Entry<Key,Value> entry : scanner) {
