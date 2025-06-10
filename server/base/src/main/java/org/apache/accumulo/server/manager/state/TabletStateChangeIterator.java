@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -29,6 +33,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.GZIPOutputStream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.data.Key;
@@ -76,7 +82,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     onlineTables = parseTableIDs(options.get(TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
-    migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
+    migrations = decodeMigrations(options.get(MIGRATIONS_OPTION));
     try {
       managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
     } catch (Exception ex) {
@@ -90,17 +96,17 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  private Set<KeyExtent> parseMigrations(String migrations) {
+  static Set<KeyExtent> decodeMigrations(String migrations) {
     if (migrations == null) {
       return Collections.emptySet();
     }
     try {
       Set<KeyExtent> result = new HashSet<>();
-      DataInputBuffer buffer = new DataInputBuffer();
       byte[] data = Base64.getDecoder().decode(migrations);
-      buffer.reset(data, data.length);
-      while (buffer.available() > 0) {
-        result.add(KeyExtent.readFrom(buffer));
+      DataInputStream input =
+          new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(data)));
+      while (input.available() > 0) {
+        result.add(KeyExtent.readFrom(input));
       }
       return result;
     } catch (Exception ex) {
@@ -264,18 +270,23 @@ public class TabletStateChangeIterator extends SkippingIterator {
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
-  public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
-    DataOutputBuffer buffer = new DataOutputBuffer();
+  static String encodeMigrations(Collection<KeyExtent> migrations) {
     try {
+      ByteArrayOutputStream baos = new ByteArrayOutputStream();
+      GZIPOutputStream gzo = new GZIPOutputStream(baos);
+      DataOutputStream dos = new DataOutputStream(gzo);
       for (KeyExtent extent : migrations) {
-        extent.writeTo(buffer);
+        extent.writeTo(dos);
       }
+      dos.close();
+      return Base64.getEncoder().encodeToString(baos.toByteArray());
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    String encoded =
-        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
-    cfg.addOption(MIGRATIONS_OPTION, encoded);
+  }
+
+  public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
+    cfg.addOption(MIGRATIONS_OPTION, encodeMigrations(migrations));
   }
 
   public static void setManagerState(IteratorSetting cfg, ManagerState state) {
