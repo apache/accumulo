@@ -364,5 +364,15 @@ public class ColumnFamilySkippingIteratorTest {
       }
     }
     assertFalse(cfi.hasTop());
+
+    // test the case where the columns and range are disjoint
+    seekRange =
+        new Range(new Key(format(1), format(9)), true, new Key(format(1), format(11)), false);
+    capturedRanges.clear();
+    cfi.seek(seekRange, Set.of(new ArrayByteSequence(format(7))), true);
+    assertFalse(cfi.hasTop());
+    assertEquals(new Range(seekRange.getStartKey(), true, seekRange.getStartKey(), false),
+        capturedRanges.get(0));
+
   }
 }

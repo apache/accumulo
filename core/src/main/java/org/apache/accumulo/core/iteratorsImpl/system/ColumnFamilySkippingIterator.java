@@ -31,6 +31,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.RangeImpl;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.ServerSkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -126,8 +127,8 @@ public class ColumnFamilySkippingIterator extends ServerSkippingIterator
         this.range = range;
       } else {
         // Limit the range based on the min and max column families
-        this.range = range.bound(new Column(sortedColFams.first().toArray(), null, null),
-            new Column(sortedColFams.last().toArray(), null, null));
+        this.range = RangeImpl.bound(range, new Column(sortedColFams.first().toArray(), null, null),
+            new Column(sortedColFams.last().toArray(), null, null), true);
       }
     } else {
       sortedColFams = null;
