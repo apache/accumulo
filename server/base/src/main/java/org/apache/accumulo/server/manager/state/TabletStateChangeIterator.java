@@ -33,7 +33,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 import org.apache.accumulo.core.client.IteratorSetting;
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SkippingIterator;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
@@ -82,7 +82,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     onlineTables = parseTableIDs(options.get(TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
-    migrations = decodeMigrations(options.get(MIGRATIONS_OPTION));
+    migrations = decodeMigrations(options.get(MIGRATIONS_OPTION), "none");
     try {
       managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
     } catch (Exception ex) {
@@ -96,20 +96,27 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  static Set<KeyExtent> decodeMigrations(String migrations) {
+  static Set<KeyExtent> decodeMigrations(String migrations, String compressionAlgorithm) {
     if (migrations == null) {
       return Collections.emptySet();
     }
     byte[] data = Base64.getDecoder().decode(migrations);
-    try (DataInputStream input =
-        new DataInputStream(new GZIPInputStream(new ByteArrayInputStream(data)))) {
+    var algo = Compression.getCompressionAlgorithmByName(compressionAlgorithm);
+    var decompressor = algo.getDecompressor();
+    try (DataInputStream input = new DataInputStream(
+        algo.createDecompressionStream(new ByteArrayInputStream(data), decompressor, 32 * 1024))) {
       Set<KeyExtent> result = new HashSet<>();
-      while (input.available() > 0) {
+      if()
+      int size = input.readInt();
+      while (size > 0) {
         result.add(KeyExtent.readFrom(input));
+        size--;
       }
       return result;
     } catch (Exception ex) {
       throw new RuntimeException(ex);
+    } finally {
+      algo.returnDecompressor(decompressor);
     }
   }
 
@@ -258,6 +265,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       for (MergeInfo info : merges) {
         KeyExtent extent = info.getExtent();
         if (extent != null && !info.getState().equals(MergeState.NONE)) {
+
           info.write(buffer);
         }
       }
@@ -269,10 +277,12 @@ public class TabletStateChangeIterator extends SkippingIterator {
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
-  static String encodeMigrations(Collection<KeyExtent> migrations) {
+  static String encodeMigrations(Collection<KeyExtent> migrations, String compressionAlgorithm) {
+    var algo = Compression.getCompressionAlgorithmByName(compressionAlgorithm);
+    var compressor = algo.getCompressor();
     try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        GZIPOutputStream gzo = new GZIPOutputStream(baos);
-        DataOutputStream dos = new DataOutputStream(gzo);) {
+        DataOutputStream dos = new DataOutputStream(algo.createCompressionStream(baos, compressor, 256 * 1024))) {
+      dos.writeInt(migrations.size());
       for (KeyExtent extent : migrations) {
         extent.writeTo(dos);
       }
@@ -281,11 +291,13 @@ public class TabletStateChangeIterator extends SkippingIterator {
       return Base64.getEncoder().encodeToString(baos.toByteArray());
     } catch (Exception ex) {
       throw new RuntimeException(ex);
+    }finally {
+      algo.returnCompressor(compressor);
     }
   }
 
   public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
-    cfg.addOption(MIGRATIONS_OPTION, encodeMigrations(migrations));
+    cfg.addOption(MIGRATIONS_OPTION, encodeMigrations(migrations, "none"));
   }
 
   public static void setManagerState(IteratorSetting cfg, ManagerState state) {
