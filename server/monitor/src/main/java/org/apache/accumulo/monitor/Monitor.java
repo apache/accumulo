@@ -381,7 +381,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     }
 
     String advertiseHost = getHostname();
-    if (advertiseHost.equals("0.0.0.0")) {
+    if (advertiseHost.equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
       try {
         advertiseHost = InetAddress.getLocalHost().getHostName();
       } catch (UnknownHostException e) {

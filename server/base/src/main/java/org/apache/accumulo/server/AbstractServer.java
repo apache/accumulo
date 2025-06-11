@@ -87,7 +87,14 @@ public abstract class AbstractServer
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    // If new bind parameter passed on command line or in file, then use it.
+    if (newBindParameter != null
+        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      this.hostname = newBindParameter;
+    } else {
+      this.hostname = ConfigOpts.BIND_ALL_ADDRESSES;
+    }
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
@@ -304,7 +311,7 @@ public abstract class AbstractServer
     final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
     final MetricResponseWrapper response = new MetricResponseWrapper(builder);
 
-    if (getHostname().startsWith(Property.GENERAL_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (getHostname().startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       log.error("Host is not set, this should have been done after starting the Thrift service.");
       return response;
     }
