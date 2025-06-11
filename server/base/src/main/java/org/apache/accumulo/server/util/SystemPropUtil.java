@@ -124,7 +124,7 @@ public class SystemPropUtil {
   private static void logIfFixed(String property, String value) {
     if (Property.isFixedZooPropertyKey(Property.getPropertyByKey(property))) {
       String s = value == null ? String.format("Removing a fixed property %s. ", property)
-              : String.format("Setting a fixed property %s to value %s. ", property, value);
+          : String.format("Setting a fixed property %s to value %s. ", property, value);
       log.warn(s + "Change will not take effect until related processes are restarted.");
     }
   }
