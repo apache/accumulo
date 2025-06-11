@@ -990,6 +990,7 @@
                 <!-- This should be removed upon completion of migrating junit 4 to 5 -->
                 <unused>org.junit.vintage:junit-vintage-engine:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
+                <unused>org.lz4:lz4-java:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>

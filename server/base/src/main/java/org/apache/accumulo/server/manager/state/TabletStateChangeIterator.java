@@ -245,10 +245,11 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  public static void setOnlineTables(IteratorSetting cfg, Set<TableId> onlineTables) {
-    // TODO compress
+  public static void setOnlineTables(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Set<TableId> onlineTables) {
     if (onlineTables != null) {
-      cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
+      ServerIteratorOptions.compressOption(aconf, cfg, TABLES_OPTION,
+          Joiner.on(",").join(onlineTables));
     }
   }
 

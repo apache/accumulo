@@ -231,4 +231,15 @@ public class PropertyTypeTest extends WithTestNames {
     invalid(null, "", "AL L", " ALL", "non import", "     ");
   }
 
+  @Test
+  public void testTypeCOMPRESSION_TYPE() {
+    valid("none", "gz", "lz4", "snappy");
+    // The following are valid at runtime with the correct configuration
+    //
+    // bzip2 java implementation does not implement Compressor/Decompressor, requires native
+    // lzo not included in implementation due to license issues, but can be added by user
+    // zstd requires hadoop native libraries built with zstd support
+    //
+    invalid(null, "", "bzip2", "lzo", "zstd");
+  }
 }
