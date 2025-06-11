@@ -42,7 +42,7 @@ import org.apache.hadoop.io.compress.Decompressor;
 import com.google.common.base.Preconditions;
 
 public class ServerIteratorOptions {
-  private static final String COMPRESSION_ALGO = "__COMPRESSION_ALGO";
+  static final String COMPRESSION_ALGO = "__COMPRESSION_ALGO";
 
   public interface Serializer {
     void serialize(DataOutput dataOutput) throws IOException;
