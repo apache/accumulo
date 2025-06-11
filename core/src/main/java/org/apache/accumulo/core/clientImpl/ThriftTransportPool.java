@@ -100,6 +100,7 @@ public class ThriftTransportPool {
           }
         }
       } catch (InterruptedException e) {
+        log.warn("Thread " + Thread.currentThread().getName() + " was interrupted. Exiting.");
         Thread.currentThread().interrupt();
       } catch (TransportPoolShutdownException e) {
         log.debug("Error closing expired connections", e);
