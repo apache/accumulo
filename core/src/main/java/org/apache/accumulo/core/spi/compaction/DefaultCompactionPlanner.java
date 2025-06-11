@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -124,8 +125,9 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * </ol>
  * For example, given a tablet with 20 files, and table.file.max is 15 and no compactions are
  * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
- * ratio less than 3 that results in a compaction.
- *
+ * ratio less than 3 that results in a compaction. The lowest compaction ratio that will be
+ * considered in this search defaults to 1.1. Starting in 2.1.4, the lower bound for the search can
+ * be set using {@code tserver.compaction.major.service.<service>.opts.lowestRatio}
  *
  * @since 2.1.0
  * @see org.apache.accumulo.core.spi.compaction
@@ -165,6 +167,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
   private List<Executor> executors;
   private int maxFilesToCompact;
+  private double lowestRatio;
 
   @SuppressFBWarnings(value = {"UWF_UNWRITTEN_FIELD", "NP_UNWRITTEN_FIELD"},
       justification = "Field is written by Gson")
@@ -229,6 +232,10 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
               "Duplicate maxSize set in executors. " + params.getOptions().get("executors"));
         }
       });
+
+      lowestRatio = Double.parseDouble(params.getOptions().getOrDefault("lowestRatio", "1.1"));
+      Preconditions.checkArgument(lowestRatio >= 1.0, "lowestRatio must be >= 1.0 not %s",
+          lowestRatio);
     } else {
       throw new IllegalStateException("No defined executors for this planner");
     }
@@ -279,7 +286,7 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           // more than logarithmic work across multiple comapctions.
 
           filesCopy.removeAll(group);
-          filesCopy.add(getExpected(group, 0));
+          filesCopy.add(getExpectedFile(group, new AtomicInteger(0)));
 
           if (findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
               maxSizeToCompact).isEmpty()) {
@@ -296,7 +303,8 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         // to complete.
 
         // The set of files running compactions may produce
-        var expectedFiles = getExpected(params.getRunningCompactions());
+        AtomicInteger nextExpected = new AtomicInteger(0);
+        var expectedFiles = getExpected(params.getRunningCompactions(), nextExpected);
 
         if (!Collections.disjoint(filesCopy, expectedFiles)) {
           throw new AssertionError();
@@ -306,6 +314,20 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
 
         group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
             maxSizeToCompact);
+
+        while (!group.isEmpty() && !Collections.disjoint(group, expectedFiles)) {
+          // remove these files as compaction candidates because they include a file that a running
+          // compaction would produce
+          filesCopy.removeAll(group);
+          // Create a fake file+size entry that predicts what this projected compaction would
+          // produce
+          var futureFile = getExpectedFile(group, nextExpected);
+          Preconditions.checkState(expectedFiles.add(futureFile), "Unexpected duplicate %s in %s",
+              futureFile, expectedFiles);
+          // look for any compaction work in the remaining set of files
+          group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
+              maxSizeToCompact);
+        }
 
         if (!Collections.disjoint(group, expectedFiles)) {
           // file produced by running compaction will eventually compact with existing files, so
@@ -368,52 +390,54 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
    */
   private Collection<CompactableFile> findFilesToCompactWithLowerRatio(PlanningParameters params,
       long maxSizeToCompact, int maxTabletFiles) {
-    double lowRatio = 1.0;
-    double highRatio = params.getRatio();
-
-    Preconditions.checkArgument(highRatio >= lowRatio);
 
     var candidates = Set.copyOf(params.getCandidates());
-    Collection<CompactableFile> found = Set.of();
+    List<CompactableFile> sortedFiles = sortAndLimitByMaxSize(candidates, maxSizeToCompact);
 
-    int goalCompactionSize = candidates.size() - maxTabletFiles + 1;
-    if (goalCompactionSize > maxFilesToCompact) {
-      // The tablet is way over max tablet files, so multiple compactions will be needed. Therefore,
-      // do not set a goal size for this compaction and find the largest compaction ratio that will
-      // compact some set of files.
-      goalCompactionSize = 0;
-    }
+    List<CompactableFile> found = List.of();
+    double largestRatioSeen = Double.MIN_VALUE;
 
-    // Do a binary search of the compaction ratios.
-    while (highRatio - lowRatio > .1) {
-      double ratioToCheck = (highRatio - lowRatio) / 2 + lowRatio;
+    if (sortedFiles.size() > 1) {
+      int windowStart = 0;
+      int windowEnd = Math.min(sortedFiles.size(), maxFilesToCompact);
 
-      // This is continually resorting the list of files in the following call, could optimize this
-      var filesToCompact =
-          findDataFilesToCompact(candidates, ratioToCheck, maxFilesToCompact, maxSizeToCompact);
+      while (windowEnd <= sortedFiles.size()) {
+        var filesInWindow = sortedFiles.subList(windowStart, windowEnd);
 
-      log.trace("Tried ratio {} and found {} {} {}", ratioToCheck, filesToCompact,
-          filesToCompact.size() >= goalCompactionSize, goalCompactionSize);
+        long sum = filesInWindow.get(0).getEstimatedSize();
+        for (int i = 1; i < filesInWindow.size(); i++) {
+          long size = filesInWindow.get(i).getEstimatedSize();
+          sum += size;
+          if (size > 0) {
+            // This is the compaction ratio needed to compact these files
+            double neededCompactionRatio = sum / (double) size;
+            log.trace("neededCompactionRatio:{} files:{}", neededCompactionRatio,
+                filesInWindow.subList(0, i + 1));
+            if (neededCompactionRatio >= largestRatioSeen) {
+              largestRatioSeen = neededCompactionRatio;
+              found = filesInWindow.subList(0, i + 1);
+            }
+          } else {
+            log.warn("Unexpected size seen for file {} {} {}", params.getTabletId(),
+                filesInWindow.get(i).getFileName(), size);
+          }
+        }
 
-      if (filesToCompact.isEmpty() || filesToCompact.size() < goalCompactionSize) {
-        highRatio = ratioToCheck;
-      } else {
-        lowRatio = ratioToCheck;
-        found = filesToCompact;
+        windowStart++;
+        windowEnd++;
       }
-    }
+    } // else all of the files are too large
 
-    if (found.isEmpty() && lowRatio == 1.0) {
+    if (found.isEmpty() || largestRatioSeen <= lowestRatio) {
       var examinedFiles = sortAndLimitByMaxSize(candidates, maxSizeToCompact);
       var excludedBecauseMaxSize = candidates.size() - examinedFiles.size();
       var tabletId = params.getTabletId();
 
-      log.warn(
-          "Unable to plan compaction for {} that has too many files. {}:{} num_files:{} "
-              + "excluded_large_files:{} max_compaction_size:{} ratio_search_range:{},{} ",
+      log.warn("Unable to plan compaction for {} that has too many files. {}:{} num_files:{} "
+          + "excluded_large_files:{} max_compaction_size:{} ratio:{} largestRatioSeen:{} lowestRatio:{}",
           tabletId, Property.TABLE_FILE_MAX.getKey(), maxTabletFiles, candidates.size(),
-          excludedBecauseMaxSize, NumUtil.bigNumberForSize(maxSizeToCompact), highRatio,
-          params.getRatio());
+          excludedBecauseMaxSize, NumUtil.bigNumberForSize(maxSizeToCompact), params.getRatio(),
+          largestRatioSeen, lowestRatio);
       if (log.isDebugEnabled()) {
         var sizesOfExamined = examinedFiles.stream()
             .map(compactableFile -> NumUtil.bigNumberForSize(compactableFile.getEstimatedSize()))
@@ -426,14 +450,14 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
         log.debug("Failed planning details for {} examined_file_sizes:{} excluded_file_sizes:{}",
             tabletId, sizesOfExamined, sizesOfExcluded);
       }
+      found = List.of();
+    } else {
+      log.info(
+          "For {} found {} files to compact lowering compaction ratio from {} to {} because the tablet "
+              + "exceeded {} files, it had {}",
+          params.getTabletId(), found.size(), params.getRatio(), largestRatioSeen, maxTabletFiles,
+          params.getCandidates().size());
     }
-
-    log.info(
-        "For {} found {} files to compact lowering compaction ratio from {} to {} because the tablet "
-            + "exceeded {} files, it had {}",
-        params.getTabletId(), found.size(), params.getRatio(), lowRatio, maxTabletFiles,
-        params.getCandidates().size());
-
     return found;
   }
 
@@ -453,12 +477,12 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
     return Long.MAX_VALUE;
   }
 
-  private CompactableFile getExpected(Collection<CompactableFile> files, int count) {
+  private CompactableFile getExpectedFile(Collection<CompactableFile> files, AtomicInteger next) {
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
     try {
-      return CompactableFile.create(
-          new URI("hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + count + ".rf"), size,
-          0);
+      return CompactableFile.create(new URI(
+          "hdfs://fake/accumulo/tables/adef/t-zzFAKEzz/FAKE-0000" + next.getAndIncrement() + ".rf"),
+          size, 0);
     } catch (URISyntaxException e) {
       throw new RuntimeException(e);
     }
@@ -467,15 +491,13 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
   /**
    * @return the expected files sizes for sets of compacting files.
    */
-  private Set<CompactableFile> getExpected(Collection<CompactionJob> compacting) {
+  private Set<CompactableFile> getExpected(Collection<CompactionJob> compacting,
+      AtomicInteger next) {
 
     Set<CompactableFile> expected = new HashSet<>();
 
-    int count = 0;
-
     for (CompactionJob job : compacting) {
-      count++;
-      expected.add(getExpected(job.getFiles(), count));
+      expected.add(getExpectedFile(job.getFiles(), next));
     }
 
     return expected;

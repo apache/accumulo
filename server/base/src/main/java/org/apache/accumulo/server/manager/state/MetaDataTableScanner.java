@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -73,7 +74,9 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     // and online tables
     String tableName = level.metaTable();
     try {
-      mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, 8);
+      var numThreads =
+          context.getConfiguration().getCount(Property.MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS);
+      mdScanner = context.createBatchScanner(tableName, Authorizations.EMPTY, numThreads);
     } catch (TableNotFoundException e) {
       throw new IllegalStateException("Metadata table " + tableName + " should exist", e);
     }
