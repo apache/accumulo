@@ -1653,9 +1653,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get manager lock");
 
-    final String managerClientAddress =
-        advertiseAddress + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
-
     UUID zooLockUUID = UUID.randomUUID();
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
@@ -1663,7 +1660,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     while (true) {
 
-      managerLock.lock(managerLockWatcher, managerClientAddress.getBytes(UTF_8));
+      managerLock.lock(managerLockWatcher, advertiseAddress.toString().getBytes(UTF_8));
 
       managerLockWatcher.waitForChange();
 
