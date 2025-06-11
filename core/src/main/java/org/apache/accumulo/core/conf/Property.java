@@ -54,6 +54,9 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
+      "The local IP address to which this server should bind for sending and receiving network traffic. If not set then the process binds to all addresses.",
+      "2.1.4"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
       PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
       "2.1.3"),
