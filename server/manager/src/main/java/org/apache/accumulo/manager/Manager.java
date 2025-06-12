@@ -921,6 +921,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         log.debug("not balancing because the manager is attempting to stop cleanly");
       } else if (!serversToShutdown.isEmpty()) {
         log.debug("not balancing while shutting down servers {}", serversToShutdown);
+      } else if (getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT) > 0
+          && currentServers.size()
+              < getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT)) {
+        log.debug("not balancing while current tserver count ({}) is less than {} ({})",
+            currentServers.size(), Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT.getKey(),
+            getConfiguration().getCount(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT));
       } else {
         for (TabletGroupWatcher tgw : watchers) {
           if (!tgw.isSameTserversAsLastScan(currentServers)) {
