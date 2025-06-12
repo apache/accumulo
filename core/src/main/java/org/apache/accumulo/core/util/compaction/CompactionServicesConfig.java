@@ -53,6 +53,7 @@ public class CompactionServicesConfig {
       return aconf.getAsBytes(Property.TSERV_MAJC_THROUGHPUT);
     }
 
+    // TODO is this supposed to be getting the default value or should it be reading from config?
     return ConfigurationTypeHelper
         .getMemoryAsBytes(Property.TSERV_COMPACTION_SERVICE_DEFAULT_RATE_LIMIT.getDefaultValue());
   }

@@ -61,7 +61,7 @@ public class RuntimeFixedProperties {
       final SiteConfiguration siteConfig) {
     requireNonNull(siteConfig, "a site configuration must be provided");
     requireNonNull(storedProps, "stored property map must be provided");
-    Property.fixedProperties.forEach(prop -> {
+    Property.FIXED_PROPERTIES.forEach(prop -> {
       String key = prop.getKey();
       String value = storedProps.get(key);
       // use value in ZooKeeper
@@ -103,7 +103,7 @@ public class RuntimeFixedProperties {
    */
   @VisibleForTesting
   boolean hasChanged(final Map<String,String> current) {
-    for (Property prop : Property.fixedProperties) {
+    for (Property prop : Property.FIXED_PROPERTIES) {
       var key = prop.getKey();
       if (current.containsKey(key)) {
         if (!current.get(key).equals(fixed.get(key))) {
