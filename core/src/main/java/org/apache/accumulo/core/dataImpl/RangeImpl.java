@@ -41,11 +41,11 @@ public class RangeImpl {
       ByteSequence cf = sk.getColumnFamilyData();
       ByteSequence cq = sk.getColumnQualifierData();
 
-      ByteSequence mincf = new ArrayByteSequence(min.columnFamily);
+      ByteSequence mincf = new ArrayByteSequence(min.getColumnFamily());
       ByteSequence mincq;
 
-      if (min.columnQualifier != null) {
-        mincq = new ArrayByteSequence(min.columnQualifier);
+      if (min.getColumnQualifier() != null) {
+        mincq = new ArrayByteSequence(min.getColumnQualifier());
       } else {
         mincq = new ArrayByteSequence(new byte[0]);
       }
@@ -68,10 +68,10 @@ public class RangeImpl {
       ByteSequence cq = ek.getColumnQualifierData();
       ByteSequence cv = ek.getColumnVisibilityData();
 
-      ByteSequence maxcf = new ArrayByteSequence(max.columnFamily);
+      ByteSequence maxcf = new ArrayByteSequence(max.getColumnFamily());
       ByteSequence maxcq = null;
-      if (max.columnQualifier != null) {
-        maxcq = new ArrayByteSequence(max.columnQualifier);
+      if (max.getColumnQualifier() != null) {
+        maxcq = new ArrayByteSequence(max.getColumnQualifier());
       }
 
       boolean set = false;

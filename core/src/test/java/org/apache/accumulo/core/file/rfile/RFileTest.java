@@ -340,7 +340,7 @@ public class RFileTest {
     return String.format(prefix + "%06d", i);
   }
 
-  public AccumuloConfiguration conf = null;
+  private AccumuloConfiguration conf = null;
 
   @Test
   public void test1() throws IOException {

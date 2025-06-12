@@ -589,10 +589,10 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
       key.readFields(wal);
       value.readFields(wal);
 
-      switch (key.event) {
+      switch (key.getEvent()) {
         case DEFINE_TABLET:
-          if (target.getSourceTableId().equals(key.tablet.tableId())) {
-            desiredTids.add(key.tabletId);
+          if (target.getSourceTableId().equals(key.getTablet().tableId())) {
+            desiredTids.add(key.getTabletId());
           }
           break;
         default:
@@ -648,17 +648,17 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
 
       entriesConsumed++;
 
-      switch (key.event) {
+      switch (key.getEvent()) {
         case DEFINE_TABLET:
           // For new DEFINE_TABLETs, we also need to record the new tids we see
-          if (target.getSourceTableId().equals(key.tablet.tableId())) {
-            desiredTids.add(key.tabletId);
+          if (target.getSourceTableId().equals(key.getTablet().tableId())) {
+            desiredTids.add(key.getTabletId());
           }
           break;
         case MUTATION:
         case MANY_MUTATIONS:
           // Only write out mutations for tids that are for the desired tablet
-          if (desiredTids.contains(key.tabletId)) {
+          if (desiredTids.contains(key.getTabletId())) {
 
             byte[] data;
             try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -701,13 +701,13 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     // see matching TODO in BatchWriterReplicationReplayer
 
     int mutationsToSend = 0;
-    for (Mutation m : value.mutations) {
+    for (Mutation m : value.getMutations()) {
       if (!m.getReplicationSources().contains(target.getPeerName())) {
         mutationsToSend++;
       }
     }
 
-    int mutationsRemoved = value.mutations.size() - mutationsToSend;
+    int mutationsRemoved = value.getMutations().size() - mutationsToSend;
     if (mutationsRemoved > 0) {
       log.debug("Removing {} mutations from WAL entry as they have already been replicated to {}",
           mutationsRemoved, target.getPeerName());
@@ -720,7 +720,7 @@ public class AccumuloReplicaSystem implements ReplicaSystem {
     }
 
     out.writeInt(mutationsToSend);
-    for (Mutation m : value.mutations) {
+    for (Mutation m : value.getMutations()) {
       // If we haven't yet replicated to this peer
       if (!m.getReplicationSources().contains(target.getPeerName())) {
         m.addReplicationSource(name);
