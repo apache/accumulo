@@ -29,6 +29,8 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -70,11 +72,11 @@ public class MiniAccumuloConfigImpl {
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
   static final String DEFAULT_ZOOKEEPER_HOST = "127.0.0.1";
 
-  private File dir = null;
+  private Path dir = null;
   private String rootPassword = null;
   private Map<String,String> hadoopConfOverrides = new HashMap<>();
   private Map<String,String> siteConfig = new HashMap<>();
-  private Map<String,String> configuredSiteConig = new HashMap<>();
+  private Map<String,String> configuredSiteConfig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
   private final EnumMap<ServerType,Class<?>> serverTypeClasses =
@@ -87,13 +89,13 @@ public class MiniAccumuloConfigImpl {
   private String instanceName = "miniInstance";
   private String rootUserName = "root";
 
-  private File libDir;
-  private File libExtDir;
-  private File confDir;
+  private Path libDir;
+  private Path libExtDir;
+  private Path confDir;
   private File hadoopConfDir = null;
-  private File zooKeeperDir;
-  private File accumuloDir;
-  private File logDir;
+  private Path zooKeeperDir;
+  private Path accumuloDir;
+  private Path logDir;
 
   private int zooKeeperPort = 0;
   private int configuredZooKeeperPort = 0;
@@ -130,7 +132,7 @@ public class MiniAccumuloConfigImpl {
    * @param rootPassword The initial password for the Accumulo root user
    */
   public MiniAccumuloConfigImpl(File dir, String rootPassword) {
-    this.dir = dir;
+    this.dir = dir.toPath();
     this.rootPassword = rootPassword;
     this.serverConfiguration = new ClusterServerConfiguration();
   }
@@ -140,7 +142,6 @@ public class MiniAccumuloConfigImpl {
    *
    * @return this
    */
-  @SuppressWarnings("deprecation")
   MiniAccumuloConfigImpl initialize() {
 
     // Sanity checks
@@ -156,17 +157,17 @@ public class MiniAccumuloConfigImpl {
     }
 
     if (!initialized) {
-      libDir = new File(dir, "lib");
-      libExtDir = new File(libDir, "ext");
-      confDir = new File(dir, "conf");
-      accumuloDir = new File(dir, "accumulo");
-      zooKeeperDir = new File(dir, "zookeeper");
-      logDir = new File(dir, "logs");
+      libDir = dir.resolve("lib");
+      libExtDir = libDir.resolve("ext");
+      confDir = dir.resolve("conf");
+      accumuloDir = dir.resolve("accumulo");
+      zooKeeperDir = dir.resolve("zookeeper");
+      logDir = dir.resolve("logs");
 
       // Never want to override these if an existing instance, which may be using the defaults
       if (existingInstance == null || !existingInstance) {
         existingInstance = false;
-        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.getAbsolutePath());
+        mergeProp(Property.INSTANCE_VOLUMES.getKey(), "file://" + accumuloDir.toAbsolutePath());
         mergeProp(Property.INSTANCE_SECRET.getKey(), DEFAULT_INSTANCE_SECRET);
       }
 
@@ -229,8 +230,8 @@ public class MiniAccumuloConfigImpl {
       return;
     }
 
-    File keystoreFile = new File(getConfDir(), "credential-provider.jks");
-    String keystoreUri = "jceks://file" + keystoreFile.getAbsolutePath();
+    Path keystoreFile = confDir.resolve("credential-provider.jks");
+    String keystoreUri = "jceks://file" + keystoreFile.toAbsolutePath();
     Configuration conf = getHadoopConfiguration();
     HadoopCredentialProvider.setPath(conf, keystoreUri);
 
@@ -316,7 +317,7 @@ public class MiniAccumuloConfigImpl {
 
   private MiniAccumuloConfigImpl _setSiteConfig(Map<String,String> siteConfig) {
     this.siteConfig = new HashMap<>(siteConfig);
-    this.configuredSiteConig = new HashMap<>(siteConfig);
+    this.configuredSiteConfig = new HashMap<>(siteConfig);
     return this;
   }
 
@@ -440,7 +441,7 @@ public class MiniAccumuloConfigImpl {
   }
 
   public Map<String,String> getConfiguredSiteConfig() {
-    return new HashMap<>(configuredSiteConig);
+    return new HashMap<>(configuredSiteConfig);
   }
 
   /**
@@ -478,27 +479,27 @@ public class MiniAccumuloConfigImpl {
   }
 
   File getLibDir() {
-    return libDir;
+    return libDir.toFile();
   }
 
   File getLibExtDir() {
-    return libExtDir;
+    return libExtDir.toFile();
   }
 
   public File getConfDir() {
-    return confDir;
+    return confDir.toFile();
   }
 
   File getZooKeeperDir() {
-    return zooKeeperDir;
+    return zooKeeperDir.toFile();
   }
 
   public File getAccumuloDir() {
-    return accumuloDir;
+    return accumuloDir.toFile();
   }
 
   public File getLogDir() {
-    return logDir;
+    return logDir.toFile();
   }
 
   /**
@@ -534,7 +535,7 @@ public class MiniAccumuloConfigImpl {
    * @return the base directory of the cluster configuration
    */
   public File getDir() {
-    return dir;
+    return dir.toFile();
   }
 
   /**
@@ -586,14 +587,14 @@ public class MiniAccumuloConfigImpl {
   }
 
   public File getAccumuloPropsFile() {
-    return new File(getConfDir(), "accumulo.properties");
+    return getConfDir().toPath().resolve("accumulo.properties").toFile();
   }
 
   /**
    * @return location of accumulo-client.properties file for connecting to this mini cluster
    */
   public File getClientPropsFile() {
-    return new File(getConfDir(), "accumulo-client.properties");
+    return confDir.resolve("accumulo-client.properties").toFile();
   }
 
   /**
@@ -723,12 +724,12 @@ public class MiniAccumuloConfigImpl {
     this.hadoopConfDir = hadoopConfDir;
     hadoopConf = new Configuration(false);
     accumuloConf = SiteConfiguration.fromFile(accumuloProps).build();
-    File coreSite = new File(hadoopConfDir, "core-site.xml");
-    File hdfsSite = new File(hadoopConfDir, "hdfs-site.xml");
+    Path coreSite = this.hadoopConfDir.toPath().resolve("core-site.xml");
+    Path hdfsSite = this.hadoopConfDir.toPath().resolve("hdfs-site.xml");
 
     try {
-      hadoopConf.addResource(coreSite.toURI().toURL());
-      hadoopConf.addResource(hdfsSite.toURI().toURL());
+      hadoopConf.addResource(coreSite.toUri().toURL());
+      hadoopConf.addResource(hdfsSite.toUri().toURL());
     } catch (MalformedURLException e1) {
       throw e1;
     }
@@ -757,7 +758,7 @@ public class MiniAccumuloConfigImpl {
    * @since 1.6.2
    */
   public File getHadoopConfDir() {
-    return this.hadoopConfDir;
+    return hadoopConfDir;
   }
 
   /**

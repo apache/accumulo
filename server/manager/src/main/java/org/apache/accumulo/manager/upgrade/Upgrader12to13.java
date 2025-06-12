@@ -25,15 +25,16 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -42,7 +43,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
@@ -65,12 +66,16 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 //TODO when removing this class, also remove MetadataSchema.Upgrader12to13
 public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
+
+  @VisibleForTesting
+  static final String ZTABLE_NAME = "/name";
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
@@ -84,26 +89,28 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromRootTabletMetadata(context);
     LOG.info("Adding compactions node to zookeeper");
     addCompactionsNode(context);
+    LOG.info("Adding table mappings to zookeeper");
+    addTableMappingsToZooKeeper(context);
   }
 
   @Override
   public void upgradeRoot(ServerContext context) {
     LOG.info("Looking for partial splits");
-    handlePartialSplits(context, AccumuloTable.ROOT.tableName());
+    handlePartialSplits(context, SystemTables.ROOT.tableName());
     LOG.info("setting metadata table hosting availability");
     addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.METADATA);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
-    removeMetaDataBulkLoadFilter(context, AccumuloTable.ROOT.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId());
     LOG.info("Removing compact columns from metadata tablets");
-    removeCompactColumnsFromTable(context, AccumuloTable.ROOT.tableName());
+    removeCompactColumnsFromTable(context, SystemTables.ROOT.tableName());
   }
 
   @Override
   public void upgradeMetadata(ServerContext context) {
-    LOG.info("Creating table {}", AccumuloTable.FATE.tableName());
+    LOG.info("Creating table {}", SystemTables.FATE.tableName());
     createFateTable(context);
     LOG.info("Looking for partial splits");
-    handlePartialSplits(context, AccumuloTable.METADATA.tableName());
+    handlePartialSplits(context, SystemTables.METADATA.tableName());
     LOG.info("setting hosting availability on user tables");
     addHostingGoals(context, TabletAvailability.ONDEMAND, DataLevel.USER);
     LOG.info("Deleting external compaction final states from user tables");
@@ -111,11 +118,11 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
-    removeMetaDataBulkLoadFilter(context, AccumuloTable.METADATA.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId());
     LOG.info("Removing compact columns from user tables");
-    removeCompactColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
-    removeBulkFileColumnsFromTable(context, AccumuloTable.METADATA.tableName());
+    removeBulkFileColumnsFromTable(context, SystemTables.METADATA.tableName());
   }
 
   private static void addCompactionsNode(ServerContext context) {
@@ -129,7 +136,7 @@ public class Upgrader12to13 implements Upgrader {
 
   private void createFateTable(ServerContext context) {
 
-    if (context.tableOperations().exists(AccumuloTable.FATE.tableName())) {
+    if (context.tableOperations().exists(SystemTables.FATE.tableName())) {
       LOG.info("Fate table already exists");
       return;
     }
@@ -156,7 +163,7 @@ public class Upgrader12to13 implements Upgrader {
       FileSystemInitializer.InitialTablet fateTableTableTablet =
           initializer.createFateRefTablet(context, TabletMergeabilityMetadata.never());
       // Add references to the Metadata Table
-      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
         writer.addMutation(fateTableTableTablet.createMutation());
       } catch (MutationsRejectedException | TableNotFoundException e) {
         LOG.error("Failed to write tablet refs to metadata table");
@@ -274,8 +281,7 @@ public class Upgrader12to13 implements Upgrader {
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
-      for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-        final String tId = e.getValue();
+      for (String tId : zrw.getChildren(Constants.ZTABLES)) {
         final String zTablePath = Constants.ZTABLES + "/" + tId;
         zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
@@ -297,8 +303,8 @@ public class Upgrader12to13 implements Upgrader {
     // not be easy to test so its better for correctness to delete them and redo the work.
     try (
         var scanner =
-            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
-        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+            context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       var section = new Section(RESERVED_PREFIX + "ecomp", true, RESERVED_PREFIX + "ecomq", false);
       scanner.setRange(section.getRange());
 
@@ -334,8 +340,8 @@ public class Upgrader12to13 implements Upgrader {
     // external compaction metadata.
     try (
         var scanner =
-            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
-        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+            context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       scanner.setRange(TabletsSection.getRange());
       scanner.fetchColumnFamily(ExternalCompactionColumnFamily.NAME);
 
@@ -397,6 +403,44 @@ public class Upgrader12to13 implements Upgrader {
       } catch (InterruptedException | KeeperException e) {
         throw new IllegalStateException(e);
       }
+    }
+  }
+
+  void addTableMappingsToZooKeeper(ServerContext context) {
+    var zrw = context.getZooSession().asReaderWriter();
+    try {
+      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
+      Map<String,Map<String,String>> mapOfTableMaps = new HashMap<>();
+
+      for (String tableId : tableIds) {
+        var tableName =
+            new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
+        var namespaceId = new String(
+            zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+        mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
+            (tid, existingName) -> {
+              if (existingName != null) {
+                throw new IllegalStateException(
+                    "Table id " + tid + " already present in map for namespace id " + namespaceId);
+              }
+              return tableName;
+            });
+      }
+      for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
+        zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
+            NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
+      }
+      for (String tableId : tableIds) {
+        String tableNamePath = Constants.ZTABLES + "/" + tableId + ZTABLE_NAME;
+        zrw.delete(tableNamePath);
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
+          ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
   }
 }

@@ -28,11 +28,13 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
-import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -64,22 +66,12 @@ public class MemoryConsumingCompactor extends Compactor {
     // Use the getRunningCompaction Thrift RPC to consume the memory
     LOG.warn("getRunningCompaction called, consuming memory");
     try {
+      SystemIteratorEnvironment env =
+          (SystemIteratorEnvironment) new SystemIteratorEnvironmentImpl.Builder(getContext())
+              .withScope(IteratorScope.scan).withTableId(SystemTables.METADATA.tableId()).build();
+
       MemoryConsumingIterator iter = new MemoryConsumingIterator();
-      iter.init((SortedKeyValueIterator<Key,Value>) null, Map.of(),
-          new SystemIteratorEnvironment() {
-
-            @Override
-            public ServerContext getServerContext() {
-              return getContext();
-            }
-
-            @Override
-            public SortedKeyValueIterator<Key,Value>
-                getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-              return null;
-            }
-
-          });
+      iter.init((SortedKeyValueIterator<Key,Value>) null, Map.of(), env);
       iter.consume();
     } catch (IOException e) {
       throw new TException("Error consuming memory", e);

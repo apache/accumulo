@@ -23,7 +23,8 @@ import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVE
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
@@ -43,7 +44,7 @@ import com.google.common.hash.Hashing;
 public class ZooMutatorIT extends WithTestNames {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   /**
    * This test uses multiple threads to update the data in a single zookeeper node using
@@ -79,9 +80,11 @@ public class ZooMutatorIT extends WithTestNames {
    */
   @Test
   public void concurrentMutatorTest() throws Exception {
-    File newFolder = new File(tempDir, testName() + "/");
-    assertTrue(newFolder.isDirectory() || newFolder.mkdir(), "failed to create dir: " + newFolder);
-    try (var testZk = new ZooKeeperTestingServer(newFolder); var zk = testZk.newClient()) {
+    Path newFolder = tempDir.resolve(testName() + "/");
+    if (!Files.isDirectory(newFolder)) {
+      Files.createDirectories(newFolder);
+    }
+    try (var testZk = new ZooKeeperTestingServer(newFolder.toFile()); var zk = testZk.newClient()) {
       var zrw = zk.asReaderWriter();
 
       var executor = Executors.newFixedThreadPool(16);

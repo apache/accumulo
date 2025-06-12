@@ -54,6 +54,7 @@ import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -86,12 +87,31 @@ public abstract class AbstractServer
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
-    this.hostname = siteConfig.get(Property.GENERAL_PROCESS_BIND_ADDRESS);
+    final String newBindParameter = siteConfig.get(Property.RPC_PROCESS_BIND_ADDRESS);
+    // If new bind parameter passed on command line or in file, then use it.
+    if (newBindParameter != null
+        && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      this.hostname = newBindParameter;
+    } else {
+      this.hostname = ConfigOpts.BIND_ALL_ADDRESSES;
+    }
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
     log = LoggerFactory.getLogger(getClass());
+    try {
+      if (context.getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
+        throw new IllegalStateException(
+            "Instance has been prepared for upgrade to a minor or major version greater than "
+                + Constants.VERSION + ", no servers can be started."
+                + " To undo this state and abort upgrade preparations delete the zookeeper node: "
+                + Constants.ZPREPARE_FOR_UPGRADE);
+      }
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error checking for upgrade preparation node ("
+          + Constants.ZPREPARE_FOR_UPGRADE + ") in zookeeper", e);
+    }
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
     context.init(applicationName);
@@ -291,7 +311,7 @@ public abstract class AbstractServer
     final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
     final MetricResponseWrapper response = new MetricResponseWrapper(builder);
 
-    if (getHostname().startsWith(Property.GENERAL_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (getHostname().startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
       log.error("Host is not set, this should have been done after starting the Thrift service.");
       return response;
     }
@@ -337,7 +357,7 @@ public abstract class AbstractServer
     final long interval =
         getConfiguration().getTimeInMillis(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL);
     if (interval > 0) {
-      verificationThread = Threads.createThread("service-lock-verification-thread",
+      verificationThread = Threads.createCriticalThread("service-lock-verification-thread",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), () -> {
             while (serverThread.isAlive()) {
               ServiceLock lock = getLock();
@@ -345,7 +365,7 @@ public abstract class AbstractServer
                 log.trace(
                     "ServiceLockVerificationThread - checking ServiceLock existence in ZooKeeper");
                 if (lock != null && !lock.verifyLockAtSource()) {
-                  Halt.halt("Lock verification thread could not find lock", -1);
+                  Halt.halt(-1, "Lock verification thread could not find lock");
                 }
                 // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
                 // so that this thread does not get immediately rescheduled.

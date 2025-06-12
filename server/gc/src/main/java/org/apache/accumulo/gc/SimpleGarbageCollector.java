@@ -48,7 +48,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
@@ -284,15 +284,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
             switch (action) {
               case "compact":
-                accumuloClient.tableOperations().compact(AccumuloTable.METADATA.tableName(), null,
+                accumuloClient.tableOperations().compact(SystemTables.METADATA.tableName(), null,
                     null, true, true);
-                accumuloClient.tableOperations().compact(AccumuloTable.ROOT.tableName(), null, null,
+                accumuloClient.tableOperations().compact(SystemTables.ROOT.tableName(), null, null,
                     true, true);
                 break;
               case "flush":
-                accumuloClient.tableOperations().flush(AccumuloTable.METADATA.tableName(), null,
+                accumuloClient.tableOperations().flush(SystemTables.METADATA.tableName(), null,
                     null, true);
-                accumuloClient.tableOperations().flush(AccumuloTable.ROOT.tableName(), null, null,
+                accumuloClient.tableOperations().flush(SystemTables.ROOT.tableName(), null, null,
                     true);
                 break;
               default:
@@ -323,12 +323,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
           if (lastCompactorCheck.hasElapsed(gcDelay * 3, MILLISECONDS)) {
             Map<String,Set<TableId>> resourceMapping = new HashMap<>();
-            for (TableId tid : AccumuloTable.allTableIds()) {
+            for (TableId tid : SystemTables.tableIds()) {
               TableConfiguration tconf = getContext().getTableConfiguration(tid);
               String resourceGroup = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
               resourceGroup =
                   resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
-              resourceMapping.getOrDefault(resourceGroup, new HashSet<>()).add(tid);
+              resourceMapping.computeIfAbsent(resourceGroup, k -> new HashSet<>()).add(tid);
             }
             for (Entry<String,Set<TableId>> e : resourceMapping.entrySet()) {
               if (ExternalCompactionUtil.countCompactors(e.getKey(), getContext()) == 0) {
@@ -429,14 +429,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
-    ServerAddress server = TServerUtils.startTServer(getConfiguration(),
-        getContext().getThriftServerType(), processor, this.getClass().getSimpleName(),
-        "GC Monitor Service", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, maxMessageSize,
-        getContext().getServerSslParams(), getContext().getSaslParams(), 0,
-        getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
-        addresses);
+    ServerAddress server =
+        TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
+            processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
+            1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(),
+            0, getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
+            false, addresses);
+    server.startThriftServer("GC Monitor Service");
     setHostname(server.address);
-    log.debug("Starting garbage collector listening on " + server.address);
+    log.debug("Starting garbage collector listening on {}", server.address);
     return server.address;
   }
 

@@ -33,6 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -76,7 +77,7 @@ public class FindMergeableRangeTask implements Runnable {
   @Override
   public void run() {
     var context = manager.getContext();
-    Map<TableId,String> tables = context.getTableIdToNameMap();
+    Map<TableId,String> tables = context.createTableIdToQualifiedNameMap();
 
     log.debug("Starting FindMergeableRangeTask");
 
@@ -129,7 +130,7 @@ public class FindMergeableRangeTask implements Runnable {
           submit(current, type, table, namespaceId);
         }
 
-      } catch (Exception e) {
+      } catch (TableNotFoundException | RuntimeException e) {
         log.error("Failed to generate system merges for {}", tableName, e);
       }
     }

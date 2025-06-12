@@ -309,6 +309,14 @@ public class MetadataSchema {
        */
       public static final String SELECTED_QUAL = "selected";
       public static final ColumnFQ SELECTED_COLUMN = new ColumnFQ(NAME, new Text(SELECTED_QUAL));
+
+      /**
+       * This column is used to indicate that a tablet is in the process of being migrated from one
+       * tablet server to another. The destination of the migration is the value. The tserver being
+       * migrated is the row this is set on.
+       */
+      public static final String MIGRATION_QUAL = "migration";
+      public static final ColumnFQ MIGRATION_COLUMN = new ColumnFQ(NAME, new Text(MIGRATION_QUAL));
     }
 
     /**

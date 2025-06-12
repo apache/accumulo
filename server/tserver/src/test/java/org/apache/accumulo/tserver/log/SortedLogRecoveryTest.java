@@ -138,26 +138,26 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private static KeyValue createKeyValue(LogEvents type, long seq, int tid,
       Object fileExtentMutation) {
     KeyValue result = new KeyValue();
-    result.key.event = type;
-    result.key.seq = seq;
-    result.key.tabletId = tid;
+    result.key.setEvent(type);
+    result.key.setSeq(seq);
+    result.key.setTabletId(tid);
     switch (type) {
       case OPEN:
-        result.key.tserverSession = (String) fileExtentMutation;
+        result.key.setTserverSession((String) fileExtentMutation);
         break;
       case COMPACTION_FINISH:
         break;
       case COMPACTION_START:
-        result.key.filename = (String) fileExtentMutation;
+        result.key.setFilename((String) fileExtentMutation);
         break;
       case DEFINE_TABLET:
-        result.key.tablet = (KeyExtent) fileExtentMutation;
+        result.key.setTablet((KeyExtent) fileExtentMutation);
         break;
       case MUTATION:
-        result.value.mutations = List.of((Mutation) fileExtentMutation);
+        result.value.setMutations(List.of((Mutation) fileExtentMutation));
         break;
       case MANY_MUTATIONS:
-        result.value.mutations = Arrays.asList((Mutation[]) fileExtentMutation);
+        result.value.setMutations(Arrays.asList((Mutation[]) fileExtentMutation));
     }
     return result;
   }
@@ -186,7 +186,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
   private List<Mutation> recover(Map<String,KeyValue[]> logs, Set<String> files, KeyExtent extent,
       int bufferSize) throws IOException {
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toAbsolutePath().toString();
     try (var fs = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();
       expect(server.getContext()).andReturn(context).anyTimes();
@@ -1125,7 +1125,7 @@ public class SortedLogRecoveryTest extends WithTestNames {
     testConfig.set(prefix + "blocksize", "256B");
     testConfig.set(prefix + "replication", "3");
 
-    final String workdir = new File(tempDir, testName()).getAbsolutePath();
+    final String workdir = tempDir.toPath().resolve(testName()).toAbsolutePath().toString();
 
     try (var vm = VolumeManagerImpl.getLocalForTesting(workdir)) {
       CryptoServiceFactory cryptoFactory = new GenericCryptoServiceFactory();

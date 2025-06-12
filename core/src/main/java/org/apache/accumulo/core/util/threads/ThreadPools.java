@@ -28,7 +28,6 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.COORDINATOR_
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GC_WAL_DELETE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.GENERAL_SERVER_POOL;
-import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_FATE_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.MANAGER_STATUS_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.SCHED_FUTURE_CHECKER_POOL;
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_ASSIGNMENT_POOL;
@@ -42,6 +41,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMM
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.TSERVER_SUMMARY_RETRIEVAL_POOL;
 
 import java.lang.Thread.UncaughtExceptionHandler;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.OptionalInt;
@@ -58,6 +58,8 @@ import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntSupplier;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -70,6 +72,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.binder.jvm.ExecutorServiceMetrics;
 
@@ -97,8 +100,15 @@ public class ThreadPools {
     return SERVER_INSTANCE;
   }
 
-  public static final ThreadPools getClientThreadPools(UncaughtExceptionHandler ueh) {
-    return new ThreadPools(ueh);
+  public static final ThreadPools getClientThreadPools(AccumuloConfiguration conf,
+      UncaughtExceptionHandler ueh) {
+    ThreadPools clientPools = new ThreadPools(ueh);
+    if (conf.getBoolean(Property.GENERAL_MICROMETER_ENABLED) == false) {
+      clientPools.disableThreadPoolMetrics();
+    } else {
+      clientPools.setMeterRegistry(Metrics.globalRegistry);
+    }
+    return clientPools;
   }
 
   private static final ThreadPoolExecutor SCHEDULED_FUTURE_CHECKER_POOL =
@@ -249,6 +259,9 @@ public class ThreadPools {
   }
 
   private final UncaughtExceptionHandler handler;
+  private final AtomicBoolean metricsEnabled = new AtomicBoolean(true);
+  private final AtomicReference<MeterRegistry> registry = new AtomicReference<>();
+  private final List<ExecutorServiceMetrics> earlyExecutorServices = new ArrayList<>();
 
   private ThreadPools(UncaughtExceptionHandler ueh) {
     handler = ueh;
@@ -289,12 +302,6 @@ public class ThreadPools {
       case GENERAL_THREADPOOL_SIZE:
         return createScheduledExecutorService(conf.getCount(p), GENERAL_SERVER_POOL.poolName,
             emitThreadPoolMetrics);
-      case MANAGER_FATE_THREADPOOL_SIZE:
-        builder = getPoolBuilder(MANAGER_FATE_POOL).numCoreThreads(conf.getCount(p));
-        if (emitThreadPoolMetrics) {
-          builder.enableThreadPoolMetrics();
-        }
-        return builder.build();
       case MANAGER_STATUS_THREAD_POOL_SIZE:
         builder = getPoolBuilder(MANAGER_STATUS_POOL);
         int threads = conf.getCount(p);
@@ -610,7 +617,7 @@ public class ThreadPools {
       result.allowCoreThreadTimeOut(true);
     }
     if (emitThreadPoolMetrics) {
-      ThreadPools.addExecutorServiceMetrics(result, name);
+      addExecutorServiceMetrics(result, name);
     }
     return result;
   }
@@ -651,7 +658,7 @@ public class ThreadPools {
    *        errors over long time periods.
    * @return ScheduledThreadPoolExecutor
    */
-  private ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
+  public ScheduledThreadPoolExecutor createScheduledExecutorService(int numThreads,
       final String name, boolean emitThreadPoolMetrics) {
     LOG.trace("Creating ScheduledThreadPoolExecutor for {} with {} threads", name, numThreads);
     var result =
@@ -715,13 +722,46 @@ public class ThreadPools {
 
         };
     if (emitThreadPoolMetrics) {
-      ThreadPools.addExecutorServiceMetrics(result, name);
+      addExecutorServiceMetrics(result, name);
     }
     return result;
   }
 
-  private static void addExecutorServiceMetrics(ExecutorService executor, String name) {
-    new ExecutorServiceMetrics(executor, name, List.of()).bindTo(Metrics.globalRegistry);
+  private void addExecutorServiceMetrics(ExecutorService executor, String name) {
+    if (!metricsEnabled.get()) {
+      return;
+    }
+    ExecutorServiceMetrics esm = new ExecutorServiceMetrics(executor, name, List.of());
+    synchronized (earlyExecutorServices) {
+      MeterRegistry r = registry.get();
+      if (r != null) {
+        esm.bindTo(r);
+      } else {
+        earlyExecutorServices.add(esm);
+      }
+    }
+  }
+
+  public void setMeterRegistry(MeterRegistry r) {
+    if (registry.compareAndSet(null, r)) {
+      synchronized (earlyExecutorServices) {
+        earlyExecutorServices.forEach(e -> e.bindTo(r));
+        earlyExecutorServices.clear();
+      }
+    } else {
+      throw new IllegalStateException("setMeterRegistry called more than once");
+    }
+  }
+
+  /**
+   * Called by MetricsInfoImpl.init on the server side if metrics are disabled. ClientContext calls
+   * {@code #getClientThreadPools(AccumuloConfiguration, UncaughtExceptionHandler)} above.
+   */
+  public void disableThreadPoolMetrics() {
+    metricsEnabled.set(false);
+    synchronized (earlyExecutorServices) {
+      earlyExecutorServices.clear();
+    }
   }
 
 }

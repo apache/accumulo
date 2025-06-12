@@ -67,6 +67,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -74,10 +75,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
@@ -107,6 +108,7 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.metadata.AsyncConditionalTabletsMutatorImpl;
 import org.apache.accumulo.server.metadata.ConditionalTabletsMutatorImpl;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -121,7 +123,9 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
+      cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "3s");
+    });
   }
 
   @AfterAll
@@ -144,7 +148,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       c.tableOperations().create(tableName,
           new NewTableConfiguration().withSplits(splits).createOffline());
 
-      c.securityOperations().grantTablePermission("root", AccumuloTable.METADATA.tableName(),
+      c.securityOperations().grantTablePermission("root", SystemTables.METADATA.tableName(),
           TablePermission.WRITE);
 
       tid = TableId.of(c.tableOperations().tableIdMap().get(tableName));
@@ -681,7 +685,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       final Text selectedColumnQualifier = SELECTED_COLUMN.getColumnQualifier();
 
       Supplier<String> selectedMetadataValue = () -> {
-        try (Scanner scanner = client.createScanner(AccumuloTable.METADATA.tableName())) {
+        try (Scanner scanner = client.createScanner(SystemTables.METADATA.tableName())) {
           scanner.fetchColumn(selectedColumnFamily, selectedColumnQualifier);
           scanner.setRange(new Range(row));
 
@@ -715,7 +719,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
           "Test json should have reverse file order of actual metadata");
 
       // write the json with reverse file order
-      try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
         Mutation mutation = new Mutation(row);
         mutation.put(selectedColumnFamily, selectedColumnQualifier,
             new Value(newJson.getBytes(UTF_8)));
@@ -1058,6 +1062,18 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
     }
     assertEquals(opid.canonical(),
         context.getAmple().readTablet(RootTable.EXTENT).getOperationId().canonical());
+
+    Wait.waitFor(() -> context.getAmple().readTablet(RootTable.EXTENT).getLocation() == null);
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(RootTable.EXTENT).requireOperation(opid).requireAbsentLocation()
+          .putLocation(Location.future(loc.getServerInstance())).deleteOperation()
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(RootTable.EXTENT).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(RootTable.EXTENT).getOperationId());
+    Wait.waitFor(() -> context.getAmple().readTablet(RootTable.EXTENT).getLocation() != null);
+
   }
 
   @Test
@@ -1889,5 +1905,39 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
     }
     assertEquals(Set.of(stf1, stf3), context.getAmple().readTablet(e1).getFiles());
+  }
+
+  @Test
+  public void testRequireMigration() {
+    var context = getCluster().getServerContext();
+    var tsi = new TServerInstance("localhost:1234", 56L);
+    var otherTsi = new TServerInstance("localhost:9876", 54L);
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(tsi).deleteMigration()
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getMigration());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putMigration(tsi).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(tsi, context.getAmple().readTablet(e1).getMigration());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(otherTsi).deleteMigration()
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(tsi, context.getAmple().readTablet(e1).getMigration());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(tsi).deleteMigration()
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getMigration());
   }
 }

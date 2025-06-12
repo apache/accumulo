@@ -96,7 +96,7 @@ public class ConditionalTabletsMutatorImplTest {
     ServiceLock lock = EasyMock.createMock(ServiceLock.class);
     LockID lid = EasyMock.createMock(LockID.class);
     EasyMock.expect(lock.getLockID()).andReturn(lid).anyTimes();
-    EasyMock.expect(lid.serialize("/")).andReturn("/1234").anyTimes();
+    EasyMock.expect(lid.serialize()).andReturn("/1234").anyTimes();
     EasyMock.expect(context.getServiceLock()).andReturn(lock).anyTimes();
     EasyMock.replay(context, lock, lid);
 

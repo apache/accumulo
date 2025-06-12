@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -54,8 +55,8 @@ import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -213,7 +214,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       cluster.start();
       // did it recover?
       try (Scanner scanner =
-          c.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
     }
@@ -242,9 +243,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().flush(table, null, null, true);
 
       // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-      c.securityOperations().grantTablePermission(c.whoami(), AccumuloTable.METADATA.tableName(),
+      c.securityOperations().grantTablePermission(c.whoami(), SystemTables.METADATA.tableName(),
           TablePermission.WRITE);
-      try (BatchWriter bw = c.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter bw = c.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
         // path is invalid but value is expected - only way the invalid entry will come through
@@ -430,7 +431,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
-          assertNotEquals("0.0.0.0", hostAndPort.getHost());
+          assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES, hostAndPort.getHost());
           // Nor should we have the "random port" in zk
           assertNotEquals(0, hostAndPort.getPort());
           return;
@@ -451,8 +452,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   private void addEntries(AccumuloClient client) throws Exception {
     Ample ample = getServerContext().getAmple();
     client.securityOperations().grantTablePermission(client.whoami(),
-        AccumuloTable.METADATA.tableName(), TablePermission.WRITE);
-    try (BatchWriter bw = client.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+        SystemTables.METADATA.tableName(), TablePermission.WRITE);
+    try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";

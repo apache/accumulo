@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -70,9 +69,12 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.Multimap;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 /**
  * Tests the new MR API in the hadoop-mapreduce package.
@@ -80,6 +82,10 @@ import com.google.common.collect.Multimap;
  * @since 2.0
  */
 public class AccumuloInputFormatIT extends SharedMiniClusterBase {
+
+  @SuppressFBWarnings("MS_SHOULD_BE_FINAL")
+  @TempDir
+  public static java.nio.file.Path tempDir;
 
   AccumuloInputFormat inputFormat;
   AccumuloClient client;
@@ -327,7 +333,7 @@ public class AccumuloInputFormatIT extends SharedMiniClusterBase {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       return ToolRunner.run(conf, new MRTester(), args);
     }
   }

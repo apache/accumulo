@@ -68,7 +68,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -195,6 +195,18 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void createTableWithSystemUser() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    String tableName = getUniqueNames(1)[0];
+    AccumuloClient client = getServerContext();
+    client.tableOperations().create(tableName);
+    Map<String,String> props = client.tableOperations().getConfiguration(tableName);
+    assertEquals(DefaultKeySizeConstraint.class.getName(),
+        props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
+    client.tableOperations().delete(tableName);
   }
 
   @Test
@@ -331,7 +343,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         final Key key = entry.getKey();
         String row = key.getRow().toString();
-        String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+        String cf = key.getColumnFamily().toString();
+        String cq = key.getColumnQualifier().toString();
         String value = entry.getValue().toString();
 
         if (rowCounts.containsKey(row)) {
@@ -436,10 +449,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.METADATA.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.METADATA.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.ROOT.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.ROOT.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
     // test non-existent table

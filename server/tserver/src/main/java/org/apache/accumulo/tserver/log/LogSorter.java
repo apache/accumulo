@@ -275,12 +275,7 @@ public class LogSorter {
       var logFileKey = pair.getFirst();
       var logFileValue = pair.getSecond();
       Key k = logFileKey.toKey();
-      var list = keyListMap.putIfAbsent(k, logFileValue.mutations);
-      if (list != null) {
-        var muts = new ArrayList<>(list);
-        muts.addAll(logFileValue.mutations);
-        keyListMap.put(logFileKey.toKey(), muts);
-      }
+      keyListMap.computeIfAbsent(k, (key) -> new ArrayList<>()).addAll(logFileValue.getMutations());
     }
 
     try (var writer = FileOperations.getInstance().newWriterBuilder()
@@ -289,7 +284,7 @@ public class LogSorter {
       writer.startDefaultLocalityGroup();
       for (var entry : keyListMap.entrySet()) {
         LogFileValue val = new LogFileValue();
-        val.mutations = entry.getValue();
+        val.setMutations(entry.getValue());
         writer.append(entry.getKey(), val.toValue());
       }
     }

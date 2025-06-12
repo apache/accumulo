@@ -69,7 +69,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.DurabilityImpl;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -78,6 +77,7 @@ import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -93,7 +93,7 @@ import org.apache.accumulo.core.manager.thrift.Compacting;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -213,7 +213,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private TServer server;
 
-  private String lockID;
+  private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
 
   public static final AtomicLong seekCount = new AtomicLong(0);
@@ -329,7 +329,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     this.resourceManager = new TabletServerResourceManager(context, this);
 
     watchCriticalScheduledTask(context.getScheduledExecutor().scheduleWithFixedDelay(
-        ClientTabletCache::clearInstances, jitter(), jitter(), TimeUnit.MILLISECONDS));
+        () -> context.clearTabletLocationCache(), jitter(), jitter(), TimeUnit.MILLISECONDS));
     walMarker = new WalStateManager(context);
 
     if (aconf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
@@ -370,7 +370,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private TabletClientHandler thriftClientHandler;
   private ThriftScanClientHandler scanClientHandler;
 
-  String getLockID() {
+  ZooUtil.LockID getLockID() {
     return lockID;
   }
 
@@ -411,10 +411,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private HostAndPort startServer(String address, TProcessor processor)
       throws UnknownHostException {
-    ServerAddress sp = TServerUtils.startServer(getContext(), address, Property.TSERV_CLIENTPORT,
-        processor, this.getClass().getSimpleName(), "Thrift Client Server",
-        Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT,
-        Property.TSERV_THREADCHECK);
+    ServerAddress sp =
+        TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT, processor,
+            this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
+            Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    sp.startThriftServer("Thrift Client Server");
     this.server = sp.server;
     return sp.address;
   }
@@ -510,7 +511,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
-          lockID = tabletServerLock.getLockID().serialize(Constants.ZTSERVERS + "/");
+          lockID = tabletServerLock.getLockID();
           lockSessionId = tabletServerLock.getSessionId();
           log.debug("Obtained tablet server lock {} {}", tabletServerLock.getLockPath(),
               getTabletSession());
@@ -680,8 +681,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
           getClientAddressString());
     } catch (TException e) {
-      log.error("Error informing Manager that we are shutting down, halting server", e);
-      Halt.halt("Error informing Manager that we are shutting down, exiting!", -1);
+      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
     }
@@ -916,9 +916,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private Durability getMincEventDurability(KeyExtent extent) {
     TableConfiguration conf;
     if (extent.isMeta()) {
-      conf = getContext().getTableConfiguration(AccumuloTable.ROOT.tableId());
+      conf = getContext().getTableConfiguration(SystemTables.ROOT.tableId());
     } else {
-      conf = getContext().getTableConfiguration(AccumuloTable.METADATA.tableId());
+      conf = getContext().getTableConfiguration(SystemTables.METADATA.tableId());
     }
     return DurabilityImpl.fromString(conf.get(Property.TABLE_DURABILITY));
   }

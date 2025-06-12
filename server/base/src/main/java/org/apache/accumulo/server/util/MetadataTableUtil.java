@@ -57,8 +57,8 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -93,15 +93,15 @@ public class MetadataTableUtil {
   private MetadataTableUtil() {}
 
   public static void putLockID(ServerContext context, ServiceLock zooLock, Mutation m) {
-    ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID().serialize("/")));
+    ServerColumnFamily.LOCK_COLUMN.put(m, new Value(zooLock.getLockID().serialize()));
   }
 
   public static void deleteTable(TableId tableId, boolean insertDeletes, ServerContext context,
       ServiceLock lock) throws AccumuloException {
     try (
         Scanner ms =
-            new ScannerImpl(context, AccumuloTable.METADATA.tableId(), Authorizations.EMPTY);
-        BatchWriter bw = new BatchWriterImpl(context, AccumuloTable.METADATA.tableId(),
+            new ScannerImpl(context, SystemTables.METADATA.tableId(), Authorizations.EMPTY);
+        BatchWriter bw = new BatchWriterImpl(context, SystemTables.METADATA.tableId(),
             new BatchWriterConfig().setMaxMemory(1000000)
                 .setMaxLatency(120000L, TimeUnit.MILLISECONDS).setMaxWriteThreads(2))) {
 
@@ -213,11 +213,11 @@ public class MetadataTableUtil {
     if (testTableName != null) {
       tableName = testTableName;
       range = TabletsSection.getRange(tableId);
-    } else if (tableId.equals(AccumuloTable.METADATA.tableId())) {
-      tableName = AccumuloTable.ROOT.tableName();
+    } else if (tableId.equals(SystemTables.METADATA.tableId())) {
+      tableName = SystemTables.ROOT.tableName();
       range = TabletsSection.getRange();
     } else {
-      tableName = AccumuloTable.METADATA.tableName();
+      tableName = SystemTables.METADATA.tableName();
       range = TabletsSection.getRange(tableId);
     }
 
@@ -345,7 +345,7 @@ public class MetadataTableUtil {
   public static void cloneTable(ServerContext context, TableId srcTableId, TableId tableId)
       throws Exception {
 
-    try (BatchWriter bw = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+    try (BatchWriter bw = context.createBatchWriter(SystemTables.METADATA.tableName())) {
 
       while (true) {
 
@@ -382,7 +382,7 @@ public class MetadataTableUtil {
 
       // delete the clone markers and create directory entries
       Scanner mscanner =
-          context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
+          context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
       mscanner.setRange(new KeyExtent(tableId, null, null).toMetaRange());
       mscanner.fetchColumnFamily(ClonedColumnFamily.NAME);
 

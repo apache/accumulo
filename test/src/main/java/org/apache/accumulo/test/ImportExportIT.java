@@ -30,10 +30,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Paths;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -61,8 +60,8 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
@@ -200,8 +199,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     // Get all `file` colfams from the metadata table for the new table
     log.info("Imported into table with ID: {}", tableId);
 
-    try (Scanner s =
-        client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+    try (
+        Scanner s = client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       s.setRange(TabletsSection.getRange(TableId.of(tableId)));
       s.fetchColumnFamily(DataFileColumnFamily.NAME);
       ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -262,7 +261,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
       String[] tableNames = getUniqueNames(2);
-      String srcTable = tableNames[0], destTable = tableNames[1];
+      String srcTable = tableNames[0];
+      String destTable = tableNames[1];
       client.tableOperations().create(srcTable);
 
       try (BatchWriter bw = client.createBatchWriter(srcTable)) {
@@ -360,7 +360,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // Get all `file` colfams from the metadata table for the new table
       try (Scanner s =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         s.setRange(TabletsSection.getRange(TableId.of(tableId)));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
         ServerColumnFamily.DIRECTORY_COLUMN.fetch(s);
@@ -410,7 +410,8 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       String[] tableNames = getUniqueNames(2);
-      String srcTable = tableNames[0], destTable = tableNames[1];
+      String srcTable = tableNames[0];
+      String destTable = tableNames[1];
 
       client.tableOperations().create(srcTable);
       String srcTableId = client.tableOperations().tableIdMap().get(srcTable);
@@ -565,9 +566,10 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
     // copy files each run will "move the files" on import, allows multiple runs in IDE without
     // rebuild
-    java.nio.file.Path importDirPath = Paths.get(importDir);
+    java.nio.file.Path importDirPath = java.nio.file.Path.of(importDir);
     java.nio.file.Files.createDirectories(importDirPath);
-    FileUtils.copyDirectory(new File(dataSrc), new File(importDir));
+    FileUtils.copyDirectory(java.nio.file.Path.of(dataSrc).toFile(),
+        java.nio.file.Path.of(importDir).toFile());
 
     String table = getUniqueNames(1)[0];
 
@@ -585,7 +587,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       assertEquals(7, rowCount);
       int metaFileCount = 0;
       try (Scanner s =
-          client.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY)) {
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         TableId tid = TableId.of(client.tableOperations().tableIdMap().get(table));
         s.setRange(TabletsSection.getRange(tid));
         s.fetchColumnFamily(DataFileColumnFamily.NAME);
@@ -603,13 +605,15 @@ public class ImportExportIT extends AccumuloClusterHarness {
   private void verifyTableEquality(AccumuloClient client, String srcTable, String destTable,
       int expected) throws Exception {
     Iterator<Entry<Key,Value>> src =
-        client.createScanner(srcTable, Authorizations.EMPTY).iterator(),
-        dest = client.createScanner(destTable, Authorizations.EMPTY).iterator();
+        client.createScanner(srcTable, Authorizations.EMPTY).iterator();
+    Iterator<Entry<Key,Value>> dest =
+        client.createScanner(destTable, Authorizations.EMPTY).iterator();
     assertTrue(src.hasNext(), "Could not read any data from source table");
     assertTrue(dest.hasNext(), "Could not read any data from destination table");
     int entries = 0;
     while (src.hasNext() && dest.hasNext()) {
-      Entry<Key,Value> orig = src.next(), copy = dest.next();
+      Entry<Key,Value> orig = src.next();
+      Entry<Key,Value> copy = dest.next();
       assertEquals(orig.getKey(), copy.getKey());
       assertEquals(orig.getValue(), copy.getValue());
       entries++;

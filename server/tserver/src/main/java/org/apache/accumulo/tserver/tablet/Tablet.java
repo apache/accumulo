@@ -65,9 +65,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult;
@@ -237,7 +237,6 @@ public class Tablet extends TabletBase {
 
         if (files == null) {
           log.debug("Tablet {} had no dir, creating {}", extent, path);
-
           getTabletServer().getVolumeManager().mkdirs(path);
         }
         checkedTabletDirs.add(path);
@@ -413,7 +412,7 @@ public class Tablet extends TabletBase {
         if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
           log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
               + " Halting...", getExtent(), e);
-          Halt.halt("TabletServer lock does not exist", -1);
+          Halt.halt(-1, "TabletServer lock does not exist", e);
         } else {
           TraceUtil.setException(span2, e, true);
           throw e;
@@ -582,9 +581,10 @@ public class Tablet extends TabletBase {
   private MinorCompactionTask createMinorCompactionTask(long flushId,
       MinorCompactionReason mincReason) {
     MinorCompactionTask mct;
-    long t1, t2;
     long pauseLimit =
         getContext().getTableConfiguration(extent.tableId()).getCount(Property.TABLE_FILE_PAUSE);
+    long t1;
+    long t2;
     StringBuilder logMessage = null;
 
     try {
@@ -1035,7 +1035,7 @@ public class Tablet extends TabletBase {
 
       if (!tabletMeta.getLogs().isEmpty()) {
         String msg = "Closed tablet " + extent + " has walog entries in "
-            + AccumuloTable.METADATA.tableName() + " " + tabletMeta.getLogs();
+            + SystemTables.METADATA.tableName() + " " + tabletMeta.getLogs();
         log.error(msg);
         throw new RuntimeException(msg);
       }

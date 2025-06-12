@@ -24,10 +24,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
-import org.apache.accumulo.core.singletons.SingletonManager;
-import org.apache.accumulo.core.singletons.SingletonManager.Mode;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.security.SecurityUtil;
+
+import com.google.common.base.Preconditions;
 
 public class SetGoalState {
 
@@ -35,22 +35,21 @@ public class SetGoalState {
    * Utility program that will change the goal state for the manager from the command line.
    */
   public static void main(String[] args) throws Exception {
-    if (args.length != 1 || ManagerGoalState.valueOf(args[0]) == null) {
+    try {
+      Preconditions.checkArgument(args.length == 1);
+      ManagerGoalState.valueOf(args[0]);
+    } catch (IllegalArgumentException e) {
       System.err.println(
           "Usage: accumulo " + SetGoalState.class.getName() + " [NORMAL|SAFE_MODE|CLEAN_STOP]");
       System.exit(-1);
     }
 
-    try {
-      var siteConfig = SiteConfiguration.auto();
-      SecurityUtil.serverLogin(siteConfig);
-      try (var context = new ServerContext(siteConfig)) {
-        context.waitForZookeeperAndHdfs();
-        context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_GOAL_STATE,
-            args[0].getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
-      }
-    } finally {
-      SingletonManager.setMode(Mode.CLOSED);
+    var siteConfig = SiteConfiguration.auto();
+    SecurityUtil.serverLogin(siteConfig);
+    try (var context = new ServerContext(siteConfig)) {
+      context.waitForZookeeperAndHdfs();
+      context.getZooSession().asReaderWriter().putPersistentData(Constants.ZMANAGER_GOAL_STATE,
+          args[0].getBytes(UTF_8), NodeExistsPolicy.OVERWRITE);
     }
   }
 

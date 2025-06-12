@@ -553,7 +553,7 @@ public class ThriftScanner {
       Span child1 = TraceUtil.startSpan(ThriftScanner.class, "scan::locateTablet");
       try (Scope locateSpan = child1.makeCurrent()) {
 
-        loc = ClientTabletCache.getInstance(context, scanState.tableId).findTablet(context,
+        loc = context.getTabletLocationCache(scanState.tableId).findTablet(context,
             scanState.startRow, scanState.skipStartRow, hostingNeed, minimumHostAhead,
             scanState.range);
 
@@ -695,8 +695,7 @@ public class ThriftScanner {
           }
           lastError = error;
 
-          ClientTabletCache.getInstance(context, scanState.tableId)
-              .invalidateCache(addr.getExtent());
+          context.getTabletLocationCache(scanState.tableId).invalidateCache(addr.getExtent());
 
           // no need to try the current scan id somewhere else
           scanState.scanID = null;
@@ -775,8 +774,7 @@ public class ThriftScanner {
                 e.getCause() != null && e.getCause().getClass().equals(InterruptedIOException.class)
                     && scanState.closeInitiated;
             if (!wasInterruptedAfterClose) {
-              ClientTabletCache.getInstance(context, scanState.tableId).invalidateCache(context,
-                  addr.serverAddress);
+              context.getTabletLocationCache(scanState.tableId).invalidateCache(addr.getExtent());
             }
           }
           error = "Scan failed, thrift error " + e.getClass().getName() + "  " + e.getMessage()

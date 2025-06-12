@@ -140,7 +140,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.accumulo.server.compaction.CompactionPluginUtils;
-import org.apache.accumulo.server.security.SecurityOperation;
+import org.apache.accumulo.server.security.AuditedSecurityOperation;
 import org.apache.accumulo.server.tablets.TabletNameGenerator;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -234,13 +234,11 @@ public class CompactionCoordinator
   private final Map<CompactorGroupId,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
   private final ServerContext ctx;
-  private final SecurityOperation security;
+  private final AuditedSecurityOperation security;
   private final CompactionJobQueues jobQueues;
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances;
   // Exposed for tests
   protected final CountDownLatch shutdown = new CountDownLatch(1);
-
-  private final ScheduledThreadPoolExecutor schedExecutor;
 
   private final Cache<ExternalCompactionId,RunningCompaction> completed;
   private final LoadingCache<FateId,CompactionConfig> compactionConfigCache;
@@ -257,11 +255,10 @@ public class CompactionCoordinator
   private final Map<DataLevel,ThreadPoolExecutor> reservationPools;
   private final Set<String> activeCompactorReservationRequest = ConcurrentHashMap.newKeySet();
 
-  public CompactionCoordinator(ServerContext ctx, SecurityOperation security,
-      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances, Manager manager) {
-    this.ctx = ctx;
-    this.schedExecutor = this.ctx.getScheduledExecutor();
-    this.security = security;
+  public CompactionCoordinator(Manager manager,
+      AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances) {
+    this.ctx = manager.getContext();
+    this.security = ctx.getSecurityOperation();
     this.manager = Objects.requireNonNull(manager);
 
     long jobQueueMaxSize =
@@ -294,7 +291,7 @@ public class CompactionCoordinator
         .maximumWeight(10485760L).weigher(weigher).build();
 
     deadCompactionDetector =
-        new DeadCompactionDetector(this.ctx, this, schedExecutor, fateInstances);
+        new DeadCompactionDetector(this.ctx, this, ctx.getScheduledExecutor(), fateInstances);
 
     var rootReservationPool = ThreadPools.getServerThreadPools().createExecutorService(
         ctx.getConfiguration(), Property.COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT, true);
@@ -320,7 +317,7 @@ public class CompactionCoordinator
   private volatile Thread serviceThread = null;
 
   public void start() {
-    serviceThread = Threads.createThread("CompactionCoordinator Thread", this);
+    serviceThread = Threads.createCriticalThread("CompactionCoordinator Thread", this);
     serviceThread.start();
   }
 
@@ -367,8 +364,8 @@ public class CompactionCoordinator
   public void run() {
 
     this.coordinatorStartTime = System.currentTimeMillis();
-    startConfigMonitor(schedExecutor);
-    startCompactorZKCleaner(schedExecutor);
+    startConfigMonitor(ctx.getScheduledExecutor());
+    startCompactorZKCleaner(ctx.getScheduledExecutor());
 
     // On a re-start of the coordinator it's possible that external compactions are in-progress.
     // Attempt to get the running compactions on the compactors and then resolve which tserver
@@ -393,7 +390,7 @@ public class CompactionCoordinator
     }
 
     startDeadCompactionDetector();
-    startInternalStateCleaner(schedExecutor);
+    startInternalStateCleaner(ctx.getScheduledExecutor());
 
     try {
       shutdown.await();
@@ -1231,6 +1228,8 @@ public class CompactionCoordinator
     // grab the ids that are listed as running in the metadata table. It important that this is done
     // after getting the snapshot.
     final Set<ExternalCompactionId> idsInMetadata = readExternalCompactionIds();
+    LOG.trace("Current ECIDs in metadata: {}", idsInMetadata.size());
+    LOG.trace("Current ECIDs in running cache: {}", idsSnapshot.size());
 
     final Set<ExternalCompactionId> idsToRemove = Sets.difference(idsSnapshot, idsInMetadata);
 

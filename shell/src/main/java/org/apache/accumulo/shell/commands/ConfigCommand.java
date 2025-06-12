@@ -33,11 +33,11 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.Shell.PrintFile;
@@ -53,10 +53,18 @@ import org.jline.reader.LineReader;
 import com.google.common.collect.ImmutableSortedMap;
 
 public class ConfigCommand extends Command {
-  private Option tableOpt, deleteOpt, setOpt, forceOpt, filterOpt, filterWithValuesOpt,
-      disablePaginationOpt, outputFileOpt, namespaceOpt;
+  private Option tableOpt;
+  private Option deleteOpt;
+  private Option setOpt;
+  private Option forceOpt;
+  private Option filterOpt;
+  private Option filterWithValuesOpt;
+  private Option disablePaginationOpt;
+  private Option outputFileOpt;
+  private Option namespaceOpt;
 
-  private int COL1 = 10, COL2 = 7;
+  private int COL1 = 10;
+  private int COL2 = 7;
   private LineReader reader;
 
   @Override
@@ -211,8 +219,7 @@ public class ConfigCommand extends Command {
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
       if (tableName != null) {
-        String n = Namespaces.getNamespaceName(shellState.getContext(),
-            shellState.getContext().getNamespaceId(shellState.getContext().getTableId(tableName)));
+        String n = TableNameUtil.qualify(tableName).getFirst();
         try {
           namespaceConfig
               .putAll(shellState.getAccumuloClient().namespaceOperations().getConfiguration(n));

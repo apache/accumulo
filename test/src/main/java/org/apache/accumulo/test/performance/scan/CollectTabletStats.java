@@ -73,6 +73,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.cli.ServerUtilOpts;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.fs.BlockLocation;
 import org.apache.hadoop.fs.FileStatus;
@@ -101,8 +102,6 @@ public class CollectTabletStats {
     @Parameter(names = "--columns", description = "comma separated list of columns")
     String columns;
   }
-
-  static class TestEnvironment implements IteratorEnvironment {}
 
   public static void main(String[] args) throws Exception {
 
@@ -253,7 +252,8 @@ public class CollectTabletStats {
     private int count;
     private long t1;
     private long t2;
-    private CountDownLatch startCdl, finishCdl;
+    private CountDownLatch startCdl;
+    private CountDownLatch finishCdl;
     private KeyExtent ke;
 
     Test(KeyExtent ke) {
@@ -431,8 +431,8 @@ public class CollectTabletStats {
   private static SortedKeyValueIterator<Key,Value> createScanIterator(KeyExtent ke,
       Collection<SortedKeyValueIterator<Key,Value>> dataFiles, Authorizations authorizations,
       byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
-      Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf)
-      throws IOException {
+      Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf,
+      ServerContext context) throws IOException {
 
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
 
@@ -451,7 +451,9 @@ public class CollectTabletStats {
 
     if (useTableIterators) {
       var ibEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan, ssiList, ssio, conf);
-      var iteratorBuilder = ibEnv.env(new TestEnvironment()).useClassLoader("test").build();
+      IteratorEnvironment iterEnv = new SystemIteratorEnvironmentImpl.Builder(context)
+          .withScope(IteratorScope.scan).withTableId(ke.tableId()).build();
+      var iteratorBuilder = ibEnv.env(iterEnv).useClassLoader("test").build();
       return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
     }
     return visFilter;
@@ -508,7 +510,7 @@ public class CollectTabletStats {
     Map<String,Map<String,String>> emptySsio = Collections.emptyMap();
     TableConfiguration tconf = context.getTableConfiguration(ke.tableId());
     reader = createScanIterator(ke, readers, auths, new byte[] {}, new HashSet<>(), emptyIterinfo,
-        emptySsio, useTableIterators, tconf);
+        emptySsio, useTableIterators, tconf, context);
 
     HashSet<ByteSequence> columnSet = createColumnBSS(columns);
 

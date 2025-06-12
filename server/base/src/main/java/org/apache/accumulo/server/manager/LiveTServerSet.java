@@ -91,7 +91,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     }
 
     private String lockString(ServiceLock mlock) {
-      return mlock.getLockID().serialize(context.getServerPaths().createManagerPath().toString());
+      return mlock.getLockID().serialize();
     }
 
     private void loadTablet(TabletManagementClientService.Client client, ServiceLock lock,
@@ -221,7 +221,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     scanServers();
 
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
-        .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
+        .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
   }
 
   public void tabletServerShuttingDown(String server) {
@@ -250,7 +250,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
         checkServer(updates, doomed, tserverPath);
       }
 
-      // log.debug("Current: " + current.keySet());
       this.cback.update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
@@ -525,10 +524,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       try {
         context.getZooSession().asReaderWriter().recursiveDelete(slp.toString(), SKIP);
       } catch (Exception e) {
-        String msg = "error removing tablet server lock";
-        // ACCUMULO-3651 Changed level to error and added FATAL to message for slf4j compatibility
-        log.error("FATAL: {}", msg, e);
-        Halt.halt(msg, -1);
+        Halt.halt(-1, "error removing tablet server lock", e);
       }
       context.getZooCache().clear(slp.toString());
     }

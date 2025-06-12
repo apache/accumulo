@@ -292,9 +292,9 @@ public class TabletServerResourceManager {
     _dCache = cacheManager.getBlockCache(CacheType.DATA);
     _sCache = cacheManager.getBlockCache(CacheType.SUMMARY);
 
-    long dCacheSize = _dCache.getMaxHeapSize();
-    long iCacheSize = _iCache.getMaxHeapSize();
-    long sCacheSize = _sCache.getMaxHeapSize();
+    long dCacheSize = _dCache == null ? 0 : _dCache.getMaxHeapSize();
+    long iCacheSize = _iCache == null ? 0 : _iCache.getMaxHeapSize();
+    long sCacheSize = _sCache == null ? 0 : _sCache.getMaxHeapSize();
 
     Runtime runtime = Runtime.getRuntime();
     if (usingNativeMap) {
@@ -499,10 +499,10 @@ public class TabletServerResourceManager {
       tabletReports = Collections.synchronizedMap(new HashMap<>());
       memUsageReports = new LinkedBlockingQueue<>();
       maxMem = context.getConfiguration().getAsBytes(Property.TSERV_MAXMEM);
-      memoryGuardThread = Threads.createThread("Accumulo Memory Guard",
+      memoryGuardThread = Threads.createCriticalThread("Accumulo Memory Guard",
           OptionalInt.of(Thread.NORM_PRIORITY + 1), this::processTabletMemStats);
       minorCompactionInitiatorThread =
-          Threads.createThread("Accumulo Minor Compaction Initiator", this::manageMemory);
+          Threads.createCriticalThread("Accumulo Minor Compaction Initiator", this::manageMemory);
     }
 
     void startThreads() {
@@ -598,8 +598,6 @@ public class TabletServerResourceManager {
                 }
               }
             }
-
-            // log.debug("mma.tabletsToMinorCompact = "+mma.tabletsToMinorCompact);
           }
         } catch (Exception t) {
           log.error("Minor compactions for memory management failed", t);
