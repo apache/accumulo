@@ -363,6 +363,11 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD("manager.tablet.balancer.tserver.threshold", "0",
+      PropertyType.COUNT,
+      "Indicates the minimum number of tservers for assignment and balancing operations for user tables. A"
+          + " value of zero (default) disables this threshold allowing assignment and balancing to always occur.",
+      "2.1.4"),
   MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
       PropertyType.TIMEDURATION,
       "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",
