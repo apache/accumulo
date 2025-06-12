@@ -71,6 +71,7 @@ import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.miniclusterImpl.ProcessNotFoundException;
 import org.apache.accumulo.miniclusterImpl.ProcessReference;
+import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
@@ -436,7 +437,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
           String host = addr.substring(0, addrSplit), port = addr.substring(addrSplit + 1);
           // We shouldn't have the "bindall" address in zk
-          assertNotEquals("0.0.0.0", host);
+          assertNotEquals(ServerOpts.BIND_ALL_ADDRESSES, host);
           // Nor should we have the "random port" in zk
           assertNotEquals(0, Integer.parseInt(port));
           return;

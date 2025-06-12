@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server;
+package org.apache.accumulo.core.cli;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -26,32 +26,43 @@ import org.apache.accumulo.core.conf.Property;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ServerOptsTest {
-  private ServerOpts opts;
+public class ConfigOptsTest {
+  private ConfigOpts opts;
 
   @BeforeEach
   public void setUp() {
-    opts = new ServerOpts();
+    opts = new ConfigOpts();
   }
 
   @Test
   public void testGetAddress() {
-    opts.parseArgs(ServerOptsTest.class.getName(), new String[] {"-a", "1.2.3.4"});
-    assertEquals("1.2.3.4", opts.getAddress());
+    opts.parseArgs(ConfigOptsTest.class.getName(),
+        new String[] {"-o", Property.RPC_PROCESS_BIND_ADDRESS.getKey() + "=1.2.3.4"});
+    assertEquals("1.2.3.4", opts.getSiteConfiguration().get(Property.RPC_PROCESS_BIND_ADDRESS));
   }
 
   @Test
-  public void testGetAddress_NOne() {
-    opts.parseArgs(ServerOptsTest.class.getName(), new String[] {});
-    assertEquals(ServerOpts.BIND_ALL_ADDRESSES, opts.getAddress());
+  public void testGetAddress_None() {
+    opts.parseArgs(ConfigOptsTest.class.getName(), new String[] {});
+    assertEquals("", opts.getSiteConfiguration().get(Property.RPC_PROCESS_BIND_ADDRESS));
   }
 
   @Test
   public void testOverrideConfig() {
     AccumuloConfiguration defaults = DefaultConfiguration.getInstance();
     assertEquals("localhost:2181", defaults.get(Property.INSTANCE_ZK_HOST));
-    opts.parseArgs(ServerOptsTest.class.getName(),
+    opts.parseArgs(ConfigOptsTest.class.getName(),
         new String[] {"-o", "instance.zookeeper.host=test:123"});
     assertEquals("test:123", opts.getSiteConfiguration().get(Property.INSTANCE_ZK_HOST));
   }
+
+  @Test
+  public void testOverrideMultiple() {
+    opts.parseArgs(ConfigOptsTest.class.getName(),
+        new String[] {"-o", Property.RPC_PROCESS_BIND_ADDRESS.getKey() + "=1.2.3.4", "-o",
+            Property.SSERV_CLIENTPORT.getKey() + "=8888"});
+    assertEquals("1.2.3.4", opts.getSiteConfiguration().get(Property.RPC_PROCESS_BIND_ADDRESS));
+    assertEquals("8888", opts.getSiteConfiguration().get(Property.SSERV_CLIENTPORT));
+  }
+
 }

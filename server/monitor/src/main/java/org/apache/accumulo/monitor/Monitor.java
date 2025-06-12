@@ -482,7 +482,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     }
 
     String advertiseHost = getHostname();
-    if (advertiseHost.equals("0.0.0.0")) {
+    if (advertiseHost.equals(ServerOpts.BIND_ALL_ADDRESSES)) {
       try {
         advertiseHost = InetAddress.getLocalHost().getHostName();
       } catch (UnknownHostException e) {

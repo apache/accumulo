@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
+import org.apache.accumulo.core.dataImpl.RangeImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
@@ -562,81 +563,10 @@ public class Range implements WritableComparable<Range> {
    * @param max maximum column
    * @return a column bounded range
    * @throws IllegalArgumentException if the minimum column compares greater than the maximum column
+   *         OR if the columns and the range are disjoint
    */
   public Range bound(Column min, Column max) {
-
-    if (min.compareTo(max) > 0) {
-      throw new IllegalArgumentException("min column > max column " + min + " " + max);
-    }
-
-    Key sk = getStartKey();
-    boolean ski = isStartKeyInclusive();
-
-    if (sk != null) {
-
-      ByteSequence cf = sk.getColumnFamilyData();
-      ByteSequence cq = sk.getColumnQualifierData();
-
-      ByteSequence mincf = new ArrayByteSequence(min.getColumnFamily());
-      ByteSequence mincq;
-
-      if (min.getColumnQualifier() != null) {
-        mincq = new ArrayByteSequence(min.getColumnQualifier());
-      } else {
-        mincq = new ArrayByteSequence(new byte[0]);
-      }
-
-      int cmp = cf.compareTo(mincf);
-
-      if (cmp < 0 || (cmp == 0 && cq.compareTo(mincq) < 0)) {
-        ski = true;
-        sk = new Key(sk.getRowData().toArray(), mincf.toArray(), mincq.toArray(), new byte[0],
-            Long.MAX_VALUE, true);
-      }
-    }
-
-    Key ek = getEndKey();
-    boolean eki = isEndKeyInclusive();
-
-    if (ek != null) {
-      ByteSequence row = ek.getRowData();
-      ByteSequence cf = ek.getColumnFamilyData();
-      ByteSequence cq = ek.getColumnQualifierData();
-      ByteSequence cv = ek.getColumnVisibilityData();
-
-      ByteSequence maxcf = new ArrayByteSequence(max.getColumnFamily());
-      ByteSequence maxcq = null;
-      if (max.getColumnQualifier() != null) {
-        maxcq = new ArrayByteSequence(max.getColumnQualifier());
-      }
-
-      boolean set = false;
-
-      int comp = cf.compareTo(maxcf);
-
-      if (comp > 0) {
-        set = true;
-      } else if (comp == 0 && maxcq != null && cq.compareTo(maxcq) > 0) {
-        set = true;
-      } else if (!eki && row.length() > 0 && row.byteAt(row.length() - 1) == 0 && cf.length() == 0
-          && cq.length() == 0 && cv.length() == 0 && ek.getTimestamp() == Long.MAX_VALUE) {
-        row = row.subSequence(0, row.length() - 1);
-        set = true;
-      }
-
-      if (set) {
-        eki = false;
-        if (maxcq == null) {
-          ek = new Key(row.toArray(), maxcf.toArray(), new byte[0], new byte[0], 0, false)
-              .followingKey(PartialKey.ROW_COLFAM);
-        } else {
-          ek = new Key(row.toArray(), maxcf.toArray(), maxcq.toArray(), new byte[0], 0, false)
-              .followingKey(PartialKey.ROW_COLFAM_COLQUAL);
-        }
-      }
-    }
-
-    return new Range(sk, ski, ek, eki);
+    return RangeImpl.bound(this, min, max, false);
   }
 
   @Override
