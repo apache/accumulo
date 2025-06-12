@@ -60,7 +60,10 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
           ServerType.GARBAGE_COLLECTOR, ServerType.MONITOR));
 
   private final ClientInfo info;
-  private String accumuloHome, clientAccumuloConfDir, serverAccumuloConfDir, hadoopConfDir;
+  private String accumuloHome;
+  private String clientAccumuloConfDir;
+  private String serverAccumuloConfDir;
+  private String hadoopConfDir;
   private final Path tmp;
   private final List<ClusterUser> users;
   private String clientCmdPrefix;
@@ -246,8 +249,7 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
       justification = "code runs in same security context as user who provided input file name")
   @Override
   public String getAccumuloPropertiesPath() {
-    return java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toFile()
-        .toString();
+    return java.nio.file.Path.of(serverAccumuloConfDir).resolve("accumulo.properties").toString();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
@@ -255,6 +257,6 @@ public class StandaloneAccumuloCluster implements AccumuloCluster {
   @Override
   public String getClientPropsPath() {
     return java.nio.file.Path.of(clientAccumuloConfDir).resolve("accumulo-client.properties")
-        .toFile().toString();
+        .toString();
   }
 }

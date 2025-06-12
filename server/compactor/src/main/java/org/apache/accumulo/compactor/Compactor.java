@@ -752,8 +752,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
           final FileCompactorRunnable fcr =
               createCompactionJob(job, totalInputEntries, totalInputBytes, started, stopped, err);
 
-          final Thread compactionThread =
-              Threads.createThread("Compaction job for tablet " + job.getExtent().toString(), fcr);
+          final Thread compactionThread = Threads.createNonCriticalThread(
+              "Compaction job for tablet " + job.getExtent().toString(), fcr);
 
           JOB_HOLDER.set(job, compactionThread, fcr.getFileCompactor());
 

@@ -220,8 +220,8 @@ public class Initialize implements KeywordExecutable {
       final UserGroupInformation ugi = UserGroupInformation.getCurrentUser();
       // We don't have any valid creds to talk to HDFS
       if (!ugi.hasKerberosCredentials()) {
-        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB),
-            accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
+        final String accumuloKeytab = initConfig.get(Property.GENERAL_KERBEROS_KEYTAB);
+        final String accumuloPrincipal = initConfig.get(Property.GENERAL_KERBEROS_PRINCIPAL);
 
         // Fail if the site configuration doesn't contain appropriate credentials
         if (StringUtils.isBlank(accumuloKeytab) || StringUtils.isBlank(accumuloPrincipal)) {
@@ -309,7 +309,8 @@ public class Initialize implements KeywordExecutable {
   private String getInstanceNamePath(ZooReaderWriter zoo, Opts opts)
       throws KeeperException, InterruptedException {
     // set up the instance name
-    String instanceName, instanceNamePath = null;
+    String instanceName;
+    String instanceNamePath = null;
     boolean exists = true;
     do {
       if (opts.cliInstanceName == null) {

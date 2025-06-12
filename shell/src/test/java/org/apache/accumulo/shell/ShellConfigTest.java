@@ -21,13 +21,13 @@ package org.apache.accumulo.shell;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -62,7 +62,7 @@ public class ShellConfigTest {
   TestOutputStream output;
   Shell shell;
   PrintStream out;
-  File config;
+  Path config;
   private static final Logger log = LoggerFactory.getLogger(ShellConfigTest.class);
 
   @BeforeEach
@@ -70,7 +70,7 @@ public class ShellConfigTest {
     out = System.out;
     output = new TestOutputStream();
     System.setOut(new PrintStream(output));
-    config = Files.createTempFile(null, null).toFile();
+    config = Files.createTempFile(null, null);
     Terminal terminal = new DumbTerminal(new FileInputStream(FileDescriptor.in), output);
     terminal.setSize(new Size(80, 24));
     LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -83,11 +83,7 @@ public class ShellConfigTest {
     shell.shutdown();
     output.clear();
     System.setOut(out);
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
-    }
+    Files.deleteIfExists(config);
   }
 
   public String[] args(String... args) {

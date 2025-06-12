@@ -104,6 +104,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.HasMigrationFilter;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
@@ -641,11 +642,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     for (DataLevel dl : DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
-      try (
-          var tabletsMetadata = getContext()
-              .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
-                  TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
-              .build()) {
+      try (var tabletsMetadata = getContext()
+          .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
+              TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
+          .filter(new HasMigrationFilter()).build()) {
         // filter out migrations that are awaiting cleanup
         tabletsMetadata.stream()
             .filter(tm -> tm.getMigration() != null && !shouldCleanupMigration(tm))
@@ -1168,7 +1168,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
         .build();
 
-    Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
+    Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
     tserverSet.startListeningForTabletServerChanges();
@@ -1315,8 +1315,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         sa.getAddress(), getResourceGroup()));
 
-    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
-    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
+    Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
     compactionCoordinator.start();
@@ -1361,8 +1361,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
-      authenticationTokenKeyManagerThread =
-          Threads.createThread("Delegation Token Key Manager", authenticationTokenKeyManager);
+      authenticationTokenKeyManagerThread = Threads
+          .createCriticalThread("Delegation Token Key Manager", authenticationTokenKeyManager);
       authenticationTokenKeyManagerThread.start();
       boolean logged = false;
       while (!authenticationTokenKeyManager.isInitialized()) {

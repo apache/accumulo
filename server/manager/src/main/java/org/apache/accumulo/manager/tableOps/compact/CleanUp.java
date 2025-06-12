@@ -71,7 +71,10 @@ public class CleanUp extends ManagerRepo {
       }
     };
 
-    long t1, t2, submitted = 0, total = 0;
+    long t1;
+    long t2;
+    long submitted = 0;
+    long total = 0;
 
     try (
         var tablets = ample.readTablets().forTable(tableId).overlapping(startRow, endRow)

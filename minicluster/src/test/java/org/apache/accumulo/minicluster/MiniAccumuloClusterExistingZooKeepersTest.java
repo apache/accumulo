@@ -22,7 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -32,36 +33,36 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.commons.io.FileUtils;
 import org.apache.curator.framework.CuratorFramework;
 import org.apache.curator.framework.CuratorFrameworkFactory;
 import org.apache.curator.retry.RetryOneTime;
 import org.apache.curator.test.TestingServer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths not set by user input")
 public class MiniAccumuloClusterExistingZooKeepersTest extends WithTestNames {
-  private static final File BASE_DIR =
-      Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests")
-          .resolve(MiniAccumuloClusterExistingZooKeepersTest.class.getName()).toFile();
+
+  @TempDir
+  private static Path tempDir;
 
   private static final String SECRET = "superSecret";
 
   private MiniAccumuloConfig config;
 
   @BeforeEach
-  public void setupTestCluster() {
-    assertTrue(BASE_DIR.mkdirs() || BASE_DIR.isDirectory());
-    File testDir = BASE_DIR.toPath().resolve(testName()).toFile();
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
+  public void setupTestCluster() throws IOException {
+    assertTrue(Files.isDirectory(tempDir));
+    final Path perTestCaseSubDir = tempDir.resolve(testName());
+    Files.deleteIfExists(perTestCaseSubDir);
+    Files.createDirectories(perTestCaseSubDir);
 
     // disable adminServer, which runs on port 8080 by default and we don't need
     System.setProperty("zookeeper.admin.enableServer", "false");
-    config = new MiniAccumuloConfig(testDir, SECRET);
+    config = new MiniAccumuloConfig(perTestCaseSubDir.toFile(), SECRET);
   }
 
   @Test

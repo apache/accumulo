@@ -49,7 +49,8 @@ public class ConditionalMutationTest {
   private static final ColumnVisibility CVIS2 = new ColumnVisibility("B|C");
   private static final long TIMESTAMP = 1234567890;
 
-  private Condition c1, c2;
+  private Condition c1;
+  private Condition c2;
   private ConditionalMutation cm;
 
   @BeforeEach

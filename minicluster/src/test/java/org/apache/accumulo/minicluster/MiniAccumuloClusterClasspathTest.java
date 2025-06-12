@@ -21,9 +21,9 @@ package org.apache.accumulo.minicluster;
 import static java.util.Objects.requireNonNull;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
@@ -54,30 +54,26 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class MiniAccumuloClusterClasspathTest extends WithTestNames {
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
-  public static File testDir;
   private static File jarFile;
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir =
-        Path.of(System.getProperty("user.dir")).resolve("target").resolve("mini-tests").toFile();
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = baseDir.toPath().resolve(MiniAccumuloClusterTest.class.getName()).toFile();
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
+    Path testDir = tempDir.resolve(MiniAccumuloClusterTest.class.getName());
+    Files.createDirectories(testDir);
 
-    jarFile = tempDir.toPath().resolve("iterator.jar").toFile();
+    jarFile = tempDir.resolve("iterator.jar").toFile();
     FileUtils.copyURLToFile(
         requireNonNull(MiniAccumuloClusterClasspathTest.class.getResource("/FooFilter.jar")),
         jarFile);
 
-    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
+    MiniAccumuloConfig config =
+        new MiniAccumuloConfig(testDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1G");

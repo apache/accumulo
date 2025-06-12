@@ -511,6 +511,11 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
+  public boolean hasMigration() {
+    ensureFetched(ColumnType.MIGRATION);
+    return migration != null;
+  }
+
   public Map<StoredTabletFile,FateId> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;

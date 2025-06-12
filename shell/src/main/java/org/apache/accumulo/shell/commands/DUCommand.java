@@ -50,7 +50,9 @@ import org.apache.commons.cli.Options;
  */
 public class DUCommand extends Command {
 
-  private Option optTablePattern, optHumanReadble, optNamespace;
+  private Option optTablePattern;
+  private Option optHumanReadble;
+  private Option optNamespace;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)

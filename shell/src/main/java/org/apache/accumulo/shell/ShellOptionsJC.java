@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -191,9 +192,9 @@ public class ShellOptionsJC {
       }
       searchPaths.add("/etc/accumulo/accumulo-client.properties");
       for (String path : searchPaths) {
-        File file = Path.of(path).toFile();
-        if (file.isFile() && file.canRead()) {
-          clientConfigFile = file.getAbsolutePath();
+        Path file = Path.of(path);
+        if (Files.isRegularFile(file) && Files.isReadable(file)) {
+          clientConfigFile = file.toAbsolutePath().toString();
           Shell.log.info("Loading configuration from {}", clientConfigFile);
           break;
         }

@@ -198,6 +198,18 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   }
 
   @Test
+  public void createTableWithSystemUser() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    String tableName = getUniqueNames(1)[0];
+    AccumuloClient client = getServerContext();
+    client.tableOperations().create(tableName);
+    Map<String,String> props = client.tableOperations().getConfiguration(tableName);
+    assertEquals(DefaultKeySizeConstraint.class.getName(),
+        props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
+    client.tableOperations().delete(tableName);
+  }
+
+  @Test
   public void createTableWithTableNameLengthLimit()
       throws AccumuloException, AccumuloSecurityException, TableExistsException {
     TableOperations tableOps = accumuloClient.tableOperations();
@@ -331,7 +343,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         final Key key = entry.getKey();
         String row = key.getRow().toString();
-        String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+        String cf = key.getColumnFamily().toString();
+        String cq = key.getColumnQualifier().toString();
         String value = entry.getValue().toString();
 
         if (rowCounts.containsKey(row)) {

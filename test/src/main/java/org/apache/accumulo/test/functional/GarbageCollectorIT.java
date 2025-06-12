@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -430,7 +431,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
-          assertNotEquals("0.0.0.0", hostAndPort.getHost());
+          assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES, hostAndPort.getHost());
           // Nor should we have the "random port" in zk
           assertNotEquals(0, hostAndPort.getPort());
           return;

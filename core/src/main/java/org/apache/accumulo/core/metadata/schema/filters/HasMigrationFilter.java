@@ -16,18 +16,30 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.server.iterators;
+package org.apache.accumulo.core.metadata.schema.filters;
 
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
-import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
-import org.apache.accumulo.server.ServerContext;
+import java.util.Set;
+import java.util.function.Predicate;
 
-public interface SystemIteratorEnvironment extends IteratorEnvironment {
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 
-  ServerContext getServerContext();
+import com.google.common.collect.Sets;
 
-  SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter);
+public class HasMigrationFilter extends TabletMetadataFilter {
+
+  private static final Set<ColumnType> COLUMNS =
+      Sets.immutableEnumSet(TabletMetadata.ColumnType.MIGRATION);
+  private static final Predicate<TabletMetadata> FILTER = TabletMetadata::hasMigration;
+
+  @Override
+  public Set<ColumnType> getColumns() {
+    return COLUMNS;
+  }
+
+  @Override
+  protected Predicate<TabletMetadata> acceptTablet() {
+    return FILTER;
+  }
 
 }

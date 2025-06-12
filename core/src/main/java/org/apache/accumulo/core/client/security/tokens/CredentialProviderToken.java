@@ -34,8 +34,8 @@ import org.apache.hadoop.conf.Configuration;
  * An {@link AuthenticationToken} backed by a Hadoop CredentialProvider.
  */
 public class CredentialProviderToken extends PasswordToken {
-  public static final String NAME_PROPERTY = "name",
-      CREDENTIAL_PROVIDERS_PROPERTY = "credentialProviders";
+  public static final String NAME_PROPERTY = "name";
+  public static final String CREDENTIAL_PROVIDERS_PROPERTY = "credentialProviders";
 
   private String name;
   private String credentialProviders;
@@ -104,8 +104,8 @@ public class CredentialProviderToken extends PasswordToken {
 
   @Override
   public void init(Properties properties) {
-    char[] nameCharArray = properties.get(NAME_PROPERTY),
-        credentialProvidersCharArray = properties.get(CREDENTIAL_PROVIDERS_PROPERTY);
+    char[] nameCharArray = properties.get(NAME_PROPERTY);
+    char[] credentialProvidersCharArray = properties.get(CREDENTIAL_PROVIDERS_PROPERTY);
     if (nameCharArray != null && credentialProvidersCharArray != null) {
       try {
         this.setWithCredentialProviders(new String(nameCharArray),

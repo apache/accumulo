@@ -138,7 +138,7 @@ public class CompactionPriorityQueueMetricsIT extends SharedMiniClusterBase {
     }
     queueMetrics.clear();
     shutdownTailer.set(false);
-    metricsTailer = Threads.createThread("metric-tailer", () -> {
+    metricsTailer = Threads.createNonCriticalThread("metric-tailer", () -> {
       while (!shutdownTailer.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {

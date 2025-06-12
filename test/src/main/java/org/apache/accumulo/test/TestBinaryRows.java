@@ -96,8 +96,10 @@ public class TestBinaryRows {
 
   public static void runTest(AccumuloClient accumuloClient, Opts opts) throws Exception {
 
-    final Text CF = new Text("cf"), CQ = new Text("cq");
-    final byte[] CF_BYTES = "cf".getBytes(UTF_8), CQ_BYTES = "cq".getBytes(UTF_8);
+    final Text CF = new Text("cf");
+    final Text CQ = new Text("cq");
+    final byte[] CF_BYTES = "cf".getBytes(UTF_8);
+    final byte[] CQ_BYTES = "cq".getBytes(UTF_8);
     if (opts.mode.equals("ingest") || opts.mode.equals("delete")) {
       try (BatchWriter bw = accumuloClient.createBatchWriter(opts.tableName)) {
         boolean delete = opts.mode.equals("delete");

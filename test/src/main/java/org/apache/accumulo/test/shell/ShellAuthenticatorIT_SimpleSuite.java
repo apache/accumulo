@@ -54,8 +54,8 @@ public class ShellAuthenticatorIT_SimpleSuite extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  public LineReader reader;
-  public Terminal terminal;
+  private LineReader reader;
+  private Terminal terminal;
 
   @BeforeEach
   public void setupShell() throws IOException {

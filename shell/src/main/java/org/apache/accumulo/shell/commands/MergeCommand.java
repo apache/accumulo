@@ -28,7 +28,10 @@ import org.apache.commons.cli.Options;
 import org.apache.hadoop.io.Text;
 
 public class MergeCommand extends Command {
-  private Option verboseOpt, forceOpt, sizeOpt, allOpt;
+  private Option verboseOpt;
+  private Option forceOpt;
+  private Option sizeOpt;
+  private Option allOpt;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
