@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
-import java.io.DataInput;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -59,7 +59,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
   private static final String DEBUG_OPTION = "debug";
-  private static final String MIGRATIONS_OPTION = "migrations";
+  static final String MIGRATIONS_OPTION = "migrations";
+  // this was added in 2.1.4
+  private static final String MIGRATIONS_COUNT_OPTION = "migrationsCount";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
   private static final Logger log = LoggerFactory.getLogger(TabletStateChangeIterator.class);
@@ -79,8 +81,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
     onlineTables = parseTableIDs(ServerIteratorOptions.decompressOption(options, TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
-    migrations = ServerIteratorOptions.decompressOption(options, MIGRATIONS_OPTION,
-        TabletStateChangeIterator::decodeMigrations);
+    migrations = parseMigrations(options);
     try {
       managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
     } catch (Exception ex) {
@@ -95,16 +96,43 @@ public class TabletStateChangeIterator extends SkippingIterator {
     }
   }
 
-  static Set<KeyExtent> decodeMigrations(DataInput input) throws IOException {
+  static Set<KeyExtent> parseMigrations(Map<String,String> options) {
+    String countStr = options.get(MIGRATIONS_COUNT_OPTION);
+    if (countStr != null) {
+      // this was created w/ 2.1.4 or newer so use the new decoding method that supports compression
+      int count = Integer.parseInt(countStr);
+      return ServerIteratorOptions.decompressOption(options, MIGRATIONS_OPTION,
+          dataInput -> decodeMigrations(dataInput, count));
+    } else {
+      // assume this was created by a 2.1.3 manager
+      String migrations = options.get(MIGRATIONS_OPTION);
+      if (migrations == null) {
+        return Collections.emptySet();
+      }
+      try {
+        Set<KeyExtent> result = new HashSet<>();
+        DataInputBuffer buffer = new DataInputBuffer();
+        byte[] data = Base64.getDecoder().decode(migrations);
+        buffer.reset(data, data.length);
+        while (buffer.available() > 0) {
+          result.add(KeyExtent.readFrom(buffer));
+        }
+        return result;
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+  }
+
+  static Set<KeyExtent> decodeMigrations(DataInputStream input, int count) throws IOException {
     if (input == null) {
       return Collections.emptySet();
     }
     Set<KeyExtent> result = new HashSet<>();
-    // TODO this integer will make this code incompat w/ 2.1.3 even when not using compression.
-    // Could not get the InputStream.available() function to work reliably for compressed data of
-    // the empty string/set.
-    int size = input.readInt();
-    for (int i = 0; i < size; i++) {
+    for (int i = 0; i < count; i++) {
+      // need a count and cannot use InputStream.available() because its behavior is not reliable
+      // across InputStream impls
       result.add(KeyExtent.readFrom(input));
     }
     return result;
@@ -273,8 +301,8 @@ public class TabletStateChangeIterator extends SkippingIterator {
 
   public static void setMigrations(AccumuloConfiguration aconf, IteratorSetting cfg,
       Collection<KeyExtent> migrations) {
+    cfg.addOption(MIGRATIONS_COUNT_OPTION, migrations.size() + "");
     ServerIteratorOptions.compressOption(aconf, cfg, MIGRATIONS_OPTION, dataOutput -> {
-      dataOutput.writeInt(migrations.size());
       for (KeyExtent extent : migrations) {
         extent.writeTo(dataOutput);
       }

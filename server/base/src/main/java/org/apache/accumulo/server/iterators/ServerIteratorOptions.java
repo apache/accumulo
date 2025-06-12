@@ -22,7 +22,6 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.DataInput;
 import java.io.DataInputStream;
 import java.io.DataOutput;
 import java.io.DataOutputStream;
@@ -36,6 +35,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.file.rfile.bcfile.Compression;
 import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
+import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 
@@ -43,6 +43,8 @@ import com.google.common.base.Preconditions;
 
 public class ServerIteratorOptions {
   static final String COMPRESSION_ALGO = "__COMPRESSION_ALGO";
+
+  private static final String NONE = new NoCompression().getName();
 
   public interface Serializer {
     void serialize(DataOutput dataOutput) throws IOException;
@@ -53,7 +55,7 @@ public class ServerIteratorOptions {
     final String algo = config.get(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO);
     setAlgo(iteratorSetting, algo);
 
-    if (algo.equals("none")) {
+    if (algo.equals(NONE)) {
       iteratorSetting.addOption(option, value);
     } else {
       compressOption(config, iteratorSetting, option, dataOutput -> {
@@ -94,12 +96,12 @@ public class ServerIteratorOptions {
   }
 
   public interface Deserializer<T> {
-    T deserialize(DataInput dataInput) throws IOException;
+    T deserialize(DataInputStream dataInput) throws IOException;
   }
 
   public static String decompressOption(Map<String,String> options, String option) {
-    var algo = options.getOrDefault(COMPRESSION_ALGO, "none");
-    if (algo.equals("none")) {
+    var algo = options.getOrDefault(COMPRESSION_ALGO, NONE);
+    if (algo.equals(NONE)) {
       return options.get(option);
     }
 
@@ -121,7 +123,7 @@ public class ServerIteratorOptions {
         throw new UncheckedIOException(e);
       }
     }
-    var algo = options.getOrDefault(COMPRESSION_ALGO, "none");
+    var algo = options.getOrDefault(COMPRESSION_ALGO, NONE);
     final byte[] data = Base64.getDecoder().decode(val);
     final CompressionAlgorithm ca = Compression.getCompressionAlgorithmByName(algo);
     final Decompressor d = ca.getDecompressor();

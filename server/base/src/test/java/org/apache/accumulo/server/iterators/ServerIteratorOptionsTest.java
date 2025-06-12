@@ -19,6 +19,7 @@
 package org.apache.accumulo.server.iterators;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -135,6 +136,7 @@ public class ServerIteratorOptionsTest {
         });
 
     assertEquals(extents, extents2);
+    assertNotSame(extents, extents2);
   }
 
   @Test

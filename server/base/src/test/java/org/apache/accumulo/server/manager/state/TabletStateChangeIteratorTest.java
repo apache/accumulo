@@ -18,17 +18,28 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
+
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
+import java.util.Map;
+import java.util.Set;
 
+import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.DataOutputBuffer;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Test;
 
 public class TabletStateChangeIteratorTest {
 
   // This is the algorithm used for encoding prior to 2.1.4. Duplicated here to test compatibility.
-  private String oldEncode(Collection<KeyExtent> migrations) {
+  private Map<String,String> oldEncode(Collection<KeyExtent> migrations) {
     DataOutputBuffer buffer = new DataOutputBuffer();
     try {
       for (KeyExtent extent : migrations) {
@@ -37,8 +48,41 @@ public class TabletStateChangeIteratorTest {
     } catch (Exception ex) {
       throw new RuntimeException(ex);
     }
-    return Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
+    return Map.of(TabletStateChangeIterator.MIGRATIONS_OPTION,
+        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength())));
   }
 
-  // TODO test compat for encoding of old data?
+  @Test
+  public void testMigrations() {
+    KeyExtent ke1 = new KeyExtent(TableId.of("1234"), null, null);
+    KeyExtent ke2 = new KeyExtent(TableId.of("7890"), new Text("abc"), null);
+
+    testMigrations(Set.of(), "none");
+    testMigrations(Set.of(), "gz");
+    testMigrations(Set.of(ke1, ke2), "none");
+    testMigrations(Set.of(ke1, ke2), "gz");
+
+    // when nothing is set for migrations in options map should return empty set
+    assertEquals(Set.of(), TabletStateChangeIterator.parseMigrations(Map.of()));
+  }
+
+  private void testMigrations(Set<KeyExtent> migrations, String compAlgo) {
+    var aconf = SiteConfiguration.empty()
+        .withOverrides(
+            Map.of(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO.getKey(), compAlgo))
+        .build();
+    IteratorSetting iteratorSetting = new IteratorSetting(100, "myiter", "MyIter.class");
+    TabletStateChangeIterator.setMigrations(aconf, iteratorSetting, migrations);
+    var migrations2 = TabletStateChangeIterator.parseMigrations(iteratorSetting.getOptions());
+    assertEquals(migrations, migrations2);
+    assertNotSame(migrations, migrations2);
+
+    if (compAlgo.equals("none")) {
+      // simulate 2.1.3 sending data
+      var options = oldEncode(migrations);
+      var migrations3 = TabletStateChangeIterator.parseMigrations(options);
+      assertEquals(migrations, migrations3);
+      assertNotSame(migrations, migrations3);
+    }
+  }
 }
