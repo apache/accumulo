@@ -23,7 +23,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -118,14 +117,14 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs =
-          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
-      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
-      File emptyWalog = walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
+      java.nio.file.Path walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
+      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
+      java.nio.file.Path emptyWalog = walogServerDir.resolve(UUID.randomUUID().toString());
 
-      log.info("Created empty WAL at {}", emptyWalog.toURI());
+      log.info("Created empty WAL at {}", emptyWalog.toUri());
 
-      fs.create(new Path(emptyWalog.toURI())).close();
+      fs.create(new Path(emptyWalog.toUri())).close();
 
       assertTrue(client.securityOperations().hasTablePermission("root",
           SystemTables.METADATA.tableName(), TablePermission.WRITE),
@@ -137,7 +136,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = LogEntry.fromPath(emptyWalog.toURI().toString());
+      LogEntry logEntry = LogEntry.fromPath(emptyWalog.toUri().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);
@@ -174,16 +173,15 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       // Fake out something that looks like host:port, it's irrelevant
       String fakeServer = "127.0.0.1:12345";
 
-      File walogs =
-          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR).toFile();
-      File walogServerDir = walogs.toPath().resolve(fakeServer.replace(':', '+')).toFile();
-      File partialHeaderWalog =
-          walogServerDir.toPath().resolve(UUID.randomUUID().toString()).toFile();
+      java.nio.file.Path walogs =
+          cluster.getConfig().getAccumuloDir().toPath().resolve(Constants.WAL_DIR);
+      java.nio.file.Path walogServerDir = walogs.resolve(fakeServer.replace(':', '+'));
+      java.nio.file.Path partialHeaderWalog = walogServerDir.resolve(UUID.randomUUID().toString());
 
-      log.info("Created WAL with malformed header at {}", partialHeaderWalog.toURI());
+      log.info("Created WAL with malformed header at {}", partialHeaderWalog.toUri());
 
       // Write half of the header
-      FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toURI()));
+      FSDataOutputStream wal = fs.create(new Path(partialHeaderWalog.toUri()));
       wal.write(DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8), 0,
           DfsLogger.LOG_FILE_HEADER_V4.length() / 2);
       wal.close();
@@ -198,7 +196,7 @@ public class MissingWalHeaderCompletesRecoveryIT extends ConfigurableMacBase {
       TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
       assertNotNull(tableId, "Table ID was null");
 
-      LogEntry logEntry = LogEntry.fromPath(partialHeaderWalog.toURI().toString());
+      LogEntry logEntry = LogEntry.fromPath(partialHeaderWalog.toUri().toString());
 
       log.info("Taking {} offline", tableName);
       client.tableOperations().offline(tableName, true);

@@ -39,7 +39,9 @@ import org.apache.commons.cli.Options;
 
 public abstract class TableOperation extends Command {
 
-  protected Option optTablePattern, optTableName, optNamespace;
+  protected Option optTablePattern;
+  protected Option optTableName;
+  protected Option optNamespace;
   private boolean force = true;
   private boolean useCommandLine = true;
 

@@ -317,7 +317,7 @@ public class CompactionCoordinator
   private volatile Thread serviceThread = null;
 
   public void start() {
-    serviceThread = Threads.createThread("CompactionCoordinator Thread", this);
+    serviceThread = Threads.createCriticalThread("CompactionCoordinator Thread", this);
     serviceThread.start();
   }
 

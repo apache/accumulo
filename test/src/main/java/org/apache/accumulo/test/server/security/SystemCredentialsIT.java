@@ -41,7 +41,8 @@ import org.junit.jupiter.api.Test;
 
 public class SystemCredentialsIT extends ConfigurableMacBase {
 
-  private static final int SCAN_FAILED = 7, AUTHENICATION_FAILED = 8;
+  private static final int SCAN_FAILED = 7;
+  private static final int AUTHENICATION_FAILED = 8;
 
   @Override
   protected Duration defaultTimeout() {

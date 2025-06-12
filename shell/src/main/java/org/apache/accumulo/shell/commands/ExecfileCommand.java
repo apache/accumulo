@@ -44,7 +44,7 @@ public class ExecfileCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws Exception {
-    try (Scanner scanner = new Scanner(Path.of(cl.getArgs()[0]).toFile(), UTF_8)) {
+    try (Scanner scanner = new Scanner(Path.of(cl.getArgs()[0]), UTF_8)) {
       while (scanner.hasNextLine()) {
         shellState.execCommand(scanner.nextLine(), true, cl.hasOption(verboseOption.getOpt()));
       }

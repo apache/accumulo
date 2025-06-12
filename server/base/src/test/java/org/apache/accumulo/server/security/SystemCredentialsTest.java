@@ -21,53 +21,20 @@ package org.apache.accumulo.server.security;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.security.SystemCredentials.SystemToken;
 import org.apache.commons.codec.digest.Crypt;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class SystemCredentialsTest {
 
   private static SiteConfiguration siteConfig = SiteConfiguration.empty().build();
   private InstanceId instanceId =
       InstanceId.of(UUID.nameUUIDFromBytes(new byte[] {1, 2, 3, 4, 5, 6, 7, 8, 9, 0}));
-
-  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "input not from a user")
-  @BeforeAll
-  public static void setUp() throws IOException {
-
-    Path targetDir = Path.of("target");
-    Path instanceDir = targetDir.resolve("instanceTest");
-    Path instanceIdDir = instanceDir.resolve(Constants.INSTANCE_ID_DIR);
-    File testInstanceId = instanceIdDir
-        .resolve(UUID.fromString("00000000-0000-0000-0000-000000000000").toString()).toFile();
-    if (!testInstanceId.exists()) {
-      assertTrue(
-          testInstanceId.getParentFile().mkdirs() || testInstanceId.getParentFile().isDirectory());
-      assertTrue(testInstanceId.createNewFile());
-    }
-
-    Path versionDir = instanceDir.resolve(Constants.VERSION_DIR);
-
-    File testInstanceVersion = versionDir.resolve(AccumuloDataVersion.get() + "").toFile();
-    if (!testInstanceVersion.exists()) {
-      assertTrue(testInstanceVersion.getParentFile().mkdirs()
-          || testInstanceVersion.getParentFile().isDirectory());
-      assertTrue(testInstanceVersion.createNewFile());
-    }
-  }
 
   @Test
   public void testWireVersion() {
