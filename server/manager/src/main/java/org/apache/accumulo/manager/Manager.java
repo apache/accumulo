@@ -1963,7 +1963,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
         KeyExtent ke = iter.next();
         if (!ke.isMeta()) {
           iter.remove();
-          log.trace("Removed assigned for {} as assignments for user tables is disabled.", ke);
+          log.trace("Removed assignment for {} as assignments for user tables is disabled.", ke);
         }
       }
     }
