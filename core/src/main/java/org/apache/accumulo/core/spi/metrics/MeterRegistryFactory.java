@@ -18,20 +18,11 @@
  */
 package org.apache.accumulo.core.spi.metrics;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Map;
-import java.util.Objects;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
-import com.google.common.base.Preconditions;
-
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.config.MeterFilter;
 
 /**
  * The Micrometer metrics allows for different monitoring systems. and can be enabled within

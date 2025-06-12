@@ -30,16 +30,16 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
-import io.micrometer.core.instrument.Meter;
-import io.micrometer.core.instrument.Tags;
-import io.micrometer.core.instrument.config.MeterFilter;
-import io.micrometer.core.instrument.config.MeterFilterReply;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
+import io.micrometer.core.instrument.config.MeterFilter;
+import io.micrometer.core.instrument.config.MeterFilterReply;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 
 public class MetricsInfoImplTest {
@@ -73,26 +73,26 @@ public class MetricsInfoImplTest {
   }
 
   /**
-   * Verify that when a Null pattern is supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)}, that we catch a NullPointerException and
-   * receive the errorMessage: "patternList must not be null"
+   * Verify that when a Null pattern is supplied to {@link MetricsInfoImpl#getMeterFilter(String)},
+   * that we catch a NullPointerException and receive the errorMessage: "patternList must not be
+   * null"
    */
   @Test
   public void testNullPatternList() {
     Throwable exception = assertThrows(NullPointerException.class,
-            () -> MetricsInfoImpl.getMeterFilter(null), "Expected an NPE");
+        () -> MetricsInfoImpl.getMeterFilter(null), "Expected an NPE");
     assertEquals("patternList must not be null", exception.getMessage());
   }
 
   /**
    * Verify that when an empty pattern is supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)}, that we catch an IllegalArgumentException
-   * and receive the errorMessage: "patternList must not be empty"
+   * {@link MetricsInfoImpl#getMeterFilter(String)}, that we catch an IllegalArgumentException and
+   * receive the errorMessage: "patternList must not be empty"
    */
   @Test
   public void testIfEmptyPattern() {
     Throwable exception = assertThrows(IllegalArgumentException.class,
-            () -> MetricsInfoImpl.getMeterFilter(""), "Expected an IllegalArgumentException");
+        () -> MetricsInfoImpl.getMeterFilter(""), "Expected an IllegalArgumentException");
     assertEquals("patternList must not be empty", exception.getMessage());
 
   }
@@ -104,14 +104,14 @@ public class MetricsInfoImplTest {
   @Test
   public void testIfPatternListInvalid() {
     assertThrows(PatternSyntaxException.class, () -> MetricsInfoImpl.getMeterFilter("[\\]"),
-            "Expected an PatternSyntaxException");
+        "Expected an PatternSyntaxException");
 
   }
 
   /**
-   * Verify that when only one pattern is supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)} and the resulting filter is given an id
-   * whose name matches that pattern, that we get a reply of {@link MeterFilterReply#DENY}.
+   * Verify that when only one pattern is supplied to {@link MetricsInfoImpl#getMeterFilter(String)}
+   * and the resulting filter is given an id whose name matches that pattern, that we get a reply of
+   * {@link MeterFilterReply#DENY}.
    */
   @Test
   public void testIfSinglePatternMatchesId() {
@@ -123,8 +123,8 @@ public class MetricsInfoImplTest {
 
   /**
    * Verify that when only one pattern is supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id
-   * whose name does not match that patten, that we get a reply of {@link MeterFilterReply#NEUTRAL}.
+   * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id whose
+   * name does not match that patten, that we get a reply of {@link MeterFilterReply#NEUTRAL}.
    */
   @Test
   public void testIfSinglePatternDoesNotMatch() {
@@ -136,8 +136,8 @@ public class MetricsInfoImplTest {
 
   /**
    * Verify that when multiple patterns are supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id
-   * whose name matches at least one of the patterns, that we get a reply of
+   * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id whose
+   * name matches at least one of the patterns, that we get a reply of
    * {@link MeterFilterReply#DENY}.
    */
   @Test
@@ -150,9 +150,8 @@ public class MetricsInfoImplTest {
 
   /**
    * Verify that when multiple patterns are supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id
-   * whose name matches none of the patterns, that we get a reply of
-   * {@link MeterFilterReply#NEUTRAL}.
+   * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id whose
+   * name matches none of the patterns, that we get a reply of {@link MeterFilterReply#NEUTRAL}.
    */
   @Test
   public void testMultiplePatternsWithNoMatch() {
