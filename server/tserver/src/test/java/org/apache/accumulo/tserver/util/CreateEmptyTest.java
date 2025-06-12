@@ -214,9 +214,9 @@ public class CreateEmptyTest extends WithTestNames {
       LogFileKey key = new LogFileKey();
       key.readFields(dis);
 
-      assertEquals(key.event, LogEvents.OPEN);
-      assertEquals("", key.tserverSession);
-      assertNull(key.filename);
+      assertEquals(key.getEvent(), LogEvents.OPEN);
+      assertEquals("", key.getTserverSession());
+      assertNull(key.getFilename());
     }
   }
 
