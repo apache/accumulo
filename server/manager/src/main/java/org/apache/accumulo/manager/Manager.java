@@ -909,9 +909,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {
+
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
           log.debug("not balancing user tablets because there are {} unhosted tablets",
               tabletsNotHosted);
+          continue;
+        }
+
+        if (dl == DataLevel.USER && !canAssignAndBalance()) {
+          log.debug("not balancing user tablets because not enough tablet servers");
           continue;
         }
 
@@ -1856,6 +1862,17 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
                 Map::putAll),
             assignedOut);
     tabletBalancer.getAssignments(params);
+    if (!canAssignAndBalance()) {
+      // remove assignment for user tables
+      Iterator<KeyExtent> iter = assignedOut.keySet().iterator();
+      while (iter.hasNext()) {
+        KeyExtent ke = iter.next();
+        if (!ke.isMeta()) {
+          iter.remove();
+          log.trace("Removed assignment for {} as assignments for user tables is disabled.", ke);
+        }
+      }
+    }
   }
 
   public TabletStateStore getTabletStateStore(DataLevel level) {
@@ -1899,5 +1916,20 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       }
     }
     return count;
+  }
+
+  private boolean canAssignAndBalance() {
+    final int threshold =
+        getConfiguration().getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD);
+    if (threshold == 0) {
+      return true;
+    }
+    final int numTServers = tserverSet.size();
+    final boolean result = numTServers >= threshold;
+    if (!result) {
+      log.warn("Not assigning or balancing as number of tservers ({}) is below threshold ({})",
+          numTServers, threshold);
+    }
+    return result;
   }
 }
