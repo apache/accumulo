@@ -51,7 +51,17 @@ public class EmbeddedWebServer {
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
 
     connector = new ServerConnector(server, getConnectionFactories(conf, secure));
-    connector.setHost(monitor.getAdvertiseAddress().getHost());
+    String hostName = "";
+    if (monitor.getAdvertiseAddress() == null) {
+      try {
+         hostName = InetAddress.getLocalHost().getHostName();
+      } catch (UnknownHostException e) {
+        LOG.error("Unable to get hostname", e);
+      }
+    } else {
+      hostName = monitor.getAdvertiseAddress().getHost();
+    }
+    connector.setHost(hostName);
     connector.setPort(port);
 
     handler =
