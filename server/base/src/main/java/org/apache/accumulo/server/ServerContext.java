@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
+import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -439,6 +440,11 @@ public class ServerContext extends ClientContext {
   @Override
   protected long getTransportPoolMaxAgeMillis() {
     return getClientTimeoutInMillis();
+  }
+
+  @Override
+  public synchronized ThriftTransportPool getTransportPool() {
+    return getTransportPoolImpl(true);
   }
 
   public AuditedSecurityOperation getSecurityOperation() {
