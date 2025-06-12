@@ -79,38 +79,4 @@ public interface MeterRegistryFactory {
    */
   MeterRegistry create(final InitParameters params);
 
-  /**
-   * Description of what the function does.
-   *
-   * @param patternList Description of what this variable is, i.e. comma-delimited regext patterns
-   * @return description of what this function returns, i.e. a predicate
-   */
-  static MeterFilter getMeterFilter(String patternList) {
-    requireNonNull(patternList, "patternList must not be null");
-    Preconditions.checkArgument(!patternList.isEmpty(), "patternList must not be empty");
-
-    String[] patterns = patternList.split(",");
-    Predicate<Meter.Id> finalPredicate = null;
-
-    for (String pattern : patterns) {
-      // Compile the pattern.
-      // Will throw PatternSyntaxException if invalid pattern.
-      Pattern compiledPattern = Pattern.compile(pattern);
-
-      // Create a predicate that will return true if the ID's name matches the pattern.
-      Predicate<Meter.Id> predicate = id -> compiledPattern.matcher(id.getName()).matches();
-
-      if (finalPredicate == null) {
-        // This is the first pattern. Establish the initial predicate.
-        finalPredicate = predicate;
-      } else {
-        // Conjoin the pattern into the final predicates. The final predicate will return true if
-        // the name of the ID matches any of its conjoined predicates.
-        finalPredicate = finalPredicate.or(predicate);
-      }
-    }
-
-    // Assert that meter filter reply == MeterFilterReply.DENY;
-    return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
-  }
 }

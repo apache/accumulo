@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
 import java.util.ArrayList;
@@ -25,7 +26,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
+import com.google.common.base.Preconditions;
+import io.micrometer.core.instrument.Meter;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.metrics.MetricsInfo;
@@ -159,7 +164,7 @@ public class MetricsInfoImpl implements MetricsInfo {
     String filterPatterns = context.getConfiguration().get(Property.GENERAL_MICROMETER_ID_FILTERS);
     MeterFilter meterFilter = null;
     if (StringUtils.isNotEmpty(filterPatterns)) {
-      meterFilter = MeterRegistryFactory.getMeterFilter(filterPatterns);
+      meterFilter = getMeterFilter(filterPatterns);
     }
 
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
@@ -246,6 +251,41 @@ public class MetricsInfoImpl implements MetricsInfo {
     }
 
     Metrics.globalRegistry.close();
+  }
+
+  /**
+   * Description of what the function does.
+   *
+   * @param patternList Description of what this variable is, i.e. comma-delimited regext patterns
+   * @return description of what this function returns, i.e. a predicate
+   */
+  public static MeterFilter getMeterFilter(String patternList) {
+    requireNonNull(patternList, "patternList must not be null");
+    Preconditions.checkArgument(!patternList.isEmpty(), "patternList must not be empty");
+
+    String[] patterns = patternList.split(",");
+    Predicate<Meter.Id> finalPredicate = null;
+
+    for (String pattern : patterns) {
+      // Compile the pattern.
+      // Will throw PatternSyntaxException if invalid pattern.
+      Pattern compiledPattern = Pattern.compile(pattern);
+
+      // Create a predicate that will return true if the ID's name matches the pattern.
+      Predicate<Meter.Id> predicate = id -> compiledPattern.matcher(id.getName()).matches();
+
+      if (finalPredicate == null) {
+        // This is the first pattern. Establish the initial predicate.
+        finalPredicate = predicate;
+      } else {
+        // Conjoin the pattern into the final predicates. The final predicate will return true if
+        // the name of the ID matches any of its conjoined predicates.
+        finalPredicate = finalPredicate.or(predicate);
+      }
+    }
+
+    // Assert that meter filter reply == MeterFilterReply.DENY;
+    return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
   }
 
   @Override
