@@ -96,8 +96,8 @@ class WriteExportFiles extends ManagerRepo {
 
     long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ,
         true, TableOperation.EXPORT)
-        + Utils.reserveTable(manager, tableInfo.tableID, fateId, LockType.READ, true,
-            TableOperation.EXPORT);
+        + Utils.reserveTable(manager, tableInfo.tableID, tableInfo.namespaceID, fateId,
+            LockType.READ, true, TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
     }

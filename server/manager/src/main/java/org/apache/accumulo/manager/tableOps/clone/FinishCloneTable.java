@@ -53,13 +53,13 @@ class FinishCloneTable extends ManagerRepo {
 
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
     if (cloneInfo.isKeepOffline()) {
-      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), TableState.OFFLINE,
-          expectedCurrStates);
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(),
+          cloneInfo.getNamespaceId(), TableState.OFFLINE, expectedCurrStates);
     } else {
       // transition clone table state to state of original table
       TableState ts = environment.getTableManager().getTableState(cloneInfo.getSrcTableId());
-      environment.getTableManager().transitionTableState(cloneInfo.getTableId(), ts,
-          expectedCurrStates);
+      environment.getTableManager().transitionTableState(cloneInfo.getTableId(),
+          cloneInfo.getNamespaceId(), ts, expectedCurrStates);
     }
 
     Utils.unreserveNamespace(environment, cloneInfo.getSrcNamespaceId(), fateId, LockType.READ);

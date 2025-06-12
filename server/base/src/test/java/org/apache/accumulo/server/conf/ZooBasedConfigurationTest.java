@@ -134,7 +134,8 @@ public class ZooBasedConfigurationTest {
   @Test
   public void getPropertiesTest() {
     var tableId = TableId.of("t1");
-    var tablePropKey = TablePropKey.of(tableId);
+    var namespaceId = NamespaceId.of("n1");
+    var tablePropKey = TablePropKey.of(tableId, namespaceId);
 
     VersionedProperties tProps =
         new VersionedProperties(Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
@@ -153,7 +154,7 @@ public class ZooBasedConfigurationTest {
 
     NamespaceConfiguration nsConfig = new NamespaceConfiguration(context, nsId, siteConfig);
 
-    ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsConfig);
+    ZooBasedConfiguration zbc = new TableConfiguration(context, tableId, nsId, nsConfig);
     Map<String,String> readProps = zbc.getSnapshot();
 
     assertNotNull(zbc.getSnapshot());
@@ -217,7 +218,7 @@ public class ZooBasedConfigurationTest {
         new VersionedProperties(2, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "false"));
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"), NamespaceId.of("ns1"));
     VersionedProperties tableProps =
         new VersionedProperties(3, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
@@ -289,7 +290,7 @@ public class ZooBasedConfigurationTest {
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"), NamespaceId.of("ns1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
 
@@ -325,7 +326,7 @@ public class ZooBasedConfigurationTest {
     VersionedProperties nsProps = new VersionedProperties(20, Instant.now(), Map.of());
     expect(propStore.get(eq(nsPropKey))).andReturn(nsProps).once();
 
-    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("ns1.table1"), NamespaceId.of("ns1"));
     VersionedProperties tableProps = new VersionedProperties(3, Instant.now(), Map.of());
     expect(propStore.get(eq(tablePropKey))).andReturn(tableProps).once();
 

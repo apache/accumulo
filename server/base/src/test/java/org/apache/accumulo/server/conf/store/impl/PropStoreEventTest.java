@@ -35,6 +35,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import java.time.Instant;
 import java.util.Map;
 
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -80,7 +81,7 @@ public class PropStoreEventTest {
   @Test
   public void zkChangeEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"), NamespaceId.of("ns1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -109,7 +110,7 @@ public class PropStoreEventTest {
   @Test
   public void deleteEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"), NamespaceId.of("ns1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -139,7 +140,7 @@ public class PropStoreEventTest {
   @Test
   public void disconnectEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"), NamespaceId.of("ns1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -171,7 +172,7 @@ public class PropStoreEventTest {
   @Test
   public void closedEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"), NamespaceId.of("ns1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
 
@@ -204,7 +205,7 @@ public class PropStoreEventTest {
   @Test
   public void cacheChangeEventTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"), NamespaceId.of("ns1"));
 
     PropStoreWatcher watcher = new PropStoreWatcher(readyMonitor);
     readyMonitor.setReady();
@@ -226,7 +227,7 @@ public class PropStoreEventTest {
 
   @Test
   public void validateWatcherSetTest() throws Exception {
-    var tablePropKey = TablePropKey.of(TableId.of("a1"));
+    var tablePropKey = TablePropKey.of(TableId.of("a1"), NamespaceId.of("ns1"));
 
     Map<String,String> props1 =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
