@@ -202,7 +202,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, configOverrides, limit, new String[] {});
   }
 
-  @SuppressWarnings(value = {"removal"})
+  @SuppressWarnings("removal")
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit,
       String... args) throws IOException {
     if (limit <= 0) {
