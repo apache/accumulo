@@ -27,6 +27,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -212,7 +213,8 @@ public class MergeStats {
     KeyExtent extent = info.getExtent();
     Scanner scanner = accumuloClient
         .createScanner(extent.isMeta() ? RootTable.NAME : MetadataTable.NAME, Authorizations.EMPTY);
-    MetaDataTableScanner.configureScanner(scanner, manager, DataLevel.of(extent.tableId()));
+    MetaDataTableScanner.configureScanner(((ClientContext) accumuloClient).getConfiguration(),
+        scanner, manager, DataLevel.of(extent.tableId()));
     Text start = extent.prevEndRow();
     if (start == null) {
       start = new Text();

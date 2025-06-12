@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.manager.state;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,6 +32,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -43,6 +45,7 @@ import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletLocationState;
 import org.apache.accumulo.core.metadata.TabletLocationState.BadLocationStateException;
 import org.apache.accumulo.core.util.AddressUtil;
+import org.apache.accumulo.server.iterators.ServerIteratorOptions;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.slf4j.Logger;
@@ -56,7 +59,9 @@ public class TabletStateChangeIterator extends SkippingIterator {
   private static final String TABLES_OPTION = "tables";
   private static final String MERGES_OPTION = "merges";
   private static final String DEBUG_OPTION = "debug";
-  private static final String MIGRATIONS_OPTION = "migrations";
+  static final String MIGRATIONS_OPTION = "migrations";
+  // this was added in 2.1.4
+  private static final String MIGRATIONS_COUNT_OPTION = "migrationsCount";
   private static final String MANAGER_STATE_OPTION = "managerState";
   private static final String SHUTTING_DOWN_OPTION = "shuttingDown";
   private static final Logger log = LoggerFactory.getLogger(TabletStateChangeIterator.class);
@@ -72,11 +77,11 @@ public class TabletStateChangeIterator extends SkippingIterator {
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
-    current = parseServers(options.get(SERVERS_OPTION));
-    onlineTables = parseTableIDs(options.get(TABLES_OPTION));
+    current = parseServers(ServerIteratorOptions.decompressOption(options, SERVERS_OPTION));
+    onlineTables = parseTableIDs(ServerIteratorOptions.decompressOption(options, TABLES_OPTION));
     merges = parseMerges(options.get(MERGES_OPTION));
     debug = options.containsKey(DEBUG_OPTION);
-    migrations = parseMigrations(options.get(MIGRATIONS_OPTION));
+    migrations = parseMigrations(options);
     try {
       managerState = ManagerState.valueOf(options.get(MANAGER_STATE_OPTION));
     } catch (Exception ex) {
@@ -84,28 +89,53 @@ public class TabletStateChangeIterator extends SkippingIterator {
         log.error("Unable to decode managerState {}", options.get(MANAGER_STATE_OPTION));
       }
     }
-    Set<TServerInstance> shuttingDown = parseServers(options.get(SHUTTING_DOWN_OPTION));
+    Set<TServerInstance> shuttingDown =
+        parseServers(ServerIteratorOptions.decompressOption(options, SHUTTING_DOWN_OPTION));
     if (current != null && shuttingDown != null) {
       current.removeAll(shuttingDown);
     }
   }
 
-  private Set<KeyExtent> parseMigrations(String migrations) {
-    if (migrations == null) {
+  static Set<KeyExtent> parseMigrations(Map<String,String> options) {
+    String countStr = options.get(MIGRATIONS_COUNT_OPTION);
+    if (countStr != null) {
+      // this was created w/ 2.1.4 or newer so use the new decoding method that supports compression
+      int count = Integer.parseInt(countStr);
+      return ServerIteratorOptions.decompressOption(options, MIGRATIONS_OPTION,
+          dataInput -> decodeMigrations(dataInput, count));
+    } else {
+      // assume this was created by a 2.1.3 manager
+      String migrations = options.get(MIGRATIONS_OPTION);
+      if (migrations == null) {
+        return Collections.emptySet();
+      }
+      try {
+        Set<KeyExtent> result = new HashSet<>();
+        DataInputBuffer buffer = new DataInputBuffer();
+        byte[] data = Base64.getDecoder().decode(migrations);
+        buffer.reset(data, data.length);
+        while (buffer.available() > 0) {
+          result.add(KeyExtent.readFrom(buffer));
+        }
+        return result;
+      } catch (Exception ex) {
+        throw new RuntimeException(ex);
+      }
+    }
+
+  }
+
+  static Set<KeyExtent> decodeMigrations(DataInputStream input, int count) throws IOException {
+    if (input == null) {
       return Collections.emptySet();
     }
-    try {
-      Set<KeyExtent> result = new HashSet<>();
-      DataInputBuffer buffer = new DataInputBuffer();
-      byte[] data = Base64.getDecoder().decode(migrations);
-      buffer.reset(data, data.length);
-      while (buffer.available() > 0) {
-        result.add(KeyExtent.readFrom(buffer));
-      }
-      return result;
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
+    Set<KeyExtent> result = new HashSet<>();
+    for (int i = 0; i < count; i++) {
+      // need a count and cannot use InputStream.available() because its behavior is not reliable
+      // across InputStream impls
+      result.add(KeyExtent.readFrom(input));
     }
+    return result;
   }
 
   private Set<TableId> parseTableIDs(String tableIDs) {
@@ -231,19 +261,23 @@ public class TabletStateChangeIterator extends SkippingIterator {
     throw new UnsupportedOperationException();
   }
 
-  public static void setCurrentServers(IteratorSetting cfg, Set<TServerInstance> goodServers) {
+  public static void setCurrentServers(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Set<TServerInstance> goodServers) {
     if (goodServers != null) {
       List<String> servers = new ArrayList<>();
       for (TServerInstance server : goodServers) {
         servers.add(server.getHostPortSession());
       }
-      cfg.addOption(SERVERS_OPTION, Joiner.on(",").join(servers));
+      ServerIteratorOptions.compressOption(aconf, cfg, SERVERS_OPTION,
+          Joiner.on(",").join(servers));
     }
   }
 
-  public static void setOnlineTables(IteratorSetting cfg, Set<TableId> onlineTables) {
+  public static void setOnlineTables(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Set<TableId> onlineTables) {
     if (onlineTables != null) {
-      cfg.addOption(TABLES_OPTION, Joiner.on(",").join(onlineTables));
+      ServerIteratorOptions.compressOption(aconf, cfg, TABLES_OPTION,
+          Joiner.on(",").join(onlineTables));
     }
   }
 
@@ -253,6 +287,7 @@ public class TabletStateChangeIterator extends SkippingIterator {
       for (MergeInfo info : merges) {
         KeyExtent extent = info.getExtent();
         if (extent != null && !info.getState().equals(MergeState.NONE)) {
+
           info.write(buffer);
         }
       }
@@ -264,28 +299,25 @@ public class TabletStateChangeIterator extends SkippingIterator {
     cfg.addOption(MERGES_OPTION, encoded);
   }
 
-  public static void setMigrations(IteratorSetting cfg, Collection<KeyExtent> migrations) {
-    DataOutputBuffer buffer = new DataOutputBuffer();
-    try {
+  public static void setMigrations(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Collection<KeyExtent> migrations) {
+    cfg.addOption(MIGRATIONS_COUNT_OPTION, migrations.size() + "");
+    ServerIteratorOptions.compressOption(aconf, cfg, MIGRATIONS_OPTION, dataOutput -> {
       for (KeyExtent extent : migrations) {
-        extent.writeTo(buffer);
+        extent.writeTo(dataOutput);
       }
-    } catch (Exception ex) {
-      throw new RuntimeException(ex);
-    }
-    String encoded =
-        Base64.getEncoder().encodeToString(Arrays.copyOf(buffer.getData(), buffer.getLength()));
-    cfg.addOption(MIGRATIONS_OPTION, encoded);
+    });
   }
 
   public static void setManagerState(IteratorSetting cfg, ManagerState state) {
     cfg.addOption(MANAGER_STATE_OPTION, state.toString());
   }
 
-  public static void setShuttingDown(IteratorSetting cfg, Set<TServerInstance> servers) {
+  public static void setShuttingDown(AccumuloConfiguration aconf, IteratorSetting cfg,
+      Set<TServerInstance> servers) {
     if (servers != null) {
-      cfg.addOption(SHUTTING_DOWN_OPTION, Joiner.on(",").join(servers));
+      ServerIteratorOptions.compressOption(aconf, cfg, SHUTTING_DOWN_OPTION,
+          Joiner.on(",").join(servers));
     }
   }
-
 }
