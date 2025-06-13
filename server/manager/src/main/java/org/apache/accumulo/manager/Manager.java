@@ -582,10 +582,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   }
 
   private boolean shouldCleanupMigration(TabletMetadata tabletMetadata) {
+    if (!tabletMetadata.hasMigration()) {
+      return false;
+    }
     var tableState = getContext().getTableManager().getTableState(tabletMetadata.getTableId());
     var migration = tabletMetadata.getMigration();
-    Preconditions.checkState(migration != null,
-        "This method should only be called if there is a migration");
     return tableState == TableState.OFFLINE || !onlineTabletServers().contains(migration)
         || (tabletMetadata.getLocation() != null
             && tabletMetadata.getLocation().getServerInstance().equals(migration));
