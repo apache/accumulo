@@ -471,7 +471,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(
           "Unable to start embedded web server on ports: " + Arrays.toString(ports));
     } else {
-      log.debug("Monitor started on port {}", livePort);
+      log.debug("Monitor listening on {}:{}", server.getHostName(), livePort);
     }
 
     try {
@@ -481,17 +481,21 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
       throw new RuntimeException(e);
     }
 
-    String updateHostName = null;
-    if (getAdvertiseAddress() == null) {
-      try {
-        updateHostName = InetAddress.getLocalHost().getHostName();
-      } catch (UnknownHostException e) {
-        log.error("Unable to get hostname", e);
+    HostAndPort advertiseAddress = getAdvertiseAddress();
+    if (advertiseAddress == null) {
+      // use the bind address from the connector, unless it's null or 0.0.0.0
+      String advertiseHost = server.getHostName();
+      if (advertiseHost == null || advertiseHost == ServerOpts.BIND_ALL_ADDRESSES) {
+        try {
+          advertiseHost = InetAddress.getLocalHost().getHostName();
+        } catch (UnknownHostException e) {
+          throw new RuntimeException("Unable to get hostname for advertise address", e);
+        }
       }
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseHost, livePort));
     } else {
-      updateHostName = getAdvertiseAddress().getHost();
+      updateAdvertiseAddress(HostAndPort.fromParts(advertiseAddress.getHost(), livePort));
     }
-    updateAdvertiseAddress(HostAndPort.fromParts(updateHostName, livePort));
     HostAndPort monitorHostAndPort = getAdvertiseAddress();
     log.debug("Using {} to advertise monitor location in ZooKeeper", monitorHostAndPort);
     try {
