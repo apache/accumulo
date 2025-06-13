@@ -37,7 +37,6 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
@@ -429,12 +428,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
-    ServerAddress server =
-        TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
-            processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
-            1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(),
-            0, getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
-            false, addresses);
+    ServerAddress server = TServerUtils.createThriftServer(getConfiguration(),
+        getContext().getThriftServerType(), processor, getContext().getInstanceID(),
+        this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
+        maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+        getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
+        addresses);
     server.startThriftServer("GC Monitor Service");
     setHostname(server.address);
     log.debug("Starting garbage collector listening on {}", server.address);
@@ -462,7 +461,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   @Override
-  public GCStatus getStatus(TInfo info, TCredentials credentials) {
+  public GCStatus getStatus(TCredentials credentials) {
     return status;
   }
 

@@ -136,7 +136,6 @@ struct TCompactionStats{
 service TabletServerClientService {
 
   oneway void flush(
-    4:client.TInfo tinfo
     1:security.TCredentials credentials
     3:string lock
     2:string tableId
@@ -145,14 +144,12 @@ service TabletServerClientService {
   )
 
   manager.TabletServerStatus getTabletServerStatus(
-    3:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   list<TabletStats> getTabletStats(
-    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string tableId
   ) throws (
@@ -160,14 +157,12 @@ service TabletServerClientService {
   )
 
   TabletStats getHistoricalStats(
-    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   void halt(
-    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string lock
   ) throws (
@@ -175,31 +170,26 @@ service TabletServerClientService {
   )
 
   oneway void fastHalt(
-    3:client.TInfo tinfo
     1:security.TCredentials credentials
     2:string lock
   )
 
   list<ActiveCompaction> getActiveCompactions(
-    2:client.TInfo tinfo
     1:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
   )
 
   oneway void removeLogs(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<string> filenames
   )
 
   list<string> getActiveLogs(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   )
 
   data.TSummaries startGetSummaries(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
   ) throws (
@@ -208,7 +198,6 @@ service TabletServerClientService {
   )
 
   data.TSummaries startGetSummariesForPartition(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
     4:i32 modulus
@@ -218,7 +207,6 @@ service TabletServerClientService {
   )
 
   data.TSummaries startGetSummariesFromFiles(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:data.TSummaryRequest request
     4:map<string, list<data.TRowRange>> files
@@ -227,20 +215,17 @@ service TabletServerClientService {
   )
 
   data.TSummaries contiuneGetSummaries(
-    1:client.TInfo tinfo
     2:i64 sessionId
   ) throws (
     1:NoSuchScanIDException nssi
   )
   
   list<data.TKeyExtent> refreshTablets(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<data.TKeyExtent> tabletsToRefresh
   )
 
   map<data.TKeyExtent, i64> allocateTimestamps(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:list<data.TKeyExtent> tablets
   )
