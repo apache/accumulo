@@ -138,6 +138,22 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
       return super.readMessageBegin();
     }
 
+    @Override
+    public void readMessageEnd() throws TException {
+      try {
+        super.readMessageEnd();
+      } finally {
+        if (scope != null) {
+          scope.close();
+          scope = null;
+        }
+        if (span != null) {
+          span.end();
+          span = null;
+        }
+      }
+    }
+
     /**
      * Reads and validates the Accumulo protocol header
      *
