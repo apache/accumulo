@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.metrics;
 
+import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
 import java.util.ArrayList;
@@ -25,6 +26,8 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -33,11 +36,14 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
@@ -48,6 +54,7 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
+import io.micrometer.core.instrument.config.MeterFilter;
 
 public class MetricsInfoImpl implements MetricsInfo {
 
@@ -154,10 +161,20 @@ public class MetricsInfoImpl implements MetricsInfo {
     String userRegistryFactories =
         context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
 
+    // Fetch the patterns to filter from the meter registry.
+    String filterPatterns = context.getConfiguration().get(Property.GENERAL_MICROMETER_ID_FILTERS);
+    MeterFilter meterFilter = null;
+    if (StringUtils.isNotEmpty(filterPatterns)) {
+      meterFilter = getMeterFilter(filterPatterns);
+    }
+
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
         registry.config().commonTags(commonTags);
+        if (meterFilter != null) {
+          registry.config().meterFilter(meterFilter);
+        }
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
         LOG.warn("Could not load registry {}", factoryName, ex);
@@ -235,6 +252,41 @@ public class MetricsInfoImpl implements MetricsInfo {
     }
 
     Metrics.globalRegistry.close();
+  }
+
+  /**
+   * Description of what the function does.
+   *
+   * @param patternList Description of what this variable is, i.e. comma-delimited regext patterns
+   * @return description of what this function returns, i.e. a predicate
+   */
+  public static MeterFilter getMeterFilter(String patternList) {
+    requireNonNull(patternList, "patternList must not be null");
+    Preconditions.checkArgument(!patternList.isEmpty(), "patternList must not be empty");
+
+    String[] patterns = patternList.split(",");
+    Predicate<Meter.Id> finalPredicate = null;
+
+    for (String pattern : patterns) {
+      // Compile the pattern.
+      // Will throw PatternSyntaxException if invalid pattern.
+      Pattern compiledPattern = Pattern.compile(pattern);
+
+      // Create a predicate that will return true if the ID's name matches the pattern.
+      Predicate<Meter.Id> predicate = id -> compiledPattern.matcher(id.getName()).matches();
+
+      if (finalPredicate == null) {
+        // This is the first pattern. Establish the initial predicate.
+        finalPredicate = predicate;
+      } else {
+        // Conjoin the pattern into the final predicates. The final predicate will return true if
+        // the name of the ID matches any of its conjoined predicates.
+        finalPredicate = finalPredicate.or(predicate);
+      }
+    }
+
+    // Assert that meter filter reply == MeterFilterReply.DENY;
+    return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
   }
 
   @Override
