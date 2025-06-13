@@ -27,7 +27,6 @@ import java.util.SortedMap;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
@@ -43,7 +42,6 @@ import org.apache.accumulo.server.constraints.MetadataConstraints;
 import org.apache.accumulo.server.constraints.SystemEnvironment;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.hadoop.io.Text;
-import org.apache.zookeeper.KeeperException;
 
 public interface MetadataCheckRunner extends CheckRunner {
 
@@ -51,9 +49,15 @@ public interface MetadataCheckRunner extends CheckRunner {
 
   TableId tableId();
 
-  Set<ColumnFQ> requiredColFQs();
+  default Set<ColumnFQ> requiredColFQs() {
+    return Set.of(MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN,
+        MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN,
+        MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN);
+  }
 
-  Set<Text> requiredColFams();
+  default Set<Text> requiredColFams() {
+    return Set.of(MetadataSchema.TabletsSection.CurrentLocationColumnFamily.NAME);
+  }
 
   default String scanning() {
     return String.format("%s (%s) table", tableName(), tableId());
@@ -64,8 +68,7 @@ public interface MetadataCheckRunner extends CheckRunner {
    * that are expected. For the root metadata, ensures that the expected "columns" exist in ZK.
    */
   default Admin.CheckCommand.CheckStatus checkRequiredColumns(ServerContext context,
-      Admin.CheckCommand.CheckStatus status)
-      throws TableNotFoundException, InterruptedException, KeeperException {
+      Admin.CheckCommand.CheckStatus status) throws Exception {
     Set<ColumnFQ> requiredColFQs;
     Set<Text> requiredColFams;
     boolean missingReqCol = false;
