@@ -23,11 +23,15 @@ import java.util.List;
 
 import org.apache.accumulo.monitor.rest.manager.ManagerInformation;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Generates a list of servers, bad servers, and dead servers
  *
  * @since 2.0.0
  */
+@SuppressFBWarnings(value = "PA_PUBLIC_PRIMITIVE_ATTRIBUTE",
+    justification = "class used for serialization")
 public class TabletServers {
 
   // Variable names become JSON keys

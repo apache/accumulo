@@ -124,10 +124,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testSimpleRLI() throws IOException {
     KeyValue keyValue = new KeyValue();
-    keyValue.key.event = DEFINE_TABLET;
-    keyValue.key.seq = 0;
-    keyValue.key.tabletId = 1;
-    keyValue.key.tablet = extent;
+    keyValue.key.setEvent(DEFINE_TABLET);
+    keyValue.key.setSeq(0);
+    keyValue.key.setTabletId(1);
+    keyValue.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue};
 
@@ -141,8 +141,8 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
     try (RecoveryLogsIterator rli = new RecoveryLogsIterator(context, dirs, null, null, false)) {
       while (rli.hasNext()) {
         Entry<LogFileKey,LogFileValue> entry = rli.next();
-        assertEquals(1, entry.getKey().tabletId, "TabletId does not match");
-        assertEquals(DEFINE_TABLET, entry.getKey().event, "Event does not match");
+        assertEquals(1, entry.getKey().getTabletId(), "TabletId does not match");
+        assertEquals(DEFINE_TABLET, entry.getKey().getEvent(), "Event does not match");
       }
     }
   }
@@ -150,10 +150,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testFinishMarker() throws IOException {
     KeyValue keyValue = new KeyValue();
-    keyValue.key.event = DEFINE_TABLET;
-    keyValue.key.seq = 0;
-    keyValue.key.tabletId = 1;
-    keyValue.key.tablet = extent;
+    keyValue.key.setEvent(DEFINE_TABLET);
+    keyValue.key.setSeq(0);
+    keyValue.key.setTabletId(1);
+    keyValue.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue};
 
@@ -170,10 +170,10 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testCheckFirstKeyFailed() throws IOException {
     KeyValue keyValue = new KeyValue();
-    keyValue.key.event = DEFINE_TABLET;
-    keyValue.key.seq = 0;
-    keyValue.key.tabletId = 1;
-    keyValue.key.tablet = extent;
+    keyValue.key.setEvent(DEFINE_TABLET);
+    keyValue.key.setSeq(0);
+    keyValue.key.setTabletId(1);
+    keyValue.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue};
 
@@ -192,16 +192,16 @@ public class RecoveryLogsIteratorTest extends WithTestNames {
   @Test
   public void testCheckFirstKeyPass() throws IOException {
     KeyValue keyValue1 = new KeyValue();
-    keyValue1.key.event = OPEN;
-    keyValue1.key.seq = 0;
-    keyValue1.key.tabletId = -1;
-    keyValue1.key.tserverSession = "1";
+    keyValue1.key.setEvent(OPEN);
+    keyValue1.key.setSeq(0);
+    keyValue1.key.setTabletId(-1);
+    keyValue1.key.setTserverSession("1");
 
     KeyValue keyValue2 = new KeyValue();
-    keyValue2.key.event = DEFINE_TABLET;
-    keyValue2.key.seq = 0;
-    keyValue2.key.tabletId = 1;
-    keyValue2.key.tablet = extent;
+    keyValue2.key.setEvent(DEFINE_TABLET);
+    keyValue2.key.setSeq(0);
+    keyValue2.key.setTabletId(1);
+    keyValue2.key.setTablet(extent);
 
     KeyValue[] keyValues = {keyValue1, keyValue2};
 

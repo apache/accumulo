@@ -39,6 +39,7 @@ import java.util.stream.IntStream;
 
 import javax.net.ssl.SSLServerSocket;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
@@ -493,7 +494,7 @@ public class TServerUtils {
 
     // If we can't get a real hostname from the provided host test, use the hostname from DNS for
     // localhost
-    if ("0.0.0.0".equals(hostname)) {
+    if (ConfigOpts.BIND_ALL_ADDRESSES.equals(hostname)) {
       hostname = fqdn;
     }
 
@@ -658,7 +659,7 @@ public class TServerUtils {
     }
 
     // check for the special "bind to everything address"
-    if (serverAddress.address.getHost().equals("0.0.0.0")) {
+    if (serverAddress.address.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
       // can't get the address from the bind, so we'll do our best to invent our hostname
       try {
         serverAddress = new ServerAddress(serverAddress.server, HostAndPort

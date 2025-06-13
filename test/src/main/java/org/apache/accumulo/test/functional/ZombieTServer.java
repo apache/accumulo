@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
@@ -125,8 +126,9 @@ public class ZombieTServer {
         ThriftServerType.CUSTOM_HS_HA, muxProcessor, context.getInstanceID(), "ZombieTServer", 2,
         ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
         context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
-        HostAndPort.fromParts("0.0.0.0", port));
+        HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, port));
     serverPort.startThriftServer("walking dead");
+
     String addressString = serverPort.address.toString();
 
     var zLockPath = context.getServerPaths()

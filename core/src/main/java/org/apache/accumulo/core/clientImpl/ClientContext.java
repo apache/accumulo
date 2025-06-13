@@ -1146,6 +1146,10 @@ public class ClientContext implements AccumuloClient {
   }
 
   public synchronized ThriftTransportPool getTransportPool() {
+    return getTransportPoolImpl(false);
+  }
+
+  protected synchronized ThriftTransportPool getTransportPoolImpl(boolean shouldHalt) {
     ensureOpen();
     if (thriftTransportPool == null) {
       LongSupplier maxAgeSupplier = () -> {
@@ -1162,7 +1166,7 @@ public class ClientContext implements AccumuloClient {
           throw e;
         }
       };
-      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier);
+      thriftTransportPool = ThriftTransportPool.startNew(maxAgeSupplier, shouldHalt);
     }
     return thriftTransportPool;
   }

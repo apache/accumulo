@@ -558,15 +558,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           var ample = getContext().getAmple();
           for (DataLevel dl : DataLevel.values()) {
             // prev row needed for the extent
-            try (
-                var tabletsMetadata = ample.readTablets().forLevel(dl)
-                    .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
-                        TabletMetadata.ColumnType.LOCATION)
-                    .build();
+            try (var tabletsMetadata = ample.readTablets().forLevel(dl)
+                .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
+                    TabletMetadata.ColumnType.LOCATION)
+                .filter(new HasMigrationFilter()).build();
                 var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
               for (var tabletMetadata : tabletsMetadata) {
                 var migration = tabletMetadata.getMigration();
-                if (migration != null && shouldCleanupMigration(tabletMetadata)) {
+                if (shouldCleanupMigration(tabletMetadata)) {
                   tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
                       .requireMigration(migration).deleteMigration().submit(tm -> false);
                 }
@@ -647,8 +646,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
               TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
           .filter(new HasMigrationFilter()).build()) {
         // filter out migrations that are awaiting cleanup
-        tabletsMetadata.stream()
-            .filter(tm -> tm.getMigration() != null && !shouldCleanupMigration(tm))
+        tabletsMetadata.stream().filter(tm -> !shouldCleanupMigration(tm))
             .forEach(tm -> extents.add(tm.getExtent()));
       }
       partitionedMigrations.put(dl, extents);
@@ -909,9 +907,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       int levelsCompleted = 0;
 
       for (DataLevel dl : DataLevel.values()) {
+
         if (dl == DataLevel.USER && tabletsNotHosted > 0) {
           log.debug("not balancing user tablets because there are {} unhosted tablets",
               tabletsNotHosted);
+          continue;
+        }
+
+        if (dl == DataLevel.USER && !canAssignAndBalance()) {
+          log.debug("not balancing user tablets because not enough tablet servers");
           continue;
         }
 
@@ -1856,6 +1860,17 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
                 Map::putAll),
             assignedOut);
     tabletBalancer.getAssignments(params);
+    if (!canAssignAndBalance()) {
+      // remove assignment for user tables
+      Iterator<KeyExtent> iter = assignedOut.keySet().iterator();
+      while (iter.hasNext()) {
+        KeyExtent ke = iter.next();
+        if (!ke.isMeta()) {
+          iter.remove();
+          log.trace("Removed assignment for {} as assignments for user tables is disabled.", ke);
+        }
+      }
+    }
   }
 
   public TabletStateStore getTabletStateStore(DataLevel level) {
@@ -1891,13 +1906,26 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private long numMigrations() {
     long count = 0;
     for (DataLevel dl : DataLevel.values()) {
-      // prev row needed for the extent
       try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
-        count += tabletsMetadata.stream()
-            .filter(tabletMetadata -> tabletMetadata.getMigration() != null).count();
+          .fetch(TabletMetadata.ColumnType.MIGRATION).filter(new HasMigrationFilter()).build()) {
+        count += tabletsMetadata.stream().count();
       }
     }
     return count;
+  }
+
+  private boolean canAssignAndBalance() {
+    final int threshold =
+        getConfiguration().getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD);
+    if (threshold == 0) {
+      return true;
+    }
+    final int numTServers = tserverSet.size();
+    final boolean result = numTServers >= threshold;
+    if (!result) {
+      log.warn("Not assigning or balancing as number of tservers ({}) is below threshold ({})",
+          numTServers, threshold);
+    }
+    return result;
   }
 }
