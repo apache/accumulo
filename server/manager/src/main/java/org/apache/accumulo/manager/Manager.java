@@ -1889,11 +1889,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private long numMigrations() {
     long count = 0;
     for (DataLevel dl : DataLevel.values()) {
-      // prev row needed for the extent
-      try (var tabletsMetadata = getContext()
-          .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
-              TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
-          .filter(new HasMigrationFilter()).build()) {
+      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
+          .fetch(TabletMetadata.ColumnType.MIGRATION).filter(new HasMigrationFilter()).build()) {
         count += tabletsMetadata.stream().count();
       }
     }
