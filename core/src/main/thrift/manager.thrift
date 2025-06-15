@@ -186,7 +186,6 @@ service FateService {
 
   // register a fate operation by reserving an opid
   TFateId beginFateOperation(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateInstanceType type
   ) throws (
@@ -196,7 +195,6 @@ service FateService {
 
   // initiate execution of the fate operation; set autoClean to true if not waiting for completion
   void executeFateOperation(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateId opid
     4:TFateOperation op
@@ -211,7 +209,6 @@ service FateService {
 
   // wait for completion of the operation and get the returned exception, if any
   string waitForFateOperation(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateId opid
   ) throws (
@@ -222,7 +219,6 @@ service FateService {
 
   // clean up fate operation if autoClean was not set, after waiting
   void finishFateOperation(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateId opid
   ) throws (
@@ -232,7 +228,6 @@ service FateService {
 
   // cancel a fate operation
   bool cancelFateOperation(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:TFateId opid
   ) throws (
@@ -246,7 +241,6 @@ service ManagerClientService {
 
   // table management methods
   i64 initiateFlush(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
   ) throws (
@@ -256,7 +250,6 @@ service ManagerClientService {
   )
 
   void waitForFlush(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:binary startRow
@@ -270,7 +263,6 @@ service ManagerClientService {
   )
 
   void setTableProperty(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:string property
@@ -283,7 +275,6 @@ service ManagerClientService {
   )
 
   void modifyTableProperties(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:client.TVersionedProperties vProperties
@@ -296,7 +287,6 @@ service ManagerClientService {
   )
 
   void removeTableProperty(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:string property
@@ -307,7 +297,6 @@ service ManagerClientService {
   )
 
   void setNamespaceProperty(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:string property
@@ -320,7 +309,6 @@ service ManagerClientService {
   )
 
   void modifyNamespaceProperties(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:client.TVersionedProperties vProperties
@@ -332,7 +320,6 @@ service ManagerClientService {
   )
 
   void removeNamespaceProperty(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string ns
     4:string property
@@ -344,7 +331,6 @@ service ManagerClientService {
 
   // system management methods
   void setManagerGoalState(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:ManagerGoalState state
   ) throws (
@@ -353,7 +339,6 @@ service ManagerClientService {
   )
 
   void shutdown(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:bool stopTabletServers
   ) throws (
@@ -362,7 +347,6 @@ service ManagerClientService {
   )
 
   void shutdownTabletServer(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tabletServer
     4:bool force
@@ -372,7 +356,6 @@ service ManagerClientService {
   )
   
   void tabletServerStopping(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tabletServer
   ) throws (
@@ -381,7 +364,6 @@ service ManagerClientService {
   )
 
   void setSystemProperty(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string property
     4:string value
@@ -392,7 +374,6 @@ service ManagerClientService {
   )
  
   void modifySystemProperties(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:client.TVersionedProperties vProperties
   ) throws (
@@ -403,7 +384,6 @@ service ManagerClientService {
   )
 
   void removeSystemProperty(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string property
   ) throws (
@@ -413,7 +393,6 @@ service ManagerClientService {
 
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -421,13 +400,11 @@ service ManagerClientService {
   )
 
   void waitForBalance(
-    1:client.TInfo tinfo
   ) throws (
     1:client.ThriftNotActiveServiceException tnase
   )
 
   oneway void reportTabletStatus(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string serverName
     4:TabletLoadState status
@@ -435,7 +412,6 @@ service ManagerClientService {
   )
 
   list<string> getActiveTservers(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec
@@ -444,7 +420,6 @@ service ManagerClientService {
 
   // Delegation token request
   security.TDelegationToken getDelegationToken(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:security.TDelegationTokenConfig cfg
   ) throws (
@@ -453,7 +428,6 @@ service ManagerClientService {
   )
 
   void requestTabletHosting(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableId
     4:list<data.TKeyExtent> extents
@@ -463,7 +437,6 @@ service ManagerClientService {
   )
 
   list<data.TKeyExtent> updateTabletMergeability(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tableName
     4:map<data.TKeyExtent,TTabletMergeability> splits
@@ -473,7 +446,6 @@ service ManagerClientService {
   )
 
   i64 getManagerTimeNanos(
-    1:client.TInfo tinfo
     2:security.TCredentials credentials
   ) throws (
     1:client.ThriftSecurityException sec

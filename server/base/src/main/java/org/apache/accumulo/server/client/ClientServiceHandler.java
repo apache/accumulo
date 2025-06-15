@@ -42,7 +42,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TDiskUsage;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -106,8 +105,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean authenticate(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public boolean authenticate(TCredentials credentials) throws ThriftSecurityException {
     try {
       return security.authenticateUser(credentials, credentials);
     } catch (ThriftSecurityException e) {
@@ -117,7 +115,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean authenticateUser(TInfo tinfo, TCredentials credentials, TCredentials toAuth)
+  public boolean authenticateUser(TCredentials credentials, TCredentials toAuth)
       throws ThriftSecurityException {
     try {
       return security.authenticateUser(credentials, toAuth);
@@ -128,13 +126,13 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void changeAuthorizations(TInfo tinfo, TCredentials credentials, String user,
+  public void changeAuthorizations(TCredentials credentials, String user,
       List<ByteBuffer> authorizations) throws ThriftSecurityException {
     security.changeAuthorizations(credentials, user, new Authorizations(authorizations));
   }
 
   @Override
-  public void changeLocalUserPassword(TInfo tinfo, TCredentials credentials, String principal,
+  public void changeLocalUserPassword(TCredentials credentials, String principal,
       ByteBuffer password) throws ThriftSecurityException {
     PasswordToken token = new PasswordToken(password);
     Credentials toChange = new Credentials(principal, token);
@@ -142,8 +140,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void createLocalUser(TInfo tinfo, TCredentials credentials, String principal,
-      ByteBuffer password) throws ThriftSecurityException {
+  public void createLocalUser(TCredentials credentials, String principal, ByteBuffer password)
+      throws ThriftSecurityException {
     AuthenticationToken token;
     if (context.getSaslParams() != null) {
       try {
@@ -160,27 +158,26 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void dropLocalUser(TInfo tinfo, TCredentials credentials, String user)
-      throws ThriftSecurityException {
+  public void dropLocalUser(TCredentials credentials, String user) throws ThriftSecurityException {
     security.dropUser(credentials, user);
   }
 
   @Override
-  public List<ByteBuffer> getUserAuthorizations(TInfo tinfo, TCredentials credentials, String user)
+  public List<ByteBuffer> getUserAuthorizations(TCredentials credentials, String user)
       throws ThriftSecurityException {
     return security.getUserAuthorizations(credentials, user).getAuthorizationsBB();
   }
 
   @Override
-  public void grantSystemPermission(TInfo tinfo, TCredentials credentials, String user,
-      byte permission) throws ThriftSecurityException {
+  public void grantSystemPermission(TCredentials credentials, String user, byte permission)
+      throws ThriftSecurityException {
     security.grantSystemPermission(credentials, user,
         SystemPermission.getPermissionById(permission));
   }
 
   @Override
-  public void grantTablePermission(TInfo tinfo, TCredentials credentials, String user,
-      String tableName, byte permission) throws TException {
+  public void grantTablePermission(TCredentials credentials, String user, String tableName,
+      byte permission) throws TException {
     TableId tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     NamespaceId namespaceId;
     try {
@@ -193,23 +190,23 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public void grantNamespacePermission(TInfo tinfo, TCredentials credentials, String user,
-      String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException {
+  public void grantNamespacePermission(TCredentials credentials, String user, String ns,
+      byte permission) throws ThriftSecurityException, ThriftTableOperationException {
     NamespaceId namespaceId = checkNamespaceId(context, ns, TableOperation.PERMISSION);
     security.grantNamespacePermission(credentials, user, namespaceId,
         NamespacePermission.getPermissionById(permission));
   }
 
   @Override
-  public void revokeSystemPermission(TInfo tinfo, TCredentials credentials, String user,
-      byte permission) throws ThriftSecurityException {
+  public void revokeSystemPermission(TCredentials credentials, String user, byte permission)
+      throws ThriftSecurityException {
     security.revokeSystemPermission(credentials, user,
         SystemPermission.getPermissionById(permission));
   }
 
   @Override
-  public void revokeTablePermission(TInfo tinfo, TCredentials credentials, String user,
-      String tableName, byte permission) throws TException {
+  public void revokeTablePermission(TCredentials credentials, String user, String tableName,
+      byte permission) throws TException {
     TableId tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     NamespaceId namespaceId;
     try {
@@ -223,40 +220,38 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean hasSystemPermission(TInfo tinfo, TCredentials credentials, String user,
-      byte sysPerm) throws ThriftSecurityException {
+  public boolean hasSystemPermission(TCredentials credentials, String user, byte sysPerm)
+      throws ThriftSecurityException {
     return security.hasSystemPermission(credentials, user,
         SystemPermission.getPermissionById(sysPerm));
   }
 
   @Override
-  public boolean hasTablePermission(TInfo tinfo, TCredentials credentials, String user,
-      String tableName, byte tblPerm)
-      throws ThriftSecurityException, ThriftTableOperationException {
+  public boolean hasTablePermission(TCredentials credentials, String user, String tableName,
+      byte tblPerm) throws ThriftSecurityException, ThriftTableOperationException {
     TableId tableId = checkTableId(context, tableName, TableOperation.PERMISSION);
     return security.hasTablePermission(credentials, user, tableId,
         TablePermission.getPermissionById(tblPerm));
   }
 
   @Override
-  public boolean hasNamespacePermission(TInfo tinfo, TCredentials credentials, String user,
-      String ns, byte perm) throws ThriftSecurityException, ThriftTableOperationException {
+  public boolean hasNamespacePermission(TCredentials credentials, String user, String ns, byte perm)
+      throws ThriftSecurityException, ThriftTableOperationException {
     NamespaceId namespaceId = checkNamespaceId(context, ns, TableOperation.PERMISSION);
     return security.hasNamespacePermission(credentials, user, namespaceId,
         NamespacePermission.getPermissionById(perm));
   }
 
   @Override
-  public void revokeNamespacePermission(TInfo tinfo, TCredentials credentials, String user,
-      String ns, byte permission) throws ThriftSecurityException, ThriftTableOperationException {
+  public void revokeNamespacePermission(TCredentials credentials, String user, String ns,
+      byte permission) throws ThriftSecurityException, ThriftTableOperationException {
     NamespaceId namespaceId = checkNamespaceId(context, ns, TableOperation.PERMISSION);
     security.revokeNamespacePermission(credentials, user, namespaceId,
         NamespacePermission.getPermissionById(permission));
   }
 
   @Override
-  public Set<String> listLocalUsers(TInfo tinfo, TCredentials credentials)
-      throws ThriftSecurityException {
+  public Set<String> listLocalUsers(TCredentials credentials) throws ThriftSecurityException {
     return security.listUsers(credentials);
   }
 
@@ -313,8 +308,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
-      ConfigurationType type) throws TException {
+  public Map<String,String> getConfiguration(TCredentials credentials, ConfigurationType type)
+      throws TException {
     checkSystemPermission(credentials);
     switch (type) {
       case CURRENT:
@@ -329,14 +324,14 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getSystemProperties(TInfo tinfo, TCredentials credentials)
+  public Map<String,String> getSystemProperties(TCredentials credentials)
       throws ThriftSecurityException {
     checkSystemPermission(credentials);
     return context.getPropStore().get(SystemPropKey.of()).asMap();
   }
 
   @Override
-  public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, TCredentials credentials)
+  public TVersionedProperties getVersionedSystemProperties(TCredentials credentials)
       throws ThriftSecurityException {
     checkSystemPermission(credentials);
     return Optional.of(context.getPropStore().get(SystemPropKey.of()))
@@ -345,8 +340,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getTableConfiguration(TInfo tinfo, TCredentials credentials,
-      String tableName) throws TException {
+  public Map<String,String> getTableConfiguration(TCredentials credentials, String tableName)
+      throws TException {
     TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     context.getPropStore().getCache().remove(TablePropKey.of(tableId));
@@ -355,15 +350,15 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getTableProperties(TInfo tinfo, TCredentials credentials,
-      String tableName) throws TException {
+  public Map<String,String> getTableProperties(TCredentials credentials, String tableName)
+      throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
     return context.getPropStore().get(TablePropKey.of(tableId)).asMap();
   }
 
   @Override
-  public TVersionedProperties getVersionedTableProperties(TInfo tinfo, TCredentials credentials,
+  public TVersionedProperties getVersionedTableProperties(TCredentials credentials,
       String tableName) throws TException {
     final TableId tableId = checkTableId(context, tableName, null);
     checkTablePermission(credentials, tableId, TablePermission.ALTER_TABLE);
@@ -373,8 +368,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean checkClass(TInfo tinfo, TCredentials credentials, String className,
-      String interfaceMatch) throws TException {
+  public boolean checkClass(TCredentials credentials, String className, String interfaceMatch)
+      throws TException {
     security.authenticateUser(credentials, credentials);
 
     ClassLoader loader = getClass().getClassLoader();
@@ -391,8 +386,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean checkTableClass(TInfo tinfo, TCredentials credentials, String tableName,
-      String className, String interfaceMatch)
+  public boolean checkTableClass(TCredentials credentials, String tableName, String className,
+      String interfaceMatch)
       throws TException, ThriftTableOperationException, ThriftSecurityException {
 
     security.authenticateUser(credentials, credentials);
@@ -415,8 +410,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public boolean checkNamespaceClass(TInfo tinfo, TCredentials credentials, String ns,
-      String className, String interfaceMatch)
+  public boolean checkNamespaceClass(TCredentials credentials, String ns, String className,
+      String interfaceMatch)
       throws TException, ThriftTableOperationException, ThriftSecurityException {
 
     security.authenticateUser(credentials, credentials);
@@ -469,8 +464,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getNamespaceConfiguration(TInfo tinfo, TCredentials credentials,
-      String ns) throws TException {
+  public Map<String,String> getNamespaceConfiguration(TCredentials credentials, String ns)
+      throws TException {
     NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(context, ns, null);
     checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
     context.getPropStore().getCache().remove(NamespacePropKey.of(namespaceId));
@@ -479,7 +474,7 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public Map<String,String> getNamespaceProperties(TInfo tinfo, TCredentials credentials, String ns)
+  public Map<String,String> getNamespaceProperties(TCredentials credentials, String ns)
       throws TException {
     NamespaceId namespaceId = checkNamespaceId(context, ns, null);
     checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
@@ -487,8 +482,8 @@ public class ClientServiceHandler implements ClientService.Iface {
   }
 
   @Override
-  public TVersionedProperties getVersionedNamespaceProperties(TInfo tinfo, TCredentials credentials,
-      String ns) throws TException {
+  public TVersionedProperties getVersionedNamespaceProperties(TCredentials credentials, String ns)
+      throws TException {
     NamespaceId namespaceId = checkNamespaceId(context, ns, null);
     checkNamespacePermission(credentials, namespaceId, NamespacePermission.ALTER_NAMESPACE);
     return Optional.of(context.getPropStore().get(NamespacePropKey.of(namespaceId)))
