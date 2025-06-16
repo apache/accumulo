@@ -99,7 +99,8 @@ public class ImportTableTest {
         EasyMock.eq(tableDirSet))).andReturn(new Path(tableDirs[1]));
     EasyMock.expect(volumeManager.matchingFileSystem(EasyMock.eq(new Path(expDirs[2])),
         EasyMock.eq(tableDirSet))).andReturn(new Path(tableDirs[2]));
-    EasyMock.expect(uniqueNameAllocator.getNextName()).andReturn(dirName).times(3);
+    EasyMock.expect(uniqueNameAllocator.getNextNames(EasyMock.anyInt()))
+        .andReturn(List.of("abcd", "abcd", "abcd").iterator()).times(1);
 
     ImportedTableInfo ti = new ImportedTableInfo();
     ti.tableId = TableId.of("5b");
