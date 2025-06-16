@@ -97,7 +97,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
     private final List<TabletMetadataFilter> tabletMetadataFilters = new ArrayList<>();
     private final Function<DataLevel,String> tableMapper;
 
-    Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
+    // visible for testing
+    protected Builder(AccumuloClient client, Function<DataLevel,String> tableMapper) {
       this._client = client;
       this.tableMapper = Objects.requireNonNull(tableMapper);
     }
@@ -131,22 +132,35 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
           "scanTable() cannot be used in conjunction with forLevel(), forTable() or forTablet() %s %s",
           level, table);
       if (level == DataLevel.ROOT) {
-        final ClientContext ctx = ((ClientContext) _client);
-        final RootTabletMetadata rtm = RootTabletMetadata.read(ctx);
-        final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
-        if (!tabletMetadataFilters.isEmpty()) {
-          for (var filter : tabletMetadataFilters) {
-            if (!filter.acceptRow(iter)) {
-              LOG.trace("Not returning root metadata as it does not pass filter: {}",
-                  filter.getClass().getSimpleName());
-              return new TabletsMetadata((AutoCloseable) null, Set.of());
-            }
-          }
+        try {
+          return buildRoot(_client);
+        } catch (IOException e) {
+          throw new UncheckedIOException("Error creating root tablet metadata", e);
         }
-        return new TabletsMetadata(rtm.toTabletMetadata());
       } else {
         return buildNonRoot(_client);
       }
+    }
+
+    // visible for testing
+    protected RootTabletMetadata getRootMetadata(AccumuloClient client) {
+      return RootTabletMetadata.read((ClientContext) client);
+    }
+
+    private TabletsMetadata buildRoot(AccumuloClient client) throws IOException {
+      final RootTabletMetadata rtm = getRootMetadata(client);
+      if (!tabletMetadataFilters.isEmpty()) {
+        final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
+        iter.seek(new Range(), null, true);
+        for (var filter : tabletMetadataFilters) {
+          if (!filter.acceptRow(iter)) {
+            LOG.trace("Not returning root metadata as it does not pass filter: {}",
+                filter.getClass().getSimpleName());
+            return new TabletsMetadata((AutoCloseable) null, Set.of());
+          }
+        }
+      }
+      return new TabletsMetadata(rtm.toTabletMetadata());
     }
 
     private TabletsMetadata buildExtents(AccumuloClient client) {
@@ -166,7 +180,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
 
       for (DataLevel level : groupedExtents.keySet()) {
         if (level == DataLevel.ROOT) {
-          iterables.add(() -> Iterators.singletonIterator(getRootMetadata((ClientContext) client)));
+          iterables.add(() -> Iterators
+              .singletonIterator(getRootMetadata((ClientContext) client).toTabletMetadata()));
         } else {
           try {
             BatchScanner scanner =
@@ -571,10 +586,6 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
   public static TableOptions builder(AccumuloClient client,
       Function<DataLevel,String> tableMapper) {
     return new Builder(client, tableMapper);
-  }
-
-  private static TabletMetadata getRootMetadata(ClientContext ctx) {
-    return RootTabletMetadata.read(ctx).toTabletMetadata();
   }
 
   private final AutoCloseable closeable;
