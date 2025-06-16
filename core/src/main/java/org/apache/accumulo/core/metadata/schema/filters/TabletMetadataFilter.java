@@ -36,7 +36,11 @@ public abstract class TabletMetadataFilter extends RowFilter {
   public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
     TabletMetadata tm = TabletMetadata.convertRow(new IteratorAdapter(rowIterator),
         EnumSet.copyOf(getColumns()), true, false);
-    return acceptTablet().test(tm);
+    Predicate<TabletMetadata> predicate = acceptTablet();
+    if (predicate == null) {
+      return false;
+    }
+    return predicate.test(tm);
   }
 
   public abstract Set<TabletMetadata.ColumnType> getColumns();
