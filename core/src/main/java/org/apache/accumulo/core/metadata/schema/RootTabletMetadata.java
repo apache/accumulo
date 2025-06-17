@@ -194,9 +194,10 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
+    // Create a tablet metadata object from the RootTabletMetadata
+    // Keep the key/values in case they are needed
     return TabletMetadata.convertRow(getKeyValues().iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
+        EnumSet.allOf(TabletMetadata.ColumnType.class), true, false);
   }
 
   public static boolean needsUpgrade(final String json) {
