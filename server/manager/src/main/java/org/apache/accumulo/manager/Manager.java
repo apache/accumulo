@@ -60,7 +60,6 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
-import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
@@ -1334,20 +1333,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
       var metaInstance = initializeFateInstance(context,
           new MetaFateStore<>(context.getZooSession(), managerLock.getLockID(), isLockHeld));
-
-      // If an upgrade occurred, then it's possible that the client may not yet
-      // be aware of the table. Wait for the table to be known to prevent an
-      // error when creating the UserFateStore.
-      while (true) {
-        try {
-          context.getTableId(SystemTables.FATE.tableName());
-          break;
-        } catch (TableNotFoundException e) {
-          log.trace("Waiting for client to become aware of user fate table");
-          Thread.sleep(100);
-        }
-      }
-
       var userInstance = initializeFateInstance(context, new UserFateStore<>(context,
           SystemTables.FATE.tableName(), managerLock.getLockID(), isLockHeld));
 
