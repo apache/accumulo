@@ -29,8 +29,12 @@ import org.apache.accumulo.core.iterators.IteratorAdapter;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.RowFilter;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class TabletMetadataFilter extends RowFilter {
+
+  private static final Logger LOG = LoggerFactory.getLogger(TabletMetadataFilter.class);
 
   @Override
   public boolean acceptRow(SortedKeyValueIterator<Key,Value> rowIterator) {
@@ -40,7 +44,10 @@ public abstract class TabletMetadataFilter extends RowFilter {
     if (predicate == null) {
       return false;
     }
-    return predicate.test(tm);
+    boolean result = predicate.test(tm);
+    LOG.trace("Filter {} returned {} for tablet metadata: {}", this.getClass().getSimpleName(),
+        result, tm.getKeyValues());
+    return result;
   }
 
   public abstract Set<TabletMetadata.ColumnType> getColumns();

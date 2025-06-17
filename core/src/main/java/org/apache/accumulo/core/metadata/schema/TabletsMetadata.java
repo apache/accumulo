@@ -55,6 +55,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -153,6 +154,8 @@ public class TabletsMetadata implements Iterable<TabletMetadata>, AutoCloseable 
         final SortedMapIterator iter = new SortedMapIterator(rtm.toKeyValues());
         iter.seek(new Range(), null, true);
         for (var filter : tabletMetadataFilters) {
+          filter.init(iter, filter.getServerSideOptions(),
+              new ClientIteratorEnvironment.Builder().withClient(client).build());
           if (!filter.acceptRow(iter)) {
             LOG.trace("Not returning root metadata as it does not pass filter: {}",
                 filter.getClass().getSimpleName());
