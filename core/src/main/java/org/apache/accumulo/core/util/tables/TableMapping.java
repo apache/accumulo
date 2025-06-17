@@ -144,11 +144,9 @@ public class TableMapping {
       }
       Map<String,String> idToName = deserializeMap(data);
       if (namespaceId.equals(Namespace.ACCUMULO.id())) {
-        if (!(idToName.containsKey(SystemTables.ROOT.tableId().canonical())
-            && idToName.containsKey(SystemTables.METADATA.tableId().canonical()))) {
-          throw new IllegalStateException("Accumulo namespace expected to at least contain tables "
-              + SystemTables.ROOT.tableId().canonical() + " and "
-              + SystemTables.METADATA.tableId().canonical() + ", but saw " + idToName);
+        if (!idToName.equals(SystemTables.tableIdToSimpleNameMap())) {
+          throw new IllegalStateException("Accumulo namespace expected to contain tables "
+              + SystemTables.tableIdToSimpleNameMap() + ", but saw " + idToName);
         }
       }
       var converted = ImmutableSortedMap.<TableId,String>naturalOrder();
