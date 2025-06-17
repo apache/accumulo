@@ -513,7 +513,7 @@ function control_services() {
         # to complete before zapping the nodes in ZooKeeper
         ssh_wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers -group "$group"
+        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -567,7 +567,7 @@ function control_services() {
         # to complete before zapping the nodes in ZooKeeper
         ssh_wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers -group "$group"
+        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -592,7 +592,7 @@ function control_services() {
         # to complete before zapping the nodes in ZooKeeper
         ssh_wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors -group "$group"
+        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
