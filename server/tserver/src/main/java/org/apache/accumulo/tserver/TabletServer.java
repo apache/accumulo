@@ -310,6 +310,18 @@ public class TabletServer extends AbstractServer
         }), 5, 5, TimeUnit.SECONDS);
     watchNonCriticalScheduledTask(future);
 
+    ScheduledFuture<?> cleanupTask =
+        context.getScheduledExecutor().scheduleWithFixedDelay(Threads.createNamedRunnable(
+            "ScanRefCleanupTask", () -> getOnlineTablets().values().forEach(tablet -> {
+              try {
+                tablet.removeOrphanedScanRefs();
+              } catch (Exception e) {
+                log.error("Error cleaning up stale scan references for tablet {}",
+                    tablet.getExtent(), e);
+              }
+            })), 5, 5, TimeUnit.MINUTES);
+    watchNonCriticalScheduledTask(cleanupTask);
+
     @SuppressWarnings("deprecation")
     final long walMaxSize =
         aconf.getAsBytes(aconf.resolve(Property.TSERV_WAL_MAX_SIZE, Property.TSERV_WALOG_MAX_SIZE));

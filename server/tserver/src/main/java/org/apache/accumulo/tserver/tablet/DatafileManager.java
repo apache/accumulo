@@ -184,6 +184,20 @@ class DatafileManager {
     }
   }
 
+  /**
+   * Removes any scan‐in‐use metadata entries that were left behind when a scan cleanup was
+   * interrupted. Intended to be called periodically to clear these orphaned scan refs once their
+   * in-memory reference count reaches zero.
+   */
+  public void removeOrphanedScanRefs() {
+    Set<StoredTabletFile> snapshot;
+    synchronized (tablet) {
+      snapshot = new HashSet<>(filesToDeleteAfterScan);
+      filesToDeleteAfterScan.clear();
+    }
+    removeFilesAfterScan(snapshot);
+  }
+
   private TreeSet<StoredTabletFile> waitForScansToFinish(Set<StoredTabletFile> pathsToWaitFor) {
     long maxWait = 10000L;
     long startTime = System.currentTimeMillis();
