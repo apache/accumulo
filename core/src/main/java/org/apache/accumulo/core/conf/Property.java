@@ -343,6 +343,9 @@ public enum Property {
           + " was changed and it now can accept multiple class names. The metrics spi was introduced in 2.1.3,"
           + " the deprecated factory is org.apache.accumulo.core.metrics.MeterRegistryFactory.",
       "2.1.0"),
+  GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO("general.server.iter.opts.compression", "none",
+      PropertyType.COMPRESSION_TYPE,
+      "Compression algorithm name to use for server-side iterator options compression.", "2.1.4"),
   GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "0",
       PropertyType.TIMEDURATION,
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
@@ -368,6 +371,11 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD("manager.tablet.balancer.tserver.threshold", "0",
+      PropertyType.COUNT,
+      "Indicates the minimum number of tservers for assignment and balancing operations for user tables. A"
+          + " value of zero (default) disables this threshold allowing assignment and balancing to always occur.",
+      "2.1.4"),
   MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
       PropertyType.TIMEDURATION,
       "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",

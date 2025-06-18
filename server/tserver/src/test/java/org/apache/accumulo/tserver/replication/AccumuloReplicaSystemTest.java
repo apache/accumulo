@@ -71,78 +71,78 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1L;
+    key.setSeq(1L);
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
      * whatsoever in reality regarding what these entries would actually look like in a WAL. They
      * are solely for testing that each LogEvents is handled, order is not important.
      */
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("1"), null, null);
-    key.tabletId = 1;
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("1"), null, null));
+    key.setTabletId(1);
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
-
-    key.write(dos);
-    value.write(dos);
-
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("2"), null, null);
-    key.tabletId = 2;
-    value.mutations = Collections.emptyList();
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.OPEN;
-    key.tabletId = LogFileKey.VERSION;
-    key.tserverSession = "foobar";
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("2"), null, null));
+    key.setTabletId(2);
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("badrow")));
+    key.setEvent(LogEvents.OPEN);
+    key.setTabletId(LogFileKey.VERSION);
+    key.setTserverSession("foobar");
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.COMPACTION_START;
-    key.tabletId = 2;
-    key.filename = "/accumulo/tables/1/t-000001/A000001.rf";
-    value.mutations = Collections.emptyList();
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("badrow"))));
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("1"), null, null);
-    key.tabletId = 3;
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.COMPACTION_START);
+    key.setTabletId(2);
+    key.setFilename("/accumulo/tables/1/t-000001/A000001.rf");
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.COMPACTION_FINISH;
-    key.tabletId = 6;
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("1"), null, null));
+    key.setTabletId(3);
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.tabletId = 3;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
+    key.setEvent(LogEvents.COMPACTION_FINISH);
+    key.setTabletId(6);
+    value.setMutations(Collections.emptyList());
+
+    key.write(dos);
+    value.write(dos);
+
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setTabletId(3);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);
@@ -178,79 +178,79 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1L;
+    key.setSeq(1L);
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
      * whatsoever in reality regarding what these entries would actually look like in a WAL. They
      * are solely for testing that each LogEvents is handled, order is not important.
      */
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("1"), null, null);
-    key.tabletId = 1;
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("1"), null, null));
+    key.setTabletId(1);
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("2"), null, null);
-    key.tabletId = 2;
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("2"), null, null));
+    key.setTabletId(2);
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.OPEN;
-    key.tabletId = LogFileKey.VERSION;
-    key.tserverSession = "foobar";
+    key.setEvent(LogEvents.OPEN);
+    key.setTabletId(LogFileKey.VERSION);
+    key.setTserverSession("foobar");
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("badrow")));
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("badrow"))));
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.COMPACTION_START;
-    key.tabletId = 2;
-    key.filename = "/accumulo/tables/1/t-000001/A000001.rf";
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.COMPACTION_START);
+    key.setTabletId(2);
+    key.setFilename("/accumulo/tables/1/t-000001/A000001.rf");
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("1"), null, null);
-    key.tabletId = 3;
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("1"), null, null));
+    key.setTabletId(3);
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.event = LogEvents.COMPACTION_FINISH;
-    key.tabletId = 6;
-    value.mutations = Collections.emptyList();
+    key.setEvent(LogEvents.COMPACTION_FINISH);
+    key.setTabletId(6);
+    value.setMutations(Collections.emptyList());
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.tabletId = 3;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setTabletId(3);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);
@@ -290,16 +290,16 @@ public class AccumuloReplicaSystemTest {
     ars.setConf(conf);
 
     LogFileValue value = new LogFileValue();
-    value.mutations = new ArrayList<>();
+    value.setMutations(new ArrayList<>());
 
     Mutation m = new Mutation("row");
     m.put("", "", new Value());
-    value.mutations.add(m);
+    value.getMutations().add(m);
 
     m = new Mutation("row2");
     m.put("", "", new Value());
     m.addReplicationSource("peer");
-    value.mutations.add(m);
+    value.getMutations().add(m);
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     DataOutputStream out = new DataOutputStream(baos);
@@ -384,33 +384,33 @@ public class AccumuloReplicaSystemTest {
     LogFileValue value = new LogFileValue();
 
     // What is seq used for?
-    key.seq = 1L;
+    key.setSeq(1L);
 
     /*
      * Disclaimer: the following series of LogFileKey and LogFileValue pairs have *no* bearing
      * whatsoever in reality regarding what these entries would actually look like in a WAL. They
      * are solely for testing that each LogEvents is handled, order is not important.
      */
-    key.event = LogEvents.DEFINE_TABLET;
-    key.tablet = new KeyExtent(TableId.of("1"), null, null);
-    key.tabletId = 1;
+    key.setEvent(LogEvents.DEFINE_TABLET);
+    key.setTablet(new KeyExtent(TableId.of("1"), null, null));
+    key.setTabletId(1);
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);
 
-    key.tablet = null;
-    key.event = LogEvents.MUTATION;
-    key.tabletId = 1;
-    key.filename = "/accumulo/wals/tserver+port/" + UUID.randomUUID();
-    value.mutations = Arrays.asList(new ServerMutation(new Text("row")));
+    key.setTablet(null);
+    key.setEvent(LogEvents.MUTATION);
+    key.setTabletId(1);
+    key.setFilename("/accumulo/wals/tserver+port/" + UUID.randomUUID());
+    value.setMutations(Arrays.asList(new ServerMutation(new Text("row"))));
 
     key.write(dos);
     value.write(dos);

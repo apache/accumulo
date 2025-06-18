@@ -73,7 +73,7 @@ public class ProblemReports implements Iterable<ProblemReport> {
 
   private final ServerContext context;
 
-  public ProblemReports(ServerContext context) {
+  private ProblemReports(ServerContext context) {
     this.context = context;
   }
 
