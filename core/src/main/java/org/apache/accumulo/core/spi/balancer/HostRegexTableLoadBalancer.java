@@ -518,11 +518,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       balanceTimer.restart();
-      TabletBalancer clazzName = getBalancerForTable(tableId);
-      clazzName.balance(new BalanceParamsImpl(currentView, migrations, newMigrations,
+      TabletBalancer tableBalancer = getBalancerForTable(tableId);
+      tableBalancer.balance(new BalanceParamsImpl(currentView, migrations, newMigrations,
           params.partitionName() + ":" + tableId, Map.of(tableName, tableId)));
       LOG.debug("balance results class:{} tableId:{} migrations:{} time:{}ms",
-          clazzName.getClass().getSimpleName(), tableId, newMigrations.size(),
+          tableBalancer.getClass().getSimpleName(), tableId, newMigrations.size(),
           balanceTimer.elapsed(TimeUnit.MILLISECONDS));
 
       if (newMigrations.isEmpty()) {
