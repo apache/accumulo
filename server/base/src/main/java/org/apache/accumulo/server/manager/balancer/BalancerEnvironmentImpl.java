@@ -86,7 +86,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   @Override
   public List<TabletStatistics> listOnlineTabletsForTable(TabletServerId tabletServerId,
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
-    log.debug("Scanning tablet server {} for table {}", tabletServerId, tableId);
+    log.trace("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
       TabletClientService.Client client = ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER,
           HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()), getContext());

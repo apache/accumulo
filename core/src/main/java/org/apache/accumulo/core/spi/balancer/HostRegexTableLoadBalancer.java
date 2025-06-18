@@ -370,12 +370,13 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
           continue;
         }
       }
-      LOG.debug("Sending {} tablets to balancer for table {} for assignment within tservers {}",
-          e.getValue().size(), tableName, currentView.keySet());
+      LOG.debug("Sending {} tablets to balancer for table {} for assignment within {} tservers",
+          e.getValue().size(), tableName, currentView.keySet().size());
+      LOG.trace("table {} tserver assignment set {}", tableName, currentView.keySet());
       assignmentTimer.restart();
       getBalancerForTable(e.getKey())
           .getAssignments(new AssignmentParamsImpl(currentView, e.getValue(), newAssignments));
-      LOG.trace("assignment results table:{} assignments:{} time:{}ms", tableName,
+      LOG.debug("assignment results table:{} assignments:{} time:{}ms", tableName,
           newAssignments.size(), assignmentTimer.elapsed(TimeUnit.MILLISECONDS));
       newAssignments.forEach(params::addAssignment);
     }
@@ -517,9 +518,11 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
       }
       ArrayList<TabletMigration> newMigrations = new ArrayList<>();
       balanceTimer.restart();
-      getBalancerForTable(tableId).balance(new BalanceParamsImpl(currentView, migrations,
-          newMigrations, params.partitionName() + ":" + tableId, Map.of(tableName, tableId)));
-      LOG.trace("balance results tableId:{} migrations:{} time:{}ms", tableId, newMigrations.size(),
+      TabletBalancer tableBalancer = getBalancerForTable(tableId);
+      tableBalancer.balance(new BalanceParamsImpl(currentView, migrations, newMigrations,
+          params.partitionName() + ":" + tableId, Map.of(tableName, tableId)));
+      LOG.debug("balance results class:{} tableId:{} migrations:{} time:{}ms",
+          tableBalancer.getClass().getSimpleName(), tableId, newMigrations.size(),
           balanceTimer.elapsed(TimeUnit.MILLISECONDS));
 
       if (newMigrations.isEmpty()) {
@@ -546,7 +549,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
     }
 
     LOG.info("Migrating {} tablets for balance.", migrationsOut.size());
-    LOG.debug("Tablets currently migrating: {}", migrationsOut);
+    LOG.trace("Tablets currently migrating: {}", migrationsOut);
     return minBalanceTime;
   }
 
