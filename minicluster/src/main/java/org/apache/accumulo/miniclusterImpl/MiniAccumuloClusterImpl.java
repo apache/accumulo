@@ -93,7 +93,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
@@ -1118,7 +1117,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     try (AccumuloClient c = Accumulo.newClient().from(clientProperties.get()).build()) {
       ClientContext context = (ClientContext) c;
       return ThriftClientTypes.MANAGER.execute(context,
-          client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()));
+          client -> client.getManagerStats(context.rpcCreds()));
     }
   }
 

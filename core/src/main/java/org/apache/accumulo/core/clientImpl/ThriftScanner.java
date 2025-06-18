@@ -48,7 +48,6 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TimedOutException;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.CachedTablet;
-import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Column;
@@ -128,7 +127,6 @@ public class ThriftScanner {
 
     final HostAndPort parsedServer = HostAndPort.fromString(server);
     try {
-      TInfo tinfo = TraceUtil.traceInfo();
       TabletScanClientService.Client client =
           ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedServer, context);
       try {
@@ -141,7 +139,7 @@ public class ThriftScanner {
 
         TabletType ttype = TabletType.type(extent);
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(server);
-        InitialScan isr = client.startScan(tinfo, scanState.context.rpcCreds(), extent.toThrift(),
+        InitialScan isr = client.startScan(scanState.context.rpcCreds(), extent.toThrift(),
             scanState.range.toThrift(),
             scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
@@ -158,7 +156,7 @@ public class ThriftScanner {
           results.put(new Key(kv.key), new Value(kv.value));
         }
 
-        client.closeScan(tinfo, isr.scanID);
+        client.closeScan(isr.scanID);
 
         return isr.result.more;
       } finally {
@@ -852,8 +850,6 @@ public class ThriftScanner {
 
     Timer timer = null;
 
-    final TInfo tinfo = TraceUtil.traceInfo();
-
     final HostAndPort parsedLocation = HostAndPort.fromString(addr.serverAddress);
     TabletScanClientService.Client client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, context);
@@ -883,8 +879,8 @@ public class ThriftScanner {
         TabletType ttype = TabletType.type(addr.getExtent());
         boolean waitForWrites = !serversWaitedForWrites.get(ttype).contains(addr.serverAddress);
 
-        InitialScan is = client.startScan(tinfo, scanState.context.rpcCreds(),
-            addr.getExtent().toThrift(), scanState.range.toThrift(),
+        InitialScan is = client.startScan(scanState.context.rpcCreds(), addr.getExtent().toThrift(),
+            scanState.range.toThrift(),
             scanState.columns.stream().map(Column::toThrift).collect(Collectors.toList()),
             scanState.size, scanState.serverSideIteratorList, scanState.serverSideIteratorOptions,
             scanState.authorizations.getAuthorizationsBB(), waitForWrites, scanState.isolated,
@@ -900,7 +896,7 @@ public class ThriftScanner {
         if (sr.more) {
           scanState.scanID = is.scanID;
         } else {
-          client.closeScan(tinfo, is.scanID);
+          client.closeScan(is.scanID);
         }
 
       } else {
@@ -913,9 +909,9 @@ public class ThriftScanner {
           timer = Timer.startNew();
         }
 
-        sr = client.continueScan(tinfo, scanState.scanID, busyTimeout);
+        sr = client.continueScan(scanState.scanID, busyTimeout);
         if (!sr.more) {
-          client.closeScan(tinfo, scanState.scanID);
+          client.closeScan(scanState.scanID);
           scanState.scanID = null;
         }
       }
@@ -984,7 +980,6 @@ public class ThriftScanner {
 
   static void close(ScanState scanState) {
     if (!scanState.finished && scanState.scanID != null && scanState.prevLoc != null) {
-      TInfo tinfo = TraceUtil.traceInfo();
 
       log.trace("Closing active scan {} {} {}", scanState.prevLoc.serverType,
           scanState.prevLoc.serverAddress, scanState.scanID);
@@ -993,7 +988,7 @@ public class ThriftScanner {
       try {
         client =
             ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, parsedLocation, scanState.context);
-        client.closeScan(tinfo, scanState.scanID);
+        client.closeScan(scanState.scanID);
       } catch (TException e) {
         // ignore this is a best effort
         log.debug("Failed to close active scan " + scanState.prevLoc + " " + scanState.scanID, e);
