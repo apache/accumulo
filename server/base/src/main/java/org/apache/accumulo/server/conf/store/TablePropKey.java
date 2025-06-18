@@ -19,17 +19,21 @@
 package org.apache.accumulo.server.conf.store;
 
 import static org.apache.accumulo.core.Constants.ZCONFIG;
+import static org.apache.accumulo.core.Constants.ZNAMESPACES;
 import static org.apache.accumulo.core.Constants.ZTABLES;
 
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 
 public class TablePropKey extends IdBasedPropStoreKey<TableId> {
 
-  private TablePropKey(final TableId tableId) {
-    super(ZTABLES + "/" + tableId.canonical() + ZCONFIG, tableId);
+  private TablePropKey(final TableId tableId, final NamespaceId namespaceId) {
+    super(
+        ZNAMESPACES + "/" + namespaceId.canonical() + ZTABLES + "/" + tableId.canonical() + ZCONFIG,
+        tableId);
   }
 
-  public static TablePropKey of(final TableId tableId) {
-    return new TablePropKey(tableId);
+  public static TablePropKey of(final TableId tableId, final NamespaceId namespaceId) {
+    return new TablePropKey(tableId, namespaceId);
   }
 }
