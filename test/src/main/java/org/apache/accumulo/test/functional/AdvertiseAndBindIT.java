@@ -21,17 +21,20 @@ package org.apache.accumulo.test.functional;
 import static org.apache.accumulo.test.compaction.ExternalCompactionTestUtils.QUEUE1;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.InetAddress;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import org.apache.accumulo.coordinator.CompactionCoordinator;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterControl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -77,34 +80,49 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
     Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
     try {
-      assertEquals(localHostName, getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals(localHostName)));
     } finally {
       cluster.stop();
       Thread.sleep(20_000); // wait 2x the ZK timeout to ensure ZK entries removed
     }
 
     // Set only the bind address
-    restartClusterWithArguments(null, "127.0.0.1");
+    restartClusterWithArguments(null, "127.0.0.1", false);
     try {
-      assertEquals("127.0.0.1", getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("127.0.0.1")));
     } finally {
       cluster.stop();
       Thread.sleep(20_000); // wait 2x the ZK timeout to ensure ZK entries removed
     }
 
     // Set only the advertise address
-    restartClusterWithArguments("localhost", null);
+    restartClusterWithArguments("localhost", null, false);
     try {
-      assertEquals("localhost", getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
     } finally {
       cluster.stop();
       Thread.sleep(20_000); // wait 2x the ZK timeout to ensure ZK entries removed
     }
 
     // Set advertise and bind address
-    restartClusterWithArguments("localhost", "127.0.0.1");
+    restartClusterWithArguments("localhost", "127.0.0.1", false);
     try {
-      assertEquals("localhost", getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
+    } finally {
+      cluster.stop();
+    }
+
+    // Set advertise with port and bind address
+    // skip the coordinator because MiniAccumuloClusterControl.start will
+    // try to connect to it
+    restartClusterWithArguments("192.168.1.2:59000", "127.0.0.1", true);
+    try {
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(true);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.toString().equals("192.168.1.2:59000")));
     } finally {
       cluster.stop();
     }
@@ -132,16 +150,18 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
     Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
     try {
-      assertEquals(localHostName, getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals(localHostName)));
     } finally {
       cluster.stop();
       Thread.sleep(20_000); // wait 2x the ZK timeout to ensure ZK entries removed
     }
 
     // Set only the bind address
-    restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1"));
+    restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1"), false);
     try {
-      assertEquals("127.0.0.1", getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("127.0.0.1")));
     } finally {
       cluster.stop();
       Thread.sleep(20_000); // wait 2x the ZK timeout to ensure ZK entries removed
@@ -149,9 +169,10 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
 
     // Set only the advertise address
     restartClusterWithProperties(
-        Map.of(Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "localhost"));
+        Map.of(Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "localhost"), false);
     try {
-      assertEquals("localhost", getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
     } finally {
       cluster.stop();
       Thread.sleep(20_000); // wait 2x the ZK timeout to ensure ZK entries removed
@@ -159,16 +180,29 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
 
     // Set advertise and bind address
     restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1",
-        Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "localhost"));
+        Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "localhost"), false);
     try {
-      assertEquals("localhost", getServerAddressesFromZookeeper());
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("localhost")));
+    } finally {
+      cluster.stop();
+    }
+
+    // Set advertise with port and bind address
+    // skip the coordinator because MiniAccumuloClusterControl.start will
+    // try to connect to it
+    restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1",
+        Property.RPC_PROCESS_ADVERTISE_ADDRESS.getKey(), "192.168.1.1:10005"), true);
+    try {
+      Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(true);
+      zkAddrs.values().forEach(hp -> assertTrue(hp.toString().equals("192.168.1.1:10005")));
     } finally {
       cluster.stop();
     }
 
   }
 
-  private void restartClusterWithArguments(String advertiseAddress, String bindAddress)
+  private void restartClusterWithArguments(String advertiseAddress, String bindAddress, boolean skipCoordinator)
       throws Exception {
     List<String> args = new ArrayList<>();
     if (advertiseAddress != null) {
@@ -191,7 +225,9 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // Calling cluster.start here will set the Manager goal state
     // and call verifyUp
     cluster.start();
-    control.start(ServerType.COMPACTION_COORDINATOR, Map.of(), 1, args.toArray(new String[] {}));
+    if (!skipCoordinator) {
+      control.start(ServerType.COMPACTION_COORDINATOR, Map.of(), 1, args.toArray(new String[] {}));
+    }
     List<String> compactorArgs = new ArrayList<>(args);
     compactorArgs.add("-q");
     compactorArgs.add(QUEUE1);
@@ -204,7 +240,7 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
   }
 
-  private void restartClusterWithProperties(Map<String,String> properties) throws Exception {
+  private void restartClusterWithProperties(Map<String,String> properties, boolean skipCoordinator) throws Exception {
     // cluster.start will not end up overwriting the accumulo.properties file
     // with any property changes after the initial start. The only way to pass
     // new or updated property settings on a process restart is to use the
@@ -217,30 +253,46 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     // Calling cluster.start here will set the Manager goal state
     // and call verifyUp
     cluster.start();
-    control.start(ServerType.COMPACTION_COORDINATOR, properties, 1);
+    if (!skipCoordinator) {
+      control.start(ServerType.COMPACTION_COORDINATOR, properties, 1);
+    }
     control.start(ServerType.COMPACTOR, properties, 1, new String[] {"-q", QUEUE1});
     control.start(ServerType.SCAN_SERVER, properties, 1, new String[] {"-g", "DEFAULT"});
     Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
     Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
   }
 
-  private String getServerAddressesFromZookeeper() {
-    Set<String> names = new HashSet<>();
+  private Map<ServerType,HostAndPort> getAdvertiseAddressFromZooKeeper(boolean skipCoordinator)
+      throws InterruptedException {
+    Map<ServerType,HostAndPort> addresses = new HashMap<>();
+
     List<String> mgrs = getServerContext().instanceOperations().getManagerLocations();
     assertEquals(1, mgrs.size());
-    names.add(HostAndPort.fromString(mgrs.get((0))).getHost());
+    addresses.put(ServerType.MANAGER, HostAndPort.fromString(mgrs.get((0))));
+
+    if (!skipCoordinator) {
+      Optional<HostAndPort> coordAddr =
+          ExternalCompactionUtil.findCompactionCoordinator(getServerContext());
+      while (coordAddr.isEmpty()) {
+        Thread.sleep(50);
+        coordAddr = ExternalCompactionUtil.findCompactionCoordinator(getServerContext());
+      }
+      addresses.put(ServerType.COMPACTION_COORDINATOR, coordAddr.orElseThrow());
+    }
+
     List<String> tservers = getServerContext().instanceOperations().getTabletServers();
     assertEquals(1, tservers.size());
-    names.add(HostAndPort.fromString(tservers.get((0))).getHost());
+    addresses.put(ServerType.TABLET_SERVER, HostAndPort.fromString(tservers.get((0))));
+
     Set<String> compactors = getServerContext().instanceOperations().getCompactors();
     assertEquals(1, compactors.size());
-    names.add(HostAndPort.fromString(compactors.iterator().next()).getHost());
+    addresses.put(ServerType.COMPACTOR, HostAndPort.fromString(compactors.iterator().next()));
+
     Set<String> sservers = getServerContext().instanceOperations().getScanServers();
     assertEquals(1, sservers.size());
-    names.add(HostAndPort.fromString(sservers.iterator().next()).getHost());
+    addresses.put(ServerType.SCAN_SERVER, HostAndPort.fromString(sservers.iterator().next()));
 
-    assertEquals(1, names.size());
-    return names.iterator().next();
-
+    return addresses;
   }
+
 }
