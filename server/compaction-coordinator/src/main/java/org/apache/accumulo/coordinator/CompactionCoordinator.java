@@ -246,7 +246,7 @@ public class CompactionCoordinator extends AbstractServer implements
     @SuppressWarnings("deprecation")
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
-    ServerAddress sp = TServerUtils.startServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.startServer(getContext(), getBindAddress(),
         Property.COMPACTION_COORDINATOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         "Thrift Client Server", Property.COMPACTION_COORDINATOR_THRIFTCLIENT_PORTSEARCH,
         Property.COMPACTION_COORDINATOR_MINTHREADS,
@@ -278,7 +278,8 @@ public class CompactionCoordinator extends AbstractServer implements
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the coordinator service", e1);
     }
-    final HostAndPort clientAddress = coordinatorAddress.address;
+    updateAdvertiseAddress(coordinatorAddress.getAddress());
+    final HostAndPort clientAddress = getAdvertiseAddress();
 
     try {
       getCoordinatorLock(clientAddress);

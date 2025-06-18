@@ -105,6 +105,7 @@ import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
@@ -1245,19 +1246,22 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       @SuppressWarnings("deprecation")
       var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
           Property.GENERAL_MAX_MESSAGE_SIZE);
-      sa = TServerUtils.startServer(context, getHostname(), Property.MANAGER_CLIENTPORT, processor,
-          "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
+      sa = TServerUtils.startServer(context, getBindAddress(), Property.MANAGER_CLIENTPORT,
+          processor, "Manager", "Manager Client Service Handler", null, Property.MANAGER_MINTHREADS,
           Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK,
           maxMessageSizeProperty);
     } catch (UnknownHostException e) {
-      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+      throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
     clientService = sa.server;
     log.info("Started Manager client service at {}", sa.address);
 
+    updateAdvertiseAddress(sa.getAddress());
+    final HostAndPort clientAddress = getAdvertiseAddress();
+
     // block until we can obtain the ZK lock for the manager
     try {
-      getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK));
+      getManagerLock(ServiceLock.path(zroot + Constants.ZMANAGER_LOCK), clientAddress);
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception getting manager lock", e);
     }
@@ -1268,7 +1272,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     producers.add(balancerMetrics);
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        sa.getAddress(), ""));
+        clientAddress, ""));
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1403,7 +1407,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
       log.info("AuthenticationTokenSecretManager is initialized");
     }
 
-    String address = sa.address.toString();
+    String address = clientAddress.toString();
     log.info("Setting manager lock data to {}", address);
     try {
       managerLock.replaceLockData(address.getBytes(UTF_8));
@@ -1619,7 +1623,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     var maxMessageSizeProperty = getConfiguration().resolve(Property.RPC_MAX_MESSAGE_SIZE,
         Property.GENERAL_MAX_MESSAGE_SIZE);
 
-    ServerAddress replAddress = TServerUtils.startServer(context, getHostname(),
+    ServerAddress replAddress = TServerUtils.startServer(context, getBindAddress(),
         Property.MANAGER_REPLICATION_COORDINATOR_PORT, processor, "Manager Replication Coordinator",
         "Replication Coordinator", null, Property.MANAGER_REPLICATION_COORDINATOR_MINTHREADS, null,
         Property.MANAGER_REPLICATION_COORDINATOR_THREADCHECK, maxMessageSizeProperty);
@@ -1650,13 +1654,10 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     return managerLock;
   }
 
-  private void getManagerLock(final ServiceLockPath zManagerLoc)
+  private void getManagerLock(final ServiceLockPath zManagerLoc, HostAndPort advertiseAddress)
       throws KeeperException, InterruptedException {
     var zooKeeper = getContext().getZooReaderWriter().getZooKeeper();
     log.info("trying to get manager lock");
-
-    final String managerClientAddress =
-        getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
 
     UUID zooLockUUID = UUID.randomUUID();
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
@@ -1665,7 +1666,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
     while (true) {
 
-      managerLock.lock(managerLockWatcher, managerClientAddress.getBytes(UTF_8));
+      managerLock.lock(managerLockWatcher, advertiseAddress.toString().getBytes(UTF_8));
 
       managerLockWatcher.waitForChange();
 

@@ -197,9 +197,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE);
   }
 
-  @SuppressWarnings(value = {"removal", "unchecked"})
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
       throws IOException {
+    start(server, configOverrides, limit, new String[] {});
+  }
+
+  @SuppressWarnings("removal")
+  public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit,
+      String... args) throws IOException {
     if (limit <= 0) {
       return;
     }
@@ -213,14 +218,14 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = tabletServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumTservers(); i++, ++count) {
             tabletServerProcesses
-                .add(cluster._exec(classToUse, server, configOverrides).getProcess());
+                .add(cluster._exec(classToUse, server, configOverrides, args).getProcess());
           }
         }
         break;
       case MASTER:
       case MANAGER:
         if (managerProcess == null) {
-          managerProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
+          managerProcess = cluster._exec(classToUse, server, configOverrides, args).getProcess();
         }
         break;
       case ZOOKEEPER:
@@ -232,12 +237,12 @@ public class MiniAccumuloClusterControl implements ClusterControl {
         break;
       case GARBAGE_COLLECTOR:
         if (gcProcess == null) {
-          gcProcess = cluster._exec(classToUse, server, configOverrides).getProcess();
+          gcProcess = cluster._exec(classToUse, server, configOverrides, args).getProcess();
         }
         break;
       case MONITOR:
         if (monitor == null) {
-          monitor = cluster._exec(classToUse, server, configOverrides).getProcess();
+          monitor = cluster._exec(classToUse, server, configOverrides, args).getProcess();
         }
         break;
       case SCAN_SERVER:
@@ -246,16 +251,37 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           for (int i = scanServerProcesses.size();
               count < limit && i < cluster.getConfig().getNumScanServers(); i++, ++count) {
             scanServerProcesses
-                .add(cluster._exec(classToUse, server, configOverrides).getProcess());
+                .add(cluster._exec(classToUse, server, configOverrides, args).getProcess());
           }
         }
         break;
       case COMPACTION_COORDINATOR:
-        startCoordinator((Class<? extends CompactionCoordinator>) classToUse);
+        if (coordinatorProcess == null) {
+          coordinatorProcess =
+              cluster._exec(classToUse, ServerType.COMPACTION_COORDINATOR, configOverrides, args)
+                  .getProcess();
+          // Wait for coordinator to start
+          TExternalCompactionList metrics = null;
+          while (metrics == null) {
+            try {
+              metrics = getRunningCompactions(cluster.getServerContext());
+            } catch (TException e) {
+              log.debug(
+                  "Error getting running compactions from coordinator, message: " + e.getMessage());
+              UtilWaitThread.sleep(250);
+            }
+          }
+        }
         break;
       case COMPACTOR:
-        startCompactors((Class<? extends Compactor>) classToUse,
-            cluster.getConfig().getNumCompactors(), configOverrides.get("QUEUE_NAME"));
+        synchronized (compactorProcesses) {
+          int count =
+              Math.min(limit, cluster.getConfig().getNumCompactors() - compactorProcesses.size());
+          for (int i = 0; i < count; i++) {
+            compactorProcesses
+                .add(cluster._exec(classToUse, server, configOverrides, args).getProcess());
+          }
+        }
         break;
       default:
         throw new UnsupportedOperationException("Cannot start process for " + server);
