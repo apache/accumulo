@@ -158,7 +158,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     }
 
     // Set only the bind address
-    restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1"), false);
+    restartClusterWithProperties(Map.of(Property.RPC_PROCESS_BIND_ADDRESS.getKey(), "127.0.0.1"),
+        false);
     try {
       Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals("127.0.0.1")));
@@ -202,8 +203,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
 
   }
 
-  private void restartClusterWithArguments(String advertiseAddress, String bindAddress, boolean skipCoordinator)
-      throws Exception {
+  private void restartClusterWithArguments(String advertiseAddress, String bindAddress,
+      boolean skipCoordinator) throws Exception {
     List<String> args = new ArrayList<>();
     if (advertiseAddress != null) {
       args.add("-o");
@@ -240,7 +241,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
   }
 
-  private void restartClusterWithProperties(Map<String,String> properties, boolean skipCoordinator) throws Exception {
+  private void restartClusterWithProperties(Map<String,String> properties, boolean skipCoordinator)
+      throws Exception {
     // cluster.start will not end up overwriting the accumulo.properties file
     // with any property changes after the initial start. The only way to pass
     // new or updated property settings on a process restart is to use the
