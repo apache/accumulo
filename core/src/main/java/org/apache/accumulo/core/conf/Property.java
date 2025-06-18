@@ -50,7 +50,7 @@ import com.google.common.base.Preconditions;
 
 public enum Property {
   COMPACTION_PREFIX("compaction.", null, PropertyType.PREFIX,
-      "Both major and minor compaction properties can be included under this prefix.", "3.1.0"),
+      "Both major and minor compaction properties can be included under this prefix.", "4.0.0"),
   COMPACTION_SERVICE_PREFIX(COMPACTION_PREFIX + "service.", null, PropertyType.PREFIX,
       "This prefix should be used to define all properties for the compaction services."
           + "See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.\n"
@@ -62,7 +62,7 @@ public enum Property {
           + "{ \"group\":\"medium\", \"maxSize\":\"512M\"},{\"group\":\"large\"}]`\n"
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
-      "3.1.0"),
+      "4.0.0"),
   COMPACTION_SERVICE_DEFAULT_PLANNER(
       COMPACTION_SERVICE_PREFIX + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
       RatioBasedCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
@@ -75,7 +75,7 @@ public enum Property {
       "4.0.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
-      "3.1.0"),
+      "4.0.0"),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
@@ -365,16 +365,10 @@ public enum Property {
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
       "4.0.0"),
-  // TODO: Make sure to backport this to 3.1, then remove here in 4.0
-  @Deprecated(since = "3.1.0")
-  @ReplacedBy(property = RPC_PROCESS_BIND_ADDRESS)
-  GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
-      "The local IP address to which this server should bind for sending and receiving network traffic.",
-      "3.0.0"),
   GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
       PropertyType.TIMEDURATION,
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
-          + " disables this check. The default value change from 0 to 2m in 3.1.0.",
+          + " disables this check. The default value changed from 0 to 2m in 4.0.0.",
       "2.1.4"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
@@ -515,13 +509,13 @@ public enum Property {
           + "needed.",
       "4.0.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
-      "System wide properties related to splitting tablets.", "3.1.0"),
+      "System wide properties related to splitting tablets.", "4.0.0"),
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
       "To find a tablets split points, all RFiles are opened and their indexes"
           + " are read. This setting determines how many RFiles can be opened at once."
           + " When there are more RFiles than this setting the tablet will be marked"
           + " as un-splittable.",
-      "3.1.0"),
+      "4.0.0"),
   // properties that are specific to scan server behavior
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the scan servers.", "2.1.0"),
@@ -936,7 +930,7 @@ public enum Property {
           + ". These two properties together can be used to control that amount of time it takes for a scan "
           + "server to see a write to a tablet server. The default value of this property is set to such a "
           + "high value that is should never cause a minor compaction.",
-      "3.1.0"),
+      "4.0.0"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
       "A configurable dispatcher that decides what compaction service a table should use.",

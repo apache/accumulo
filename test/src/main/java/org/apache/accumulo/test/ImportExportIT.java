@@ -556,7 +556,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
   /**
    * Validate that files exported with Accumulo 2.x without fence ranges can be imported into
-   * version that require the fenced ranges (3.1 and later)
+   * version that require the fenced ranges (4.0 and later)
    */
   @Test
   public void importV2data() throws Exception {

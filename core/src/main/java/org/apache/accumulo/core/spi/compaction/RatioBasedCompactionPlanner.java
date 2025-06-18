@@ -120,7 +120,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * planned. If the compaction ratio is set to 3, then this plugin will find the largest compaction
  * ratio less than 3 that results in a compaction.
  *
- * @since 3.1.0
+ * @since 4.0.0
  * @see org.apache.accumulo.core.spi.compaction
  */
 
