@@ -119,7 +119,6 @@ import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.tserver.log.LogSorter;
@@ -166,7 +165,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
       new AtomicReference<>();
 
   private ServiceLock compactorLock;
-  private ServerAddress compactorAddress = null;
   private final PausedCompactionMetrics pausedMetrics = new PausedCompactionMetrics();
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
@@ -316,22 +314,18 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   /**
    * Start this Compactors thrift service to handle incoming client requests
    *
-   * @return address of this compactor client service
    * @throws UnknownHostException host unknown
    */
-  protected ServerAddress startCompactorClientService() throws UnknownHostException {
-
+  protected void startCompactorClientService() throws UnknownHostException {
     ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
     var processor = ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler,
         getCompactorThriftHandlerInterface(), getContext());
-    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getBindAddress(),
-        Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
-        Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
-    sp.startThriftServer("Thrift Client Server");
-    updateAdvertiseAddress(sp.address);
-    LOG.info("address = {}", sp.address);
-    return sp;
+    startThriftServer(() -> {
+      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
+          Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
+          Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
+          Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
+    }, true);
   }
 
   /**
@@ -460,8 +454,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
                 getContext().rpcCreds(), this.getResourceGroup(),
-                ExternalCompactionUtil.getHostPortString(compactorAddress.getAddress()),
-                eci.toString());
+                ExternalCompactionUtil.getHostPortString(getAdvertiseAddress()), eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);
             throw e;
@@ -673,11 +666,10 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   public void run() {
 
     try {
-      compactorAddress = startCompactorClientService();
+      startCompactorClientService();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
-    updateAdvertiseAddress(compactorAddress.getAddress());
     final HostAndPort clientAddress = getAdvertiseAddress();
 
     try {
@@ -895,8 +887,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } finally {
       // Shutdown local thrift server
       LOG.debug("Stopping Thrift Servers");
-      if (compactorAddress.server != null) {
-        compactorAddress.server.stop();
+      if (getThriftServer() != null) {
+        getThriftServer().stop();
       }
 
       try {

@@ -41,6 +41,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
@@ -142,7 +143,6 @@ import org.apache.accumulo.server.manager.state.DeadServerList;
 import org.apache.accumulo.server.manager.state.TabletServerState;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.delegation.AuthenticationTokenKeyManager;
@@ -152,7 +152,6 @@ import org.apache.accumulo.server.util.ScanServerMetadataEntries;
 import org.apache.accumulo.server.util.ServerBulkImportStatus;
 import org.apache.accumulo.server.util.TableInfoUtil;
 import org.apache.thrift.TException;
-import org.apache.thrift.server.TServer;
 import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.WatchedEvent;
@@ -207,7 +206,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private AuthenticationTokenKeyManager authenticationTokenKeyManager;
 
   ServiceLock managerLock = null;
-  private TServer clientService = null;
   protected volatile TabletBalancer tabletBalancer = null;
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
@@ -317,7 +315,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         // thread requesting the stop can return
         final var future = getContext().getScheduledExecutor().scheduleWithFixedDelay(() -> {
           // This frees the main thread and will cause the manager to exit
-          clientService.stop();
+          getThriftServer().stop();
           Manager.this.nextEvent.event("stopped event loop");
         }, 100L, 1000L, MILLISECONDS);
         ThreadPools.watchNonCriticalScheduledTask(future);
@@ -1123,14 +1121,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     managerClientHandler = new ManagerClientServiceHandler(this);
     compactionCoordinator = new CompactionCoordinator(this, fateRefs);
 
-    ServerAddress sa;
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
-
     try {
-      sa = TServerUtils.createThriftServer(context, getBindAddress(), Property.MANAGER_CLIENTPORT,
-          processor, "Manager", null, Property.MANAGER_MINTHREADS,
-          Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
+      startThriftServer(() -> {
+        return TServerUtils.createThriftServer(context, getBindAddress(),
+            Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
+            Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
+      }, false);
     } catch (UnknownHostException e) {
       throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
@@ -1150,11 +1148,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // Setting the Manager state to HAVE_LOCK has the side-effect of
     // starting the upgrade process if necessary.
     setManagerState(ManagerState.HAVE_LOCK);
-
-    // Set the HostName **after** initially creating the lock. The lock data is
-    // updated below with the correct address. This prevents clients from accessing
-    // the Manager until all of the internal processes are started.
-    updateAdvertiseAddress(sa.getAddress());
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1317,7 +1310,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        sa.getAddress(), getResourceGroup()));
+        getAdvertiseAddress(), getResourceGroup()));
 
     Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
@@ -1382,9 +1375,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     }
 
     // Now that the Manager is up, start the ThriftServer
-    sa.startThriftServer("Manager Client Service Handler");
-    clientService = sa.server;
-    log.info("Started Manager client service at {}", sa.address);
+    Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
+    getThriftServerAddress().startThriftServer("Manager Client Service Handler");
+    log.info("Started Manager client service at {}", getAdvertiseAddress());
 
     // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager
@@ -1406,7 +1399,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       throw new IllegalStateException("Exception updating manager lock", e);
     }
 
-    while (!isShutdownRequested() && clientService.isServing()) {
+    while (!isShutdownRequested() && getThriftServer().isServing()) {
       if (Thread.currentThread().isInterrupted()) {
         log.info("Server process thread has been interrupted, shutting down");
         break;
@@ -1425,7 +1418,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     splitter.stop();
 
     log.debug("Stopping Thrift Servers");
-    sa.server.stop();
+    getThriftServer().stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
