@@ -28,6 +28,7 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.util.List;
 import java.util.Map;
@@ -399,8 +400,9 @@ public class ServiceStatusCmdTest {
   public void testServiceStatusCommandOpts() {
     replay(zooReader); // needed for @AfterAll verify
     Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
-    assertFalse(opts.json);
+    assertNull(opts.json);
     assertFalse(opts.noHosts);
+    assertFalse(opts.csv);
   }
 
 }

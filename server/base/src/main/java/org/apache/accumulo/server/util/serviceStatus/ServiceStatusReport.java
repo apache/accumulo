@@ -21,7 +21,9 @@ package org.apache.accumulo.server.util.serviceStatus;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,6 +76,67 @@ public class ServiceStatusReport {
 
   public static ServiceStatusReport fromJson(final String json) {
     return gson.fromJson(json, ServiceStatusReport.class);
+  }
+
+  public String toCsv() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Service, Resource Group, Host Count, Hosts, Error Count\n");
+
+    for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
+      ReportKey reportKey = entry.getKey();
+      StatusSummary summary = entry.getValue();
+
+      if (summary == null || summary.getServiceByGroups() == null) {
+        continue;
+      }
+
+      Map<String,Set<String>> groupMap = summary.getServiceByGroups();
+      int errorCount = summary.getErrorCount();
+
+      for (Map.Entry<String,Set<String>> groupEntry : groupMap.entrySet()) {
+        String group = groupEntry.getKey();
+        Set<String> hosts = groupEntry.getValue();
+        String hostList = String.join(";", hosts);
+        sb.append(reportKey.name()).append(",").append(group).append(",").append(hosts.size())
+            .append(",").append(hostList).append(",").append(errorCount).append("\n");
+      }
+    }
+
+    return sb.toString();
+  }
+
+  public String toFlatJson() {
+    Map<String,Map<String,Object>> flatJson = new LinkedHashMap<>();
+
+    for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
+      ReportKey reportKey = entry.getKey();
+      StatusSummary statusSummary = entry.getValue();
+
+      if (statusSummary.getServiceByGroups() == null) {
+        continue;
+      }
+
+      Map<String,Object> groupData = getGroupData(statusSummary);
+
+      flatJson.put(reportKey.name(), groupData);
+    }
+    return gson.toJson(flatJson);
+  }
+
+  private static Map<String,Object> getGroupData(StatusSummary statusSummary) {
+    Map<String,Object> groupData = new LinkedHashMap<>();
+    for (Map.Entry<String,Set<String>> groupEntry : statusSummary.getServiceByGroups().entrySet()) {
+      String group = groupEntry.getKey();
+      Set<String> hosts = groupEntry.getValue();
+
+      Map<String,Object> details = new LinkedHashMap<>();
+      details.put("HostCount", hosts.size());
+      details.put("hosts", hosts);
+      details.put("errorCount", statusSummary.getErrorCount());
+
+      groupData.put(group, details);
+    }
+    return groupData;
   }
 
   public String report(final StringBuilder sb) {
