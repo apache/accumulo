@@ -304,12 +304,12 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getBindAddress(),
         Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
         Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
         Property.SSERV_THREADCHECK);
     sp.startThriftServer("Thrift Client Server");
-    setHostname(sp.address);
+    updateAdvertiseAddress(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -378,7 +378,8 @@ public class ScanServer extends AbstractServer
     ServerAddress address = null;
     try {
       address = startScanServerClientService();
-      clientAddress = address.getAddress();
+      updateAdvertiseAddress(address.getAddress());
+      clientAddress = getAdvertiseAddress();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the scan server client service", e1);
     }

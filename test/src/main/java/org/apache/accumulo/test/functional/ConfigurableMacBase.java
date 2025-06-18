@@ -154,7 +154,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  private void createMiniAccumulo() throws Exception {
+  protected void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);

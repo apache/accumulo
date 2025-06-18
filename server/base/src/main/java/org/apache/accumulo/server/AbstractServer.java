@@ -71,7 +71,10 @@ public abstract class AbstractServer
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
-  private volatile String hostname;
+  private volatile HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g.
+                                                 // ZK,
+  // metadata, etc).
+  private final String bindAddress; // used for the Thrift server
   private final String resourceGroup;
   private final Logger log;
   private final ProcessMetrics processMetrics;
@@ -84,6 +87,7 @@ public abstract class AbstractServer
 
   protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+    log = LoggerFactory.getLogger(getClass());
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
     var siteConfig = opts.getSiteConfiguration();
@@ -91,15 +95,25 @@ public abstract class AbstractServer
     // If new bind parameter passed on command line or in file, then use it.
     if (newBindParameter != null
         && !newBindParameter.equals(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
-      this.hostname = newBindParameter;
+      this.bindAddress = newBindParameter;
     } else {
-      this.hostname = ConfigOpts.BIND_ALL_ADDRESSES;
+      this.bindAddress = ConfigOpts.BIND_ALL_ADDRESSES;
     }
+    String advertAddr = siteConfig.get(Property.RPC_PROCESS_ADVERTISE_ADDRESS);
+    if (advertAddr != null && !advertAddr.isBlank()) {
+      HostAndPort advertHP = HostAndPort.fromString(advertAddr);
+      if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
+        throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
+      }
+      advertiseAddress = advertHP;
+    } else {
+      advertiseAddress = null;
+    }
+    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
-    log = LoggerFactory.getLogger(getClass());
     try {
       if (context.getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
         throw new IllegalStateException(
@@ -280,12 +294,21 @@ public abstract class AbstractServer
     getContext().setMeterRegistry(registry);
   }
 
-  public String getHostname() {
-    return hostname;
+  public HostAndPort getAdvertiseAddress() {
+    return advertiseAddress;
   }
 
-  public void setHostname(HostAndPort address) {
-    hostname = address.toString();
+  public String getBindAddress() {
+    return bindAddress;
+  }
+
+  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    if (advertiseAddress == null) {
+      advertiseAddress = thriftBindAddress;
+    } else if (!advertiseAddress.hasPort()) {
+      advertiseAddress =
+          HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
+    }
   }
 
   public ServerContext getContext() {
@@ -311,8 +334,10 @@ public abstract class AbstractServer
     final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
     final MetricResponseWrapper response = new MetricResponseWrapper(builder);
 
-    if (getHostname().startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
-      log.error("Host is not set, this should have been done after starting the Thrift service.");
+    if (getAdvertiseAddress().toString()
+        .startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+      log.error(
+          "Advertise address is not set, this should have been done after starting the Thrift service.");
       return response;
     }
 
@@ -322,7 +347,7 @@ public abstract class AbstractServer
     }
 
     response.setServerType(metricSource);
-    response.setServer(getHostname());
+    response.setServer(getAdvertiseAddress().toString());
     response.setResourceGroup(getResourceGroup());
     response.setTimestamp(System.currentTimeMillis());
 

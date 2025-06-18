@@ -324,12 +324,12 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     ClientServiceHandler clientHandler = new ClientServiceHandler(getContext());
     var processor = ThriftProcessorTypes.getCompactorTProcessor(this, clientHandler,
         getCompactorThriftHandlerInterface(), getContext());
-    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getHostname(),
+    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getBindAddress(),
         Property.COMPACTOR_CLIENTPORT, processor, this.getClass().getSimpleName(),
         Property.COMPACTOR_PORTSEARCH, Property.COMPACTOR_MINTHREADS,
         Property.COMPACTOR_MINTHREADS_TIMEOUT, Property.COMPACTOR_THREADCHECK);
     sp.startThriftServer("Thrift Client Server");
-    setHostname(sp.address);
+    updateAdvertiseAddress(sp.address);
     LOG.info("address = {}", sp.address);
     return sp;
   }
@@ -677,7 +677,8 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the compactor client service", e1);
     }
-    final HostAndPort clientAddress = compactorAddress.getAddress();
+    updateAdvertiseAddress(compactorAddress.getAddress());
+    final HostAndPort clientAddress = getAdvertiseAddress();
 
     try {
       announceExistence(clientAddress);

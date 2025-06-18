@@ -1128,11 +1128,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
 
     try {
-      sa = TServerUtils.createThriftServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
+      sa = TServerUtils.createThriftServer(context, getBindAddress(), Property.MANAGER_CLIENTPORT,
           processor, "Manager", null, Property.MANAGER_MINTHREADS,
           Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
     } catch (UnknownHostException e) {
-      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+      throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
 
     // block until we can obtain the ZK lock for the manager. Create the
@@ -1154,7 +1154,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // Set the HostName **after** initially creating the lock. The lock data is
     // updated below with the correct address. This prevents clients from accessing
     // the Manager until all of the internal processes are started.
-    setHostname(sa.address);
+    updateAdvertiseAddress(sa.getAddress());
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -1394,8 +1394,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
         ThriftService.FATE}) {
-      descriptors
-          .addService(new ServiceDescriptor(uuid, svc, getHostname(), this.getResourceGroup()));
+      descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
+          this.getResourceGroup()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1582,14 +1582,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     var zooKeeper = getContext().getZooSession();
     log.info("trying to get manager lock");
 
-    final String managerClientAddress =
-        getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
-
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
+    // This method creates the lock with the ThriftServer set to NONE
+    // and the address set to 0.0.0.0. When the lock is acquired (could be
+    // waiting to due an HA-pair), then the Manager startup process begins
+    // and the lock service descriptors are updated with the advertise address
     descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
-        managerClientAddress, this.getResourceGroup()));
+        ConfigOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
