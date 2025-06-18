@@ -71,7 +71,7 @@ public abstract class AbstractServer
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
-  private String hostname;
+  private volatile String hostname;
   private final String resourceGroup;
   private final Logger log;
   private final ProcessMetrics processMetrics;
