@@ -982,6 +982,12 @@ public class Tablet extends TabletBase {
     }
 
     synchronized (this) {
+      // gave up the lock to allow a minor compaction to run, now that the lock is reacquired
+      // validate that nothing unexpectedly changed
+      Preconditions.checkState(closeState == CloseState.CLOSED, "closeState:%s extent:%s",
+          closeState, extent);
+      Preconditions.checkState(writesInProgress == 0, "writesInProgress:%s extent:%s",
+          writesInProgress, extent);
       if (saveState) {
         // at this point all tablet data is flushed, so do a consistency check
         RuntimeException err = null;
