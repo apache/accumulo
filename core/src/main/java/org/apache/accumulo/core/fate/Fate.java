@@ -532,6 +532,9 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
+
+    // ensure store resources are cleaned up
+    store.close();
   }
 
   private boolean anyFateExecutorIsAlive() {

@@ -40,9 +40,11 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsITBase {
   public void executeTest(FateTestExecutor<LatchTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     var context = getCluster().getServerContext();
-    // the test should not be reserving or checking reservations, so null lockID and isLockHeld
-    testMethod.execute(new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null),
-        context);
+    try (FateStore<LatchTestEnv> fs =
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null)) {
+      // the test should not be reserving or checking reservations, so null lockID and isLockHeld
+      testMethod.execute(fs, context);
+    }
   }
 
   /**
@@ -61,8 +63,10 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsITBase {
       ZooUtil.LockID lockID = testLock.getLockID();
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      testMethod.execute(
-          new UserFateStore<>(context, SystemTables.FATE.tableName(), lockID, isLockHeld), context);
+      try (FateStore<LatchTestEnv> fs =
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), lockID, isLockHeld)) {
+        testMethod.execute(fs, context);
+      }
     } finally {
       if (testLock != null) {
         testLock.unlock();

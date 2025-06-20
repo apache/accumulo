@@ -291,4 +291,9 @@ public class TestStore implements FateStore<String> {
   public boolean isDeferredOverflow() {
     return false;
   }
+
+  @Override
+  public void close() {
+    // no-op
+  }
 }

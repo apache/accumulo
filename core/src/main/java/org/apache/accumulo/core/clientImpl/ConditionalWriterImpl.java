@@ -87,7 +87,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 public class ConditionalWriterImpl implements ConditionalWriter {
@@ -831,7 +830,6 @@ public class ConditionalWriterImpl implements ConditionalWriter {
     }
   }
 
-  @VisibleForTesting
   public ConditionalWriterConfig getConfig() {
     return config;
   }
