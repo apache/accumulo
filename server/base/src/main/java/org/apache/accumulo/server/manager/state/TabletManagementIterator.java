@@ -237,10 +237,17 @@ public class TabletManagementIterator extends WholeRowIterator {
 
     Exception error = null;
     try {
-      LOG.trace("Evaluating extent: {}", tm);
-      computeTabletManagementActions(tm, actions);
-    } catch (Exception e) {
-      LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
+      // Validate that a minimum set of keys were seen to create a valid tablet
+      tm.getPrevEndRow();
+      try {
+        LOG.trace("Evaluating extent: {}", tm);
+        computeTabletManagementActions(tm, actions);
+      } catch (Exception e) {
+        LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
+        error = e;
+      }
+    } catch (IllegalStateException e) {
+      LOG.error("Irregular tablet metadata encountered: {}", tm, e);
       error = e;
     }
 
