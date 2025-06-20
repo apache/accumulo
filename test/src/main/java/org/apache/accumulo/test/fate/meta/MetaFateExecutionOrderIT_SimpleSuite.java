@@ -25,6 +25,7 @@ import java.util.UUID;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -44,11 +45,13 @@ public class MetaFateExecutionOrderIT_SimpleSuite extends FateExecutionOrderITBa
     try (var zk = new ZooSession(getClass().getSimpleName() + ".mkdirs", conf)) {
       zk.asReaderWriter().mkdirs(ZK_ROOT);
     }
-    try (var zk = new ZooSession(getClass().getSimpleName() + ".fakeroot",
-        conf.get(Property.INSTANCE_ZK_HOST) + ZK_ROOT,
-        (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
-        conf.get(Property.INSTANCE_SECRET))) {
-      testMethod.execute(new MetaFateStore<>(zk, createDummyLockID(), null), sctx);
+    try (
+        var zk = new ZooSession(getClass().getSimpleName() + ".fakeroot",
+            conf.get(Property.INSTANCE_ZK_HOST) + ZK_ROOT,
+            (int) conf.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT),
+            conf.get(Property.INSTANCE_SECRET));
+        FateStore<FeoTestEnv> fs = new MetaFateStore<>(zk, createDummyLockID(), null)) {
+      testMethod.execute(fs, sctx);
     }
   }
 }

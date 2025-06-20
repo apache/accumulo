@@ -968,19 +968,27 @@ public class Admin implements KeywordExecutable {
       } else if (fateOpsCommand.fail) {
         adminLock = createAdminLock(context);
         fateStores = createFateStores(context, zk, adminLock);
-        for (String fateIdStr : fateOpsCommand.fateIdList) {
-          if (!admin.prepFail(fateStores, fateIdStr)) {
-            throw new AccumuloException("Could not fail transaction: " + fateIdStr);
+        try {
+          for (String fateIdStr : fateOpsCommand.fateIdList) {
+            if (!admin.prepFail(fateStores, fateIdStr)) {
+              throw new AccumuloException("Could not fail transaction: " + fateIdStr);
+            }
           }
+        } finally {
+          closeFateStores(fateStores.values());
         }
       } else if (fateOpsCommand.delete) {
         adminLock = createAdminLock(context);
         fateStores = createFateStores(context, zk, adminLock);
-        for (String fateIdStr : fateOpsCommand.fateIdList) {
-          if (!admin.prepDelete(fateStores, fateIdStr)) {
-            throw new AccumuloException("Could not delete transaction: " + fateIdStr);
+        try {
+          for (String fateIdStr : fateOpsCommand.fateIdList) {
+            if (!admin.prepDelete(fateStores, fateIdStr)) {
+              throw new AccumuloException("Could not delete transaction: " + fateIdStr);
+            }
+            admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
           }
-          admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
+        } finally {
+          closeFateStores(fateStores.values());
         }
       }
 
@@ -991,7 +999,7 @@ public class Admin implements KeywordExecutable {
             getCmdLineStatusFilters(fateOpsCommand.states);
         EnumSet<FateInstanceType> typesFilter =
             getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
-        readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
+        readOnlyFateStores = createReadOnlyFateStores(context, zk);
         admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
             fateIdFilter, statusFilter, typesFilter);
         // print line break at the end
@@ -1000,7 +1008,7 @@ public class Admin implements KeywordExecutable {
 
       if (fateOpsCommand.summarize) {
         if (readOnlyFateStores == null) {
-          readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
+          readOnlyFateStores = createReadOnlyFateStores(context, zk);
         }
         summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
       }
@@ -1020,13 +1028,18 @@ public class Admin implements KeywordExecutable {
     return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
   }
 
-  private Map<FateInstanceType,ReadOnlyFateStore<Admin>>
-      createReadOnlyFateStores(ServerContext context, ZooSession zk, String fateZkPath)
-          throws InterruptedException, KeeperException {
-    MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
-    UserFateStore<Admin> readOnlyUFS =
+  private Map<FateInstanceType,ReadOnlyFateStore<Admin>> createReadOnlyFateStores(
+      ServerContext context, ZooSession zk) throws InterruptedException, KeeperException {
+    ReadOnlyFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+    ReadOnlyFateStore<Admin> readOnlyUFS =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
     return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
+  }
+
+  private void closeFateStores(Collection<FateStore<Admin>> fateStores) {
+    for (var fs : fateStores) {
+      fs.close();
+    }
   }
 
   private ServiceLock createAdminLock(ServerContext context) throws InterruptedException {
