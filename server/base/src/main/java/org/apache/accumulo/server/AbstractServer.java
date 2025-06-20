@@ -363,8 +363,7 @@ public abstract class AbstractServer
     final FlatBufferBuilder builder = new FlatBufferBuilder(1024);
     final MetricResponseWrapper response = new MetricResponseWrapper(builder);
 
-    if (getAdvertiseAddress().toString()
-        .startsWith(Property.RPC_PROCESS_BIND_ADDRESS.getDefaultValue())) {
+    if (getAdvertiseAddress() == null) {
       log.error(
           "Advertise address is not set, this should have been done after starting the Thrift service.");
       return response;
