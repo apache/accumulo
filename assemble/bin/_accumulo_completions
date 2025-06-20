@@ -1,0 +1,176 @@
+#! /usr/bin/env bash
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+# Describes the completions for all of the accumulo commands, including `admin` and `ec-admin`.
+# In order to use these completions, run an instance of accumulo and source the _accumulo_completions file from where
+# accumulo is downloaded on your local machine:
+#
+# source [path-to-accumulo]/assemble/bin/_accumulo_completions
+
+set +x
+
+COMPREPLY=()
+
+
+# The main function for running completions for accumulo. Handles the completions for all accumulo top-level commands
+# except for `admin` and `ec-admin`. In the case of `admin` and `ec-admin` commands being entered, invokes other
+# functions that handle those completions.
+function _accumulo_completions(){
+  # Maps the directly following sub-commands or options to the top-level commands
+  declare -A COMMAND_MAPPING=(
+    ["admin"]="serviceStatus changeSecret check deleteZooInstance dumpConfig fate signalShutdown listInstances locks ping restoreZoo stop stopAll stopManager verifyTabletAssigns volumes -auths --auths -c --config-file -h -? --help -help --password --trace -u --user -o"
+    ["ec-admin"]="cancel listCompactors running -auths --auths -c --config-file -h -? --help -help --password --trace -u --user -o"
+    ["check-compaction-config"]="-h -? --help -help"
+    ["create-empty"]="-c --codec -h -? --help -help -p -props --props --type -o"
+    ["upgrade"]="--force -h -? --help -help --prepare -p -props --props --start -o"
+    ["zoo-zap"]="--dry-run --exclude-host-ports --gc -h -? --help -help --include-groups --monitor -compactors -manager -sservers -tservers -verbose"
+  )
+
+  # All top-level commands (following the accumulo keyword)
+  local AVAILABLE_COMMANDS="admin ec-admin help info init shell version compactor gc manager minicluster monitor sserver tserver zookeeper check-accumulo-properties check-compaction-config check-server-config create-empty create-token dump-zoo generate-splits login-info rfile-info split-large upgrade wal-info zoo-info-viewer zoo-prop-editor zoo-zap"
+
+  # Current word at the cursor index
+  local CURRENT_WORD=${COMP_WORDS[COMP_CWORD]}
+  # Word immediately following the 'accumulo' command
+  local WORD_AFTER_ACCUMULO=${COMP_WORDS[1]}
+
+  # Array storing possible completions to accumulo commands
+  COMPREPLY=()
+
+  if [ "$COMP_CWORD" -eq 1 ]; then # Completing the first command after 'accumulo'
+    COMPREPLY=($( compgen -W "$AVAILABLE_COMMANDS" -- "$CURRENT_WORD" ))
+  elif [[ "$WORD_AFTER_ACCUMULO" == "admin" ]]; then # If the second string after 'accumulo' is 'admin', more completions to be done in _admin_completions function
+    _admin_completions "$CURRENT_WORD"
+  elif [[ "$WORD_AFTER_ACCUMULO" == "ec-admin" ]]; then # If the second string after 'accumulo' is 'ec-admin', more completions to be done in _ec_admin_completions function
+    _ec_admin_completions "$CURRENT_WORD"
+  elif [[ -n "${COMMAND_MAPPING[$WORD_AFTER_ACCUMULO]}" ]]; then # If the second string after 'accumulo' is any of the other commands besides 'admin' or 'ec-admin', map correct options (if any) that correspond to the subcommand entered
+    COMPREPLY=($( compgen -W "${COMMAND_MAPPING[$WORD_AFTER_ACCUMULO]}" -- "$CURRENT_WORD" ))
+  else # Invalid command, suggest nothing
+    COMPREPLY=($( compgen -f "$CURRENT_WORD" ))
+  fi
+}
+
+# This function performs the rest of the accumulo command completions when dealing with the 'admin' commands, which
+# have more options for completions than any of the other commands. This function expects CURRENT_WORD to be passed
+# in, representing the current word at the cursor index.
+_admin_completions() {
+  # Current word at the cursor index
+  local CURRENT_WORD=$1
+
+  # Maps specific options to all of their respective admin subcommands
+  declare -A ADMIN_SUBCOMMAND_OPTIONS=(
+    ["serviceStatus"]="-h -? --help -help --json --noHosts"
+    ["check"]="--fixFiles -h -? --help -help --name-pattern -p list run"
+    ["deleteZooInstance"]="-c --clean -h -? --help -help -i --instance --password"
+    ["dumpConfig"]="-a --all -d --directory -h -? --help -help -n --namespaces -s --system -t --tables -u --users"
+    ["fate"]="c --cancel -d --delete -f --fail -h -? --help -help -j --json -p --print -print -l --list -list -s --state --summary -t --type"
+    ["signalShutdown"]="-a --address -h -? --help -help"
+    ["listInstances"]="-h -? -help -help --print-all --print-errors"
+    ["locks"]="-h -? --help -help -delete"
+    ["ping"]="-h -? --help -help"
+    ["restoreZoo"]="--file -h -? --help -help --overwrite"
+    ["stop"]="-f --force -h -? --help -help"
+    ["stopAll"]="-h -? --help -help"
+    ["stopManager"]="-h -? --help -help"
+    ["verifyTabletAssigns"]="-h -? --help -help -v --verbose"
+    ["volumes"]="-h -? --help -help -l --list"
+  )
+
+  # ADMIN_SUBCOMMANDS lists just admin subcommands. ADMIN_TOP_LEVEL_COMPLETIONS lists admin subcommands and options
+  local ADMIN_SUBCOMMANDS=" serviceStatus changeSecret check deleteZooInstance dumpConfig fate signalShutdown listInstances locks ping restoreZoo stop stopAll stopManager verifyTabletAssigns volumes "
+  local ADMIN_TOP_LEVEL_COMPLETIONS=" serviceStatus changeSecret check deleteZooInstance dumpConfig fate signalShutdown listInstances locks ping restoreZoo stop stopAll stopManager verifyTabletAssigns volumes -auths --auths -c --config-file -h -? --help -help --password --trace -u --user -o "
+
+  # Variable to store and track entered subcommand (if it exists) of admin or ec-admin
+  local current_subcommand=""
+
+  # Find the actual subcommand if one has been entered
+  # Iterate from the third word (index 2) onwards to find a recognized subcommand
+  for (( i=2; i<COMP_CWORD; i++ )); do
+    local word="${COMP_WORDS[i]}"
+    # Check if the word is a known subcommand. Searching for it separated by spaces to identify sole subcommands rather
+    # than finding word as a substring to a subcommand. Ex: so 'list' isn't incorrectly identified as 'listInstances'
+    if [[ "$ADMIN_SUBCOMMANDS" == *" $word "* ]]; then
+      current_subcommand="$word"
+    fi
+  done
+
+  if [[ -n "$current_subcommand" ]]; then # If a subcommand has been entered, do:
+    if [[ -n "${ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" ]]; then # If it's an admin subcommand
+      # Suggest to COMPREPLY the options for the admin subcommand given
+      COMPREPLY=($( compgen -W "${ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" -- "$CURRENT_WORD" ))
+    else
+      # If a subcommand is present but has no specific options defined,
+      # or if the current word is not an option
+      COMPREPLY=($( compgen f "$CURRENT_WORD" ))
+    fi
+  else # Else if a subcommand has not been entered, keep giving the completion options available.
+    COMPREPLY=($( compgen -W "$ADMIN_TOP_LEVEL_COMPLETIONS" -- "$CURRENT_WORD" ))
+  fi
+  return 0
+}
+
+# This function performs the rest of the accumulo command completions when dealing with the 'ec-admin' commands, which
+# have more options for completions than any of the other commands. This function expects CURRENT_WORD to be passed
+# in, representing the current word at the cursor index.
+_ec_admin_completions() {
+  # Current word at the cursor index
+  local CURRENT_WORD=$1
+
+  # Maps specific options to all of their respective ec-admin subcommands
+  declare -A EC_ADMIN_SUBCOMMAND_OPTIONS=(
+    ["cancel"]="-ecid"
+    ["running"]="-d --details -j --json"
+  )
+
+  # EC_ADMIN_SUBCOMMANDS lists just admin subcommands. EC_ADMIN_TOP_LEVEL_COMPLETIONS lists admin subcommands and options
+  local EC_ADMIN_SUBCOMMANDS=" cancel listCompactors running "
+  local EC_ADMIN_TOP_LEVEL_COMPLETIONS=" cancel listCompactors running -auths --auths -c --config-file -h -? --help -help --password --trace -u --user -o "
+
+  # Variable to store and track entered subcommand (if it exists) of admin or ec-admin
+  local current_subcommand=""
+
+  # Find the actual subcommand if one has been entered
+  # Iterate from the third word (index 2) onwards to find a recognized subcommand
+  for (( i=2; i<COMP_CWORD; i++ )); do
+    local word="${COMP_WORDS[i]}"
+    # Check if the word is a known subcommand. Searching for it separated by spaces to identify sole subcommands rather
+    # than finding word as a substring to a subcommand. Ex: so 'list' isn't incorrectly identified as 'listInstances'
+    if [[ "$EC_ADMIN_SUBCOMMANDS" == *" $word "* ]]; then
+      current_subcommand="$word"
+    fi
+  done
+
+  if [[ -n "$current_subcommand" ]]; then # If a subcommand has been entered, do:
+    if [[ -n "${EC_ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" ]]; then # If it's an ec-admin subcommand
+      # Suggest to COMPREPLY the options for the ec-admin subcommand given
+      COMPREPLY=($( compgen -W "${EC_ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" -- "$CURRENT_WORD" ))
+    else
+      # If a subcommand is present but has no specific options defined,
+      # or if the current word is not an option
+      COMPREPLY=($( compgen f "$CURRENT_WORD" ))
+    fi
+  else # Else if a subcommand has not been entered, keep giving the completion options available.
+    COMPREPLY=($( compgen -W "$EC_ADMIN_TOP_LEVEL_COMPLETIONS" -- "$CURRENT_WORD" ))
+  fi
+  return 0
+}
+
+# Calls _accumulo_completions function to complete for accumulo commands
+complete -F _accumulo_completions accumulo
