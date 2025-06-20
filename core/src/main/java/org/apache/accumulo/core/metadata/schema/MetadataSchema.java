@@ -408,8 +408,8 @@ public class MetadataSchema {
      * data for the current tablet, so that they are safe to merge
      */
     public static class ChoppedColumnFamily {
-      // kept to support upgrades to 3.1; name is used for both col fam and col qual
-      @Deprecated(since = "3.1.0")
+      // kept to support upgrades to 4.0; name is used for both col fam and col qual
+      @Deprecated(since = "4.0.0")
       public static final Text NAME = new Text("chopped");
     }
 

@@ -133,7 +133,7 @@ public class ColumnVisibility {
    *
    * @param expression visibility expression, encoded as UTF-8 bytes
    * @see #ColumnVisibility(String)
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ColumnVisibility(AccessExpression expression) {
     // AccessExpression is a validated immutable object, so no need to re validate

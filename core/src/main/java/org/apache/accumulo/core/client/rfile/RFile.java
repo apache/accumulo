@@ -91,12 +91,12 @@ public class RFile {
      * @param files one or more FencedPaths to read.
      * @return this
      *
-     * @since 3.1.0
+     * @since 4.0.0
      */
     ScannerFSOptions from(FencedPath... files);
 
     /**
-     * @since 3.1.0
+     * @since 4.0.0
      */
     class FencedPath {
       private final Path path;

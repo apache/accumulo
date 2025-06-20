@@ -40,7 +40,7 @@ public interface CompactableFile {
    *         not have a range then an infinite range is returned. The URI plus this range uniquely
    *         identify a file.
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public Range getRange();
 
@@ -55,7 +55,7 @@ public interface CompactableFile {
   /**
    * Creates a new CompactableFile object that implements this interface.
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   static CompactableFile create(URI uri, Range range, long estimatedSize, long estimatedEntries) {
     return new CompactableFileImpl(uri, range, estimatedSize, estimatedEntries);
