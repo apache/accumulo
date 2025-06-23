@@ -86,7 +86,7 @@ class DatafileManager {
         new AtomicReference<>(new MetadataUpdateCount(tablet.getExtent(), 0L, 0L));
   }
 
-  private final Set<TabletFile> filesToDeleteAfterScan = new HashSet<>();
+  private final Set<StoredTabletFile> filesToDeleteAfterScan = new HashSet<>();
   private final Map<Long,Set<StoredTabletFile>> scanFileReservations = new HashMap<>();
   private final MapCounter<StoredTabletFile> fileScanReferenceCounts = new MapCounter<>();
   private long nextScanReservationId = 0;
