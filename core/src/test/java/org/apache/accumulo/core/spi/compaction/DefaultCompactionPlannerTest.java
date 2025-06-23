@@ -246,14 +246,14 @@ public class DefaultCompactionPlannerTest {
 
     int count = 0;
 
-    // create 10 files of size 10 as compacting
+    // create 10 files of size 11 as compacting
     List<String> compactingString = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       compactingString.add("F" + count++);
       compactingString.add(11 + "");
     }
 
-    // create 10 files of size 10 as the tablets files
+    // create 10 files of size 11 as the tablets files
     List<String> candidateStrings = new ArrayList<>();
     for (int i = 0; i < 10; i++) {
       candidateStrings.add("F" + count++);
@@ -298,8 +298,7 @@ public class DefaultCompactionPlannerTest {
 
     // All 20 of the size 11 files are compacting, which would produce 2 files of size 110. There
     // are 17 files of size 100, compacting 10 files of size 100 would not include the two projected
-    // files of size 110.
-    // Should find 10 files of size 100 to compact.
+    // files of size 110. Should find 10 files of size 100 to compact.
     job = getOnlyElement(plan.getJobs());
     assertEquals(10, job.getFiles().size());
     assertTrue(job.getFiles().stream().allMatch(f -> f.getEstimatedSize() == 100));
