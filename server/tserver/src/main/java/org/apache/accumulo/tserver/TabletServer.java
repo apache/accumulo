@@ -314,7 +314,7 @@ public class TabletServer extends AbstractServer
         context.getScheduledExecutor().scheduleWithFixedDelay(Threads.createNamedRunnable(
             "ScanRefCleanupTask", () -> getOnlineTablets().values().forEach(tablet -> {
               try {
-                tablet.removeOrphanedScanRefs();
+                tablet.removeBatchedScanRefs();
               } catch (Exception e) {
                 log.error("Error cleaning up stale scan references for tablet {}",
                     tablet.getExtent(), e);

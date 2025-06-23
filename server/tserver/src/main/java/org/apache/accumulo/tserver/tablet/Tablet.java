@@ -2220,8 +2220,22 @@ public class Tablet extends TabletBase {
     return getDatafileManager().getUpdateCount();
   }
 
-  public void removeOrphanedScanRefs() {
-    getDatafileManager().removeOrphanedScanRefs();
+  public void removeBatchedScanRefs() {
+    synchronized (this) {
+      if (isClosed() || isClosing()) {
+        return;
+      }
+      // TODO if a check is done here to see if there are orphaned scans and none are found could
+      // return and not do the increment.
+      // this would cut down on the number of times the lock is acquired, but not sure how clean
+      // this would be.
+      incrementWritesInProgress();
+    }
+    try {
+      getDatafileManager().removeBatchedScanRefs();
+    } finally {
+      decrementWritesInProgress();
+    }
   }
 
   TabletMemory getTabletMemory() {

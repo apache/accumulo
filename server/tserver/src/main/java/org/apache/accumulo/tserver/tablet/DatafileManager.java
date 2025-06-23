@@ -119,43 +119,28 @@ class DatafileManager {
 
   void returnFilesForScan(Long reservationId) {
 
-    final Set<StoredTabletFile> filesToDelete = new HashSet<>();
+    synchronized (tablet) {
+      Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
 
-    try {
-      synchronized (tablet) {
-        Set<StoredTabletFile> absFilePaths = scanFileReservations.remove(reservationId);
-
-        if (absFilePaths == null) {
-          throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
-        }
-
-        boolean notify = false;
-        try {
-          for (StoredTabletFile path : absFilePaths) {
-            long refCount = fileScanReferenceCounts.decrement(path, 1);
-            if (refCount == 0) {
-              if (filesToDeleteAfterScan.remove(path)) {
-                filesToDelete.add(path);
-              }
-              notify = true;
-            } else if (refCount < 0) {
-              throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
-            }
-          }
-        } finally {
-          if (notify) {
-            tablet.notifyAll();
-          }
-        }
+      if (absFilePaths == null) {
+        throw new IllegalArgumentException("Unknown scan reservation id " + reservationId);
       }
-    } finally {
-      // Remove scan files even if the loop above did not fully complete because once a
-      // file is in the set filesToDelete that means it was removed from filesToDeleteAfterScan
-      // and would never be added back.
-      if (!filesToDelete.isEmpty()) {
-        log.debug("Removing scan refs from metadata {} {}", tablet.getExtent(), filesToDelete);
-        MetadataTableUtil.removeScanFiles(tablet.getExtent(), filesToDelete, tablet.getContext(),
-            tablet.getTabletServer().getLock());
+
+      boolean notify = false;
+      try {
+        for (StoredTabletFile path : absFilePaths) {
+          long refCount = fileScanReferenceCounts.decrement(path, 1);
+          if (refCount == 0) {
+            filesToDeleteAfterScan.add(path);
+            notify = true;
+          } else if (refCount < 0) {
+            throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
+          }
+        }
+      } finally {
+        if (notify) {
+          tablet.notifyAll();
+        }
       }
     }
   }
@@ -185,11 +170,10 @@ class DatafileManager {
   }
 
   /**
-   * Removes any scan-in-use metadata entries that were left behind when a scan cleanup was
-   * interrupted. Intended to be called periodically to clear these orphaned scan refs once their
-   * in-memory reference count reaches zero.
+   * This method will remove any scan references that have been added to filesToDeleteAfterScan.
+   * This is meant to be called periodically as to batch the removal of scan references.
    */
-  public void removeOrphanedScanRefs() {
+  public void removeBatchedScanRefs() {
     Set<StoredTabletFile> snapshot;
     synchronized (tablet) {
       snapshot = new HashSet<>(filesToDeleteAfterScan);
