@@ -81,10 +81,6 @@ public enum ClientProperty {
       "2.1.0", false),
   CONDITIONAL_WRITER_THREADS_MAX("conditional.writer.threads.max", "3", PropertyType.COUNT,
       "Maximum number of threads to use for writing data to tablet servers.", "2.1.0", false),
-  CONDITIONAL_WRITER_THREADS_MAX_FATE_TABLE("conditional.writer.threads.max.fate.table", "3",
-      PropertyType.COUNT,
-      "Maximum number of threads to use for writing data to tablet servers of the FATE system table.",
-      "4.0.0", false),
   CONDITIONAL_WRITER_DURABILITY("conditional.writer.durability", "default", PropertyType.DURABILITY,
       Property.TABLE_DURABILITY.getDescription() + " Setting this property will change the "
           + "durability for the ConditionalWriter session. A value of \"default\" will use the"

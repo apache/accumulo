@@ -834,17 +834,6 @@ public class ClientContext implements AccumuloClient {
     return createConditionalWriter(tableName, null);
   }
 
-  public ConditionalWriter createConditionalWriterForFateTable(String tableName)
-      throws TableNotFoundException {
-    ConditionalWriterImpl writer = (ConditionalWriterImpl) createConditionalWriter(tableName);
-    Integer maxThreads =
-        ClientProperty.CONDITIONAL_WRITER_THREADS_MAX_FATE_TABLE.getInteger(getClientProperties());
-    if (maxThreads != null) {
-      writer.getConfig().setMaxWriteThreads(maxThreads);
-    }
-    return writer;
-  }
-
   @Override
   public Scanner createScanner(String tableName, Authorizations authorizations)
       throws TableNotFoundException {

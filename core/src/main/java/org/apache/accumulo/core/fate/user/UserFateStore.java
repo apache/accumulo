@@ -41,9 +41,11 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -112,7 +114,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     this.tableName = Objects.requireNonNull(tableName);
     this.writer = Suppliers.memoize(() -> {
       try {
-        return context.createConditionalWriterForFateTable(this.tableName);
+        return createConditionalWriterForFateTable(this.tableName);
       } catch (TableNotFoundException e) {
         throw new IllegalStateException(
             "Incorrect use of UserFateStore, table " + tableName + " does not exist.");
@@ -698,6 +700,14 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     Preconditions.checkArgument(REPO_RANGE.contains(position),
         "Position %s is not in the valid range of [0,%s]", position, MAX_REPOS);
     return position;
+  }
+
+  private ConditionalWriter createConditionalWriterForFateTable(String tableName)
+      throws TableNotFoundException {
+    int maxThreads =
+        context.getConfiguration().getCount(Property.MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX);
+    ConditionalWriterConfig cwConfig = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+    return context.createConditionalWriter(tableName, cwConfig);
   }
 
   @Override
