@@ -255,17 +255,21 @@ public class MetricsInfoImpl implements MetricsInfo {
   }
 
   /**
-   * Description of what the function does.
+   * This function uses patterns specified in the patternList parameter to filter out specific metrics that the user
+   * doesn't want.
    *
-   * @param patternList Description of what this variable is, i.e. comma-delimited regext patterns
-   * @return description of what this function returns, i.e. a predicate
+   * @param patternList, a comma-delimited String of regext patterns that getMeterFilter uses to filter metrics.
+   * @return a predicate with the type of MeterFilter, that describes which metrics to filter.
    */
   public static MeterFilter getMeterFilter(String patternList) {
     requireNonNull(patternList, "patternList must not be null");
     Preconditions.checkArgument(!patternList.isEmpty(), "patternList must not be empty");
+    // Trims whitespace and all other non-visible characters.
+    patternList = patternList.replaceAll("\\s+","");
 
     String[] patterns = patternList.split(",");
-    Predicate<Meter.Id> finalPredicate = null;
+    Predicate<Meter.Id> finalPredicate = id->false;
+
 
     for (String pattern : patterns) {
       // Compile the pattern.
@@ -275,18 +279,13 @@ public class MetricsInfoImpl implements MetricsInfo {
       // Create a predicate that will return true if the ID's name matches the pattern.
       Predicate<Meter.Id> predicate = id -> compiledPattern.matcher(id.getName()).matches();
 
-      if (finalPredicate == null) {
-        // This is the first pattern. Establish the initial predicate.
-        finalPredicate = predicate;
-      } else {
-        // Conjoin the pattern into the final predicates. The final predicate will return true if
-        // the name of the ID matches any of its conjoined predicates.
-        finalPredicate = finalPredicate.or(predicate);
-      }
+      // Conjoin the pattern into the final predicates. The final predicate will return true if
+      // the name of the ID matches any of its conjoined predicates.
+      finalPredicate = finalPredicate.or(predicate);
     }
 
     // Assert that meter filter reply == MeterFilterReply.DENY;
-    return MeterFilter.deny(Objects.requireNonNullElseGet(finalPredicate, () -> t -> false));
+    return MeterFilter.deny(finalPredicate);
   }
 
   @Override
