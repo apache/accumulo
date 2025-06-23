@@ -96,8 +96,6 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
-import org.apache.accumulo.core.metadata.schema.TabletMetadata;
-import org.apache.accumulo.core.metadata.schema.filters.HasMigrationFilter;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -165,7 +163,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   static final Logger log = LoggerFactory.getLogger(Manager.class);
 
   static final int ONE_SECOND = 1000;
-  private static final long CLEANUP_INTERVAL_MINUTES = 5;
+  static final long CLEANUP_INTERVAL_MINUTES = 5;
   static final long WAIT_BETWEEN_ERRORS = ONE_SECOND;
   private static final long DEFAULT_WAIT_FOR_WATCHER = 10 * ONE_SECOND;
   private static final int MAX_CLEANUP_WAIT_TIME = ONE_SECOND;
@@ -521,52 +519,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         watcher.hostOndemand(extents);
       }
     }
-  }
-
-  private class MigrationCleanupThread implements Runnable {
-
-    @Override
-    public void run() {
-      while (stillManager()) {
-        try {
-          // - Remove any migrations for tablets of offline tables, as the migration can never
-          // succeed because no tablet server will load the tablet
-          // - Remove any migrations to tablet servers that are not live
-          // - Remove any migrations where the tablets current location equals the migration
-          // (the migration has completed)
-          var ample = getContext().getAmple();
-          for (DataLevel dl : DataLevel.values()) {
-            // prev row needed for the extent
-            try (var tabletsMetadata = ample.readTablets().forLevel(dl)
-                .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
-                    TabletMetadata.ColumnType.LOCATION)
-                .filter(new HasMigrationFilter()).build();
-                var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
-              for (var tabletMetadata : tabletsMetadata) {
-                var migration = tabletMetadata.getMigration();
-                if (shouldCleanupMigration(tabletMetadata)) {
-                  tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
-                      .requireMigration(migration).deleteMigration().submit(tm -> false);
-                }
-              }
-            }
-          }
-        } catch (Exception ex) {
-          log.error("Error cleaning up migrations", ex);
-        }
-        sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
-      }
-    }
-  }
-
-  boolean shouldCleanupMigration(TabletMetadata tabletMetadata) {
-    var tableState = getContext().getTableManager().getTableState(tabletMetadata.getTableId());
-    var migration = tabletMetadata.getMigration();
-    Preconditions.checkState(migration != null,
-        "This method should only be called if there is a migration");
-    return tableState == TableState.OFFLINE || !onlineTabletServers().contains(migration)
-        || (tabletMetadata.getLocation() != null
-            && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
 
   private class ScanServerZKCleaner implements Runnable {
@@ -1096,7 +1048,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         sa.getAddress(), getResourceGroup()));
 
-    Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    balanceManager.upgradeComplete();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
@@ -1602,16 +1554,5 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   @Override
   public ServiceLock getLock() {
     return managerLock;
-  }
-
-  long numMigrations() {
-    long count = 0;
-    for (DataLevel dl : DataLevel.values()) {
-      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.MIGRATION).filter(new HasMigrationFilter()).build()) {
-        count += tabletsMetadata.stream().count();
-      }
-    }
-    return count;
   }
 }

@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.manager;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MINUTES;
+
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -37,6 +40,7 @@ import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
@@ -51,12 +55,15 @@ import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.manager.state.UnassignedTablet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -69,6 +76,7 @@ public class BalanceManager {
   private final BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
   private final Object balancedNotifier = new Object();
+  private static final long CLEANUP_INTERVAL_MINUTES = Manager.CLEANUP_INTERVAL_MINUTES;
 
   BalanceManager(Manager manager) {
     this.manager = manager;
@@ -124,7 +132,7 @@ public class BalanceManager {
               TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
           .filter(new HasMigrationFilter()).build()) {
         // filter out migrations that are awaiting cleanup
-        tabletsMetadata.stream().filter(tm -> !manager.shouldCleanupMigration(tm))
+        tabletsMetadata.stream().filter(tm -> !shouldCleanupMigration(tm))
             .forEach(tm -> extents.add(tm.getExtent()));
       }
       partitionedMigrations.put(dl, extents);
@@ -322,9 +330,20 @@ public class BalanceManager {
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (manager.displayUnassigned() > 0 || manager.numMigrations() > 0
+      } while (manager.displayUnassigned() > 0 || numMigrations() > 0
           || eventCounter != manager.nextEvent.waitForEvents(0, 0));
     }
+  }
+
+  long numMigrations() {
+    long count = 0;
+    for (Ample.DataLevel dl : Ample.DataLevel.values()) {
+      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
+          .fetch(TabletMetadata.ColumnType.MIGRATION).filter(new HasMigrationFilter()).build()) {
+        count += tabletsMetadata.stream().count();
+      }
+    }
+    return count;
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
@@ -365,6 +384,56 @@ public class BalanceManager {
           numTServers, threshold);
     }
     return result;
+  }
+
+  boolean shouldCleanupMigration(TabletMetadata tabletMetadata) {
+    var tableState = getContext().getTableManager().getTableState(tabletMetadata.getTableId());
+    var migration = tabletMetadata.getMigration();
+    Preconditions.checkState(migration != null,
+        "This method should only be called if there is a migration");
+    return tableState == TableState.OFFLINE || !manager.onlineTabletServers().contains(migration)
+        || (tabletMetadata.getLocation() != null
+            && tabletMetadata.getLocation().getServerInstance().equals(migration));
+  }
+
+  public void upgradeComplete() {
+    Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+  }
+
+  private class MigrationCleanupThread implements Runnable {
+
+    @Override
+    public void run() {
+      while (manager.stillManager()) {
+        try {
+          // - Remove any migrations for tablets of offline tables, as the migration can never
+          // succeed because no tablet server will load the tablet
+          // - Remove any migrations to tablet servers that are not live
+          // - Remove any migrations where the tablets current location equals the migration
+          // (the migration has completed)
+          var ample = getContext().getAmple();
+          for (Ample.DataLevel dl : Ample.DataLevel.values()) {
+            // prev row needed for the extent
+            try (var tabletsMetadata = ample.readTablets().forLevel(dl)
+                .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
+                    TabletMetadata.ColumnType.LOCATION)
+                .filter(new HasMigrationFilter()).build();
+                var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
+              for (var tabletMetadata : tabletsMetadata) {
+                var migration = tabletMetadata.getMigration();
+                if (shouldCleanupMigration(tabletMetadata)) {
+                  tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
+                      .requireMigration(migration).deleteMigration().submit(tm -> false);
+                }
+              }
+            }
+          }
+        } catch (Exception ex) {
+          log.error("Error cleaning up migrations", ex);
+        }
+        sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
+      }
+    }
   }
 
   public TabletBalancer getBalancer() {
