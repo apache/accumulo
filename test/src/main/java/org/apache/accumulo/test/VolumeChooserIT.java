@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -80,8 +79,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value();
-  private File volDirBase;
-  private Path v1, v2, v3;
+  private java.nio.file.Path volDirBase;
+  private Path v1;
+  private Path v2;
+  private Path v3;
   public static String[] alpha_rows =
       "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
@@ -108,14 +109,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
-    File baseDir = cfg.getDir();
-    volDirBase = baseDir.toPath().resolve("volumes").toFile();
-    File v1f = volDirBase.toPath().resolve("v1").toFile();
-    File v2f = volDirBase.toPath().resolve("v2").toFile();
-    File v3f = volDirBase.toPath().resolve("v3").toFile();
-    v1 = new Path("file://" + v1f.getAbsolutePath());
-    v2 = new Path("file://" + v2f.getAbsolutePath());
-    v3 = new Path("file://" + v3f.getAbsolutePath());
+    java.nio.file.Path baseDir = cfg.getDir().toPath();
+    volDirBase = baseDir.resolve("volumes");
+    java.nio.file.Path v1f = volDirBase.resolve("v1");
+    java.nio.file.Path v2f = volDirBase.resolve("v2");
+    java.nio.file.Path v3f = volDirBase.resolve("v3");
+    v1 = new Path("file://" + v1f.toAbsolutePath());
+    v2 = new Path("file://" + v2f.toAbsolutePath());
+    v3 = new Path("file://" + v3f.toAbsolutePath());
 
     systemPreferredVolumes = v1 + "," + v2;
     // exclude v3

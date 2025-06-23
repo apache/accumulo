@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -42,9 +43,10 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.HasMigrationFilter;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.balancer.BalancerEnvironment;
-import org.apache.accumulo.core.spi.balancer.TableLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
@@ -75,17 +77,27 @@ public class BalanceManager {
   }
 
   private void initializeBalancer() {
-    var localTabletBalancer =
-        Property.createInstanceFromPropertyName(getContext().getConfiguration(),
-            Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new TableLoadBalancer());
-    localTabletBalancer.init(balancerEnvironment);
-    tabletBalancer = localTabletBalancer;
-    log.info("Setup new balancer instance {}", tabletBalancer.getClass().getName());
-  }
-
-  void propertyChanged(String property) {
-    if (property.equals(Property.MANAGER_TABLET_BALANCER.getKey())) {
-      initializeBalancer();
+    String configuredBalancerClass =
+        manager.getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
+    try {
+      if (tabletBalancer == null
+          || !tabletBalancer.getClass().getName().equals(configuredBalancerClass)) {
+        log.debug("Attempting to initialize balancer using class {}, was {}",
+            configuredBalancerClass,
+            tabletBalancer == null ? "null" : tabletBalancer.getClass().getName());
+        var localTabletBalancer =
+            Property.createInstanceFromPropertyName(manager.getConfiguration(),
+                Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
+        localTabletBalancer.init(balancerEnvironment);
+        tabletBalancer = localTabletBalancer;
+        log.info("tablet balancer changed to {}", localTabletBalancer.getClass().getName());
+      }
+    } catch (Exception e) {
+      log.warn("Failed to create balancer {} using {} instead", configuredBalancerClass,
+          DoNothingBalancer.class, e);
+      var localTabletBalancer = new DoNothingBalancer();
+      localTabletBalancer.init(balancerEnvironment);
+      tabletBalancer = localTabletBalancer;
     }
   }
 
@@ -107,14 +119,12 @@ public class BalanceManager {
     for (Ample.DataLevel dl : Ample.DataLevel.values()) {
       Set<KeyExtent> extents = new HashSet<>();
       // prev row needed for the extent
-      try (
-          var tabletsMetadata = getContext()
-              .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
-                  TabletMetadata.ColumnType.LOCATION, TabletMetadata.ColumnType.MIGRATION)
-              .build()) {
+      try (var tabletsMetadata = getContext()
+          .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
+              TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
+          .filter(new HasMigrationFilter()).build()) {
         // filter out migrations that are awaiting cleanup
-        tabletsMetadata.stream()
-            .filter(tm -> tm.getMigration() != null && !manager.shouldCleanupMigration(tm))
+        tabletsMetadata.stream().filter(tm -> !manager.shouldCleanupMigration(tm))
             .forEach(tm -> extents.add(tm.getExtent()));
       }
       partitionedMigrations.put(dl, extents);
@@ -213,6 +223,9 @@ public class BalanceManager {
 
   long balanceTablets() {
 
+    // Check for balancer property change
+    initializeBalancer();
+
     final int tabletsNotHosted = manager.notHosted();
     BalanceParamsImpl params = null;
     long wait = 0;
@@ -224,6 +237,11 @@ public class BalanceManager {
       if (dl == Ample.DataLevel.USER && tabletsNotHosted > 0) {
         log.debug("not balancing user tablets because there are {} unhosted tablets",
             tabletsNotHosted);
+        continue;
+      }
+
+      if (dl == Ample.DataLevel.USER && !canAssignAndBalance()) {
+        log.debug("not balancing user tablets because not enough tablet servers");
         continue;
       }
 
@@ -321,6 +339,32 @@ public class BalanceManager {
                 Map::putAll),
             assignedOut);
     tabletBalancer.getAssignments(params);
+    if (!canAssignAndBalance()) {
+      // remove assignment for user tables
+      Iterator<KeyExtent> iter = assignedOut.keySet().iterator();
+      while (iter.hasNext()) {
+        KeyExtent ke = iter.next();
+        if (!ke.isMeta()) {
+          iter.remove();
+          log.trace("Removed assignment for {} as assignments for user tables is disabled.", ke);
+        }
+      }
+    }
+  }
+
+  private boolean canAssignAndBalance() {
+    final int threshold =
+        manager.getConfiguration().getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD);
+    if (threshold == 0) {
+      return true;
+    }
+    final int numTServers = manager.tserverSet.size();
+    final boolean result = numTServers >= threshold;
+    if (!result) {
+      log.warn("Not assigning or balancing as number of tservers ({}) is below threshold ({})",
+          numTServers, threshold);
+    }
+    return result;
   }
 
   public TabletBalancer getBalancer() {

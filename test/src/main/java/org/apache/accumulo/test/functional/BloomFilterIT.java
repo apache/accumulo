@@ -192,7 +192,9 @@ public class BloomFilterIT extends AccumuloClusterHarness {
     HashSet<Long> expected = new HashSet<>();
     List<Range> ranges = new ArrayList<>(num);
     Text key = new Text();
-    Text row = new Text("row"), cq = new Text("cq"), cf = new Text("cf");
+    Text row = new Text("row");
+    Text cq = new Text("cq");
+    Text cf = new Text("cf");
 
     for (int i = 0; i < num; ++i) {
       Long k = ((RANDOM.get().nextLong() & 0x7fffffffffffffffL) % (end - start)) + start;

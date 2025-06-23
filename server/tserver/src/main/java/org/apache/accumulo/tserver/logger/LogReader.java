@@ -228,21 +228,21 @@ public class LogReader implements KeywordExecutable {
       KeyExtent ke, Set<Integer> tabletIds, int maxMutations) {
 
     if (ke != null) {
-      if (key.event == LogEvents.DEFINE_TABLET) {
-        if (key.tablet.equals(ke)) {
-          tabletIds.add(key.tabletId);
+      if (key.getEvent() == LogEvents.DEFINE_TABLET) {
+        if (key.getTablet().equals(ke)) {
+          tabletIds.add(key.getTabletId());
         } else {
           return;
         }
-      } else if (!tabletIds.contains(key.tabletId)) {
+      } else if (!tabletIds.contains(key.getTabletId())) {
         return;
       }
     }
 
     if (row != null || rowMatcher != null) {
-      if (key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) {
+      if (key.getEvent() == LogEvents.MUTATION || key.getEvent() == LogEvents.MANY_MUTATIONS) {
         boolean found = false;
-        for (Mutation m : value.mutations) {
+        for (Mutation m : value.getMutations()) {
           if (row != null && new Text(m.getRow()).equals(row)) {
             found = true;
             break;

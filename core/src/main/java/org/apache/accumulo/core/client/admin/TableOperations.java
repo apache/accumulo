@@ -500,7 +500,8 @@ public interface TableOperations {
    * @return The map that became Accumulo's new properties for this table. This map is immutable and
    *         contains the snapshot passed to mapMutator and the changes made by mapMutator.
    *
-   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
+   *         does not exist.
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws IllegalArgumentException if the Consumer alters the map by adding properties that
    *         cannot be stored
@@ -880,6 +881,8 @@ public interface TableOperations {
    *
    * @param tableName the name of the table
    * @param number the unique number assigned to the constraint
+   * @throws AccumuloException if a general error occurs. Wrapped TableNotFoundException if table
+   *         does not exist.
    * @throws AccumuloSecurityException thrown if the user doesn't have permission to remove the
    *         constraint
    * @since 1.5.0

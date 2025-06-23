@@ -27,7 +27,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -64,9 +63,9 @@ public class TestUpgradePathForWALogs extends WithTestNames {
   private TabletServer server;
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
-  private static File perTestTempSubDir;
+  private static java.nio.file.Path perTestTempSubDir;
 
   @BeforeEach
   public void setUp() throws Exception {
@@ -74,11 +73,12 @@ public class TestUpgradePathForWALogs extends WithTestNames {
     server = createMock(TabletServer.class);
 
     // Create a new subdirectory for each test
-    perTestTempSubDir = tempDir.toPath().resolve(testName()).toFile();
-    assertTrue(perTestTempSubDir.isDirectory() || perTestTempSubDir.mkdir(),
-        "Failed to create folder: " + perTestTempSubDir);
+    perTestTempSubDir = tempDir.resolve(testName());
+    if (!Files.isDirectory(perTestTempSubDir)) {
+      Files.createDirectories(perTestTempSubDir);
+    }
 
-    String path = perTestTempSubDir.getAbsolutePath();
+    String path = perTestTempSubDir.toAbsolutePath().toString();
 
     VolumeManager fs = VolumeManagerImpl.getLocalForTesting(path);
 
@@ -100,11 +100,11 @@ public class TestUpgradePathForWALogs extends WithTestNames {
   @Test
   public void testUpgradeOf15WALog() throws IOException {
     String walogToTest = WALOG_FROM_15;
-    String testPath = perTestTempSubDir.getAbsolutePath();
+    String testPath = perTestTempSubDir.toAbsolutePath().toString();
 
     try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
         OutputStream walogInHDFStream =
-            Files.newOutputStream(java.nio.file.Path.of(testPath).resolve(walogToTest))) {
+            Files.newOutputStream(perTestTempSubDir.resolve(walogToTest))) {
       IOUtils.copyLarge(walogStream, walogInHDFStream);
       walogInHDFStream.flush();
       walogInHDFStream.close();
@@ -122,7 +122,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
   @Test
   public void testBasic16WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_16;
-    String testPath = perTestTempSubDir.getAbsolutePath();
+    String testPath = perTestTempSubDir.toAbsolutePath().toString();
     String destPath = "file://" + testPath + "/manyMaps";
 
     try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);
@@ -147,7 +147,7 @@ public class TestUpgradePathForWALogs extends WithTestNames {
   @Test
   public void testBasic20WALogRead() throws IOException {
     String walogToTest = WALOG_FROM_20;
-    String testPath = perTestTempSubDir.getAbsolutePath();
+    String testPath = perTestTempSubDir.toAbsolutePath().toString();
     String destPath = "file://" + testPath + "/manyMaps";
 
     try (InputStream walogStream = getClass().getResourceAsStream("/" + walogToTest);

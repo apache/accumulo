@@ -82,6 +82,14 @@ public enum Property {
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_PROCESS_ADVERTISE_ADDRESS("rpc.advertise.addr", "", PropertyType.STRING,
+      "The address to use when registering this server in ZooKeeper. This could be an"
+          + " IP address or hostname and defaults to rpc.bind.addr property value. Port "
+          + "numbers, if not specified, will default to the port property for the specific server type.",
+      "2.1.4"),
+  RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
+      "The local IP address to which this server should bind for sending and receiving network traffic. If not set then the process binds to all addresses.",
+      "2.1.4"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
       PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
       "2.1.3"),
@@ -362,6 +370,9 @@ public enum Property {
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
       "4.0.0"),
+  // TODO: Make sure to backport this to 3.1, then remove here in 4.0
+  @Deprecated(since = "3.1.0")
+  @ReplacedBy(property = RPC_PROCESS_BIND_ADDRESS)
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
@@ -380,15 +391,20 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD("manager.tablet.balancer.tserver.threshold", "0",
+      PropertyType.COUNT,
+      "Indicates the minimum number of tservers for assignment and balancing operations for user tables. A"
+          + " value of zero (default) disables this threshold allowing assignment and balancing to always occur.",
+      "2.1.4"),
   MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
       PropertyType.TIMEDURATION,
       "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",
       "2.1.2"),
-  MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS("manager.tablet.watcher.scan.threads.max", "16",
+  MANAGER_TABLET_GROUP_WATCHER_SCAN_THREADS("manager.tablet.watcher.scan.threads.max", "8",
       PropertyType.COUNT,
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
-      "4.0.0"),
+      "2.1.4"),
   MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.mininum", "10",
       PropertyType.COUNT,
       "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
@@ -1541,7 +1557,8 @@ public enum Property {
       COMPACTOR_MINTHREADS_TIMEOUT,
 
       // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_SCAN_MAX_OPENFILES, MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+      TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
+      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1566,6 +1583,7 @@ public enum Property {
         || key.startsWith(Property.TSERV_PREFIX.getKey())
         || key.startsWith(Property.COMPACTION_SERVICE_PREFIX.getKey())
         || key.startsWith(Property.SSERV_PREFIX.getKey())
+        || key.startsWith(Property.COMPACTION_COORDINATOR_PREFIX.getKey())
         || key.startsWith(Property.MANAGER_PREFIX.getKey())
         || key.startsWith(Property.GC_PREFIX.getKey())
         || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())

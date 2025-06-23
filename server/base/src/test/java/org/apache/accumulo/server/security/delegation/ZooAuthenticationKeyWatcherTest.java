@@ -109,9 +109,11 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testBaseNodeCreatedWithChildren() throws Exception {
     WatchedEvent event =
         new WatchedEvent(EventType.NodeCreated, null, Constants.ZDELEGATION_TOKEN_KEYS);
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
-    byte[] serializedKey1 = serialize(key1), serializedKey2 = serialize(key2);
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    byte[] serializedKey1 = serialize(key1);
+    byte[] serializedKey2 = serialize(key2);
     List<String> children = Arrays.asList("1", "2");
 
     expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
@@ -132,9 +134,11 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testBaseNodeChildrenChanged() throws Exception {
     WatchedEvent event =
         new WatchedEvent(EventType.NodeChildrenChanged, null, Constants.ZDELEGATION_TOKEN_KEYS);
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
-    byte[] serializedKey1 = serialize(key1), serializedKey2 = serialize(key2);
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    byte[] serializedKey1 = serialize(key1);
+    byte[] serializedKey2 = serialize(key2);
     List<String> children = Arrays.asList("1", "2");
 
     expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
@@ -155,8 +159,9 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testBaseNodeDeleted() {
     WatchedEvent event =
         new WatchedEvent(EventType.NodeDeleted, null, Constants.ZDELEGATION_TOKEN_KEYS);
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
     secretManager.addKey(key1);
     secretManager.addKey(key2);
@@ -187,8 +192,9 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testChildChanged() throws Exception {
     WatchedEvent event =
         new WatchedEvent(EventType.NodeCreated, null, Constants.ZDELEGATION_TOKEN_KEYS + "/2");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
     assertEquals(1, secretManager.getKeys().size());
     byte[] serializedKey2 = serialize(key2);
@@ -208,8 +214,9 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testChildDeleted() {
     WatchedEvent event =
         new WatchedEvent(EventType.NodeDeleted, null, Constants.ZDELEGATION_TOKEN_KEYS + "/1");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
     secretManager.addKey(key1);
     secretManager.addKey(key2);
     assertEquals(2, secretManager.getKeys().size());
@@ -227,8 +234,10 @@ public class ZooAuthenticationKeyWatcherTest {
   public void testChildChildrenChanged() {
     WatchedEvent event = new WatchedEvent(EventType.NodeChildrenChanged, null,
         Constants.ZDELEGATION_TOKEN_KEYS + "/2");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(2, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+
     secretManager.addKey(key1);
     secretManager.addKey(key2);
     assertEquals(2, secretManager.getKeys().size());
@@ -259,8 +268,9 @@ public class ZooAuthenticationKeyWatcherTest {
   @Test
   public void testInitialUpdateWithKeys() throws Exception {
     List<String> children = Arrays.asList("1", "5");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
     expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(new Stat());
     expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);
@@ -294,8 +304,9 @@ public class ZooAuthenticationKeyWatcherTest {
       throws Exception {
 
     List<String> children = Arrays.asList("1", "5");
-    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey()),
-        key2 = new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
+    AuthenticationKey key1 = new AuthenticationKey(1, 0L, 10000L, keyGen.generateKey());
+    AuthenticationKey key2 =
+        new AuthenticationKey(5, key1.getExpirationDate(), 20000L, keyGen.generateKey());
 
     expect(zk.exists(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(new Stat());
     expect(zk.getChildren(Constants.ZDELEGATION_TOKEN_KEYS, keyWatcher)).andReturn(children);

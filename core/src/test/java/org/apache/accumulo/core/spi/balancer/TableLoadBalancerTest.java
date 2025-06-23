@@ -135,8 +135,9 @@ public class TableLoadBalancerTest {
 
     replay(environment);
 
-    String t1Id = TABLE_ID_MAP.get("t1"), t2Id = TABLE_ID_MAP.get("t2"),
-        t3Id = TABLE_ID_MAP.get("t3");
+    String t1Id = TABLE_ID_MAP.get("t1");
+    String t2Id = TABLE_ID_MAP.get("t2");
+    String t3Id = TABLE_ID_MAP.get("t3");
     state.clear();
     TabletServerId svr = mkts("10.0.0.1", 1234, "0x01020304");
     state.put(svr, status(t1Id, 10, t2Id, 10, t3Id, 10));

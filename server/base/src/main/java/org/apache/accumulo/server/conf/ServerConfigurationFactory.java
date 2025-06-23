@@ -78,8 +78,11 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
     this.context = context;
     this.siteConfig = siteConfig;
-    this.systemConfig =
-        memoize(() -> new SystemConfiguration(context, SystemPropKey.of(), siteConfig));
+    this.systemConfig = memoize(() -> {
+      var sysConf = new SystemConfiguration(context, SystemPropKey.of(), siteConfig);
+      ConfigCheckUtil.validate(sysConf, "system config");
+      return sysConf;
+    });
     tableParentConfigs =
         Caches.getInstance().createNewBuilder(CacheName.TABLE_PARENT_CONFIGS, false)
             .expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
@@ -89,8 +92,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
         .expireAfterAccess(CACHE_EXPIRATION_HRS, TimeUnit.HOURS).build();
 
     refresher = new ConfigRefreshRunner();
-    Runtime.getRuntime()
-        .addShutdownHook(Threads.createThread("config-refresh-shutdownHook", refresher::shutdown));
+    Runtime.getRuntime().addShutdownHook(
+        Threads.createNonCriticalThread("config-refresh-shutdownHook", refresher::shutdown));
   }
 
   public ServerContext getServerContext() {

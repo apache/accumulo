@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -41,7 +43,6 @@ import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.commons.io.FileUtils;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.junit.jupiter.api.BeforeAll;
@@ -56,7 +57,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
   private static final Logger LOG = LoggerFactory.getLogger(ZooCacheIT.class);
 
   private static String pathName = "zcTest-42";
-  private static File testDir;
+  private static Path testDir;
 
   @Override
   protected Duration defaultTimeout() {
@@ -65,22 +66,22 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @BeforeAll
-  public static void createTestDirectory() {
-    testDir = createTestDir(ZooCacheIT.class.getName()).toPath().resolve(pathName).toFile();
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
+  public static void createTestDirectory() throws IOException {
+    testDir = createTestDir(ZooCacheIT.class.getName()).toPath().resolve(pathName);
+    Files.deleteIfExists(testDir);
+    Files.createDirectories(testDir);
   }
 
   @Test
   public void test() throws Exception {
     assertEquals(0,
-        exec(CacheTestClean.class, "/" + pathName, testDir.getAbsolutePath()).waitFor());
+        exec(CacheTestClean.class, "/" + pathName, testDir.toAbsolutePath().toString()).waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<>();
     List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Thread reader = new Thread(() -> {
         try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-          CacheTestReader.main(new String[] {"/" + pathName, testDir.getAbsolutePath(),
+          CacheTestReader.main(new String[] {"/" + pathName, testDir.toAbsolutePath().toString(),
               ClientInfo.from(client.properties()).getZooKeepers()});
         } catch (Exception ex) {
           ref.set(ex);
@@ -90,7 +91,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       threads.add(reader);
     }
     assertEquals(0,
-        exec(CacheTestWriter.class, "/" + pathName, testDir.getAbsolutePath(), "3", "50")
+        exec(CacheTestWriter.class, "/" + pathName, testDir.toAbsolutePath().toString(), "3", "50")
             .waitFor());
     for (Thread t : threads) {
       t.join();

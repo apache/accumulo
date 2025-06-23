@@ -78,7 +78,8 @@ public class BadDeleteMarkersCreatedIT extends AccumuloClusterHarness {
     timeoutFactor = Wait.getTimeoutFactor(e -> 1);
   }
 
-  private String gcCycleDelay, gcCycleStart;
+  private String gcCycleDelay;
+  private String gcCycleStart;
 
   @BeforeEach
   public void alterConfig() throws Exception {

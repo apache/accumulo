@@ -39,6 +39,8 @@ public class ConfigOpts extends Help {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
 
+  public static final String BIND_ALL_ADDRESSES = "0.0.0.0";
+
   @Parameter(names = {"-p", "-props", "--props"}, description = "Sets path to accumulo.properties."
       + "The classpath will be searched if this property is not set")
   private String propsPath;

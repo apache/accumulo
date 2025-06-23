@@ -375,9 +375,9 @@ public class Admin implements KeywordExecutable {
     public void lostLock(ServiceLock.LockLossReason reason) {
       String msg = "Admin lost lock: " + reason.toString();
       if (reason == ServiceLock.LockLossReason.LOCK_DELETED) {
-        Halt.halt(msg, 0);
+        Halt.halt(0, msg);
       } else {
-        Halt.halt(msg, 1);
+        Halt.halt(1, msg);
       }
     }
 
@@ -385,7 +385,7 @@ public class Admin implements KeywordExecutable {
     public void unableToMonitorLockNode(Exception e) {
       String msg = "Admin unable to monitor lock: " + e.getMessage();
       log.warn(msg);
-      Halt.halt(msg, 1);
+      Halt.halt(1, msg);
     }
 
     @Override
@@ -757,7 +757,8 @@ public class Admin implements KeywordExecutable {
       new MessageFormat("setauths -u {0} -s {1}\n");
 
   private DefaultConfiguration defaultConfig;
-  private Map<String,String> siteConfig, systemConfig;
+  private Map<String,String> siteConfig;
+  private Map<String,String> systemConfig;
   private List<String> localUsers;
 
   public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
@@ -814,17 +815,17 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "app is run in same security context as user providing the filename")
   private static File getOutputDirectory(final String directory) {
-    File outputDirectory = null;
-    if (directory != null) {
-      outputDirectory = Path.of(directory).toFile();
-      if (!outputDirectory.isDirectory()) {
-        throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
-      }
-      if (!outputDirectory.canWrite()) {
-        throw new IllegalArgumentException(directory + " is not writable");
-      }
+    if (directory == null) {
+      return null;
     }
-    return outputDirectory;
+    Path outputDirectory = Path.of(directory);
+    if (!Files.isDirectory(outputDirectory)) {
+      throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
+    }
+    if (!Files.isWritable(outputDirectory)) {
+      throw new IllegalArgumentException(directory + " is not writable");
+    }
+    return outputDirectory.toFile();
   }
 
   private String getDefaultConfigValue(String key) {

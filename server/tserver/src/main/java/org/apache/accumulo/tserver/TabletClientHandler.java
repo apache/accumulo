@@ -962,11 +962,9 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     log.trace("Got {} message from user: {}", request, credentials.getPrincipal());
     if (server.getLock() != null && server.getLock().wasLockAcquired()
         && !server.getLock().isLocked()) {
-      Halt.halt(1, () -> {
-        log.info("Tablet server no longer holds lock during checkPermission() : {}, exiting",
-            request);
-        context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
-      });
+      Halt.halt(1,
+          "Tablet server no longer holds lock during checkPermission() : " + request + ", exiting",
+          () -> context.getLowMemoryDetector().logGCInfo(server.getConfiguration()));
     }
 
     if (lock != null) {
@@ -1044,11 +1042,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
     TabletLogger.loading(extent, server.getTabletSession());
 
     final AssignmentHandler ah = new AssignmentHandler(server, extent);
-    // final Runnable ah = new LoggingRunnable(log, );
     // Root tablet assignment must take place immediately
 
     if (extent.isRootTablet()) {
-      Threads.createThread("Root Tablet Assignment", () -> {
+      Threads.createNonCriticalThread("Root Tablet Assignment", () -> {
         ah.run();
         if (server.getOnlineTablets().containsKey(extent)) {
           log.info("Root tablet loaded: {}", extent);
@@ -1056,12 +1053,10 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
           log.info("Root tablet failed to load");
         }
       }).start();
+    } else if (extent.isMeta()) {
+      server.resourceManager.addMetaDataAssignment(extent, log, ah);
     } else {
-      if (extent.isMeta()) {
-        server.resourceManager.addMetaDataAssignment(extent, log, ah);
-      } else {
-        server.resourceManager.addAssignment(extent, log, ah);
-      }
+      server.resourceManager.addAssignment(extent, log, ah);
     }
   }
 
@@ -1142,8 +1137,7 @@ public class TabletClientHandler implements TabletServerClientService.Iface,
 
     checkPermission(context, server, credentials, lock, "halt");
 
-    Halt.halt(0, () -> {
-      log.info("Manager requested tablet server halt");
+    Halt.halt(0, "Manager requested tablet server halt", () -> {
       context.getLowMemoryDetector().logGCInfo(server.getConfiguration());
       server.requestStop();
       try {

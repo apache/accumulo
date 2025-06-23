@@ -97,6 +97,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.filters.HasMigrationFilter;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -536,15 +537,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           var ample = getContext().getAmple();
           for (DataLevel dl : DataLevel.values()) {
             // prev row needed for the extent
-            try (
-                var tabletsMetadata = ample.readTablets().forLevel(dl)
-                    .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
-                        TabletMetadata.ColumnType.LOCATION)
-                    .build();
+            try (var tabletsMetadata = ample.readTablets().forLevel(dl)
+                .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION,
+                    TabletMetadata.ColumnType.LOCATION)
+                .filter(new HasMigrationFilter()).build();
                 var tabletsMutator = ample.conditionallyMutateTablets(result -> {})) {
               for (var tabletMetadata : tabletsMetadata) {
                 var migration = tabletMetadata.getMigration();
-                if (migration != null && shouldCleanupMigration(tabletMetadata)) {
+                if (shouldCleanupMigration(tabletMetadata)) {
                   tabletsMutator.mutateTablet(tabletMetadata.getExtent()).requireAbsentOperation()
                       .requireMigration(migration).deleteMigration().submit(tm -> false);
                 }
@@ -905,11 +905,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
 
     try {
-      sa = TServerUtils.createThriftServer(context, getHostname(), Property.MANAGER_CLIENTPORT,
+      sa = TServerUtils.createThriftServer(context, getBindAddress(), Property.MANAGER_CLIENTPORT,
           processor, "Manager", null, Property.MANAGER_MINTHREADS,
           Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);
     } catch (UnknownHostException e) {
-      throw new IllegalStateException("Unable to start server on host " + getHostname(), e);
+      throw new IllegalStateException("Unable to start server on host " + getBindAddress(), e);
     }
 
     // block until we can obtain the ZK lock for the manager. Create the
@@ -931,7 +931,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // Set the HostName **after** initially creating the lock. The lock data is
     // updated below with the correct address. This prevents clients from accessing
     // the Manager until all of the internal processes are started.
-    setHostname(sa.address);
+    updateAdvertiseAddress(sa.getAddress());
 
     recoveryManager = new RecoveryManager(this, timeToCacheRecoveryWalExistence);
 
@@ -949,7 +949,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         .numMaxThreads(getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS))
         .build();
 
-    Thread statusThread = Threads.createThread("Status Thread", new StatusThread());
+    Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
     tserverSet.startListeningForTabletServerChanges();
@@ -1096,8 +1096,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         sa.getAddress(), getResourceGroup()));
 
-    Threads.createThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
-    Threads.createThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
+    Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
     compactionCoordinator.start();
@@ -1142,8 +1142,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Exception setting up delegation-token key manager", e);
       }
-      authenticationTokenKeyManagerThread =
-          Threads.createThread("Delegation Token Key Manager", authenticationTokenKeyManager);
+      authenticationTokenKeyManagerThread = Threads
+          .createCriticalThread("Delegation Token Key Manager", authenticationTokenKeyManager);
       authenticationTokenKeyManagerThread.start();
       boolean logged = false;
       while (!authenticationTokenKeyManager.isInitialized()) {
@@ -1171,8 +1171,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
         ThriftService.FATE}) {
-      descriptors
-          .addService(new ServiceDescriptor(uuid, svc, getHostname(), this.getResourceGroup()));
+      descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
+          this.getResourceGroup()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1359,14 +1359,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     var zooKeeper = getContext().getZooSession();
     log.info("trying to get manager lock");
 
-    final String managerClientAddress =
-        getHostname() + ":" + getConfiguration().getPort(Property.MANAGER_CLIENTPORT)[0];
-
     UUID zooLockUUID = UUID.randomUUID();
 
     ServiceDescriptors descriptors = new ServiceDescriptors();
+    // This method creates the lock with the ThriftServer set to NONE
+    // and the address set to 0.0.0.0. When the lock is acquired (could be
+    // waiting to due an HA-pair), then the Manager startup process begins
+    // and the lock service descriptors are updated with the advertise address
     descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
-        managerClientAddress, this.getResourceGroup()));
+        ConfigOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
@@ -1606,11 +1607,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   long numMigrations() {
     long count = 0;
     for (DataLevel dl : DataLevel.values()) {
-      // prev row needed for the extent
       try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.PREV_ROW, TabletMetadata.ColumnType.MIGRATION).build()) {
-        count += tabletsMetadata.stream()
-            .filter(tabletMetadata -> tabletMetadata.getMigration() != null).count();
+          .fetch(TabletMetadata.ColumnType.MIGRATION).filter(new HasMigrationFilter()).build()) {
+        count += tabletsMetadata.stream().count();
       }
     }
     return count;

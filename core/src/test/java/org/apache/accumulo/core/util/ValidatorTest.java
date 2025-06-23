@@ -29,7 +29,9 @@ import org.junit.jupiter.api.Test;
 
 public class ValidatorTest {
 
-  private Validator<String> v, v2, v3;
+  private Validator<String> v;
+  private Validator<String> v2;
+  private Validator<String> v3;
   private static final Pattern STARTSWITH_C = Pattern.compile("c.*");
 
   @BeforeEach

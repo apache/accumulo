@@ -18,12 +18,13 @@
  */
 package org.apache.accumulo.hadoop.its.mapreduce;
 
+import static com.google.common.collect.MoreCollectors.onlyElement;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
+import java.nio.file.Files;
 import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -79,7 +80,7 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
   }
 
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
 
   @BeforeEach
   public void setup() throws Exception {
@@ -192,36 +193,36 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
     public static void main(String[] args) throws Exception {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
-      conf.set("mapreduce.cluster.local.dir", java.nio.file.Path.of(System.getProperty("user.dir"))
-          .resolve("target").resolve("mapreduce-tmp").toFile().getAbsolutePath());
+      conf.set("mapreduce.cluster.local.dir",
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
 
   private void handleWriteTests(boolean content) throws Exception {
-    File f = tempDir.toPath().resolve(testName()).toFile();
-    assertTrue(f.createNewFile(), "Failed to create file: " + f);
-    assertTrue(f.delete());
-    MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.getAbsolutePath()});
+    java.nio.file.Path f = tempDir.resolve(testName());
+    Files.createFile(f);
+    Files.deleteIfExists(f);
+    MRTester.main(new String[] {content ? TEST_TABLE : EMPTY_TABLE, f.toAbsolutePath().toString()});
 
-    assertTrue(f.exists());
-    File[] files = f.listFiles(file -> file.getName().startsWith("part-m-"));
-    assertNotNull(files);
-    if (content) {
-      assertEquals(1, files.length);
-      assertTrue(files[0].exists());
+    assertTrue(Files.exists(f));
+    try (var stream = Files.list(f).filter(p -> p.getFileName().toString().startsWith("part-m-"))) {
+      if (!content) {
+        assertTrue(stream.findAny().isEmpty());
+        return;
+      }
+      java.nio.file.Path path = stream.collect(onlyElement());
+      assertTrue(Files.exists(path), "Expected file does not exist: " + path);
 
       Configuration conf = cluster.getServerContext().getHadoopConf();
       DefaultConfiguration acuconf = DefaultConfiguration.getInstance();
       FileSystem fs = FileSystem.getLocal(conf);
       FileSKVIterator sample = RFileOperations.getInstance().newReaderBuilder()
-          .forFile(UnreferencedTabletFile.of(fs, new Path(files[0].toString())),
-              FileSystem.getLocal(conf), conf, NoCryptoServiceFactory.NONE)
+          .forFile(UnreferencedTabletFile.of(fs, new Path(path.toString())), fs, conf,
+              NoCryptoServiceFactory.NONE)
           .withTableConfiguration(acuconf).build()
           .getSample(new SamplerConfigurationImpl(SAMPLER_CONFIG));
       assertNotNull(sample);
-    } else {
-      assertEquals(0, files.length);
     }
   }
 
@@ -233,11 +234,11 @@ public class AccumuloFileOutputFormatIT extends AccumuloClusterHarness {
 
   @Test
   public void writeBadVisibility() throws Exception {
-    File f = tempDir.toPath().resolve(testName()).toFile();
-    assertTrue(f.createNewFile(), "Failed to create file: " + f);
-    assertTrue(f.delete());
-    MRTester.main(new String[] {BAD_TABLE, f.getAbsolutePath()});
-    assertTrue(f.exists());
+    java.nio.file.Path f = tempDir.resolve(testName());
+    Files.createFile(f);
+    Files.deleteIfExists(f);
+    MRTester.main(new String[] {BAD_TABLE, f.toAbsolutePath().toString()});
+    assertTrue(Files.exists(f));
     assertEquals(1, assertionErrors.get(BAD_TABLE + "_map").size());
     assertEquals(1, assertionErrors.get(BAD_TABLE + "_cleanup").size());
   }

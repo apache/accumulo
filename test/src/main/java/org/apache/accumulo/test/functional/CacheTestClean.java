@@ -18,14 +18,12 @@
  */
 package org.apache.accumulo.test.functional;
 
-import java.io.File;
-import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.zookeeper.ZooSession;
-import org.apache.commons.io.FileUtils;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -34,7 +32,7 @@ public class CacheTestClean {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static void main(String[] args) throws Exception {
     String rootDir = args[0];
-    File reportDir = Path.of(args[1]).toFile();
+    Path reportDir = Path.of(args[1]);
 
     var siteConfig = SiteConfiguration.auto();
     try (var zk = new ZooSession(CacheTestClean.class.getSimpleName(), siteConfig)) {
@@ -44,10 +42,8 @@ public class CacheTestClean {
         zrw.recursiveDelete(rootDir, NodeMissingPolicy.FAIL);
       }
 
-      FileUtils.deleteQuietly(reportDir);
-      if (!reportDir.mkdirs()) {
-        throw new IOException("Unable to (re-)create " + reportDir);
-      }
+      Files.deleteIfExists(reportDir);
+      Files.createDirectories(reportDir);
     }
   }
 }

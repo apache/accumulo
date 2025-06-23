@@ -44,13 +44,18 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -63,11 +68,13 @@ import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Encoding;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
-import org.apache.accumulo.server.init.ZooKeeperInitializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -153,6 +160,10 @@ public class Upgrader11to12 implements Upgrader {
       log.info("Removing problems reports from zookeeper");
       removeZKProblemReports(context);
 
+      log.info("Creating ZooKeeper entries for ScanServerRefTable");
+      preparePre4_0NewTableState(context, SystemTables.SCAN_REF.tableId(), Namespace.ACCUMULO.id(),
+          SystemTables.SCAN_REF.tableName(), TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException(
@@ -160,6 +171,36 @@ public class Upgrader11to12 implements Upgrader {
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "Could not read or write root metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+  }
+
+  private static final String ZTABLE_NAME = "/name";
+  private static final String ZTABLE_COMPACT_ID = "/compact-id";
+  private static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+  private static final String ZTABLE_STATE = "/state";
+  private static final byte[] ZERO_BYTE = {'0'};
+
+  public static void preparePre4_0NewTableState(ServerContext context, TableId tableId,
+      NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
+    // state gets created last
+    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
+        tableName, tableId, namespaceId);
+    Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
+    tableName = qualifiedTableName.getSecond();
+    String zTablePath = Constants.ZTABLES + "/" + tableId;
+    final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
+    zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
+        namespaceId.canonical().getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_NAME, tableName.getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_COMPACT_ID, ZERO_BYTE, existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_STATE, state.name().getBytes(UTF_8), existsPolicy);
+    var propKey = TablePropKey.of(tableId);
+    if (!context.getPropStore().exists(propKey)) {
+      context.getPropStore().create(propKey, Map.of());
     }
   }
 
@@ -180,7 +221,7 @@ public class Upgrader11to12 implements Upgrader {
     var metaName = Ample.DataLevel.USER.metaTable();
     upgradeTabletsMetadata(context, metaName);
     removeScanServerRange(context, metaName);
-    createScanServerRefTable(context);
+    createScanServerRefTableMetadataEntries(context);
     log.info("Removing problems reports from metadata table");
     removeMetadataProblemReports(context);
   }
@@ -280,10 +321,7 @@ public class Upgrader11to12 implements Upgrader {
     log.info("Scan Server Ranges {} removed from table {}", OLD_SCAN_SERVERS_RANGES, tableName);
   }
 
-  public void createScanServerRefTable(ServerContext context) {
-    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
-    zkInit.initScanRefTableState(context);
-
+  public void createScanServerRefTableMetadataEntries(ServerContext context) {
     try {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));

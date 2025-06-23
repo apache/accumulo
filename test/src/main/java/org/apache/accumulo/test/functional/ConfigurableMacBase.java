@@ -99,8 +99,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
     File localKeystoreFile = sslDirPath.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
     File publicTruststoreFile =
         sslDirPath.resolve("public-" + cfg.getInstanceName() + ".jks").toFile();
-    final String rootKeystorePassword = "root_keystore_password",
-        truststorePassword = "truststore_password";
+    final String rootKeystorePassword = "root_keystore_password";
+    final String truststorePassword = "truststore_password";
     try {
       String hostname = InetAddress.getLocalHost().getHostName();
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
@@ -154,7 +154,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
-  private void createMiniAccumulo() throws Exception {
+  protected void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
     File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
@@ -172,15 +172,16 @@ public class ConfigurableMacBase extends AccumuloITBase {
     }
     cluster = new MiniAccumuloClusterImpl(cfg);
     if (coreSite.size() > 0) {
-      File csFile = cluster.getConfig().getConfDir().toPath().resolve("core-site.xml").toFile();
-      if (csFile.exists()) {
-        coreSite.addResource(new Path(csFile.getAbsolutePath()));
+      java.nio.file.Path csFile =
+          cluster.getConfig().getConfDir().toPath().resolve("core-site.xml");
+      if (Files.exists(csFile)) {
+        coreSite.addResource(new Path(csFile.toAbsolutePath().toString()));
       }
-      java.nio.file.Path tmp = java.nio.file.Path.of(csFile.getAbsolutePath() + ".tmp");
+      java.nio.file.Path tmp = java.nio.file.Path.of(csFile.toAbsolutePath() + ".tmp");
       try (OutputStream out = Files.newOutputStream(tmp)) {
         coreSite.writeXml(out);
       }
-      assertTrue(tmp.toFile().renameTo(csFile));
+      Files.move(tmp, csFile);
     }
     beforeClusterStart(cfg);
   }
@@ -190,6 +191,7 @@ public class ConfigurableMacBase extends AccumuloITBase {
     if (cluster != null) {
       try {
         cluster.stop();
+        cluster.terminate();
       } catch (Exception e) {
         // ignored
       }
