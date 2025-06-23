@@ -450,9 +450,4 @@ public abstract class AbstractFateStore<T> implements FateStore<T> {
       throw new IllegalStateException("Bad node data " + txInfo);
     }
   }
-
-  @Override
-  public void close() {
-    // no-op
-  }
 }
