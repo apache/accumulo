@@ -435,7 +435,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
-    balanceManager = new BalanceManager(this);
+    balanceManager = new BalanceManager();
 
     AccumuloConfiguration aconf = context.getConfiguration();
 
@@ -843,6 +843,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   @Override
   public void run() {
     final ServerContext context = getContext();
+
+    balanceManager.setManager(this);
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby

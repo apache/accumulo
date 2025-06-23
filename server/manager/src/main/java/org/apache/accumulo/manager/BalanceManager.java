@@ -28,9 +28,11 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
@@ -71,22 +73,35 @@ public class BalanceManager {
 
   private static final Logger log = LoggerFactory.getLogger(BalanceManager.class);
 
-  private final Manager manager;
+  private final AtomicReference<Manager> manager;
   protected volatile TabletBalancer tabletBalancer;
-  private final BalancerEnvironment balancerEnvironment;
+  private volatile BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
   private final Object balancedNotifier = new Object();
   private static final long CLEANUP_INTERVAL_MINUTES = Manager.CLEANUP_INTERVAL_MINUTES;
 
-  BalanceManager(Manager manager) {
-    this.manager = manager;
-    this.balancerEnvironment = new BalancerEnvironmentImpl(manager.getContext());
-    initializeBalancer();
+  BalanceManager() {
+    this.manager = new AtomicReference<>(null);
+  }
+
+  public void setManager(Manager manager) {
+    Objects.requireNonNull(manager);
+    if (this.manager.compareAndSet(null, manager)) {
+      this.balancerEnvironment = new BalancerEnvironmentImpl(manager.getContext());
+      initializeBalancer();
+    } else if (this.manager.get() != manager) {
+      throw new IllegalStateException("Attempted to set different manager object");
+    }
+  }
+
+  private Manager getManager() {
+    // fail fast if not yet set
+    return Objects.requireNonNull(manager.get());
   }
 
   private void initializeBalancer() {
     String configuredBalancerClass =
-        manager.getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
+        getManager().getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
     try {
       if (tabletBalancer == null
           || !tabletBalancer.getClass().getName().equals(configuredBalancerClass)) {
@@ -94,7 +109,7 @@ public class BalanceManager {
             configuredBalancerClass,
             tabletBalancer == null ? "null" : tabletBalancer.getClass().getName());
         var localTabletBalancer =
-            Property.createInstanceFromPropertyName(manager.getConfiguration(),
+            Property.createInstanceFromPropertyName(getManager().getConfiguration(),
                 Property.MANAGER_TABLET_BALANCER, TabletBalancer.class, new DoNothingBalancer());
         localTabletBalancer.init(balancerEnvironment);
         tabletBalancer = localTabletBalancer;
@@ -110,7 +125,7 @@ public class BalanceManager {
   }
 
   private ServerContext getContext() {
-    return manager.getContext();
+    return getManager().getContext();
   }
 
   MetricsProducer getMetrics() {
@@ -234,7 +249,7 @@ public class BalanceManager {
     // Check for balancer property change
     initializeBalancer();
 
-    final int tabletsNotHosted = manager.notHosted();
+    final int tabletsNotHosted = getManager().notHosted();
     BalanceParamsImpl params = null;
     long wait = 0;
     long totalMigrationsOut = 0;
@@ -268,7 +283,7 @@ public class BalanceManager {
       // Create a view of the tserver status such that it only contains the tables
       // for this level in the tableMap.
       SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
-          createTServerStatusView(dl, manager.tserverStatus);
+          createTServerStatusView(dl, getManager().tserverStatus);
       // Construct the Thrift variant of the map above for the BalancerParams
       final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel = new TreeMap<>();
       tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
@@ -278,9 +293,9 @@ public class BalanceManager {
 
       SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
           tserverStatusForBalancerLevel;
-      params =
-          BalanceParamsImpl.fromThrift(statusForBalancerLevel, manager.tServerGroupingForBalancer,
-              tserverStatusForLevel, partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
+      params = BalanceParamsImpl.fromThrift(statusForBalancerLevel,
+          getManager().tServerGroupingForBalancer, tserverStatusForLevel,
+          partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
       wait = Math.max(tabletBalancer.balance(params), wait);
       long migrationsOutForLevel = 0;
       try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets(result -> {})) {
@@ -313,7 +328,7 @@ public class BalanceManager {
         balancedNotifier.notifyAll();
       }
     } else if (totalMigrationsOut > 0) {
-      manager.nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
+      getManager().nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
           totalMigrations);
     }
     return wait;
@@ -324,14 +339,14 @@ public class BalanceManager {
     synchronized (balancedNotifier) {
       long eventCounter;
       do {
-        eventCounter = manager.nextEvent.waitForEvents(0, 0);
+        eventCounter = getManager().nextEvent.waitForEvents(0, 0);
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (manager.displayUnassigned() > 0 || numMigrations() > 0
-          || eventCounter != manager.nextEvent.waitForEvents(0, 0));
+      } while (getManager().displayUnassigned() > 0 || numMigrations() > 0
+          || eventCounter != getManager().nextEvent.waitForEvents(0, 0));
     }
   }
 
@@ -372,12 +387,12 @@ public class BalanceManager {
   }
 
   private boolean canAssignAndBalance() {
-    final int threshold =
-        manager.getConfiguration().getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD);
+    final int threshold = getManager().getConfiguration()
+        .getCount(Property.MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD);
     if (threshold == 0) {
       return true;
     }
-    final int numTServers = manager.tserverSet.size();
+    final int numTServers = getManager().tserverSet.size();
     final boolean result = numTServers >= threshold;
     if (!result) {
       log.warn("Not assigning or balancing as number of tservers ({}) is below threshold ({})",
@@ -391,7 +406,8 @@ public class BalanceManager {
     var migration = tabletMetadata.getMigration();
     Preconditions.checkState(migration != null,
         "This method should only be called if there is a migration");
-    return tableState == TableState.OFFLINE || !manager.onlineTabletServers().contains(migration)
+    return tableState == TableState.OFFLINE
+        || !getManager().onlineTabletServers().contains(migration)
         || (tabletMetadata.getLocation() != null
             && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
@@ -404,7 +420,7 @@ public class BalanceManager {
 
     @Override
     public void run() {
-      while (manager.stillManager()) {
+      while (getManager().stillManager()) {
         try {
           // - Remove any migrations for tablets of offline tables, as the migration can never
           // succeed because no tablet server will load the tablet
