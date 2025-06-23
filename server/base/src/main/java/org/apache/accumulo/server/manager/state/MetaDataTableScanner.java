@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.SortedMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.BatchScanner;
@@ -57,6 +58,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Su
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.cleaner.CleanerUtil;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -100,13 +102,22 @@ public class MetaDataTableScanner implements ClosableIterator<TabletLocationStat
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "tabletChange", TabletStateChangeIterator.class);
     if (state != null) {
-      TabletStateChangeIterator.setCurrentServers(aconf, tabletChange, state.onlineTabletServers());
-      TabletStateChangeIterator.setOnlineTables(aconf, tabletChange, state.onlineTables());
+      var timer = Timer.startNew();
+      var servers = state.onlineTabletServers();
+      var tables = state.onlineTables();
+      var migrations = state.migrationsSnapshot(dataLevel);
+      TabletStateChangeIterator.setCurrentServers(aconf, tabletChange, servers);
+      TabletStateChangeIterator.setOnlineTables(aconf, tabletChange, tables);
       TabletStateChangeIterator.setMerges(tabletChange, state.merges());
-      TabletStateChangeIterator.setMigrations(aconf, tabletChange,
-          state.migrationsSnapshot(dataLevel));
+      TabletStateChangeIterator.setMigrations(aconf, tabletChange, migrations);
       TabletStateChangeIterator.setManagerState(tabletChange, state.getManagerState());
       TabletStateChangeIterator.setShuttingDown(aconf, tabletChange, state.shutdownServers());
+      log.debug(
+          "{} configured meta scanner opts, online servers:{} tables:{} migrations:{} options_size:{} create_time:{}ms",
+          dataLevel, servers.size(), tables.size(), migrations.size(),
+          tabletChange.getOptions().entrySet().stream()
+              .mapToLong(e -> e.getKey().length() + e.getValue().length()).sum(),
+          timer.elapsed(TimeUnit.MILLISECONDS));
     }
     scanner.addScanIterator(tabletChange);
   }

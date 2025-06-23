@@ -81,6 +81,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataTime;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.Manager.TabletGoalState;
 import org.apache.accumulo.manager.state.MergeStats;
@@ -1120,13 +1121,22 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     handleDeadTablets(tLists, wals);
 
+    int beforeSize = tLists.assignments.size();
+    Timer timer = Timer.startNew();
+
     getAssignmentsFromBalancer(tLists, unassigned);
+    if (!unassigned.isEmpty()) {
+      Manager.log.debug("[{}] requested assignments for {} tablets and got {} in {} ms",
+          store.name(), unassigned.size(), tLists.assignments.size() - beforeSize,
+          timer.elapsed(TimeUnit.MILLISECONDS));
+    }
 
     if (!tLists.assignments.isEmpty()) {
-      Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
+      Manager.log.info("Assigning {} tablets", tLists.assignments.size());
       store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
+    timer.restart();
     for (Assignment a : tLists.assignments) {
       try {
         TServerConnection client = manager.tserverSet.getConnection(a.server);
@@ -1141,6 +1151,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         Manager.log.warn("Could not connect to server {} for assignment of {}", a.server, a.tablet,
             tException);
       }
+    }
+    if (!tLists.assignments.isEmpty()) {
+      Manager.log.debug("[{}] sent {} assignment messages in {} ms", store.name(),
+          tLists.assignments.size(), timer.elapsed(TimeUnit.MILLISECONDS));
     }
   }
 
