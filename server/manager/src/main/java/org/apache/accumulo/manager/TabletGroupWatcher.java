@@ -73,6 +73,7 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -1002,7 +1003,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void flushChanges(TabletLists tLists)
       throws DistributedStoreException, TException, WalMarkerException {
     var unassigned = Collections.unmodifiableMap(tLists.unassigned);
-
+    Timer timer;
     flushLock.lock();
     try {
       // This method was originally only ever called by one thread. The code was modified so that
@@ -1012,17 +1013,26 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // the past. The log recovery code needs to be evaluated for thread safety.
       handleDeadTablets(tLists);
 
+      int beforeSize = tLists.assignments.size();
+      timer = Timer.startNew();
+
       getAssignmentsFromBalancer(tLists, unassigned);
+      if (!unassigned.isEmpty()) {
+        Manager.log.debug("[{}] requested assignments for {} tablets and got {} in {} ms",
+            store.name(), unassigned.size(), tLists.assignments.size() - beforeSize,
+            timer.elapsed(TimeUnit.MILLISECONDS));
+      }
     } finally {
       flushLock.unlock();
     }
 
     Set<KeyExtent> failedFuture = Set.of();
     if (!tLists.assignments.isEmpty()) {
-      Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
+      Manager.log.info("Assigning {} tablets", tLists.assignments.size());
       failedFuture = store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
+    timer.restart();
     for (Assignment a : tLists.assignments) {
       if (failedFuture.contains(a.tablet)) {
         // do not ask a tserver to load a tablet where the future location could not be set
@@ -1042,7 +1052,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tException);
       }
     }
-
+    if (!tLists.assignments.isEmpty()) {
+      Manager.log.debug("[{}] sent {} assignment messages in {} ms", store.name(),
+          tLists.assignments.size(), timer.elapsed(TimeUnit.MILLISECONDS));
+    }
     replaceVolumes(tLists.volumeReplacements);
   }
 
