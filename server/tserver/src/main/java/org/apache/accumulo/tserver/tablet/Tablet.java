@@ -2220,6 +2220,10 @@ public class Tablet extends TabletBase {
     return getDatafileManager().getUpdateCount();
   }
 
+  public void removeOrphanedScanRefs() {
+    getDatafileManager().removeOrphanedScanRefs();
+  }
+
   TabletMemory getTabletMemory() {
     return tabletMemory;
   }
