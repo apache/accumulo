@@ -21,6 +21,7 @@ package org.apache.accumulo.harness;
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.harness.AccumuloITBase.createUniqueName;
 import static org.apache.hadoop.minikdc.MiniKdc.JAVA_SECURITY_KRB5_CONF;
 import static org.apache.hadoop.minikdc.MiniKdc.SUN_SECURITY_KRB5_DEBUG;
 
@@ -83,7 +84,8 @@ public class MiniClusterHarness {
       rootPasswd = UUID.randomUUID().toString();
     }
 
-    File baseDir = AccumuloClusterHarness.createTestDir(testClassName + "_" + testMethodName);
+    File baseDir = AccumuloClusterHarness
+        .createTestDir(createUniqueName(testClassName) + "_" + testMethodName);
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, rootPasswd);
 
     // Enable native maps by default

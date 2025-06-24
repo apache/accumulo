@@ -19,6 +19,7 @@
 package org.apache.accumulo.harness;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -81,6 +82,11 @@ public class AccumuloITBase extends WithTestNames {
   public static File getSslDir(File baseDir) {
     assertTrue(baseDir.exists() && baseDir.isDirectory());
     return baseDir.getParentFile().toPath().resolve(baseDir.getName() + "-ssl").toFile();
+  }
+
+  public static String createUniqueName(String name) {
+    return String.format("%s-%d-%d", name, System.currentTimeMillis(),
+        RANDOM.get().nextInt(Short.MAX_VALUE));
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")

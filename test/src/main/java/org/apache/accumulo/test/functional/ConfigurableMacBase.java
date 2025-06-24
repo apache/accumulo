@@ -156,7 +156,8 @@ public class ConfigurableMacBase extends AccumuloITBase {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   protected void createMiniAccumulo() throws Exception {
     // createTestDir will give us a empty directory, we don't need to clean it up ourselves
-    File baseDir = createTestDir(this.getClass().getName() + "_" + this.testName());
+    File baseDir =
+        createTestDir(createUniqueName(this.getClass().getName()) + "_" + this.testName());
     MiniAccumuloConfigImpl cfg = new MiniAccumuloConfigImpl(baseDir, ROOT_PASSWORD);
     File nativePathInDevTree = NativeMapIT.nativeMapLocation();
     File nativePathInMapReduce = java.nio.file.Path.of(System.getProperty("user.dir")).toFile();
