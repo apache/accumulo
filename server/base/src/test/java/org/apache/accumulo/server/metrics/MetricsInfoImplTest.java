@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.regex.PatternSyntaxException;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.junit.jupiter.api.Test;
 
@@ -85,19 +84,6 @@ public class MetricsInfoImplTest {
   }
 
   /**
-   * Verify that when an empty pattern is supplied to
-   * {@link MetricsInfoImpl#getMeterFilter(String)}, that we catch an IllegalArgumentException and
-   * receive the errorMessage: "patternList must not be empty"
-   */
-  @Test
-  public void testIfEmptyPattern() {
-    Throwable exception = assertThrows(IllegalArgumentException.class,
-        () -> MetricsInfoImpl.getMeterFilter(""), "Expected an IllegalArgumentException");
-    assertEquals("patternList must not be empty", exception.getMessage());
-
-  }
-
-  /**
    * Verify that when an invalid regex pattern is supplied to
    * {@link MetricsInfoImpl#getMeterFilter(String)}, that a PatternSyntaxException is thrown.
    */
@@ -122,9 +108,23 @@ public class MetricsInfoImplTest {
   }
 
   /**
+   * Verify that when an empty pattern is supplied to
+   * {@link MetricsInfoImpl#getMeterFilter(String)}, then no matter what the id is we get a reply of
+   * {@link MeterFilterReply#NEUTRAL}.
+   */
+  @Test
+  public void testThatEmptyPatternDoesNotMatchId() {
+    MeterFilter filter = MetricsInfoImpl.getMeterFilter("");
+    Meter.Id id =
+        new Meter.Id("shouldnotmatch", Tags.of("tag", "tag"), null, null, Meter.Type.OTHER);
+    MeterFilterReply reply = filter.accept(id);
+    assertEquals(MeterFilterReply.NEUTRAL, reply, "Expected a reply of NEUTRAL");
+  }
+
+  /**
    * Verify that when only one pattern is supplied to
    * {@link MetricsInfoImpl#getMeterFilter(String)}, and the resulting filter is given an id whose
-   * name does not match that patten, that we get a reply of {@link MeterFilterReply#NEUTRAL}.
+   * name does not match that pattern, that we get a reply of {@link MeterFilterReply#NEUTRAL}.
    */
   @Test
   public void testIfSinglePatternDoesNotMatch() {

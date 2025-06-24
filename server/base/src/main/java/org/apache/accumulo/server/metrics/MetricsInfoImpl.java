@@ -41,7 +41,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -255,21 +254,21 @@ public class MetricsInfoImpl implements MetricsInfo {
   }
 
   /**
-   * This function uses patterns specified in the patternList parameter to filter out specific metrics that the user
-   * doesn't want.
+   * This function uses patterns specified in the patternList parameter to filter out specific
+   * metrics that the user doesn't want.
    *
-   * @param patternList, a comma-delimited String of regext patterns that getMeterFilter uses to filter metrics.
+   * @param patternList, a comma-delimited String of regext patterns that getMeterFilter uses to
+   *        filter metrics.
    * @return a predicate with the type of MeterFilter, that describes which metrics to filter.
    */
   public static MeterFilter getMeterFilter(String patternList) {
     requireNonNull(patternList, "patternList must not be null");
-    Preconditions.checkArgument(!patternList.isEmpty(), "patternList must not be empty");
+
     // Trims whitespace and all other non-visible characters.
-    patternList = patternList.replaceAll("\\s+","");
+    patternList = patternList.replaceAll("\\s+", "");
 
     String[] patterns = patternList.split(",");
-    Predicate<Meter.Id> finalPredicate = id->false;
-
+    Predicate<Meter.Id> finalPredicate = id -> false;
 
     for (String pattern : patterns) {
       // Compile the pattern.
