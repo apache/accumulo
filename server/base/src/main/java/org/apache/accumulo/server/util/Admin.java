@@ -959,7 +959,6 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     var zk = context.getZooSession();
     ServiceLock adminLock = null;
-    Map<FateInstanceType,FateStore<Admin>> fateStores;
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores = null;
 
     try {
@@ -967,28 +966,22 @@ public class Admin implements KeywordExecutable {
         cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
       } else if (fateOpsCommand.fail) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, adminLock);
-        try {
+        try (var fateStores = createFateStores(context, zk, adminLock)) {
           for (String fateIdStr : fateOpsCommand.fateIdList) {
-            if (!admin.prepFail(fateStores, fateIdStr)) {
+            if (!admin.prepFail(fateStores.getStoresMap(), fateIdStr)) {
               throw new AccumuloException("Could not fail transaction: " + fateIdStr);
             }
           }
-        } finally {
-          closeFateStores(fateStores.values());
         }
       } else if (fateOpsCommand.delete) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, adminLock);
-        try {
+        try (var fateStores = createFateStores(context, zk, adminLock)) {
           for (String fateIdStr : fateOpsCommand.fateIdList) {
-            if (!admin.prepDelete(fateStores, fateIdStr)) {
+            if (!admin.prepDelete(fateStores.getStoresMap(), fateIdStr)) {
               throw new AccumuloException("Could not delete transaction: " + fateIdStr);
             }
             admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
           }
-        } finally {
-          closeFateStores(fateStores.values());
         }
       }
 
@@ -1019,13 +1012,13 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private Map<FateInstanceType,FateStore<Admin>> createFateStores(ServerContext context,
-      ZooSession zk, ServiceLock adminLock) throws InterruptedException, KeeperException {
+  private FateStores createFateStores(ServerContext context, ZooSession zk, ServiceLock adminLock)
+      throws InterruptedException, KeeperException {
     var lockId = adminLock.getLockID();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, lockId, null);
     UserFateStore<Admin> ufs =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lockId, null);
-    return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
+    return new FateStores(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
   }
 
   private Map<FateInstanceType,ReadOnlyFateStore<Admin>> createReadOnlyFateStores(
@@ -1034,12 +1027,6 @@ public class Admin implements KeywordExecutable {
     ReadOnlyFateStore<Admin> readOnlyUFS =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
     return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
-  }
-
-  private void closeFateStores(Collection<FateStore<Admin>> fateStores) {
-    for (var fs : fateStores) {
-      fs.close();
-    }
   }
 
   private ServiceLock createAdminLock(ServerContext context) throws InterruptedException {
@@ -1355,5 +1342,28 @@ public class Admin implements KeywordExecutable {
     }
     System.out.println("-".repeat(50));
     System.out.println();
+  }
+
+  /**
+   * Wrapper around the fate stores
+   */
+  private static class FateStores implements AutoCloseable {
+    private final Map<FateInstanceType,FateStore<Admin>> storesMap;
+
+    private FateStores(FateInstanceType type1, FateStore<Admin> store1, FateInstanceType type2,
+        FateStore<Admin> store2) {
+      storesMap = Map.of(type1, store1, type2, store2);
+    }
+
+    private Map<FateInstanceType,FateStore<Admin>> getStoresMap() {
+      return storesMap;
+    }
+
+    @Override
+    public void close() {
+      for (var fs : storesMap.values()) {
+        fs.close();
+      }
+    }
   }
 }
