@@ -84,11 +84,6 @@ public class AccumuloITBase extends WithTestNames {
     return baseDir.getParentFile().toPath().resolve(baseDir.getName() + "-ssl").toFile();
   }
 
-  public static String createUniqueName(String name) {
-    return String.format("%s-%d-%d", name, System.currentTimeMillis(),
-        RANDOM.get().nextInt(Short.MAX_VALUE));
-  }
-
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File createTestDir(String name) {
     File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
@@ -96,7 +91,9 @@ public class AccumuloITBase extends WithTestNames {
     if (name == null) {
       return baseDir;
     }
-    File testDir = baseDir.toPath().resolve(name).toFile();
+    String uniqueName = String.format("%s-%d-%d", name, System.currentTimeMillis(),
+        RANDOM.get().nextInt(Short.MAX_VALUE));
+    File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
