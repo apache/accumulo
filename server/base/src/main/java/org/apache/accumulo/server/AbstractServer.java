@@ -20,6 +20,7 @@ package org.apache.accumulo.server;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
@@ -52,8 +53,10 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TException;
+import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,12 +71,16 @@ import io.micrometer.core.instrument.Metrics;
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
+  public static interface ThriftServerSupplier {
+    ServerAddress get() throws UnknownHostException;
+  }
+
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
+  private volatile ServerAddress thriftServer;
   private volatile HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g.
-                                                 // ZK,
-  // metadata, etc).
+                                                 // ZK, metadata, etc).
   private final String bindAddress; // used for the Thrift server
   private final String resourceGroup;
   private final Logger log;
@@ -302,6 +309,17 @@ public abstract class AbstractServer
     return bindAddress;
   }
 
+  protected TServer getThriftServer() {
+    if (thriftServer == null) {
+      return null;
+    }
+    return thriftServer.server;
+  }
+
+  protected ServerAddress getThriftServerAddress() {
+    return thriftServer;
+  }
+
   protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
     if (advertiseAddress == null) {
       advertiseAddress = thriftBindAddress;
@@ -309,6 +327,17 @@ public abstract class AbstractServer
       advertiseAddress =
           HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
     }
+  }
+
+  protected void startThriftServer(ThriftServerSupplier supplier, boolean start)
+      throws UnknownHostException {
+    thriftServer = supplier.get();
+    if (start) {
+      thriftServer.startThriftServer("Thrift Client Server");
+      log.debug("Starting {} listening on {}", this.getClass().getSimpleName(),
+          thriftServer.address);
+    }
+    updateAdvertiseAddress(thriftServer.address);
   }
 
   public ServerContext getContext() {

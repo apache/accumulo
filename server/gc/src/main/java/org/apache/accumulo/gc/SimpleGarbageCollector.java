@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -64,7 +65,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.manager.LiveTServerSet;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.hadoop.fs.Path;
@@ -168,8 +168,11 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     // old data files to be unused
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
-    HostAndPort address = startStatsService();
-    updateAdvertiseAddress(address);
+    try {
+      startStatsService();
+    } catch (UnknownHostException e1) {
+      throw new RuntimeException("Failed to start the gc client service", e1);
+    }
 
     try {
       getZooLock(getAdvertiseAddress());
@@ -183,7 +186,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     metricsInfo.addMetricsProducers(this, new GcMetrics(this));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        address, getResourceGroup()));
+        getAdvertiseAddress(), getResourceGroup()));
     try {
       long delay = getStartDelay();
       log.debug("Sleeping for {} milliseconds before beginning garbage collection cycles", delay);
@@ -425,21 +428,18 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   }
 
-  private HostAndPort startStatsService() {
+  private void startStatsService() throws UnknownHostException {
     var processor = ThriftProcessorTypes.getGcTProcessor(this, this, getContext());
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getBindAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
-    ServerAddress server =
-        TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
-            processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
-            1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(),
-            0, getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
-            false, addresses);
-    server.startThriftServer("GC Monitor Service");
-    updateAdvertiseAddress(server.address);
-    log.debug("Starting garbage collector listening on {}", server.address);
-    return server.address;
+    startThriftServer(() -> {
+      return TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
+          processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
+          1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+          getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
+          addresses);
+    }, true);
   }
 
   /**
