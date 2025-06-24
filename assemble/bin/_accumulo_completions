@@ -55,11 +55,11 @@ function _accumulo_completions() {
 
   if [ "$COMP_CWORD" -eq 1 ]; then # Completing the first command after 'accumulo'
     mapfile -t COMPREPLY < <(compgen -W "$AVAILABLE_COMMANDS" -- "$CURRENT_WORD")
-  elif [[ "$WORD_AFTER_ACCUMULO" == "admin" ]]; then # If the second string after 'accumulo' is 'admin', more completions to be done in _admin_completions function
+  elif [[ $WORD_AFTER_ACCUMULO == "admin" ]]; then # If the second string after 'accumulo' is 'admin', more completions to be done in _admin_completions function
     _admin_completions "$CURRENT_WORD"
-  elif [[ "$WORD_AFTER_ACCUMULO" == "ec-admin" ]]; then # If the second string after 'accumulo' is 'ec-admin', more completions to be done in _ec_admin_completions function
+  elif [[ $WORD_AFTER_ACCUMULO == "ec-admin" ]]; then # If the second string after 'accumulo' is 'ec-admin', more completions to be done in _ec_admin_completions function
     _ec_admin_completions "$CURRENT_WORD"
-  elif [[ -n "${COMMAND_MAPPING[$WORD_AFTER_ACCUMULO]}" ]]; then # If the second string after 'accumulo' is any of the other commands besides 'admin' or 'ec-admin', map correct options (if any) that correspond to the subcommand entered
+  elif [[ -n ${COMMAND_MAPPING[$WORD_AFTER_ACCUMULO]} ]]; then # If the second string after 'accumulo' is any of the other commands besides 'admin' or 'ec-admin', map correct options (if any) that correspond to the subcommand entered
     mapfile -t COMPREPLY < <(compgen -W "${COMMAND_MAPPING[$WORD_AFTER_ACCUMULO]}" -- "$CURRENT_WORD")
   else # Invalid command, suggest nothing
     mapfile -t COMPREPLY < <(compgen -f "$CURRENT_WORD")
@@ -105,13 +105,13 @@ _admin_completions() {
     local word="${COMP_WORDS[i]}"
     # Check if the word is a known subcommand. Searching for it separated by spaces to identify sole subcommands rather
     # than finding word as a substring to a subcommand. Ex: so 'list' isn't incorrectly identified as 'listInstances'
-    if [[ "$ADMIN_SUBCOMMANDS" == *" $word "* ]]; then
+    if [[ $ADMIN_SUBCOMMANDS == *" $word "* ]]; then
       current_subcommand="$word"
     fi
   done
 
-  if [[ -n "$current_subcommand" ]]; then                                # If a subcommand has been entered, do:
-    if [[ -n "${ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" ]]; then # If it's an admin subcommand
+  if [[ -n $current_subcommand ]]; then                                # If a subcommand has been entered, do:
+    if [[ -n ${ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]} ]]; then # If it's an admin subcommand
       # Suggest to COMPREPLY the options for the admin subcommand given
       mapfile -t COMPREPLY < <(compgen -W "${ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" -- "$CURRENT_WORD")
     else
@@ -151,13 +151,13 @@ _ec_admin_completions() {
     local word="${COMP_WORDS[i]}"
     # Check if the word is a known subcommand. Searching for it separated by spaces to identify sole subcommands rather
     # than finding word as a substring to a subcommand. Ex: so 'list' isn't incorrectly identified as 'listInstances'
-    if [[ "$EC_ADMIN_SUBCOMMANDS" == *" $word "* ]]; then
+    if [[ $EC_ADMIN_SUBCOMMANDS == *" $word "* ]]; then
       current_subcommand="$word"
     fi
   done
 
-  if [[ -n "$current_subcommand" ]]; then                                   # If a subcommand has been entered, do:
-    if [[ -n "${EC_ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" ]]; then # If it's an ec-admin subcommand
+  if [[ -n $current_subcommand ]]; then                                   # If a subcommand has been entered, do:
+    if [[ -n ${EC_ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]} ]]; then # If it's an ec-admin subcommand
       # Suggest to COMPREPLY the options for the ec-admin subcommand given
       mapfile -t COMPREPLY < <(compgen -W "${EC_ADMIN_SUBCOMMAND_OPTIONS[$current_subcommand]}" -- "$CURRENT_WORD")
     else
