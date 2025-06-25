@@ -372,7 +372,7 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
 
   @Test
   public void test_compact() throws Exception {
-    // TODO
+    // TODO see issue#5679
   }
 
   @Test
