@@ -69,7 +69,7 @@ import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class BalanceManager {
+class BalanceManager {
 
   private static final Logger log = LoggerFactory.getLogger(BalanceManager.class);
 
@@ -85,7 +85,7 @@ public class BalanceManager {
     this.manager = new AtomicReference<>(null);
   }
 
-  public void setManager(Manager manager) {
+  void setManager(Manager manager) {
     Objects.requireNonNull(manager);
     if (this.manager.compareAndSet(null, manager)) {
       this.balancerEnvironment = new BalancerEnvironmentImpl(manager.getContext());
@@ -333,7 +333,7 @@ public class BalanceManager {
   }
 
   @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
-  public void waitForBalance() {
+  void waitForBalance() {
     synchronized (balancedNotifier) {
       long eventCounter;
       do {
@@ -410,7 +410,7 @@ public class BalanceManager {
             && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
 
-  public void startMigrationCleanupThread() {
+  void startMigrationCleanupThread() {
     Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
   }
 
