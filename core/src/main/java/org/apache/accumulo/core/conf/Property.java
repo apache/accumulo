@@ -365,6 +365,11 @@ public enum Property {
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
       "4.0.0"),
+  @Deprecated(since = "4.0.0")
+  @ReplacedBy(property = RPC_PROCESS_BIND_ADDRESS)
+  GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
+      "The local IP address to which this server should bind for sending and receiving network traffic.",
+      "3.0.0"),
   GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
       PropertyType.TIMEDURATION,
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
