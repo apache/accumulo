@@ -293,6 +293,18 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }), 5, 5, TimeUnit.SECONDS);
     watchNonCriticalScheduledTask(future);
 
+    ScheduledFuture<?> cleanupTask =
+        context.getScheduledExecutor().scheduleWithFixedDelay(Threads.createNamedRunnable(
+            "ScanRefCleanupTask", () -> getOnlineTablets().values().forEach(tablet -> {
+              try {
+                tablet.removeOrphanedScanRefs();
+              } catch (Exception e) {
+                log.error("Error cleaning up stale scan references for tablet {}",
+                    tablet.getExtent(), e);
+              }
+            })), 5, 5, TimeUnit.MINUTES);
+    watchNonCriticalScheduledTask(cleanupTask);
+
     final long walMaxSize = aconf.getAsBytes(Property.TSERV_WAL_MAX_SIZE);
     final long walMaxAge = aconf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE);
     final long minBlockSize =
@@ -409,7 +421,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private HostAndPort startServer(String address, TProcessor processor)
+  private ServerAddress startServer(String address, TProcessor processor)
       throws UnknownHostException {
     ServerAddress sp =
         TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT, processor,
@@ -417,7 +429,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
     sp.startThriftServer("Thrift Client Server");
     this.server = sp.server;
-    return sp.address;
+    return sp;
   }
 
   private HostAndPort getManagerAddress() {
@@ -465,7 +477,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     ThriftUtil.returnClient(client, context);
   }
 
-  private HostAndPort startTabletClientService() throws UnknownHostException {
+  private ServerAddress startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     WriteTracker writeTracker = new WriteTracker();
     clientHandler = newClientHandler();
@@ -475,8 +487,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     TProcessor processor =
         ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
-    HostAndPort address = startServer(clientAddress.getHost(), processor);
-    setHostname(address);
+    ServerAddress address = startServer(getBindAddress().toString(), processor);
+    updateAdvertiseAddress(address.address);
     log.info("address = {}", address);
     return address;
   }
@@ -548,8 +560,11 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
+    ServerAddress address = null;
     try {
-      clientAddress = startTabletClientService();
+      address = startTabletClientService();
+      updateAdvertiseAddress(address.getAddress());
+      clientAddress = getAdvertiseAddress();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
@@ -681,8 +696,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
           getClientAddressString());
     } catch (TException e) {
-      log.error("Error informing Manager that we are shutting down, halting server", e);
-      Halt.halt("Error informing Manager that we are shutting down, exiting!", -1);
+      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
     }
@@ -824,10 +838,10 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   private void config() {
-    log.info("Tablet server starting on {}", getHostname());
+    log.info("Tablet server starting on {}", getBindAddress());
     CompactionWatcher.startWatching(context);
 
-    clientAddress = HostAndPort.fromParts(getHostname(), 0);
+    clientAddress = HostAndPort.fromParts(getBindAddress(), 0);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {

@@ -42,7 +42,8 @@ public class SummaryInformation {
   // Variable names become JSON keys
   public List<TabletServer> servers = new ArrayList<>();
 
-  public String managerGoalState, managerState;
+  public String managerGoalState;
+  public String managerState;
 
   public BadTabletServers badTabletServers;
   public ServersShuttingDown tabletServersShuttingDown;

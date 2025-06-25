@@ -25,15 +25,17 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.clientImpl.Namespace;
+import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -42,6 +44,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.Ample.TabletsMutator;
@@ -58,19 +61,22 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
-import org.apache.accumulo.server.init.ZooKeeperInitializer;
 import org.apache.accumulo.server.util.PropUtil;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 //TODO when removing this class, also remove MetadataSchema.Upgrader12to13
 public class Upgrader12to13 implements Upgrader {
 
   private static final Logger LOG = LoggerFactory.getLogger(Upgrader12to13.class);
+
+  @VisibleForTesting
+  static final String ZTABLE_NAME = "/name";
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
@@ -84,6 +90,10 @@ public class Upgrader12to13 implements Upgrader {
     removeCompactColumnsFromRootTabletMetadata(context);
     LOG.info("Adding compactions node to zookeeper");
     addCompactionsNode(context);
+    LOG.info("Creating ZooKeeper entries for accumulo.fate table");
+    initializeFateTable(context);
+    LOG.info("Adding table mappings to zookeeper");
+    addTableMappingsToZooKeeper(context);
   }
 
   @Override
@@ -132,19 +142,6 @@ public class Upgrader12to13 implements Upgrader {
     if (context.tableOperations().exists(SystemTables.FATE.tableName())) {
       LOG.info("Fate table already exists");
       return;
-    }
-
-    try {
-      ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
-      zkInit.initFateTableState(context);
-    } catch (RuntimeException e) {
-      // initFateTableState wraps KeeperException and InterruptedException
-      // with a RuntimeException
-      if (e.getCause() instanceof KeeperException.NodeExistsException) {
-        LOG.debug("Fate table node already exists in ZooKeeper");
-      } else {
-        throw e;
-      }
     }
 
     try {
@@ -274,8 +271,7 @@ public class Upgrader12to13 implements Upgrader {
       final String ZTABLE_COMPACT_ID = "/compact-id";
       final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
 
-      for (Entry<String,String> e : context.tableOperations().tableIdMap().entrySet()) {
-        final String tId = e.getValue();
+      for (String tId : zrw.getChildren(Constants.ZTABLES)) {
         final String zTablePath = Constants.ZTABLES + "/" + tId;
         zrw.delete(zTablePath + ZTABLE_COMPACT_ID);
         zrw.delete(zTablePath + ZTABLE_COMPACT_CANCEL_ID);
@@ -397,6 +393,55 @@ public class Upgrader12to13 implements Upgrader {
       } catch (InterruptedException | KeeperException e) {
         throw new IllegalStateException(e);
       }
+    }
+  }
+
+  private void initializeFateTable(ServerContext context) {
+    try {
+      Upgrader11to12.preparePre4_0NewTableState(context, SystemTables.FATE.tableId(),
+          Namespace.ACCUMULO.id(), SystemTables.FATE.tableName(), TableState.ONLINE,
+          ZooUtil.NodeExistsPolicy.FAIL);
+    } catch (InterruptedException | KeeperException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Error creating fate table", ex);
+    }
+  }
+
+  void addTableMappingsToZooKeeper(ServerContext context) {
+    var zrw = context.getZooSession().asReaderWriter();
+    try {
+      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
+      Map<String,Map<String,String>> mapOfTableMaps = new HashMap<>();
+
+      for (String tableId : tableIds) {
+        var tableName =
+            new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
+        var namespaceId = new String(
+            zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+        mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
+            (tid, existingName) -> {
+              if (existingName != null) {
+                throw new IllegalStateException(
+                    "Table id " + tid + " already present in map for namespace id " + namespaceId);
+              }
+              return tableName;
+            });
+      }
+      for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
+        zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
+            NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
+      }
+      for (String tableId : tableIds) {
+        String tableNamePath = Constants.ZTABLES + "/" + tableId + ZTABLE_NAME;
+        zrw.delete(tableNamePath);
+      }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
+          ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
   }
 }

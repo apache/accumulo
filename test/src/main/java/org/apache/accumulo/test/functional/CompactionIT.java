@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.io.IOException;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.Duration;
@@ -121,7 +120,7 @@ import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
-public class CompactionIT extends CompactionBaseIT {
+public class CompactionIT extends CompactionITBase {
 
   public static class TestFilter extends Filter {
 
@@ -766,8 +765,8 @@ public class CompactionIT extends CompactionBaseIT {
         for (TabletMetadata tm : tabletsMeta) {
           for (StoredTabletFile stf : tm.getFiles()) {
             // Since the 8 files should be compacted down to 1 file, these should only be set once
-            finalCompactionFilePath = Paths.get(stf.getPath().toUri().getRawPath());
-            rootPath = Paths.get(stf.getPath().getParent().toUri().getRawPath());
+            finalCompactionFilePath = java.nio.file.Path.of(stf.getPath().toUri().getRawPath());
+            rootPath = java.nio.file.Path.of(stf.getPath().getParent().toUri().getRawPath());
             count++;
           }
         }

@@ -110,7 +110,7 @@ public class TestRandomDeletes {
       for (int i = 0; i < (entries.size() + 1) / 2; i++) {
         RowColumn rc = entries.get(i);
         Mutation m = new Mutation(rc.row);
-        m.putDelete(new Text(rc.column.columnFamily), new Text(rc.column.columnQualifier),
+        m.putDelete(new Text(rc.column.getColumnFamily()), new Text(rc.column.getColumnQualifier()),
             new ColumnVisibility(rc.column.getColumnVisibility()), rc.timestamp + 1);
         bw.addMutation(m);
         rows.remove(rc);

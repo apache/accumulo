@@ -193,6 +193,11 @@ public class FateLogger {
       public void deleteDeadReservations() {
         store.deleteDeadReservations();
       }
+
+      @Override
+      public void close() {
+        store.close();
+      }
     };
   }
 

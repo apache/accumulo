@@ -1906,4 +1906,38 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
     }
     assertEquals(Set.of(stf1, stf3), context.getAmple().readTablet(e1).getFiles());
   }
+
+  @Test
+  public void testRequireMigration() {
+    var context = getCluster().getServerContext();
+    var tsi = new TServerInstance("localhost:1234", 56L);
+    var otherTsi = new TServerInstance("localhost:9876", 54L);
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(tsi).deleteMigration()
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getMigration());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().putMigration(tsi).submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(tsi, context.getAmple().readTablet(e1).getMigration());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(otherTsi).deleteMigration()
+          .submit(tm -> false);
+      assertEquals(Status.REJECTED, ctmi.process().get(e1).getStatus());
+    }
+    assertEquals(tsi, context.getAmple().readTablet(e1).getMigration());
+
+    try (var ctmi = new ConditionalTabletsMutatorImpl(context)) {
+      ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(tsi).deleteMigration()
+          .submit(tm -> false);
+      assertEquals(Status.ACCEPTED, ctmi.process().get(e1).getStatus());
+    }
+    assertNull(context.getAmple().readTablet(e1).getMigration());
+  }
 }

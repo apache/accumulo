@@ -102,7 +102,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 /**
@@ -145,8 +144,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       // to be hosted. Then, remove the location.
       Scanner s = client.createScanner(t3);
       s.setRange(new Range());
-      @SuppressWarnings("unused")
-      var unused = Iterables.size(s); // consume all the data
+      assertEquals(0, s.stream().count()); // consume all the data
 
       // examine a clone of the metadata table, so we can manipulate it
       copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
@@ -572,7 +570,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private static TabletManagementParameters createParameters(AccumuloClient client,
       Map<Path,Path> replacements) {
     var context = (ClientContext) client;
-    Set<TableId> onlineTables = Sets.filter(context.getTableIdToNameMap().keySet(),
+    Set<TableId> onlineTables = Sets.filter(context.createTableIdToQualifiedNameMap().keySet(),
         tableId -> context.getTableState(tableId) == TableState.ONLINE);
 
     HashSet<TServerInstance> tservers = new HashSet<>();
@@ -592,7 +590,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         onlineTables,
         new LiveTServerSet.LiveTServersSnapshot(tservers,
             Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
-        Set.of(), Map.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
+        Set.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
         SteadyTime.from(10000, TimeUnit.NANOSECONDS));
   }
 }

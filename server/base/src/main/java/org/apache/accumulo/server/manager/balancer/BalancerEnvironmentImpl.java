@@ -64,7 +64,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
 
   @Override
   public Map<String,TableId> getTableIdMap() {
-    return getContext().getTableNameToIdMap();
+    return getContext().createQualifiedTableNameToIdMap();
   }
 
   @Override
@@ -89,7 +89,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   @Override
   public List<TabletStatistics> listOnlineTabletsForTable(TabletServerId tabletServerId,
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
-    log.debug("Scanning tablet server {} for table {}", tabletServerId, tableId);
+    log.trace("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
       TabletServerClientService.Client client = ThriftUtil.getClient(
           ThriftClientTypes.TABLET_SERVER,

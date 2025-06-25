@@ -30,11 +30,12 @@ import java.io.UncheckedIOException;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FateIT;
+import org.apache.accumulo.test.fate.FateITBase;
 import org.apache.accumulo.test.fate.FateTestUtil;
 import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.zookeeper.KeeperException;
@@ -42,7 +43,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
-public class MetaFateIT extends FateIT {
+public class MetaFateIT extends FateITBase {
   @TempDir
   private static File tempDir;
 
@@ -64,8 +65,10 @@ public class MetaFateIT extends FateIT {
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(
-        new MetaFateStore<>(zk, createDummyLockID(), null, maxDeferred, fateIdGenerator), sctx);
+    try (FateStore<TestEnv> fs =
+        new MetaFateStore<>(zk, createDummyLockID(), null, maxDeferred, fateIdGenerator)) {
+      testMethod.execute(fs, sctx);
+    }
   }
 
   @Override

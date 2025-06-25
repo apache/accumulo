@@ -26,29 +26,31 @@ import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.SystemTables;
-import org.apache.accumulo.test.fate.FateOpsCommandsIT;
-import org.apache.accumulo.test.fate.MultipleStoresIT.LatchTestEnv;
+import org.apache.accumulo.test.fate.FateOpsCommandsITBase;
+import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
 import org.apache.accumulo.test.fate.TestLock;
 
-public class UserFateOpsCommandsIT extends FateOpsCommandsIT {
+public class UserFateOpsCommandsIT extends FateOpsCommandsITBase {
   /**
    * This should be used for tests that will not seed a txn with work/reserve a txn. Note that this
    * should be used in conjunction with
-   * {@link FateOpsCommandsIT#initFateNoDeadResCleaner(FateStore)}
+   * {@link FateOpsCommandsITBase#initFateNoDeadResCleaner(FateStore)}
    */
   @Override
   public void executeTest(FateTestExecutor<LatchTestEnv> testMethod, int maxDeferred,
       AbstractFateStore.FateIdGenerator fateIdGenerator) throws Exception {
     var context = getCluster().getServerContext();
-    // the test should not be reserving or checking reservations, so null lockID and isLockHeld
-    testMethod.execute(new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null),
-        context);
+    try (FateStore<LatchTestEnv> fs =
+        new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null)) {
+      // the test should not be reserving or checking reservations, so null lockID and isLockHeld
+      testMethod.execute(fs, context);
+    }
   }
 
   /**
    * This should be used for tests that will seed a txn with work/reserve a txn. Note that this
    * should be used in conjunction with
-   * {@link FateOpsCommandsIT#initFateWithDeadResCleaner(FateStore, LatchTestEnv)}
+   * {@link FateOpsCommandsITBase#initFateWithDeadResCleaner(FateStore, LatchTestEnv)}
    */
   @Override
   public void stopManagerAndExecuteTest(FateTestExecutor<LatchTestEnv> testMethod)
@@ -61,8 +63,10 @@ public class UserFateOpsCommandsIT extends FateOpsCommandsIT {
       ZooUtil.LockID lockID = testLock.getLockID();
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      testMethod.execute(
-          new UserFateStore<>(context, SystemTables.FATE.tableName(), lockID, isLockHeld), context);
+      try (FateStore<LatchTestEnv> fs =
+          new UserFateStore<>(context, SystemTables.FATE.tableName(), lockID, isLockHeld)) {
+        testMethod.execute(fs, context);
+      }
     } finally {
       if (testLock != null) {
         testLock.unlock();

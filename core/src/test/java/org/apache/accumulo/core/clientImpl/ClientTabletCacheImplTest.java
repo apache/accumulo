@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.easymock.EasyMock.replay;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -214,14 +215,14 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.ROOT.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.ROOT.tableId()))
         .andReturn(SystemTables.ROOT.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.METADATA.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.METADATA.tableId()))
         .andReturn(SystemTables.METADATA.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     EasyMock.expect(tops.isOnline("foo")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("0")).andReturn(true).anyTimes();
     EasyMock.expect(tops.isOnline("1")).andReturn(true).anyTimes();
@@ -751,14 +752,14 @@ public class ClientTabletCacheImplTest {
     context = EasyMock.createMock(ClientContext.class);
     TableOperations tops = EasyMock.createMock(TableOperations.class);
     EasyMock.expect(context.tableOperations()).andReturn(tops).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.ROOT.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.ROOT.tableId()))
         .andReturn(SystemTables.ROOT.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(SystemTables.METADATA.tableId()))
+    EasyMock.expect(context.getQualifiedTableName(SystemTables.METADATA.tableId()))
         .andReturn(SystemTables.METADATA.tableName()).anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("0"))).andReturn("0").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("1"))).andReturn("1").anyTimes();
-    EasyMock.expect(context.getTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("foo"))).andReturn("foo").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("0"))).andReturn("0").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("1"))).andReturn("1").anyTimes();
+    EasyMock.expect(context.getQualifiedTableName(TableId.of("tab1"))).andReturn("tab1").anyTimes();
     iid = InstanceId.of("instance1");
     rootTabletLoc = "tserver4";
     EasyMock.expect(context.getInstanceID()).andReturn(iid).anyTimes();
@@ -1986,45 +1987,56 @@ public class ClientTabletCacheImplTest {
     setLocation(tservers, "tserver3", mte2, ke3, "tserver9");
 
     var executor = Executors.newCachedThreadPool();
-    List<Future<CachedTablet>> futures = new ArrayList<>();
+    final int lookupCount = 128;
+    final int roundCount = 8;
 
-    // start 64 threads all trying to lookup data in the cache, should see only two threads do a
-    // concurrent lookup in the metadata table and no more or less.
-    List<String> rowsToLookup = new ArrayList<>();
+    List<Future<CachedTablet>> futures = new ArrayList<>(roundCount * lookupCount);
 
-    for (int i = 0; i < 64; i++) {
-      String lookup = (char) ('a' + (i % 26)) + "";
-      rowsToLookup.add(lookup);
-    }
+    // multiple rounds to increase the chance of contention
+    for (int round = 0; round < roundCount; round++) {
 
-    Collections.shuffle(rowsToLookup);
+      // start a bunch of threads all trying to lookup data in the cache
+      // should see exactly 2 threads doing metadata lookups at a time
+      List<String> rowsToLookup = new ArrayList<>(lookupCount);
 
-    for (var lookup : rowsToLookup) {
-      var future = executor.submit(() -> {
-        var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
-        if (lookup.compareTo("m") <= 0) {
-          assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
-        } else if (lookup.compareTo("q") <= 0) {
-          assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
-        } else {
-          assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
-        }
-        return loc;
-      });
-      futures.add(future);
+      for (int i = 0; i < lookupCount; i++) {
+        String lookup = (char) ('a' + (i % 26)) + "";
+        rowsToLookup.add(lookup);
+      }
+
+      Collections.shuffle(rowsToLookup, RANDOM.get());
+
+      for (var lookup : rowsToLookup) {
+        var future = executor.submit(() -> {
+          if (RANDOM.get().nextInt(10) < 3) {
+            Thread.yield();
+          }
+          var loc = metaCache.findTablet(context, new Text(lookup), false, LocationNeed.REQUIRED);
+          if (lookup.compareTo("m") <= 0) {
+            assertEquals("tserver7", loc.getTserverLocation().orElseThrow());
+          } else if (lookup.compareTo("q") <= 0) {
+            assertEquals("tserver8", loc.getTserverLocation().orElseThrow());
+          } else {
+            assertEquals("tserver9", loc.getTserverLocation().orElseThrow());
+          }
+          return loc;
+        });
+        futures.add(future);
+      }
     }
 
     for (var future : futures) {
       assertNotNull(future.get());
     }
 
-    assertTrue(sawTwoActive.get());
+    assertTrue(sawTwoActive.get(), "Expected to see exactly two lookups.");
     // The second metadata tablet (mte2) contains two user tablets (ke2 and ke3). Depending on which
     // of these two user tablets is looked up in the metadata table first will see a total of 2 or 3
     // lookups. If the location of ke2 is looked up first then it will get the locations of ke2 and
     // ke3 from mte2 and put them in the cache. If the location of ke3 is looked up first then it
     // will only get the location of ke3 from mte2 and not ke2.
-    assertTrue(lookups.size() == 2 || lookups.size() == 3, lookups::toString);
+    assertTrue(lookups.size() == 2 || lookups.size() == 3,
+        "Expected 2 or 3 lookups, got " + lookups.size() + " : " + lookups);
     assertEquals(1, lookups.stream().filter(metadataExtent -> metadataExtent.equals(mte1)).count(),
         lookups::toString);
     var mte2Lookups =

@@ -24,7 +24,7 @@
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
-    <version>31</version>
+    <version>34</version>
   </parent>
   <groupId>org.apache.accumulo</groupId>
   <artifactId>accumulo-project</artifactId>
@@ -646,12 +646,12 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>versions-maven-plugin</artifactId>
-          <version>2.16.2</version>
+          <version>2.18.0</version>
         </plugin>
         <plugin>
           <groupId>com.mycila</groupId>
           <artifactId>license-maven-plugin</artifactId>
-          <version>4.3</version>
+          <version>5.0.0</version>
           <configuration>
             <licenseSets>
               <licenseSet>
@@ -681,7 +681,7 @@
         <plugin>
           <groupId>org.gaul</groupId>
           <artifactId>modernizer-maven-plugin</artifactId>
-          <version>2.7.0</version>
+          <version>3.1.0</version>
           <configuration>
             <javaVersion>${maven.compiler.target}</javaVersion>
           </configuration>
@@ -689,7 +689,7 @@
         <plugin>
           <groupId>com.github.spotbugs</groupId>
           <artifactId>spotbugs-maven-plugin</artifactId>
-          <version>4.7.3.6</version>
+          <version>4.9.3.0</version>
           <configuration>
             <xmlOutput>true</xmlOutput>
             <effort>Max</effort>
@@ -697,6 +697,7 @@
             <includeTests>true</includeTests>
             <maxHeap>1024</maxHeap>
             <maxRank>16</maxRank>
+            <omitVisitors>ConstructorThrow,SharedVariableAtomicityDetector</omitVisitors>
             <jvmArgs>-Dcom.overstock.findbugs.ignore=com.google.common.util.concurrent.RateLimiter,com.google.common.hash.Hasher,com.google.common.hash.HashCode,com.google.common.hash.HashFunction,com.google.common.hash.Hashing,com.google.common.cache.Cache,com.google.common.io.CountingOutputStream,com.google.common.io.ByteStreams,com.google.common.cache.LoadingCache,com.google.common.base.Stopwatch,com.google.common.cache.RemovalNotification,com.google.common.util.concurrent.Uninterruptibles,com.google.common.reflect.ClassPath,com.google.common.reflect.ClassPath$ClassInfo,com.google.common.base.Throwables,com.google.common.collect.Iterators</jvmArgs>
             <plugins combine.children="append">
               <plugin>
@@ -710,7 +711,7 @@
         <plugin>
           <groupId>com.github.ekryd.sortpom</groupId>
           <artifactId>sortpom-maven-plugin</artifactId>
-          <version>3.3.0</version>
+          <version>4.0.0</version>
           <configuration>
             <createBackupFile>false</createBackupFile>
             <expandEmptyElements>false</expandEmptyElements>
@@ -727,7 +728,7 @@
         <plugin>
           <groupId>com.github.koraktor</groupId>
           <artifactId>mavanagaiata</artifactId>
-          <version>1.0.1</version>
+          <version>1.1.0</version>
           <configuration>
             <skipNoGit>true</skipNoGit>
           </configuration>
@@ -833,12 +834,12 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>build-helper-maven-plugin</artifactId>
-          <version>3.5.0</version>
+          <version>3.6.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>3.1.1</version>
+          <version>3.5.0</version>
         </plugin>
         <plugin>
           <groupId>net.revelc.code</groupId>
@@ -848,7 +849,7 @@
         <plugin>
           <groupId>net.revelc.code.formatter</groupId>
           <artifactId>formatter-maven-plugin</artifactId>
-          <version>2.23.0</version>
+          <version>2.26.0</version>
           <configuration>
             <configFile>${rootlocation}/src/build/eclipse-codestyle.xml</configFile>
             <excludes>
@@ -886,7 +887,7 @@
         <plugin>
           <groupId>net.revelc.code</groupId>
           <artifactId>impsort-maven-plugin</artifactId>
-          <version>1.9.0</version>
+          <version>1.12.0</version>
           <configuration>
             <removeUnused>true</removeUnused>
             <groups>java.,javax.,jakarta.,org.,com.</groups>
@@ -945,6 +946,7 @@
                 <!-- ignore log4j dep used for annotations and needed for compile time linting -->
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
+                <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -1598,7 +1600,7 @@
                 <plugin>
                   <groupId>com.h3xstream.findsecbugs</groupId>
                   <artifactId>findsecbugs-plugin</artifactId>
-                  <version>1.12.0</version>
+                  <version>1.14.0</version>
                 </plugin>
               </plugins>
             </configuration>

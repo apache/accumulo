@@ -23,12 +23,12 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.minikdc.MiniKdc.JAVA_SECURITY_KRB5_CONF;
 import static org.apache.hadoop.minikdc.MiniKdc.SUN_SECURITY_KRB5_DEBUG;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 
@@ -103,15 +103,14 @@ public class MiniClusterHarness {
     // Write out any configuration items to a file so HDFS will pick them up automatically (from the
     // classpath)
     if (coreSite.size() > 0) {
-      File csFile = new File(miniCluster.getConfig().getConfDir(), "core-site.xml");
-      if (csFile.exists()) {
+      Path csFile = miniCluster.getConfig().getConfDir().toPath().resolve("core-site.xml");
+      if (Files.exists(csFile)) {
         throw new RuntimeException(csFile + " already exist");
       }
 
-      OutputStream out = new BufferedOutputStream(
-          new FileOutputStream(new File(miniCluster.getConfig().getConfDir(), "core-site.xml")));
-      coreSite.writeXml(out);
-      out.close();
+      try (OutputStream out = Files.newOutputStream(csFile)) {
+        coreSite.writeXml(out);
+      }
     }
 
     return miniCluster;
@@ -147,13 +146,20 @@ public class MiniClusterHarness {
       return;
     }
 
-    File sslDir = new File(folder, "ssl");
-    assertTrue(sslDir.mkdirs() || sslDir.isDirectory());
-    File rootKeystoreFile = new File(sslDir, "root-" + cfg.getInstanceName() + ".jks");
-    File localKeystoreFile = new File(sslDir, "local-" + cfg.getInstanceName() + ".jks");
-    File publicTruststoreFile = new File(sslDir, "public-" + cfg.getInstanceName() + ".jks");
-    final String rootKeystorePassword = "root_keystore_password",
-        truststorePassword = "truststore_password";
+    Path folderPath = folder.toPath();
+    Path sslDir = folderPath.resolve("ssl");
+    if (!Files.isDirectory(sslDir)) {
+      try {
+        Files.createDirectories(sslDir);
+      } catch (IOException e) {
+        throw new RuntimeException("Failed to create ssl dir", e);
+      }
+    }
+    File rootKeystoreFile = sslDir.resolve("root-" + cfg.getInstanceName() + ".jks").toFile();
+    File localKeystoreFile = sslDir.resolve("local-" + cfg.getInstanceName() + ".jks").toFile();
+    File publicTruststoreFile = sslDir.resolve("public-" + cfg.getInstanceName() + ".jks").toFile();
+    final String rootKeystorePassword = "root_keystore_password";
+    final String truststorePassword = "truststore_password";
     try {
       new CertUtils(Property.RPC_SSL_KEYSTORE_TYPE.getDefaultValue(),
           "o=Apache Accumulo,cn=MiniAccumuloCluster", "RSA", 4096, "SHA512WITHRSA").createAll(

@@ -22,6 +22,7 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.lang.Math.min;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -72,6 +73,7 @@ import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.threads.Threads.AccumuloDaemonThread;
 import org.apache.accumulo.manager.metrics.ManagerMetrics;
@@ -255,9 +257,8 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     EventHandler() {
       rangesToProcess = new ArrayBlockingQueue<>(10000);
 
-      Threads
-          .createThread("TGW [" + store.name() + "] event range processor", new RangeProccessor())
-          .start();
+      Threads.createCriticalThread("TGW [" + store.name() + "] event range processor",
+          new RangeProccessor()).start();
     }
 
     private synchronized void setNeedsFullScan() {
@@ -397,13 +398,12 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     var tServersSnapshot = manager.tserversSnapshot();
 
-    var tabletMgmtParams =
-        new TabletManagementParameters(manager.getManagerState(), parentLevelUpgrade,
-            manager.onlineTables(), tServersSnapshot, shutdownServers, manager.migrationsSnapshot(),
-            store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
-            lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
-                : Map.of(),
-            manager.getSteadyTime());
+    var tabletMgmtParams = new TabletManagementParameters(manager.getManagerState(),
+        parentLevelUpgrade, manager.onlineTables(), tServersSnapshot, shutdownServers,
+        store.getLevel(), manager.getCompactionHints(store.getLevel()), canSuspendTablets(),
+        lookForTabletsNeedingVolReplacement ? manager.getContext().getVolumeReplacements()
+            : Map.of(),
+        manager.getSteadyTime());
 
     if (LOG.isTraceEnabled()) {
       // Log the json that will be passed to iterators to make tablet filtering decisions.
@@ -485,7 +485,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
-      if (manager.getTableManager().getTableState(tableId) == null) {
+      if (manager.getTableManager().getTableState(tableId) == TableState.UNKNOWN) {
         continue;
       }
 
@@ -642,11 +642,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             continue;
           }
           switch (state) {
-            case HOSTED:
-              if (location.getServerInstance().equals(manager.migrations.get(tm.getExtent()))) {
-                manager.migrations.remove(tm.getExtent());
-              }
-              break;
             case ASSIGNED_TO_DEAD_SERVER:
               hostDeadTablet(tLists, tm, location);
               break;
@@ -662,7 +657,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               tLists.assigned.add(new Assignment(tm.getExtent(),
                   future != null ? future.getServerInstance() : null, tm.getLast()));
               break;
-            default:
+            case HOSTED:
               break;
           }
         } else {
@@ -670,10 +665,6 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             case SUSPENDED:
               // Request a move to UNASSIGNED, so as to allow balancing to continue.
               tLists.suspendedToGoneServers.add(tm);
-              cancelOfflineTableMigrations(tm.getExtent());
-              break;
-            case UNASSIGNED:
-              cancelOfflineTableMigrations(tm.getExtent());
               break;
             case ASSIGNED_TO_DEAD_SERVER:
               unassignDeadTablet(tLists, tm);
@@ -693,6 +684,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
               }
               break;
             case ASSIGNED:
+            case UNASSIGNED:
               break;
           }
         }
@@ -834,14 +826,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void hostUnassignedTablet(TabletLists tLists, KeyExtent tablet,
       UnassignedTablet unassignedTablet) {
     // maybe it's a finishing migration
-    TServerInstance dest = manager.migrations.get(tablet);
+    TServerInstance dest =
+        manager.getContext().getAmple().readTablet(tablet, MIGRATION).getMigration();
     if (dest != null) {
       // if destination is still good, assign it
       if (tLists.destinations.containsKey(dest)) {
         tLists.assignments.add(new Assignment(tablet, dest, unassignedTablet.getLastLocation()));
       } else {
-        // get rid of this migration
-        manager.migrations.remove(tablet);
         tLists.unassigned.put(tablet, unassignedTablet);
       }
     } else {
@@ -879,20 +870,9 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void hostDeadTablet(TabletLists tLists, TabletMetadata tm, Location location)
       throws WalMarkerException {
     tLists.assignedToDeadServers.add(tm);
-    if (location.getServerInstance().equals(manager.migrations.get(tm.getExtent()))) {
-      manager.migrations.remove(tm.getExtent());
-    }
     TServerInstance tserver = tm.getLocation().getServerInstance();
     if (!tLists.logsForDeadServers.containsKey(tserver)) {
       tLists.logsForDeadServers.put(tserver, walStateManager.getWalsInUse(tserver));
-    }
-  }
-
-  private void cancelOfflineTableMigrations(KeyExtent extent) {
-    TServerInstance dest = manager.migrations.get(extent);
-    TableState tableState = manager.getTableManager().getTableState(extent.tableId());
-    if (dest != null && tableState == TableState.OFFLINE) {
-      manager.migrations.remove(extent);
     }
   }
 
@@ -1023,7 +1003,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
   private void flushChanges(TabletLists tLists)
       throws DistributedStoreException, TException, WalMarkerException {
     var unassigned = Collections.unmodifiableMap(tLists.unassigned);
-
+    Timer timer;
     flushLock.lock();
     try {
       // This method was originally only ever called by one thread. The code was modified so that
@@ -1033,17 +1013,26 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       // the past. The log recovery code needs to be evaluated for thread safety.
       handleDeadTablets(tLists);
 
+      int beforeSize = tLists.assignments.size();
+      timer = Timer.startNew();
+
       getAssignmentsFromBalancer(tLists, unassigned);
+      if (!unassigned.isEmpty()) {
+        Manager.log.debug("[{}] requested assignments for {} tablets and got {} in {} ms",
+            store.name(), unassigned.size(), tLists.assignments.size() - beforeSize,
+            timer.elapsed(TimeUnit.MILLISECONDS));
+      }
     } finally {
       flushLock.unlock();
     }
 
     Set<KeyExtent> failedFuture = Set.of();
     if (!tLists.assignments.isEmpty()) {
-      Manager.log.info(String.format("Assigning %d tablets", tLists.assignments.size()));
+      Manager.log.info("Assigning {} tablets", tLists.assignments.size());
       failedFuture = store.setFutureLocations(tLists.assignments);
     }
     tLists.assignments.addAll(tLists.assigned);
+    timer.restart();
     for (Assignment a : tLists.assignments) {
       if (failedFuture.contains(a.tablet)) {
         // do not ask a tserver to load a tablet where the future location could not be set
@@ -1063,7 +1052,10 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
             tException);
       }
     }
-
+    if (!tLists.assignments.isEmpty()) {
+      Manager.log.debug("[{}] sent {} assignment messages in {} ms", store.name(),
+          tLists.assignments.size(), timer.elapsed(TimeUnit.MILLISECONDS));
+    }
     replaceVolumes(tLists.volumeReplacements);
   }
 

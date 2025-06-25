@@ -260,16 +260,6 @@ function main() {
   group=$(get_group "$@")
   export ACCUMULO_RESOURCE_GROUP="$group"
 
-  if [[ -f "${conf}/accumulo-env.sh" ]]; then
-    #shellcheck source=../conf/accumulo-env.sh
-    source "${conf}/accumulo-env.sh"
-  fi
-  ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
-  ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-${basedir}/run}"
-
-  mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
-  mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
-
   HOST="$(hostname)"
   if [[ -z $HOST ]]; then
     HOST=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/')
@@ -280,6 +270,16 @@ function main() {
   shift 2
   local service_name=""
   local all_flag=false
+
+  if [[ -f "${conf}/accumulo-env.sh" ]]; then
+    #shellcheck source=../conf/accumulo-env.sh
+    source "${conf}/accumulo-env.sh"
+  fi
+  ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
+  ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-${basedir}/run}"
+
+  mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
+  mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
 
   # Check and see if accumulo-cluster is calling this script
   if [[ -z $ACCUMULO_CLUSTER_ARG ]]; then

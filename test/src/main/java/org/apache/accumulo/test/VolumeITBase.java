@@ -24,9 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -95,14 +95,13 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    File baseDir = cfg.getDir();
-    File volDirBase = new File(baseDir, "volumes");
-    File v1f = new File(volDirBase, "v1");
-    File v2f = new File(volDirBase, "v2");
-    v1 = new Path("file://" + v1f.getAbsolutePath());
-    v2 = new Path("file://" + v2f.getAbsolutePath());
-    File v3f = new File(volDirBase, "v3");
-    v3 = new Path("file://" + v3f.getAbsolutePath());
+    java.nio.file.Path volDirBase = cfg.getDir().toPath().resolve("volumes");
+    java.nio.file.Path v1f = volDirBase.resolve("v1");
+    java.nio.file.Path v2f = volDirBase.resolve("v2");
+    v1 = new Path("file://" + v1f.toAbsolutePath());
+    v2 = new Path("file://" + v2f.toAbsolutePath());
+    java.nio.file.Path v3f = volDirBase.resolve("v3");
+    v3 = new Path("file://" + v3f.toAbsolutePath());
     // setup expected rows
     for (int i = 0; i < 100; i++) {
       String row = String.format("%06d", i * 100 + 3);
@@ -274,15 +273,17 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
 
     cluster.stop();
 
-    File v1f = new File(v1.toUri());
-    File v8f = new File(new File(v1.getParent().toUri()), "v8");
-    assertTrue(v1f.renameTo(v8f), "Failed to rename " + v1f + " to " + v8f);
-    Path v8 = new Path(v8f.toURI());
+    java.nio.file.Path v1f = java.nio.file.Path.of(v1.toUri());
+    java.nio.file.Path v8f = java.nio.file.Path.of(v1.getParent().toUri()).resolve("v8");
+    Files.move(v1f, v8f, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+    assertTrue(Files.exists(v8f), "Failed to rename " + v1f + " to " + v8f);
+    Path v8 = new Path(v8f.toUri());
 
-    File v2f = new File(v2.toUri());
-    File v9f = new File(new File(v2.getParent().toUri()), "v9");
-    assertTrue(v2f.renameTo(v9f), "Failed to rename " + v2f + " to " + v9f);
-    Path v9 = new Path(v9f.toURI());
+    java.nio.file.Path v2f = java.nio.file.Path.of(v2.toUri());
+    java.nio.file.Path v9f = java.nio.file.Path.of(v2.getParent().toUri()).resolve("v9");
+    Files.move(v2f, v9f, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+    assertTrue(Files.exists(v9f), "Failed to rename " + v2f + " to " + v9f);
+    Path v9 = new Path(v9f.toUri());
 
     updateConfig(config -> {
       config.setProperty(Property.INSTANCE_VOLUMES.getKey(), v8 + "," + v9);
@@ -338,13 +339,13 @@ public abstract class VolumeITBase extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "paths provided by test")
   protected void updateConfig(Consumer<PropertiesConfiguration> updater) throws Exception {
-    var file = new File(cluster.getAccumuloPropertiesPath());
+    var file = java.nio.file.Path.of(cluster.getAccumuloPropertiesPath());
     var config = new PropertiesConfiguration();
-    try (FileReader out = new FileReader(file, UTF_8)) {
+    try (BufferedReader out = Files.newBufferedReader(file, UTF_8)) {
       config.read(out);
     }
     updater.accept(config);
-    try (FileWriter out = new FileWriter(file, UTF_8)) {
+    try (BufferedWriter out = Files.newBufferedWriter(file, UTF_8)) {
       config.write(out);
     }
   }

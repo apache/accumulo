@@ -51,12 +51,12 @@ import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.UnSplittableMetadata;
-import org.apache.accumulo.core.spi.balancer.SimpleLoadBalancer;
+import org.apache.accumulo.core.spi.balancer.DoNothingBalancer;
 import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.split.SplitUtils;
 import org.apache.hadoop.io.Text;
@@ -126,11 +126,11 @@ public class TabletManagementIterator extends WholeRowIterator {
       return true;
     }
 
-    if (tabletMgmtParams.getMigrations().containsKey(tm.getExtent())) {
+    if (tm.getMigration() != null) {
       // Ideally only the state and goalState would need to be used to determine if a tablet should
-      // be returned. However, the Manager/TGW currently needs everything in the migrating set
-      // returned so it can update in memory maps it has. If this were improved then this case would
-      // not be needed.
+      // be returned. However, the Manager/TGW currently needs everything currently migrating
+      // returned so it can update the migrations. If this were improved then this case would not
+      // be needed.
       return true;
     }
 
@@ -184,10 +184,16 @@ public class TabletManagementIterator extends WholeRowIterator {
         tabletMgmtParams.getCompactionHints(), tabletMgmtParams.getSteadyTime());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
     BalancerEnvironmentImpl benv =
-        new BalancerEnvironmentImpl(((TabletIteratorEnvironment) env).getServerContext());
-    balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
-        TabletBalancer.class, new SimpleLoadBalancer());
-    balancer.init(benv);
+        new BalancerEnvironmentImpl(((SystemIteratorEnvironment) env).getServerContext());
+    try {
+      balancer = Property.createInstanceFromPropertyName(conf, Property.MANAGER_TABLET_BALANCER,
+          TabletBalancer.class, new DoNothingBalancer());
+      balancer.init(benv);
+    } catch (Exception e) {
+      LOG.warn("Failed to create balancer falling back to {}", DoNothingBalancer.class, e);
+      balancer = new DoNothingBalancer();
+      balancer.init(benv);
+    }
   }
 
   @Override

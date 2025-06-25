@@ -32,6 +32,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 public class ClientIteratorEnvironment implements IteratorEnvironment {
 
@@ -41,10 +42,10 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
     private boolean isFullMajorCompaction = false;
     private Optional<Authorizations> auths = Optional.empty();
     private boolean isUserCompaction = false;
-    private Optional<TableId> tableId = Optional.empty();
-    private Optional<SamplerConfiguration> samplerConfig = Optional.empty();
+    protected Optional<TableId> tableId = Optional.empty();
+    protected Optional<SamplerConfiguration> samplerConfig = Optional.empty();
     private boolean samplingEnabled = false;
-    protected Optional<ClientServiceEnvironmentImpl> env = Optional.empty();
+    protected Optional<ServiceEnvironment> env = Optional.empty();
 
     public Builder withScope(IteratorScope scope) {
       checkState(this.scope.isEmpty(), "Scope has already been set");
@@ -70,7 +71,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
     public Builder withTableId(TableId tableId) {
       checkState(this.tableId.isEmpty(), "TableId has already been set");
-      this.tableId = Optional.of(tableId);
+      this.tableId = Optional.ofNullable(tableId);
       return this;
     }
 
@@ -110,11 +111,11 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   private final Optional<Authorizations> auths;
   private final boolean isUserCompaction;
   private final Optional<TableId> tableId;
-  private final Optional<SamplerConfiguration> samplerConfig;
+  protected Optional<SamplerConfiguration> samplerConfig;
   private final boolean samplingEnabled;
-  private final Optional<ClientServiceEnvironmentImpl> env;
+  private final Optional<ServiceEnvironment> env;
 
-  private ClientIteratorEnvironment(Builder builder) {
+  protected ClientIteratorEnvironment(Builder builder) {
     this.scope = builder.scope;
     this.isFullMajorCompaction = builder.isFullMajorCompaction;
     this.auths = builder.auths;
@@ -126,9 +127,9 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   }
 
   /**
-   * Copy constructor used for enabling sample. Only called from {@link cloneWithSamplingEnabled}.
+   * Copy constructor used for enabling sample. Only called from {@link #cloneWithSamplingEnabled}.
    */
-  private ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
+  protected ClientIteratorEnvironment(ClientIteratorEnvironment copy) {
     this.scope = copy.scope;
     this.isFullMajorCompaction = copy.isFullMajorCompaction;
     this.auths = copy.auths;
@@ -155,7 +156,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
   @Override
   public Authorizations getAuthorizations() {
     if (getIteratorScope() != IteratorScope.scan) {
-      throw new IllegalStateException("Iterator scope is not scan");
+      throw new UnsupportedOperationException("Iterator scope is not scan");
     }
     return auths.orElseThrow();
   }
@@ -183,9 +184,15 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public boolean isUserCompaction() {
+    // check for scan scope
     if (getIteratorScope() == IteratorScope.scan) {
       throw new IllegalStateException(
           "scan iterator scope is incompatible with a possible user compaction");
+    }
+    // check for minc scope
+    if (getIteratorScope() != IteratorScope.majc) {
+      throw new IllegalStateException(
+          "Asked about user initiated compaction type when scope is " + getIteratorScope());
     }
     return this.isUserCompaction;
   }
@@ -197,7 +204,7 @@ public class ClientIteratorEnvironment implements IteratorEnvironment {
 
   @Override
   public TableId getTableId() {
-    return this.tableId.orElseThrow();
+    return this.tableId.orElse(null);
   }
 
   @Override

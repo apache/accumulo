@@ -45,13 +45,62 @@ import com.google.common.base.Preconditions;
 public class LogFileKey implements WritableComparable<LogFileKey> {
   private static final Logger log = LoggerFactory.getLogger(LogFileKey.class);
 
-  public LogEvents event;
-  public String filename = null;
-  public KeyExtent tablet = null;
-  public long seq = -1;
-  public int tabletId = -1;
   public static final int VERSION = 2;
-  public String tserverSession;
+
+  private LogEvents event;
+  private String filename = null;
+  private KeyExtent tablet = null;
+  private long seq = -1;
+  private int tabletId = -1;
+  private String tserverSession;
+
+  public LogEvents getEvent() {
+    return event;
+  }
+
+  public String getFilename() {
+    return filename;
+  }
+
+  public KeyExtent getTablet() {
+    return tablet;
+  }
+
+  public long getSeq() {
+    return seq;
+  }
+
+  public int getTabletId() {
+    return tabletId;
+  }
+
+  public String getTserverSession() {
+    return tserverSession;
+  }
+
+  public void setEvent(LogEvents event) {
+    this.event = event;
+  }
+
+  public void setFilename(String filename) {
+    this.filename = filename;
+  }
+
+  public void setTablet(KeyExtent tablet) {
+    this.tablet = tablet;
+  }
+
+  public void setSeq(long seq) {
+    this.seq = seq;
+  }
+
+  public void setTabletId(int tabletId) {
+    this.tabletId = tabletId;
+  }
+
+  public void setTserverSession(String tserverSession) {
+    this.tserverSession = tserverSession;
+  }
 
   @Override
   public void readFields(DataInput in) throws IOException {

@@ -134,7 +134,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
     final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
     final AtomicBoolean serviceMisconfigured = new AtomicBoolean(false);
-    final Thread thread = Threads.createThread("metric-tailer", () -> {
+    final Thread thread = Threads.createNonCriticalThread("metric-tailer", () -> {
       while (!shutdownTailer.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {
@@ -258,7 +258,7 @@ public class BadCompactionServiceConfigIT extends AccumuloClusterHarness {
 
     final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
     final AtomicBoolean serviceMisconfigured = new AtomicBoolean(false);
-    final Thread thread = Threads.createThread("metric-tailer", () -> {
+    final Thread thread = Threads.createNonCriticalThread("metric-tailer", () -> {
       while (!shutdownTailer.get()) {
         List<String> statsDMetrics = sink.getLines();
         for (String s : statsDMetrics) {

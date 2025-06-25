@@ -653,6 +653,11 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
     }
   }
 
+  @Override
+  public void close() {
+    // no-op
+  }
+
   protected static class FateData<T> {
     final TStatus status;
     final Optional<FateKey> fateKey;

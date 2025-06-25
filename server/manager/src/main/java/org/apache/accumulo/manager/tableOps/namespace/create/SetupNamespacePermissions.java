@@ -40,13 +40,15 @@ class SetupNamespacePermissions extends ManagerRepo {
   public Repo<Manager> call(FateId fate, Manager env) throws Exception {
     // give all namespace permissions to the creator
     var security = env.getContext().getSecurityOperation();
-    for (var permission : NamespacePermission.values()) {
-      try {
-        security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
-            namespaceInfo.namespaceId, permission);
-      } catch (ThriftSecurityException e) {
-        LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
-        throw e;
+    if (!namespaceInfo.user.equals(env.getContext().getCredentials().getPrincipal())) {
+      for (var permission : NamespacePermission.values()) {
+        try {
+          security.grantNamespacePermission(env.getContext().rpcCreds(), namespaceInfo.user,
+              namespaceInfo.namespaceId, permission);
+        } catch (ThriftSecurityException e) {
+          LoggerFactory.getLogger(SetupNamespacePermissions.class).error("{}", e.getMessage(), e);
+          throw e;
+        }
       }
     }
 

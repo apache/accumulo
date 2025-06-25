@@ -31,10 +31,11 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -103,7 +104,7 @@ public class RFileTest extends AbstractRFileTest {
   private static final Configuration hadoopConf = new Configuration();
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @BeforeAll
   public static void setupCryptoKeyFile() throws Exception {
@@ -169,19 +170,6 @@ public class RFileTest extends AbstractRFileTest {
       read(position, buffer, offset, length);
     }
 
-  }
-
-  static Key newKey(String row, String cf, String cq, String cv, long ts) {
-    return new Key(row.getBytes(UTF_8), cf.getBytes(UTF_8), cq.getBytes(UTF_8), cv.getBytes(UTF_8),
-        ts);
-  }
-
-  static Value newValue(String val) {
-    return new Value(val);
-  }
-
-  static String formatString(String prefix, int i) {
-    return String.format(prefix + "%06d", i);
   }
 
   @Test
@@ -2188,11 +2176,10 @@ public class RFileTest extends AbstractRFileTest {
     testRfile.closeWriter();
 
     if (true) {
-      FileOutputStream fileOutputStream =
-          new FileOutputStream(new File(tempDir, "testEncryptedRootFile.rf"));
-      fileOutputStream.write(testRfile.baos.toByteArray());
-      fileOutputStream.flush();
-      fileOutputStream.close();
+      try (OutputStream fileOutputStream =
+          Files.newOutputStream(tempDir.resolve("testEncryptedRootFile.rf"))) {
+        fileOutputStream.write(testRfile.baos.toByteArray());
+      }
     }
 
     testRfile.openReader();

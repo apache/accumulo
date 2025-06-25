@@ -27,7 +27,6 @@ import static org.apache.accumulo.core.util.Validators.NEW_TABLE_NAME;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_NAMESPACE;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_BUILTIN_TABLE_ID;
-import static org.apache.accumulo.core.util.Validators.NOT_METADATA_TABLE;
 import static org.apache.accumulo.core.util.Validators.NOT_ROOT_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.VALID_TABLE_ID;
 import static org.apache.accumulo.core.util.Validators.sameNamespaceAs;
@@ -54,7 +53,6 @@ import org.apache.accumulo.core.client.admin.InitialTableState;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.clientImpl.TableOperationsImpl;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.clientImpl.UserCompactionUtils;
@@ -230,15 +228,8 @@ class FateServiceHandler implements FateService.Iface {
                 "Exception thrown while writing splits to file system");
           }
         }
-        NamespaceId namespaceId;
-
-        try {
-          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
-              TableNameUtil.qualify(tableName).getFirst());
-        } catch (NamespaceNotFoundException e) {
-          throw new ThriftTableOperationException(null, tableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
-        }
+        NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(),
+            TableNameUtil.qualify(tableName).getFirst(), tableOp);
 
         if (!security.canCreateTable(c, tableName, namespaceId)) {
           throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
@@ -324,15 +315,8 @@ class FateServiceHandler implements FateService.Iface {
               TableOperationExceptionType.NOTFOUND, "");
         }
 
-        NamespaceId namespaceId;
-        try {
-          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
-              TableNameUtil.qualify(tableName).getFirst());
-        } catch (NamespaceNotFoundException e) {
-          // dest namespace does not exist yet, needs to be created
-          throw new ThriftTableOperationException(null, tableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
-        }
+        NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(),
+            TableNameUtil.qualify(tableName).getFirst(), tableOp);
 
         final boolean canCloneTable;
         try {
@@ -597,14 +581,8 @@ class FateServiceHandler implements FateService.Iface {
 
         List<ByteBuffer> exportDirArgs = arguments.stream().skip(3).collect(Collectors.toList());
         Set<String> exportDirs = ByteBufferUtil.toStringSet(exportDirArgs);
-        NamespaceId namespaceId;
-        try {
-          namespaceId = Namespaces.getNamespaceId(manager.getContext(),
-              TableNameUtil.qualify(tableName).getFirst());
-        } catch (NamespaceNotFoundException e) {
-          throw new ThriftTableOperationException(null, tableName, tableOp,
-              TableOperationExceptionType.NAMESPACE_NOTFOUND, "");
-        }
+        NamespaceId namespaceId = ClientServiceHandler.checkNamespaceId(manager.getContext(),
+            TableNameUtil.qualify(tableName).getFirst(), tableOp);
 
         final boolean canImport;
         try {
@@ -667,7 +645,7 @@ class FateServiceHandler implements FateService.Iface {
         final boolean canBulkImport;
         String tableName;
         try {
-          tableName = manager.getContext().getTableName(tableId);
+          tableName = manager.getContext().getQualifiedTableName(tableId);
           canBulkImport = security.canBulkImport(c, tableId, tableName, dir, null, namespaceId);
         } catch (ThriftSecurityException e) {
           throwIfTableMissingSecurityException(e, tableId, "", TableOperation.BULK_IMPORT);
@@ -692,7 +670,8 @@ class FateServiceHandler implements FateService.Iface {
       case TABLE_TABLET_AVAILABILITY: {
         TableOperation tableOp = TableOperation.SET_TABLET_AVAILABILITY;
         validateArgumentCount(arguments, tableOp, 3);
-        String tableName = validateName(arguments.get(0), tableOp, NOT_METADATA_TABLE);
+        String tableName =
+            validateName(arguments.get(0), tableOp, NOT_BUILTIN_TABLE.and(EXISTING_TABLE_NAME));
         TableId tableId = null;
         try {
           tableId = manager.getContext().getTableId(tableName);

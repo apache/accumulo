@@ -96,9 +96,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     @Override
     public String getTableName(TableId tableId) throws TableNotFoundException {
-      Preconditions.checkArgument(tableId == TABLE_ID, "Expected " + TABLE_ID + " obtained"
-          + " from IteratorEnvironment.getTableId(), but got: " + tableId);
-      return TABLE_NAME;
+      return null;
     }
 
     @Override
@@ -108,8 +106,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
     @Override
     public Configuration getConfiguration(TableId tableId) {
-      Preconditions.checkArgument(tableId == TABLE_ID, "Expected " + TABLE_ID + " obtained"
-          + " from IteratorEnvironment.getTableId(), but got: " + tableId);
       return tableConf;
     }
 
@@ -117,8 +113,6 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
   private static final byte[] EMPTY_BYTES = new byte[0];
   private static final Range EMPTY_RANGE = new Range();
-  private static final String TABLE_NAME = "rfileScanner";
-  private static final TableId TABLE_ID = TableId.of(TABLE_NAME);
 
   private Range range;
   private BlockCacheManager blockCacheManager = null;
@@ -309,7 +303,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
 
       ClientIteratorEnvironment.Builder iterEnvBuilder = new ClientIteratorEnvironment.Builder()
           .withEnvironment(new RFileScannerEnvironmentImpl(opts)).withAuthorizations(opts.auths)
-          .withScope(IteratorScope.scan).withTableId(TABLE_ID);
+          .withScope(IteratorScope.scan).withTableId(null);
       if (getSamplerConfiguration() != null) {
         iterEnvBuilder.withSamplerConfiguration(getSamplerConfiguration());
         iterEnvBuilder.withSamplingEnabled();

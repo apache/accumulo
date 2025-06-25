@@ -20,8 +20,8 @@ package org.apache.accumulo.core.conf;
 
 import static com.google.common.base.Preconditions.checkState;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
@@ -304,7 +304,7 @@ public enum ClientProperty {
       case "kerberos":
         try {
           String principal = ClientProperty.AUTH_PRINCIPAL.getValue(properties);
-          return new KerberosToken(principal, new File(token));
+          return new KerberosToken(principal, Path.of(token).toFile());
         } catch (IOException e) {
           throw new IllegalArgumentException(e);
         }

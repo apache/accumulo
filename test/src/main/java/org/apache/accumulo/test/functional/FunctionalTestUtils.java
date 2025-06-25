@@ -231,9 +231,9 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>();
       ServerContext context = cluster.getServerContext();
       var zk = context.getZooSession();
-      MetaFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
-      UserFateStore<String> readOnlyUFS =
+      ReadOnlyFateStore<String> readOnlyUFS =
           new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
+      ReadOnlyFateStore<String> readOnlyMFS = new MetaFateStore<>(zk, null, null);
       Map<FateInstanceType,ReadOnlyFateStore<String>> readOnlyFateStores =
           Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
       var lockPath = context.getServerPaths().createTableLocksPath();
