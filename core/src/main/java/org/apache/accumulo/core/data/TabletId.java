@@ -28,6 +28,82 @@ import org.apache.hadoop.io.Text;
  * @since 1.7.0
  */
 public interface TabletId extends Comparable<TabletId> {
+
+  /**
+   * Return a TabletId object for the provided TableId in range of endRow and prevEndRow. Generate
+   * ke using {@link KeyExtent#KeyExtent(TableId, Text, Text)}, to then return
+   * {@link TabletIdImpl#TabletIdImpl(KeyExtent)}. If the parameters endRow or prevEndRow are null,
+   * they represent a tablet over the range of -inf and inf respectively.
+   *
+   * @param tableId the ID for a table
+   * @param endRow the last row in this tablet, or null if this is the last tablet in this table
+   * @param prevEndRow he last row in the immediately preceding tablet for the table, or null if
+   *        this represents the first tablet in this table
+   * @return Return the new {@link TabletId} object
+   */
+  static TabletId of(TableId tableId, Text endRow, Text prevEndRow) {
+    KeyExtent ke = new KeyExtent(tableId, endRow, prevEndRow);
+    return new TabletIdImpl(ke);
+  }
+
+  /**
+   * Return a TabletId object for the provided TableId in range of endRow and prevEndRow. Generate
+   * ke using {@link KeyExtent#KeyExtent(TableId, Text, Text)}, to then return
+   * {@link TabletIdImpl#TabletIdImpl(KeyExtent)}. If the parameters endRow or prevEndRow are null,
+   * they represent a tablet over the range of -inf and/or inf respectively. Does null checks to
+   * avoid getting an ambiguous Text reference error when null is passed through
+   * {@link Text#Text()}.
+   *
+   * @param tableId the ID for a table
+   * @param endRow the last row in this tablet, or null if this is the last tablet in this table
+   * @param prevEndRow he last row in the immediately preceding tablet for the table, or null if
+   *        this represents the first tablet in this table
+   * @return Return the new {@link TabletId} object
+   */
+  static TabletId of(TableId tableId, String endRow, String prevEndRow) {
+    KeyExtent ke;
+    if (endRow == null && prevEndRow == null) {
+      ke = new KeyExtent(tableId, null, null);
+    } else if (endRow == null) {
+      ke = new KeyExtent(tableId, null, new Text(prevEndRow));
+    } else if (prevEndRow == null) {
+      ke = new KeyExtent(tableId, new Text(endRow), null);
+    } else {
+      ke = new KeyExtent(tableId, new Text(endRow), new Text(prevEndRow));
+    }
+
+    return new TabletIdImpl(ke);
+  }
+
+  /**
+   * Return a TabletId object for the provided TableId in range of endRow and prevEndRow. Generate
+   * ke using {@link KeyExtent#KeyExtent(TableId, Text, Text)}, to then return
+   * {@link TabletIdImpl#TabletIdImpl(KeyExtent)}. If the parameters endRow or prevEndRow are null,
+   * they represent a tablet over the range of -inf and/or inf respectively. Does null checks to
+   * avoid getting an ambiguous Text reference error when null is passed through
+   * {@link Text#Text()}.
+   *
+   * @param tableId the ID for a table
+   * @param endRow the last row in this tablet, or null if this is the last tablet in this table
+   * @param prevEndRow he last row in the immediately preceding tablet for the table, or null if
+   *        this represents the first tablet in this table
+   * @return Return the new {@link TabletId} object
+   */
+  static TabletId of(TableId tableId, byte[] endRow, byte[] prevEndRow) {
+    KeyExtent ke;
+    if (endRow == null && prevEndRow == null) {
+      ke = new KeyExtent(tableId, null, null);
+    } else if (endRow == null) {
+      ke = new KeyExtent(tableId, null, new Text(prevEndRow));
+    } else if (prevEndRow == null) {
+      ke = new KeyExtent(tableId, new Text(endRow), null);
+    } else {
+      ke = new KeyExtent(tableId, new Text(endRow), new Text(prevEndRow));
+    }
+
+    return new TabletIdImpl(ke);
+  }
+
   /**
    * @since 2.1.0
    */
