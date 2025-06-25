@@ -63,6 +63,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Ch
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
@@ -149,6 +150,11 @@ public class Upgrader11to12Test {
     Value value3 = new Value("1,2");
     scanData.put(key3, value3);
 
+    String fileName4 = "hdfs://localhost:8020/accumulo/tables/13/default_tablet/C000000x.rf";
+    Key key4 =
+        Key.builder(false).row(row2).family(ScanFileColumnFamily.NAME).qualifier(fileName4).build();
+    scanData.put(key4, new Value());
+
     ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
@@ -163,9 +169,9 @@ public class Upgrader11to12Test {
 
     var u2 = mutations.get(1);
     LOG.info("c:{}", u2.prettyPrint());
-    // 1 add, 1 delete
-    assertEquals(2, u2.getUpdates().size());
-    assertEquals(1, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
+    // 1 add, 2 delete
+    assertEquals(3, u2.getUpdates().size());
+    assertEquals(2, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
 
   }
 
