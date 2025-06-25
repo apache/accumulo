@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.data;
 
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -47,5 +49,4 @@ public interface TabletId extends Comparable<TabletId> {
    * @since 1.8.0
    */
   Range toRange();
-
 }
