@@ -2225,10 +2225,10 @@ public class Tablet extends TabletBase {
       if (isClosed() || isClosing()) {
         return;
       }
-      // TODO if a check is done here to see if there are orphaned scans and none are found could
-      // return and not do the increment.
-      // this would cut down on the number of times the lock is acquired, but not sure how clean
-      // this would be.
+      // return early if there are no scan files to remove
+      if (!getDatafileManager().canScanFilesBeRemoved()) {
+        return;
+      }
       incrementWritesInProgress();
     }
     try {

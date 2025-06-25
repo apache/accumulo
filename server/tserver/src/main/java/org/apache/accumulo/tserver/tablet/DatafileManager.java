@@ -131,7 +131,6 @@ class DatafileManager {
         for (StoredTabletFile path : absFilePaths) {
           long refCount = fileScanReferenceCounts.decrement(path, 1);
           if (refCount == 0) {
-            filesToDeleteAfterScan.add(path);
             notify = true;
           } else if (refCount < 0) {
             throw new IllegalStateException("Scan ref count for " + path + " is " + refCount);
@@ -180,6 +179,20 @@ class DatafileManager {
       filesToDeleteAfterScan.clear();
     }
     removeFilesAfterScan(snapshot);
+  }
+
+  /**
+   * @return true if any file is no longer in use by a scan and can be removed, false otherwise.
+   */
+  boolean canScanFilesBeRemoved() {
+    synchronized (tablet) {
+      for (var path : filesToDeleteAfterScan) {
+        if (fileScanReferenceCounts.get(path) == 0) {
+          return true;
+        }
+      }
+      return false;
+    }
   }
 
   private TreeSet<StoredTabletFile> waitForScansToFinish(Set<StoredTabletFile> pathsToWaitFor) {
