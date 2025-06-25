@@ -74,7 +74,8 @@ public class BalanceManager {
   private static final Logger log = LoggerFactory.getLogger(BalanceManager.class);
 
   private final AtomicReference<Manager> manager;
-  protected volatile TabletBalancer tabletBalancer;
+  // all access to this should be through getBalancer()
+  private TabletBalancer tabletBalancer;
   private volatile BalancerEnvironment balancerEnvironment;
   private final BalancerMetrics balancerMetrics = new BalancerMetrics();
   private final Object balancedNotifier = new Object();
@@ -88,7 +89,6 @@ public class BalanceManager {
     Objects.requireNonNull(manager);
     if (this.manager.compareAndSet(null, manager)) {
       this.balancerEnvironment = new BalancerEnvironmentImpl(manager.getContext());
-      initializeBalancer();
     } else if (this.manager.get() != manager) {
       throw new IllegalStateException("Attempted to set different manager object");
     }
@@ -99,7 +99,7 @@ public class BalanceManager {
     return Objects.requireNonNull(manager.get());
   }
 
-  private void initializeBalancer() {
+  synchronized TabletBalancer getBalancer() {
     String configuredBalancerClass =
         getManager().getConfiguration().get(Property.MANAGER_TABLET_BALANCER);
     try {
@@ -122,6 +122,8 @@ public class BalanceManager {
       localTabletBalancer.init(balancerEnvironment);
       tabletBalancer = localTabletBalancer;
     }
+
+    return tabletBalancer;
   }
 
   private ServerContext getContext() {
@@ -245,10 +247,6 @@ public class BalanceManager {
   }
 
   long balanceTablets() {
-
-    // Check for balancer property change
-    initializeBalancer();
-
     final int tabletsNotHosted = getManager().notHosted();
     BalanceParamsImpl params = null;
     long wait = 0;
@@ -296,7 +294,7 @@ public class BalanceManager {
       params = BalanceParamsImpl.fromThrift(statusForBalancerLevel,
           getManager().tServerGroupingForBalancer, tserverStatusForLevel,
           partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
-      wait = Math.max(tabletBalancer.balance(params), wait);
+      wait = Math.max(getBalancer().balance(params), wait);
       long migrationsOutForLevel = 0;
       try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets(result -> {})) {
         for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
@@ -372,7 +370,7 @@ public class BalanceManager {
                         : e.getValue().getLastLocation().getServerInstance()),
                 Map::putAll),
             assignedOut);
-    tabletBalancer.getAssignments(params);
+    getBalancer().getAssignments(params);
     if (!canAssignAndBalance()) {
       // remove assignment for user tables
       Iterator<KeyExtent> iter = assignedOut.keySet().iterator();
@@ -401,7 +399,7 @@ public class BalanceManager {
     return result;
   }
 
-  boolean shouldCleanupMigration(TabletMetadata tabletMetadata) {
+  private boolean shouldCleanupMigration(TabletMetadata tabletMetadata) {
     var tableState = getContext().getTableManager().getTableState(tabletMetadata.getTableId());
     var migration = tabletMetadata.getMigration();
     Preconditions.checkState(migration != null,
@@ -412,7 +410,7 @@ public class BalanceManager {
             && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
 
-  public void upgradeComplete() {
+  public void startMigrationCleanupThread() {
     Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
   }
 
@@ -450,9 +448,5 @@ public class BalanceManager {
         sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
       }
     }
-  }
-
-  public TabletBalancer getBalancer() {
-    return tabletBalancer;
   }
 }
