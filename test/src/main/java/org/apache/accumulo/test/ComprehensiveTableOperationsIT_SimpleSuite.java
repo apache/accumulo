@@ -738,7 +738,7 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     // these are not tested for system tables. Test basic functionality here
     for (var sysTable : SystemTables.tableNames()) {
       // should not be able to unhost any system table
-      assertThrows(IllegalArgumentException.class,
+      assertThrows(AccumuloException.class,
           () -> ops.setTabletAvailability(sysTable, new Range(), TabletAvailability.UNHOSTED));
       assertTrue(ops.getTabletInformation(sysTable, new Range()).findAny().isPresent());
       ops.getTabletInformation(sysTable, new Range())
