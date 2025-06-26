@@ -274,10 +274,8 @@ public class MetricsInfoImpl implements MetricsInfo {
       // Compile the pattern.
       // Will throw PatternSyntaxException if invalid pattern.
       Pattern compiledPattern = Pattern.compile(pattern);
-
       // Create a predicate that will return true if the ID's name matches the pattern.
       Predicate<Meter.Id> predicate = id -> compiledPattern.matcher(id.getName()).matches();
-
       // Conjoin the pattern into the final predicates. The final predicate will return true if
       // the name of the ID matches any of its conjoined predicates.
       finalPredicate = finalPredicate.or(predicate);
