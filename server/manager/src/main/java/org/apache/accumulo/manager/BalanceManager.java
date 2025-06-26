@@ -164,7 +164,7 @@ class BalanceManager {
   private SortedMap<TServerInstance,TabletServerStatus> createTServerStatusView(
       final Ample.DataLevel dl, final SortedMap<TServerInstance,TabletServerStatus> status) {
     final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel = new TreeMap<>();
-final String METADATA_TABLE_ID = SystemTables.METADATA.tableId().canonical();
+    final String METADATA_TABLE_ID = SystemTables.METADATA.tableId().canonical();
     final String ROOT_TABLE_ID = SystemTables.ROOT.tableId().canonical();
     status.forEach((tsi, tss) -> {
       final TabletServerStatus copy = tss.deepCopy();
@@ -172,12 +172,20 @@ final String METADATA_TABLE_ID = SystemTables.METADATA.tableId().canonical();
       final Map<String,TableInfo> newTableMap =
           new HashMap<>(dl == Ample.DataLevel.USER ? oldTableMap.size() : 1);
       switch (dl) {
-        case ROOT:
-          oldTableMap.computeIfPresent(ROOT_TABLE_ID, newTableMap::put);
+        case ROOT: {
+          var tableInfo = oldTableMap.get(ROOT_TABLE_ID);
+          if (tableInfo != null) {
+            newTableMap.put(ROOT_TABLE_ID, tableInfo);
+          }
           break;
-        case METADATA:
-          oldTableMap.computeIfPresent(METADATA_TABLE_ID, newTableMap::put);
+        }
+        case METADATA: {
+          var tableInfo = oldTableMap.get(METADATA_TABLE_ID);
+          if (tableInfo != null) {
+            newTableMap.put(METADATA_TABLE_ID, tableInfo);
+          }
           break;
+        }
         case USER:
           if (!oldTableMap.containsKey(METADATA_TABLE_ID)
               && !oldTableMap.containsKey(ROOT_TABLE_ID)) {
