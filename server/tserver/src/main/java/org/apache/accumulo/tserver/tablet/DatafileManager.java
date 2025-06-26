@@ -184,7 +184,7 @@ class DatafileManager {
   /**
    * @return true if any file is no longer in use by a scan and can be removed, false otherwise.
    */
-  boolean canScanFilesBeRemoved() {
+  boolean canScanRefsBeRemoved() {
     synchronized (tablet) {
       for (var path : filesToDeleteAfterScan) {
         if (fileScanReferenceCounts.get(path) == 0) {

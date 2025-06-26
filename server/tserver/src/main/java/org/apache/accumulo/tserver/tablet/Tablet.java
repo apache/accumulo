@@ -2226,7 +2226,7 @@ public class Tablet extends TabletBase {
         return;
       }
       // return early if there are no scan files to remove
-      if (!getDatafileManager().canScanFilesBeRemoved()) {
+      if (!getDatafileManager().canScanRefsBeRemoved()) {
         return;
       }
       incrementWritesInProgress();
