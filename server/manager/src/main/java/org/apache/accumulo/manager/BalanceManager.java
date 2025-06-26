@@ -96,7 +96,7 @@ class BalanceManager {
 
   private Manager getManager() {
     // fail fast if not yet set
-    return Objects.requireNonNull(manager.get());
+    return Objects.requireNonNull(manager.get(), "Manager has not been set.");
   }
 
   synchronized TabletBalancer getBalancer() {
