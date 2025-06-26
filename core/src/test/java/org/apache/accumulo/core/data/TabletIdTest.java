@@ -20,7 +20,7 @@ package org.apache.accumulo.core.data;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -141,12 +141,6 @@ class TabletIdTest {
 
   @Test
   void testCompareToOfTabletId() {
-    /*
-     * One way to do this is to create TabletIds w/ different table ids, different rows (null and
-     * not null), put them all in a list and sort the list and check the list is in the correct
-     * order
-     */
-    // TableId -> endRow -> prevEndRow
     ArrayList<TabletId> tablets = new ArrayList<>();
     tablets.add(TabletId.of(TableId.of("d"), "w", "a"));
     tablets.add(TabletId.of(TableId.of("e"), "z", "g"));
@@ -172,13 +166,12 @@ class TabletIdTest {
         assertTrue(comparison < 0);
       }
     }
-
   }
 
   @Test
-  void testEqualsOfTabletId() { // Comparing equals to t
+  void testEqualsOfTabletId() {
     TabletId t = TabletId.of(TableId.of("2"), "b", "a");
-    TabletId equalsT = TabletId.of(TableId.of("2"), "b", "a");
+    TabletId equalsT = TabletId.of(TableId.of("2"), "b".getBytes(UTF_8), "a".getBytes(UTF_8));
     ArrayList<TabletId> tablets = new ArrayList<>();
 
     tablets.add(TabletId.of(TableId.of("5"), "b", "a"));
@@ -190,11 +183,11 @@ class TabletIdTest {
     tablets.add(TabletId.of(TableId.of("2"), (String) null, null));
 
     for (TabletId tablet : tablets) {
-      assertFalse(t.equals(tablet));
+      assertNotEquals(tablet, t);
+      assertNotEquals(tablet.hashCode(), t.hashCode());
     }
-
-    assertTrue(t.equals(equalsT));
-
+    assertEquals(t, equalsT);
+    assertEquals(t.hashCode(), equalsT.hashCode());
   }
 
   @Test
