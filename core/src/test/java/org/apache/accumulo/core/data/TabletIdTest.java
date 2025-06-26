@@ -18,21 +18,21 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
-import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import org.apache.accumulo.core.dataImpl.TabletIdImpl;
+import org.apache.hadoop.io.Text;
+import org.junit.jupiter.api.Test;
 
 class TabletIdTest {
   /**
@@ -140,9 +140,12 @@ class TabletIdTest {
   }
 
   @Test
-  void testCompareToOfTabletId(){
-    /*  One way to do this is to create TabletIds w/ different table ids, different rows (null and not null),
-    put them all in a list and sort the list and check the list is in the correct order */
+  void testCompareToOfTabletId() {
+    /*
+     * One way to do this is to create TabletIds w/ different table ids, different rows (null and
+     * not null), put them all in a list and sort the list and check the list is in the correct
+     * order
+     */
     // TableId -> endRow -> prevEndRow
     ArrayList<TabletId> tablets = new ArrayList<>();
     tablets.add(TabletId.of(TableId.of("d"), "w", "a"));
@@ -173,23 +176,22 @@ class TabletIdTest {
   }
 
   @Test
-  void testEqualsOfTabletId(){ // Comparing equals to t
+  void testEqualsOfTabletId() { // Comparing equals to t
     TabletId t = TabletId.of(TableId.of("2"), "b", "a");
     TabletId equalsT = TabletId.of(TableId.of("2"), "b", "a");
     ArrayList<TabletId> tablets = new ArrayList<>();
 
     tablets.add(TabletId.of(TableId.of("5"), "b", "a"));
     tablets.add(TabletId.of(TableId.of("5"), "b", "a"));
-    tablets.add(TabletId.of(TableId.of("6"), "d", "a" ));
+    tablets.add(TabletId.of(TableId.of("6"), "d", "a"));
     tablets.add(TabletId.of(TableId.of("1"), "g", "e"));
     tablets.add(TabletId.of(TableId.of("2"), null, "a"));
     tablets.add(TabletId.of(TableId.of("2"), "b", null));
     tablets.add(TabletId.of(TableId.of("2"), (String) null, null));
 
-
-      for (TabletId tablet : tablets) {
-        assertFalse(t.equals(tablet));
-      }
+    for (TabletId tablet : tablets) {
+      assertFalse(t.equals(tablet));
+    }
 
     assertTrue(t.equals(equalsT));
 
@@ -203,12 +205,12 @@ class TabletIdTest {
     int hashCode2 = tabletId.hashCode();
     assertEquals(hashCode1, hashCode2);
 
-    //Testing equality
+    // Testing equality
     TabletId tabletOne = TabletId.of(TableId.of("2"), "b", "a");
     TabletId tabletTwo = TabletId.of(TableId.of("2"), "b", "a");
     assertEquals(tabletOne.hashCode(), tabletTwo.hashCode());
 
-    //Testing even distribution
+    // Testing even distribution
     List<TabletId> tablets = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
       tablets.add(TabletId.of(TableId.of("value" + i), "b", "a"));

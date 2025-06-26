@@ -30,9 +30,9 @@ import org.apache.hadoop.io.Text;
 public interface TabletId extends Comparable<TabletId> {
 
   /**
-   * Return a TabletId object for the provided TableId in range of endRow and prevEndRow.
-   * If the parameters endRow and/or prevEndRow are null, they represent a tablet over
-   * the range of -inf and/or inf respectively.
+   * Return a TabletId object for the provided TableId in range of endRow and prevEndRow. If the
+   * parameters endRow and/or prevEndRow are null, they represent a tablet over the range of -inf
+   * and/or inf respectively.
    *
    * @param tableId the ID for a table
    * @param endRow the last row in this tablet, or null if this is the last tablet in this table
