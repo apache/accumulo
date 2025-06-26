@@ -34,6 +34,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.fate.AbstractFateStore.FateIdGenerator;
 import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.user.schema.FateSchema;
@@ -65,11 +66,11 @@ public class UserFateIT_SimpleSuite extends FateITBase {
   public void executeTest(FateTestExecutor<TestEnv> testMethod, int maxDeferred,
       FateIdGenerator fateIdGenerator) throws Exception {
     table = getUniqueNames(1)[0];
-    try (ClientContext client =
-        (ClientContext) Accumulo.newClient().from(getClientProps()).build()) {
+    try (ClientContext client = (ClientContext) Accumulo.newClient().from(getClientProps()).build();
+        FateStore<TestEnv> fs = new UserFateStore<>(client, table, createDummyLockID(), null,
+            maxDeferred, fateIdGenerator)) {
       createFateTable(client, table);
-      testMethod.execute(new UserFateStore<>(client, table, createDummyLockID(), null, maxDeferred,
-          fateIdGenerator), getCluster().getServerContext());
+      testMethod.execute(fs, getCluster().getServerContext());
     }
   }
 

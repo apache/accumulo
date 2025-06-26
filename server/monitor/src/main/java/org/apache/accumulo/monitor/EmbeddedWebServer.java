@@ -55,7 +55,7 @@ public class EmbeddedWebServer {
     connector.addBean(monitor.getConnectionStatisticsBean());
     // Listen for connection events
     connector.addBean(monitor);
-    connector.setHost(monitor.getHostname());
+    connector.setHost(monitor.getBindAddress());
     connector.setPort(port);
 
     handler =
@@ -110,6 +110,10 @@ public class EmbeddedWebServer {
 
   public void addServlet(ServletHolder restServlet, String where) {
     handler.addServlet(restServlet, where);
+  }
+
+  public String getHostName() {
+    return connector.getHost();
   }
 
   public int getPort() {

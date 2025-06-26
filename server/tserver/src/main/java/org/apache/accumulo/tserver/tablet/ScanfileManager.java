@@ -60,6 +60,22 @@ class ScanfileManager {
     }
   }
 
+  /**
+   * Removes any scan-in-use metadata entries that were left behind when a scan cleanup was
+   * interrupted. Intended to be called periodically to clear these orphaned scan refs once their
+   * in-memory reference count reaches zero.
+   */
+  public void removeOrphanedScanRefs() {
+    Set<StoredTabletFile> snapshot;
+    Location currLoc;
+    synchronized (tablet) {
+      snapshot = new HashSet<>(filesToDeleteAfterScan);
+      filesToDeleteAfterScan.clear();
+      currLoc = Location.current(tablet.getTabletServer().getTabletSession());
+    }
+    removeFilesAfterScan(snapshot, currLoc);
+  }
+
   static void removeScanFiles(KeyExtent extent, Set<StoredTabletFile> scanFiles,
       ServerContext context, Location currLocation) {
     try (var mutator = context.getAmple().conditionallyMutateTablets()) {

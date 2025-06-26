@@ -130,15 +130,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
     // Make a directory we can use to throw the export and import directories
     // Must exist on the filesystem the cluster is running.
     FileSystem fs = cluster.getFileSystem();
-    log.info("Using FileSystem: " + fs);
-    Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
-    fs.deleteOnExit(baseDir);
-    if (fs.exists(baseDir)) {
-      log.info("{} exists on filesystem, deleting", baseDir);
-      assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
-    }
-    log.info("Creating {}", baseDir);
-    assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
+    Path baseDir = createBaseDir(cluster, getClass());
     Path exportDir = new Path(baseDir, "export");
     fs.deleteOnExit(exportDir);
     Path importDirA = new Path(baseDir, "import-a");
@@ -287,15 +279,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
 
       // Make export and import directories
       FileSystem fs = cluster.getFileSystem();
-      log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
-      fs.deleteOnExit(baseDir);
-      if (fs.exists(baseDir)) {
-        log.info("{} exists on filesystem, deleting", baseDir);
-        assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
-      }
-      log.info("Creating {}", baseDir);
-      assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
+      Path baseDir = createBaseDir(cluster, getClass());
       Path exportDir = new Path(baseDir, "export");
       fs.deleteOnExit(exportDir);
       Path importDirA = new Path(baseDir, "import-a");
@@ -457,15 +441,7 @@ public class ImportExportIT extends AccumuloClusterHarness {
       // Make a directory we can use to throw the export and import directories
       // Must exist on the filesystem the cluster is running.
       FileSystem fs = cluster.getFileSystem();
-      log.info("Using FileSystem: " + fs);
-      Path baseDir = new Path(cluster.getTemporaryPath(), getClass().getName());
-      fs.deleteOnExit(baseDir);
-      if (fs.exists(baseDir)) {
-        log.info("{} exists on filesystem, deleting", baseDir);
-        assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
-      }
-      log.info("Creating {}", baseDir);
-      assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
+      Path baseDir = createBaseDir(cluster, getClass());
       Path exportDir = new Path(baseDir, "export");
       fs.deleteOnExit(exportDir);
       Path importDirA = new Path(baseDir, "import-a");
@@ -640,5 +616,19 @@ public class ImportExportIT extends AccumuloClusterHarness {
             true),
         new Range("row_" + String.format("%010d", 699), false, "row_" + String.format("%010d", 749),
             true));
+  }
+
+  public static Path createBaseDir(AccumuloCluster cluster, Class<?> clazz) throws IOException {
+    FileSystem fs = cluster.getFileSystem();
+    log.info("Using FileSystem: " + fs);
+    Path baseDir = new Path(cluster.getTemporaryPath(), clazz.getName());
+    fs.deleteOnExit(baseDir);
+    if (fs.exists(baseDir)) {
+      log.info("{} exists on filesystem, deleting", baseDir);
+      assertTrue(fs.delete(baseDir, true), "Failed to deleted " + baseDir);
+    }
+    log.info("Creating {}", baseDir);
+    assertTrue(fs.mkdirs(baseDir), "Failed to create " + baseDir);
+    return baseDir;
   }
 }

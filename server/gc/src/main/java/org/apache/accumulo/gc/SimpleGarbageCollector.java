@@ -168,9 +168,10 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     log.info("Trying to acquire ZooKeeper lock for garbage collector");
 
     HostAndPort address = startStatsService();
+    updateAdvertiseAddress(address);
 
     try {
-      getZooLock(address);
+      getZooLock(getAdvertiseAddress());
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
       System.exit(1);
@@ -426,7 +427,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   private HostAndPort startStatsService() {
     var processor = ThriftProcessorTypes.getGcTProcessor(this, this, getContext());
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
-    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getHostname(), port);
+    HostAndPort[] addresses = TServerUtils.getHostAndPorts(getBindAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
     ServerAddress server = TServerUtils.createThriftServer(getConfiguration(),
         getContext().getThriftServerType(), processor, getContext().getInstanceID(),
@@ -435,7 +436,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
         addresses);
     server.startThriftServer("GC Monitor Service");
-    setHostname(server.address);
+    updateAdvertiseAddress(server.address);
     log.debug("Starting garbage collector listening on {}", server.address);
     return server.address;
   }
