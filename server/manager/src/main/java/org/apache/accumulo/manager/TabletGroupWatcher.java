@@ -430,6 +430,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       SortedMap<TServerInstance,TabletServerStatus> currentTServers, boolean isFullScan)
       throws TException, DistributedStoreException, WalMarkerException, IOException {
 
+    // When upgrading the Manager needs the TabletGroupWatcher
+    // to assign and balance the root and metadata tables, but
+    // the Manager does not fully start up until the upgrade
+    // is complete. This means that objects like the Splitter
+    // are not going to be initialized and the Coordinator
+    // is not going to be started.
+    final boolean currentlyUpgrading = manager.isUpgrading();
+    if (currentlyUpgrading) {
+      LOG.debug(
+          "Currently upgrading, splits and compactions for tables in level {} will occur once upgrade is completed.",
+          store.getLevel());
+    }
+
     final TableMgmtStats tableMgmtStats = new TableMgmtStats();
     final boolean shuttingDownAllTabletServers =
         tableMgmtParams.getServersToShutdown().equals(currentTServers.keySet());
@@ -604,12 +617,13 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       }
 
       final boolean needsSplit = actions.contains(ManagementAction.NEEDS_SPLITTING);
-      if (needsSplit) {
+      if (!currentlyUpgrading && needsSplit) {
         LOG.debug("{} may need splitting.", tm.getExtent());
         manager.getSplitter().initiateSplit(tm.getExtent());
       }
 
-      if (actions.contains(ManagementAction.NEEDS_COMPACTING) && compactionGenerator != null) {
+      if (!currentlyUpgrading && actions.contains(ManagementAction.NEEDS_COMPACTING)
+          && compactionGenerator != null) {
         // Check if tablet needs splitting, priority should be giving to splits over
         // compactions because it's best to compact after a split
         if (!needsSplit) {
