@@ -18,11 +18,21 @@
  */
 package org.apache.accumulo.core.data;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static java.nio.charset.StandardCharsets.UTF_8;
 
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 class TabletIdTest {
   /**
@@ -55,7 +65,7 @@ class TabletIdTest {
    */
   @Test
   void testOfGivenByteArrayArgs() {
-    TabletId tabletId = TabletId.of(TableId.of("2"), ("b").getBytes(), ("a".getBytes()));
+    TabletId tabletId = TabletId.of(TableId.of("2"), ("b").getBytes(UTF_8), ("a").getBytes(UTF_8));
     assertEquals("2", tabletId.getTable().canonical(), "Expected the Table ID to be 2");
     assertEquals(new Text("b"), tabletId.getEndRow(), "Expected endRow to be b");
     assertEquals(new Text("a"), tabletId.getPrevEndRow(), "Expected prevEndRow to be a");
@@ -93,6 +103,9 @@ class TabletIdTest {
     TabletId tabletId = TabletId.of(TableId.of("2"), endRow, new Text("a"));
 
     assertNull(tabletId.getEndRow(), "Expected endRow to be null");
+    // Checking other fields just in case a bug with null sets other fields to null
+    assertEquals("2", tabletId.getTable().canonical(), "Expected the Table ID to be 2");
+    assertEquals(new Text("a"), tabletId.getPrevEndRow(), "Expected prevEndRow to be a");
   }
 
   /**
@@ -105,6 +118,9 @@ class TabletIdTest {
     TabletId tabletId = TabletId.of(TableId.of("2"), new Text("b"), prevEndRow);
 
     assertNull(tabletId.getPrevEndRow(), "Expected prevEndRow to be null");
+    // Checking other fields just in case
+    assertEquals("2", tabletId.getTable().canonical(), "Expected the Table ID to be 2");
+    assertEquals(new Text("b"), tabletId.getEndRow(), "Expected endRow to be b");
   }
 
   /**
@@ -122,4 +138,86 @@ class TabletIdTest {
     assertEquals("---String---", tabletThree.getTable().canonical(),
         "Expected the Table ID to be ---String---");
   }
+
+  @Test
+  void testCompareToOfTabletId(){
+    /*  One way to do this is to create TabletIds w/ different table ids, different rows (null and not null),
+    put them all in a list and sort the list and check the list is in the correct order */
+    // TableId -> endRow -> prevEndRow
+    ArrayList<TabletId> tablets = new ArrayList<>();
+    tablets.add(TabletId.of(TableId.of("d"), "w", "a"));
+    tablets.add(TabletId.of(TableId.of("e"), "z", "g"));
+    tablets.add(TabletId.of(TableId.of("g"), "b", "a"));
+    tablets.add(TabletId.of(TableId.of("c"), (String) null, null));
+    tablets.add(TabletId.of(TableId.of("a"), "m", "l"));
+    tablets.add(TabletId.of(TableId.of("a"), null, "b"));
+    tablets.add(TabletId.of(TableId.of("a"), null, (String) null));
+    tablets.add(TabletId.of(TableId.of("a"), null, "c"));
+    tablets.add(TabletId.of(TableId.of("a"), "b", "a"));
+    tablets.add(TabletId.of(TableId.of("a"), "z", null));
+    tablets.add(TabletId.of(TableId.of("f"), null, "a"));
+    tablets.add(TabletId.of(TableId.of("b"), "d", null));
+    Collections.sort(tablets);
+
+    for (int curr = 1; curr < tablets.size() - 1; curr++) {
+      int prev = curr - 1;
+      int comparison = tablets.get(prev).compareTo(tablets.get(curr));
+
+      if (comparison == 0) {
+        assertTrue(tablets.get(prev).equals(tablets.get(curr)));
+      } else {
+        assertTrue(comparison < 0);
+      }
+    }
+
+  }
+
+  @Test
+  void testEqualsOfTabletId(){ // Comparing equals to t
+    TabletId t = TabletId.of(TableId.of("2"), "b", "a");
+    TabletId equalsT = TabletId.of(TableId.of("2"), "b", "a");
+    ArrayList<TabletId> tablets = new ArrayList<>();
+
+    tablets.add(TabletId.of(TableId.of("5"), "b", "a"));
+    tablets.add(TabletId.of(TableId.of("5"), "b", "a"));
+    tablets.add(TabletId.of(TableId.of("6"), "d", "a" ));
+    tablets.add(TabletId.of(TableId.of("1"), "g", "e"));
+    tablets.add(TabletId.of(TableId.of("2"), null, "a"));
+    tablets.add(TabletId.of(TableId.of("2"), "b", null));
+    tablets.add(TabletId.of(TableId.of("2"), (String) null, null));
+
+
+      for (TabletId tablet : tablets) {
+        assertFalse(t.equals(tablet));
+      }
+
+    assertTrue(t.equals(equalsT));
+
+  }
+
+  @Test
+  void testHashCodeOfTabletId() {
+    // Testing consistency
+    TabletId tabletId = TabletId.of(TableId.of("2"), "b", "a");
+    int hashCode1 = tabletId.hashCode();
+    int hashCode2 = tabletId.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    //Testing equality
+    TabletId tabletOne = TabletId.of(TableId.of("2"), "b", "a");
+    TabletId tabletTwo = TabletId.of(TableId.of("2"), "b", "a");
+    assertEquals(tabletOne.hashCode(), tabletTwo.hashCode());
+
+    //Testing even distribution
+    List<TabletId> tablets = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      tablets.add(TabletId.of(TableId.of("value" + i), "b", "a"));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (TabletId tabs : tablets) {
+      hashCodes.add(tabs.hashCode());
+    }
+    assertEquals(tablets.size(), hashCodes.size(), 10);
+  }
+
 }
