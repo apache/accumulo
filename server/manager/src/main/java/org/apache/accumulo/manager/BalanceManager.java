@@ -164,35 +164,35 @@ class BalanceManager {
   private SortedMap<TServerInstance,TabletServerStatus> createTServerStatusView(
       final Ample.DataLevel dl, final SortedMap<TServerInstance,TabletServerStatus> status) {
     final SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel = new TreeMap<>();
+final String METADATA_TABLE_ID = SystemTables.METADATA.tableId().canonical();
+    final String ROOT_TABLE_ID = SystemTables.ROOT.tableId().canonical();
     status.forEach((tsi, tss) -> {
       final TabletServerStatus copy = tss.deepCopy();
       final Map<String,TableInfo> oldTableMap = copy.getTableMap();
       final Map<String,TableInfo> newTableMap =
           new HashMap<>(dl == Ample.DataLevel.USER ? oldTableMap.size() : 1);
-      if (dl == Ample.DataLevel.ROOT) {
-        if (oldTableMap.containsKey(SystemTables.ROOT.tableId().canonical())) {
-          newTableMap.put(SystemTables.ROOT.tableId().canonical(),
-              oldTableMap.get(SystemTables.ROOT.tableId().canonical()));
-        }
-      } else if (dl == Ample.DataLevel.METADATA) {
-        if (oldTableMap.containsKey(SystemTables.METADATA.tableId().canonical())) {
-          newTableMap.put(SystemTables.METADATA.tableId().canonical(),
-              oldTableMap.get(SystemTables.METADATA.tableId().canonical()));
-        }
-      } else if (dl == Ample.DataLevel.USER) {
-        if (!oldTableMap.containsKey(SystemTables.METADATA.tableId().canonical())
-            && !oldTableMap.containsKey(SystemTables.ROOT.tableId().canonical())) {
-          newTableMap.putAll(oldTableMap);
-        } else {
-          oldTableMap.forEach((table, info) -> {
-            if (!table.equals(SystemTables.ROOT.tableId().canonical())
-                && !table.equals(SystemTables.METADATA.tableId().canonical())) {
-              newTableMap.put(table, info);
-            }
-          });
-        }
-      } else {
-        throw new IllegalArgumentException("Unhandled DataLevel value: " + dl);
+      switch (dl) {
+        case ROOT:
+          oldTableMap.computeIfPresent(ROOT_TABLE_ID, newTableMap::put);
+          break;
+        case METADATA:
+          oldTableMap.computeIfPresent(METADATA_TABLE_ID, newTableMap::put);
+          break;
+        case USER:
+          if (!oldTableMap.containsKey(METADATA_TABLE_ID)
+              && !oldTableMap.containsKey(ROOT_TABLE_ID)) {
+            newTableMap.putAll(oldTableMap);
+          } else {
+            oldTableMap.forEach((table, info) -> {
+              if (!table.equals(ROOT_TABLE_ID) && !table.equals(METADATA_TABLE_ID)) {
+                newTableMap.put(table, info);
+              }
+            });
+          }
+          break;
+
+        default:
+          throw new IllegalArgumentException("Unhandled DataLevel value: " + dl);
       }
       copy.setTableMap(newTableMap);
       tserverStatusForLevel.put(tsi, copy);
