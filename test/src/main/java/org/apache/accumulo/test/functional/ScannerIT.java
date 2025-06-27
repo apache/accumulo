@@ -137,13 +137,6 @@ public class ScannerIT extends ConfigurableMacBase {
     final ServerType serverType = consistency == IMMEDIATE ? TABLET_SERVER : SCAN_SERVER;
     try (AccumuloClient accumuloClient = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      if (serverType == SCAN_SERVER) {
-        // Scans will fall back to tablet servers when no scan servers are present. So wait for scan
-        // servers to show up in zookeeper. Can remove this in 3.1.
-        Wait.waitFor(() -> !accumuloClient.instanceOperations()
-            .getServers(ServerId.Type.SCAN_SERVER).isEmpty());
-      }
-
       accumuloClient.tableOperations().create(tableName);
 
       try (var writer = accumuloClient.createBatchWriter(tableName)) {

@@ -389,7 +389,7 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
   /**
    * Converts to an Accumulo Access Authorizations object.
    *
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public org.apache.accumulo.access.Authorizations toAccessAuthorizations() {
     if (auths.isEmpty()) {

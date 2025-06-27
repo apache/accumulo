@@ -46,7 +46,7 @@ public interface ServiceEnvironment extends PluginEnvironment {
      *
      * @param includeDefaults If true will include accumulo's default properties and layer the
      *        passed in map on top of these.
-     * @since 3.1.0
+     * @since 4.0.0
      */
     static Configuration from(Map<String,String> properties, boolean includeDefaults) {
       return (Configuration) PluginEnvironment.Configuration.from(properties, includeDefaults);
