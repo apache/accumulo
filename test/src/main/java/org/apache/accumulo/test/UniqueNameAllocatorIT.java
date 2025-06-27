@@ -105,7 +105,7 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
     }
 
     assertThrows(IllegalArgumentException.class, () -> allocators[0].getNextNames(-1));
-    assertThrows(IllegalArgumentException.class, () -> allocators[0].getNextNames(0));
+    assertFalse(allocators[0].getNextNames(0).hasNext());
 
     assertTrue(namesSeen.size() >= 1_000_000);
     assertTrue(namesSeen.stream().allMatch(name -> name.matches("[0-9a-z]{7}")));

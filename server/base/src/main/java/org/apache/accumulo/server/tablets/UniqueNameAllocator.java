@@ -21,6 +21,7 @@ package org.apache.accumulo.server.tablets;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,7 +68,12 @@ public class UniqueNameAllocator {
    * @return a thread safe iterator that can be called up to the number of names requested
    */
   public synchronized Iterator<String> getNextNames(int needed) {
-    Preconditions.checkArgument(needed > 0, "needed=%s is <=-0", needed);
+    Preconditions.checkArgument(needed >= 0, "needed=%s is <0", needed);
+
+    if (needed == 0) {
+      return Collections.emptyIterator();
+    }
+
     while ((next + needed) > maxAllocated) {
       final int allocate = getAllocation(needed);
       try {
