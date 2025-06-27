@@ -405,7 +405,7 @@ public enum Property {
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
       "2.1.4"),
-  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.mininum", "10",
+  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.minimum", "10",
       PropertyType.COUNT,
       "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
           + " are performed (e.g. Bulk Import). This property specifies the number of core threads in a"

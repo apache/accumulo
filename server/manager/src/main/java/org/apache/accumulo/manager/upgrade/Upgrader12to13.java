@@ -138,12 +138,6 @@ public class Upgrader12to13 implements Upgrader {
   }
 
   private void createFateTable(ServerContext context) {
-
-    if (context.tableOperations().exists(SystemTables.FATE.tableName())) {
-      LOG.info("Fate table already exists");
-      return;
-    }
-
     try {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));

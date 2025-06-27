@@ -543,7 +543,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void waitForBalance() {
-    manager.waitForBalance();
+    manager.getBalanceManager().waitForBalance();
   }
 
   @Override
