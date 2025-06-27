@@ -362,7 +362,7 @@ public class ConfigCommand extends Command {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current namespace value is different from it.
           if (sysVal == null && dfault != null && !dfault.equals(curVal)
-              && (!Property.getPropertyByKey(key).isExperimental()) || showExp) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
