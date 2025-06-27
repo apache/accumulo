@@ -293,6 +293,7 @@ class BalanceManager {
       this.migrations = migrations;
     }
 
+    @Override
     public String toString() {
       return "runCount:" + runCount + " migrations:" + migrations;
     }
