@@ -62,6 +62,7 @@ public class ConfigCommand extends Command {
   private Option disablePaginationOpt;
   private Option outputFileOpt;
   private Option namespaceOpt;
+  private Option showExpOpt;
 
   private int COL1 = 10;
   private int COL2 = 7;
@@ -88,6 +89,7 @@ public class ConfigCommand extends Command {
     reader = shellState.getReader();
 
     boolean force = cl.hasOption(forceOpt);
+    boolean showExp = cl.hasOption(showExpOpt);
 
     final String tableName = cl.getOptionValue(tableOpt.getOpt());
     if (tableName != null && !shellState.getAccumuloClient().tableOperations().exists(tableName)) {
@@ -316,7 +318,8 @@ public class ConfigCommand extends Command {
           if (dfault != null && key.toLowerCase().contains("password")) {
             siteVal = sysVal = dfault = curVal = curVal.replaceAll(".", "*");
           }
-          if (defaults.containsKey(key) && !Property.getPropertyByKey(key).isExperimental()) {
+          if (defaults.containsKey(key)
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -334,7 +337,7 @@ public class ConfigCommand extends Command {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current namespace value is different from it.
           if (sysVal == null && dfault != null && !dfault.equals(nspVal)
-              && !Property.getPropertyByKey(key).isExperimental()) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -349,7 +352,7 @@ public class ConfigCommand extends Command {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current table value is different from it.
           if (nspVal == null && dfault != null && !dfault.equals(curVal)
-              && !Property.getPropertyByKey(key).isExperimental()) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -358,7 +361,7 @@ public class ConfigCommand extends Command {
           // If the user can't see the system configuration, then print the default
           // configuration value if the current namespace value is different from it.
           if (sysVal == null && dfault != null && !dfault.equals(curVal)
-              && !Property.getPropertyByKey(key).isExperimental()) {
+              && (!Property.getPropertyByKey(key).isExperimental() || showExp)) {
             printConfLine(output, "default", key, dfault);
             printed = true;
           }
@@ -422,6 +425,7 @@ public class ConfigCommand extends Command {
     setOpt = new Option("s", "set", true, "set a per-table property");
     forceOpt = new Option("force", "force", false,
         "used with set to set a deprecated property without asking");
+    showExpOpt = new Option("show", "show-exp", false, "also show experimental properties");
     filterOpt = new Option("f", "filter", true,
         "show only properties that contain this string in their name.");
     filterWithValuesOpt = new Option("fv", "filter-with-values", true,
@@ -453,6 +457,7 @@ public class ConfigCommand extends Command {
     o.addOption(disablePaginationOpt);
     o.addOption(outputFileOpt);
     o.addOption(forceOpt);
+    o.addOption(showExpOpt);
 
     return o;
   }
