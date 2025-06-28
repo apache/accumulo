@@ -848,21 +848,6 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     return propFound;
   }
 
-  private Set<StoredTabletFile> getStoredTabFiles(SystemTables sysTable) {
-    var clientContext = (ClientContext) client;
-    Set<StoredTabletFile> storedTabFiles = new HashSet<>();
-    try (TabletsMetadata tabletsMetadata =
-        clientContext.getAmple().readTablets().forTable(sysTable.tableId()).build()) {
-      for (var tm : tabletsMetadata) {
-        var stfs = tm.getFiles();
-        storedTabFiles.addAll(stfs);
-        stfs.forEach(f -> log.info("Found stored tablet file: {} for the system table: {}",
-            f.getMetadataPath(), sysTable.tableName()));
-      }
-    }
-    return storedTabFiles;
-  }
-
   private static class NoOpFilter extends Filter {
     @Override
     public boolean accept(Key k, Value v) {

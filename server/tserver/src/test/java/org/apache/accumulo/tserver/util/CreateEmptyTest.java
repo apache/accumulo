@@ -36,7 +36,6 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -254,10 +253,4 @@ public class CreateEmptyTest extends WithTestNames {
     }
   }
 
-  // tempDir is per test suite - generate a one-up count file for each call.
-  private static final AtomicInteger fileCount = new AtomicInteger(0);
-
-  private String genFilename(final String prefix, final String extension) {
-    return prefix + fileCount.incrementAndGet() + extension;
-  }
 }
