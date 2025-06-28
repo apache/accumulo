@@ -123,8 +123,6 @@ public class ServiceLockSupport {
    */
   public static class ServiceLockWatcher implements LockWatcher {
 
-    private static final Logger LOG = LoggerFactory.getLogger(ServiceLockWatcher.class);
-
     private final String serviceName;
     private final Supplier<Boolean> shutdownComplete;
     private final Consumer<String> lostLockAction;
