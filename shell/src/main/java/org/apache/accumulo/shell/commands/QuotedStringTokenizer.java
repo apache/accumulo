@@ -56,6 +56,7 @@ public class QuotedStringTokenizer implements Iterable<String> {
 
   private void createTokens() throws BadArgumentException, UnsupportedEncodingException {
     boolean inQuote = false;
+    boolean inValue = false;
     boolean inEscapeSequence = false;
     String hexChars = null;
     char inQuoteChar = '"';
@@ -109,7 +110,18 @@ public class QuotedStringTokenizer implements Iterable<String> {
         } else {
           token[tokenLength++] = inputBytes[i];
         }
+      } else if (inValue) {
+        if (ch != ' ') {
+          token[tokenLength++] = inputBytes[i];
+        } else {
+          inValue = false;
+          tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+          tokenLength = 0;
+        }
       } else {
+        if (ch == '=') {
+          inValue = true;
+        }
         // not in a quote, either enter a quote, end a token, start escape, or continue a token
         if (ch == '\'' || ch == '"') {
           if (tokenLength > 0) {
