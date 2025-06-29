@@ -233,7 +233,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     // now set a few fixed properties on the parent to simulate a user setting a fixed property that
     // requires a restart
     var shouldBeSetMore = new HashSet<Property>(shouldBeSet);
-    Property.fixedProperties.stream().limit(5).forEach(p -> {
+    Property.FIXED_PROPERTIES.stream().limit(5).forEach(p -> {
       // use the default value so we can verify it's actually set, and not just looks set because it
       // has the same value as the default
       parent.set(p.getKey(), p.getDefaultValue());

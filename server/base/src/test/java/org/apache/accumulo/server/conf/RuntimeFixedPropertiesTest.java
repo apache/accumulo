@@ -60,7 +60,7 @@ public class RuntimeFixedPropertiesTest {
 
     RuntimeFixedProperties fixed = new RuntimeFixedProperties(storedProps, siteConfig);
 
-    assertEquals(Property.fixedProperties.size(), fixed.getAll().size());
+    assertEquals(Property.FIXED_PROPERTIES.size(), fixed.getAll().size());
   }
 
   @Test
