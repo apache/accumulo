@@ -45,7 +45,6 @@ import org.apache.accumulo.core.process.thrift.MetricSource;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
-import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.hadoop.conf.Configuration;
@@ -116,8 +115,8 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
           HostAndPort.fromParts(managerServer.getHost(), managerServer.getPort()), cc);
       try {
-        MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
-            getCluster().getServerContext().rpcCreds());
+        MetricResponse response =
+            metricsClient.getMetrics(getCluster().getServerContext().rpcCreds());
         assertEquals(managerServer.getResourceGroup(), response.getResourceGroup());
         assertEquals(MetricSource.MANAGER, response.getServerType());
         assertTrue(handleMetrics(response) > 0);
@@ -132,8 +131,8 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
       HostAndPort hp = HostAndPort.fromString(location);
       metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS, hp, cc);
       try {
-        MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
-            getCluster().getServerContext().rpcCreds());
+        MetricResponse response =
+            metricsClient.getMetrics(getCluster().getServerContext().rpcCreds());
         assertEquals(Constants.DEFAULT_RESOURCE_GROUP_NAME, response.getResourceGroup());
         assertEquals(MetricSource.GARBAGE_COLLECTOR, response.getServerType());
         assertTrue(handleMetrics(response) > 0);
@@ -147,8 +146,8 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
         metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), cc);
         try {
-          MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
-              getCluster().getServerContext().rpcCreds());
+          MetricResponse response =
+              metricsClient.getMetrics(getCluster().getServerContext().rpcCreds());
           assertEquals(server.getResourceGroup(), response.getResourceGroup());
           assertEquals(MetricSource.COMPACTOR, response.getServerType());
           assertTrue(handleMetrics(response) > 0);
@@ -162,8 +161,8 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
         metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), cc);
         try {
-          MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
-              getCluster().getServerContext().rpcCreds());
+          MetricResponse response =
+              metricsClient.getMetrics(getCluster().getServerContext().rpcCreds());
           assertEquals(server.getResourceGroup(), response.getResourceGroup());
           assertEquals(MetricSource.SCAN_SERVER, response.getServerType());
           assertTrue(handleMetrics(response) > 0);
@@ -177,8 +176,8 @@ public class MetricsThriftRpcIT extends ConfigurableMacBase {
         metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
             HostAndPort.fromParts(server.getHost(), server.getPort()), cc);
         try {
-          MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(),
-              getCluster().getServerContext().rpcCreds());
+          MetricResponse response =
+              metricsClient.getMetrics(getCluster().getServerContext().rpcCreds());
           assertEquals(server.getResourceGroup(), response.getResourceGroup());
           assertEquals(MetricSource.TABLET_SERVER, response.getServerType());
           assertTrue(handleMetrics(response) > 0);
