@@ -365,9 +365,6 @@ public enum Property {
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
       "4.0.0"),
-  GENERAL_MICROMETER_ID_FILTERS("general.micrometer.id.filters", "", PropertyType.STRING,
-      "A comma separated list of patterns to deny meters with matching id names. Example: \"foo.*,bar\".",
-      "4.0.0"),
   // TODO: Make sure to backport this to 3.1, then remove here in 4.0
   @Deprecated(since = "3.1.0")
   @ReplacedBy(property = RPC_PROCESS_BIND_ADDRESS)

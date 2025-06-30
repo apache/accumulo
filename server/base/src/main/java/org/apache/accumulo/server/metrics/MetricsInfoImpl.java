@@ -26,8 +26,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Predicate;
-import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
@@ -36,13 +34,11 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.MeterRegistryFactory;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Metrics;
 import io.micrometer.core.instrument.Tag;
@@ -53,7 +49,6 @@ import io.micrometer.core.instrument.binder.jvm.JvmThreadMetrics;
 import io.micrometer.core.instrument.binder.logging.Log4j2Metrics;
 import io.micrometer.core.instrument.binder.logging.LogbackMetrics;
 import io.micrometer.core.instrument.binder.system.ProcessorMetrics;
-import io.micrometer.core.instrument.config.MeterFilter;
 
 public class MetricsInfoImpl implements MetricsInfo {
 
@@ -160,20 +155,10 @@ public class MetricsInfoImpl implements MetricsInfo {
     String userRegistryFactories =
         context.getConfiguration().get(Property.GENERAL_MICROMETER_FACTORY);
 
-    // Fetch the patterns to filter from the meter registry.
-    String filterPatterns = context.getConfiguration().get(Property.GENERAL_MICROMETER_ID_FILTERS);
-    MeterFilter meterFilter = null;
-    if (StringUtils.isNotEmpty(filterPatterns)) {
-      meterFilter = getMeterFilter(filterPatterns);
-    }
-
     for (String factoryName : getTrimmedStrings(userRegistryFactories)) {
       try {
         MeterRegistry registry = getRegistryFromFactory(factoryName, context);
         registry.config().commonTags(commonTags);
-        if (meterFilter != null) {
-          registry.config().meterFilter(meterFilter);
-        }
         Metrics.globalRegistry.add(registry);
       } catch (ReflectiveOperationException ex) {
         LOG.warn("Could not load registry {}", factoryName, ex);
@@ -251,38 +236,6 @@ public class MetricsInfoImpl implements MetricsInfo {
     }
 
     Metrics.globalRegistry.close();
-  }
-
-  /**
-   * This function uses patterns specified in the patternList parameter to filter out specific
-   * metrics that the user doesn't want.
-   *
-   * @param patternList, a comma-delimited String of regext patterns that getMeterFilter uses to
-   *        filter metrics.
-   * @return a predicate with the type of MeterFilter, that describes which metrics to filter.
-   */
-  public static MeterFilter getMeterFilter(String patternList) {
-    requireNonNull(patternList, "patternList must not be null");
-
-    // Trims whitespace and all other non-visible characters.
-    patternList = patternList.replaceAll("\\s+", "");
-
-    String[] patterns = patternList.split(",");
-    Predicate<Meter.Id> finalPredicate = id -> false;
-
-    for (String pattern : patterns) {
-      // Compile the pattern.
-      // Will throw PatternSyntaxException if invalid pattern.
-      Pattern compiledPattern = Pattern.compile(pattern);
-      // Create a predicate that will return true if the ID's name matches the pattern.
-      Predicate<Meter.Id> predicate = id -> compiledPattern.matcher(id.getName()).matches();
-      // Conjoin the pattern into the final predicates. The final predicate will return true if
-      // the name of the ID matches any of its conjoined predicates.
-      finalPredicate = finalPredicate.or(predicate);
-    }
-
-    // Assert that meter filter reply == MeterFilterReply.DENY;
-    return MeterFilter.deny(finalPredicate);
   }
 
   @Override
