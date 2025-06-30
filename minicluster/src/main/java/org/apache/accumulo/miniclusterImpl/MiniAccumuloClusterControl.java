@@ -35,6 +35,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.apache.accumulo.cluster.ClusterControl;
+import org.apache.accumulo.compactor.Compactor;
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
@@ -213,16 +215,20 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           Map<String,Integer> compactorGroups =
               cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
           for (Entry<String,Integer> e : compactorGroups.entrySet()) {
+            final String rg = e.getKey();
             List<Process> processes =
-                compactorProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                compactorProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             int count = 0;
+            // Override the Compactor classToUse for the default resource group. In the cases
+            // where the ExternalDoNothingCompactor and MemoryConsumingCompactor are used, they
+            // should be used in a non-default resource group. We need the default resource
+            // group to compact normally for the root and metadata tables.
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes
-                  .add(cluster
-                      ._exec(classToUse, server, configOverrides,
-                          ArrayUtils.addAll(args, "-o",
-                              Property.COMPACTOR_GROUP_NAME.getKey() + "=" + e.getKey()))
-                      .getProcess());
+              processes.add(cluster._exec(
+                  rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME) ? Compactor.class : classToUse,
+                  server, configOverrides,
+                  ArrayUtils.addAll(args, "-o", Property.COMPACTOR_GROUP_NAME.getKey() + "=" + rg))
+                  .getProcess());
             }
           }
         }
