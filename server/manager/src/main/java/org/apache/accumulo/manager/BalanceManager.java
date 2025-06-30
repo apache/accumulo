@@ -531,6 +531,11 @@ class BalanceManager {
         }
 
         balanceCompleted(dataLevel, migrationsOutForLevel + existingMigrations.size());
+        if (migrationsOutForLevel > 0) {
+          // signal the tablet group watcher for this data level that it needs to start working on migrations
+          getManager().nextEvent.event(dataLevel, "%s migrating %d more tablets, %d total",
+              dataLevel, migrationsOutForLevel, migrationsOutForLevel + existingMigrations.size());
+        }
       }
       return wait;
     }
