@@ -19,6 +19,7 @@
 package org.apache.accumulo.harness;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -90,7 +91,9 @@ public class AccumuloITBase extends WithTestNames {
     if (name == null) {
       return baseDir;
     }
-    File testDir = baseDir.toPath().resolve(name).toFile();
+    String uniqueName = String.format("%s-%d-%d", name, System.currentTimeMillis(),
+        RANDOM.get().nextInt(Short.MAX_VALUE));
+    File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;

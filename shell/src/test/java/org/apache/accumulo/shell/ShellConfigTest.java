@@ -37,8 +37,6 @@ import org.jline.terminal.impl.DumbTerminal;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class ShellConfigTest {
 
@@ -63,7 +61,6 @@ public class ShellConfigTest {
   Shell shell;
   PrintStream out;
   Path config;
-  private static final Logger log = LoggerFactory.getLogger(ShellConfigTest.class);
 
   @BeforeEach
   public void setUp() throws Exception {

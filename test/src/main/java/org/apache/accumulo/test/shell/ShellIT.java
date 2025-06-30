@@ -53,7 +53,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-public class ShellIT_SimpleSuite extends SharedMiniClusterBase {
+public class ShellIT extends SharedMiniClusterBase {
 
   @Override
   protected Duration defaultTimeout() {
@@ -70,7 +70,7 @@ public class ShellIT_SimpleSuite extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  private static final Logger log = LoggerFactory.getLogger(ShellIT_SimpleSuite.class);
+  private static final Logger log = LoggerFactory.getLogger(ShellIT.class);
 
   public static class TestOutputStream extends OutputStream {
     StringBuilder sb = new StringBuilder();

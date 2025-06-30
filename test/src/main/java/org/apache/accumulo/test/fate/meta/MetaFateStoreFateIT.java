@@ -73,13 +73,13 @@ public class MetaFateStoreFateIT extends FateStoreITBase {
     ServerContext sctx = createMock(ServerContext.class);
     expect(sctx.getZooSession()).andReturn(FateTestUtil.MetaFateZKSetup.getZk()).anyTimes();
     replay(sctx);
-    MetaFateStore<TestEnv> store = new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZk(),
-        createDummyLockID(), null, maxDeferred, fateIdGenerator);
-
-    // Check that the store has no transactions before and after each test
-    assertEquals(0, store.list().count());
-    testMethod.execute(store, sctx);
-    assertEquals(0, store.list().count());
+    try (FateStore<TestEnv> store = new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZk(),
+        createDummyLockID(), null, maxDeferred, fateIdGenerator)) {
+      // Check that the store has no transactions before and after each test
+      assertEquals(0, store.list().count());
+      testMethod.execute(store, sctx);
+      assertEquals(0, store.list().count());
+    }
   }
 
   @Override

@@ -293,6 +293,18 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         }), 5, 5, TimeUnit.SECONDS);
     watchNonCriticalScheduledTask(future);
 
+    ScheduledFuture<?> cleanupTask =
+        context.getScheduledExecutor().scheduleWithFixedDelay(Threads.createNamedRunnable(
+            "ScanRefCleanupTask", () -> getOnlineTablets().values().forEach(tablet -> {
+              try {
+                tablet.removeOrphanedScanRefs();
+              } catch (Exception e) {
+                log.error("Error cleaning up stale scan references for tablet {}",
+                    tablet.getExtent(), e);
+              }
+            })), 5, 5, TimeUnit.MINUTES);
+    watchNonCriticalScheduledTask(cleanupTask);
+
     final long walMaxSize = aconf.getAsBytes(Property.TSERV_WAL_MAX_SIZE);
     final long walMaxAge = aconf.getTimeInMillis(Property.TSERV_WAL_MAX_AGE);
     final long minBlockSize =
