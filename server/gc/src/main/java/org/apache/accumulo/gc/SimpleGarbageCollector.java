@@ -430,12 +430,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getBindAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
-    ServerAddress server =
-        TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
-            processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
-            1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(),
-            0, getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(),
-            false, addresses);
+    ServerAddress server = TServerUtils.createThriftServer(getConfiguration(),
+        getContext().getThriftServerType(), processor, getContext().getInstanceID(),
+        this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
+        maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,
+        getConfiguration().getCount(Property.RPC_BACKLOG), getContext().getMetricsInfo(), false,
+        addresses);
     server.startThriftServer("GC Monitor Service");
     updateAdvertiseAddress(server.address);
     log.debug("Starting garbage collector listening on {}", server.address);
