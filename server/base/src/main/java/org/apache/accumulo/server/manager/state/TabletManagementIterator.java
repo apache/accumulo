@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
@@ -232,23 +233,32 @@ public class TabletManagementIterator extends WholeRowIterator {
     };
 
     final Set<ManagementAction> actions = new HashSet<>();
-    final TabletMetadata tm =
-        TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
-
     Exception error = null;
+    TabletMetadata tm = null;
+    KeyExtent extent = null;
     try {
-      // Validate that a minimum set of keys were seen to create a valid tablet
-      tm.getPrevEndRow();
+      tm = TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
+    } catch (RuntimeException e) {
+      LOG.error("Failed to convert tablet metadata at row: {}", keys.get(0) == null ? "no key" : keys.get(0).getRow(), e);
+      error = e;
+    }
+    if (error == null) {
+      try {
+        // Validate that a minimum set of keys were seen to create a valid tablet
+        extent = tm.getExtent();
+      } catch (IllegalStateException e) {
+        LOG.error("Irregular tablet metadata encountered: {}", tm, e);
+        error = e;
+      }
+    }
+    if (error == null) {
       try {
         LOG.trace("Evaluating extent: {}", tm);
         computeTabletManagementActions(tm, actions);
       } catch (Exception e) {
-        LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
+        LOG.error("Error computing tablet management actions for extent: {}", extent, e);
         error = e;
       }
-    } catch (IllegalStateException e) {
-      LOG.error("Irregular tablet metadata encountered: {}", tm, e);
-      error = e;
     }
 
     if (!actions.isEmpty() || error != null) {
@@ -273,11 +283,11 @@ public class TabletManagementIterator extends WholeRowIterator {
       // This key is being created exactly the same way as the whole row iterator creates keys.
       // This is important for ensuring that seek works as expected in the continue case. See
       // WholeRowIterator seek function for details, it looks for keys w/o columns.
-      LOG.trace("Returning extent {} with reasons: {}", tm.getExtent(), actions);
+      LOG.trace("Returning extent {} with reasons: {}", extent, actions);
       return true;
     }
 
-    LOG.trace("No reason to return extent {}, continuing", tm.getExtent());
+    LOG.trace("No reason to return extent {}, continuing", extent);
     return false;
   }
 

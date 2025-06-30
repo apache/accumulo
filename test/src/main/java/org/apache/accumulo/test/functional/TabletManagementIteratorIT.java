@@ -77,6 +77,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.TabletMutator;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -85,6 +86,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Da
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletOperationId;
 import org.apache.accumulo.core.metadata.schema.TabletOperationType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
@@ -96,6 +98,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
+import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -150,6 +153,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
 
       var tableId1 = getServerContext().getTableId(t1);
+      var tableId2 = getServerContext().getTableId(t2);
       var tableId3 = getServerContext().getTableId(t3);
       var tableId4 = getServerContext().getTableId(t4);
 
@@ -299,7 +303,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
           "Should have one tablet that needs splitting");
-
+      
       // Take the table offline which should prevent the tablet from being returned for needing to
       // split
       client.tableOperations().offline(tables[3], false);
@@ -308,6 +312,29 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
           "No tablets should need attention");
 
+      // Bring the table back online to re-confirm that it needs splitting. Introduce some errors
+      // into the metadata table.
+      client.tableOperations().online(tables[3]);
+      tabletMgmtParams = createParameters(client);
+      expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
+      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+          "Should have one tablet that needs splitting");
+      
+      //insert an errant entry into the metadata between tables 2 and 3.
+      try (TabletsMutatorImpl mut = new TabletsMutatorImpl(getServerContext(), (dl) -> metaCopy6)) {
+        KeyExtent nonExistantTable = new KeyExtent(TableId.of(tableId2.canonical() + "1"), null, null);
+        TabletMutator tm = mut.mutateTablet(nonExistantTable);
+        tm.putLocation(Location.current("fakeServer", "fakeSession"));
+        tm.automaticallyPutServerLock(false);
+        tm.mutate();
+      }
+      tabletMgmtParams = createParameters(client);
+      expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
+      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+          "Should have one tablet that needs splitting");      
+      
+      client.createScanner(metaCopy6).forEach((k,v) -> System.out.println(k + " -> " + v));
+      
       // clean up
       dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5,
           metaCopy6);
@@ -355,19 +382,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         new Value(new DataFileValue(1000000, 100000, 0).encode()));
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
-    }
-    try {
-      client.createScanner(table).iterator()
-          .forEachRemaining(e -> System.out.println(e.getKey() + "-> " + e.getValue()));
-    } catch (TableNotFoundException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (AccumuloSecurityException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
-    } catch (AccumuloException e) {
-      // TODO Auto-generated catch block
-      e.printStackTrace();
     }
   }
 
