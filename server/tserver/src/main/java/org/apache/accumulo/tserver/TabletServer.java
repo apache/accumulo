@@ -481,7 +481,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     TProcessor processor =
         ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
-    startServer(getBindAddress().toString(), processor);
+    startServer(getBindAddress(), processor);
   }
 
   @Override
@@ -774,8 +774,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   public TServerInstance getTabletSession() {
-    String address = getAdvertiseAddress().toString();
-    if (address == null) {
+    if (getAdvertiseAddress() == null) {
       return null;
     }
     if (lockSessionId == -1) {
@@ -783,7 +782,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      return new TServerInstance(address, lockSessionId);
+      return new TServerInstance(getAdvertiseAddress().toString(), lockSessionId);
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;
@@ -893,7 +892,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.lastContact = RelativeTime.currentTimeMillis();
     result.tableMap = tables;
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-    result.name = getAdvertiseAddress().toString();
+    result.name = String.valueOf(getAdvertiseAddress());
     result.holdTime = resourceManager.holdTime();
     result.lookups = seekCount.get();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();

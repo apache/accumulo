@@ -79,8 +79,8 @@ public abstract class AbstractServer
   private final ServerContext context;
   protected final String applicationName;
   private volatile ServerAddress thriftServer;
-  private volatile HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g.
-                                                 // ZK, metadata, etc).
+  private final AtomicReference<HostAndPort> advertiseAddress; // used for everything but the Thrift
+                                                               // server (e.g. ZK, metadata, etc).
   private final String bindAddress; // used for the Thrift server
   private final String resourceGroup;
   private final Logger log;
@@ -112,9 +112,9 @@ public abstract class AbstractServer
       if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
-      advertiseAddress = advertHP;
+      advertiseAddress = new AtomicReference<>(advertHP);
     } else {
-      advertiseAddress = null;
+      advertiseAddress = new AtomicReference<>();
     }
     log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
@@ -302,7 +302,7 @@ public abstract class AbstractServer
   }
 
   public HostAndPort getAdvertiseAddress() {
-    return advertiseAddress;
+    return advertiseAddress.get();
   }
 
   public String getBindAddress() {
@@ -320,12 +320,13 @@ public abstract class AbstractServer
     return thriftServer;
   }
 
-  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
-    if (advertiseAddress == null) {
-      advertiseAddress = thriftBindAddress;
-    } else if (!advertiseAddress.hasPort()) {
-      advertiseAddress =
-          HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
+  protected synchronized void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    final HostAndPort address = advertiseAddress.get();
+    if (address == null) {
+      advertiseAddress.compareAndSet(address, thriftBindAddress);
+    } else if (!address.hasPort()) {
+      advertiseAddress.compareAndSet(address,
+          HostAndPort.fromParts(address.getHost(), thriftBindAddress.getPort()));
     }
   }
 
@@ -334,7 +335,7 @@ public abstract class AbstractServer
     thriftServer = supplier.get();
     if (start) {
       thriftServer.startThriftServer("Thrift Client Server");
-      log.debug("Starting {} listening on {}", this.getClass().getSimpleName(),
+      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
           thriftServer.address);
     }
     updateAdvertiseAddress(thriftServer.address);
