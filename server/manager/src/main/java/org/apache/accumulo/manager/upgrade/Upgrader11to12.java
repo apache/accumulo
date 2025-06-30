@@ -63,6 +63,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.schema.Section;
@@ -97,8 +98,8 @@ public class Upgrader11to12 implements Upgrader {
       List.of(new Range("~sserv", "~sserx"), new Range("~scanref", "~scanreg"));
 
   @VisibleForTesting
-  static final Set<Text> UPGRADE_FAMILIES =
-      Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
+  static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
+      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
 
   private static final String ZTRACERS = "/tracers";
 
@@ -268,6 +269,10 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
+        } else if (family.equals(ScanFileColumnFamily.NAME)) {
+          log.debug("Deleting scan reference from:{}. Ref: {}", tableName, key.getRow());
+          update.at().family(ScanFileColumnFamily.NAME).qualifier(key.getColumnQualifier())
+              .delete();
         } else if (family.equals(CHOPPED)) {
           log.warn(
               "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",

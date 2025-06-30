@@ -26,8 +26,8 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.shell.Shell;
-import org.apache.accumulo.test.shell.ShellIT_SimpleSuite.StringInputStream;
-import org.apache.accumulo.test.shell.ShellIT_SimpleSuite.TestOutputStream;
+import org.apache.accumulo.test.shell.ShellIT.StringInputStream;
+import org.apache.accumulo.test.shell.ShellIT.TestOutputStream;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
 import org.jline.terminal.Size;

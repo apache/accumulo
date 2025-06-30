@@ -29,7 +29,6 @@ import static org.apache.accumulo.minicluster.ServerType.ZOOKEEPER;
 import java.io.File;
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.HashMap;
