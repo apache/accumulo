@@ -36,7 +36,7 @@ public interface TabletId extends Comparable<TabletId> {
    *
    * @param tableId the ID for a table
    * @param endRow the last row in this tablet, or null if this is the last tablet in this table
-   * @param prevEndRow he last row in the immediately preceding tablet for the table, or null if
+   * @param prevEndRow the last row in the immediately preceding tablet for the table, or null if
    *        this represents the first tablet in this table
    * @return Return the new {@link TabletId} object
    * @since 2.1.4
