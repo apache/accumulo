@@ -376,8 +376,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "Should have one tablet that needs splitting");
 
-      client.createScanner(metaCopy6).forEach((k, v) -> System.out.println(k + " -> " + v));
-
       // clean up
       dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5,
           metaCopy6);
