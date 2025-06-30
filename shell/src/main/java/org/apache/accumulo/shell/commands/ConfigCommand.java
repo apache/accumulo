@@ -101,7 +101,7 @@ public class ConfigCommand extends Command {
       throw new NamespaceNotFoundException(null, namespace, null);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
-      // delete property from table
+      // delete property from table, namespace, or system
       String property = cl.getOptionValue(deleteOpt.getOpt());
       if (property.contains("=")) {
         throw new BadArgumentException("Invalid '=' operator in delete operation.", fullCommand,
@@ -126,10 +126,10 @@ public class ConfigCommand extends Command {
           Shell.log.warn(invalidTablePropFormatString, property);
         }
         shellState.getAccumuloClient().instanceOperations().removeProperty(property);
-        Shell.log.debug("Successfully deleted system configuration option.");
+        logSysPropChanged(Property.getPropertyByKey(property), "deleted");
       }
     } else if (cl.hasOption(setOpt.getOpt())) {
-      // set property on table
+      // set property on table, namespace, or system
       String property = cl.getOptionValue(setOpt.getOpt());
       String value;
       if (!property.contains("=")) {
@@ -178,7 +178,7 @@ public class ConfigCommand extends Command {
               fullCommand.indexOf(property));
         }
         shellState.getAccumuloClient().instanceOperations().setProperty(property, value);
-        Shell.log.debug("Successfully set system configuration option.");
+        logSysPropChanged(theProp, "set");
       }
     } else {
       boolean warned = false;
@@ -411,7 +411,7 @@ public class ConfigCommand extends Command {
 
   @Override
   public String description() {
-    return "prints system properties and table specific properties";
+    return "prints table specific, namespace specific, and system properties";
   }
 
   @Override
@@ -422,8 +422,9 @@ public class ConfigCommand extends Command {
 
     tableOpt = new Option(ShellOptions.tableOption, "table", true,
         "table to display/set/delete properties for");
-    deleteOpt = new Option("d", "delete", true, "delete a per-table property");
-    setOpt = new Option("s", "set", true, "set a per-table property");
+    deleteOpt =
+        new Option("d", "delete", true, "delete a per-table, per-namespace, or system property");
+    setOpt = new Option("s", "set", true, "set a per-table, per-namespace, or system property");
     forceOpt = new Option("force", "force", false,
         "used with set to set a deprecated property without asking");
     showExpOpt = new Option("show", "show-exp", false, "also show experimental properties");
@@ -466,6 +467,15 @@ public class ConfigCommand extends Command {
   @Override
   public int numArgs() {
     return 0;
+  }
+
+  private void logSysPropChanged(Property prop, String setOrDeleted) {
+    if (Property.isFixedZooPropertyKey(prop)) {
+      Shell.log.warn("Successfully {} a fixed system configuration option. Change will not "
+          + "take effect until related processes are restarted.", setOrDeleted);
+    } else {
+      Shell.log.debug("Successfully {} system configuration option.", setOrDeleted);
+    }
   }
 
 }

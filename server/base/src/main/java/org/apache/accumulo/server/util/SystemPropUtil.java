@@ -63,7 +63,8 @@ public class SystemPropUtil {
     removePropWithoutDeprecationWarning(context, resolved);
   }
 
-  public static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
+  private static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
+    logIfFixed(property, null);
     context.getPropStore().removeProperties(SystemPropKey.of(context), List.of(property));
   }
 
@@ -95,21 +96,36 @@ public class SystemPropUtil {
     // Find the property taking prefix into account
     Property foundProp = null;
     for (Property prop : Property.values()) {
-      if (prop.getType() == PropertyType.PREFIX && property.startsWith(prop.getKey())
+      if ((prop.getType() == PropertyType.PREFIX && property.startsWith(prop.getKey()))
           || prop.getKey().equals(property)) {
         foundProp = prop;
         break;
       }
     }
 
-    if ((foundProp == null || (foundProp.getType() != PropertyType.PREFIX
-        && !foundProp.getType().isValidFormat(value)))) {
+    if (foundProp == null || (foundProp.getType() != PropertyType.PREFIX
+        && !foundProp.getType().isValidFormat(value))) {
       IllegalArgumentException iae = new IllegalArgumentException(
           "Ignoring property " + property + " it is either null or in an invalid format");
       log.trace("Attempted to set zookeeper property.  Value is either null or invalid", iae);
       throw iae;
     }
 
+    logIfFixed(property, value);
+
     return property;
+  }
+
+  /**
+   * Done as a last step before the property is finally changed (e.g., after validation). If the
+   * property is fixed, logs a warning that the property change will not take effect until related
+   * processes are restarted.
+   */
+  private static void logIfFixed(String property, String value) {
+    if (Property.isFixedZooPropertyKey(Property.getPropertyByKey(property))) {
+      String s = value == null ? String.format("Removing a fixed property %s. ", property)
+          : String.format("Setting a fixed property %s to value %s. ", property, value);
+      log.warn(s + "Change will not take effect until related processes are restarted.");
+    }
   }
 }
