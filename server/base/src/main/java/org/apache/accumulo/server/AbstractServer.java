@@ -323,7 +323,7 @@ public abstract class AbstractServer
   protected synchronized void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
     final HostAndPort address = advertiseAddress.get();
     if (address == null) {
-      advertiseAddress.compareAndSet(address, thriftBindAddress);
+      advertiseAddress.compareAndSet(null, thriftBindAddress);
     } else if (!address.hasPort()) {
       advertiseAddress.compareAndSet(address,
           HostAndPort.fromParts(address.getHost(), thriftBindAddress.getPort()));
