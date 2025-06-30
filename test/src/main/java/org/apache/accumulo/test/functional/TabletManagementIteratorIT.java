@@ -24,6 +24,7 @@ import static org.apache.accumulo.core.manager.state.TabletManagement.Management
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_SPLITTING;
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_VOLUME_REPLACEMENT;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
@@ -168,15 +169,16 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
 
       TabletManagementParameters tabletMgmtParams = createParameters(client);
       Map<KeyExtent,Set<TabletManagement.ManagementAction>> tabletsInFlux =
-          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
+          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false);
       while (!tabletsInFlux.isEmpty()) {
         log.debug("Waiting for {} tablets for {}", tabletsInFlux, metaCopy1);
         UtilWaitThread.sleep(500);
         copyTable(client, SystemTables.METADATA.tableName(), metaCopy1);
-        tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams);
+        tabletsInFlux = findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false);
       }
       expected = Map.of();
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false),
           "No tables should need attention");
 
       // The metadata table stabilized and metaCopy1 contains a copy suitable for testing. Before
@@ -194,7 +196,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       tabletMgmtParams = createParameters(client);
       expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE), prevR1, Set.of(NEEDS_LOCATION_UPDATE),
           endR3, Set.of(NEEDS_LOCATION_UPDATE), prevR3, Set.of(NEEDS_LOCATION_UPDATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false),
           "Should have four tablets with hosting availability changes");
 
       // test continue scan functionality, this test needs a table and tablet mgmt params that will
@@ -205,36 +208,42 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       removeLocation(client, metaCopy1, t3);
       expected =
           Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE), prevR1, Set.of(NEEDS_LOCATION_UPDATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false),
           "Should have two tablets without a loc");
 
       // Test setting the operation id on one of the tablets in table t1. Table t1 has two tablets
       // w/o a location. Only one should need attention because of the operation id.
       setOperationId(client, metaCopy1, t1, new Text("some split"), TabletOperationType.SPLITTING);
       expected = Map.of(prevR1, Set.of(NEEDS_LOCATION_UPDATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy1, tabletMgmtParams, false),
           "Should have tablets needing attention because of operation id");
 
       // test the cases where the assignment is to a dead tserver
       reassignLocation(client, metaCopy2, t3);
       expected = Map.of(endR3, Set.of(NEEDS_LOCATION_UPDATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy2, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy2, tabletMgmtParams, false),
           "Only 1 of 2 tablets in table t1 should be returned");
 
       // Test the recovery cases
       createLogEntry(client, metaCopy5, t1);
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.UNHOSTED.name());
       expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams, false),
           "Only 1 of 2 tablets in table t1 should be returned");
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.ONDEMAND.name());
       expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams, false),
           "Only 1 of 2 tablets in table t1 should be returned");
       setTabletAvailability(client, metaCopy5, t1, TabletAvailability.HOSTED.name());
       expected = Map.of(endR1, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY), prevR1,
           Set.of(NEEDS_LOCATION_UPDATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy5, tabletMgmtParams, false),
           "2 tablets in table t1 should be returned");
 
       // Remove location and set merge operation id on both tablets
@@ -243,16 +252,19 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       removeLocation(client, metaCopy4, t4);
       expected =
           Map.of(endR4, Set.of(NEEDS_LOCATION_UPDATE), prevR4, Set.of(NEEDS_LOCATION_UPDATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Tablets have no location and a tablet availability of hosted, so they should need attention");
 
       // Test MERGING and SPLITTING do not need attention with no location or wals
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       expected = Map.of();
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Should have no tablets needing attention for merge as they have no location");
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.SPLITTING);
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Should have no tablets needing attention for merge as they have no location");
 
       // Create a log entry for one of the tablets, this tablet will now need attention
@@ -260,24 +272,28 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.MERGING);
       createLogEntry(client, metaCopy4, t4);
       expected = Map.of(endR4, Set.of(NEEDS_LOCATION_UPDATE, NEEDS_RECOVERY));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Should have a tablet needing attention because of wals");
       // Switch op to SPLITTING which should also need attention like MERGING
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.SPLITTING);
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Should have a tablet needing attention because of wals");
 
       // Switch op to delete, no tablets should need attention even with WALs
       setOperationId(client, metaCopy4, t4, null, TabletOperationType.DELETING);
       expected = Map.of();
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Should have no tablets needing attention for delete");
 
       // test the bad tablet location state case (inconsistent metadata)
       tabletMgmtParams = createParameters(client);
       addDuplicateLocation(client, metaCopy3, t3);
       expected = Map.of(prevR3, Set.of(NEEDS_LOCATION_UPDATE, BAD_STATE));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy3, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy3, tabletMgmtParams, false),
           "Should have 1 tablet that needs a metadata repair");
 
       // test the volume replacements case. Need to insert some files into
@@ -288,28 +304,32 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           Map.of(new Path("file:/vol1/accumulo/inst_id"), new Path("file:/vol2/accumulo/inst_id"));
       tabletMgmtParams = createParameters(client, replacements);
       expected = Map.of(prevR4, Set.of(NEEDS_VOLUME_REPLACEMENT));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy4, tabletMgmtParams, false),
           "Should have one tablet that needs a volume replacement");
 
       // In preparation for split an offline testing ensure nothing needs attention
       tabletMgmtParams = createParameters(client);
       addFiles(client, metaCopy6, t4);
       expected = Map.of();
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "No tablets should need attention");
       // Lower the split threshold for the table, should cause the files added to need attention.
       client.tableOperations().setProperty(tables[3], Property.TABLE_SPLIT_THRESHOLD.getKey(),
           "1K");
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "Should have one tablet that needs splitting");
-      
+
       // Take the table offline which should prevent the tablet from being returned for needing to
       // split
       client.tableOperations().offline(tables[3], false);
       tabletMgmtParams = createParameters(client);
       expected = Map.of();
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "No tablets should need attention");
 
       // Bring the table back online to re-confirm that it needs splitting. Introduce some errors
@@ -317,24 +337,47 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       client.tableOperations().online(tables[3]);
       tabletMgmtParams = createParameters(client);
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "Should have one tablet that needs splitting");
-      
-      //insert an errant entry into the metadata between tables 2 and 3.
+
+      // insert an errant entry into the metadata between tables 1 and 2.
+      TableId badTableId = TableId.of(tableId2.canonical() + "1");
       try (TabletsMutatorImpl mut = new TabletsMutatorImpl(getServerContext(), (dl) -> metaCopy6)) {
-        KeyExtent nonExistantTable = new KeyExtent(TableId.of(tableId2.canonical() + "1"), null, null);
+        KeyExtent nonExistantTable = new KeyExtent(badTableId, null, null);
         TabletMutator tm = mut.mutateTablet(nonExistantTable);
         tm.putLocation(Location.current("fakeServer", "fakeSession"));
         tm.automaticallyPutServerLock(false);
         tm.mutate();
       }
+      IllegalStateException ise = assertThrows(IllegalStateException.class,
+          () -> findTabletsNeedingAttention(client, metaCopy6, createParameters(client), false));
+      assertEquals("No prev endrow seen.  tableId: " + badTableId + " endrow: null",
+          ise.getMessage());
+
+      // with errors suppressed, should return prior state
       tabletMgmtParams = createParameters(client);
       expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
-      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams),
-          "Should have one tablet that needs splitting");      
-      
-      client.createScanner(metaCopy6).forEach((k,v) -> System.out.println(k + " -> " + v));
-      
+      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, true),
+          "Should have one tablet that needs splitting");
+
+      // Remove the errant entry
+      try (TabletsMutatorImpl mut = new TabletsMutatorImpl(getServerContext(), (dl) -> metaCopy6)) {
+        KeyExtent nonExistantTable = new KeyExtent(badTableId, null, null);
+        TabletMutator tm = mut.mutateTablet(nonExistantTable);
+        tm.deleteLocation(Location.current("fakeServer", "fakeSession"));
+        tm.automaticallyPutServerLock(false);
+        tm.mutate();
+      }
+      // should return prior state without error suppression
+      tabletMgmtParams = createParameters(client);
+      expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
+      assertEquals(expected,
+          findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
+          "Should have one tablet that needs splitting");
+
+      client.createScanner(metaCopy6).forEach((k, v) -> System.out.println(k + " -> " + v));
+
       // clean up
       dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5,
           metaCopy6);
@@ -441,8 +484,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   }
 
   private Map<KeyExtent,Set<TabletManagement.ManagementAction>> findTabletsNeedingAttention(
-      AccumuloClient client, String table, TabletManagementParameters tabletMgmtParams)
-      throws TableNotFoundException, IOException {
+      AccumuloClient client, String table, TabletManagementParameters tabletMgmtParams,
+      boolean suppressErrors) throws TableNotFoundException, IOException {
     Map<KeyExtent,Set<TabletManagement.ManagementAction>> results = new HashMap<>();
     List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
@@ -451,6 +494,16 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
           TabletManagement mti = TabletManagementIterator.decode(e);
+
+          if (mti.getErrorMessage() != null) {
+            if (suppressErrors) {
+              // just skip this tablet metadata entry
+              continue;
+            } else {
+              throw new IllegalStateException(mti.getErrorMessage());
+            }
+          }
+
           results.put(mti.getTabletMetadata().getExtent(), mti.getActions());
           log.debug("Found tablets that changed state: {}", mti.getTabletMetadata().getExtent());
           log.debug("actions : {}", mti.getActions());

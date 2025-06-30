@@ -239,7 +239,8 @@ public class TabletManagementIterator extends WholeRowIterator {
     try {
       tm = TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
     } catch (RuntimeException e) {
-      LOG.error("Failed to convert tablet metadata at row: {}", keys.get(0) == null ? "no key" : keys.get(0).getRow(), e);
+      LOG.error("Failed to convert tablet metadata at row: {}",
+          keys.get(0) == null ? "no key" : keys.get(0).getRow(), e);
       error = e;
     }
     if (error == null) {

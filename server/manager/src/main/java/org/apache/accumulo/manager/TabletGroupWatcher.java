@@ -474,9 +474,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
       if (mtiError != null) {
         // An error happened on the TabletServer in the TabletManagementIterator
         // when trying to process this extent.
+        KeyExtent ke = null;
+        try {
+          ke = tm.getExtent();
+        } catch (IllegalStateException e) {
+          // thrown when no prev endrow in tablet metadata.
+          // suppress this exception and leave ke set to null
+        }
+        String errorLocation = ke == null ? " table: " + tm.getTableId() : " extent: " + ke;
         LOG.warn(
-            "Error on TabletServer trying to get Tablet management information for extent: {}. Error message: {}",
-            tm.getExtent(), mtiError);
+            "Error on TabletServer trying to get Tablet management information for {}. Error message: {}",
+            errorLocation, mtiError);
         this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
         tableMgmtStats.tabletsWithErrors++;
         continue;
