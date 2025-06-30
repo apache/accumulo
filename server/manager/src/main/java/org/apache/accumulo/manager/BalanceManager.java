@@ -318,14 +318,17 @@ class BalanceManager {
         snapshot.put(dl, lastRunInfo.get(dl).runCount);
       }
 
+      log.trace("waitForBalance levels:{} snapshot:{}", levels, snapshot);
+
       while (!snapshot.isEmpty()) {
-        log.trace("waitForBalance levels:{} snapshot:{}  lastRunInfo:{}", levels, snapshot,
-            lastRunInfo);
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
+
+        log.trace("waitForBalance levels:{} snapshot:{}  lastRunInfo:{}", levels, snapshot,
+            lastRunInfo);
 
         snapshot.entrySet().removeIf(entry -> {
           var dataLevel = entry.getKey();
@@ -341,6 +344,12 @@ class BalanceManager {
 
   void waitForBalance() {
     waitForBalance(EnumSet.allOf(Ample.DataLevel.class));
+    int unassigned = getManager().displayUnassigned();
+    while (unassigned > 0) {
+      log.debug("displayUnassigned():{}", unassigned);
+      UtilWaitThread.sleep(50);
+      unassigned = getManager().displayUnassigned();
+    }
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,

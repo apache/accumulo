@@ -115,8 +115,9 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
           int diff = Math.abs(counts.get(0) - counts.get(i));
           log.info(" Counts: {}", counts);
           if (diff > tservers.size()) {
-            log.info("Difference in tablets between tservers is greater than expected. Counts: {}",
-                counts);
+            log.info(
+                "Difference in tablets between tservers is greater than expected. Counts: {} tsevers:{}",
+                counts, tservers.size());
             return false;
           }
         }
