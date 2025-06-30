@@ -31,7 +31,7 @@ public interface TabletId extends Comparable<TabletId> {
 
   /**
    * Return a TabletId object for the provided TableId in range of (prevEndRow, endRow]. If the
-   * parameters endRow and/or prevEndRow are null, they represent a tablet over the range of -inf
+   * parameters prevEndRow and/or endRow are null, they represent a tablet over the range of -inf
    * and/or inf respectively.
    *
    * @param tableId the ID for a table
