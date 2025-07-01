@@ -113,9 +113,9 @@ public class LoggingMeterRegistryFactory implements MeterRegistryFactory {
    * This function uses terms specified in the patternList parameter to filter out specific metrics
    * that the user doesn't want.
    *
-   * @param patternList, a delimited set of terms that will filter out meters that start with any
+   * @param patternList a delimited set of terms that will filter out meters that start with any
    *        one of those terms.
-   * @param delimiter, that contains either a user specified delimiter, or the default comma
+   * @param delimiter that contains either a user specified delimiter, or the default comma
    *        delimiter to split the patternList.
    * @return a predicate with the type of MeterFilter, that describes which metrics to deny and
    *         subsequently filter out.

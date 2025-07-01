@@ -19,13 +19,13 @@
 package org.apache.accumulo.core.spi.metrics;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.Meter;
@@ -75,7 +75,7 @@ class LoggingMeterRegistryFactoryTest {
     reg.timer("ProperTimer", "tag1", "tag2");
 
     List<Meter> meterReg = reg.getMeters(); // Does this only contain ProperTimer? Yes
-    Assertions.assertEquals("ProperTimer", meterReg.get(0).getId().getName());
+    assertEquals("ProperTimer", meterReg.get(0).getId().getName());
   }
 
   /**
@@ -123,7 +123,7 @@ class LoggingMeterRegistryFactoryTest {
     for (Meter m : meterReg) {
       allMeters.append(m.getId().getName());
     }
-    Assertions.assertEquals("TimerFoo", allMeters.toString());
+    assertEquals("TimerFoo", allMeters.toString());
   }
 
   /**
@@ -143,7 +143,7 @@ class LoggingMeterRegistryFactoryTest {
       allMeters.append(m.getId().getName());
     }
 
-    Assertions.assertEquals("", allMeters.toString());
+    assertEquals("", allMeters.toString());
   }
 
   /**
@@ -161,7 +161,7 @@ class LoggingMeterRegistryFactoryTest {
     for (Meter m : meterReg) {
       allMeters.append(m.getId().getName());
     }
-    Assertions.assertEquals("FooTimer", allMeters.toString());
+    assertEquals("FooTimer", allMeters.toString());
   }
 
 }
