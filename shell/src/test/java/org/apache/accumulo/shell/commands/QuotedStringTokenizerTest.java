@@ -20,6 +20,7 @@ package org.apache.accumulo.shell.commands;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
@@ -58,11 +59,28 @@ public class QuotedStringTokenizerTest {
     testTokens(input, List.of("createtable", "test", "-l", "locg1=fam1,fam2"));
   }
 
+  @Test
+  public void testCharEscaping() {
+    String input = "config -s general.custom.hexprop=\\x56 -force";
+    testTokens(input, List.of("config", "-s", "general.custom.hexprop=V", "-force"));
+
+    input = "config -s general.custom.spaceprop=hello\\ world -force";
+    testTokens(input, List.of("config", "-s", "general.custom.spaceprop=hello world", "-force"));
+
+    input = "config -s general.custom.singlequoteprop=things\\ like\\ \\'hello\\'\\ world -force";
+    testTokens(input, List.of("config", "-s",
+        "general.custom.singlequoteprop=things like 'hello' world", "-force"));
+
+    input = "config -s general.custom.doublequoteprop=things\\ like\\ \"hello\"\\ world -force";
+    testTokens(input, List.of("config", "-s",
+        "general.custom.doublequoteprop=things like \"hello\" world", "-force"));
+  }
+
   private void testTokens(String input, List<String> expectedTokens) {
     QuotedStringTokenizer tokenizer = new QuotedStringTokenizer(input);
     String[] tokens = tokenizer.getTokens();
     assertArrayEquals(expectedTokens.toArray(), tokens,
-        "Generated tokens do not match expected values");
+        "Generated tokens do not match expected values: " + Arrays.toString(tokens));
   }
 
 }

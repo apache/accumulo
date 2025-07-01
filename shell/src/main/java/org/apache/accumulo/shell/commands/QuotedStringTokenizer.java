@@ -111,7 +111,9 @@ public class QuotedStringTokenizer implements Iterable<String> {
           token[tokenLength++] = inputBytes[i];
         }
       } else if (inValue) {
-        if (ch != ' ') {
+        if (ch == '\\') {
+          inEscapeSequence = true;
+        } else if (ch != ' ') {
           token[tokenLength++] = inputBytes[i];
         } else {
           inValue = false;
