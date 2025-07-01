@@ -67,17 +67,22 @@ public class QuotedStringTokenizer implements Iterable<String> {
     for (int i = 0; i < input.length(); ++i) {
       final char ch = input.charAt(i);
 
-      // if I ended up in an escape sequence, check for valid escapable character, and add it as a
-      // literal
       if (inEscapeSequence) {
         inEscapeSequence = false;
-        if (ch == 'x') {
-          hexChars = "";
-        } else if (ch == ' ' || ch == '\'' || ch == '"' || ch == '\\') {
-          token[tokenLength++] = inputBytes[i];
-        } else {
-          throw new BadArgumentException("can only escape single quotes, double"
-              + " quotes, the space character, the backslash, and hex input", input, i);
+        // check for a valid escapable character and add it as a literal
+        switch (ch) {
+          case 'x':
+            hexChars = "";
+            break;
+          case ' ':
+          case '\'':
+          case '"':
+          case '\\':
+            token[tokenLength++] = inputBytes[i];
+            break;
+          default:
+            throw new BadArgumentException("can only escape single quotes, double"
+                + " quotes, the space character, the backslash, and hex input", input, i);
         }
       } else if (hexChars != null) {
         // in a hex escape sequence
@@ -111,34 +116,53 @@ public class QuotedStringTokenizer implements Iterable<String> {
           token[tokenLength++] = inputBytes[i];
         }
       } else if (inValue) {
-        if (ch == '\\') {
-          inEscapeSequence = true;
-        } else if (ch != ' ') {
-          token[tokenLength++] = inputBytes[i];
-        } else {
-          inValue = false;
-          tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
-          tokenLength = 0;
-        }
-      } else {
-        if (ch == '=') {
-          inValue = true;
-        }
-        // not in a quote, either enter a quote, end a token, start escape, or continue a token
-        if (ch == '\'' || ch == '"') {
-          if (tokenLength > 0) {
+        switch (ch) {
+          case '\\':
+            // start escape sequence
+            inEscapeSequence = true;
+            break;
+          case ' ':
+            // end current token
+            inValue = false;
             tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
             tokenLength = 0;
-          }
-          inQuote = true;
-          inQuoteChar = ch;
-        } else if (ch == ' ' && tokenLength > 0) {
-          tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
-          tokenLength = 0;
-        } else if (ch == '\\') {
-          inEscapeSequence = true;
-        } else if (ch != ' ') {
-          token[tokenLength++] = inputBytes[i];
+            break;
+          default:
+            // continue the current token
+            token[tokenLength++] = inputBytes[i];
+        }
+      } else {
+        switch (ch) {
+          case '=':
+            // entering a value. Include the '=' char in the token
+            inValue = true;
+            token[tokenLength++] = inputBytes[i];
+            break;
+          case '\'':
+            // drop through to quote handling
+          case '"':
+            // entering a quote
+            if (tokenLength > 0) {
+              tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+              tokenLength = 0;
+            }
+            inQuote = true;
+            inQuoteChar = ch;
+            break;
+          case ' ':
+            // end a token if more input exists
+            if (tokenLength > 0) {
+              tokens.add(new String(token, 0, tokenLength, Shell.CHARSET));
+              tokenLength = 0;
+            }
+            break;
+          case ('\\'):
+            // start escape sequence
+            inEscapeSequence = true;
+            break;
+          default:
+            // continue the current token
+            token[tokenLength++] = inputBytes[i];
         }
       }
     }
