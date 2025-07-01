@@ -18,7 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 
@@ -29,33 +31,38 @@ public class QuotedStringTokenizerTest {
     String jsonProperty = "config -s tserver.compaction.major.service.meta.planner.opts.executors="
         + "[{\"name\":\"small\",\"type\":\"internal\",\"maxSize\":\"32M\",\"numThreads\":2},"
         + "{\"name\":\"huge\",\"type\":\"internal\",\"numThreads\":2}]";
-    testTokens(jsonProperty, 3);
-    
-     jsonProperty = "config -s 'tserver.compaction.major.service.meta.planner.opts.executors="
+    testTokens(jsonProperty,
+        List.of("config", "-s", "tserver.compaction.major.service.meta.planner.opts.executors="
+            + "[{\"name\":\"small\",\"type\":\"internal\",\"maxSize\":\"32M\",\"numThreads\":2},"
+            + "{\"name\":\"huge\",\"type\":\"internal\",\"numThreads\":2}]"));
+
+    jsonProperty = "config -s 'tserver.compaction.major.service.meta.planner.opts.executors="
         + "[{\"name\":\"small\",\"type\":\"internal\",\"maxSize\":\"32M\",\"numThreads\":2},"
         + "{\"name\":\"huge\",\"type\":\"internal\",\"numThreads\":2}]'";
-      testTokens(jsonProperty, 3);
+    testTokens(jsonProperty,
+        List.of("config", "-s", "tserver.compaction.major.service.meta.planner.opts.executors="
+            + "[{\"name\":\"small\",\"type\":\"internal\",\"maxSize\":\"32M\",\"numThreads\":2},"
+            + "{\"name\":\"huge\",\"type\":\"internal\",\"numThreads\":2}]"));
 
-    testTokens("config -t accumulo.root -f table.custom.test", 5);
+    testTokens("config -t accumulo.root -f table.custom.test",
+        List.of("config", "-t", "accumulo.root", "-f", "table.custom.test"));
 
     String spaceWithForceProperty = "config -s table.custom.test.property=\"test\" -force";
-    testTokens(spaceWithForceProperty, 4);
+    testTokens(spaceWithForceProperty,
+        List.of("config", "-s", "table.custom.test.property=\"test\"", "-force"));
   }
 
   @Test
   public void testTableCreate() {
     String input = "createtable test -l locg1=fam1,fam2";
-    testTokens(input, 4);
+    testTokens(input, List.of("createtable", "test", "-l", "locg1=fam1,fam2"));
   }
 
-  private void testTokens(String input, int expectedCount) {
+  private void testTokens(String input, List<String> expectedTokens) {
     QuotedStringTokenizer tokenizer = new QuotedStringTokenizer(input);
     String[] tokens = tokenizer.getTokens();
-    tokenizer.iterator().forEachRemaining(token -> {
-      System.out.println("Token:" + token);
-    });
-    assertEquals(expectedCount, tokens.length,
-        "Token count of " + tokens.length + " does not match expected value");
+    assertArrayEquals(expectedTokens.toArray(), tokens,
+        "Generated tokens do not match expected values");
   }
 
 }
