@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.server.metrics;
 
-import static java.util.Objects.requireNonNull;
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
 import java.util.ArrayList;

@@ -69,5 +69,4 @@ public interface MeterRegistryFactory {
    * @return a Micrometer registry that will be added to the metrics configuration.
    */
   MeterRegistry create(final InitParameters params);
-
 }
