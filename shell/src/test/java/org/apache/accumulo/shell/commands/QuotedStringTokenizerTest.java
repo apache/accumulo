@@ -30,6 +30,11 @@ public class QuotedStringTokenizerTest {
         + "[{\"name\":\"small\",\"type\":\"internal\",\"maxSize\":\"32M\",\"numThreads\":2},"
         + "{\"name\":\"huge\",\"type\":\"internal\",\"numThreads\":2}]";
     testTokens(jsonProperty, 3);
+    
+     jsonProperty = "config -s 'tserver.compaction.major.service.meta.planner.opts.executors="
+        + "[{\"name\":\"small\",\"type\":\"internal\",\"maxSize\":\"32M\",\"numThreads\":2},"
+        + "{\"name\":\"huge\",\"type\":\"internal\",\"numThreads\":2}]'";
+      testTokens(jsonProperty, 3);
 
     testTokens("config -t accumulo.root -f table.custom.test", 5);
 
