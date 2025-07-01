@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.spi.metrics;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
@@ -26,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import io.micrometer.core.instrument.Meter;
@@ -43,7 +43,7 @@ class LoggingMeterRegistryFactoryTest {
 
   private static class LoggingMetricsParams implements MeterRegistryFactory.InitParameters {
 
-    private Map<String,String> options;
+    private final Map<String,String> options;
 
     public LoggingMetricsParams(Map<String,String> options) {
       this.options = options;
@@ -75,7 +75,7 @@ class LoggingMeterRegistryFactoryTest {
     reg.timer("ProperTimer", "tag1", "tag2");
 
     List<Meter> meterReg = reg.getMeters(); // Does this only contain ProperTimer? Yes
-    assertEquals("ProperTimer", meterReg.get(0).getId().getName());
+    Assertions.assertEquals("ProperTimer", meterReg.get(0).getId().getName());
   }
 
   /**
@@ -96,14 +96,14 @@ class LoggingMeterRegistryFactoryTest {
     reg.counter("ProperCounter", "tag1", "tag2");
 
     List<Meter> meterReg = reg.getMeters();
-    String allMeters = "";
+    StringBuilder allMeters = new StringBuilder();
     for (Meter m : meterReg) {
-      allMeters = allMeters + m.getId().getName();
+      allMeters.append(m.getId().getName());
     }
 
-    assertFalse(allMeters.contains("Foo"));
-    assertFalse(allMeters.contains("Bar"));
-    assertFalse(allMeters.contains("Hat"));
+    assertFalse(allMeters.toString().contains("Foo"));
+    assertFalse(allMeters.toString().contains("Bar"));
+    assertFalse(allMeters.toString().contains("Hat"));
   }
 
   /**
@@ -119,11 +119,11 @@ class LoggingMeterRegistryFactoryTest {
     reg.timer("TimerFoo", "tag1", "tag2");
 
     List<Meter> meterReg = reg.getMeters();
-    String allMeters = "";
+    StringBuilder allMeters = new StringBuilder();
     for (Meter m : meterReg) {
-      allMeters = allMeters + m.getId().getName();
+      allMeters.append(m.getId().getName());
     }
-    assertEquals("TimerFoo", allMeters);
+    Assertions.assertEquals("TimerFoo", allMeters.toString());
   }
 
   /**
@@ -138,12 +138,12 @@ class LoggingMeterRegistryFactoryTest {
     reg.timer("FooTimer", "tag1", "tag2");
 
     List<Meter> meterReg = reg.getMeters();
-    String allMeters = "";
+    StringBuilder allMeters = new StringBuilder();
     for (Meter m : meterReg) {
-      allMeters = allMeters + m.getId().getName();
+      allMeters.append(m.getId().getName());
     }
 
-    assertEquals("", allMeters);
+    Assertions.assertEquals("", allMeters.toString());
   }
 
   /**
@@ -157,11 +157,11 @@ class LoggingMeterRegistryFactoryTest {
         Map.of("prop1", "abc", "logging.step", "1s", "meter.id.filters", "")));
     reg.timer("FooTimer", "tag1", "tag2");
     List<Meter> meterReg = reg.getMeters();
-    String allMeters = "";
+    StringBuilder allMeters = new StringBuilder();
     for (Meter m : meterReg) {
-      allMeters = allMeters + m.getId().getName();
+      allMeters.append(m.getId().getName());
     }
-    assertEquals("FooTimer", allMeters);
+    Assertions.assertEquals("FooTimer", allMeters.toString());
   }
 
 }
