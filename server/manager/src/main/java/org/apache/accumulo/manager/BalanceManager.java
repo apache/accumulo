@@ -456,6 +456,7 @@ class BalanceManager {
 
     @Override
     public void run() {
+      EventCoordinator.Tracker eventTracker = getManager().nextEvent.getTracker();
       while (getManager().stillManager()) {
         Span span = TraceUtil.startSpan(this.getClass(), "run::balanceTablets");
         try (Scope scope = span.makeCurrent()) {
@@ -482,7 +483,7 @@ class BalanceManager {
           }
 
           var wait = balance(tservers);
-          UtilWaitThread.sleep(wait);
+          eventTracker.waitForEvents(wait);
         } catch (Exception e) {
           TraceUtil.setException(span, e, false);
           log.error("Error balancing tablets for {} will wait for {} (seconds) and then retry ",
