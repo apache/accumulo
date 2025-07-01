@@ -50,7 +50,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
@@ -100,6 +99,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -635,7 +635,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.start(ServerType.GARBAGE_COLLECTOR);
 
     if (executor == null) {
-      executor = Executors.newSingleThreadExecutor();
+      executor = ThreadPools.getServerThreadPools().getPoolBuilder(getClass().getSimpleName())
+          .numCoreThreads(1).numMaxThreads(16).withTimeOut(1, TimeUnit.SECONDS)
+          .enableThreadPoolMetrics(false).build();
     }
 
     Set<String> groups;
