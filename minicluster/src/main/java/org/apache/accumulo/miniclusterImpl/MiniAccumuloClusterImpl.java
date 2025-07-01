@@ -39,7 +39,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -1111,18 +1110,22 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     while (!futures.isEmpty()) {
-      Iterator<Future<Integer>> iter = futures.iterator();
-      while (iter.hasNext()) {
-        Future<Integer> f = iter.next();
+      futures.removeIf(f -> {
         if (f.isDone()) {
           try {
             f.get();
           } catch (ExecutionException | InterruptedException e) {
-            log.warn("{} did not fully stop after 30 seconds", type, e);
-          } finally {
-            iter.remove();
+            log.warn("{} did not fully stop after {} seconds", type, unit.toSeconds(timeout), e);
           }
+          return true;
         }
+        return false;
+      });
+      try {
+        Thread.sleep(250);
+      } catch (InterruptedException e) {
+        log.warn("Interrupted while trying to stop " + type + " processes.");
+        Thread.currentThread().interrupt();
       }
     }
   }
