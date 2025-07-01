@@ -39,6 +39,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -1092,6 +1094,35 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @VisibleForTesting
   protected ExecutorService getShutdownExecutor() {
     return executor;
+  }
+
+  public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
+      final long timeout, final TimeUnit unit) {
+
+    final List<Future<Integer>> futures = new ArrayList<>();
+    for (Process proc : procs) {
+      futures.add(executor.submit(() -> {
+        proc.destroy();
+        proc.waitFor(timeout, unit);
+        return proc.exitValue();
+      }));
+    }
+
+    while (!futures.isEmpty()) {
+      Iterator<Future<Integer>> iter = futures.iterator();
+      while (iter.hasNext()) {
+        Future<Integer> f = iter.next();
+        if (f.isDone()) {
+          try {
+            f.get();
+          } catch (ExecutionException | InterruptedException e) {
+            log.warn("{} did not fully stop after 30 seconds", type, e);
+          } finally {
+            iter.remove();
+          }
+        }
+      }
+    }
   }
 
   public int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
