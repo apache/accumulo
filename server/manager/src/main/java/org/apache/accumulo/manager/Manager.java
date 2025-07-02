@@ -51,7 +51,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -477,7 +477,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     }
   }
 
-  protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
+  protected Manager(ConfigOpts opts,
+      BiFunction<SiteConfiguration,Optional<ServerId.Type>,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     ServerContext context = super.getContext();
