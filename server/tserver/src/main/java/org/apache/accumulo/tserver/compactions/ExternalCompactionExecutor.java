@@ -174,6 +174,11 @@ public class ExternalCompactionExecutor implements CompactionExecutor {
           var ecj = extJob.compactable.reserveExternalCompaction(extJob.csid, extJob.getJob(),
               compactorId, externalCompactionId);
           if (ecj == null) {
+            // No job could be reserved. This class will no longer have a reference to extJob
+            // however CompactionService may in its submittedJobs set. Mark the job as something
+            // other than RUNNING so that CompactionService will eventually discard it from the
+            // submitted jobs it is tracking.
+            extJob.status.compareAndSet(Status.RUNNING, Status.FAILED);
             break;
           } else {
             extJob.ecid = ecj.getExternalCompactionId();
