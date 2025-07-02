@@ -21,7 +21,6 @@ package org.apache.accumulo.manager;
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
 import static java.lang.Thread.State.NEW;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Collections.emptyMap;
 import static java.util.Collections.emptySortedMap;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
@@ -197,8 +196,56 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateRefs =
       new AtomicReference<>();
 
-  volatile SortedMap<TServerInstance,TabletServerStatus> tserverStatus = emptySortedMap();
-  volatile Map<String,Set<TServerInstance>> tServerGroupingForBalancer = emptyMap();
+  static class TServerStatus {
+    // This is the set of tservers that an attempt to gather status from was made
+    final LiveTServersSnapshot snapshot;
+    // Tihs is the set of tservers that responded to the request for status, should be a subset of
+    // snapshot
+    final SortedMap<TServerInstance,TabletServerStatus> status;
+
+    TServerStatus() {
+      this.snapshot = new LiveTServersSnapshot(Map.of(), Map.of());
+      this.status = emptySortedMap();
+    }
+
+    TServerStatus(LiveTServersSnapshot snapshot,
+        SortedMap<TServerInstance,TabletServerStatus> tserverStatus) {
+      this.snapshot = snapshot;
+      this.status = tserverStatus;
+    }
+  }
+
+  private final Object tserverStatusNtfyObj = new Object();
+  private final AtomicReference<TServerStatus> tserverStatus =
+      new AtomicReference<>(new TServerStatus());
+
+  TServerStatus getTserverStatus() {
+    return tserverStatus.get();
+  }
+
+  /**
+   * Gets the tserver status waiting for it to change. Does not wait when last is null.
+   */
+  TServerStatus getTserverStatus(TServerStatus last) {
+    synchronized (tserverStatusNtfyObj) {
+      while (last != null && tserverStatus.get() == last) {
+        try {
+          tserverStatusNtfyObj.wait();
+        } catch (InterruptedException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+      return tserverStatus.get();
+    }
+  }
+
+  void setTserverStatus(LiveTServersSnapshot snapshot,
+      SortedMap<TServerInstance,TabletServerStatus> status) {
+    synchronized (tserverStatusNtfyObj) {
+      tserverStatus.set(new TServerStatus(snapshot, status));
+      tserverStatusNtfyObj.notifyAll();
+    }
+  }
 
   final ServerBulkImportStatus bulkImportStatus = new ServerBulkImportStatus();
 
@@ -561,6 +608,28 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   }
 
+  boolean canBalance(DataLevel dataLevel, TServerStatus tServerStatus) {
+    if (!badServers.isEmpty()) {
+      log.debug("not balancing {} because the balance information is out-of-date {}", dataLevel,
+          badServers.keySet());
+      return false;
+    } else if (getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
+      log.debug("not balancing {} because the manager is attempting to stop cleanly", dataLevel);
+      return false;
+    } else if (!serversToShutdown.isEmpty()) {
+      log.debug("not balancing {} while shutting down servers {}", dataLevel, serversToShutdown);
+      return false;
+    } else {
+      for (TabletGroupWatcher tgw : watchers) {
+        if (tgw.getLevel() == dataLevel
+            && !tgw.isSameTserversAsLastScan(tServerStatus.snapshot.getTservers())) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
   private class StatusThread implements Runnable {
 
     private boolean goodStats() {
@@ -675,7 +744,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           eventTracker.waitForEvents(wait);
         } catch (Exception t) {
           TraceUtil.setException(span, t, false);
-          log.error("Error balancing tablets, will wait for {} (seconds) and then retry ",
+          log.error("Error updating status tablets, will wait for {} (seconds) and then retry ",
               WAIT_BETWEEN_ERRORS / ONE_SECOND, t);
           sleepUninterruptibly(WAIT_BETWEEN_ERRORS, MILLISECONDS);
         } finally {
@@ -686,27 +755,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     private long updateStatus() {
       var tseversSnapshot = tserverSet.getSnapshot();
-      tserverStatus = gatherTableInformation(tseversSnapshot.getTservers());
-      tServerGroupingForBalancer = tseversSnapshot.getTserverGroups();
+      var tserverStatus = gatherTableInformation(tseversSnapshot.getTservers());
+      setTserverStatus(tseversSnapshot, tserverStatus);
 
       checkForHeldServer(tserverStatus);
 
-      if (!badServers.isEmpty()) {
-        log.debug("not balancing because the balance information is out-of-date {}",
-            badServers.keySet());
-      } else if (getManagerGoalState() == ManagerGoalState.CLEAN_STOP) {
-        log.debug("not balancing because the manager is attempting to stop cleanly");
-      } else if (!serversToShutdown.isEmpty()) {
-        log.debug("not balancing while shutting down servers {}", serversToShutdown);
-      } else {
-        for (TabletGroupWatcher tgw : watchers) {
-          if (!tgw.isSameTserversAsLastScan(tseversSnapshot.getTservers())) {
-            log.debug("not balancing just yet, as collection of live tservers is in flux");
-            return DEFAULT_WAIT_FOR_WATCHER;
-          }
-        }
-        return balanceManager.balanceTablets();
-      }
       return DEFAULT_WAIT_FOR_WATCHER;
     }
 
@@ -1043,7 +1096,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         getAdvertiseAddress(), getResourceGroup()));
 
-    balanceManager.startMigrationCleanupThread();
+    balanceManager.startBackGroundTask();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
     // Don't call start the CompactionCoordinator until we have tservers and upgrade is complete.
@@ -1471,7 +1524,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     result.tServerInfo = new ArrayList<>();
     result.tableMap = new HashMap<>();
-    for (Entry<TServerInstance,TabletServerStatus> serverEntry : tserverStatus.entrySet()) {
+    for (Entry<TServerInstance,TabletServerStatus> serverEntry : getTserverStatus().status
+        .entrySet()) {
       final TabletServerStatus status = serverEntry.getValue();
       result.tServerInfo.add(status);
       for (Entry<String,TableInfo> entry : status.tableMap.entrySet()) {
