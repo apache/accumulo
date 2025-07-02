@@ -1496,8 +1496,22 @@ public class Tablet extends TabletBase {
     getScanfileManager().returnFilesForScan(scanId);
   }
 
-  public void removeOrphanedScanRefs() {
-    getScanfileManager().removeOrphanedScanRefs();
+  public void removeBatchedScanRefs() {
+    synchronized (this) {
+      if (isClosed() || isClosing()) {
+        return;
+      }
+      // return early if there are no scan files to remove
+      if (!getScanfileManager().canScanRefsBeRemoved()) {
+        return;
+      }
+      incrementWritesInProgress();
+    }
+    try {
+      getScanfileManager().removeBatchedScanRefs();
+    } finally {
+      decrementWritesInProgress();
+    }
   }
 
   TabletMemory getTabletMemory() {
