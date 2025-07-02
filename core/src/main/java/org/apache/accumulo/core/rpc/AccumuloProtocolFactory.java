@@ -20,17 +20,21 @@ package org.apache.accumulo.core.rpc;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TCompactProtocol;
 import org.apache.thrift.protocol.TMessage;
 import org.apache.thrift.protocol.TProtocol;
 import org.apache.thrift.transport.TTransport;
 
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
+
 /**
  * Factory for creating instances of the AccumuloProtocol.
  * <p>
  * This protocol includes a custom header to ensure compatibility between different versions of the
- * protocol.
+ * protocol. It also traces RPC calls.
  */
 public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
 
@@ -47,6 +51,9 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
     private final boolean isClient;
     private final InstanceId instanceId;
 
+    private Span span = null;
+    private Scope scope = null;
+
     public AccumuloProtocol(TTransport transport, InstanceId instanceId, boolean isClient) {
       super(transport);
       this.instanceId = instanceId;
@@ -58,10 +65,20 @@ public class AccumuloProtocolFactory extends TCompactProtocol.Factory {
      */
     @Override
     public void writeMessageBegin(TMessage message) throws TException {
+      span = TraceUtil.startClientRpcSpan(this.getClass(), message.name);
+      scope = span.makeCurrent();
+
       if (this.isClient) {
         this.writeClientHeader();
       }
       super.writeMessageBegin(message);
+    }
+
+    @Override
+    public void writeMessageEnd() throws TException {
+      super.writeMessageEnd();
+      scope.close();
+      span.end();
     }
 
     /**
