@@ -564,6 +564,11 @@
         <version>${version.bouncycastle}</version>
       </dependency>
       <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcutil-jdk18on</artifactId>
+        <version>${version.bouncycastle}</version>
+      </dependency>
+      <dependency>
         <groupId>org.checkerframework</groupId>
         <artifactId>checker-qual</artifactId>
         <version>3.49.2</version>
@@ -1037,6 +1042,12 @@
                 <reactorModuleConvergence />
                 <banDuplicatePomDependencyVersions />
                 <dependencyConvergence />
+                <banDynamicVersions>
+                  <ignores>
+                    <!-- ignore our own SNAPSHOT versions during development -->
+                    <ignore>org.apache.accumulo:*:${project.version}</ignore>
+                  </ignores>
+                </banDynamicVersions>
                 <bannedDependencies>
                   <excludes>
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->
