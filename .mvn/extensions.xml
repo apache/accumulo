@@ -21,8 +21,8 @@
 -->
 <extensions>
     <extension>
-        <groupId>eu.maveniverse.maven.njord</groupId>
+        <groupId>eu.maveniverse.maven.heimdall</groupId>
         <artifactId>extension3</artifactId>
-        <version>0.8.0</version>
+        <version>0.1.2</version>
     </extension>
 </extensions>
