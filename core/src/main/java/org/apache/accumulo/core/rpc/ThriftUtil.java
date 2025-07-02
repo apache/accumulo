@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.rpc.SaslConnectionParams.SaslMechanism;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.hadoop.security.UserGroupInformation;
@@ -53,7 +54,6 @@ public class ThriftUtil {
 
   private static final Logger log = LoggerFactory.getLogger(ThriftUtil.class);
 
-  private static final TraceProtocolFactory protocolFactory = new TraceProtocolFactory();
   private static final AccumuloTFramedTransportFactory transportFactory =
       new AccumuloTFramedTransportFactory(Integer.MAX_VALUE);
   private static final Map<Integer,TTransportFactory> factoryCache = new HashMap<>();
@@ -64,12 +64,35 @@ public class ThriftUtil {
   private static final int RELOGIN_MAX_BACKOFF = 5000;
 
   /**
-   * An instance of {@link TraceProtocolFactory}
+   * Returns the client-side Accumulo protocol factory used for RPC.
+   * <p>
+   * This protocol factory creates protocol instances that:
+   * <ul>
+   * <li>Prepend a custom header with magic number and protocol version</li>
+   * <li>Support tracing context propagation</li>
+   * <li>Handle client-side span creation and management</li>
+   * </ul>
    *
-   * @return The default Thrift TProtocolFactory for RPC
+   * @return The client-side Accumulo TProtocolFactory for RPC
    */
-  public static TProtocolFactory protocolFactory() {
-    return protocolFactory;
+  public static TProtocolFactory clientProtocolFactory(InstanceId instanceId) {
+    return AccumuloProtocolFactory.clientFactory(instanceId);
+  }
+
+  /**
+   * Returns the server-side Accumulo protocol factory used for RPC.
+   * <p>
+   * This protocol factory creates protocol instances that:
+   * <ul>
+   * <li>Validate the custom header (magic number and protocol version)</li>
+   * <li>Extract OpenTelemetry trace context from incoming requests</li>
+   * <li>Create server-side spans for request handling</li>
+   * </ul>
+   *
+   * @return The server-side {@link AccumuloProtocolFactory.AccumuloProtocol} for RPC
+   */
+  public static TProtocolFactory serverProtocolFactory(InstanceId instanceId) {
+    return AccumuloProtocolFactory.serverFactory(instanceId);
   }
 
   /**
@@ -85,8 +108,8 @@ public class ThriftUtil {
    * Create a Thrift client using the given factory and transport
    */
   public static <T extends TServiceClient> T createClient(ThriftClientTypes<T> type,
-      TTransport transport) {
-    return type.getClient(protocolFactory.getProtocol(transport));
+      TTransport transport, InstanceId instanceId) {
+    return type.getClient(clientProtocolFactory(instanceId).getProtocol(transport));
   }
 
   /**
@@ -114,7 +137,7 @@ public class ThriftUtil {
       HostAndPort address, ClientContext context) throws TTransportException {
     TTransport transport = context.getTransportPool().getTransport(type, address,
         context.getClientTimeoutInMillis(), context, true);
-    return createClient(type, transport);
+    return createClient(type, transport, context.getInstanceID());
   }
 
   /**
@@ -130,7 +153,7 @@ public class ThriftUtil {
       HostAndPort address, ClientContext context, long timeout) throws TTransportException {
     TTransport transport =
         context.getTransportPool().getTransport(type, address, timeout, context, true);
-    return createClient(type, transport);
+    return createClient(type, transport, context.getInstanceID());
   }
 
   public static void close(TServiceClient client, ClientContext context) {
