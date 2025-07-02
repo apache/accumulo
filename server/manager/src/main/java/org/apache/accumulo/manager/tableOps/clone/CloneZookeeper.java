@@ -46,8 +46,8 @@ class CloneZookeeper extends ManagerRepo {
       val += Utils.reserveNamespace(environment, cloneInfo.getNamespaceId(), fateId, LockType.READ,
           true, TableOperation.CLONE);
     }
-    val += Utils.reserveTable(environment, cloneInfo.getTableId(), fateId, LockType.WRITE, false,
-        TableOperation.CLONE);
+    val += Utils.reserveTable(environment, cloneInfo.getTableId(), cloneInfo.getNamespaceId(),
+        fateId, LockType.WRITE, false, TableOperation.CLONE);
     return val;
   }
 
@@ -60,8 +60,8 @@ class CloneZookeeper extends ManagerRepo {
       context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
           cloneInfo.getTableName(), TableOperation.CLONE);
       environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
-          cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
-          cloneInfo.getPropertiesToExclude());
+          cloneInfo.getTableName(), cloneInfo.getSrcNamespaceId(), cloneInfo.getNamespaceId(),
+          cloneInfo.getPropertiesToSet(), cloneInfo.getPropertiesToExclude());
       context.clearTableListCache();
 
       return new CloneMetadata(cloneInfo);
