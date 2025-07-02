@@ -719,7 +719,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     // Get the current status for the current list of tservers
     final SortedMap<TServerInstance,TabletServerStatus> currentTServers = new TreeMap<>();
     for (TServerInstance entry : onlineTservers) {
-      currentTServers.put(entry, manager.tserverStatus.get(entry));
+      currentTServers.put(entry, manager.getTserverStatus().status.get(entry));
     }
     return currentTServers;
   }
