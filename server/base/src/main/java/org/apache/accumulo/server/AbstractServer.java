@@ -116,7 +116,7 @@ public abstract class AbstractServer
     } else {
       advertiseAddress = new AtomicReference<>();
     }
-    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
+    log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
@@ -323,10 +323,9 @@ public abstract class AbstractServer
   protected synchronized void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
     final HostAndPort address = advertiseAddress.get();
     if (address == null) {
-      advertiseAddress.compareAndSet(null, thriftBindAddress);
+      advertiseAddress.set(thriftBindAddress);
     } else if (!address.hasPort()) {
-      advertiseAddress.compareAndSet(address,
-          HostAndPort.fromParts(address.getHost(), thriftBindAddress.getPort()));
+      advertiseAddress.set(HostAndPort.fromParts(address.getHost(), thriftBindAddress.getPort()));
     }
   }
 

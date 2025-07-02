@@ -154,7 +154,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,8 +206,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final BlockingDeque<ManagerMessage> managerMessages = new LinkedBlockingDeque<>();
 
   private ServiceLock tabletServerLock;
-
-  private TServer server;
 
   private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
@@ -751,8 +748,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     log.debug("Stopping Thrift Servers");
-    if (server != null) {
-      server.stop();
+    if (getThriftServer() != null) {
+      getThriftServer().stop();
     }
 
     try {
