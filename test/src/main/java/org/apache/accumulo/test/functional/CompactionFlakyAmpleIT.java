@@ -28,7 +28,7 @@ public class CompactionFlakyAmpleIT extends CompactionITBase {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     super.configureMiniCluster(cfg, hadoopCoreSite);
-    cfg.setServerClass(ServerType.MANAGER, FlakyAmpleManager.class);
-    cfg.setServerClass(ServerType.TABLET_SERVER, FlakyAmpleTserver.class);
+    cfg.setServerClass(ServerType.MANAGER, rg -> FlakyAmpleManager.class);
+    cfg.setServerClass(ServerType.TABLET_SERVER, rg -> FlakyAmpleTserver.class);
   }
 }
