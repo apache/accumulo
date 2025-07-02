@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.fate.AbstractFateStore;
@@ -66,6 +68,7 @@ import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.ServerContext;
@@ -74,30 +77,40 @@ import org.apache.accumulo.server.util.fateCommand.FateSummaryReport;
 import org.apache.accumulo.server.util.fateCommand.FateTxnDetails;
 import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
 import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestRepo;
-import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.easymock.EasyMock;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
+public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     implements FateTestRunner<LatchTestEnv> {
+  private static final Logger log = LoggerFactory.getLogger(FateOpsCommandsITBase.class);
+  protected final Set<String> fateOpsToCleanup = new HashSet<>();
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 
-  @BeforeEach
-  public void beforeEachSetup() throws Exception {
+  @BeforeAll
+  public static void beforeAllSetup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
     // Occasionally, the summary/print cmds will see a COMMIT_COMPACTION transaction which was
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getServerContext().getServerPaths()
+    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
         .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
+  }
+
+  @AfterAll
+  public static void afterAllTeardown() {
+    SharedMiniClusterBase.stopMiniCluster();
   }
 
   @Test
@@ -110,190 +123,192 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // Configure Fate
     Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
-    // validate blank report, no transactions have started
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    FateSummaryReport report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertTrue(report.getStatusCounts().isEmpty());
-    assertTrue(report.getStepCounts().isEmpty());
-    assertTrue(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertTrue(report.getFateIdFilter().isEmpty());
-    validateFateDetails(report.getFateDetails(), 0, null);
+    try {
+      // validate blank report, no transactions have started
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      FateSummaryReport report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertTrue(report.getStatusCounts().isEmpty());
+      assertTrue(report.getStepCounts().isEmpty());
+      assertTrue(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertTrue(report.getFateIdFilter().isEmpty());
+      validateFateDetails(report.getFateDetails(), 0, null);
 
-    // create Fate transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
-    List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
+      // create Fate transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
+      List<String> fateIdsStarted = List.of(fateId1.canonical(), fateId2.canonical());
 
-    // validate no filters
-    p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertTrue(report.getFateIdFilter().isEmpty());
-    validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
-
-    /*
-     * Test filtering by FateIds
-     */
-
-    // validate filtering by both transactions
-    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
-        "--summary", "-j");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertEquals(2, report.getFateIdFilter().size());
-    assertTrue(report.getFateIdFilter().containsAll(fateIdsStarted));
-    validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
-
-    // validate filtering by just one transaction
-    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertEquals(1, report.getFateIdFilter().size());
-    assertTrue(report.getFateIdFilter().contains(fateId1.canonical()));
-    validateFateDetails(report.getFateDetails(), 1, fateIdsStarted);
-
-    // validate filtering by non-existent transaction
-    FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
-    p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--summary", "-j");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertEquals(1, report.getFateIdFilter().size());
-    assertTrue(report.getFateIdFilter().contains(fakeFateId.canonical()));
-    validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
-
-    /*
-     * Test filtering by States
-     */
-
-    // validate status filter by including only FAILED transactions, should be none
-    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertEquals(Set.of("FAILED"), report.getStatusFilterNames());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertTrue(report.getFateIdFilter().isEmpty());
-    validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
-
-    // validate status filter by including only NEW transactions, should be 2
-    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertEquals(Set.of("NEW"), report.getStatusFilterNames());
-    assertTrue(report.getInstanceTypesFilterNames().isEmpty());
-    assertTrue(report.getFateIdFilter().isEmpty());
-    validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
-
-    /*
-     * Test filtering by FateInstanceType
-     */
-
-    // validate FateInstanceType filter by only including transactions with META filter
-    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "META");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertEquals(Set.of("META"), report.getInstanceTypesFilterNames());
-    assertTrue(report.getFateIdFilter().isEmpty());
-    if (store.type() == FateInstanceType.META) {
+      // validate no filters
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertTrue(report.getFateIdFilter().isEmpty());
       validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
-    } else { // USER
-      validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
-    }
 
-    // validate FateInstanceType filter by only including transactions with USER filter
-    p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "USER");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-        .collect(Collectors.joining("\n"));
-    report = FateSummaryReport.fromJson(result);
-    assertNotNull(report);
-    assertNotEquals(0, report.getReportTime());
-    assertFalse(report.getStatusCounts().isEmpty());
-    assertFalse(report.getStepCounts().isEmpty());
-    assertFalse(report.getCmdCounts().isEmpty());
-    assertTrue(report.getStatusFilterNames().isEmpty());
-    assertEquals(Set.of("USER"), report.getInstanceTypesFilterNames());
-    assertTrue(report.getFateIdFilter().isEmpty());
-    if (store.type() == FateInstanceType.META) {
-      validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
-    } else { // USER
+      /*
+       * Test filtering by FateIds
+       */
+
+      // validate filtering by both transactions
+      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
+          "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertEquals(2, report.getFateIdFilter().size());
+      assertTrue(report.getFateIdFilter().containsAll(fateIdsStarted));
       validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
-    }
 
-    fate.shutdown(1, TimeUnit.MINUTES);
+      // validate filtering by just one transaction
+      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertEquals(1, report.getFateIdFilter().size());
+      assertTrue(report.getFateIdFilter().contains(fateId1.canonical()));
+      validateFateDetails(report.getFateDetails(), 1, fateIdsStarted);
+
+      // validate filtering by non-existent transaction
+      FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
+      p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--summary", "-j");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertEquals(1, report.getFateIdFilter().size());
+      assertTrue(report.getFateIdFilter().contains(fakeFateId.canonical()));
+      validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
+
+      /*
+       * Test filtering by States
+       */
+
+      // validate status filter by including only FAILED transactions, should be none
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "FAILED");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertEquals(Set.of("FAILED"), report.getStatusFilterNames());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertTrue(report.getFateIdFilter().isEmpty());
+      validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
+
+      // validate status filter by including only NEW transactions, should be 2
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-s", "NEW");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertEquals(Set.of("NEW"), report.getStatusFilterNames());
+      assertTrue(report.getInstanceTypesFilterNames().isEmpty());
+      assertTrue(report.getFateIdFilter().isEmpty());
+      validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
+
+      /*
+       * Test filtering by FateInstanceType
+       */
+
+      // validate FateInstanceType filter by only including transactions with META filter
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "META");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertEquals(Set.of("META"), report.getInstanceTypesFilterNames());
+      assertTrue(report.getFateIdFilter().isEmpty());
+      if (store.type() == FateInstanceType.META) {
+        validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
+      } else { // USER
+        validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
+      }
+
+      // validate FateInstanceType filter by only including transactions with USER filter
+      p = getCluster().exec(Admin.class, "fate", "--summary", "-j", "-t", "USER");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+          .collect(Collectors.joining("\n"));
+      report = FateSummaryReport.fromJson(result);
+      assertNotNull(report);
+      assertNotEquals(0, report.getReportTime());
+      assertFalse(report.getStatusCounts().isEmpty());
+      assertFalse(report.getStepCounts().isEmpty());
+      assertFalse(report.getCmdCounts().isEmpty());
+      assertTrue(report.getStatusFilterNames().isEmpty());
+      assertEquals(Set.of("USER"), report.getInstanceTypesFilterNames());
+      assertTrue(report.getFateIdFilter().isEmpty());
+      if (store.type() == FateInstanceType.META) {
+        validateFateDetails(report.getFateDetails(), 0, fateIdsStarted);
+      } else { // USER
+        validateFateDetails(report.getFateDetails(), 2, fateIdsStarted);
+      }
+    } finally {
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
@@ -306,22 +321,24 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // Configure Fate
     Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
-    // Start some transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+    try {
+      // Start some transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
-        "--summary", "-s", "NEW", "-t", store.type().name());
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
-    assertTrue(result.contains("Status Filters: [NEW]"));
-    assertTrue(result
-        .contains("Fate ID Filters: [" + fateId1.canonical() + ", " + fateId2.canonical() + "]")
-        || result.contains(
-            "Fate ID Filters: [" + fateId2.canonical() + ", " + fateId1.canonical() + "]"));
-    assertTrue(result.contains("Instance Types Filters: [" + store.type().name() + "]"));
-
-    fate.shutdown(1, TimeUnit.MINUTES);
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(),
+          fateId2.canonical(), "--summary", "-s", "NEW", "-t", store.type().name());
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
+      assertTrue(result.contains("Status Filters: [NEW]"));
+      assertTrue(result
+          .contains("Fate ID Filters: [" + fateId1.canonical() + ", " + fateId2.canonical() + "]")
+          || result.contains(
+              "Fate ID Filters: [" + fateId2.canonical() + ", " + fateId1.canonical() + "]"));
+      assertTrue(result.contains("Instance Types Filters: [" + store.type().name() + "]"));
+    } finally {
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
@@ -334,96 +351,102 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // Configure Fate
     Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
-    // validate no transactions
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", "--print");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
-    assertTrue(result.contains(" 0 transactions"));
+    try {
+      // validate no transactions
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--print");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
+      assertTrue(result.contains(" 0 transactions"));
 
-    // create Fate transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+      // create Fate transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    // Get all transactions. Should be 2 FateIds with a NEW status
-    p = getCluster().exec(Admin.class, "fate", "--print");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    Map<String,String> fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
-
-    /*
-     * Test filtering by States
-     */
-
-    // Filter by NEW state
-    p = getCluster().exec(Admin.class, "fate", "--print", "-s", "NEW");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
-
-    // Filter by FAILED state
-    p = getCluster().exec(Admin.class, "fate", "--print", "-s", "FAILED");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    assertTrue(fateIdsFromResult.isEmpty());
-
-    /*
-     * Test filtering by FateIds
-     */
-
-    // Filter by one FateId
-    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--print");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(Map.of(fateId1.canonical(), "NEW"), fateIdsFromResult);
-
-    // Filter by both FateIds
-    p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(), "--print");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"), fateIdsFromResult);
-
-    // Filter by non-existent FateId
-    FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
-    p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--print");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    assertEquals(0, fateIdsFromResult.size());
-
-    /*
-     * Test filtering by FateInstanceType
-     */
-
-    // Test filter by USER FateInstanceType
-    p = getCluster().exec(Admin.class, "fate", "--print", "-t", "USER");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    if (store.type() == FateInstanceType.META) {
-      assertTrue(fateIdsFromResult.isEmpty());
-    } else { // USER
+      // Get all transactions. Should be 2 FateIds with a NEW status
+      p = getCluster().exec(Admin.class, "fate", "--print");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      Map<String,String> fateIdsFromResult = getFateIdsFromPrint(result);
       assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
           fateIdsFromResult);
-    }
 
-    // Test filter by META FateInstanceType
-    p = getCluster().exec(Admin.class, "fate", "--print", "-t", "META");
-    assertEquals(0, p.getProcess().waitFor());
-    result = p.readStdOut();
-    fateIdsFromResult = getFateIdsFromPrint(result);
-    if (store.type() == FateInstanceType.META) {
+      /*
+       * Test filtering by States
+       */
+
+      // Filter by NEW state
+      p = getCluster().exec(Admin.class, "fate", "--print", "-s", "NEW");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
       assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
           fateIdsFromResult);
-    } else { // USER
-      assertTrue(fateIdsFromResult.isEmpty());
-    }
 
-    fate.shutdown(1, TimeUnit.MINUTES);
+      // Filter by FAILED state
+      p = getCluster().exec(Admin.class, "fate", "--print", "-s", "FAILED");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
+      assertTrue(fateIdsFromResult.isEmpty());
+
+      /*
+       * Test filtering by FateIds
+       */
+
+      // Filter by one FateId
+      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--print");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
+      assertEquals(Map.of(fateId1.canonical(), "NEW"), fateIdsFromResult);
+
+      // Filter by both FateIds
+      p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), fateId2.canonical(),
+          "--print");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromResult);
+
+      // Filter by non-existent FateId
+      FateId fakeFateId = FateId.from(store.type(), UUID.randomUUID());
+      p = getCluster().exec(Admin.class, "fate", fakeFateId.canonical(), "--print");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
+      assertEquals(0, fateIdsFromResult.size());
+
+      /*
+       * Test filtering by FateInstanceType
+       */
+
+      // Test filter by USER FateInstanceType
+      p = getCluster().exec(Admin.class, "fate", "--print", "-t", "USER");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
+      if (store.type() == FateInstanceType.META) {
+        assertTrue(fateIdsFromResult.isEmpty());
+      } else { // USER
+        assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+            fateIdsFromResult);
+      }
+
+      // Test filter by META FateInstanceType
+      p = getCluster().exec(Admin.class, "fate", "--print", "-t", "META");
+      assertEquals(0, p.getProcess().waitFor());
+      result = p.readStdOut();
+      fateIdsFromResult = getFateIdsFromPrint(result);
+      if (store.type() == FateInstanceType.META) {
+        assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+            fateIdsFromResult);
+      } else { // USER
+        assertTrue(fateIdsFromResult.isEmpty());
+      }
+    } finally {
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
@@ -437,60 +460,79 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // summary and print outputs which are null and not tested for (transaction name and transaction
     // step). This test uses seeded/in progress transactions to test that the summary and print
     // commands properly output these fields.
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String table = getUniqueNames(1)[0];
 
       IteratorSetting is = new IteratorSetting(1, SlowIterator.class);
       is.addOption("sleepTime", "10000");
 
       NewTableConfiguration cfg = new NewTableConfiguration();
-      cfg.attachIterator(is, EnumSet.of(IteratorUtil.IteratorScope.majc));
+      var majcScope = EnumSet.of(IteratorUtil.IteratorScope.majc);
+      cfg.attachIterator(is, majcScope);
       client.tableOperations().create(table, cfg);
+      client.tableOperations().attachIterator(SystemTables.METADATA.tableName(), is, majcScope);
 
-      ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
-      client.tableOperations().flush(table, null, null, true);
+      try {
+        ReadWriteIT.ingest(client, 10, 10, 10, 0, table);
+        client.tableOperations().flush(table, null, null, true);
+        client.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
 
-      // create 2 Fate transactions
-      client.tableOperations().compact(table, null, null, false, false);
-      client.tableOperations().compact(table, null, null, false, false);
-      List<String> fateIdsStarted = new ArrayList<>();
+        if (store.type() == FateInstanceType.USER) {
+          // create USER FATE transactions
+          client.tableOperations().compact(table, null, null, false, false);
+          client.tableOperations().compact(table, null, null, false, false);
+        } else {
+          // create META FATE transactions
+          client.tableOperations().compact(SystemTables.METADATA.tableName(), null, null, false,
+              false);
+          client.tableOperations().compact(SystemTables.METADATA.tableName(), null, null, false,
+              false);
+        }
+        List<String> fateIdsStarted = new ArrayList<>();
 
-      ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
-      assertEquals(0, p.getProcess().waitFor());
+        ProcessInfo p = getCluster().exec(Admin.class, "fate", "--summary", "-j");
+        assertEquals(0, p.getProcess().waitFor());
 
-      String result = p.readStdOut();
-      result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
-          .collect(Collectors.joining("\n"));
-      FateSummaryReport report = FateSummaryReport.fromJson(result);
+        String result = p.readStdOut();
+        result = result.lines().filter(line -> !line.matches(".*(INFO|DEBUG|WARN|ERROR).*"))
+            .collect(Collectors.joining("\n"));
+        FateSummaryReport report = FateSummaryReport.fromJson(result);
 
-      // Validate transaction name and transaction step from summary command
+        // Validate transaction name and transaction step from summary command
 
-      for (FateTxnDetails d : report.getFateDetails()) {
-        assertEquals("TABLE_COMPACT", d.getFateOp());
-        assertEquals("CompactionDriver", d.getStep());
-        fateIdsStarted.add(d.getFateId());
+        for (FateTxnDetails d : report.getFateDetails()) {
+          assertEquals("TABLE_COMPACT", d.getFateOp());
+          assertEquals("CompactionDriver", d.getStep());
+          fateIdsStarted.add(d.getFateId());
+        }
+        assertEquals(2, fateIdsStarted.size());
+
+        p = getCluster().exec(Admin.class, "fate", "--print");
+        assertEquals(0, p.getProcess().waitFor());
+        result = p.readStdOut();
+
+        // Validate transaction name and transaction step from print command
+
+        String[] lines = result.split("\n");
+        // Filter out the result to just include the info about the transactions
+        List<String> transactionInfo = Arrays.stream(lines).filter(
+            line -> line.contains(fateIdsStarted.get(0)) || line.contains(fateIdsStarted.get(1)))
+            .collect(Collectors.toList());
+        assertEquals(2, transactionInfo.size());
+        for (String info : transactionInfo) {
+          assertTrue(info.contains("TABLE_COMPACT"));
+          assertTrue(info.contains("op: CompactionDriver"));
+        }
+      } finally {
+        client.tableOperations().removeIterator(SystemTables.METADATA.tableName(), is.getName(),
+            majcScope);
+        if (store.type() == FateInstanceType.USER) {
+          client.tableOperations().cancelCompaction(table);
+        } else {
+          client.tableOperations().cancelCompaction(SystemTables.METADATA.tableName());
+        }
+        client.tableOperations().delete(table);
       }
-      assertEquals(2, fateIdsStarted.size());
-
-      p = getCluster().exec(Admin.class, "fate", "--print");
-      assertEquals(0, p.getProcess().waitFor());
-      result = p.readStdOut();
-
-      // Validate transaction name and transaction step from print command
-
-      String[] lines = result.split("\n");
-      // Filter out the result to just include the info about the transactions
-      List<String> transactionInfo = Arrays.stream(lines)
-          .filter(
-              line -> line.contains(fateIdsStarted.get(0)) || line.contains(fateIdsStarted.get(1)))
-          .collect(Collectors.toList());
-      assertEquals(2, transactionInfo.size());
-      for (String info : transactionInfo) {
-        assertTrue(info.contains("TABLE_COMPACT"));
-        assertTrue(info.contains("op: CompactionDriver"));
-      }
-
-      client.tableOperations().delete(table);
     }
   }
 
@@ -504,32 +546,39 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // Configure Fate
     Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
-    // Start some transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+    try {
+      // Start some transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    // Check that summary output lists both the transactions with a NEW status
-    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
+      // Check that summary output lists both the transactions with a NEW status
+      Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
 
-    // Cancel the first transaction and ensure that it was cancelled
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--cancel");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
+      // Cancel the first transaction and ensure that it was cancelled
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--cancel");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
 
-    assertTrue(result
-        .contains("transaction " + fateId1.canonical() + " was cancelled or already completed"));
-    fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
-
-    fate.shutdown(1, TimeUnit.MINUTES);
+      assertTrue(result
+          .contains("transaction " + fateId1.canonical() + " was cancelled or already completed"));
+      fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
+    } finally {
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
   public void testFateFailCommandTimeout() throws Exception {
-    stopManagerAndExecuteTest(this::testFateFailCommandTimeout);
+    try {
+      stopManagerAndExecuteTest(this::testFateFailCommandTimeout);
+    } finally {
+      // restart the manager for the next tests
+      startManager();
+    }
   }
 
   protected void testFateFailCommandTimeout(FateStore<LatchTestEnv> store, ServerContext sctx)
@@ -538,35 +587,37 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     LatchTestEnv env = new LatchTestEnv();
     FastFate<LatchTestEnv> fate = initFateWithDeadResCleaner(store, env);
 
-    // Start some transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+    try {
+      // Start some transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    // Check that summary output lists both the transactions with a NEW status
-    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
+      // Check that summary output lists both the transactions with a NEW status
+      Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
 
-    // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
-    fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
-    // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
-    Wait.waitFor(() -> env.numWorkers.get() == 1);
+      // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
+      fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
+      // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
+      Wait.waitFor(() -> env.numWorkers.get() == 1);
 
-    // Try to fail fateId1
-    // This should not work as it is already reserved and being worked on by our running FATE
-    // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
+      // Try to fail fateId1
+      // This should not work as it is already reserved and being worked on by our running FATE
+      // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
 
-    assertTrue(result.contains("Could not fail " + fateId1 + " in a reasonable time"));
-    fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "IN_PROGRESS", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
-
-    // Finish work and shutdown
-    env.workersLatch.countDown();
-    fate.shutdown(1, TimeUnit.MINUTES);
+      assertTrue(result.contains("Could not fail " + fateId1 + " in a reasonable time"));
+      fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "IN_PROGRESS", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
+    } finally {
+      // Finish work and shutdown
+      env.workersLatch.countDown();
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
@@ -579,34 +630,41 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // Configure Fate
     Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
-    // Start some transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+    try {
+      // Start some transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    // Check that summary output lists both the transactions with a NEW status
-    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
+      // Check that summary output lists both the transactions with a NEW status
+      Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
 
-    // Try to fail fateId1
-    // This should work since nothing has fateId1 reserved (it is NEW)
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
+      // Try to fail fateId1
+      // This should work since nothing has fateId1 reserved (it is NEW)
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--fail");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
 
-    assertTrue(result.contains("Failing transaction: " + fateId1));
-    fateIdsFromSummary = getFateIdsFromSummary();
-    assertTrue(fateIdsFromSummary
-        .equals(Map.of(fateId1.canonical(), "FAILED_IN_PROGRESS", fateId2.canonical(), "NEW"))
-        || fateIdsFromSummary
-            .equals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW")));
-
-    fate.shutdown(1, TimeUnit.MINUTES);
+      assertTrue(result.contains("Failing transaction: " + fateId1));
+      fateIdsFromSummary = getFateIdsFromSummary();
+      assertTrue(fateIdsFromSummary
+          .equals(Map.of(fateId1.canonical(), "FAILED_IN_PROGRESS", fateId2.canonical(), "NEW"))
+          || fateIdsFromSummary
+              .equals(Map.of(fateId1.canonical(), "FAILED", fateId2.canonical(), "NEW")));
+    } finally {
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
   public void testFateDeleteCommandTimeout() throws Exception {
-    stopManagerAndExecuteTest(this::testFateDeleteCommandTimeout);
+    try {
+      stopManagerAndExecuteTest(this::testFateDeleteCommandTimeout);
+    } finally {
+      // restart the manager for the next tests
+      startManager();
+    }
   }
 
   protected void testFateDeleteCommandTimeout(FateStore<LatchTestEnv> store, ServerContext sctx)
@@ -615,35 +673,37 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     LatchTestEnv env = new LatchTestEnv();
     FastFate<LatchTestEnv> fate = initFateWithDeadResCleaner(store, env);
 
-    // Start some transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+    try {
+      // Start some transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    // Check that summary output lists both the transactions with a NEW status
-    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
+      // Check that summary output lists both the transactions with a NEW status
+      Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
 
-    // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
-    fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
-    // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
-    Wait.waitFor(() -> env.numWorkers.get() == 1);
+      // Seed the transaction with the latch repo, so we can have an IN_PROGRESS transaction
+      fate.seedTransaction(TEST_FATE_OP, fateId1, new LatchTestRepo(), true, "test");
+      // Wait for 'fate' to reserve fateId1 (will be IN_PROGRESS on fateId1)
+      Wait.waitFor(() -> env.numWorkers.get() == 1);
 
-    // Try to delete fateId1
-    // This should not work as it is already reserved and being worked on by our running FATE
-    // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
+      // Try to delete fateId1
+      // This should not work as it is already reserved and being worked on by our running FATE
+      // ('fate'). Admin should try to reserve it for a bit, but should fail and exit
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
 
-    assertTrue(result.contains("Could not delete " + fateId1 + " in a reasonable time"));
-    fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "IN_PROGRESS", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
-
-    // Finish work and shutdown
-    env.workersLatch.countDown();
-    fate.shutdown(1, TimeUnit.MINUTES);
+      assertTrue(result.contains("Could not delete " + fateId1 + " in a reasonable time"));
+      fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "IN_PROGRESS", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
+    } finally {
+      // Finish work and shutdown
+      env.workersLatch.countDown();
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
@@ -656,26 +716,28 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
     // Configure Fate
     Fate<LatchTestEnv> fate = initFateNoDeadResCleaner(store);
 
-    // Start some transactions
-    FateId fateId1 = fate.startTransaction();
-    FateId fateId2 = fate.startTransaction();
+    try {
+      // Start some transactions
+      FateId fateId1 = fate.startTransaction();
+      FateId fateId2 = fate.startTransaction();
 
-    // Check that summary output lists both the transactions with a NEW status
-    Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
-        fateIdsFromSummary);
+      // Check that summary output lists both the transactions with a NEW status
+      Map<String,String> fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId1.canonical(), "NEW", fateId2.canonical(), "NEW"),
+          fateIdsFromSummary);
 
-    // Try to delete fateId1
-    // This should work since nothing has fateId1 reserved (it is NEW)
-    ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
-    assertEquals(0, p.getProcess().waitFor());
-    String result = p.readStdOut();
+      // Try to delete fateId1
+      // This should work since nothing has fateId1 reserved (it is NEW)
+      ProcessInfo p = getCluster().exec(Admin.class, "fate", fateId1.canonical(), "--delete");
+      assertEquals(0, p.getProcess().waitFor());
+      String result = p.readStdOut();
 
-    assertTrue(result.contains("Deleting transaction: " + fateId1));
-    fateIdsFromSummary = getFateIdsFromSummary();
-    assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
-
-    fate.shutdown(1, TimeUnit.MINUTES);
+      assertTrue(result.contains("Deleting transaction: " + fateId1));
+      fateIdsFromSummary = getFateIdsFromSummary();
+      assertEquals(Map.of(fateId2.canonical(), "NEW"), fateIdsFromSummary);
+    } finally {
+      fate.shutdown(1, TimeUnit.MINUTES);
+    }
   }
 
   @Test
@@ -878,5 +940,22 @@ public abstract class FateOpsCommandsITBase extends ConfigurableMacBase
    */
   protected void stopManager() throws IOException {
     getCluster().getClusterControl().stopAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> getCluster().getServerContext().instanceOperations()
+        .getServers(ServerId.Type.MANAGER).isEmpty(), 60_000);
+  }
+
+  protected void startManager() throws IOException {
+    getCluster().getClusterControl().startAllServers(ServerType.MANAGER);
+    Wait.waitFor(() -> !getCluster().getServerContext().instanceOperations()
+        .getServers(ServerId.Type.MANAGER).isEmpty(), 60_000);
+  }
+
+  protected void cleanupFateOps() throws Exception {
+    List<String> args = new ArrayList<>();
+    args.add("fate");
+    args.addAll(fateOpsToCleanup);
+    args.add("--delete");
+    ProcessInfo p = getCluster().exec(Admin.class, args.toArray(new String[0]));
+    assertEquals(0, p.getProcess().waitFor());
   }
 }
