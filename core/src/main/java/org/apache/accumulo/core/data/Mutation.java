@@ -702,6 +702,40 @@ public class Mutation implements Writable {
   }
 
   /**
+   * Puts a modification in this mutation given the values contained in the key and the value. All
+   * appropriate fields of the key are defensively copied.
+   *
+   * @param key key containing all key fields
+   * @param value value
+   */
+  public void put(Key key, Value value) {
+    if (!(Arrays.equals(this.getRow(), key.getRow().getBytes()))) {
+      throw new IllegalArgumentException("key row is not equal to mutation row");
+    }
+
+    if (key.isDeleted()) {
+      throw new IllegalArgumentException("key must not be marked for deletion");
+    }
+
+    put(key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibilityParsed(),
+        key.getTimestamp(), value);
+  }
+
+  /**
+   * Puts a deletion in this mutation given the values contained in the key.
+   *
+   * @param key key containing all key fields
+   */
+  public void putDelete(Key key) {
+    if (!(Arrays.equals(this.getRow(), key.getRow().getBytes()))) {
+      throw new IllegalArgumentException("key row is not equal to mutation row");
+    }
+
+    putDelete(key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibilityParsed(),
+        key.getTimestamp());
+  }
+
+  /**
    * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
    * parameters are defensively copied.
    *
