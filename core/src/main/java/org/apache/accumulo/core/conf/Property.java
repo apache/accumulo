@@ -22,10 +22,12 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -405,7 +407,7 @@ public enum Property {
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
       "2.1.4"),
-  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.mininum", "10",
+  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.minimum", "10",
       PropertyType.COUNT,
       "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
           + " are performed (e.g. Bulk Import). This property specifies the number of core threads in a"
@@ -447,6 +449,10 @@ public enum Property {
   MANAGER_WAL_CLOSER_IMPLEMENTATION("manager.wal.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log.", "2.1.0"),
+  MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX("manager.fate.conditional.writer.threads.max", "3",
+      PropertyType.COUNT,
+      "Maximum number of threads to use for writing data to tablet servers of the FATE system table.",
+      "4.0.0"),
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
@@ -1530,35 +1536,69 @@ public enum Property {
 
   // these properties are fixed to a specific value at startup and require a restart for changes to
   // take effect; these are always system-level properties, and not namespace or table properties
-  public static final EnumSet<Property> fixedProperties = EnumSet.of(
-      // port options
-      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
-      COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
+  public static final Set<Property> FIXED_PROPERTIES = Collections.unmodifiableSet(EnumSet.of(
+      // RPC options
+      RPC_BACKLOG, RPC_SSL_KEYSTORE_TYPE, RPC_SSL_TRUSTSTORE_TYPE, RPC_USE_JSSE,
+      RPC_SSL_ENABLED_PROTOCOLS, RPC_SSL_CLIENT_PROTOCOL, RPC_SASL_QOP, RPC_MAX_MESSAGE_SIZE,
 
-      // max message options
-      RPC_MAX_MESSAGE_SIZE,
+      // INSTANCE options
+      INSTANCE_ZK_HOST, INSTANCE_ZK_TIMEOUT, INSTANCE_SECRET, INSTANCE_SECURITY_AUTHENTICATOR,
+      INSTANCE_SECURITY_AUTHORIZOR, INSTANCE_SECURITY_PERMISSION_HANDLER, INSTANCE_RPC_SSL_ENABLED,
+      INSTANCE_RPC_SSL_CLIENT_AUTH, INSTANCE_RPC_SASL_ENABLED, INSTANCE_CRYPTO_FACTORY,
 
-      // compaction coordiantor properties
-      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
+      // GENERAL options
+      GENERAL_KERBEROS_RENEWAL_PERIOD, GENERAL_OPENTELEMETRY_ENABLED, GENERAL_VOLUME_CHOOSER,
+      GENERAL_DELEGATION_TOKEN_LIFETIME, GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL,
+      GENERAL_IDLE_PROCESS_INTERVAL, GENERAL_MICROMETER_ENABLED,
+      GENERAL_MICROMETER_JVM_METRICS_ENABLED, GENERAL_MICROMETER_LOG_METRICS,
+      GENERAL_MICROMETER_FACTORY, GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL,
+      GENERAL_CACHE_MANAGER_IMPL, GENERAL_MICROMETER_CACHE_METRICS_ENABLED,
+      GENERAL_LOW_MEM_DETECTOR_INTERVAL,
 
-      // block cache options
-      GENERAL_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+      // MANAGER options
+      MANAGER_THREADCHECK, MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, MANAGER_METADATA_SUSPENDABLE,
+      MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT,
+      MANAGER_CLIENTPORT, MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT,
+      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME, MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
+      MANAGER_TABLET_REFRESH_MINTHREADS, MANAGER_TABLET_REFRESH_MAXTHREADS,
+      MANAGER_TABLET_MERGEABILITY_INTERVAL, MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX,
 
-      // blocksize options
-      TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
+      // SSERV options
+      SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_CLIENTPORT,
+      SSERV_PORTSEARCH, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+      SSERV_DEFAULT_BLOCKSIZE, SSERV_SCAN_REFERENCE_EXPIRATION_TIME,
+      SSERV_CACHED_TABLET_METADATA_EXPIRATION, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
+      SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
 
-      // sserver specific options
-      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+      // TSERV options
+      TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
+      TSERV_WAL_TOLERATED_CREATION_FAILURES, TSERV_WAL_TOLERATED_WAIT_INCREMENT,
+      TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
+      TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
+      TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
+      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_PORTSEARCH,
+      TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE,
+      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM,
+      TSERV_SCAN_MAX_OPENFILES, TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
-      // thread options
-      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
-      MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT, COMPACTOR_MINTHREADS,
-      COMPACTOR_MINTHREADS_TIMEOUT,
+      // GC options
+      GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START, GC_PORT,
 
-      // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
-      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+      // MONITOR options
+      MONITOR_PORT, MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE,
+      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL,
+
+      // COMPACTOR options
+      COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_CLIENTPORT, COMPACTOR_THREADCHECK,
+      COMPACTOR_PORTSEARCH, COMPACTOR_MINTHREADS, COMPACTOR_MINTHREADS_TIMEOUT,
+      COMPACTOR_GROUP_NAME,
+
+      // COMPACTION_COORDINATOR options
+      COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL,
+
+      // COMPACTION_SERVICE options
+      COMPACTION_SERVICE_DEFAULT_PLANNER, COMPACTION_SERVICE_DEFAULT_MAX_OPEN,
+      COMPACTION_SERVICE_DEFAULT_GROUPS));
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1568,7 +1608,7 @@ public enum Property {
    * @return true if property may be changed via Zookeeper but only heeded upon some restart
    */
   public static boolean isFixedZooPropertyKey(Property key) {
-    return fixedProperties.contains(key);
+    return FIXED_PROPERTIES.contains(key);
   }
 
   /**

@@ -78,6 +78,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, "2");
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, "10s");
       cfg.setProperty(Property.TSERV_MIGRATE_MAXCONCURRENT, "50");
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.getClusterServerConfiguration().addTabletServerResourceGroup("GROUP1", 1);
     }
@@ -216,6 +217,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       } finally {
         client.tableOperations().delete(tableName);
         getCluster().getClusterControl().stopTabletServerGroup("GROUP2");
+        Wait.waitFor(() -> getTServerGroups(getCluster()).values().stream()
+            .noneMatch(s -> s.equals("GROUP2")));
       }
     }
   }

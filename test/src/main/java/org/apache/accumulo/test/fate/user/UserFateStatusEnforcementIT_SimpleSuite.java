@@ -57,6 +57,7 @@ public class UserFateStatusEnforcementIT_SimpleSuite extends FateStatusEnforceme
 
   @AfterEach
   public void afterEachTeardown() {
+    store.close();
     client.close();
   }
 }

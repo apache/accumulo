@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -358,18 +359,18 @@ public class CloneTestIT_SimpleSuite extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testCloneRootTable() {
+  public void testCloneSystemTables() {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      assertThrows(AccumuloException.class, () -> client.tableOperations()
-          .clone(SystemTables.ROOT.tableName(), "rc1", CloneConfiguration.empty()));
-    }
-  }
+      var sysTables = SystemTables.values();
+      var tableNames = getUniqueNames(sysTables.length);
 
-  @Test
-  public void testCloneMetadataTable() {
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      assertThrows(AccumuloException.class, () -> client.tableOperations()
-          .clone(SystemTables.METADATA.tableName(), "mc1", CloneConfiguration.empty()));
+      for (int i = 0; i < sysTables.length; i++) {
+        var sysTable = sysTables[i];
+        var cloneTableName = tableNames[i];
+        assertThrows(Exception.class, () -> client.tableOperations().clone(sysTable.tableName(),
+            cloneTableName, CloneConfiguration.empty()));
+        assertFalse(client.tableOperations().exists(cloneTableName));
+      }
     }
   }
 

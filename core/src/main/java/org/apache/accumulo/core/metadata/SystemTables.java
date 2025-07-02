@@ -80,6 +80,10 @@ public enum SystemTables {
     return ALL_IDS;
   }
 
+  public static Set<String> tableNames() {
+    return ALL_NAMES;
+  }
+
   public static boolean containsTableId(TableId tableId) {
     return ALL_IDS.contains(tableId);
   }
