@@ -90,7 +90,7 @@ import org.slf4j.LoggerFactory;
 public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     implements FateTestRunner<LatchTestEnv> {
   private static final Logger log = LoggerFactory.getLogger(FateOpsCommandsITBase.class);
-  protected static final Set<String> fateOpsToCleanup = new HashSet<>();
+  protected final Set<String> fateOpsToCleanup = new HashSet<>();
 
   @Override
   protected Duration defaultTimeout() {
