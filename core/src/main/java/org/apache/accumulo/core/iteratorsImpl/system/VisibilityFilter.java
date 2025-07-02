@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  */
 public class VisibilityFilter extends SynchronizedServerFilter {
   protected final AccessEvaluator ve;
-  protected final ArrayByteSequence defaultVisibility;
+  protected final ByteSequence defaultVisibility;
   protected final LRUMap<ByteSequence,Boolean> cache;
   protected final Authorizations authorizations;
 
@@ -55,7 +55,7 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     super(iterator);
     this.ve = AccessEvaluator.of(authorizations.toAccessAuthorizations());
     this.authorizations = authorizations;
-    this.defaultVisibility = new ArrayByteSequence(defaultVisibility);
+    this.defaultVisibility = ByteSequence.of(defaultVisibility);
     this.cache = new LRUMap<>(1000);
   }
 
@@ -72,20 +72,23 @@ public class VisibilityFilter extends SynchronizedServerFilter {
     // the cached version.
     k.getColumnVisibilityData(testVis);
 
-    if (testVis.length() == 0 && defaultVisibility.length() == 0) {
+    boolean isEmpty = testVis.length() == 0;
+
+    if (isEmpty && defaultVisibility.length() == 0) {
       return true;
     }
 
-    Boolean b = cache.get((testVis.length() == 0) ? defaultVisibility : testVis);
+    var resolvedVis = isEmpty ? defaultVisibility : testVis;
+
+    Boolean b = cache.get(resolvedVis);
     if (b != null) {
       return b;
     }
 
     try {
-      final ArrayByteSequence safeCopy =
-          (testVis.length() == 0) ? defaultVisibility : new ArrayByteSequence(testVis);
-      boolean bb = ve.canAccess(safeCopy.toArray());
-      cache.put(safeCopy, bb);
+      boolean bb = ve.canAccess(resolvedVis.toArray());
+      // create an immutable copy of resolvedVis for the cache key
+      cache.put(ByteSequence.of(resolvedVis), bb);
       return bb;
     } catch (InvalidAccessExpressionException e) {
       log.error("IllegalAccessExpressionException with visibility of Key: {}", k, e);
