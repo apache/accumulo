@@ -46,9 +46,11 @@ public class GetAvailabilityCommand extends TableOperation {
   protected void doTableOp(Shell shellState, String tableName) throws Exception {
     shellState.getWriter().println("TABLE: " + tableName);
     shellState.getWriter().println("TABLET ID    AVAILABILITY");
-    shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)
-        .forEach(p -> shellState.getWriter()
-            .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
+    try (var tabletInformation =
+        shellState.getAccumuloClient().tableOperations().getTabletInformation(tableName, range)) {
+      tabletInformation.forEach(p -> shellState.getWriter()
+          .println(String.format("%-10s   %s", p.getTabletId(), p.getTabletAvailability())));
+    }
   }
 
   @Override

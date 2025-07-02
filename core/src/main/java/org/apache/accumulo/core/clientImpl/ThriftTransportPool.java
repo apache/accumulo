@@ -70,9 +70,19 @@ public class ThriftTransportPool {
 
   private final LongSupplier maxAgeMillis;
 
-  private ThriftTransportPool(LongSupplier maxAgeMillis) {
+  private ThriftTransportPool(LongSupplier maxAgeMillis, boolean shouldHalt) {
     this.maxAgeMillis = maxAgeMillis;
-    this.checkThread = Threads.createNonCriticalThread("Thrift Connection Pool Checker", () -> {
+    final String threadName = "Thrift Connection Pool Checker";
+    final Runnable checkRunner = thriftConnectionPoolChecker();
+    if (shouldHalt) {
+      this.checkThread = Threads.createCriticalThread(threadName, checkRunner);
+    } else {
+      this.checkThread = Threads.createNonCriticalThread(threadName, checkRunner);
+    }
+  }
+
+  private Runnable thriftConnectionPoolChecker() {
+    return () -> {
       try {
         final long minNanos = MILLISECONDS.toNanos(250);
         final long maxNanos = MINUTES.toNanos(1);
@@ -89,21 +99,25 @@ public class ThriftTransportPool {
           }
         }
       } catch (InterruptedException e) {
+        log.warn("Thread " + Thread.currentThread().getName() + " was interrupted. Exiting.");
         Thread.currentThread().interrupt();
       } catch (TransportPoolShutdownException e) {
         log.debug("Error closing expired connections", e);
       }
-    });
+    };
   }
 
   /**
    * Create a new instance and start its checker thread, returning the instance.
    *
    * @param maxAgeMillis the supplier for the max age of idle transports before they are cleaned up
+   * @param shouldHalt true if the death of the checker thread via a RuntimeException should halt
+   *        the JVM; false otherwise. This should be true if the thread is running within a server
+   *        and false if the thread is running within a client
    * @return a new instance with its checker thread started to clean up idle transports
    */
-  static ThriftTransportPool startNew(LongSupplier maxAgeMillis) {
-    var pool = new ThriftTransportPool(maxAgeMillis);
+  static ThriftTransportPool startNew(LongSupplier maxAgeMillis, boolean shouldHalt) {
+    var pool = new ThriftTransportPool(maxAgeMillis, shouldHalt);
     log.debug("Set thrift transport pool idle time to {}ms", maxAgeMillis.getAsLong());
     pool.checkThread.start();
     return pool;

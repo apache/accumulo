@@ -140,7 +140,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloClusterImpl.class);
 
   private final Set<Pair<ServerType,Integer>> debugPorts = new HashSet<>();
-  private final File zooCfgFile;
+  private final java.nio.file.Path zooCfgFile;
   private final String dfsUri;
   private final MiniAccumuloConfigImpl config;
   private final Supplier<Properties> clientProperties;
@@ -192,37 +192,38 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           "MAC configured to use native maps, but native library path was not provided.");
     }
 
-    mkdirs(config.getConfDir());
-    mkdirs(config.getLogDir());
-    mkdirs(config.getLibDir());
-    mkdirs(config.getLibExtDir());
+    mkdirs(config.getConfDir().toPath());
+    mkdirs(config.getLogDir().toPath());
+    mkdirs(config.getLibDir().toPath());
+    mkdirs(config.getLibExtDir().toPath());
 
     if (!config.useExistingInstance()) {
       if (!config.useExistingZooKeepers()) {
-        mkdirs(config.getZooKeeperDir());
+        mkdirs(config.getZooKeeperDir().toPath());
       }
-      mkdirs(config.getAccumuloDir());
+      mkdirs(config.getAccumuloDir().toPath());
     }
 
     java.nio.file.Path confDir = config.getConfDir().toPath();
     if (config.useMiniDFS()) {
       java.nio.file.Path configPath = config.getAccumuloDir().toPath();
-      File nn = configPath.resolve("nn").toFile();
+      java.nio.file.Path nn = configPath.resolve("nn");
       mkdirs(nn);
-      File dn = configPath.resolve("dn").toFile();
+      java.nio.file.Path dn = configPath.resolve("dn");
       mkdirs(dn);
-      File dfs = configPath.resolve("dfs").toFile();
+      java.nio.file.Path dfs = configPath.resolve("dfs");
       mkdirs(dfs);
       Configuration conf = new Configuration();
-      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nn.getAbsolutePath());
-      conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.getAbsolutePath());
+      conf.set(DFSConfigKeys.DFS_NAMENODE_NAME_DIR_KEY, nn.toAbsolutePath().toString());
+      conf.set(DFSConfigKeys.DFS_DATANODE_DATA_DIR_KEY, dn.toAbsolutePath().toString());
       conf.set(DFSConfigKeys.DFS_REPLICATION_KEY, "1");
       conf.set(DFSConfigKeys.DFS_NAMENODE_REPLICATION_MIN_KEY, "1");
       conf.set("dfs.support.append", "true");
       conf.set("dfs.datanode.synconclose", "true");
       conf.set("dfs.datanode.data.dir.perm", MiniDFSUtil.computeDatanodeDirectoryPermission());
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
-      String oldTestBuildData = System.setProperty("test.build.data", dfs.getAbsolutePath());
+      String oldTestBuildData =
+          System.setProperty("test.build.data", dfs.toAbsolutePath().toString());
       miniDFS.set(new MiniDFSCluster.Builder(conf).build());
       if (oldTestBuildData == null) {
         System.clearProperty("test.build.data");
@@ -232,9 +233,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       miniDFS.get().waitClusterUp();
       InetSocketAddress dfsAddress = miniDFS.get().getNameNode().getNameNodeAddress();
       dfsUri = "hdfs://" + dfsAddress.getHostName() + ":" + dfsAddress.getPort();
-      File coreFile = confDir.resolve("core-site.xml").toFile();
+      java.nio.file.Path coreFile = confDir.resolve("core-site.xml");
       writeConfig(coreFile, Collections.singletonMap("fs.default.name", dfsUri).entrySet());
-      File hdfsFile = confDir.resolve("hdfs-site.xml").toFile();
+      java.nio.file.Path hdfsFile = confDir.resolve("hdfs-site.xml");
       writeConfig(hdfsFile, conf);
 
       Map<String,String> siteConfig = config.getSiteConfig();
@@ -260,12 +261,12 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       clientProps.put(ClientProperty.AUTH_TOKEN.getKey(), config.getRootPassword());
     }
 
-    File clientPropsFile = config.getClientPropsFile();
+    java.nio.file.Path clientPropsFile = config.getClientPropsFile().toPath();
     writeConfigProperties(clientPropsFile, clientProps);
 
-    File siteFile = confDir.resolve("accumulo.properties").toFile();
+    java.nio.file.Path siteFile = confDir.resolve("accumulo.properties");
     writeConfigProperties(siteFile, config.getSiteConfig());
-    this.siteConfig = SiteConfiguration.fromFile(siteFile).build();
+    this.siteConfig = SiteConfiguration.fromFile(siteFile.toFile()).build();
     this.context = Suppliers.memoize(() -> new ServerContext(siteConfig) {
 
       @Override
@@ -279,8 +280,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     });
 
     if (!config.useExistingInstance() && !config.useExistingZooKeepers()) {
-      zooCfgFile = confDir.resolve("zoo.cfg").toFile();
-      BufferedWriter fileWriter = Files.newBufferedWriter(zooCfgFile.toPath());
+      zooCfgFile = confDir.resolve("zoo.cfg");
+      BufferedWriter fileWriter = Files.newBufferedWriter(zooCfgFile);
 
       // zookeeper uses Properties to read its config, so use that to write in order to properly
       // escape things like Windows paths
@@ -304,7 +305,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   }
 
   File getZooCfgFile() {
-    return zooCfgFile;
+    return zooCfgFile.toFile();
   }
 
   public ProcessInfo exec(Class<?> clazz, String... args) throws IOException {
@@ -457,7 +458,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           Files.createTempFile(config.getConfDir().toPath(), "accumulo", ".properties").toFile();
       Map<String,String> confMap = new HashMap<>(config.getSiteConfig());
       confMap.putAll(configOverrides);
-      writeConfigProperties(siteFile, confMap);
+      writeConfigProperties(siteFile.toPath(), confMap);
       jvmOpts.add("-Daccumulo.properties=" + siteFile.getName());
     }
 
@@ -469,15 +470,20 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return _exec(clazz, jvmOpts, args);
   }
 
-  private static void mkdirs(File dir) {
-    if (!dir.mkdirs()) {
+  private static void mkdirs(java.nio.file.Path dir) {
+    try {
+      Files.createDirectories(dir);
+    } catch (IOException e) {
+      log.warn("Unable to create {}", dir);
+    }
+    if (!Files.isDirectory(dir)) {
       log.warn("Unable to create {}", dir);
     }
   }
 
-  private void writeConfig(File file, Iterable<Map.Entry<String,String>> settings)
+  private void writeConfig(java.nio.file.Path file, Iterable<Map.Entry<String,String>> settings)
       throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(file.toPath());
+    BufferedWriter fileWriter = Files.newBufferedWriter(file);
     fileWriter.append("<configuration>\n");
 
     for (Entry<String,String> entry : settings) {
@@ -490,8 +496,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     fileWriter.close();
   }
 
-  private void writeConfigProperties(File file, Map<String,String> settings) throws IOException {
-    BufferedWriter fileWriter = Files.newBufferedWriter(file.toPath());
+  private void writeConfigProperties(java.nio.file.Path file, Map<String,String> settings)
+      throws IOException {
+    BufferedWriter fileWriter = Files.newBufferedWriter(file);
 
     for (Entry<String,String> entry : settings.entrySet()) {
       fileWriter.append(entry.getKey() + "=" + entry.getValue() + "\n");
@@ -1130,7 +1137,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     if (config.useMiniDFS()) {
       p = "/tmp/";
     } else {
-      File tmp = config.getDir().toPath().resolve("tmp").toFile();
+      java.nio.file.Path tmp = config.getDir().toPath().resolve("tmp");
       mkdirs(tmp);
       p = tmp.toString();
     }
@@ -1145,7 +1152,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
   @Override
   public String getAccumuloPropertiesPath() {
-    return config.getConfDir().toPath().resolve("accumulo.properties").toFile().toString();
+    return config.getConfDir().toPath().resolve("accumulo.properties").toString();
   }
 
   @Override

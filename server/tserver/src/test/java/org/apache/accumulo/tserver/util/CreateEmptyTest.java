@@ -33,10 +33,9 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.DataInputStream;
 import java.io.EOFException;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.nio.file.Files;
 
 import org.apache.accumulo.core.client.rfile.RFile;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
@@ -50,6 +49,7 @@ import org.apache.accumulo.core.spi.crypto.GenericCryptoServiceFactory;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.fs.VolumeManagerImpl;
+import org.apache.accumulo.tserver.WithTestNames;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.logger.LogEvents;
 import org.apache.accumulo.tserver.logger.LogFileKey;
@@ -65,9 +65,11 @@ import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-public class CreateEmptyTest {
+public class CreateEmptyTest extends WithTestNames {
   @TempDir
-  private static File tempDir;
+  private static java.nio.file.Path tempDir;
+
+  private java.nio.file.Path perTestTempSubDir;
 
   private ServerContext context;
 
@@ -83,6 +85,8 @@ public class CreateEmptyTest {
     VolumeManager volumeManager = VolumeManagerImpl.get(config, new Configuration());
     expect(context.getVolumeManager()).andReturn(volumeManager).anyTimes();
     replay(context);
+
+    perTestTempSubDir = Files.createDirectories(tempDir.resolve(testName()));
   }
 
   @AfterEach
@@ -95,14 +99,10 @@ public class CreateEmptyTest {
   public void exceptionOnFileExistsTest() throws Exception {
     CreateEmpty createEmpty = new CreateEmpty();
 
-    String wal1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".wal");
-    String rf1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
-
     // create the file so it exists
-    File f = java.nio.file.Path.of(wal1).toFile();
-    assertTrue(f.createNewFile());
+    java.nio.file.Path f = Files.createFile(perTestTempSubDir.resolve("empty.wal"));
 
-    String[] walArgs = {"--type", "WAL", wal1};
+    String[] walArgs = {"--type", "WAL", f.toString()};
     CreateEmpty.Opts walOpts = new CreateEmpty.Opts();
     walOpts.parseArgs("accumulo create-empty", walArgs);
 
@@ -110,10 +110,9 @@ public class CreateEmptyTest {
         () -> createEmpty.createEmptyWal(walOpts, context));
 
     // create the file so it exists
-    File f2 = java.nio.file.Path.of(rf1).toFile();
-    assertTrue(f2.createNewFile());
+    java.nio.file.Path f2 = Files.createFile(perTestTempSubDir.resolve("empty.rf"));
 
-    String[] rfArgs = {"--type", "RF", rf1};
+    String[] rfArgs = {"--type", "RF", f2.toString()};
     CreateEmpty.Opts rfOpts = new CreateEmpty.Opts();
     rfOpts.parseArgs("accumulo create-empty", rfArgs);
     assertThrows(IllegalArgumentException.class,
@@ -124,8 +123,8 @@ public class CreateEmptyTest {
   public void createRfileTest() throws Exception {
     CreateEmpty createEmpty = new CreateEmpty();
 
-    String file1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
-    String file2 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
+    String file1 = perTestTempSubDir.resolve("empty1.rf").toString();
+    String file2 = perTestTempSubDir.resolve("empty2.rf").toString();
 
     String[] args = {"--type", "RF", file1, file2};
     CreateEmpty.Opts opts = new CreateEmpty.Opts();
@@ -152,7 +151,7 @@ public class CreateEmptyTest {
   public void createRfileDefaultTest() throws Exception {
     CreateEmpty createEmpty = new CreateEmpty();
 
-    String file1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".rf");
+    String file1 = perTestTempSubDir.resolve("empty.rf").toString();
 
     String[] args = {file1};
     CreateEmpty.Opts opts = new CreateEmpty.Opts();
@@ -170,8 +169,8 @@ public class CreateEmptyTest {
   public void createWalTest() throws Exception {
     CreateEmpty createEmpty = new CreateEmpty();
 
-    String file1 = genFilename(tempDir.getAbsolutePath() + "/empty", ".wal");
-    String file2 = genFilename(tempDir.getAbsolutePath() + "/empty", ".wal");
+    String file1 = perTestTempSubDir.resolve("empty1.wal").toString();
+    String file2 = perTestTempSubDir.resolve("empty2.wal").toString();
 
     String[] args = {"--type", "WAL", file1, file2};
     CreateEmpty.Opts opts = new CreateEmpty.Opts();
@@ -214,9 +213,9 @@ public class CreateEmptyTest {
       LogFileKey key = new LogFileKey();
       key.readFields(dis);
 
-      assertEquals(key.event, LogEvents.OPEN);
-      assertEquals("", key.tserverSession);
-      assertNull(key.filename);
+      assertEquals(key.getEvent(), LogEvents.OPEN);
+      assertEquals("", key.getTserverSession());
+      assertNull(key.getFilename());
     }
   }
 
@@ -254,10 +253,4 @@ public class CreateEmptyTest {
     }
   }
 
-  // tempDir is per test suite - generate a one-up count file for each call.
-  private static final AtomicInteger fileCount = new AtomicInteger(0);
-
-  private String genFilename(final String prefix, final String extension) {
-    return prefix + fileCount.incrementAndGet() + extension;
-  }
 }

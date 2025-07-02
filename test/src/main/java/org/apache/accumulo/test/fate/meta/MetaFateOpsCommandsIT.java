@@ -42,7 +42,9 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsITBase {
     ServerContext context = getCluster().getServerContext();
     var zk = context.getZooSession();
     // test should not be reserving txns or checking reservations, so null lockID and isLockHeld
-    testMethod.execute(new MetaFateStore<>(zk, null, null), context);
+    try (FateStore<LatchTestEnv> fs = new MetaFateStore<>(zk, null, null)) {
+      testMethod.execute(fs, context);
+    }
   }
 
   /**
@@ -62,7 +64,9 @@ public class MetaFateOpsCommandsIT extends FateOpsCommandsITBase {
       ZooUtil.LockID lockID = testLock.getLockID();
       Predicate<ZooUtil.LockID> isLockHeld =
           lock -> ServiceLock.isLockHeld(context.getZooCache(), lock);
-      testMethod.execute(new MetaFateStore<>(zk, lockID, isLockHeld), context);
+      try (FateStore<LatchTestEnv> fs = new MetaFateStore<>(zk, lockID, isLockHeld)) {
+        testMethod.execute(fs, context);
+      }
     } finally {
       if (testLock != null) {
         testLock.unlock();

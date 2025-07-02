@@ -26,6 +26,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.test.fate.FateStatusEnforcementITBase;
 import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.io.TempDir;
@@ -49,5 +50,10 @@ public class MetaFateStatusEnforcementIT extends FateStatusEnforcementITBase {
     store = new MetaFateStore<>(FateTestUtil.MetaFateZKSetup.getZk(), createDummyLockID(), null);
     fateId = store.create();
     txStore = store.reserve(fateId);
+  }
+
+  @AfterEach
+  public void afterEachTeardown() {
+    store.close();
   }
 }

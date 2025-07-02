@@ -188,10 +188,11 @@ public class FindCompactionTmpFiles {
       ServerContext context = opts.getServerContext();
       String[] tables = opts.tables.split(",");
 
+      final var stringStringMap = context.tableOperations().tableIdMap();
       for (String table : tables) {
 
         table = table.trim();
-        String tableId = context.tableOperations().tableIdMap().get(table);
+        String tableId = stringStringMap.get(table);
         if (tableId == null || tableId.isEmpty()) {
           LOG.warn("TableId for table: {} does not exist, maybe the table was deleted?", table);
           continue;

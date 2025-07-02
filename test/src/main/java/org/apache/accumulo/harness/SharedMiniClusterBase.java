@@ -19,12 +19,11 @@
 package org.apache.accumulo.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.lang.StackWalker.StackFrame;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.Properties;
@@ -108,8 +107,10 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
       return;
     }
 
-    File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
+    Path baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests");
+    if (!Files.isDirectory(baseDir)) {
+      Files.createDirectories(baseDir);
+    }
 
     // Make a shared MAC instance instead of spinning up one per test method
     MiniClusterHarness harness = new MiniClusterHarness();
@@ -139,14 +140,14 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   }
 
   private static String getTestClassName() {
-    Predicate<Class<?>> findITClass = c -> c.getSimpleName().endsWith("IT");
+    Predicate<Class<?>> findITClass =
+        c -> c.getSimpleName().endsWith("IT") || c.getSimpleName().endsWith("SimpleSuite");
     Function<Stream<StackFrame>,Optional<? extends Class<?>>> findCallerITClass =
         frames -> frames.map(StackFrame::getDeclaringClass).filter(findITClass).findFirst();
     Optional<String> callerClassName =
         StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
     // use the calling class name, or default to a unique name if IT class can't be found
-    return callerClassName.orElse(String.format("UnknownITClass-%d-%d", System.currentTimeMillis(),
-        RANDOM.get().nextInt(Short.MAX_VALUE)));
+    return callerClassName.orElse("UnknownITClass");
   }
 
   /**
