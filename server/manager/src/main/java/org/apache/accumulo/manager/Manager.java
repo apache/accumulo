@@ -908,7 +908,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     var processor = ThriftProcessorTypes.getManagerTProcessor(this, fateServiceHandler,
         compactionCoordinator.getThriftService(), managerClientHandler, getContext());
     try {
-      startThriftServer(() -> {
+      updateThriftServer(() -> {
         return TServerUtils.createThriftServer(context, getBindAddress(),
             Property.MANAGER_CLIENTPORT, processor, "Manager", null, Property.MANAGER_MINTHREADS,
             Property.MANAGER_MINTHREADS_TIMEOUT, Property.MANAGER_THREADCHECK);

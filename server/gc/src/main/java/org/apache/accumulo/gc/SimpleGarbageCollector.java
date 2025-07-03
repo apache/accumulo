@@ -433,7 +433,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     IntStream port = getConfiguration().getPortStream(Property.GC_PORT);
     HostAndPort[] addresses = TServerUtils.getHostAndPorts(getBindAddress(), port);
     long maxMessageSize = getConfiguration().getAsBytes(Property.RPC_MAX_MESSAGE_SIZE);
-    startThriftServer(() -> {
+    updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getConfiguration(), getContext().getThriftServerType(),
           processor, this.getClass().getSimpleName(), 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS,
           1000, maxMessageSize, getContext().getServerSslParams(), getContext().getSaslParams(), 0,

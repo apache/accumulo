@@ -320,16 +320,27 @@ public abstract class AbstractServer
     return thriftServer;
   }
 
-  protected synchronized void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
-    final HostAndPort address = advertiseAddress.get();
-    if (address == null) {
-      advertiseAddress.set(thriftBindAddress);
-    } else if (!address.hasPort()) {
-      advertiseAddress.set(HostAndPort.fromParts(address.getHost(), thriftBindAddress.getPort()));
-    }
+  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    advertiseAddress.accumulateAndGet(thriftBindAddress, (curr, update) -> {
+      if (curr == null) {
+        return thriftBindAddress;
+      } else if (!curr.hasPort()) {
+        return HostAndPort.fromParts(curr.getHost(), update.getPort());
+      } else {
+        return curr;
+      }
+    });
   }
 
-  protected void startThriftServer(ThriftServerSupplier supplier, boolean start)
+  /**
+   * Updates internal ThriftServer reference and optionally starts the Thrift server. Updates the
+   * advertise address based on the address to which the ThriftServer is bound
+   *
+   * @param supplier ThriftServer
+   * @param start true to start the server, else false
+   * @throws UnknownHostException
+   */
+  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
       throws UnknownHostException {
     thriftServer = supplier.get();
     if (start) {

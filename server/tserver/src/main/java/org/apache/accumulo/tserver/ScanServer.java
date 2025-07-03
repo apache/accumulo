@@ -300,7 +300,7 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    startThriftServer(() -> {
+    updateThriftServer(() -> {
       return TServerUtils.createThriftServer(getContext(), getBindAddress(),
           Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
           Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
