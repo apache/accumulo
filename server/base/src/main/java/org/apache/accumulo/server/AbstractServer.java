@@ -338,7 +338,7 @@ public abstract class AbstractServer
    *
    * @param supplier ThriftServer
    * @param start true to start the server, else false
-   * @throws UnknownHostException
+   * @throws UnknownHostException thrown from ThriftServer when binding to bad address
    */
   protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
       throws UnknownHostException {
