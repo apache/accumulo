@@ -94,6 +94,9 @@ public class TabletManagement {
     Value errorValue = decodedRow.remove(new Key(row, ERROR_COLUMN_NAME, EMPTY));
     if (errorValue != null) {
       this.errorMessage = errorValue.toString();
+      this.actions = null;
+      this.tabletMetadata = null;
+      return;
     } else {
       this.errorMessage = null;
     }
