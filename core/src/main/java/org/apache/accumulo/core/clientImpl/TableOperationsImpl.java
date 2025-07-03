@@ -1124,6 +1124,13 @@ public class TableOperationsImpl extends TableOperationsHelper {
       Throwable cause = ae.getCause();
       if (cause instanceof TableNotFoundException) {
         throw new TableNotFoundException(null, tableName, null, ae);
+      } else if (cause instanceof ThriftTableOperationException) {
+        var ttoe = (ThriftTableOperationException) cause;
+        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
+          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
+        } else if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) {
+          throw new TableNotFoundException(ttoe);
+        }
       }
       throw ae;
     }
