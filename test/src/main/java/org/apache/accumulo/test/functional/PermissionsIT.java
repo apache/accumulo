@@ -22,6 +22,7 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -47,12 +49,14 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.Summary;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -721,6 +725,55 @@ public class PermissionsIT extends AccumuloClusterHarness {
           c.securityOperations().revokeTablePermission(principal, tableName, perm);
           verifyHasOnlyAlterTablePermission(c, principal, tableName, perm);
         }
+      }
+    }
+  }
+
+  @Test
+  public void rootUserTablePermissionTest() throws Exception {
+    // create the test user
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
+
+    String principal = testUser.getPrincipal();
+    AuthenticationToken token = testUser.getToken();
+    PasswordToken passwordToken = null;
+    if (token instanceof PasswordToken) {
+      passwordToken = (PasswordToken) token;
+    }
+    loginAs(rootUser);
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
+      c.securityOperations().createLocalUser(principal, passwordToken);
+      loginAs(testUser);
+      try (AccumuloClient test_user_client =
+          Accumulo.newClient().from(c.properties()).as(principal, token).build()) {
+
+        String tableName = getUniqueNames(1)[0] + "__TABLE_READ_PERMISSION_TEST__";
+        // Allow test user to create a table in default namespace
+        loginAs(rootUser);
+        c.securityOperations().grantNamespacePermission(testUser.getPrincipal(),
+            Namespace.DEFAULT.name(), NamespacePermission.CREATE_TABLE);
+
+        // create the test table
+        test_user_client.tableOperations().create(tableName);
+        // put in some initial data
+        try (BatchWriter writer = test_user_client.createBatchWriter(tableName)) {
+          Mutation m = new Mutation(new Text("row"));
+          m.put("cf", "cq", "val");
+          writer.addMutation(m);
+        }
+
+        // Attempt to scan table as test user
+        try (Scanner scanner = test_user_client.createScanner(tableName, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> keyValueEntry : scanner) {
+            assertNotNull(keyValueEntry);
+          }
+        }
+
+        Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
+        // Attempt to scan table as root user
+        assertThrows(RuntimeException.class, () -> scanner.stream().collect(Collectors.toList()),
+            "Error PERMISSION_DENIED");
       }
     }
   }
