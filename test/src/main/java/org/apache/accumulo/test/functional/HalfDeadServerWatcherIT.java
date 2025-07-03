@@ -23,9 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -91,7 +92,8 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
     }
 
     protected HalfDeadTabletServer(ConfigOpts opts,
-        Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+        BiFunction<SiteConfiguration,Optional<ServerId.Type>,ServerContext> serverContextFactory,
+        String[] args) {
       super(opts, serverContextFactory, args);
     }
 

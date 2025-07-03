@@ -32,6 +32,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ScheduledFuture;
@@ -42,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
@@ -110,10 +112,14 @@ public class ServerContext extends ClientContext {
   private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
-    this(ServerInfo.fromServerConfig(siteConfig));
+    this(ServerInfo.fromServerConfig(siteConfig), Optional.empty());
   }
 
-  private ServerContext(ServerInfo info) {
+  public ServerContext(SiteConfiguration siteConfig, Optional<ServerId.Type> serverType) {
+    this(ServerInfo.fromServerConfig(siteConfig), serverType);
+  }
+
+  private ServerContext(ServerInfo info, Optional<ServerId.Type> serverType) {
     super(info, info.getSiteConfiguration(), Threads.UEH);
     this.info = info;
     serverDirs = info.getServerDirs();
@@ -125,7 +131,8 @@ public class ServerContext extends ClientContext {
 
     tableManager = memoize(() -> new TableManager(this));
     nameAllocator = memoize(() -> new UniqueNameAllocator(this));
-    serverConfFactory = memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration()));
+    serverConfFactory =
+        memoize(() -> new ServerConfigurationFactory(this, getSiteConfiguration(), serverType));
     secretManager = memoize(() -> new AuthenticationTokenSecretManager(getInstanceID(),
         getConfiguration().getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME)));
     cryptoFactorySupplier = memoize(() -> CryptoFactoryLoader.newInstance(getConfiguration()));
@@ -143,7 +150,8 @@ public class ServerContext extends ClientContext {
    */
   public static ServerContext initialize(SiteConfiguration siteConfig, String instanceName,
       InstanceId instanceID) {
-    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID));
+    return new ServerContext(ServerInfo.initialize(siteConfig, instanceName, instanceID),
+        Optional.empty());
   }
 
   /**
@@ -151,7 +159,8 @@ public class ServerContext extends ClientContext {
    * from the client configuration, and the instanceId is looked up in ZooKeeper from the name.
    */
   public static ServerContext withClientInfo(SiteConfiguration siteConfig, ClientInfo info) {
-    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info));
+    return new ServerContext(ServerInfo.fromServerAndClientConfig(siteConfig, info),
+        Optional.empty());
   }
 
   /**
@@ -160,7 +169,8 @@ public class ServerContext extends ClientContext {
   public static ServerContext forTesting(SiteConfiguration siteConfig, String instanceName,
       String zooKeepers, int zkSessionTimeOut) {
     return new ServerContext(
-        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut));
+        ServerInfo.forTesting(siteConfig, instanceName, zooKeepers, zkSessionTimeOut),
+        Optional.empty());
   }
 
   public SiteConfiguration getSiteConfiguration() {
@@ -356,10 +366,10 @@ public class ServerContext extends ClientContext {
    * Wait for ZK and hdfs, check data version and some properties, and start thread to monitor
    * swappiness. Should only be called once during server start up.
    */
-  public void init(String application) {
+  public void init(ServerId.Type serverType) {
     final AccumuloConfiguration conf = getConfiguration();
 
-    log.info("{} starting", application);
+    log.info("{} starting", serverType);
     log.info("Instance {}", getInstanceID());
     // It doesn't matter which Volume is used as they should all have the data version stored
     int dataVersion = serverDirs.getAccumuloPersistentVersion(getVolumeManager().getFirst());

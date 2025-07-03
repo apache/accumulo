@@ -23,6 +23,7 @@ import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.ThreadLocalRandom;
@@ -30,6 +31,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
@@ -76,10 +78,15 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   private final ConfigRefreshRunner refresher;
 
   public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
+    this(context, siteConfig, Optional.empty());
+  }
+
+  public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig,
+      Optional<ServerId.Type> serverType) {
     this.context = context;
     this.siteConfig = siteConfig;
     this.systemConfig = memoize(() -> {
-      var sysConf = new SystemConfiguration(context, SystemPropKey.of(), siteConfig);
+      var sysConf = new SystemConfiguration(context, SystemPropKey.of(), siteConfig, serverType);
       ConfigCheckUtil.validate(sysConf, "system config");
       return sysConf;
     });

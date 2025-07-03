@@ -22,11 +22,12 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
 import java.util.List;
+import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -93,7 +94,8 @@ public abstract class AbstractServer
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
 
   protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
-      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+      BiFunction<SiteConfiguration,Optional<ServerId.Type>,ServerContext> serverContextFactory,
+      String[] args) {
     log = LoggerFactory.getLogger(getClass());
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
@@ -120,7 +122,7 @@ public abstract class AbstractServer
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
-    context = serverContextFactory.apply(siteConfig);
+    context = serverContextFactory.apply(siteConfig, Optional.of(serverType));
     try {
       if (context.getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
         throw new IllegalStateException(
@@ -135,7 +137,7 @@ public abstract class AbstractServer
     }
     log.info("Version " + Constants.VERSION);
     log.info("Instance " + context.getInstanceID());
-    context.init(applicationName);
+    context.init(serverType);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
     TraceUtil.initializeTracer(context.getConfiguration());
     if (context.getSaslParams() != null) {
