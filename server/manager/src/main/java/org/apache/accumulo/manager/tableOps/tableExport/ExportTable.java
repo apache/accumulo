@@ -59,8 +59,8 @@ public class ExportTable extends ManagerRepo {
   /**
    * Defines export / version.
    * <ul>
-   * <li>version 1 exported by Accumulo &lt; 3.1</li>
-   * <li>version 2 exported by Accumulo =&gt; 3.1 - uses file references with ranges.</li>
+   * <li>version 1 exported by Accumulo &lt; 4.0</li>
+   * <li>version 2 exported by Accumulo =&gt; 4.0 - uses file references with ranges.</li>
    * </ul>
    */
   public static final int VERSION_2 = 2;

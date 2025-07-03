@@ -78,7 +78,7 @@ public interface CompactionConfigurer {
      * <li>There is no selected set of files so the empty set is returned.</li>
      * </ul>
      *
-     * @since 3.1
+     * @since 4.0.0
      */
     public Set<CompactableFile> getSelectedFiles();
 

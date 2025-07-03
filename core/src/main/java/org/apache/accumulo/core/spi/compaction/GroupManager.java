@@ -21,7 +21,7 @@ package org.apache.accumulo.core.spi.compaction;
 /**
  * Offered to a Compaction Planner at initialization time, so it can create compactor groups.
  *
- * @since 3.1.0
+ * @since 4.0.0
  * @see CompactionPlanner#init(org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters)
  * @see org.apache.accumulo.core.spi.compaction
  */

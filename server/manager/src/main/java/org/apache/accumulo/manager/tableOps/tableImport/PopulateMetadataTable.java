@@ -143,7 +143,7 @@ class PopulateMetadataTable extends ManagerRepo {
               StoredTabletFile exportedRef;
               var dataFileCQ = key.getColumnQualifier().toString();
               if (tableInfo.exportedVersion == null || tableInfo.exportedVersion < VERSION_2) {
-                // written without fenced range information (accumulo < 3.1), use default
+                // written without fenced range information (accumulo < 4.0), use default
                 // (null,null)
                 exportedRef = StoredTabletFile.of(new Path(dataFileCQ));
               } else {

@@ -43,7 +43,7 @@ public class AccumuloDataVersion {
 
   /**
    * version (12) reflect changes to support no chop merges including json encoding of the file
-   * column family stored in root and metadata tables in version 3.1
+   * column family stored in root and metadata tables in version 4.0
    */
   public static final int METADATA_FILE_JSON_ENCODING = 12;
 
@@ -113,7 +113,6 @@ public class AccumuloDataVersion {
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
         return "3.0.0";
       case METADATA_FILE_JSON_ENCODING:
-        return "3.1.0";
       case ONDEMAND_TABLETS_FOR_VERSION_4:
         return "4.0.0";
     }

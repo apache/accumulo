@@ -44,7 +44,7 @@ public class VisibilityParseException extends ParseException {
   }
 
   /**
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public VisibilityParseException(InvalidAccessExpressionException e) {
     // TODO need to look at output for this
