@@ -205,7 +205,7 @@ public class Validators {
     }
     if (SystemTables.containsTableId(id)) {
       return Optional.of("Cloning " + SystemTables.tableIdToSimpleNameMap().get(id.canonical())
-          + " is not supported," + " see https://github.com/apache/accumulo/issues/1309.");
+          + " is not supported, see https://github.com/apache/accumulo/issues/1309.");
     }
 
     return Validator.OK;
