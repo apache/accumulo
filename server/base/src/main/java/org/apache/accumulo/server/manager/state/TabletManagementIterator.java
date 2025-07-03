@@ -284,7 +284,8 @@ public class TabletManagementIterator extends WholeRowIterator {
       // This key is being created exactly the same way as the whole row iterator creates keys.
       // This is important for ensuring that seek works as expected in the continue case. See
       // WholeRowIterator seek function for details, it looks for keys w/o columns.
-      LOG.trace("Returning extent {} with reasons: {}", extent, actions);
+      LOG.trace("Returning extent {} with reasons: {}, error: {}", extent, actions,
+          error == null ? "null" : error.getMessage());
       return true;
     }
 

@@ -376,6 +376,37 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "Should have one tablet that needs splitting");
 
+      // Remove the metadata constraint from metaCopy6 so we can insert some bad json
+      client.tableOperations().removeConstraint(metaCopy6, 1);
+
+      // might need to online/offline the table to reload the Tablets
+
+      // insert file bad json into a good row
+      try (BatchWriter bw = client.createBatchWriter(metaCopy6)) {
+        Mutation mut = new Mutation(prevR1.toMetaRow());
+        Path p = new Path(
+            "hdfs://localhost:8020/accumulo/tables/" + tableId1 + "/default_tablet/F0000070.rf");
+        Range r = new Range();
+        StoredTabletFile path = StoredTabletFile.of(p, r);
+        DataFileValue dfv = new DataFileValue(10, 10, 10);
+        mut.put(DataFileColumnFamily.NAME, new Text(path.getMetadataText().toString().substring(5)),
+            new Value(dfv.encode()));
+        bw.addMutation(mut);
+      }
+
+      // check that error is thrown
+      tabletMgmtParams = createParameters(client);
+      expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
+      ise = assertThrows(IllegalStateException.class,
+          () -> findTabletsNeedingAttention(client, metaCopy6, createParameters(client), false));
+      assertTrue(ise.getMessage().contains("Expected BEGIN_OBJECT but was STRING"));
+
+      // with errors suppressed, should return prior state
+      tabletMgmtParams = createParameters(client);
+      expected = Map.of(prevR4, Set.of(NEEDS_SPLITTING));
+      assertEquals(expected, findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, true),
+          "Should have one tablet that needs splitting");
+
       // clean up
       dropTables(client, t1, t2, t3, t4, metaCopy1, metaCopy2, metaCopy3, metaCopy4, metaCopy5,
           metaCopy6);

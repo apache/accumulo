@@ -482,28 +482,17 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
         throw new IllegalStateException("State store returned a null ManagerTabletInfo object");
       }
 
-      final TabletMetadata tm = mti.getTabletMetadata();
-
       final String mtiError = mti.getErrorMessage();
       if (mtiError != null) {
-        // An error happened on the TabletServer in the TabletManagementIterator
-        // when trying to process this extent.
-        KeyExtent ke = null;
-        try {
-          ke = tm.getExtent();
-        } catch (IllegalStateException e) {
-          // thrown when no prev endrow in tablet metadata.
-          // suppress this exception and leave ke set to null
-        }
-        String errorLocation = ke == null ? " table: " + tm.getTableId() : " extent: " + ke;
         LOG.warn(
-            "Error on TabletServer trying to get Tablet management information for {}. Error message: {}",
-            errorLocation, mtiError);
+            "Error on TabletServer trying to get Tablet management information for metadata tablet. Error message: {}",
+            mtiError);
         this.metrics.incrementTabletGroupWatcherError(this.store.getLevel());
         tableMgmtStats.tabletsWithErrors++;
         continue;
       }
 
+      final TabletMetadata tm = mti.getTabletMetadata();
       final TableId tableId = tm.getTableId();
       // ignore entries for tables that do not exist in zookeeper
       if (manager.getTableManager().getTableState(tableId) == TableState.UNKNOWN) {
