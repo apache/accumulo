@@ -20,6 +20,7 @@ package org.apache.accumulo.server;
 
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
+import java.net.UnknownHostException;
 import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
@@ -52,8 +53,10 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.mem.LowMemoryDetector;
 import org.apache.accumulo.server.metrics.MetricResponseWrapper;
 import org.apache.accumulo.server.metrics.ProcessMetrics;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.thrift.TException;
+import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -68,12 +71,16 @@ import io.micrometer.core.instrument.Metrics;
 public abstract class AbstractServer
     implements AutoCloseable, MetricsProducer, Runnable, ServerProcessService.Iface {
 
+  public static interface ThriftServerSupplier {
+    ServerAddress get() throws UnknownHostException;
+  }
+
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
-  private volatile HostAndPort advertiseAddress; // used for everything but the Thrift server (e.g.
-                                                 // ZK,
-  // metadata, etc).
+  private volatile ServerAddress thriftServer;
+  private final AtomicReference<HostAndPort> advertiseAddress; // used for everything but the Thrift
+                                                               // server (e.g. ZK, metadata, etc).
   private final String bindAddress; // used for the Thrift server
   private final String resourceGroup;
   private final Logger log;
@@ -105,11 +112,11 @@ public abstract class AbstractServer
       if (advertHP.getHost().equals(ConfigOpts.BIND_ALL_ADDRESSES)) {
         throw new IllegalArgumentException("Advertise address cannot be 0.0.0.0");
       }
-      advertiseAddress = advertHP;
+      advertiseAddress = new AtomicReference<>(advertHP);
     } else {
-      advertiseAddress = null;
+      advertiseAddress = new AtomicReference<>();
     }
-    log.info("Bind address: {}, advertise address: {}", bindAddress, advertiseAddress);
+    log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
     this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
     ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
     SecurityUtil.serverLogin(siteConfig);
@@ -295,20 +302,53 @@ public abstract class AbstractServer
   }
 
   public HostAndPort getAdvertiseAddress() {
-    return advertiseAddress;
+    return advertiseAddress.get();
   }
 
   public String getBindAddress() {
     return bindAddress;
   }
 
-  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
-    if (advertiseAddress == null) {
-      advertiseAddress = thriftBindAddress;
-    } else if (!advertiseAddress.hasPort()) {
-      advertiseAddress =
-          HostAndPort.fromParts(advertiseAddress.getHost(), thriftBindAddress.getPort());
+  protected TServer getThriftServer() {
+    if (thriftServer == null) {
+      return null;
     }
+    return thriftServer.server;
+  }
+
+  protected ServerAddress getThriftServerAddress() {
+    return thriftServer;
+  }
+
+  protected void updateAdvertiseAddress(HostAndPort thriftBindAddress) {
+    advertiseAddress.accumulateAndGet(thriftBindAddress, (curr, update) -> {
+      if (curr == null) {
+        return thriftBindAddress;
+      } else if (!curr.hasPort()) {
+        return HostAndPort.fromParts(curr.getHost(), update.getPort());
+      } else {
+        return curr;
+      }
+    });
+  }
+
+  /**
+   * Updates internal ThriftServer reference and optionally starts the Thrift server. Updates the
+   * advertise address based on the address to which the ThriftServer is bound
+   *
+   * @param supplier ThriftServer
+   * @param start true to start the server, else false
+   * @throws UnknownHostException thrown from ThriftServer when binding to bad address
+   */
+  protected void updateThriftServer(ThriftServerSupplier supplier, boolean start)
+      throws UnknownHostException {
+    thriftServer = supplier.get();
+    if (start) {
+      thriftServer.startThriftServer("Thrift Client Server");
+      log.info("Starting {} Thrift server, listening on {}", this.getClass().getSimpleName(),
+          thriftServer.address);
+    }
+    updateAdvertiseAddress(thriftServer.address);
   }
 
   public ServerContext getContext() {
