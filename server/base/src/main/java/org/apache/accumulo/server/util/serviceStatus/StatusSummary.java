@@ -18,9 +18,11 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 
 public class StatusSummary {
 
@@ -62,6 +64,26 @@ public class StatusSummary {
 
   public int getErrorCount() {
     return errorCount;
+  }
+
+  public StatusSummary withoutHosts() {
+    Map<String,Set<String>> tmpHosts = new TreeMap<>();
+
+    for (Map.Entry<String,Set<String>> entry : this.serviceByGroups.entrySet()) {
+
+      String group = entry.getKey();
+      int size = entry.getValue().size();
+      ;
+
+      Set<String> hosts = new HashSet<>();
+      for (int i = 0; i < size; i++) {
+        hosts.add("");
+      }
+
+      tmpHosts.put(group, hosts);
+    }
+
+    return new StatusSummary(this.serviceType, this.resourceGroups, tmpHosts, this.errorCount);
   }
 
   @Override
