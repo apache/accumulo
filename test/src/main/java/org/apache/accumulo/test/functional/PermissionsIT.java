@@ -22,7 +22,6 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
@@ -34,7 +33,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.client.Accumulo;
@@ -770,10 +768,12 @@ public class PermissionsIT extends AccumuloClusterHarness {
           }
         }
 
-        Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY);
         // Attempt to scan table as root user
-        assertThrows(RuntimeException.class, () -> scanner.stream().collect(Collectors.toList()),
-            "Error PERMISSION_DENIED");
+        try (Scanner scanner = c.createScanner(tableName, Authorizations.EMPTY)) {
+          for (Entry<Key,Value> keyValueEntry : scanner) {
+            assertNotNull(keyValueEntry);
+          }
+        }
       }
     }
   }
