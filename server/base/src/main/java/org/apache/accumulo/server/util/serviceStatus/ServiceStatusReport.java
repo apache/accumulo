@@ -111,44 +111,6 @@ public class ServiceStatusReport {
 
     return sb.toString();
   }
-  //
-  // public String toFlatJson() {
-  // Map<String,Map<String,Object>> flatJson = new LinkedHashMap<>();
-  //
-  // for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
-  // ReportKey reportKey = entry.getKey();
-  // StatusSummary statusSummary = entry.getValue();
-  //
-  // if (statusSummary.getServiceByGroups() == null) {
-  // continue;
-  // }
-  //
-  // Map<String,Object> groupData = getGroupData(statusSummary);
-  // flatJson.put(reportKey.name(), groupData);
-  // }
-  //
-  // Map<String,Object> wrapper = new LinkedHashMap<>();
-  // wrapper.put("summaries", flatJson);
-  //
-  // return gson.toJson(wrapper);
-  // }
-  //
-  // private static Map<String,Object> getGroupData(StatusSummary statusSummary) {
-  // Map<String,Object> groupData = new LinkedHashMap<>();
-  // for (Map.Entry<String,Set<String>> groupEntry : statusSummary.getServiceByGroups().entrySet())
-  // {
-  // String group = groupEntry.getKey();
-  // Set<String> hosts = groupEntry.getValue();
-  //
-  // Map<String,Object> details = new LinkedHashMap<>();
-  // details.put("HostCount", hosts.size());
-  // details.put("hosts", hosts);
-  // details.put("errorCount", statusSummary.getErrorCount());
-  //
-  // groupData.put(group, details);
-  // }
-  // return groupData;
-  // }
 
   public String report(final StringBuilder sb) {
     sb.append("Report time: ").append(rptTimeFmt.format(ZonedDateTime.now(ZoneId.of("UTC"))))
