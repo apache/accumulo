@@ -18,9 +18,14 @@
  */
 package org.apache.accumulo.test.fate.meta;
 
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -29,8 +34,25 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.fate.FateOpsCommandsITBase;
 import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestEnv;
 import org.apache.accumulo.test.fate.TestLock;
+import org.junit.jupiter.api.AfterEach;
 
 public class MetaFateOpsCommandsIT extends FateOpsCommandsITBase {
+  @AfterEach
+  public void afterEachTeardown() throws Exception {
+    // remove any lingering fate data after each test
+    var zkReader = getCluster().getServerContext().getZooSession().asReader();
+    for (var child : zkReader.getChildren(Constants.ZFATE)) {
+      // stored as tx_<FATE UUID>
+      String fateUUID = child.split("_")[1];
+      fateOpsToCleanup.add(FateId.from(FateInstanceType.META, fateUUID).canonical());
+    }
+    if (!fateOpsToCleanup.isEmpty()) {
+      cleanupFateOps();
+    }
+    assertTrue(zkReader.getChildren(Constants.ZFATE).isEmpty());
+    fateOpsToCleanup.clear();
+  }
+
   /**
    * This should be used for tests that will not seed a txn with work/reserve a txn. Note that this
    * should be used in conjunction with
