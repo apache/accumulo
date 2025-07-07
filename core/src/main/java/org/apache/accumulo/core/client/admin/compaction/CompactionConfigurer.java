@@ -62,8 +62,8 @@ public interface CompactionConfigurer {
     TabletId getTabletId();
 
     /**
-     * Returns the path that the compaction will write to, one use of this is to know the
-     * output volume.
+     * Returns the path that the compaction will write to, one use of this is to know the output
+     * volume.
      *
      * @since 2.1.4
      */
