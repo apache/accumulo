@@ -1123,14 +1123,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (AccumuloException ae) {
       Throwable cause = ae.getCause();
       if (cause instanceof TableNotFoundException) {
-        throw new TableNotFoundException(null, tableName, null, ae);
-      } else if (cause instanceof ThriftTableOperationException) {
-        var ttoe = (ThriftTableOperationException) cause;
-        if (ttoe.getType() == TableOperationExceptionType.NAMESPACE_NOTFOUND) {
-          throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
-        } else if (ttoe.getType() == TableOperationExceptionType.NOTFOUND) {
-          throw new TableNotFoundException(ttoe);
-        }
+        throw (TableNotFoundException) cause;
       }
       throw ae;
     }
@@ -1188,16 +1181,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        switch (ttoe.getType()) {
-          case NOTFOUND:
-            throw new TableNotFoundException(ttoe);
-          case NAMESPACE_NOTFOUND:
-            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
-          default:
-            throw e;
-        }
+      if (t instanceof TableNotFoundException) {
+        throw (TableNotFoundException) t;
       }
       throw e;
     } catch (Exception e) {
@@ -1215,16 +1200,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
           .getTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName));
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        switch (ttoe.getType()) {
-          case NOTFOUND:
-            throw new TableNotFoundException(ttoe);
-          case NAMESPACE_NOTFOUND:
-            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
-          default:
-            throw e;
-        }
+      if (t instanceof TableNotFoundException) {
+        throw (TableNotFoundException) t;
       }
       throw e;
     } catch (Exception e) {
@@ -1805,18 +1782,12 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkTableClass(TraceUtil.traceInfo(), context.rpcCreds(), tableName,
               className, asTypeName));
-    } catch (AccumuloSecurityException | AccumuloException e) {
+    } catch (AccumuloSecurityException e) {
+      throw e;
+    } catch (AccumuloException e) {
       Throwable t = e.getCause();
-      if (t instanceof ThriftTableOperationException) {
-        ThriftTableOperationException ttoe = (ThriftTableOperationException) t;
-        switch (ttoe.getType()) {
-          case NOTFOUND:
-            throw new TableNotFoundException(ttoe);
-          case NAMESPACE_NOTFOUND:
-            throw new TableNotFoundException(tableName, new NamespaceNotFoundException(ttoe));
-          default:
-            throw e;
-        }
+      if (t instanceof TableNotFoundException) {
+        throw (TableNotFoundException) t;
       }
       throw e;
     } catch (Exception e) {
