@@ -30,9 +30,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InvalidObjectException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.RangeImpl;
@@ -943,5 +945,30 @@ public class RangeTest {
     TRange tr = r.toThrift();
     assertThrows(IllegalArgumentException.class, () -> new Range(tr),
         "Thrift constructor allowed invalid range");
+  }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    Range range = new Range("a", "b");
+    int hashCode1 = range.hashCode();
+    int hashCode2 = range.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    Range r1 = new Range("a", "b");
+    Range r2 = new Range("a", "b");
+    assertEquals(r1.hashCode(), r2.hashCode());
+
+    // Testing even distribution
+    List<Range> ranges = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      ranges.add(new Range("a" + i, "b" + i));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Range r : ranges) {
+      hashCodes.add(r.hashCode());
+    }
+    assertEquals(ranges.size(), hashCodes.size(), 10);
   }
 }
