@@ -300,7 +300,7 @@ public class PropertyTest {
 
   @Test
   public void testFixedPropertiesNonNull() {
-    Property.fixedProperties.forEach(p -> {
+    Property.FIXED_PROPERTIES.forEach(p -> {
       assertNotNull(p.getDefaultValue());
       assertFalse(p.getDefaultValue().isBlank());
     });

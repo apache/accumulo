@@ -43,6 +43,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -76,7 +77,9 @@ public abstract class ExternalCompaction2ITBase extends SharedMiniClusterBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-      cfg.setServerClass(ServerType.COMPACTOR, ExternalDoNothingCompactor.class);
+      cfg.setServerClass(ServerType.COMPACTOR,
+          rg -> !rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME) ? ExternalDoNothingCompactor.class
+              : null);
     }
   }
 

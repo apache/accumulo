@@ -85,7 +85,7 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       cfg.setSystemProperties(sysProps);
 
       // Set a compactor that will consume and free memory when we need it to
-      cfg.setServerClass(ServerType.COMPACTOR, MemoryConsumingCompactor.class);
+      cfg.setServerClass(ServerType.COMPACTOR, rg -> MemoryConsumingCompactor.class);
     }
   }
 

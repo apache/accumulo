@@ -49,7 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -98,6 +98,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -633,7 +634,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.start(ServerType.GARBAGE_COLLECTOR);
 
     if (executor == null) {
-      executor = Executors.newSingleThreadExecutor();
+      executor = ThreadPools.getServerThreadPools().getPoolBuilder(getClass().getSimpleName())
+          .numCoreThreads(1).numMaxThreads(16).withTimeOut(1, TimeUnit.SECONDS)
+          .enableThreadPoolMetrics(false).build();
     }
 
     Set<String> groups;
@@ -1092,6 +1095,39 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @VisibleForTesting
   protected ExecutorService getShutdownExecutor() {
     return executor;
+  }
+
+  public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
+      final long timeout, final TimeUnit unit) {
+
+    final List<Future<Integer>> futures = new ArrayList<>();
+    for (Process proc : procs) {
+      futures.add(executor.submit(() -> {
+        proc.destroy();
+        proc.waitFor(timeout, unit);
+        return proc.exitValue();
+      }));
+    }
+
+    while (!futures.isEmpty()) {
+      futures.removeIf(f -> {
+        if (f.isDone()) {
+          try {
+            f.get();
+          } catch (ExecutionException | InterruptedException e) {
+            log.warn("{} did not fully stop after {} seconds", type, unit.toSeconds(timeout), e);
+          }
+          return true;
+        }
+        return false;
+      });
+      try {
+        Thread.sleep(250);
+      } catch (InterruptedException e) {
+        log.warn("Interrupted while trying to stop " + type + " processes.");
+        Thread.currentThread().interrupt();
+      }
+    }
   }
 
   public int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
