@@ -469,12 +469,8 @@ public class ConfigCommand extends Command {
   }
 
   private void logSysPropChanged(Property prop, String setOrDeleted) {
-    if (Property.isFixedZooPropertyKey(prop)) {
-      Shell.log.warn("Successfully {} a fixed system configuration option. Change will not "
-          + "take effect until related processes are restarted.", setOrDeleted);
-    } else {
-      Shell.log.debug("Successfully {} system configuration option.", setOrDeleted);
-    }
+    Shell.log.debug("Successfully {} system configuration option.", setOrDeleted);
+    prop.logValueChanged(Shell.log);
   }
 
 }

@@ -22,16 +22,14 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
+import org.apache.accumulo.core.conf.PropertyScope.Scope;
 import org.apache.accumulo.core.data.constraints.NoDeleteConstraint;
 import org.apache.accumulo.core.file.blockfile.cache.tinylfu.TinyLfuBlockCacheManager;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -46,6 +44,7 @@ import org.apache.accumulo.core.spi.scan.ScanPrioritizer;
 import org.apache.accumulo.core.spi.scan.ScanServerSelector;
 import org.apache.accumulo.core.spi.scan.SimpleScanDispatcher;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
+import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
@@ -80,54 +79,70 @@ public enum Property {
       "3.1.0"),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_PROCESS_ADVERTISE_ADDRESS("rpc.advertise.addr", "", PropertyType.STRING,
       "The address to use when registering this server in ZooKeeper. This could be an"
           + " IP address or hostname and defaults to rpc.bind.addr property value. Port "
           + "numbers, if not specified, will default to the port property for the specific server type.",
       "2.1.4"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic. If not set then the process binds to all addresses.",
       "2.1.4"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
       PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
       "2.1.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
       "Configures the TCP backlog for the server side sockets created by Thrift."
           + " This property is not used for SSL type server sockets. A value of zero"
           + " will use the Thrift default value.",
       "2.1.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH,
       "Path of the keystore file for the server's private SSL key.", "1.6.0"),
   @Sensitive
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_KEYSTORE_PASSWORD("rpc.javax.net.ssl.keyStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL private keystore. "
           + "Leave blank to use the Accumulo instance secret.",
       "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_KEYSTORE_TYPE("rpc.javax.net.ssl.keyStoreType", "jks", PropertyType.STRING,
       "Type of SSL keystore.", "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_TRUSTSTORE_PATH("rpc.javax.net.ssl.trustStore", "", PropertyType.PATH,
       "Path of the truststore file for the root cert.", "1.6.0"),
   @Sensitive
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_TRUSTSTORE_PASSWORD("rpc.javax.net.ssl.trustStorePassword", "", PropertyType.STRING,
       "Password used to encrypt the SSL truststore. Leave blank to use no password.", "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_TRUSTSTORE_TYPE("rpc.javax.net.ssl.trustStoreType", "jks", PropertyType.STRING,
       "Type of SSL truststore.", "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_USE_JSSE("rpc.useJsse", "false", PropertyType.BOOLEAN,
       "Use JSSE system properties to configure SSL rather than the " + RPC_PREFIX.getKey()
           + "javax.net.ssl.* Accumulo properties.",
       "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_CIPHER_SUITES("rpc.ssl.cipher.suites", "", PropertyType.STRING,
       "Comma separated list of cipher suites that can be used by accepted connections.", "1.6.1"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1.3", PropertyType.STRING,
       "Comma separated list of protocols that can be used to accept connections.", "1.6.2"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SSL_CLIENT_PROTOCOL("rpc.ssl.client.protocol", "TLSv1.3", PropertyType.STRING,
       "The protocol used to connect to a secure server. Must be in the list of enabled protocols "
           + "on the server side `rpc.ssl.server.enabled.protocols`.",
       "1.6.2"),
+  @PropertyScope(scope = Scope.PROCESS)
   RPC_SASL_QOP("rpc.sasl.qop", "auth", PropertyType.STRING,
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
           + " and 'auth-conf'.",
@@ -138,14 +153,17 @@ public enum Property {
       "Properties in this category must be consistent throughout a cloud. "
           + "This is enforced and servers won't be able to communicate if these differ.",
       "1.3.5"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_ZK_HOST("instance.zookeeper.host", "localhost:2181", PropertyType.HOSTLIST,
       "Comma separated list of zookeeper servers.", "1.3.5"),
+  @PropertyScope(scope = Scope.PROCESS)
   INSTANCE_ZK_TIMEOUT("instance.zookeeper.timeout", "30s", PropertyType.TIMEDURATION,
       "Zookeeper session timeout; "
           + "max value when represented as milliseconds should be no larger than "
           + Integer.MAX_VALUE + ".",
       "1.3.5"),
   @Sensitive
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
       "A secret unique to a given instance that all servers must know in order"
           + " to communicate with one another. It should be changed prior to the"
@@ -156,6 +174,7 @@ public enum Property {
           + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
           + " admin changeSecret`.",
       "1.3.5"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.VOLUMES,
       "A comma separated list of dfs uris to use. Files will be stored across"
           + " these filesystems. In some situations, the first volume in this list"
@@ -169,6 +188,7 @@ public enum Property {
           + " a comma or other reserved characters in a URI use standard URI hex"
           + " encoding. For example replace commas with %2C.",
       "1.6.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   INSTANCE_VOLUME_CONFIG_PREFIX("instance.volume.config.", null, PropertyType.PREFIX,
       "Properties in this category are used to provide volume specific overrides to "
           + "the general filesystem client configuration. Properties using this prefix "
@@ -179,6 +199,7 @@ public enum Property {
           + "Note that when specifying property names that contain colons in the properties "
           + "files that the colons need to be escaped with a backslash.",
       "2.1.1"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode "
           + "could prevent Accumulo from starting. The property helps deal with "
@@ -193,38 +214,46 @@ public enum Property {
           + "example replace commas with %2C.",
       "1.6.0"),
   @Experimental // interface uses unstable internal types, use with caution
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_SECURITY_AUTHENTICATOR("instance.security.authenticator",
       "org.apache.accumulo.server.security.handler.ZKAuthenticator", PropertyType.CLASSNAME,
       "The authenticator class that accumulo will use to determine if a user "
           + "has privilege to perform an action.",
       "1.5.0"),
   @Experimental // interface uses unstable internal types, use with caution
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_SECURITY_AUTHORIZOR("instance.security.authorizor",
       "org.apache.accumulo.server.security.handler.ZKAuthorizor", PropertyType.CLASSNAME,
       "The authorizor class that accumulo will use to determine what labels a "
           + "user has privilege to see.",
       "1.5.0"),
   @Experimental // interface uses unstable internal types, use with caution
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_SECURITY_PERMISSION_HANDLER("instance.security.permissionHandler",
       "org.apache.accumulo.server.security.handler.ZKPermHandler", PropertyType.CLASSNAME,
       "The permission handler class that accumulo will use to determine if a "
           + "user has privilege to perform an action.",
       "1.5.0"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_RPC_SSL_ENABLED("instance.rpc.ssl.enabled", "false", PropertyType.BOOLEAN,
       "Use SSL for socket connections from clients and among accumulo services. "
           + "Mutually exclusive with SASL RPC configuration.",
       "1.6.0"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_RPC_SSL_CLIENT_AUTH("instance.rpc.ssl.clientAuth", "false", PropertyType.BOOLEAN,
       "Require clients to present certs signed by a trusted root.", "1.6.0"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_RPC_SASL_ENABLED("instance.rpc.sasl.enabled", "false", PropertyType.BOOLEAN,
       "Configures Thrift RPCs to require SASL with GSSAPI which supports "
           + "Kerberos authentication. Mutually exclusive with SSL RPC configuration.",
       "1.7.0"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_RPC_SASL_ALLOWED_USER_IMPERSONATION("instance.rpc.sasl.allowed.user.impersonation", "",
       PropertyType.STRING,
       "One-line configuration property controlling what users are allowed to "
           + "impersonate other users.",
       "1.7.1"),
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_RPC_SASL_ALLOWED_HOST_IMPERSONATION("instance.rpc.sasl.allowed.host.impersonation", "",
       PropertyType.STRING,
       "One-line configuration property controlling the network locations "
@@ -232,13 +261,16 @@ public enum Property {
       "1.7.1"),
   // Crypto-related properties
   @Experimental
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_CRYPTO_PREFIX("instance.crypto.opts.", null, PropertyType.PREFIX,
       "Properties related to on-disk file encryption.", "2.0.0"),
   @Experimental
   @Sensitive
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_CRYPTO_SENSITIVE_PREFIX("instance.crypto.opts.sensitive.", null, PropertyType.PREFIX,
       "Sensitive properties related to on-disk file encryption.", "2.0.0"),
   @Experimental
+  @PropertyScope(scope = Scope.INSTANCE)
   INSTANCE_CRYPTO_FACTORY("instance.crypto.opts.factory",
       "org.apache.accumulo.core.spi.crypto.NoCryptoServiceFactory", PropertyType.CLASSNAME,
       "The class which provides crypto services for on-disk file encryption. The default does nothing. To enable "
@@ -250,33 +282,40 @@ public enum Property {
       "Properties in this category affect the behavior of accumulo overall, but"
           + " do not have to be consistent throughout a cloud.",
       "1.3.5"),
-
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_CONTEXT_CLASSLOADER_FACTORY("general.context.class.loader.factory", "",
       PropertyType.CLASSNAME,
       "Name of classloader factory to be used to create classloaders for named contexts,"
           + " such as per-table contexts set by `table.class.loader.context`.",
       "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN("general.file.name.allocation.batch.size.min", "100",
       PropertyType.COUNT,
       "The minimum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX("general.file.name.allocation.batch.size.max", "200",
       PropertyType.COUNT,
       "The maximum number of filenames that will be allocated from ZooKeeper at a time.", "2.1.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_RPC_TIMEOUT("general.rpc.timeout", "120s", PropertyType.TIMEDURATION,
       "Time to wait on I/O for simple, short RPC calls.", "1.3.5"),
   @Experimental
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_RPC_SERVER_TYPE("general.rpc.server.type", "", PropertyType.STRING,
       "Type of Thrift server to instantiate, see "
           + "org.apache.accumulo.server.rpc.ThriftServerType for more information. "
           + "Only useful for benchmarking thrift servers.",
       "1.7.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_KERBEROS_KEYTAB("general.kerberos.keytab", "", PropertyType.PATH,
       "Path to the kerberos keytab to use. Leave blank if not using kerberoized hdfs.", "1.4.1"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_KERBEROS_PRINCIPAL("general.kerberos.principal", "", PropertyType.STRING,
       "Name of the kerberos principal to use. _HOST will automatically be "
           + "replaced by the machines hostname in the hostname portion of the "
           + "principal. Leave blank if not using kerberoized hdfs.",
       "1.4.1"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_KERBEROS_RENEWAL_PERIOD("general.kerberos.renewal.period", "30s",
       PropertyType.TIMEDURATION,
       "The amount of time between attempts to perform Kerberos ticket renewals."
@@ -284,14 +323,17 @@ public enum Property {
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
   @Experimental
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_THREADPOOL_SIZE("general.server.threadpool.size", "3", PropertyType.COUNT,
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
   @Experimental
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", RandomVolumeChooser.class.getName(),
       PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files.",
@@ -304,6 +346,7 @@ public enum Property {
           + " user-implementations of pluggable Accumulo features, such as the balancer"
           + " or volume chooser.",
       "2.0.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_CACHE_MANAGER_IMPL("general.block.cache.manager.class",
       TinyLfuBlockCacheManager.class.getName(), PropertyType.STRING,
       "Specifies the class name of the block cache factory implementation.", "2.1.4"),
@@ -316,8 +359,10 @@ public enum Property {
   GENERAL_IDLE_PROCESS_INTERVAL("general.metrics.process.idle", "5m", PropertyType.TIMEDURATION,
       "Amount of time a process must be idle before it is considered to be idle by the metrics system.",
       "2.1.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_LOW_MEM_DETECTOR_INTERVAL("general.low.mem.detector.interval", "5s",
       PropertyType.TIMEDURATION, "The time interval between low memory checks.", "3.0.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_LOW_MEM_DETECTOR_THRESHOLD("general.low.mem.detector.threshold", "0.05",
       PropertyType.FRACTION,
       "The LowMemoryDetector will report when free memory drops below this percentage of total memory.",
@@ -343,22 +388,27 @@ public enum Property {
       PropertyType.TIMEDURATION,
       "The maximum amount of time that a Scanner should wait before retrying a failed RPC.",
       "1.7.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_MICROMETER_CACHE_METRICS_ENABLED("general.micrometer.cache.metrics.enabled", "false",
       PropertyType.BOOLEAN, "Enables Caffeine Cache metrics functionality using Micrometer.",
       "4.0.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_MICROMETER_ENABLED("general.micrometer.enabled", "false", PropertyType.BOOLEAN,
       "Enables metrics collection and reporting functionality using Micrometer.", "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_MICROMETER_JVM_METRICS_ENABLED("general.micrometer.jvm.metrics.enabled", "false",
       PropertyType.BOOLEAN,
       "Enables additional JVM metrics collection and reporting using Micrometer. Requires "
           + "property 'general.micrometer.enabled' to be set to 'true' to take effect.",
       "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_MICROMETER_LOG_METRICS("general.micrometer.log.metrics", "none", PropertyType.STRING,
       "Enables additional log metrics collection and reporting using Micrometer. Requires "
           + "property 'general.micrometer.enabled' to be set to 'true' to take effect. Micrometer "
           + "natively instruments Log4j2 and Logback. Valid values for this property are 'none',"
           + "'log4j2' or 'logback'.",
       "2.1.4"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_MICROMETER_FACTORY("general.micrometer.factory",
       "org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory",
       PropertyType.CLASSNAMELIST,
@@ -368,6 +418,7 @@ public enum Property {
           + " was changed and it now can accept multiple class names. The metrics spi was introduced in 2.1.3,"
           + " the deprecated factory is org.apache.accumulo.core.metrics.MeterRegistryFactory.",
       "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_MICROMETER_USER_TAGS("general.micrometer.user.tags", "", PropertyType.STRING,
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
@@ -378,6 +429,7 @@ public enum Property {
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
       PropertyType.TIMEDURATION,
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
@@ -1088,6 +1140,7 @@ public enum Property {
       "1.3.5"),
   TABLE_BLOOM_HASHTYPE("table.bloom.hash.type", "murmur", PropertyType.STRING,
       "The bloom filter hash type.", "1.3.5"),
+  @PropertyScope(scope = Scope.SESSION)
   TABLE_BULK_SKIP_THRESHOLD("table.bulk.metadata.skip.distance", "0", PropertyType.COUNT,
       "When performing bulk v2 imports to a table, the Manager iterates over the tables metadata"
           + " tablets sequentially. When importing files into a small table or into all or a majority"
@@ -1100,19 +1153,20 @@ public enum Property {
           + " this feature. A non-zero value enables this feature and the Manager will setup a new scanner"
           + " when the tablet metadata distance is above the supplied value.",
       "2.1.4"),
+  @PropertyScope(scope = Scope.SESSION)
   TABLE_DURABILITY("table.durability", "sync", PropertyType.DURABILITY,
       "The durability used to write to the write-ahead log. Legal values are:"
           + " none, which skips the write-ahead log; log, which sends the data to the"
           + " write-ahead log, but does nothing to make it durable; flush, which pushes"
           + " data to the file system; and sync, which ensures the data is written to disk.",
       "1.7.0"),
-
   TABLE_FAILURES_IGNORE("table.failures.ignore", "false", PropertyType.BOOLEAN,
       "If you want queries for your table to hang or fail when data is missing"
           + " from the system, then set this to false. When this set to true missing"
           + " data will be reported but queries will still run possibly returning a"
           + " subset of the data.",
       "1.3.5"),
+  @PropertyScope(scope = Scope.SESSION)
   TABLE_DEFAULT_SCANTIME_VISIBILITY("table.security.scan.visibility.default", "",
       PropertyType.STRING,
       "The security label that will be assumed at scan time if an entry does"
@@ -1222,50 +1276,63 @@ public enum Property {
   // Compactor properties
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_CANCEL_CHECK_INTERVAL("compactor.cancel.check.interval", "5m",
       PropertyType.TIMEDURATION,
       "Interval at which Compactors will check to see if the currently executing compaction"
           + " should be cancelled. This checks for situations like was the tablet deleted (split "
           + " and merge do this), was the table deleted, was a user compaction canceled, etc.",
       "2.1.4"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_PORTSEARCH("compactor.port.search", "true", PropertyType.BOOLEAN,
       "If the compactor.port.client ports are in use, search higher ports until one is available.",
       "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers.", "2.1.0"),
+  @PropertyScope(scope = Scope.DYNAMIC)
   COMPACTOR_MIN_JOB_WAIT_TIME("compactor.wait.time.job.min", "1s", PropertyType.TIMEDURATION,
       "The minimum amount of time to wait between checks for the next compaction job, backing off"
           + "exponentially until COMPACTOR_MAX_JOB_WAIT_TIME is reached.",
       "2.1.3"),
+  @PropertyScope(scope = Scope.DYNAMIC)
   COMPACTOR_MAX_JOB_WAIT_TIME("compactor.wait.time.job.max", "5m", PropertyType.TIMEDURATION,
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
       "The time after which incoming request threads terminate with no work available.  Zero (0) will keep the threads alive indefinitely.",
       "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_THREADCHECK("compactor.threadcheck.time", "1s", PropertyType.TIMEDURATION,
       "The time between adjustments of the server thread pool.", "2.1.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTOR_GROUP_NAME("compactor.group", Constants.DEFAULT_RESOURCE_GROUP_NAME,
       PropertyType.STRING, "Resource group name for this Compactor.", "3.0.0"),
   // CompactionCoordinator properties
   COMPACTION_COORDINATOR_PREFIX("compaction.coordinator.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compaction coordinator server.",
       "2.1.0"),
+  @PropertyScope(scope = Scope.DYNAMIC)
   COMPACTION_COORDINATOR_RESERVATION_THREADS_ROOT("compaction.coordinator.reservation.threads.root",
       "1", PropertyType.COUNT,
       "The number of threads used to reserve files for compaction in a tablet for the root tablet.",
       "4.0.0"),
+  @PropertyScope(scope = Scope.DYNAMIC)
   COMPACTION_COORDINATOR_RESERVATION_THREADS_META("compaction.coordinator.reservation.threads.meta",
       "1", PropertyType.COUNT,
       "The number of threads used to reserve files for compaction in a tablet for accumulo.metadata tablets.",
       "4.0.0"),
+  @PropertyScope(scope = Scope.DYNAMIC)
   COMPACTION_COORDINATOR_RESERVATION_THREADS_USER("compaction.coordinator.reservation.threads.user",
       "64", PropertyType.COUNT,
       "The number of threads used to reserve files for compaction in a tablet for user tables.",
       "4.0.0"),
+  @PropertyScope(scope = Scope.PROCESS)
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
       "The interval at which to check for dead compactors.", "2.1.0");
@@ -1281,6 +1348,7 @@ public enum Property {
   private boolean isExperimental;
   private boolean isReplaced;
   private Property replacedBy = null;
+  private Scope scope;
   private final PropertyType type;
 
   Property(String name, String defaultValue, PropertyType type, String description,
@@ -1409,6 +1477,33 @@ public enum Property {
     return replacedBy;
   }
 
+  public Scope getScope() {
+    Preconditions.checkState(annotationsComputed,
+        "precomputeAnnotations() must be called before calling this method");
+    return scope;
+  }
+
+  public void logValueChanged(Logger log) {
+    Preconditions.checkState(annotationsComputed,
+        "precomputeAnnotations() must be called before calling this method");
+    switch (scope) {
+      case INSTANCE:
+        log.warn("Property {} changed and may cause instance to not recognize this process.",
+            getKey());
+        break;
+      case PROCESS:
+        log.warn(
+            "Property {} changed but may not take effect until related processes are restarted.",
+            getKey());
+        break;
+      case SESSION:
+      case DYNAMIC:
+      default:
+        break;
+    }
+
+  }
+
   private void precomputeAnnotations() {
     isSensitive =
         hasAnnotation(Sensitive.class) || hasPrefixWithAnnotation(getKey(), Sensitive.class);
@@ -1427,6 +1522,12 @@ public enum Property {
       replacedBy = rb.property();
     } else {
       isReplaced = false;
+    }
+    PropertyScope scopeAnn = getAnnotation(PropertyScope.class);
+    if (scopeAnn != null) {
+      scope = scopeAnn.scope();
+    } else {
+      scope = Scope.DYNAMIC;
     }
     annotationsComputed = true;
   }
@@ -1534,83 +1635,6 @@ public enum Property {
         || key.startsWith(TABLE_CRYPTO_PREFIX.getKey()));
   }
 
-  // these properties are fixed to a specific value at startup and require a restart for changes to
-  // take effect; these are always system-level properties, and not namespace or table properties
-  public static final Set<Property> FIXED_PROPERTIES = Collections.unmodifiableSet(EnumSet.of(
-      // RPC options
-      RPC_BACKLOG, RPC_SSL_KEYSTORE_TYPE, RPC_SSL_TRUSTSTORE_TYPE, RPC_USE_JSSE,
-      RPC_SSL_ENABLED_PROTOCOLS, RPC_SSL_CLIENT_PROTOCOL, RPC_SASL_QOP, RPC_MAX_MESSAGE_SIZE,
-
-      // INSTANCE options
-      INSTANCE_ZK_HOST, INSTANCE_ZK_TIMEOUT, INSTANCE_SECRET, INSTANCE_SECURITY_AUTHENTICATOR,
-      INSTANCE_SECURITY_AUTHORIZOR, INSTANCE_SECURITY_PERMISSION_HANDLER, INSTANCE_RPC_SSL_ENABLED,
-      INSTANCE_RPC_SSL_CLIENT_AUTH, INSTANCE_RPC_SASL_ENABLED, INSTANCE_CRYPTO_FACTORY,
-
-      // GENERAL options
-      GENERAL_KERBEROS_RENEWAL_PERIOD, GENERAL_OPENTELEMETRY_ENABLED, GENERAL_VOLUME_CHOOSER,
-      GENERAL_DELEGATION_TOKEN_LIFETIME, GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL,
-      GENERAL_IDLE_PROCESS_INTERVAL, GENERAL_MICROMETER_ENABLED,
-      GENERAL_MICROMETER_JVM_METRICS_ENABLED, GENERAL_MICROMETER_LOG_METRICS,
-      GENERAL_MICROMETER_FACTORY, GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL,
-      GENERAL_CACHE_MANAGER_IMPL, GENERAL_MICROMETER_CACHE_METRICS_ENABLED,
-      GENERAL_LOW_MEM_DETECTOR_INTERVAL,
-
-      // MANAGER options
-      MANAGER_THREADCHECK, MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, MANAGER_METADATA_SUSPENDABLE,
-      MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT,
-      MANAGER_CLIENTPORT, MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT,
-      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME, MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
-      MANAGER_TABLET_REFRESH_MINTHREADS, MANAGER_TABLET_REFRESH_MAXTHREADS,
-      MANAGER_TABLET_MERGEABILITY_INTERVAL, MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX,
-
-      // SSERV options
-      SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_CLIENTPORT,
-      SSERV_PORTSEARCH, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
-      SSERV_DEFAULT_BLOCKSIZE, SSERV_SCAN_REFERENCE_EXPIRATION_TIME,
-      SSERV_CACHED_TABLET_METADATA_EXPIRATION, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
-      SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
-
-      // TSERV options
-      TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
-      TSERV_WAL_TOLERATED_CREATION_FAILURES, TSERV_WAL_TOLERATED_WAIT_INCREMENT,
-      TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
-      TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
-      TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
-      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_PORTSEARCH,
-      TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE,
-      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM,
-      TSERV_SCAN_MAX_OPENFILES, TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
-
-      // GC options
-      GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START, GC_PORT,
-
-      // MONITOR options
-      MONITOR_PORT, MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE,
-      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL,
-
-      // COMPACTOR options
-      COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_CLIENTPORT, COMPACTOR_THREADCHECK,
-      COMPACTOR_PORTSEARCH, COMPACTOR_MINTHREADS, COMPACTOR_MINTHREADS_TIMEOUT,
-      COMPACTOR_GROUP_NAME,
-
-      // COMPACTION_COORDINATOR options
-      COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL,
-
-      // COMPACTION_SERVICE options
-      COMPACTION_SERVICE_DEFAULT_PLANNER, COMPACTION_SERVICE_DEFAULT_MAX_OPEN,
-      COMPACTION_SERVICE_DEFAULT_GROUPS));
-
-  /**
-   * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
-   * of some relevant daemon.
-   *
-   * @param key property key
-   * @return true if property may be changed via Zookeeper but only heeded upon some restart
-   */
-  public static boolean isFixedZooPropertyKey(Property key) {
-    return FIXED_PROPERTIES.contains(key);
-  }
-
   /**
    * Checks if the given property key is valid for a property that may be changed via Zookeeper.
    *
@@ -1618,18 +1642,14 @@ public enum Property {
    * @return true if key's property may be changed via Zookeeper
    */
   public static boolean isValidZooPropertyKey(String key) {
-    // white list prefixes
-    return key.startsWith(Property.TABLE_PREFIX.getKey())
-        || key.startsWith(Property.TSERV_PREFIX.getKey())
-        || key.startsWith(Property.COMPACTION_SERVICE_PREFIX.getKey())
-        || key.startsWith(Property.SSERV_PREFIX.getKey())
-        || key.startsWith(Property.COMPACTION_COORDINATOR_PREFIX.getKey())
-        || key.startsWith(Property.MANAGER_PREFIX.getKey())
-        || key.startsWith(Property.GC_PREFIX.getKey())
-        || key.startsWith(Property.GENERAL_ARBITRARY_PROP_PREFIX.getKey())
-        || key.equals(Property.COMPACTION_WARN_TIME.getKey())
-        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MIN.getKey())
-        || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey());
+    if (key.startsWith(Property.INSTANCE_PREFIX.getKey())) {
+      return false;
+    }
+    Property p = getPropertyByKey(key);
+    if (p != null && p.getScope() == Scope.INSTANCE) {
+      return false;
+    }
+    return true;
   }
 
   /**

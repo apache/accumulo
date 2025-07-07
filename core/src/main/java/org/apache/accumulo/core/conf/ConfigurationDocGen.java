@@ -114,7 +114,7 @@ public class ConfigurationDocGen {
     }
     description += strike(sanitize(prop.getDescription()), depr) + "<br>"
         + strike("**type:** " + prop.getType().name(), depr) + ", "
-        + strike("**zk mutable:** " + isZooKeeperMutable(prop), depr) + ", ";
+        + strike("**scope:** " + prop.getScope().name(), depr) + ", ";
     String defaultValue = sanitize(prop.getDefaultValue()).trim();
     if (defaultValue.isEmpty()) {
       description += strike("**default value:** empty", depr);
@@ -158,9 +158,6 @@ public class ConfigurationDocGen {
   private String isZooKeeperMutable(Property prop) {
     if (!Property.isValidZooPropertyKey(prop.getKey())) {
       return "no";
-    }
-    if (Property.isFixedZooPropertyKey(prop)) {
-      return "yes but requires restart of the " + prop.getKey().split("[.]")[0];
     }
     return "yes";
   }
