@@ -140,4 +140,14 @@ public class PropSnapshot implements PropChangeListener {
     log.debug("Received connection event for {} - update properties required", propStoreKey);
   }
 
+  /**
+   * {@code #zkChangeEvent} has been called to indicate that a change has occurred, but
+   * {@code #getVersionedProperties()} has not yet been called to update the snapshot.
+   *
+   * @return true if snapshot is stale
+   */
+  public boolean isStale() {
+    return needsUpdate.get();
+  }
+
 }

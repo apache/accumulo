@@ -248,9 +248,6 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     // were actually altered (easier than mocking user edits to ZooKeeper)
     var shouldNotBeSetMore = Sets.difference(ALL_PROPERTIES, shouldBeSetMore);
     verifyIsSet(conf, shouldBeSetMore, shouldNotBeSetMore, inGetProperties(conf));
-    // now, verify that the configuration view is unchanged when looking at isPropertySet, because
-    // that is respecting the fact that these fixed properties were not set at startup
-    verifyIsSet(conf, shouldBeSet, shouldNotBeSet, conf::isPropertySet);
   }
 
   @Test

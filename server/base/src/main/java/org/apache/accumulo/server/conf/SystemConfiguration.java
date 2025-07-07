@@ -25,16 +25,21 @@ import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.MONITO
 import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.SCAN_SERVER;
 import static org.apache.accumulo.core.client.admin.servers.ServerId.Type.TABLET_SERVER;
 
+import java.time.Duration;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.slf4j.Logger;
@@ -47,76 +52,116 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
   private static final Logger log = LoggerFactory.getLogger(SystemConfiguration.class);
 
-  private static class ChangedPropertyMonitor implements Runnable {
+  private static final Logger MONITOR_LOG = LoggerFactory.getLogger(ChangedPropertyMonitor.class);
+  private static final Logger DEDUPE_MONITOR_LOG =
+      new DeduplicatingLogger(MONITOR_LOG, Duration.ofMinutes(60), 25);
+  private static Map<ServerId.Type,List<Property>> SERVER_PROPERTY_PREFIXES = Map.of(COMPACTOR,
+      List.of(Property.COMPACTOR_PREFIX, Property.COMPACTION_PREFIX, Property.RPC_PREFIX,
+          Property.INSTANCE_PREFIX),
+      GARBAGE_COLLECTOR, List.of(Property.GC_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX),
+      MANAGER,
+      List.of(Property.COMPACTION_PREFIX, Property.MANAGER_PREFIX, Property.RPC_PREFIX,
+          Property.INSTANCE_PREFIX),
+      MONITOR, List.of(Property.MONITOR_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX),
+      SCAN_SERVER, List.of(Property.SSERV_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX),
+      TABLET_SERVER, List.of(Property.TSERV_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX));
 
-    private static final Logger LOG = LoggerFactory.getLogger(ChangedPropertyMonitor.class);
-    private static Map<ServerId.Type,List<Property>> SERVER_PROPERTY_PREFIXES = Map.of(COMPACTOR,
-        List.of(Property.COMPACTOR_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX),
-        GARBAGE_COLLECTOR,
-        List.of(Property.GC_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX), MANAGER,
-        List.of(Property.MANAGER_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX), MONITOR,
-        List.of(Property.MONITOR_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX),
-        SCAN_SERVER, List.of(Property.SSERV_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX),
-        TABLET_SERVER,
-        List.of(Property.TSERV_PREFIX, Property.RPC_PREFIX, Property.INSTANCE_PREFIX));
+  /**
+   * Tracks properties that have changed, but have not been read, since the start of the process.
+   */
+  class ChangedPropertyMonitor implements Runnable {
 
-    private final AtomicReference<Set<String>> propsChanged = new AtomicReference<>(Set.of());
+    private final SystemPropKey propStoreKey;
+    private final AtomicReference<Set<String>> propsChanged =
+        new AtomicReference<>(new HashSet<>());
     private final List<Property> applicableProperties;
-    private volatile Map<String,String> currentProperties;
+    private final Map<String,String> currentProperties = new HashMap<>();
     private volatile long currentVersion;
 
-    public ChangedPropertyMonitor(long initialVersion, Map<String,String> initialProperties,
-        ServerId.Type serverType) {
+    public ChangedPropertyMonitor(SystemPropKey propStoreKey, long initialVersion,
+        Map<String,String> initialProperties, ServerId.Type serverType) {
+      this.propStoreKey = propStoreKey;
       this.applicableProperties = SERVER_PROPERTY_PREFIXES.get(serverType);
-      this.currentProperties = initialProperties;
+      this.currentProperties.putAll(initialProperties);
       this.currentVersion = initialVersion;
-    }
-
-    private void changedProperties(Set<String> props) {
-      final Set<String> changed = new HashSet<>();
-      props.forEach(p -> {
-        applicableProperties.forEach(ap -> {
-          if (p.startsWith(ap.getKey())) {
-            changed.add(p);
-          }
-        });
-      });
-      propsChanged.set(changed);
     }
 
     public void update(long version, Map<String,String> properties) {
       if (currentVersion == version) {
         return;
       }
-      MapDifference<String,String> diff = Maps.difference(currentProperties, properties);
-      currentProperties = properties;
-      currentVersion = version;
-      if (diff.areEqual()) {
+      if (properties == null || properties.isEmpty()) {
         return;
       }
-      changedProperties(diff.entriesDiffering().keySet());
+      synchronized (this) {
+        MapDifference<String,String> diff = Maps.difference(currentProperties, properties);
+        if (diff.areEqual()) {
+          return;
+        }
+        final Set<String> propertyChanges = new HashSet<>();
+        propertyChanges.addAll(diff.entriesOnlyOnLeft().keySet()); // property removed in update
+        propertyChanges.addAll(diff.entriesDiffering().keySet()); // property changed in update
+        propertyChanges.addAll(diff.entriesOnlyOnRight().keySet()); // property added in update
+        // There is no retainIf, so the return values here are inverted
+        // Want to keep properties that start with the applicable properties
+        propertyChanges.removeIf(p -> {
+          for (Property ap : applicableProperties) {
+            if (p.startsWith(ap.getKey())) {
+              return false;
+            }
+          }
+          return true;
+        });
+        currentProperties.clear();
+        currentProperties.putAll(properties);
+        currentVersion = version;
+        if (!propertyChanges.isEmpty()) {
+          propsChanged.accumulateAndGet(propertyChanges, (current, changed) -> {
+            current.addAll(changed);
+            return current;
+          });
+        }
+      }
     }
 
-    public void propChecked(Property p) {
-      final Set<String> changed = propsChanged.get();
-      if (changed.isEmpty()) {
-        return;
-      }
-      propsChanged.get().remove(p.getKey());
+    public void propertyRead(Property p) {
+      propsChanged.accumulateAndGet(Set.of(p.getKey()), (current, read) -> {
+        current.removeAll(read);
+        return current;
+      });
+    }
+
+    // visible for testing
+    Set<String> getChangedProperties() {
+      return propsChanged.get();
+    }
+
+    // visible for testing
+    long getVersion() {
+      return currentVersion;
     }
 
     @Override
     public void run() {
+      // When a property is set a Watcher fires which marks the PropSnapshot as dirty. The
+      // updated properties are retrieved the next time any Property is retrieved. If no property
+      // is retrieved, then the PropSnapshot remains stale.
+      if (needsUpdate()) {
+        MONITOR_LOG.debug(
+            "Property store {} has been changed, but internal representation not yet updated.",
+            propStoreKey);
+      }
       final Set<String> changed = propsChanged.get();
       if (!changed.isEmpty()) {
-        LOG.warn("The following properties have changed, but have not yet been read: {}", changed);
+        DEDUPE_MONITOR_LOG.warn(
+            "The following properties relevant to this process have changed, but have not yet been read: {}",
+            changed);
       }
     }
 
   }
 
   private final Map<String,String> initialProperties;
-  private final RuntimeFixedProperties runtimeFixedProps;
   private final ChangedPropertyMonitor monitor;
 
   public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
@@ -126,26 +171,38 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
   public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
       AccumuloConfiguration parent, Optional<ServerId.Type> serverType) {
+    this(context, propStoreKey, parent, serverType, TimeUnit.MINUTES.toMillis(5));
+  }
+
+  // visible for testing
+  public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
+      AccumuloConfiguration parent, Optional<ServerId.Type> serverType,
+      long monitorUpdateInterval) {
     super(log, context, propStoreKey, parent);
     initialProperties = getSnapshot();
     if (serverType.isPresent()) {
-      monitor =
-          new ChangedPropertyMonitor(getDataVersion(), initialProperties, serverType.orElseThrow());
-      // start the monitor as a scheduled task at some interval.
+      monitor = new ChangedPropertyMonitor(propStoreKey, getDataVersion(), initialProperties,
+          serverType.orElseThrow());
+      // Can't use context.getScheduledExecutor() as it creates an endless loop
+      Threads.createCriticalThread("System-Configuration-Monitor", () -> {
+        while (true) {
+          try {
+            monitor.run();
+            Thread.sleep(TimeUnit.MINUTES.toMillis(5));
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("System configuration monitor thread interrupted.", e);
+          }
+        }
+      });
     } else {
       monitor = null;
     }
-    runtimeFixedProps =
-        new RuntimeFixedProperties(initialProperties, context.getSiteConfiguration());
   }
 
   @Override
   public String get(Property property) {
     log.trace("system config get() - property request for {}", property);
-
-    if (Property.isFixedZooPropertyKey(property)) {
-      return runtimeFixedProps.get(property);
-    }
 
     String key = property.getKey();
     String value = null;
@@ -154,7 +211,7 @@ public class SystemConfiguration extends ZooBasedConfiguration {
       value = snapshot.get(key);
       if (monitor != null) {
         monitor.update(getDataVersion(), snapshot);
-        monitor.propChecked(property);
+        monitor.propertyRead(property);
       }
     }
 
@@ -166,13 +223,5 @@ public class SystemConfiguration extends ZooBasedConfiguration {
       value = getParent().get(property);
     }
     return value;
-  }
-
-  @Override
-  public boolean isPropertySet(Property prop) {
-    if (Property.isFixedZooPropertyKey(prop)) {
-      return runtimeFixedProps.wasPropertySet(prop);
-    }
-    return super.isPropertySet(prop);
   }
 }

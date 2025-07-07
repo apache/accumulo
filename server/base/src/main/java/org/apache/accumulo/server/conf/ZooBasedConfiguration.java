@@ -153,4 +153,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
     propSnapshot.requireUpdate();
   }
 
+  public boolean needsUpdate() {
+    return propSnapshot.isStale();
+  }
 }

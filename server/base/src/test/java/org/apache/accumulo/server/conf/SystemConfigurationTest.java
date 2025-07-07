@@ -33,14 +33,18 @@ import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.reset;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.server.ServerContext;
@@ -84,9 +88,11 @@ public class SystemConfigurationTest {
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
     replay(propStore);
 
-    ConfigurationCopy defaultConfig =
-        new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
-            TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
+    Map<String,String> props = new HashMap<>();
+    DefaultConfiguration.getInstance().getProperties(props, p -> true);
+    props.put(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue());
+    props.put(TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue());
+    ConfigurationCopy defaultConfig = new ConfigurationCopy(props);
 
     sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
   }
@@ -112,7 +118,7 @@ public class SystemConfigurationTest {
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
     assertEquals(TABLE_BLOOM_SIZE.getDefaultValue(), sysConfig.get(TABLE_BLOOM_SIZE)); // default
 
-    assertFalse(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertTrue(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
     assertTrue(sysConfig.isPropertySet(GC_PORT)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
@@ -131,15 +137,73 @@ public class SystemConfigurationTest {
     sysConfig.zkChangeEvent(sysPropKey);
 
     assertEquals("9997", sysConfig.get(TSERV_CLIENTPORT)); // default
-    assertEquals("1234", sysConfig.get(GC_PORT)); // fixed sys config
-    assertEquals("19", sysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertEquals("3456", sysConfig.get(GC_PORT)); // fixed sys config
+    assertEquals("27", sysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertEquals("false", sysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
     assertEquals("2048", sysConfig.get(TABLE_BLOOM_SIZE)); // default
 
-    assertFalse(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertTrue(sysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
     assertTrue(sysConfig.isPropertySet(GC_PORT)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
+  }
+
+  @Test
+  public void testChangeMonitor() {
+
+    long version = 1;
+    Map<String,String> initialProps = new HashMap<>();
+    DefaultConfiguration.getInstance().getProperties(initialProps, p -> true);
+    SystemConfiguration.ChangedPropertyMonitor monitor = sysConfig.new ChangedPropertyMonitor(
+        SystemPropKey.of(), version, initialProps, ServerId.Type.TABLET_SERVER);
+    assertEquals(1, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().isEmpty());
+    monitor.update(2, Map.of());
+    assertEquals(1, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().isEmpty());
+    monitor.update(2, null);
+    assertEquals(1, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().isEmpty());
+
+    // Test property change
+    initialProps.put(Property.TSERV_SESSION_MAXIDLE.getKey(), "15000");
+    monitor.update(2, initialProps);
+    assertEquals(2, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().contains(Property.TSERV_SESSION_MAXIDLE.getKey()));
+    monitor.propertyRead(Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+    assertEquals(2, monitor.getVersion());
+    assertTrue(
+        monitor.getChangedProperties().equals(Set.of(Property.TSERV_SESSION_MAXIDLE.getKey())));
+    monitor.propertyRead(Property.TSERV_SESSION_MAXIDLE);
+    assertEquals(2, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().equals(Set.of()));
+
+    // Test property removal
+    initialProps.remove(Property.TSERV_SESSION_MAXIDLE.getKey());
+    monitor.update(3, initialProps);
+    assertEquals(3, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().contains(Property.TSERV_SESSION_MAXIDLE.getKey()));
+    monitor.propertyRead(Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+    assertEquals(3, monitor.getVersion());
+    assertTrue(
+        monitor.getChangedProperties().equals(Set.of(Property.TSERV_SESSION_MAXIDLE.getKey())));
+    monitor.propertyRead(Property.TSERV_SESSION_MAXIDLE);
+    assertEquals(3, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().equals(Set.of()));
+
+    // Test property addition
+    initialProps.put(Property.TSERV_SESSION_MAXIDLE.getKey(), "10000");
+    monitor.update(4, initialProps);
+    assertEquals(4, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().contains(Property.TSERV_SESSION_MAXIDLE.getKey()));
+    monitor.propertyRead(Property.TSERV_ASSIGNMENT_MAXCONCURRENT);
+    assertEquals(4, monitor.getVersion());
+    assertTrue(
+        monitor.getChangedProperties().equals(Set.of(Property.TSERV_SESSION_MAXIDLE.getKey())));
+    monitor.propertyRead(Property.TSERV_SESSION_MAXIDLE);
+    assertEquals(4, monitor.getVersion());
+    assertTrue(monitor.getChangedProperties().equals(Set.of()));
+
   }
 }
