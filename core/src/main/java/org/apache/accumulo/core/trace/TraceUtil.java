@@ -37,6 +37,7 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -96,7 +97,9 @@ public class TraceUtil {
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
       Map<String,String> attributes, TInfo tinfo) {
-    if (!enabled && !Span.current().getSpanContext().isValid()) {
+    Context context = getContext(tinfo);
+    SpanContext spanContext = Span.fromContext(context).getSpanContext();
+    if (!enabled && !spanContext.isValid() && !Span.current().getSpanContext().isValid()) {
       return Span.getInvalid();
     }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
@@ -107,8 +110,8 @@ public class TraceUtil {
     if (attributes != null) {
       attributes.forEach(builder::setAttribute);
     }
-    if (tinfo != null) {
-      builder.setParent(getContext(tinfo));
+    if (spanContext.isValid()) {
+      builder.setParent(context);
     }
     return builder.startSpan();
   }
