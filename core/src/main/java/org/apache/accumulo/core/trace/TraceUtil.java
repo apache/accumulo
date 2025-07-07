@@ -97,7 +97,7 @@ public class TraceUtil {
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
       Map<String,String> attributes, TInfo tinfo) {
-    Context context = getContext(tinfo);
+    Context context = tinfo == null ? null : getContext(tinfo);
     SpanContext spanContext = Span.fromContext(context).getSpanContext();
     if (!enabled && !spanContext.isValid() && !Span.current().getSpanContext().isValid()) {
       return Span.getInvalid();
