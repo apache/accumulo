@@ -343,6 +343,7 @@ public class LoadPlan {
    *         the load plan schema is given. The minimal acceptable json is
    *         {@code {"destinations":[]}}.
    * @throws NullPointerException when json argument is null
+   * @since 2.1.4
    */
   public static LoadPlan fromJson(String json) {
     try {
