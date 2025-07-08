@@ -137,7 +137,8 @@ public class MinorCompactor extends FileCompactor {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
           reportedProblem = true;
           retryCounter++;
-        } catch (CompactionCanceledException | InterruptedException e) {
+        } catch (CompactionCanceledException | CompactionClassLoadingException
+            | InterruptedException e) {
           throw new IllegalStateException(e);
         }
 

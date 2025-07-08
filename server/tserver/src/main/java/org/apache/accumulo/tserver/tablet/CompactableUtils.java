@@ -78,6 +78,7 @@ import org.apache.accumulo.server.ServiceEnvironmentImpl;
 import org.apache.accumulo.server.compaction.CompactionStats;
 import org.apache.accumulo.server.compaction.FileCompactor;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionCanceledException;
+import org.apache.accumulo.server.compaction.FileCompactor.CompactionClassLoadingException;
 import org.apache.accumulo.server.compaction.FileCompactor.CompactionEnv;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -559,8 +560,8 @@ public class CompactableUtils {
    */
   static CompactionStats compact(Tablet tablet, CompactionJob job,
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
-      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
-      throws IOException, CompactionCanceledException, InterruptedException {
+      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName) throws IOException,
+      CompactionCanceledException, CompactionClassLoadingException, InterruptedException {
     TableConfiguration tableConf = tablet.getTableConfiguration();
 
     AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,
