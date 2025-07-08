@@ -63,7 +63,12 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
 
     try {
       String safeBasename = UriParser.encode(baseName, TMP_RESERVED_CHARS).replace('%', '_');
-      File file = File.createTempFile("vfsr_", "_" + safeBasename, tempDir);
+      File file = null;
+      try {
+        file = File.createTempFile("vfsr_", "_" + safeBasename, tempDir);
+      } catch (IOException ioe) {
+        throw new IOException("Error creating temp file in directory: " + tempDir, ioe);
+      }
       file.deleteOnExit();
 
       final FileObject destFile = context.toFileObject(file);
