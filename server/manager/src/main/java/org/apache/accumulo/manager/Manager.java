@@ -101,6 +101,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
@@ -1196,13 +1197,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       }
     }
 
-    log.debug("Shutting down fate.");
-    getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
-
-    splitter.stop();
-
     log.debug("Stopping Thrift Servers");
     getThriftServer().stop();
+    while (getThriftServer().isServing()) {
+      UtilWaitThread.sleep(100);
+    }
+
+    log.debug("Shutting down fate.");
+    getFateRefs().keySet().forEach(type -> fate(type).close());
+
+    splitter.stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {

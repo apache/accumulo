@@ -487,7 +487,9 @@ public class Fate<T> {
   }
 
   /**
-   * Initiates shutdown of background threads and optionally waits on them.
+   * Initiates shutdown of background threads that run fate operations and cleanup fate data and
+   * optionally waits on them. Leaves the fate object in a state where it can still update and read
+   * fate data, like add a new fate operation or get the status of an existing fate operation.
    */
   public void shutdown(long timeout, TimeUnit timeUnit) {
     log.info("Shutting down {} FATE", store.type());
@@ -532,8 +534,13 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
+  }
 
-    // ensure store resources are cleaned up
+  /**
+   * Initiates shutdown of all fate threads and prevents reads and updates of fates persisted data.
+   */
+  public void close() {
+    shutdown(0, SECONDS);
     store.close();
   }
 

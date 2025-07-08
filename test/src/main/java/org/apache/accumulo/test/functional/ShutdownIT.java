@@ -86,6 +86,7 @@ public class ShutdownIT extends ConfigurableMacBase {
       Thread async = new Thread(() -> {
         try {
           for (int i = 0; i < 10; i++) {
+            Thread.sleep(100);
             c.tableOperations().delete("table" + i);
           }
         } catch (Exception ex) {
@@ -95,6 +96,9 @@ public class ShutdownIT extends ConfigurableMacBase {
       async.start();
       Thread.sleep(100);
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      // give the backfound delete operations a bit to run
+      Thread.sleep(3000);
+      // The delete operations should get stuck or run, but should not throw an exception
       if (ref.get() != null) {
         throw ref.get();
       }
