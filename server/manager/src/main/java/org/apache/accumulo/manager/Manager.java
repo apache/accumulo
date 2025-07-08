@@ -212,7 +212,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
   private final TabletStateStore userTabletStore;
-  private final ExecutorService workerPool;
+  private final ExecutorService renamePool;
 
   public synchronized ManagerState getManagerState() {
     return state;
@@ -436,7 +436,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
-    workerPool = ThreadPools.getServerThreadPools()
+    renamePool = ThreadPools.getServerThreadPools()
         .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
@@ -1568,7 +1568,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
    *
    * @return {@link ExecutorService}
    */
-  public ExecutorService getWorkerPool() {
-    return this.workerPool;
+  public ExecutorService getRenamePool() {
+    return this.renamePool;
   }
 }

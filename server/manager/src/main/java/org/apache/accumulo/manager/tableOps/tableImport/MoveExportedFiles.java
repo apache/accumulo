@@ -108,7 +108,7 @@ class MoveExportedFiles extends ManagerRepo {
       }
     }
     try {
-      fs.bulkRename(oldToNewPaths, manager.getWorkerPool(), fateId);
+      fs.bulkRename(oldToNewPaths, manager.getRenamePool(), fateId);
     } catch (IOException ioe) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(), null,
           TableOperation.IMPORT, TableOperationExceptionType.OTHER, ioe.getCause().getMessage());
