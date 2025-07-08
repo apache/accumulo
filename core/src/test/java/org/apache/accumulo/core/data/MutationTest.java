@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -969,12 +970,7 @@ public class MutationTest {
     Key k = null;
     Value v = nv("v1");
 
-    Throwable exception =
-        assertThrows(NullPointerException.class, () -> m.put(k, v), "Expected an NPE");
-
-    assertEquals(
-        "Cannot invoke \"org.apache.accumulo.core.data.Key.getRow()\" because \"key\" is null",
-        exception.getMessage());
+    assertThrows(NullPointerException.class, () -> m.put(k, v));
   }
 
   /**
@@ -986,11 +982,8 @@ public class MutationTest {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     Value v = null;
-    Throwable exception =
-        assertThrows(NullPointerException.class, () -> m.put(k, v), "Expected an NPE");
-    assertEquals(
-        "Cannot invoke \"org.apache.accumulo.core.data.Value.get()\" because \"value\" is null",
-        exception.getMessage());
+
+    assertThrows(NullPointerException.class, () -> m.put(k, v));
   }
 
   /**
@@ -1008,19 +1001,26 @@ public class MutationTest {
   }
 
   /**
-   * Tests for an IllegalArgumentException when a key marked for deletion is passed through
-   * {@link Mutation#put(Key, Value)}.
+   * Tests for when a key is marked for deletion but called by {@link Mutation#put(Key, Value)}, it should no
+   * longer be marked for deletion.
    */
   @Test
-  public void testPutKeyMarkedForDeletion() {
+  public void testPutKeyMarkedForDeletionBack() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     k.setDeleted(true);
     Value v = nv("v1");
-    Throwable exception =
-        assertThrows(IllegalArgumentException.class, () -> m.put(k, v), "Expected an IAE");
-    assertEquals("key must not be marked for deletion", exception.getMessage());
 
+    m.put(k, v);
+
+    assertEquals(1, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(1, m.size());
+    assertEquals(1, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
   }
 
   /**
@@ -1053,12 +1053,7 @@ public class MutationTest {
     Mutation m = new Mutation(new Text("r1"));
     Key k = null;
 
-    Throwable exception =
-        assertThrows(NullPointerException.class, () -> m.putDelete(k), "Expected an NPE");
-
-    assertEquals(
-        "Cannot invoke \"org.apache.accumulo.core.data.Key.getRow()\" because \"key\" is null",
-        exception.getMessage());
+    assertThrows(NullPointerException.class, () -> m.putDelete(k));
   }
 
   /**

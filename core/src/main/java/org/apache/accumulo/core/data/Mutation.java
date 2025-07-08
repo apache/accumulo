@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -709,13 +710,13 @@ public class Mutation implements Writable {
    * @param value value
    */
   public void put(Key key, Value value) {
+    Objects.requireNonNull(key, "key cannot be null");
+    Objects.requireNonNull(value, "value cannot be null");
+
     if (!(Arrays.equals(this.getRow(), key.getRow().getBytes()))) {
       throw new IllegalArgumentException("key row is not equal to mutation row");
     }
 
-    if (key.isDeleted()) {
-      throw new IllegalArgumentException("key must not be marked for deletion");
-    }
 
     put(key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibilityParsed(),
         key.getTimestamp(), value);
@@ -727,6 +728,8 @@ public class Mutation implements Writable {
    * @param key key containing all key fields
    */
   public void putDelete(Key key) {
+    Objects.requireNonNull(key, "key cannot be null");
+
     if (!(Arrays.equals(this.getRow(), key.getRow().getBytes()))) {
       throw new IllegalArgumentException("key row is not equal to mutation row");
     }
@@ -811,6 +814,8 @@ public class Mutation implements Writable {
     QualifierOptions family(CharSequence colFam);
 
     QualifierOptions family(Text colFam);
+
+    TimestampOptions columns(Key key);
   }
 
   /**
@@ -994,6 +999,13 @@ public class Mutation implements Writable {
     @Override
     public QualifierOptions family(Text colFam) {
       return family(colFam.getBytes(), colFam.getLength());
+    }
+
+    @Override
+    public TimestampOptions columns(Key key){
+      Text colFam;
+      Text colQual;
+      Text colVis;
     }
 
     /**
