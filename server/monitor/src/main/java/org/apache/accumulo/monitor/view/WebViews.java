@@ -99,6 +99,14 @@ public class WebViews {
     model.put("instance_name", monitor.getContext().getInstanceName());
     model.put("instance_id", monitor.getContext().getInstanceID());
     model.put("zk_hosts", monitor.getContext().getZooKeepers());
+    String rootContext = System.getProperty("monitorPrefix", "");
+    if (!rootContext.startsWith("/")) {
+      rootContext = "/" + rootContext;
+    }
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
+    model.put("rootContext", rootContext);
     addExternalResources(model);
     return model;
   }

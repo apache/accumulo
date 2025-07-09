@@ -453,10 +453,14 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public void run() {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
+    String rootContext = System.getProperty("monitorPrefix", "");
+    if (!rootContext.startsWith("/")) {
+      rootContext = "/" + rootContext;
+    }
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
-        server = new EmbeddedWebServer(this, port);
+        server = new EmbeddedWebServer(this, port, rootContext);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
@@ -508,9 +512,13 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         monitorHostAndPort, ""));
 
+    // Support the existing zk monitor address format
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
-          server.getPort(), "/");
+          server.getPort(), rootContext);
       final String path = context.getZooKeeperRoot() + Constants.ZMONITOR_HTTP_ADDR;
       final ZooReaderWriter zoo = context.getZooReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired

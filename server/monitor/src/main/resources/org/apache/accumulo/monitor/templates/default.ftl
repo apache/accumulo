@@ -21,7 +21,7 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <base href="/"/>
+    <base href="${rootContext}"/>
     <title>${title} - Accumulo ${version}</title>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <!-- external resources configurable by setting monitor.resources.external -->

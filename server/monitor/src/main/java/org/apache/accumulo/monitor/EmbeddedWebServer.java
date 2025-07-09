@@ -45,7 +45,7 @@ public class EmbeddedWebServer {
   private final ServletContextHandler handler;
   private final boolean secure;
 
-  public EmbeddedWebServer(Monitor monitor, int port) {
+  public EmbeddedWebServer(Monitor monitor, int port, String rootContext) {
     server = new Server();
     final AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
@@ -57,7 +57,11 @@ public class EmbeddedWebServer {
     handler =
         new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
     handler.getSessionHandler().getSessionCookieConfig().setHttpOnly(true);
-    handler.setContextPath("/");
+    // Remove trailing slash since jetty will warn otherwise
+    if (rootContext.endsWith("/")) {
+      rootContext = rootContext.substring(0, rootContext.length() - 1);
+    }
+    handler.setContextPath(rootContext);
   }
 
   private static AbstractConnectionFactory[] getConnectionFactories(AccumuloConfiguration conf,
