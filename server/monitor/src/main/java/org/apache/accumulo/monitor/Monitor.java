@@ -453,7 +453,7 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
   public void run() {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
-    String rootContext = System.getProperty("monitorPrefix", "");
+    String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
     if (!rootContext.startsWith("/")) {
       rootContext = "/" + rootContext;
     }

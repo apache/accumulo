@@ -1037,6 +1037,11 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
+  MONITOR_ROOT_CONTEXT("monitor.root.context", "", PropertyType.STRING,
+      "The root context path of the monitor application. If this value is set, all paths for the"
+          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo/`"
+          + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",
+      "2.1.4"),
   @Deprecated(since = "2.1.0")
   TRACE_PREFIX("trace.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of distributed tracing.", "1.3.5"),

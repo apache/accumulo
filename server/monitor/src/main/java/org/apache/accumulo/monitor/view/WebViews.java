@@ -93,19 +93,20 @@ public class WebViews {
   }
 
   private Map<String,Object> getModel() {
-
-    Map<String,Object> model = new HashMap<>();
-    model.put("version", Constants.VERSION);
-    model.put("instance_name", monitor.getContext().getInstanceName());
-    model.put("instance_id", monitor.getContext().getInstanceID());
-    model.put("zk_hosts", monitor.getContext().getZooKeepers());
-    String rootContext = System.getProperty("monitorPrefix", "");
+    AccumuloConfiguration conf = monitor.getContext().getConfiguration();
+    String rootContext = conf.get(Property.MONITOR_ROOT_CONTEXT);
     if (!rootContext.startsWith("/")) {
       rootContext = "/" + rootContext;
     }
     if (!rootContext.endsWith("/")) {
       rootContext = rootContext + "/";
     }
+
+    Map<String,Object> model = new HashMap<>();
+    model.put("version", Constants.VERSION);
+    model.put("instance_name", monitor.getContext().getInstanceName());
+    model.put("instance_id", monitor.getContext().getInstanceID());
+    model.put("zk_hosts", monitor.getContext().getZooKeepers());
     model.put("rootContext", rootContext);
     addExternalResources(model);
     return model;
