@@ -1001,20 +1001,6 @@ public class MutationTest {
   }
 
   /**
-   * Tests that when a Key is passed through {@link Mutation.FamilyOptions#keyColumns(Key)}
-   * containing a row ID not equal to the mutation row ID of the current object, that an
-   * IllegalArgumentException is thrown.
-   */
-  @Test
-  public void testKeyColumnsRowNotEqualToMutationRow() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = new Key(nt("r2"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
-    Throwable exception = assertThrows(IllegalArgumentException.class,
-        () -> m.at().keyColumns(k).put(nv("v1")), "Expected an IAE");
-    assertEquals("key row is not equal to mutation row", exception.getMessage());
-  }
-
-  /**
    * Test that mutations are correctly added back through after being previously deleted.
    */
   @Test

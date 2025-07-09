@@ -975,10 +975,6 @@ public class Mutation implements Writable {
     public TimestampOptions keyColumns(Key key) {
       Objects.requireNonNull(key, "key cannot be null");
 
-      if (!(Arrays.equals(getRow(), key.getRow().getBytes()))) {
-        throw new IllegalArgumentException("key row is not equal to mutation row");
-      }
-
       Text colFam = key.getColumnFamily();
       Text colQual = key.getColumnQualifier();
       Text colVis = key.getColumnVisibility();
