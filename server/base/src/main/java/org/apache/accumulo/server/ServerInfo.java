@@ -52,7 +52,6 @@ public class ServerInfo implements ClientInfo {
   private final String zooKeepers;
   private final int zooKeepersSessionTimeOut;
   private final VolumeManager volumeManager;
-  private final ZooCache zooCache;
   private final ServerDirs serverDirs;
   private final Credentials credentials;
 
@@ -69,7 +68,7 @@ public class ServerInfo implements ClientInfo {
     } catch (IOException e) {
       throw new IllegalStateException(e);
     }
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
+    ZooCache zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     String instanceNamePath = Constants.ZROOT + Constants.ZINSTANCES + "/" + instanceName;
     byte[] iidb = zooCache.get(instanceNamePath);
     if (iidb == null) {
@@ -102,7 +101,7 @@ public class ServerInfo implements ClientInfo {
     instanceID = VolumeManager.getInstanceIDFromHdfs(instanceIdPath, hadoopConf);
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
+    ZooCache zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     instanceName = InstanceOperationsImpl.lookupInstanceName(zooCache, instanceID);
     credentials = SystemCredentials.get(instanceID, siteConfig);
   }
@@ -119,7 +118,6 @@ public class ServerInfo implements ClientInfo {
     this.instanceID = instanceID;
     zooKeepers = config.get(Property.INSTANCE_ZK_HOST);
     zooKeepersSessionTimeOut = (int) config.getTimeInMillis(Property.INSTANCE_ZK_TIMEOUT);
-    zooCache = new ZooCacheFactory().getZooCache(zooKeepers, zooKeepersSessionTimeOut);
     this.instanceName = instanceName;
     serverDirs = new ServerDirs(siteConfig, hadoopConf);
     credentials = SystemCredentials.get(instanceID, siteConfig);
