@@ -109,7 +109,7 @@ function initTableServerTable(tableID) {
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = `<a href="/tservers?s=${row.id}">${data}</a>`;
+            data = `<a href="tservers?s=${row.id}">${data}</a>`;
           }
           return data;
         }

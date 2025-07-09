@@ -253,7 +253,7 @@ function initServerTables(serv) {
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = `<a href="/tables/${row.tableID}">${data}</a>`;
+            data = `<a href="tables/${row.tableID}">${data}</a>`;
           }
           return data;
         }

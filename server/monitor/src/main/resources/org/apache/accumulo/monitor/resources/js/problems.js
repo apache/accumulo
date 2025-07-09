@@ -41,7 +41,7 @@ $(document).ready(function () {
         "data": "tableName",
         "type": "html",
         "render": function (data, type, row, meta) {
-          if (type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+          if (type === 'display') data = '<a href="tables/' + row.tableID + '">' + row.tableName + '</a>';
           return data;
         }
       },
@@ -84,7 +84,7 @@ $(document).ready(function () {
         "data": "tableName",
         "type": "html",
         "render": function (data, type, row, meta) {
-          if (type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+          if (type === 'display') data = '<a href="tables/' + row.tableID + '">' + row.tableName + '</a>';
           return data;
         }
       },

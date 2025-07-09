@@ -151,7 +151,7 @@ $(document).ready(function () {
             if (data !== 'Waiting') {
               data = dateFormat(parseInt(data, 10));
             }
-            data = '<a href="/gc">' + data + '</a>';
+            data = '<a href="gc">' + data + '</a>';
           }
           return data;
         }

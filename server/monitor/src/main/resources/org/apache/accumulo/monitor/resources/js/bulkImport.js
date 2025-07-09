@@ -85,7 +85,7 @@ $(document).ready(function () {
         "type": "html",
         "render": function (data, type) {
           if (type === 'display') {
-            data = `<a href="/tservers?s=${data}">${data}</a>`;
+            data = `<a href="tservers?s=${data}">${data}</a>`;
           }
           return data;
         }
