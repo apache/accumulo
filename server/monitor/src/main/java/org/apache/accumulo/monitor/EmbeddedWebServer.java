@@ -57,8 +57,8 @@ public class EmbeddedWebServer {
     handler =
         new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
     handler.getSessionHandler().getSessionCookieConfig().setHttpOnly(true);
-    // Remove trailing slash since jetty will warn otherwise
-    if (rootContext.endsWith("/")) {
+    // Remove the trailing slash since jetty will warn otherwise
+    if (rootContext.length() > 1 && rootContext.endsWith("/")) {
       rootContext = rootContext.substring(0, rootContext.length() - 1);
     }
     handler.setContextPath(rootContext);
