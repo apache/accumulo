@@ -61,6 +61,8 @@ public enum SystemTables {
 
   private static final Set<TableId> ALL_IDS =
       Arrays.stream(values()).map(SystemTables::tableId).collect(Collectors.toUnmodifiableSet());
+  private static final Set<String> ALL_NAMES =
+      Arrays.stream(values()).map(SystemTables::tableName).collect(Collectors.toUnmodifiableSet());
 
   private static final Map<String,String> TABLE_ID_TO_SIMPLE_NAME =
       Arrays.stream(values()).collect(Collectors.toUnmodifiableMap(
@@ -78,8 +80,16 @@ public enum SystemTables {
     return ALL_IDS;
   }
 
+  public static Set<String> tableNames() {
+    return ALL_NAMES;
+  }
+
   public static boolean containsTableId(TableId tableId) {
     return ALL_IDS.contains(tableId);
+  }
+
+  public static boolean containsTableName(String tableName) {
+    return ALL_NAMES.contains(tableName);
   }
 
   public static Map<String,String> tableIdToSimpleNameMap() {

@@ -334,8 +334,10 @@ public enum PropertyType {
 
   private static class Bounds implements Predicate<String> {
 
-    private final long lowerBound, upperBound;
-    private final boolean lowerInclusive, upperInclusive;
+    private final long lowerBound;
+    private final long upperBound;
+    private final boolean lowerInclusive;
+    private final boolean upperInclusive;
 
     public Bounds(final long lowerBound, final long upperBound) {
       this(lowerBound, true, upperBound, true);

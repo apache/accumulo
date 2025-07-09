@@ -26,15 +26,16 @@ import static org.easymock.EasyMock.replay;
 import java.io.File;
 
 import org.apache.accumulo.core.fate.AbstractFateStore;
+import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.fate.FatePoolsWatcherIT;
+import org.apache.accumulo.test.fate.FatePoolsWatcherITBase;
 import org.apache.accumulo.test.fate.FateTestUtil;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.io.TempDir;
 
-public class MetaFatePoolsWatcherIT extends FatePoolsWatcherIT {
+public class MetaFatePoolsWatcherIT extends FatePoolsWatcherITBase {
   @TempDir
   private static File tempDir;
 
@@ -56,7 +57,9 @@ public class MetaFatePoolsWatcherIT extends FatePoolsWatcherIT {
     expect(sctx.getZooSession()).andReturn(zk).anyTimes();
     replay(sctx);
 
-    testMethod.execute(
-        new MetaFateStore<>(zk, createDummyLockID(), null, maxDeferred, fateIdGenerator), sctx);
+    try (FateStore<PoolResizeTestEnv> fs =
+        new MetaFateStore<>(zk, createDummyLockID(), null, maxDeferred, fateIdGenerator)) {
+      testMethod.execute(fs, sctx);
+    }
   }
 }

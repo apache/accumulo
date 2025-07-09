@@ -122,7 +122,7 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
     } else {
       cfg.setProperty(Property.GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL, "0");
     }
-    cfg.setServerClass(ServerType.TABLET_SERVER, HalfDeadTabletServer.class);
+    cfg.setServerClass(ServerType.TABLET_SERVER, rg -> HalfDeadTabletServer.class);
     cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "30s");
     cfg.getClusterServerConfiguration().setNumDefaultCompactors(1);
     cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
@@ -132,7 +132,6 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
   @AfterEach
   public void afterTest() throws Exception {
     getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-    super.teardownCluster();
     USE_VERIFICATION_THREAD.set(!USE_VERIFICATION_THREAD.get());
   }
 

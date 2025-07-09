@@ -49,8 +49,8 @@ public class OnDemandTabletUnloadingFlakyAmpleIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.MANAGER_TABLET_GROUP_WATCHER_INTERVAL, "1s");
       cfg.setProperty(Property.TSERV_ONDEMAND_UNLOADER_INTERVAL, "3s");
       cfg.setProperty("table.custom.ondemand.unloader.inactivity.threshold.seconds", "3");
-      cfg.setServerClass(ServerType.TABLET_SERVER, FlakyAmpleTserver.class);
-      cfg.setServerClass(ServerType.MANAGER, FlakyAmpleManager.class);
+      cfg.setServerClass(ServerType.TABLET_SERVER, rg -> FlakyAmpleTserver.class);
+      cfg.setServerClass(ServerType.MANAGER, rg -> FlakyAmpleManager.class);
     });
   }
 

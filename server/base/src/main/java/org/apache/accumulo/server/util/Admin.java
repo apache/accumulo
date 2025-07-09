@@ -18,12 +18,11 @@
  */
 package org.apache.accumulo.server.util;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -376,9 +375,9 @@ public class Admin implements KeywordExecutable {
     public void lostLock(ServiceLock.LockLossReason reason) {
       String msg = "Admin lost lock: " + reason.toString();
       if (reason == ServiceLock.LockLossReason.LOCK_DELETED) {
-        Halt.halt(msg, 0);
+        Halt.halt(0, msg);
       } else {
-        Halt.halt(msg, 1);
+        Halt.halt(1, msg);
       }
     }
 
@@ -386,7 +385,7 @@ public class Admin implements KeywordExecutable {
     public void unableToMonitorLockNode(Exception e) {
       String msg = "Admin unable to monitor lock: " + e.getMessage();
       log.warn(msg);
-      Halt.halt(msg, 1);
+      Halt.halt(1, msg);
     }
 
     @Override
@@ -758,7 +757,8 @@ public class Admin implements KeywordExecutable {
       new MessageFormat("setauths -u {0} -s {1}\n");
 
   private DefaultConfiguration defaultConfig;
-  private Map<String,String> siteConfig, systemConfig;
+  private Map<String,String> siteConfig;
+  private Map<String,String> systemConfig;
   private List<String> localUsers;
 
   public void printConfig(ClientContext context, DumpConfigCommand opts) throws Exception {
@@ -815,17 +815,17 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "app is run in same security context as user providing the filename")
   private static File getOutputDirectory(final String directory) {
-    File outputDirectory = null;
-    if (directory != null) {
-      outputDirectory = new File(directory);
-      if (!outputDirectory.isDirectory()) {
-        throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
-      }
-      if (!outputDirectory.canWrite()) {
-        throw new IllegalArgumentException(directory + " is not writable");
-      }
+    if (directory == null) {
+      return null;
     }
-    return outputDirectory;
+    Path outputDirectory = Path.of(directory);
+    if (!Files.isDirectory(outputDirectory)) {
+      throw new IllegalArgumentException(directory + " does not exist on the local filesystem.");
+    }
+    if (!Files.isWritable(outputDirectory)) {
+      throw new IllegalArgumentException(directory + " is not writable");
+    }
+    return outputDirectory.toFile();
   }
 
   private String getDefaultConfigValue(String key) {
@@ -851,8 +851,8 @@ public class Admin implements KeywordExecutable {
   private void printNameSpaceConfiguration(AccumuloClient accumuloClient, String namespace,
       File outputDirectory)
       throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
-    File namespaceScript = new File(outputDirectory, namespace + NS_FILE_SUFFIX);
-    try (BufferedWriter nsWriter = new BufferedWriter(new FileWriter(namespaceScript, UTF_8))) {
+    Path namespaceScript = outputDirectory.toPath().resolve(namespace + NS_FILE_SUFFIX);
+    try (BufferedWriter nsWriter = Files.newBufferedWriter(namespaceScript)) {
       nsWriter.write(createNsFormat.format(new String[] {namespace}));
       Map<String,String> props = ImmutableSortedMap
           .copyOf(accumuloClient.namespaceOperations().getConfiguration(namespace));
@@ -873,8 +873,8 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private static void printUserConfiguration(AccumuloClient accumuloClient, String user,
       File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException {
-    File userScript = new File(outputDirectory, user + USER_FILE_SUFFIX);
-    try (BufferedWriter userWriter = new BufferedWriter(new FileWriter(userScript, UTF_8))) {
+    Path userScript = outputDirectory.toPath().resolve(user + USER_FILE_SUFFIX);
+    try (BufferedWriter userWriter = Files.newBufferedWriter(userScript)) {
       userWriter.write(createUserFormat.format(new String[] {user}));
       Authorizations auths = accumuloClient.securityOperations().getUserAuthorizations(user);
       userWriter.write(userAuthsFormat.format(new String[] {user, auths.toString()}));
@@ -916,8 +916,8 @@ public class Admin implements KeywordExecutable {
         conf.put(prop.getKey(), prop.getValue());
       }
     }
-    File siteBackup = new File(outputDirectory, ACCUMULO_SITE_BACKUP_FILE);
-    try (BufferedWriter fw = new BufferedWriter(new FileWriter(siteBackup, UTF_8))) {
+    Path siteBackup = outputDirectory.toPath().resolve(ACCUMULO_SITE_BACKUP_FILE);
+    try (BufferedWriter fw = Files.newBufferedWriter(siteBackup)) {
       for (Entry<String,String> prop : conf.entrySet()) {
         fw.write(prop.getKey() + "=" + prop.getValue() + "\n");
       }
@@ -928,8 +928,8 @@ public class Admin implements KeywordExecutable {
       justification = "code runs in same security context as user who provided input")
   private void printTableConfiguration(AccumuloClient accumuloClient, String tableName,
       File outputDirectory) throws AccumuloException, TableNotFoundException, IOException {
-    File tableBackup = new File(outputDirectory, tableName + ".cfg");
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(tableBackup, UTF_8))) {
+    Path tableBackup = outputDirectory.toPath().resolve(tableName + ".cfg");
+    try (BufferedWriter writer = Files.newBufferedWriter(tableBackup)) {
       writer.write(createTableFormat.format(new String[] {tableName}));
       Map<String,String> props =
           ImmutableSortedMap.copyOf(accumuloClient.tableOperations().getConfiguration(tableName));
@@ -959,7 +959,6 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = context.getServerPaths().createTableLocksPath();
     var zk = context.getZooSession();
     ServiceLock adminLock = null;
-    Map<FateInstanceType,FateStore<Admin>> fateStores;
     Map<FateInstanceType,ReadOnlyFateStore<Admin>> readOnlyFateStores = null;
 
     try {
@@ -967,20 +966,22 @@ public class Admin implements KeywordExecutable {
         cancelSubmittedFateTxs(context, fateOpsCommand.fateIdList);
       } else if (fateOpsCommand.fail) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, adminLock);
-        for (String fateIdStr : fateOpsCommand.fateIdList) {
-          if (!admin.prepFail(fateStores, fateIdStr)) {
-            throw new AccumuloException("Could not fail transaction: " + fateIdStr);
+        try (var fateStores = createFateStores(context, zk, adminLock)) {
+          for (String fateIdStr : fateOpsCommand.fateIdList) {
+            if (!admin.prepFail(fateStores.getStoresMap(), fateIdStr)) {
+              throw new AccumuloException("Could not fail transaction: " + fateIdStr);
+            }
           }
         }
       } else if (fateOpsCommand.delete) {
         adminLock = createAdminLock(context);
-        fateStores = createFateStores(context, zk, adminLock);
-        for (String fateIdStr : fateOpsCommand.fateIdList) {
-          if (!admin.prepDelete(fateStores, fateIdStr)) {
-            throw new AccumuloException("Could not delete transaction: " + fateIdStr);
+        try (var fateStores = createFateStores(context, zk, adminLock)) {
+          for (String fateIdStr : fateOpsCommand.fateIdList) {
+            if (!admin.prepDelete(fateStores.getStoresMap(), fateIdStr)) {
+              throw new AccumuloException("Could not delete transaction: " + fateIdStr);
+            }
+            admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
           }
-          admin.deleteLocks(zk, zTableLocksPath, fateIdStr);
         }
       }
 
@@ -991,7 +992,7 @@ public class Admin implements KeywordExecutable {
             getCmdLineStatusFilters(fateOpsCommand.states);
         EnumSet<FateInstanceType> typesFilter =
             getCmdLineInstanceTypeFilters(fateOpsCommand.instanceTypes);
-        readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
+        readOnlyFateStores = createReadOnlyFateStores(context, zk);
         admin.print(readOnlyFateStores, zk, zTableLocksPath, new Formatter(System.out),
             fateIdFilter, statusFilter, typesFilter);
         // print line break at the end
@@ -1000,7 +1001,7 @@ public class Admin implements KeywordExecutable {
 
       if (fateOpsCommand.summarize) {
         if (readOnlyFateStores == null) {
-          readOnlyFateStores = createReadOnlyFateStores(context, zk, Constants.ZFATE);
+          readOnlyFateStores = createReadOnlyFateStores(context, zk);
         }
         summarizeFateTx(context, fateOpsCommand, admin, readOnlyFateStores, zTableLocksPath);
       }
@@ -1011,20 +1012,19 @@ public class Admin implements KeywordExecutable {
     }
   }
 
-  private Map<FateInstanceType,FateStore<Admin>> createFateStores(ServerContext context,
-      ZooSession zk, ServiceLock adminLock) throws InterruptedException, KeeperException {
+  private FateStores createFateStores(ServerContext context, ZooSession zk, ServiceLock adminLock)
+      throws InterruptedException, KeeperException {
     var lockId = adminLock.getLockID();
     MetaFateStore<Admin> mfs = new MetaFateStore<>(zk, lockId, null);
     UserFateStore<Admin> ufs =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), lockId, null);
-    return Map.of(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
+    return new FateStores(FateInstanceType.META, mfs, FateInstanceType.USER, ufs);
   }
 
-  private Map<FateInstanceType,ReadOnlyFateStore<Admin>>
-      createReadOnlyFateStores(ServerContext context, ZooSession zk, String fateZkPath)
-          throws InterruptedException, KeeperException {
-    MetaFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
-    UserFateStore<Admin> readOnlyUFS =
+  private Map<FateInstanceType,ReadOnlyFateStore<Admin>> createReadOnlyFateStores(
+      ServerContext context, ZooSession zk) throws InterruptedException, KeeperException {
+    ReadOnlyFateStore<Admin> readOnlyMFS = new MetaFateStore<>(zk, null, null);
+    ReadOnlyFateStore<Admin> readOnlyUFS =
         new UserFateStore<>(context, SystemTables.FATE.tableName(), null, null);
     return Map.of(FateInstanceType.META, readOnlyMFS, FateInstanceType.USER, readOnlyUFS);
   }
@@ -1342,5 +1342,28 @@ public class Admin implements KeywordExecutable {
     }
     System.out.println("-".repeat(50));
     System.out.println();
+  }
+
+  /**
+   * Wrapper around the fate stores
+   */
+  private static class FateStores implements AutoCloseable {
+    private final Map<FateInstanceType,FateStore<Admin>> storesMap;
+
+    private FateStores(FateInstanceType type1, FateStore<Admin> store1, FateInstanceType type2,
+        FateStore<Admin> store2) {
+      storesMap = Map.of(type1, store1, type2, store2);
+    }
+
+    private Map<FateInstanceType,FateStore<Admin>> getStoresMap() {
+      return storesMap;
+    }
+
+    @Override
+    public void close() {
+      for (var fs : storesMap.values()) {
+        fs.close();
+      }
+    }
   }
 }

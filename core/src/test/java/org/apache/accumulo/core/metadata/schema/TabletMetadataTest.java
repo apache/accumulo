@@ -35,9 +35,11 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -348,8 +350,8 @@ public class TabletMetadataTest {
 
     // MERGED Column not fetched
     mutation = TabletColumnFamily.createPrevRowMutation(extent);
-    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(),
-        EnumSet.of(ColumnType.PREV_ROW), true, false);
+    tm = TabletMetadata.convertRow(toRowMap(mutation).entrySet().iterator(), EnumSet.of(PREV_ROW),
+        true, false);
     assertThrows(IllegalStateException.class, tm::hasMerged);
   }
 
@@ -372,6 +374,45 @@ public class TabletMetadataTest {
       // test stream delegates to close on TabletsMetadata
     }
     assertTrue(closeCalled.get());
+  }
+
+  @Test
+  public void testValidateWithNonOverlappingFileRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("1"), new Text("d"), new Text("b"));
+
+    Range fileRange = new Range(new Text("x\0"), true, new Text("z\0"), false);
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f1.rf"), fileRange);
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    assertThrows(IllegalStateException.class, () -> builder.build(ColumnType.values()));
+  }
+
+  @Test
+  public void testValidateWithOverlappingFileRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("2"), new Text("m"), new Text("a"));
+
+    Range fileRange = new Range(new Text("c\0"), true, new Text("e\0"), false);
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f2.rf"), fileRange);
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    assertDoesNotThrow(() -> builder.build(ColumnType.values()));
+  }
+
+  @Test
+  public void testValidateWithNoFileRange() {
+    KeyExtent extent = new KeyExtent(TableId.of("3"), new Text("d"), new Text("b"));
+
+    Range emptyRange = new Range();
+    StoredTabletFile file =
+        StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/f3.rf"), emptyRange);
+    TabletMetadataBuilder builder =
+        TabletMetadata.builder(extent).putFile(file, new DataFileValue(0, 0, 0));
+
+    assertDoesNotThrow(() -> builder.build(ColumnType.values()));
   }
 
   @Test
@@ -414,6 +455,7 @@ public class TabletMetadataTest {
         .add(FateId.from(FateInstanceType.USER, UUID.randomUUID())));
 
     // Set some data in the collections and very they are not empty but still immutable
+    b.table(TableId.of("4"));
     b.extCompaction(ecid, ecMeta);
     b.file(stf, new DataFileValue(0, 0, 0));
     b.log(LogEntry.fromPath("localhost+8020/" + UUID.randomUUID()));
@@ -422,6 +464,7 @@ public class TabletMetadataTest {
     b.compacted(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.userCompactionsRequested(FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     b.keyValue(new AbstractMap.SimpleImmutableEntry<>(new Key(), new Value()));
+    b.sawPrevEndRow(true);
     var tm2 = b.build(EnumSet.allOf(ColumnType.class));
 
     assertEquals(1, tm2.getExternalCompactions().size());
