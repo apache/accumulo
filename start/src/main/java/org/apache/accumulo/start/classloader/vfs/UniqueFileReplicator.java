@@ -59,9 +59,12 @@ public class UniqueFileReplicator implements VfsComponent, FileReplicator {
       justification = "input files are specified by admin, not unchecked user input")
   @Override
   public File replicateFile(FileObject srcFile, FileSelector selector) throws FileSystemException {
-    String baseName = srcFile.getName().getBaseName();
 
+    String baseName = srcFile.getName().getBaseName();
     try {
+      if (!tempDir.exists()) {
+        throw new IOException("Directory no longer exists: " + tempDir.getAbsolutePath());
+      }
       String safeBasename = UriParser.encode(baseName, TMP_RESERVED_CHARS).replace('%', '_');
       File file = null;
       try {
