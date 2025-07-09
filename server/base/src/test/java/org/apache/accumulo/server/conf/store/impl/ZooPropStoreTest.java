@@ -41,6 +41,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -81,7 +82,7 @@ public class ZooPropStoreTest {
   @Test
   public void create() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("propStoreKey"));
+    var propStoreKey = TablePropKey.of(TableId.of("propStoreKey"), NamespaceId.of("ns1"));
 
     Capture<byte[]> bytes = newCapture();
     expect(zrw.putPrivatePersistentData(eq(propStoreKey.getPath()), capture(bytes), anyObject()))
@@ -109,7 +110,7 @@ public class ZooPropStoreTest {
   @Test
   public void getTest() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("propStoreKey"));
+    var propStoreKey = TablePropKey.of(TableId.of("propStoreKey"), NamespaceId.of("ns1"));
 
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 
@@ -141,7 +142,7 @@ public class ZooPropStoreTest {
   @Test
   public void versionTest() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("table1"));
+    var propStoreKey = TablePropKey.of(TableId.of("table1"), NamespaceId.of("ns1"));
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
 
@@ -177,7 +178,7 @@ public class ZooPropStoreTest {
   @Test
   public void putAllTest() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("table1"));
+    var propStoreKey = TablePropKey.of(TableId.of("table1"), NamespaceId.of("ns1"));
 
     var initialProps = new VersionedProperties(0, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
@@ -222,7 +223,7 @@ public class ZooPropStoreTest {
   @Test
   public void removeTest() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("table1"));
+    var propStoreKey = TablePropKey.of(TableId.of("table1"), NamespaceId.of("ns1"));
 
     var initialProps = new VersionedProperties(123, Instant.now(),
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M"));
@@ -265,7 +266,7 @@ public class ZooPropStoreTest {
   @Test
   public void removeWithExceptionsTest() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("table1"));
+    var propStoreKey = TablePropKey.of(TableId.of("table1"), NamespaceId.of("ns1"));
 
     // return "bad data"
     Capture<Stat> stat = newCapture();
@@ -307,7 +308,7 @@ public class ZooPropStoreTest {
   @Test
   public void validateWatcherSetTest() throws Exception {
 
-    var tablePropKey = TablePropKey.of(TableId.of("table1"));
+    var tablePropKey = TablePropKey.of(TableId.of("table1"), NamespaceId.of("ns1"));
     Map<String,String> props =
         Map.of(TABLE_BULK_MAX_TABLETS.getKey(), "1234", TABLE_FILE_BLOCK_SIZE.getKey(), "512M");
 
@@ -378,7 +379,7 @@ public class ZooPropStoreTest {
   @Test
   public void deleteTest() throws Exception {
 
-    var propStoreKey = TablePropKey.of(TableId.of("propStoreKey"));
+    var propStoreKey = TablePropKey.of(TableId.of("propStoreKey"), NamespaceId.of("ns1"));
 
     var vProps = new VersionedProperties(Map.of(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
 

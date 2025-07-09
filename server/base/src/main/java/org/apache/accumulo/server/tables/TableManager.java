@@ -26,6 +26,7 @@ import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
@@ -79,24 +80,25 @@ public class TableManager {
     // state gets created last
     log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
         tableName, tableId, namespaceId);
-    String zTablePath = Constants.ZTABLES + "/" + tableId;
+    String zTablePath =
+        Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
     zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
-    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
-        namespaceId.canonical().getBytes(UTF_8), existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
     zoo.putPersistentData(zTablePath + Constants.ZTABLE_STATE, state.name().getBytes(UTF_8),
         existsPolicy);
-    var propKey = TablePropKey.of(tableId);
+    var propKey = TablePropKey.of(tableId, namespaceId);
     var propStore = context.getPropStore();
     if (!propStore.exists(propKey)) {
       propStore.create(propKey, Map.of());
     }
   }
 
-  public synchronized void transitionTableState(final TableId tableId, final TableState newState,
+  public synchronized void transitionTableState(final TableId tableId,
+      final NamespaceId namespaceId, final TableState newState,
       final EnumSet<TableState> expectedCurrStates) {
     Preconditions.checkArgument(newState != TableState.UNKNOWN);
-    String statePath = Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE;
+    String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId
+        + Constants.ZTABLE_STATE;
 
     try {
       zoo.mutateOrCreate(statePath, newState.name().getBytes(UTF_8), currData -> {
@@ -142,8 +144,14 @@ public class TableManager {
 
   public TableState getTableState(TableId tableId) {
     TableState tState = TableState.UNKNOWN;
-    byte[] data =
-        context.getZooCache().get(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
+    NamespaceId namespaceId = null;
+    try {
+      namespaceId = context.getNamespaceId(tableId);
+    } catch (TableNotFoundException e) {
+      return TableState.UNKNOWN;
+    }
+    byte[] data = context.getZooCache().get(Constants.ZNAMESPACES + "/" + namespaceId
+        + Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_STATE);
     if (data != null) {
       String sState = new String(data, UTF_8);
       try {
@@ -162,17 +170,19 @@ public class TableManager {
   }
 
   public void cloneTable(TableId srcTableId, TableId tableId, String tableName,
-      NamespaceId namespaceId, Map<String,String> propertiesToSet, Set<String> propertiesToExclude)
-      throws KeeperException, InterruptedException {
+      NamespaceId srcNamespaceId, NamespaceId namespaceId, Map<String,String> propertiesToSet,
+      Set<String> propertiesToExclude) throws KeeperException, InterruptedException {
     prepareNewTableState(tableId, namespaceId, tableName, TableState.NEW,
         NodeExistsPolicy.OVERWRITE);
 
-    String srcTablePath = Constants.ZTABLES + "/" + srcTableId + Constants.ZCONFIG;
-    String newTablePath = Constants.ZTABLES + "/" + tableId + Constants.ZCONFIG;
+    String srcTablePath = Constants.ZNAMESPACES + "/" + srcNamespaceId + Constants.ZTABLES + "/"
+        + srcTableId + Constants.ZCONFIG;
+    String newTablePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+        + tableId + Constants.ZCONFIG;
     zoo.recursiveCopyPersistentOverwrite(srcTablePath, newTablePath);
 
-    PropUtil.setProperties(context, TablePropKey.of(tableId), propertiesToSet);
-    PropUtil.removeProperties(context, TablePropKey.of(tableId), propertiesToExclude);
+    PropUtil.setProperties(context, TablePropKey.of(tableId, namespaceId), propertiesToSet);
+    PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId), propertiesToExclude);
   }
 
   public void removeTable(TableId tableId, NamespaceId namespaceId)
@@ -185,7 +195,9 @@ public class TableManager {
         throw e;
       }
     }
-    zoo.recursiveDelete(Constants.ZTABLES + "/" + tableId, NodeMissingPolicy.SKIP);
+    zoo.recursiveDelete(
+        Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId,
+        NodeMissingPolicy.SKIP);
   }
 
   public void removeNamespace(NamespaceId namespaceId)

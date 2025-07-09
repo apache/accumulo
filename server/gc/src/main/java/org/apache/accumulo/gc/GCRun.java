@@ -48,6 +48,7 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -233,23 +234,26 @@ public class GCRun implements GarbageCollectionEnvironment {
     IllegalStateException ioe = null;
     while (retries <= 10) {
       try {
-        zr.sync(Constants.ZTABLES);
+        zr.sync(Constants.ZNAMESPACES);
         final Map<TableId,TableState> tids = new HashMap<>();
-        for (String table : zr.getChildren(Constants.ZTABLES)) {
-          TableId tableId = TableId.of(table);
-          TableState tableState = null;
-          String statePath = Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_STATE;
-          try {
-            byte[] state = zr.getData(statePath);
-            if (state == null) {
+        for (String namespaceId : zr.getChildren(Constants.ZNAMESPACES)) {
+          for (TableId tableId : context.getTableMapping(NamespaceId.of(namespaceId))
+              .getIdToNameMap().keySet()) {
+            TableState tableState = null;
+            String statePath = Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/"
+                + tableId.canonical() + Constants.ZTABLE_STATE;
+            try {
+              byte[] state = zr.getData(statePath);
+              if (state == null) {
+                tableState = TableState.UNKNOWN;
+              } else {
+                tableState = TableState.valueOf(new String(state, UTF_8));
+              }
+            } catch (NoNodeException e) {
               tableState = TableState.UNKNOWN;
-            } else {
-              tableState = TableState.valueOf(new String(state, UTF_8));
             }
-          } catch (NoNodeException e) {
-            tableState = TableState.UNKNOWN;
+            tids.put(tableId, tableState);
           }
-          tids.put(tableId, tableState);
         }
         return tids;
       } catch (KeeperException e) {
