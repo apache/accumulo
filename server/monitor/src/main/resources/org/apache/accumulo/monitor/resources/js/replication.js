@@ -41,7 +41,7 @@ $(document).ready(function () {
 
   replicationStatsTable = $('#replicationStats').DataTable({
     "ajax": {
-      "url": "/rest/replication",
+      "url": contextPath + "rest/replication",
       "dataSrc": ""
     },
     "stateSave": true,

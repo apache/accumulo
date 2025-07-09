@@ -27,7 +27,7 @@ $(document).ready(function () {
   // Create a table for scans list
   scansList = $('#scansList').DataTable({
     "ajax": {
-      "url": '/rest/scans',
+      "url": contextPath + 'rest/scans',
       "dataSrc": "scans"
     },
     "stateSave": true,

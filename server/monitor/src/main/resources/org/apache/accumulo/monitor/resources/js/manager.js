@@ -95,7 +95,7 @@ $(document).ready(function () {
   // Generates the manager table
   managerStatusTable = $('#managerStatus').DataTable({
     "ajax": {
-      "url": '/rest/manager',
+      "url": contextPath + 'rest/manager',
       "dataSrc": function (json) {
         // the data needs to be in an array to work with DataTables
         var arr = [json];
@@ -186,7 +186,7 @@ $(document).ready(function () {
   // Generates the recovery table
   recoveryListTable = $('#recoveryList').DataTable({
     "ajax": {
-      "url": '/rest/tservers/recovery',
+      "url": contextPath + 'rest/tservers/recovery',
       "dataSrc": function (data) {
         data = data.recoveryList;
         if (data.length === 0) {

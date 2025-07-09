@@ -28,7 +28,7 @@
         $(document).ready(function() {
           logList = $('#logTable').DataTable( {
             "ajax": {
-              "url": '/rest/logs',
+              "url": '${rootContext}rest/logs',
               "dataSrc": ""
             },
             "stateSave": true,

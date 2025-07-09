@@ -29,7 +29,7 @@
 
           tableList = $('#tableList').DataTable({
             "ajax": {
-              "url": "/rest/tables",
+              "url": '${rootContext}rest/tables',
               "dataSrc": "table"
             },
             "stateSave": true,

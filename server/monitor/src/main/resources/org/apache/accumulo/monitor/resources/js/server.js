@@ -44,7 +44,7 @@ function refresh() {
  */
 function initServerTables(serv) {
 
-  const url = '/rest/tservers/' + serv;
+  const url = contextPath + 'rest/tservers/' + serv;
   console.debug('REST url used to fetch data for server.js DataTables: ' + url);
 
   // Create a table for details on the current server

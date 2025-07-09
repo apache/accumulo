@@ -45,7 +45,7 @@ function getQueuedAndRunning(data) {
  */
 function initTableServerTable(tableID) {
 
-  const url = '/rest/tables/' + tableID;
+  const url = contextPath + 'rest/tables/' + tableID;
   console.debug('REST url used to fetch data for table.js DataTable: ' + url);
 
   tableServersTable = $('#participatingTServers').DataTable({
