@@ -955,7 +955,7 @@ public class MutationTest {
    * {@link Mutation.TimestampOptions#put(Value)}.
    */
   @Test
-  public void testAddingColumns() {
+  public void testAddingKeyColumns() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
@@ -979,7 +979,7 @@ public class MutationTest {
    * {@link Mutation.TimestampOptions#delete()}.
    */
   @Test
-  public void testDeletingColumns() {
+  public void testDeletingKeyColumns() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
@@ -1006,7 +1006,7 @@ public class MutationTest {
    * IllegalArgumentException is thrown.
    */
   @Test
-  public void testColumnsKeyRowNotEqualToMutationRow() {
+  public void testKeyColumnsRowNotEqualToMutationRow() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r2"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     Throwable exception = assertThrows(IllegalArgumentException.class,
@@ -1018,7 +1018,7 @@ public class MutationTest {
    * Test that mutations are correctly added back through after being previously deleted.
    */
   @Test
-  public void testAddingDeletedColumnsBack() {
+  public void testAddingDeletedKeyColumnsBack() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
@@ -1048,7 +1048,7 @@ public class MutationTest {
    * {@link Mutation.FamilyOptions#keyColumns(Key)}.
    */
   @Test
-  public void testColumnsAddingNullKey() {
+  public void testKeyColumnsAddingNullKey() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = null;
     Value v = nv("v1");
@@ -1061,7 +1061,7 @@ public class MutationTest {
    * {@link Mutation.TimestampOptions#put(Value)}.
    */
   @Test
-  public void testColumnsAddingNullValue() {
+  public void testKeyColumnsAddingNullValue() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     Value v = null;
