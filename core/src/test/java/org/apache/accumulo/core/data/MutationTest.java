@@ -34,7 +34,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
 
 import org.apache.accumulo.core.dataImpl.thrift.TMutation;
 import org.apache.accumulo.core.security.ColumnVisibility;
@@ -418,32 +417,28 @@ public class MutationTest {
     m.put(nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), nv("v2"));
     m.put(nt("cf3"), nt("cq3"), 3L, nv("v3"));
     m.put(nt("cf4"), nt("cq4"), new ColumnVisibility("cv4"), 4L, nv("v4"));
-    m.put(new Key(nt("r1"), nt("cf5"), nt("cq5"), new ColumnVisibility("cv5"), 5L), nv("v5"));
 
-    m.putDelete(nt("cf6"), nt("cq6"));
-    m.putDelete(nt("cf7"), nt("cq7"), new ColumnVisibility("cv7"));
-    m.putDelete(nt("cf8"), nt("cq8"), 8L);
-    m.putDelete(nt("cf9"), nt("cq9"), new ColumnVisibility("cv9"), 9L);
-    m.putDelete(new Key(nt("r1"), nt("cf10"), nt("cq10"), new ColumnVisibility("cv10"), 10L));
+    m.putDelete(nt("cf5"), nt("cq5"));
+    m.putDelete(nt("cf6"), nt("cq6"), new ColumnVisibility("cv6"));
+    m.putDelete(nt("cf7"), nt("cq7"), 7L);
+    m.putDelete(nt("cf8"), nt("cq8"), new ColumnVisibility("cv8"), 8L);
 
-    assertEquals(10, m.size());
+    assertEquals(8, m.size());
 
     List<ColumnUpdate> updates = m.getUpdates();
 
-    assertEquals(10, m.size());
-    assertEquals(10, updates.size());
+    assertEquals(8, m.size());
+    assertEquals(8, updates.size());
 
     verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0L, false, false, "v1");
     verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
     verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3L, true, false, "v3");
     verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4L, true, false, "v4");
-    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "cv5", 5L, true, false, "v5");
 
-    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "", 0L, false, true, "");
-    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "cv7", 0L, false, true, "");
-    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "", 8L, true, true, "");
-    verifyColumnUpdate(updates.get(8), "cf9", "cq9", "cv9", 9L, true, true, "");
-    verifyColumnUpdate(updates.get(9), "cf10", "cq10", "cv10", 10L, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7L, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
 
   }
 
@@ -522,34 +517,28 @@ public class MutationTest {
     m.put("cf3".getBytes(UTF_8), "cq3".getBytes(UTF_8), 3L, "v3".getBytes(UTF_8));
     m.put("cf4".getBytes(UTF_8), "cq4".getBytes(UTF_8), new ColumnVisibility("cv4"), 4L,
         "v4".getBytes(UTF_8));
-    m.put(new Key("r1".getBytes(UTF_8), "cf5".getBytes(UTF_8), "cq5".getBytes(UTF_8),
-        new ColumnVisibility("cv5"), 5L), new Value("v5".getBytes(UTF_8)));
 
-    m.putDelete("cf6".getBytes(UTF_8), "cq6".getBytes(UTF_8));
-    m.putDelete("cf7".getBytes(UTF_8), "cq7".getBytes(UTF_8), new ColumnVisibility("cv7"));
-    m.putDelete("cf8".getBytes(UTF_8), "cq8".getBytes(UTF_8), 8L);
-    m.putDelete("cf9".getBytes(UTF_8), "cq9".getBytes(UTF_8), new ColumnVisibility("cv9"), 9L);
-    m.putDelete(new Key("r1".getBytes(UTF_8), "cf10".getBytes(UTF_8), "cq10".getBytes(UTF_8),
-        new ColumnVisibility("cv10"), 10L));
+    m.putDelete("cf5".getBytes(UTF_8), "cq5".getBytes(UTF_8));
+    m.putDelete("cf6".getBytes(UTF_8), "cq6".getBytes(UTF_8), new ColumnVisibility("cv6"));
+    m.putDelete("cf7".getBytes(UTF_8), "cq7".getBytes(UTF_8), 7L);
+    m.putDelete("cf8".getBytes(UTF_8), "cq8".getBytes(UTF_8), new ColumnVisibility("cv8"), 8L);
 
-    assertEquals(10, m.size());
+    assertEquals(8, m.size());
 
     List<ColumnUpdate> updates = m.getUpdates();
 
-    assertEquals(10, m.size());
-    assertEquals(10, updates.size());
+    assertEquals(8, m.size());
+    assertEquals(8, updates.size());
 
     verifyColumnUpdate(updates.get(0), "cf1", "cq1", "", 0L, false, false, "v1");
     verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 0L, false, false, "v2");
     verifyColumnUpdate(updates.get(2), "cf3", "cq3", "", 3L, true, false, "v3");
     verifyColumnUpdate(updates.get(3), "cf4", "cq4", "cv4", 4L, true, false, "v4");
-    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "cv5", 5L, true, false, "v5");
 
-    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "", 0L, false, true, "");
-    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "cv7", 0L, false, true, "");
-    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "", 8L, true, true, "");
-    verifyColumnUpdate(updates.get(8), "cf9", "cq9", "cv9", 9L, true, true, "");
-    verifyColumnUpdate(updates.get(9), "cf10", "cq10", "cv10", 10L, true, true, "");
+    verifyColumnUpdate(updates.get(4), "cf5", "cq5", "", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(5), "cf6", "cq6", "cv6", 0L, false, true, "");
+    verifyColumnUpdate(updates.get(6), "cf7", "cq7", "", 7L, true, true, "");
+    verifyColumnUpdate(updates.get(7), "cf8", "cq8", "cv8", 8L, true, true, "");
   }
 
   /**
@@ -961,131 +950,123 @@ public class MutationTest {
   }
 
   /**
-   * Test that a null Key passed though {@link Mutation#put(Key, Value)} will throw a Null Pointer
-   * Exception.
+   * Test that the mutation is correctly updated to be added when a valid Key is passed through
+   * {@link Mutation.FamilyOptions#keyColumns(Key)}, and a valid Value is passed through
+   * {@link Mutation.TimestampOptions#put(Value)}.
    */
   @Test
-  public void testPutWithNullKey() {
+  public void testAddingColumns() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+
+    Key k2 = new Key(nt("r1"), nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), 2L);
+    m.at().keyColumns(k2).put(nv("v2"));
+
+    assertEquals(2, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(2, m.size());
+    assertEquals(2, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf2", "cq2", "cv2", 2L, false, false, "v2");
+  }
+
+  /**
+   * Test that the mutation is correctly updated to be deleted when a valid Key is passed through
+   * {@link Mutation.TimestampOptions#delete()}.
+   */
+  @Test
+  public void testDeletingColumns() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+    m.at().keyColumns(k).delete();
+
+    Key k2 = new Key(nt("r1"), nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), 2L);
+    m.at().keyColumns(k2).delete();
+
+    assertEquals(3, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(3, m.size());
+    assertEquals(3, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf1", "cq1", "cv1", 1L, false, true, "");
+    verifyColumnUpdate(updates.get(2), "cf2", "cq2", "cv2", 2L, false, true, "");
+  }
+
+  /**
+   * Tests that when a Key is passed through {@link Mutation.FamilyOptions#keyColumns(Key)}
+   * containing a row ID not equal to the mutation row ID of the current object, that an
+   * IllegalArgumentException is thrown.
+   */
+  @Test
+  public void testColumnsKeyRowNotEqualToMutationRow() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r2"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    Throwable exception = assertThrows(IllegalArgumentException.class,
+        () -> m.at().keyColumns(k).put(nv("v1")), "Expected an IAE");
+    assertEquals("key row is not equal to mutation row", exception.getMessage());
+  }
+
+  /**
+   * Test that mutations are correctly added back through after being previously deleted.
+   */
+  @Test
+  public void testAddingDeletedColumnsBack() {
+    Mutation m = new Mutation(new Text("r1"));
+    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+    m.at().keyColumns(k).delete();
+    m.at().keyColumns(k).timestamp(k.getTimestamp()).put(nv("v1"));
+
+    Key k2 = new Key(nt("r1"), nt("cf2"), nt("cq2"), new ColumnVisibility("cv2"), 2L);
+    m.at().keyColumns(k2).delete();
+    m.at().keyColumns(k2).put(nv("v1"));
+
+    assertEquals(5, m.size());
+
+    List<ColumnUpdate> updates = m.getUpdates();
+
+    assertEquals(5, m.size());
+    assertEquals(5, updates.size());
+
+    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(1), "cf1", "cq1", "cv1", 1L, false, true, "");
+    verifyColumnUpdate(updates.get(2), "cf1", "cq1", "cv1", 1L, true, false, "v1");
+    verifyColumnUpdate(updates.get(3), "cf2", "cq2", "cv2", 2L, false, true, "");
+    verifyColumnUpdate(updates.get(4), "cf2", "cq2", "cv2", 2L, false, false, "v1");
+  }
+
+  /**
+   * Test that a NullPointerException is thrown when passing a null Key through
+   * {@link Mutation.FamilyOptions#keyColumns(Key)}.
+   */
+  @Test
+  public void testColumnsAddingNullKey() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = null;
     Value v = nv("v1");
 
-    assertThrows(NullPointerException.class, () -> m.put(k, v));
+    assertThrows(NullPointerException.class, () -> m.at().keyColumns(k).put(v));
   }
 
   /**
-   * Test that a null Value passed though {@link Mutation#put(Key, Value)} will throw a
-   * NullPointerException.
+   * Test that a NullPointerException is thrown when passing a null Value through
+   * {@link Mutation.TimestampOptions#put(Value)}.
    */
   @Test
-  public void testPutWithNullValue() {
+  public void testColumnsAddingNullValue() {
     Mutation m = new Mutation(new Text("r1"));
     Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
     Value v = null;
 
-    assertThrows(NullPointerException.class, () -> m.put(k, v));
+    assertThrows(NullPointerException.class, () -> m.at().keyColumns(k).put(v));
   }
 
-  /**
-   * Tests that when a Key is passed through {@link Mutation#put(Key, Value)} containing a Row not
-   * equal to the Mutation row of the current object, that an IllegalArgumentException is thrown.
-   */
-  @Test
-  public void testPutWithRowNotEqualToMutationRow() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = new Key(nt("r2"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
-    Value v = nv("v1");
-    Throwable exception =
-        assertThrows(IllegalArgumentException.class, () -> m.put(k, v), "Expected an IAE");
-    assertEquals("key row is not equal to mutation row", exception.getMessage());
-  }
-
-  /**
-   * Tests for when a key is marked for deletion but called by {@link Mutation#put(Key, Value)}, it should no
-   * longer be marked for deletion.
-   */
-  @Test
-  public void testPutKeyMarkedForDeletionBack() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
-    k.setDeleted(true);
-    Value v = nv("v1");
-
-    m.put(k, v);
-
-    assertEquals(1, m.size());
-
-    List<ColumnUpdate> updates = m.getUpdates();
-
-    assertEquals(1, m.size());
-    assertEquals(1, updates.size());
-
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
-  }
-
-  /**
-   * Tests that the Mutation is correctly updated when a valid Key and Value is passed through
-   * {@link Mutation#put(Key, Value)}.
-   */
-  @Test
-  public void testPutKeyValueAdded() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
-    Value v = nv("v1");
-    m.put(k, v);
-
-    assertEquals(1, m.size());
-
-    List<ColumnUpdate> updates = m.getUpdates();
-
-    assertEquals(1, m.size());
-    assertEquals(1, updates.size());
-
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, false, "v1");
-  }
-
-  /**
-   * Test that a null Key passed though {@link Mutation#putDelete(Key)} will throw a
-   * NullPointerException.
-   */
-  @Test
-  public void testPutDeleteNullKey() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = null;
-
-    assertThrows(NullPointerException.class, () -> m.putDelete(k));
-  }
-
-  /**
-   * Tests that when a Key is passed through {@link Mutation#putDelete(Key)} containing a Row not
-   * equal to the Mutation row of the current object, that an IllegalArgumentException is thrown.
-   */
-  @Test
-  public void testPutDeleteRowNotEqualToMutationRow() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = new Key(nt("r2"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
-    Throwable exception =
-        assertThrows(IllegalArgumentException.class, () -> m.putDelete(k), "Expected an IAE");
-    assertEquals("key row is not equal to mutation row", exception.getMessage());
-  }
-
-  /**
-   * Tests that the Mutation is correctly updated when a valid Key and Value is passed through
-   * {@link Mutation#putDelete(Key)}.
-   */
-  @Test
-  public void testPutDeleteKeyAdded() {
-    Mutation m = new Mutation(new Text("r1"));
-    Key k = new Key(nt("r1"), nt("cf1"), nt("cq1"), new ColumnVisibility("cv1"), 1L);
-    m.putDelete(k);
-
-    assertEquals(1, m.size());
-
-    List<ColumnUpdate> updates = m.getUpdates();
-
-    assertEquals(1, m.size());
-    assertEquals(1, updates.size());
-
-    verifyColumnUpdate(updates.get(0), "cf1", "cq1", "cv1", 1L, true, true, "");
-  }
 }

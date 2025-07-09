@@ -703,42 +703,6 @@ public class Mutation implements Writable {
   }
 
   /**
-   * Puts a modification in this mutation given the values contained in the key and the value. All
-   * appropriate fields of the key are defensively copied.
-   *
-   * @param key key containing all key fields
-   * @param value value
-   */
-  public void put(Key key, Value value) {
-    Objects.requireNonNull(key, "key cannot be null");
-    Objects.requireNonNull(value, "value cannot be null");
-
-    if (!(Arrays.equals(this.getRow(), key.getRow().getBytes()))) {
-      throw new IllegalArgumentException("key row is not equal to mutation row");
-    }
-
-
-    put(key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibilityParsed(),
-        key.getTimestamp(), value);
-  }
-
-  /**
-   * Puts a deletion in this mutation given the values contained in the key.
-   *
-   * @param key key containing all key fields
-   */
-  public void putDelete(Key key) {
-    Objects.requireNonNull(key, "key cannot be null");
-
-    if (!(Arrays.equals(this.getRow(), key.getRow().getBytes()))) {
-      throw new IllegalArgumentException("key row is not equal to mutation row");
-    }
-
-    putDelete(key.getColumnFamily(), key.getColumnQualifier(), key.getColumnVisibilityParsed(),
-        key.getTimestamp());
-  }
-
-  /**
    * Puts a deletion in this mutation. Matches empty column visibility; timestamp is not set. All
    * parameters are defensively copied.
    *
@@ -815,7 +779,7 @@ public class Mutation implements Writable {
 
     QualifierOptions family(Text colFam);
 
-    TimestampOptions columns(Key key);
+    TimestampOptions keyColumns(Key key);
   }
 
   /**
@@ -1001,11 +965,25 @@ public class Mutation implements Writable {
       return family(colFam.getBytes(), colFam.getLength());
     }
 
+    /**
+     * Sets the column family, column qualifier, and column visibility of a mutation.
+     *
+     * @param key key
+     * @return a TimestampOptions object, advancing the method chain
+     */
     @Override
-    public TimestampOptions columns(Key key){
-      Text colFam;
-      Text colQual;
-      Text colVis;
+    public TimestampOptions keyColumns(Key key) {
+      Objects.requireNonNull(key, "key cannot be null");
+
+      if (!(Arrays.equals(getRow(), key.getRow().getBytes()))) {
+        throw new IllegalArgumentException("key row is not equal to mutation row");
+      }
+
+      Text colFam = key.getColumnFamily();
+      Text colQual = key.getColumnQualifier();
+      Text colVis = key.getColumnVisibility();
+
+      return this.family(colFam).qualifier(colQual).visibility(colVis);
     }
 
     /**
