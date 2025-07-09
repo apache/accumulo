@@ -170,14 +170,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private static final int MAX_BAD_STATUS_COUNT = 3;
   private static final double MAX_SHUTDOWNS_PER_SEC = 10D / 60D;
 
-  final LiveTServerSet tserverSet;
+  LiveTServerSet tserverSet;
   private final List<TabletGroupWatcher> watchers = new ArrayList<>();
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final EventCoordinator nextEvent = new EventCoordinator();
   RecoveryManager recoveryManager = null;
-  private final ManagerTime timeKeeper;
+  private ManagerTime timeKeeper;
 
   // Delegation Token classes
   private final boolean delegationTokensAvailable;
@@ -471,6 +471,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   public static void main(String[] args) throws Exception {
     try (Manager manager = new Manager(new ConfigOpts(), ServerContext::new, args)) {
+      manager.init();
       manager.runServer();
     }
   }
@@ -486,8 +487,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
-    timeKeeper = new ManagerTime(this, aconf);
-    tserverSet = new LiveTServerSet(context, this);
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
@@ -514,6 +513,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     }
     this.timeToCacheRecoveryWalExistence =
         aconf.getTimeInMillis(Property.MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+  }
+
+  protected void init() throws IOException {
+    timeKeeper = new ManagerTime(this, super.getContext().getConfiguration());
+    tserverSet = new LiveTServerSet(super.getContext(), this);
   }
 
   public TServerConnection getConnection(TServerInstance server) {

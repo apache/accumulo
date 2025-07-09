@@ -69,6 +69,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
     protected TestManager(String[] args) throws IOException {
       super(new ConfigOpts(), (conf) -> getServerContext(), args);
+      super.init();
     }
 
   }
