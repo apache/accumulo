@@ -33,6 +33,8 @@ import org.eclipse.jetty.util.ssl.SslContextFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
+
 public class EmbeddedWebServer {
   private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
 
@@ -45,7 +47,7 @@ public class EmbeddedWebServer {
   private final ServletContextHandler handler;
   private final boolean secure;
 
-  public EmbeddedWebServer(Monitor monitor, int port, String rootContext) {
+  public EmbeddedWebServer(Monitor monitor, int port) {
     server = new Server();
     final AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     secure = requireForSecure.stream().map(conf::get).allMatch(s -> s != null && !s.isEmpty());
@@ -57,7 +59,8 @@ public class EmbeddedWebServer {
     handler =
         new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
     handler.getSessionHandler().getSessionCookieConfig().setHttpOnly(true);
-    // Remove the trailing slash since jetty will warn otherwise
+    String rootContext = monitor.getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
+    // Remove the trailing slash since jetty will warn otherwise.
     if (rootContext.length() > 1 && rootContext.endsWith("/")) {
       rootContext = rootContext.substring(0, rootContext.length() - 1);
     }
@@ -110,6 +113,11 @@ public class EmbeddedWebServer {
 
   public void addServlet(ServletHolder restServlet, String where) {
     handler.addServlet(restServlet, where);
+  }
+
+  @VisibleForTesting
+  String getContextPath() {
+    return handler.getContextPath();
   }
 
   public String getHostName() {

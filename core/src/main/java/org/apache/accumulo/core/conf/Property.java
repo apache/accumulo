@@ -1037,7 +1037,7 @@ public enum Property {
           + " The resources that are used by default can be seen in"
           + " `accumulo/server/monitor/src/main/resources/templates/default.ftl`.",
       "2.0.0"),
-  MONITOR_ROOT_CONTEXT("monitor.root.context", "", PropertyType.STRING,
+  MONITOR_ROOT_CONTEXT("monitor.root.context", "/", PropertyType.STRING,
       "The root context path of the monitor application. If this value is set, all paths for the"
           + " monitor application will be hosted using this context. As an example, setting this to `/accumulo/`"
           + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",

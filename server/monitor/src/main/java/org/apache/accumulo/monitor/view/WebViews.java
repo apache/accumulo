@@ -95,13 +95,6 @@ public class WebViews {
   private Map<String,Object> getModel() {
     AccumuloConfiguration conf = monitor.getContext().getConfiguration();
     String rootContext = conf.get(Property.MONITOR_ROOT_CONTEXT);
-    if (!rootContext.startsWith("/")) {
-      rootContext = "/" + rootContext;
-    }
-    if (!rootContext.endsWith("/")) {
-      rootContext = rootContext + "/";
-    }
-
     Map<String,Object> model = new HashMap<>();
     model.put("version", Constants.VERSION);
     model.put("instance_name", monitor.getContext().getInstanceName());

@@ -105,6 +105,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
 /**
@@ -454,13 +455,16 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
     String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
-    if (!rootContext.startsWith("/")) {
-      rootContext = "/" + rootContext;
-    }
+    // Needs leading slash in order to property create rest endpoint requests
+    Preconditions.checkArgument(rootContext.startsWith("/"),
+        "Root context: \"%s\" does not have a leading '/'", rootContext);
+    // Needed to support the existing zk monitor address format
+    Preconditions.checkArgument(rootContext.endsWith("/"),
+        "Root context: \"%s\" does not have a trailing '/'", rootContext);
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
-        server = new EmbeddedWebServer(this, port, rootContext);
+        server = new EmbeddedWebServer(this, port);
         server.addServlet(getDefaultServlet(), "/resources/*");
         server.addServlet(getRestServlet(), "/rest/*");
         server.addServlet(getViewServlet(), "/*");
@@ -512,10 +516,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         monitorHostAndPort, ""));
 
-    // Support the existing zk monitor address format
-    if (!rootContext.endsWith("/")) {
-      rootContext = rootContext + "/";
-    }
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
           server.getPort(), rootContext);
