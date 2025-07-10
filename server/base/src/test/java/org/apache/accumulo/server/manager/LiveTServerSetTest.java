@@ -54,7 +54,8 @@ public class LiveTServerSetTest {
     zc.addZooCacheWatcher(EasyMock.isA(LiveTServerSet.class));
     EasyMock.replay(ctx, zc);
 
-    LiveTServerSet tservers = new LiveTServerSet(ctx, EasyMock.createMock(Listener.class));
+    LiveTServerSet tservers = new LiveTServerSet(ctx);
+    tservers.setCback(EasyMock.createMock(Listener.class));
 
     assertEquals(server1.instance, tservers.find(servers, "localhost:1234"));
     assertNull(tservers.find(servers, "localhost:4321"));

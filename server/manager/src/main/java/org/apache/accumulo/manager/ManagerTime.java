@@ -24,11 +24,11 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -46,8 +46,8 @@ import com.google.common.annotations.VisibleForTesting;
 public class ManagerTime {
   private static final Logger log = LoggerFactory.getLogger(ManagerTime.class);
 
-  private final ZooReaderWriter zk;
-  private final Manager manager;
+  private ZooReaderWriter zk;
+  private final AtomicReference<Manager> manager;
 
   /**
    * Difference between time stored in ZooKeeper and System.nanoTime() when we last read from
@@ -85,12 +85,30 @@ public class ManagerTime {
    * start.</li>
    * </ul>
    */
-  private final AtomicReference<Duration> skewAmount;
+  private AtomicReference<Duration> skewAmount;
 
-  public ManagerTime(Manager manager, AccumuloConfiguration conf) throws IOException {
-    this.zk = manager.getContext().getZooSession().asReaderWriter();
-    this.manager = manager;
+  ManagerTime() {
+    this.manager = new AtomicReference<>(null);
+  }
 
+  // Once it's set call constructor
+  public void setManager(Manager manager) throws IOException {
+    Objects.requireNonNull(manager);
+    if (this.manager.compareAndSet(null, manager)) {
+      // I don't want this to throw IOException?
+      initializeManagerTime();
+    } else if (this.manager.get() != manager) {
+      throw new IllegalStateException("Attempted to set different manager object");
+    }
+  }
+
+  private Manager getManager() {
+    // fail fast if not yet set
+    return Objects.requireNonNull(manager.get());
+  }
+
+  private void initializeManagerTime() throws IOException {
+    this.zk = getManager().getContext().getZooSession().asReaderWriter();
     try {
       zk.putPersistentData(Constants.ZMANAGER_TICK, "0".getBytes(UTF_8), NodeExistsPolicy.SKIP);
       skewAmount = new AtomicReference<>(updateSkew(getZkTime()));
@@ -98,7 +116,7 @@ public class ManagerTime {
       throw new IOException("Error updating manager time", ex);
     }
 
-    ThreadPools.watchCriticalScheduledTask(manager.getContext().getScheduledExecutor()
+    ThreadPools.watchCriticalScheduledTask(getManager().getContext().getScheduledExecutor()
         .scheduleWithFixedDelay(Threads.createNamedRunnable("Manager time keeper", this::run), 0,
             SECONDS.toMillis(10), MILLISECONDS));
   }
@@ -113,7 +131,7 @@ public class ManagerTime {
   }
 
   public void run() {
-    switch (manager.getManagerState()) {
+    switch (getManager().getManagerState()) {
       // If we don't have the lock, periodically re-read the value in ZooKeeper, in case there's
       // another manager we're
       // shadowing for.

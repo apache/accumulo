@@ -27,10 +27,12 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -76,7 +78,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   private static final Logger log = LoggerFactory.getLogger(LiveTServerSet.class);
 
-  private final Listener cback;
+  private final AtomicReference<Listener> cback;
   private final ServerContext context;
 
   public class TServerConnection {
@@ -211,10 +213,23 @@ public class LiveTServerSet implements ZooCacheWatcher {
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<ServiceLockPath,Long> locklessServers = new HashMap<>();
 
-  public LiveTServerSet(ServerContext context, Listener cback) {
-    this.cback = cback;
+  public LiveTServerSet(ServerContext context) {
+    this.cback = new AtomicReference<>(null);
     this.context = context;
-    this.context.getZooCache().addZooCacheWatcher(this);
+  }
+
+  public void setCback(Listener cback) {
+    Objects.requireNonNull(cback);
+    if (this.cback.compareAndSet(null, cback)) {
+      this.context.getZooCache().addZooCacheWatcher(this);
+    } else if (this.cback.get() != cback) {
+      throw new IllegalStateException("Attempted to set different cback object");
+    }
+  }
+
+  private Listener getCback() {
+    // fail fast if not yet set
+    return Objects.requireNonNull(cback.get());
   }
 
   public synchronized void startListeningForTabletServerChanges() {
@@ -250,7 +265,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
         checkServer(updates, doomed, tserverPath);
       }
 
-      this.cback.update(this, doomed, updates);
+      this.getCback().update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
     }
@@ -362,7 +377,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
                 final Set<TServerInstance> updates = new HashSet<>();
                 final Set<TServerInstance> doomed = new HashSet<>();
                 checkServer(updates, doomed, slp);
-                this.cback.update(this, doomed, updates);
+                this.getCback().update(this, doomed, updates);
               } catch (Exception ex) {
                 log.error("Error processing event for tserver: " + slp.toString(), ex);
               }
