@@ -217,7 +217,8 @@ public class FunctionalTestUtils {
       AdminUtil<String> admin = new AdminUtil<>(false);
       ServerContext context = cluster.getServerContext();
       ZooReaderWriter zk = context.getZooReaderWriter();
-      ZooStore<String> zs = new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk);
+      ZooStore<String> zs =
+          new ZooStore<>(context.getZooKeeperRoot() + Constants.ZFATE, zk, context.getZooCache());
       var lockPath = ServiceLock.path(context.getZooKeeperRoot() + Constants.ZTABLE_LOCKS);
       return admin.getStatus(zs, zk, lockPath, null, null);
     } catch (KeeperException | InterruptedException e) {

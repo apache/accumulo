@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -56,12 +57,12 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-//TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 
 public class ZooStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
+  private ZooCache zc;
   private String path;
   private ZooReaderWriter zk;
   private Set<Long> reserved;
@@ -101,10 +102,12 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooReaderWriter zk, ZooCache zc)
+      throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;
+    this.zc = zc;
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
 
@@ -147,7 +150,7 @@ public class ZooStore<T> implements TStore<T> {
       reservationCandidateLock.lock();
       try {
         if (reservationCandidates.isEmpty()) {
-          List<String> txdirs = new ArrayList<>(zk.getChildren(path));
+          List<String> txdirs = new ArrayList<>(zc.getChildren(path));
           Collections.sort(txdirs);
           reservationCandidates.addAll(txdirs);
         }
@@ -524,8 +527,8 @@ public class ZooStore<T> implements TStore<T> {
   @Override
   public List<Long> list() {
     try {
-      ArrayList<Long> l = new ArrayList<>();
-      List<String> transactions = zk.getChildren(path);
+      List<String> transactions = zc.getChildren(path);
+      ArrayList<Long> l = new ArrayList<>(transactions.size());
       for (String txid : transactions) {
         l.add(parseTid(txid));
       }
