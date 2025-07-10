@@ -27,6 +27,7 @@ public class FlakyAmpleManager extends Manager {
 
   protected FlakyAmpleManager(ConfigOpts opts, String[] args) throws IOException {
     super(opts, FlakyAmpleServerContext::new, args);
+    super.init();
   }
 
   public static void main(String[] args) throws Exception {

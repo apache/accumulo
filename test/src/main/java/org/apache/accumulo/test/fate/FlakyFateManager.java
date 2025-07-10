@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 public class FlakyFateManager extends Manager {
   protected FlakyFateManager(ConfigOpts opts, String[] args) throws IOException {
     super(opts, ServerContext::new, args);
+    super.init();
   }
 
   @Override
