@@ -35,6 +35,7 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tabletserver.thrift.TabletClientService;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
@@ -51,7 +52,8 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
-    cfg.useMiniDFS();
+    cfg.useMiniDFS(true);
+    cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "" + SMALL_QUEUE_SIZE);
   }
 
   private int SMALL_QUEUE_SIZE = 100000;
@@ -61,8 +63,6 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Test
   public void test() throws Exception {
     try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
-      c.instanceOperations().setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(),
-          "" + SMALL_QUEUE_SIZE);
       String tableName = getUniqueNames(1)[0];
       c.tableOperations().create(tableName);
       c.tableOperations().setProperty(tableName, Property.TABLE_MAJC_RATIO.getKey(), "9999");
@@ -101,6 +101,13 @@ public class TotalQueuedIT extends ConfigurableMacBase {
           "" + LARGE_QUEUE_SIZE);
       c.tableOperations().flush(tableName, null, null, true);
       sleepUninterruptibly(1, TimeUnit.SECONDS);
+
+      // property changed is a fixed property (requires restart to be picked up), restart TServers
+      c.tableOperations().offline(tableName, true);
+      getCluster().getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
+      getCluster().getClusterControl().startAllServers(ServerType.TABLET_SERVER);
+      c.tableOperations().online(tableName, true);
+
       try (BatchWriter bw = c.createBatchWriter(tableName, cfg)) {
         now = System.currentTimeMillis();
         bytesSent = 0;
