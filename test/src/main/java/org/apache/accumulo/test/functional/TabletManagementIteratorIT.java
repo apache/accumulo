@@ -457,7 +457,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     Map<KeyExtent,Set<TabletManagement.ManagementAction>> results = new HashMap<>();
     List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      TabletManagementIterator.configureScanner(((ClientContext) client).getConfiguration(), scanner, tabletMgmtParams);
+      TabletManagementIterator.configureScanner(((ClientContext) client).getConfiguration(),
+          scanner, tabletMgmtParams);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
