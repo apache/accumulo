@@ -34,6 +34,7 @@ import java.io.InputStreamReader;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -143,7 +144,17 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
           () -> !client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
 
       write(client, table, generateMutations(0, 100, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100), scanner -> {});
+      verifyData(client, table, AUTHORIZATIONS, Collections.emptySortedMap(),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
       client.tableOperations().flush(table, null, null, true);
+      Wait.waitFor(() -> {
+        try (var scanner = client.createScanner(table, AUTHORIZATIONS)) {
+          scanner.setConsistencyLevel(EVENTUAL);
+          return scan(scanner).size() >= 100;
+        }
+      });
 
       // should see all data that was flushed in eventual scan
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),

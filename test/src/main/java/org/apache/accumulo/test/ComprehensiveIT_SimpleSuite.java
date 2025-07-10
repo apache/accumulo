@@ -38,7 +38,7 @@ public class ComprehensiveIT_SimpleSuite extends ComprehensiveITBase {
   private static class ComprehensiveITConfiguration implements MiniClusterConfigurationCallback {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
-                                     org.apache.hadoop.conf.Configuration coreSite) {
+        org.apache.hadoop.conf.Configuration coreSite) {
       cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
     }
   }
@@ -51,6 +51,7 @@ public class ComprehensiveIT_SimpleSuite extends ComprehensiveITBase {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
     }
   }
+
   @AfterAll
   public static void teardown() {
     SharedMiniClusterBase.stopMiniCluster();
