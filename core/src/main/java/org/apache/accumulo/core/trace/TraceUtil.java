@@ -62,13 +62,9 @@ public class TraceUtil {
   private static void logTracingState() {
     var msg = "Trace enabled in Accumulo: {}, OpenTelemetry instance: {}, Tracer instance: {}";
     var enabledInAccumulo = enabled ? "yes" : "no";
-    var openTelemetry = getOpenTelemetry();
+    var openTelemetry = enabled ? GlobalOpenTelemetry.get() : OpenTelemetry.noop();
     var tracer = getTracer(openTelemetry);
     LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
-  }
-
-  private static OpenTelemetry getOpenTelemetry() {
-    return enabled ? GlobalOpenTelemetry.get() : OpenTelemetry.noop();
   }
 
   private static Tracer getTracer(OpenTelemetry ot) {
@@ -104,7 +100,7 @@ public class TraceUtil {
       return Span.getInvalid();
     }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
-    final SpanBuilder builder = getTracer(getOpenTelemetry()).spanBuilder(name);
+    final SpanBuilder builder = getTracer(GlobalOpenTelemetry.get()).spanBuilder(name);
     if (kind != null) {
       builder.setSpanKind(kind);
     }

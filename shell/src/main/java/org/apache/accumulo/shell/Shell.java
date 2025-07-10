@@ -68,6 +68,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -184,6 +185,8 @@ import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help,
@@ -801,9 +804,14 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               expectedArgLen == 1 ? "" : "s", actualArgLen == 1 ? "was" : "were", actualArgLen)));
           sc.printHelp(this);
         } else {
-          int tmpCode = sc.execute(input, cl, this);
-          exitCode += tmpCode;
-          writer.flush();
+          Span span = TraceUtil.startSpan(this.getClass(), command);
+          try (Scope scope = span.makeCurrent()) {
+            int tmpCode = sc.execute(input, cl, this);
+            exitCode += tmpCode;
+            writer.flush();
+          } finally {
+            span.end();
+          }
         }
 
       } catch (ConstraintViolationException e) {
