@@ -46,6 +46,11 @@ public class SimpleThriftServiceHandler implements SimpleThriftService.Iface {
   }
 
   @Override
+  public void echoPassVoid(String value) throws TException {
+    setProp("echoPassVoid", value);
+  }
+
+  @Override
   public void onewayFail(String value) throws TException {
     setProp("onewayFail", value);
     throw new TException(new UnsupportedOperationException(value));
