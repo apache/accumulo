@@ -86,7 +86,7 @@ public class ConditionCheckerContext {
   }
 
   SortedKeyValueIterator<Key,Value> buildIterator(SortedKeyValueIterator<Key,Value> systemIter,
-      TCondition tc) throws IOException {
+      TCondition tc) throws IOException, ReflectiveOperationException {
 
     ArrayByteSequence key = new ArrayByteSequence(tc.iterators);
     MergedIterConfig mic = mergedIterCache.get(key);
@@ -111,7 +111,7 @@ public class ConditionCheckerContext {
   }
 
   boolean checkConditions(SortedKeyValueIterator<Key,Value> systemIter,
-      ServerConditionalMutation scm) throws IOException {
+      ServerConditionalMutation scm) throws IOException, ReflectiveOperationException {
     boolean add = true;
 
     for (TCondition tc : scm.getConditions()) {
@@ -157,7 +157,8 @@ public class ConditionCheckerContext {
       this.results = results;
     }
 
-    public void check(SortedKeyValueIterator<Key,Value> systemIter) throws IOException {
+    public void check(SortedKeyValueIterator<Key,Value> systemIter)
+        throws IOException, ReflectiveOperationException {
       checkArgument(!checked, "check() method should only be called once");
       checked = true;
 

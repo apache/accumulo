@@ -559,8 +559,8 @@ public class CompactableUtils {
    */
   static CompactionStats compact(Tablet tablet, CompactionJob job,
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
-      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
-      throws IOException, CompactionCanceledException, InterruptedException {
+      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName) throws IOException,
+      CompactionCanceledException, InterruptedException, ReflectiveOperationException {
     TableConfiguration tableConf = tablet.getTableConfiguration();
 
     AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,

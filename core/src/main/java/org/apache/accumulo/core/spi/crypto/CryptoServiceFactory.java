@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.spi.crypto;
 
+import java.io.IOException;
 import java.util.Map;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -46,7 +47,7 @@ public interface CryptoServiceFactory {
     try {
       return ClassLoaderUtil.loadClass(null, cryptoServiceName, CryptoService.class)
           .getDeclaredConstructor().newInstance();
-    } catch (ReflectiveOperationException e) {
+    } catch (ReflectiveOperationException | IOException e) {
       throw new RuntimeException(e);
     }
   }

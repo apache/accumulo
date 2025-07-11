@@ -751,7 +751,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   private void checkConditions(Map<KeyExtent,List<ServerConditionalMutation>> updates,
       ArrayList<TCMResult> results, ConditionalSession cs, List<String> symbols)
-      throws IOException {
+      throws IOException, ReflectiveOperationException {
     Iterator<Entry<KeyExtent,List<ServerConditionalMutation>>> iter = updates.entrySet().iterator();
 
     final CompressedIterators compressedIters = new CompressedIterators(symbols);
@@ -905,7 +905,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
 
   private Map<KeyExtent,List<ServerConditionalMutation>> conditionalUpdate(ConditionalSession cs,
       Map<KeyExtent,List<ServerConditionalMutation>> updates, ArrayList<TCMResult> results,
-      List<String> symbols) throws IOException {
+      List<String> symbols) throws IOException, ReflectiveOperationException {
     // sort each list of mutations, this is done to avoid deadlock and doing seeks in order is
     // more efficient and detect duplicate rows.
     ConditionalMutationSet.sortConditionalMutations(updates);
@@ -1023,7 +1023,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
       }
 
       return results;
-    } catch (IOException ioe) {
+    } catch (IOException | ReflectiveOperationException ioe) {
       throw new TException(ioe);
     } catch (Exception e) {
       log.warn("Exception returned for conditionalUpdate {}", e);

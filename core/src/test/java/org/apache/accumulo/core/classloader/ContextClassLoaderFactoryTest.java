@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
+import java.io.IOException;
 import java.net.URLClassLoader;
 import java.util.Objects;
 
@@ -64,7 +65,7 @@ public class ContextClassLoaderFactoryTest extends WithTestNames {
   }
 
   @Test
-  public void differentContexts() {
+  public void differentContexts() throws IOException, ReflectiveOperationException {
 
     ConfigurationCopy cc = new ConfigurationCopy();
     cc.set(Property.GENERAL_CONTEXT_CLASSLOADER_FACTORY.getKey(),

@@ -115,7 +115,7 @@ public class MinorCompactor extends FileCompactor {
           }
 
           return ret;
-        } catch (IOException | UnsatisfiedLinkError e) {
+        } catch (IOException | ReflectiveOperationException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
           ProblemReports.getInstance(tabletServer.getContext()).report(
               new ProblemReport(getExtent().tableId(), ProblemType.FILE_WRITE, outputFileName, e));

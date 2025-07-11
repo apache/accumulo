@@ -43,7 +43,7 @@ public class SetScanIterCommand extends SetIterCommand {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      ShellCommandException {
+      ShellCommandException, ReflectiveOperationException {
     Shell.log.warn("Deprecated, use {}", new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }

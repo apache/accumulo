@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.spi.common;
 
+import java.io.IOException;
+
 /**
  * The ContextClassLoaderFactory provides a mechanism for various Accumulo components to use a
  * custom ClassLoader for specific contexts, such as loading table iterators. This factory is
@@ -66,5 +68,5 @@ public interface ContextClassLoaderFactory {
    *        consulting this plugin.
    * @return the class loader for the given contextName
    */
-  ClassLoader getClassLoader(String contextName);
+  ClassLoader getClassLoader(String contextName) throws IOException, ReflectiveOperationException;
 }

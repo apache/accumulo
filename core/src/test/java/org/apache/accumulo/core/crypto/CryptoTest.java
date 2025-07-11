@@ -388,7 +388,7 @@ public class CryptoTest {
   }
 
   @Test
-  public void testMissingConfigProperties() throws ReflectiveOperationException {
+  public void testMissingConfigProperties() throws ReflectiveOperationException, IOException {
     var cryptoProps = getAllCryptoProperties(ConfigMode.CRYPTO_TABLE_ON);
     var droppedProperty = cryptoProps.remove(AESCryptoService.KEY_URI_PROPERTY);
     assertNotNull(droppedProperty);

@@ -395,16 +395,17 @@ public class Compactor extends AbstractServer
    * Notify the CompactionCoordinator the job failed
    *
    * @param job current compaction job
+   * @param exception cause of failure
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
-  protected void updateCompactionFailed(TExternalCompactionJob job)
+  protected void updateCompactionFailed(TExternalCompactionJob job, Throwable exception)
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent);
+                job.getExternalCompactionId(), job.extent, exception.getClass().getName());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -809,7 +810,7 @@ public class Compactor extends AbstractServer
                     new TCompactionStatusUpdate(TCompactionState.CANCELLED, "Compaction cancelled",
                         -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
-                updateCompactionFailed(job);
+                updateCompactionFailed(job, null);
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction cancellation.", e);
               } finally {
@@ -824,7 +825,7 @@ public class Compactor extends AbstractServer
                     TCompactionState.FAILED, "Compaction failed due to: " + err.get().getMessage(),
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
-                updateCompactionFailed(job);
+                updateCompactionFailed(job, err.get());
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent, e);

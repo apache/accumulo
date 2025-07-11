@@ -137,8 +137,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     }
   }
 
-  private void nextTablet()
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException,
+      AccumuloSecurityException, ReflectiveOperationException {
 
     Range nextRange;
 
@@ -204,8 +204,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
-      Collection<StoredTabletFile> absFiles)
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+      Collection<StoredTabletFile> absFiles) throws TableNotFoundException, AccumuloException,
+      IOException, AccumuloSecurityException, ReflectiveOperationException {
 
     // possible race condition here, if table is renamed
     String tableName = context.getTableName(tableId);

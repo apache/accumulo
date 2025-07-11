@@ -136,14 +136,15 @@ public class IteratorConfigUtilTest {
   }
 
   private SortedKeyValueIterator<Key,Value> createIter(IteratorScope scope,
-      SortedMapIterator source, AccumuloConfiguration conf) throws IOException {
+      SortedMapIterator source, AccumuloConfiguration conf)
+      throws IOException, ReflectiveOperationException {
     var ibEnv = IteratorConfigUtil.loadIterConf(scope, EMPTY_ITERS, new HashMap<>(), conf);
     var iteratorBuilder = ibEnv.env(ClientIteratorEnvironment.DEFAULT).useClassLoader(null).build();
     return IteratorConfigUtil.loadIterators(source, iteratorBuilder);
   }
 
   @Test
-  public void test1() throws IOException {
+  public void test1() throws IOException, ReflectiveOperationException {
     ConfigurationCopy conf = new ConfigurationCopy();
 
     // create an iterator that adds 1 and then squares
@@ -177,7 +178,7 @@ public class IteratorConfigUtilTest {
   }
 
   @Test
-  public void test4() throws IOException {
+  public void test4() throws IOException, ReflectiveOperationException {
 
     // try loading for a different scope
     AccumuloConfiguration conf = new ConfigurationCopy();
@@ -209,7 +210,7 @@ public class IteratorConfigUtilTest {
   }
 
   @Test
-  public void test3() throws IOException {
+  public void test3() throws IOException, ReflectiveOperationException {
     // change the load order, so it squares and then adds
 
     ConfigurationCopy conf = new ConfigurationCopy();
@@ -245,7 +246,7 @@ public class IteratorConfigUtilTest {
   }
 
   @Test
-  public void test2() throws IOException {
+  public void test2() throws IOException, ReflectiveOperationException {
 
     ConfigurationCopy conf = new ConfigurationCopy();
 
@@ -284,7 +285,7 @@ public class IteratorConfigUtilTest {
   }
 
   @Test
-  public void test5() throws IOException {
+  public void test5() throws IOException, ReflectiveOperationException {
     ConfigurationCopy conf = new ConfigurationCopy();
 
     // create an iterator that ages off
