@@ -804,7 +804,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               expectedArgLen == 1 ? "" : "s", actualArgLen == 1 ? "was" : "were", actualArgLen)));
           sc.printHelp(this);
         } else {
-          Span span = TraceUtil.startSpan(this.getClass(), command);
+          Span span = TraceUtil.startSpan(this.getClass(), "command::" + command);
+          span.setAttribute("shell.commandLine", input);
           try (Scope scope = span.makeCurrent()) {
             int tmpCode = sc.execute(input, cl, this);
             exitCode += tmpCode;

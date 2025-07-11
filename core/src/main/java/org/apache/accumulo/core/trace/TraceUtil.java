@@ -25,8 +25,6 @@ import java.util.Map;
 import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,10 +50,14 @@ public class TraceUtil {
 
   private static final String SPAN_FORMAT = "%s::%s";
 
-  private static volatile boolean enabled = true;
+  private static volatile boolean enabled = false;
 
-  public static void initializeTracer(AccumuloConfiguration conf) {
-    enabled = conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED);
+  public static boolean getProcessTracing() {
+    return enabled;
+  }
+
+  public static void setProcessTracing(boolean shouldEnable) {
+    enabled = shouldEnable;
     logTracingState();
   }
 
