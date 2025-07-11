@@ -932,6 +932,7 @@ public class Tablet extends TabletBase {
               "Tablet {} close requested again, but has been closing for {} minutes", this.extent,
               runningTime);
         }
+        // TODO return?
       }
     }
 
