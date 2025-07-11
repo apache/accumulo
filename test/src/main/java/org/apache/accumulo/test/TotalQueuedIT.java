@@ -52,7 +52,9 @@ public class TotalQueuedIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setNumTservers(1);
+    // use mini DFS so walogs sync and flush will work
     cfg.useMiniDFS(true);
+    // property is a fixed property (requires restart to be picked up), so set here in initial cfg
     cfg.setProperty(Property.TSERV_TOTAL_MUTATION_QUEUE_MAX.getKey(), "" + SMALL_QUEUE_SIZE);
   }
 
