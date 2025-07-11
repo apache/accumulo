@@ -42,6 +42,25 @@ import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Keep a persistent roughly monotone view of how long a manager has been overseeing this cluster.
+ * <p>
+ * Example of how ManagerTime is expected to work:
+ * <ul>
+ * <li>The first Manager process (MP1) starts in an accumulo cluster</li>
+ * <li>ManagerTime.getTime() is called in MP1 after it has been alive for 30 secs and returns 30
+ * secs</li>
+ * <li>ManagerTime.getTime() is called in MP1 after it has been alive for 90 secs and returns 90
+ * secs</li>
+ * <li>MP1 dies after being alive for 120 seconds</li>
+ * <li>After 300 seconds the second manager process starts</li>
+ * <li>ManagerTime.getTime() is called in MP2 after it has been alive for 15 secs and returns 120+15
+ * secs. The 120 was how long MP1 was alive.</li>
+ * <li>ManagerTime.getTime() is called in MP2 after it has been alive for 45 secs and returns 120+45
+ * secs.</li>
+ * <li>MP2 dies after being alive for 90 seconds.</li>
+ * <li>After 600 seconds the second manager process starts</li>
+ * <li>ManagerTime.getTime() is called in MP3 after it has been alive for 10 secs and returns
+ * 120+90+10 secs. The 120 and 90 are the sums of the previous manager lifetimes.</li>
+ * </ul>
  */
 public class ManagerTime {
   private static final Logger log = LoggerFactory.getLogger(ManagerTime.class);
