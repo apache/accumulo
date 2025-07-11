@@ -56,6 +56,7 @@ import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.iterators.ServerIteratorOptions;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.split.SplitUtils;
@@ -155,13 +156,14 @@ public class TabletManagementIterator extends WholeRowIterator {
     }
   }
 
-  public static void configureScanner(final ScannerBase scanner,
+  public static void configureScanner(AccumuloConfiguration conf, final ScannerBase scanner,
       final TabletManagementParameters tabletMgmtParams) {
     // Note : if the scanner is ever made to fetch columns, then TabletManagement.CONFIGURED_COLUMNS
     // must be updated
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
-    tabletChange.addOption(TABLET_GOAL_STATE_PARAMS_OPTION, tabletMgmtParams.serialize());
+    ServerIteratorOptions.compressOption(conf, tabletChange, TABLET_GOAL_STATE_PARAMS_OPTION,
+        tabletMgmtParams.serialize());
     scanner.addScanIterator(tabletChange);
   }
 
@@ -178,8 +180,9 @@ public class TabletManagementIterator extends WholeRowIterator {
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.env = env;
-    tabletMgmtParams =
-        TabletManagementParameters.deserialize(options.get(TABLET_GOAL_STATE_PARAMS_OPTION));
+    String rawParams =
+        ServerIteratorOptions.decompressOption(options, TABLET_GOAL_STATE_PARAMS_OPTION);
+    tabletMgmtParams = TabletManagementParameters.deserialize(rawParams);
     compactionGenerator = new CompactionJobGenerator(env.getPluginEnv(),
         tabletMgmtParams.getCompactionHints(), tabletMgmtParams.getSteadyTime());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());

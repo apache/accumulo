@@ -34,8 +34,11 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
+import org.apache.accumulo.core.file.rfile.bcfile.Compression;
+import org.apache.accumulo.core.file.rfile.bcfile.CompressionAlgorithm;
 import org.apache.commons.lang3.Range;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.compress.Compressor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -131,6 +134,9 @@ public enum PropertyType {
   CLASSNAMELIST("java class list", new Matches("[\\w$.,]*"),
       "A list of fully qualified java class names representing classes on the classpath.\n"
           + "An example is 'java.lang.String', rather than 'String'"),
+
+  COMPRESSION_TYPE("compression type name", new ValidCompressionType(),
+      "One of the configured compression types."),
 
   DURABILITY("durability", in(false, null, "default", "none", "log", "flush", "sync"),
       "One of 'none', 'log', 'flush' or 'sync'."),
@@ -283,6 +289,32 @@ public enum PropertyType {
     Predicate<String> suffixCheck = new HasSuffix(caseSensitive, suffixes);
     return x -> x == null
         || (suffixCheck.test(x) && new Bounds(lowerBound, upperBound).test(stripUnits.apply(x)));
+  }
+
+  private static class ValidCompressionType implements Predicate<String> {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ValidCompressionType.class);
+
+    @Override
+    public boolean test(String type) {
+      if (!Compression.getSupportedAlgorithms().contains(type)) {
+        return false;
+      }
+      CompressionAlgorithm ca = Compression.getCompressionAlgorithmByName(type);
+      Compressor c = null;
+      try {
+        c = ca.getCompressor();
+        return true;
+      } catch (RuntimeException e) {
+        LOG.error("Error creating compressor for type {}", type, e);
+        return false;
+      } finally {
+        if (c != null) {
+          ca.returnCompressor(c);
+        }
+      }
+    }
+
   }
 
   private static final Pattern SUFFIX_REGEX = Pattern.compile("\\D*$"); // match non-digits at end
