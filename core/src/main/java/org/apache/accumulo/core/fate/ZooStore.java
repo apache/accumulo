@@ -36,9 +36,14 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
@@ -52,15 +57,14 @@ import org.slf4j.LoggerFactory;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-//TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
 
 public class ZooStore<T> implements TStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(ZooStore.class);
+  private ZooCache zc;
   private String path;
   private ZooReaderWriter zk;
-  private String lastReserved = "";
   private Set<Long> reserved;
   private Map<Long,Long> deferred;
   private static final SecureRandom random = new SecureRandom();
@@ -98,10 +102,12 @@ public class ZooStore<T> implements TStore<T> {
     return Long.parseLong(txdir.split("_")[1], 16);
   }
 
-  public ZooStore(String path, ZooReaderWriter zk) throws KeeperException, InterruptedException {
+  public ZooStore(String path, ZooReaderWriter zk, ZooCache zc)
+      throws KeeperException, InterruptedException {
 
     this.path = path;
     this.zk = zk;
+    this.zc = zc;
     this.reserved = new HashSet<>();
     this.deferred = new HashMap<>();
 
@@ -130,6 +136,37 @@ public class ZooStore<T> implements TStore<T> {
     }
   }
 
+  /*
+   * Holds a copy of all of the fate transaction in zookeeper. Used for finding the next one to
+   * reserve. When empty a single thread will refill. All fate threads can pull off of the queue as
+   * they look for something to reserve. This is used so that each thread does not have to read all
+   * children from zookeeper when looking for any fate tx to reserve.
+   */
+  private final Queue<String> reservationCandidates = new ConcurrentLinkedQueue<>();
+  /*
+   * The purpose of this lock is to ensure only one thread reads the list of all fate operations
+   * from zookeeper at a time. The reason this lock was used instead of synchronizing on the
+   * ZooStore object is because all places that do sync on ZooStore only read/write in memory data
+   * structs. Therefore, did not want to read from zookeeper while synchronizing on ZooStore here.
+   */
+  private final Lock reservationCandidateLock = new ReentrantLock();
+
+  private Queue<String> getTxDirs() throws InterruptedException, KeeperException {
+    if (reservationCandidates.isEmpty()) {
+      reservationCandidateLock.lock();
+      try {
+        if (reservationCandidates.isEmpty()) {
+          List<String> txdirs = new ArrayList<>(zc.getChildren(path));
+          Collections.sort(txdirs);
+          reservationCandidates.addAll(txdirs);
+        }
+      } finally {
+        reservationCandidateLock.unlock();
+      }
+    }
+    return reservationCandidates;
+  }
+
   @Override
   public long reserve() {
     try {
@@ -140,26 +177,16 @@ public class ZooStore<T> implements TStore<T> {
           events = statusChangeEvents;
         }
 
-        List<String> txdirs = new ArrayList<>(zk.getChildren(path));
-        Collections.sort(txdirs);
+        Queue<String> txdirs = getTxDirs();
 
-        synchronized (this) {
-          if (!txdirs.isEmpty() && txdirs.get(txdirs.size() - 1).compareTo(lastReserved) <= 0) {
-            lastReserved = "";
+        while (true) {
+          String txdir = txdirs.poll();
+          if (txdir == null) {
+            break;
           }
-        }
-
-        for (String txdir : txdirs) {
           long tid = parseTid(txdir);
 
           synchronized (this) {
-            // this check makes reserve pick up where it left off, so that it cycles through all as
-            // it is repeatedly called.... failing to do so can lead to
-            // starvation where fate ops that sort higher and hold a lock are never reserved.
-            if (txdir.compareTo(lastReserved) <= 0) {
-              continue;
-            }
-
             if (deferred.containsKey(tid)) {
               if ((deferred.get(tid) - System.nanoTime()) < 0) {
                 deferred.remove(tid);
@@ -171,7 +198,6 @@ public class ZooStore<T> implements TStore<T> {
               continue;
             } else {
               reserved.add(tid);
-              lastReserved = txdir;
             }
           }
 
@@ -507,8 +533,8 @@ public class ZooStore<T> implements TStore<T> {
   @Override
   public List<Long> list() {
     try {
-      ArrayList<Long> l = new ArrayList<>();
-      List<String> transactions = zk.getChildren(path);
+      List<String> transactions = zc.getChildren(path);
+      ArrayList<Long> l = new ArrayList<>(transactions.size());
       for (String txid : transactions) {
         l.add(parseTid(txid));
       }

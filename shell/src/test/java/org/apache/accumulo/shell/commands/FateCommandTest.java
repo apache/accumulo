@@ -47,6 +47,7 @@ import org.apache.accumulo.core.fate.ReadOnlyTStore;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellConfigTest.TestOutputStream;
@@ -85,7 +86,7 @@ public class FateCommandTest {
     }
 
     @Override
-    protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
+    protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw, ZooCache zc)
         throws KeeperException, InterruptedException {
       return null;
     }

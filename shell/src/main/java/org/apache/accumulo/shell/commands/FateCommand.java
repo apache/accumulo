@@ -46,6 +46,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.FastFormat;
 import org.apache.accumulo.shell.Shell;
@@ -134,9 +135,9 @@ public class FateCommand extends Command {
     return context.getZooReader().asWriter(secret);
   }
 
-  protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw)
+  protected ZooStore<FateCommand> getZooStore(String fateZkPath, ZooReaderWriter zrw, ZooCache zc)
       throws KeeperException, InterruptedException {
-    return new ZooStore<>(fateZkPath, zrw);
+    return new ZooStore<>(fateZkPath, zrw, zc);
   }
 
   @Override
@@ -155,7 +156,7 @@ public class FateCommand extends Command {
     var managerLockPath = ServiceLock.path(zkRoot + Constants.ZMANAGER_LOCK);
     var tableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     ZooReaderWriter zk = getZooReaderWriter(context, cl.getOptionValue(secretOption.getOpt()));
-    ZooStore<FateCommand> zs = getZooStore(fatePath, zk);
+    ZooStore<FateCommand> zs = getZooStore(fatePath, zk, context.getZooCache());
 
     if (cl.hasOption(cancel.getOpt())) {
       String[] txids = cl.getOptionValues(cancel.getOpt());

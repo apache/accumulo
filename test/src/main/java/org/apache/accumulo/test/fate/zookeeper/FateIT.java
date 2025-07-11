@@ -55,6 +55,7 @@ import org.apache.accumulo.core.fate.FateTxId;
 import org.apache.accumulo.core.fate.ReadOnlyTStore.TStatus;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.ZooStore;
+import org.apache.accumulo.core.fate.zookeeper.ZooCache;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.manager.Manager;
@@ -179,6 +180,7 @@ public class FateIT {
 
   private static ZooKeeperTestingServer szk = null;
   private static ZooReaderWriter zk = null;
+  private static ZooCache zc = null;
   private static final String ZK_ROOT = "/accumulo/" + UUID.randomUUID().toString();
   private static final NamespaceId NS = NamespaceId.of("testNameSpace");
   private static final TableId TID = TableId.of("testTable");
@@ -200,6 +202,7 @@ public class FateIT {
     zk.mkdirs(ZK_ROOT + Constants.ZNAMESPACES + "/" + NS.canonical());
     zk.mkdirs(ZK_ROOT + Constants.ZTABLE_STATE + "/" + TID.canonical());
     zk.mkdirs(ZK_ROOT + Constants.ZTABLES + "/" + TID.canonical());
+    zc = new ZooCache(zk, null);
   }
 
   @AfterAll
@@ -211,7 +214,7 @@ public class FateIT {
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
@@ -285,7 +288,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
@@ -328,7 +331,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedNotRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
@@ -361,7 +364,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
@@ -405,7 +408,7 @@ public class FateIT {
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
@@ -454,7 +457,7 @@ public class FateIT {
      * is called and throws an exception (in call() or isReady()). It is then expected that: 1)
      * undo() is called on Repo3, 2) undo() is called on Repo2, 3) undo() is called on Repo1
      */
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk);
+    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
     final AgeOffStore<Manager> store =
         new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 

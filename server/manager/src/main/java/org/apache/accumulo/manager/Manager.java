@@ -1362,7 +1362,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     try {
       final AgeOffStore<Manager> store = new AgeOffStore<>(
           new org.apache.accumulo.core.fate.ZooStore<>(getZooKeeperRoot() + Constants.ZFATE,
-              context.getZooReaderWriter()),
+              context.getZooReaderWriter(), context.getZooCache()),
           HOURS.toMillis(8), System::currentTimeMillis);
 
       Fate<Manager> f = initializeFateInstance(store);
