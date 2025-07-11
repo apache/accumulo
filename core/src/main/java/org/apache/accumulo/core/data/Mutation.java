@@ -779,6 +779,14 @@ public class Mutation implements Writable {
 
     QualifierOptions family(Text colFam);
 
+    /**
+     * Sets the column family, column qualifier, and column visibility of a mutation. All other
+     * fields in the key are ignored.
+     *
+     * @param key key
+     * @return a TimestampOptions object, advancing the method chain
+     * @since 4.0.0
+     */
     TimestampOptions keyColumns(Key key);
   }
 
@@ -966,18 +974,20 @@ public class Mutation implements Writable {
     }
 
     /**
-     * Sets the column family, column qualifier, and column visibility of a mutation.
+     * Sets the column family, column qualifier, and column visibility of a mutation. All other
+     * fields in the key are ignored.
      *
      * @param key key
      * @return a TimestampOptions object, advancing the method chain
+     * @since 4.0.0
      */
     @Override
     public TimestampOptions keyColumns(Key key) {
       Objects.requireNonNull(key, "key cannot be null");
 
-      Text colFam = key.getColumnFamily();
-      Text colQual = key.getColumnQualifier();
-      Text colVis = key.getColumnVisibility();
+      byte[] colFam = key.getColumnFamilyData().toArray();
+      byte[] colQual = key.getColumnQualifierData().toArray();
+      byte[] colVis = key.getColumnVisibilityData().toArray();
 
       return this.family(colFam).qualifier(colQual).visibility(colVis);
     }
