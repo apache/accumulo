@@ -42,6 +42,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -189,6 +190,8 @@ public class FateIT {
   private static CountDownLatch finishCall;
   private static CountDownLatch undoLatch;
 
+  private static AtomicInteger nextFateDir = new AtomicInteger(0);
+
   private enum ExceptionLocation {
     CALL, IS_READY
   };
@@ -282,7 +285,7 @@ public class FateIT {
         return false;
       }, SECONDS.toMillis(30), 10);
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
@@ -325,7 +328,7 @@ public class FateIT {
       fate.delete(txid);
       assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
@@ -402,7 +405,7 @@ public class FateIT {
       fate.delete(txid);
       assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
@@ -443,7 +446,7 @@ public class FateIT {
       // cancel the transaction
       assertFalse(fate.cancel(txid));
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
 
   }
@@ -507,7 +510,7 @@ public class FateIT {
       assertEquals(FAILED, fate.waitForCompletion(txid));
       assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
     } finally {
-      fate.shutdown();
+      fate.shutdown(true);
     }
   }
 
