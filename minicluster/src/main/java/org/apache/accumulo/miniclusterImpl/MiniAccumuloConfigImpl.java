@@ -574,7 +574,7 @@ public class MiniAccumuloConfigImpl {
     return this;
   }
 
-  public boolean useMiniDFS() {
+  public boolean getUseMiniDFS() {
     return useMiniDFS;
   }
 
