@@ -33,7 +33,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
 @Tag(SUNNY_DAY)
-public class ComprehensiveIT_SimpleSuite extends ComprehensiveITBase {
+public class ComprehensiveIT extends ComprehensiveITBase {
 
   private static class ComprehensiveITConfiguration implements MiniClusterConfigurationCallback {
     @Override

@@ -125,7 +125,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
 
-  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT_SimpleSuite.class);
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
 
   @Test
   public void testEventualScan() throws Exception {
