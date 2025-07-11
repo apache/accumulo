@@ -445,7 +445,7 @@ public class ClientServiceHandler implements ClientService.Iface {
       Class<?> test = ClassLoaderUtil.loadClass(className, shouldMatch);
       test.getDeclaredConstructor().newInstance();
       return true;
-    } catch (ClassCastException | ReflectiveOperationException e) {
+    } catch (ClassCastException | ReflectiveOperationException | IOException e) {
       log.warn("Error checking object types", e);
       return false;
     }

@@ -242,7 +242,7 @@ public class ClientSideIteratorScanner extends ScannerOptions implements Scanner
           IteratorBuilder.builder(tm.values()).opts(serverSideIteratorOptions).env(iterEnv).build();
 
       skvi = IteratorConfigUtil.loadIterators(smi, ib);
-    } catch (IOException e) {
+    } catch (IOException | ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
 

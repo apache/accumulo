@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.core.classloader;
 
+import java.io.IOException;
+
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
@@ -74,7 +76,8 @@ public class ClassLoaderUtil {
   }
 
   @SuppressWarnings("deprecation")
-  public static ClassLoader getClassLoader(String context) {
+  public static ClassLoader getClassLoader(String context)
+      throws IOException, ReflectiveOperationException {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
     } else {
@@ -92,7 +95,7 @@ public class ClassLoaderUtil {
           return false;
         }
         return true;
-      } catch (RuntimeException e) {
+      } catch (IOException | ReflectiveOperationException e) {
         LOG.debug("Context {} is not valid.", context, e);
         return false;
       }
@@ -102,12 +105,12 @@ public class ClassLoaderUtil {
   }
 
   public static <U> Class<? extends U> loadClass(String context, String className,
-      Class<U> extension) throws ClassNotFoundException {
+      Class<U> extension) throws IOException, ReflectiveOperationException {
     return getClassLoader(context).loadClass(className).asSubclass(extension);
   }
 
   public static <U> Class<? extends U> loadClass(String className, Class<U> extension)
-      throws ClassNotFoundException {
+      throws IOException, ReflectiveOperationException {
     return loadClass(null, className, extension);
   }
 

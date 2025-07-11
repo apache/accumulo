@@ -320,7 +320,7 @@ class RFileScanner extends ScannerOptions implements Scanner {
               .opts(serverSideIteratorOptions).env(iterEnv).build();
           iterator = IteratorConfigUtil.loadIterators(iterator, iteratorBuilder);
         }
-      } catch (IOException e) {
+      } catch (IOException | ReflectiveOperationException e) {
         throw new RuntimeException(e);
       }
 

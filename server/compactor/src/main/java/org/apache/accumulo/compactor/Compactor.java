@@ -105,7 +105,6 @@ import org.apache.accumulo.server.ServerOpts;
 import org.apache.accumulo.server.compaction.CompactionInfo;
 import org.apache.accumulo.server.compaction.CompactionWatcher;
 import org.apache.accumulo.server.compaction.FileCompactor;
-import org.apache.accumulo.server.compaction.FileCompactor.CompactionClassLoadingException;
 import org.apache.accumulo.server.compaction.RetryableThriftCall;
 import org.apache.accumulo.server.compaction.RetryableThriftCall.RetriesExceededException;
 import org.apache.accumulo.server.conf.TableConfiguration;
@@ -583,9 +582,6 @@ public class Compactor extends AbstractServer
           TCompactionStatusUpdate update2 = new TCompactionStatusUpdate(TCompactionState.SUCCEEDED,
               "Compaction completed successfully", -1, -1, -1, this.getCompactionAge().toNanos());
           updateCompactionState(job, update2);
-        } catch (FileCompactor.CompactionClassLoadingException ccle) {
-          LOG.error("Error loading classes for compaction", ccle);
-          err.set(ccle);
         } catch (FileCompactor.CompactionCanceledException cce) {
           LOG.debug("Compaction canceled {}", job.getExternalCompactionId());
           err.set(cce);
@@ -829,15 +825,6 @@ public class Compactor extends AbstractServer
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
                 updateCompactionFailed(job);
-                if (err.get() instanceof CompactionClassLoadingException) {
-                  // Compaction failed because it could not load classes.
-                  // Raise an InterruptedException here which will be caught
-                  // below to exit the Compactor. If we don't exit, then this
-                  // Compactor will get the next job and continue to fail.
-                  LOG.error(
-                      "CompactionClassLoadingException occurred. Check iterator class configuration. Exiting Compactor.");
-                  throw new InterruptedException();
-                }
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent, e);

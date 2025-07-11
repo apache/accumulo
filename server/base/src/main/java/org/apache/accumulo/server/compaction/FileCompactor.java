@@ -97,27 +97,6 @@ public class FileCompactor implements Callable<CompactionStats> {
     private static final long serialVersionUID = 1L;
   }
 
-  public static class CompactionClassLoadingException extends Exception {
-    private static final long serialVersionUID = 1L;
-
-    public CompactionClassLoadingException() {
-      super();
-    }
-
-    public CompactionClassLoadingException(String message, Throwable cause) {
-      super(message, cause);
-    }
-
-    public CompactionClassLoadingException(String message) {
-      super(message);
-    }
-
-    public CompactionClassLoadingException(Throwable cause) {
-      super(cause);
-    }
-
-  }
-
   public interface CompactionEnv {
 
     boolean isCompactionEnabled();
@@ -334,7 +313,7 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   @Override
   public CompactionStats call() throws IOException, CompactionCanceledException,
-      InterruptedException, CompactionClassLoadingException {
+      InterruptedException, ReflectiveOperationException {
 
     FileSKVWriter mfw = null;
 
@@ -561,7 +540,7 @@ public class FileCompactor implements Callable<CompactionStats> {
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
       EnumSet<FilePrefix> dropCacheFilePrefixes)
-      throws IOException, CompactionCanceledException, CompactionClassLoadingException {
+      throws IOException, CompactionCanceledException, ReflectiveOperationException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
@@ -582,15 +561,8 @@ public class FileCompactor implements Callable<CompactionStats> {
       SystemIteratorEnvironment iterEnv =
           env.createIteratorEnv(context, acuTableConf, getExtent().tableId());
 
-      SortedKeyValueIterator<Key,Value> stack = null;
-      try {
-        stack = IteratorConfigUtil.convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf,
-            iterators, iterEnv);
-      } catch (RuntimeException e) {
-        throw new CompactionClassLoadingException("Error loading iterators", e);
-      }
-
-      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(stack);
+      SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorConfigUtil
+          .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 
       if (inclusive) {
