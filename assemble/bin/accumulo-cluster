@@ -457,6 +457,8 @@ function execute_command() {
   S="${S//-/_}" # replace dashes in service/group name with underscores
   servers_per_host="${!S:-1}"
 
+  # I believe we only need to wait on the commands run remotely since those are run with -f flag.
+  # The commands run locally are blocking. Does this seem correct?
   if [[ $ARG_LOCAL == 1 ]]; then
     debugOrRun bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*"
   else
@@ -659,6 +661,19 @@ function control_services() {
     fi
   fi
 
+  ssh_wait
+
+}
+
+function ssh_wait() {
+  #shellcheck disable=SC2009
+  count=$(ps -ef | grep ssh | grep -c "accumulo-service")
+  while ((count > 0)); do
+    echo "waiting on $count ssh commands to complete"
+    sleep 2
+    #shellcheck disable=SC2009
+    count=$(ps -ef | grep ssh | grep -c "accumulo-service")
+  done
 }
 
 function prune_group() {
