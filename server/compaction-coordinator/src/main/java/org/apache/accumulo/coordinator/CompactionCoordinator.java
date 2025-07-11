@@ -35,6 +35,7 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
@@ -55,6 +56,7 @@ import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
@@ -129,6 +131,10 @@ public class CompactionCoordinator extends AbstractServer implements
 
   /* Map of queue name to last time compactor called to get a compaction job */
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
+
+  private final ConcurrentHashMap<String,AtomicLong> failingQueues = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String,AtomicLong> failingCompactors = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<TableId,AtomicLong> failingTables = new ConcurrentHashMap<>();
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   protected AuditedSecurityOperation security;
@@ -501,6 +507,20 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.trace("getCompactionJob called for queue {} by compactor {}", queue, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(queue, System.currentTimeMillis());
 
+    AtomicLong queueFailures = failingQueues.get(queue);
+    if (queueFailures != null && queueFailures.get() > 10) {
+      LOG.warn("Compactions for queue {} may be in a failing state. Not executing compactions"
+          + " for this queue", queue);
+      return new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(queue));
+    }
+
+    AtomicLong compactorFailures = failingCompactors.get(compactorAddress);
+    if (compactorFailures != null && compactorFailures.get() > 10) {
+      LOG.warn("Compactor {} may be in a failing state. Not executing compactions"
+          + " for this compactor", compactorAddress);
+      return new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(queue));
+    }
+
     TExternalCompactionJob result = null;
 
     PrioTserver prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
@@ -531,6 +551,22 @@ public class CompactionCoordinator extends AbstractServer implements
           prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
           continue;
         }
+
+        if (job.getExtent() != null) {
+          KeyExtent ke = KeyExtent.fromThrift(job.getExtent());
+          if (ke.tableId() != null) {
+            AtomicLong tableFailures = failingTables.get(ke.tableId());
+            if (tableFailures != null && tableFailures.get() > 10) {
+              LOG.warn(
+                  "Compactions for table {} may be in a failing state. Not executing compactions"
+                      + " for this table",
+                  ke.tableId());
+              // TODO: Need to unreserve compaction?
+              continue;
+            }
+          }
+        }
+
         // It is possible that by the time this added that the tablet has already canceled the
         // compaction or the compactor that made this request is dead. In these cases the compaction
         // is not actually running.
@@ -602,6 +638,7 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.debug("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
+    captureSuccess(ecid, extent);
     compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
@@ -611,16 +648,66 @@ public class CompactionCoordinator extends AbstractServer implements
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws ThriftSecurityException {
+      TKeyExtent extent, String exceptionClassName) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId, fromThriftExtent);
+    LOG.info("Compaction failed: id: {}, extent: {}, compactor exception:{}", externalCompactionId,
+        fromThriftExtent, exceptionClassName);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
+    if (exceptionClassName != null) {
+      captureFailure(ecid, fromThriftExtent);
+    }
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+  }
+
+  private void captureFailure(ExternalCompactionId ecid, KeyExtent extent) {
+    var rc = RUNNING_CACHE.get(ecid);
+    if (rc != null) {
+      final String queue = rc.getQueueName();
+      failingQueues.computeIfAbsent(queue, q -> new AtomicLong(0)).incrementAndGet();
+      final String compactor = rc.getCompactorAddress();
+      failingCompactors.computeIfAbsent(compactor, c -> new AtomicLong(0)).incrementAndGet();
+    }
+    failingTables.computeIfAbsent(extent.tableId(), t -> new AtomicLong(0)).incrementAndGet();
+  }
+
+  private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {
+    var rc = RUNNING_CACHE.get(ecid);
+    if (rc != null) {
+      final String queue = rc.getQueueName();
+      failingQueues.computeIfPresent(queue, (q, curr) -> {
+        long currentValue = Math.max(0L, curr.get() - 1);
+        if (currentValue == 0) {
+          return null; // remove from the map
+        } else {
+          curr.set(currentValue);
+          return curr;
+        }
+      });
+      final String compactor = rc.getCompactorAddress();
+      failingCompactors.computeIfPresent(compactor, (c, curr) -> {
+        long currentValue = Math.max(0L, curr.get() - 1);
+        if (currentValue == 0) {
+          return null; // remove from the map
+        } else {
+          curr.set(currentValue);
+          return curr;
+        }
+      });
+    }
+    failingTables.computeIfPresent(extent.tableId(), (t, curr) -> {
+      long currentValue = Math.max(0L, curr.get() - 1);
+      if (currentValue == 0) {
+        return null; // remove from the map
+      } else {
+        curr.set(currentValue);
+        return curr;
+      }
+    });
   }
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {

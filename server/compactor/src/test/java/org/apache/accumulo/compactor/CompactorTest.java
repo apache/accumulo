@@ -272,7 +272,7 @@ public class CompactorTest {
     }
 
     @Override
-    protected void updateCompactionFailed(TExternalCompactionJob job)
+    protected void updateCompactionFailed(TExternalCompactionJob job, Throwable exception)
         throws RetriesExceededException {
       failedCalled = true;
     }
