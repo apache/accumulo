@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.data;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -28,47 +27,38 @@ import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
-public class ByteSequenceTest {
+class AbstractIdTest {
 
   @Test
-  public void testCompareBytes() {
-    ByteSequence a = new ArrayByteSequence("a");
-    ByteSequence b = new ArrayByteSequence("b");
-    ByteSequence abc = new ArrayByteSequence("abc");
-
-    assertLessThan(a, b);
-    assertLessThan(a, abc);
-    assertLessThan(abc, b);
-  }
-
-  private void assertLessThan(ByteSequence lhs, ByteSequence rhs) {
-    int result = ByteSequence.compareBytes(lhs, rhs);
-    assertTrue(result < 0);
-  }
-
-  @Test
-  public void testHashCode() {
+  void testHashCode() {
     // Testing consistency
-    ByteSequence byteSeq = new ArrayByteSequence("value");
-    int hashCode1 = byteSeq.hashCode();
-    int hashCode2 = byteSeq.hashCode();
-    assertEquals(hashCode1, hashCode2);
+    TestAbstractId abstractId = new TestAbstractId("value");
+    int hashOne = abstractId.hashCode();
+    int hashTwo = abstractId.hashCode();
+    assertEquals(hashOne, hashTwo);
 
     // Testing equality
-    ByteSequence byteOne = new ArrayByteSequence("value");
-    ByteSequence byteTwo = new ArrayByteSequence("value");
-    assertEquals(byteOne.hashCode(), byteTwo.hashCode());
+    TestAbstractId abstractOne = new TestAbstractId("value") {};
+    TestAbstractId abstractTwo = new TestAbstractId("value") {};
+    assertEquals(abstractOne.hashCode(), abstractTwo.hashCode());
 
     // Testing even distribution
-    List<ByteSequence> byteSequences = new ArrayList<>();
+    List<TestAbstractId> idList = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
-      byteSequences.add(new ArrayByteSequence("value" + i));
+      idList.add(new TestAbstractId("value" + i) {});
     }
     Set<Integer> hashCodes = new HashSet<>();
-    for (ByteSequence bytes : byteSequences) {
-      hashCodes.add(bytes.hashCode());
+    for (TestAbstractId id : idList) {
+      hashCodes.add(id.hashCode());
     }
-    assertEquals(byteSequences.size(), hashCodes.size(), 10);
+    assertEquals(idList.size(), hashCodes.size(), 10);
   }
 
+  private static class TestAbstractId extends AbstractId<TestAbstractId> {
+    private static final long serialVersionUID = 1L;
+
+    protected TestAbstractId(String canonical) {
+      super(canonical);
+    }
+  }
 }
