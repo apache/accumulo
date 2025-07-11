@@ -143,6 +143,12 @@ public class ZooStore<T> implements TStore<T> {
    * children from zookeeper when looking for any fate tx to reserve.
    */
   private final Queue<String> reservationCandidates = new ConcurrentLinkedQueue<>();
+  /*
+   * The purpose of this lock is to ensure only one thread reads the list of all fate operations
+   * from zookeeper at a time. The reason this lock was used instead of synchronizing on the
+   * ZooStore object is because all places that do sync on ZooStore only read/write in memory data
+   * structs. Therefore, did not want to read from zookeeper while synchronizing on ZooStore here.
+   */
   private final Lock reservationCandidateLock = new ReentrantLock();
 
   private Queue<String> getTxDirs() throws InterruptedException, KeeperException {
