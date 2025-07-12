@@ -458,9 +458,6 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     // Needs leading slash in order to property create rest endpoint requests
     Preconditions.checkArgument(rootContext.startsWith("/"),
         "Root context: \"%s\" does not have a leading '/'", rootContext);
-    // Needed to support the existing zk monitor address format
-    Preconditions.checkArgument(rootContext.endsWith("/"),
-        "Root context: \"%s\" does not have a trailing '/'", rootContext);
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
@@ -516,6 +513,10 @@ public class Monitor extends AbstractServer implements HighlyAvailableService {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         monitorHostAndPort, ""));
 
+    // Needed to support the existing zk monitor address format
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
           server.getPort(), rootContext);

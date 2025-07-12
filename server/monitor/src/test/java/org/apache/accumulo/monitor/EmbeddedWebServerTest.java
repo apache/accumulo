@@ -23,6 +23,7 @@ import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -41,12 +42,15 @@ public class EmbeddedWebServerTest {
 
   private static final AtomicReference<Monitor> monitor = new AtomicReference<>(null);
 
+  private static final AtomicReference<ConfigurationCopy> configuration = new AtomicReference<>();
+
   @BeforeAll
   public static void createMocks() {
 
     // Mock a configuration with the new context Path
     ConfigurationCopy config = new ConfigurationCopy(DefaultConfiguration.getInstance());
     config.set(Property.MONITOR_ROOT_CONTEXT, "/test/");
+    configuration.set(config);
 
     ServerContext contextMock = createMock(ServerContext.class);
     expect(contextMock.getConfiguration()).andReturn(config).atLeastOnce();
@@ -73,5 +77,17 @@ public class EmbeddedWebServerTest {
         Integer.parseInt(Property.MONITOR_PORT.getDefaultValue()));
     assertEquals("/test", ews.getContextPath(),
         "Context path of " + ews.getContextPath() + " does not match");
+    // Test redirect URL
+    configuration.get().set(Property.MONITOR_ROOT_CONTEXT, "/../test");
+    IllegalArgumentException exception =
+        assertThrows(IllegalArgumentException.class, () -> new EmbeddedWebServer(monitor.get(),
+            Integer.parseInt(Property.MONITOR_PORT.getDefaultValue())));
+    assertEquals("Root context: \"/../test\" is not a valid URL", exception.getMessage());
+    // Test whitespace in URL
+    configuration.get().set(Property.MONITOR_ROOT_CONTEXT, "/whitespace /test");
+    exception =
+        assertThrows(IllegalArgumentException.class, () -> new EmbeddedWebServer(monitor.get(),
+            Integer.parseInt(Property.MONITOR_PORT.getDefaultValue())));
+    assertEquals("Root context: \"/whitespace /test\" is not a valid URL", exception.getMessage());
   }
 }

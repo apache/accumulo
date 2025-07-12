@@ -22,6 +22,7 @@ import java.util.EnumSet;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.commons.validator.routines.UrlValidator;
 import org.eclipse.jetty.server.AbstractConnectionFactory;
 import org.eclipse.jetty.server.HttpConnectionFactory;
 import org.eclipse.jetty.server.Server;
@@ -34,6 +35,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
 
 public class EmbeddedWebServer {
   private static final Logger LOG = LoggerFactory.getLogger(EmbeddedWebServer.class);
@@ -60,6 +62,11 @@ public class EmbeddedWebServer {
         new ServletContextHandler(ServletContextHandler.SESSIONS | ServletContextHandler.SECURITY);
     handler.getSessionHandler().getSessionCookieConfig().setHttpOnly(true);
     String rootContext = monitor.getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
+    // Validate URL
+    String[] scheme = {"https"};
+    UrlValidator validator = new UrlValidator(scheme);
+    Preconditions.checkArgument(validator.isValid("https://example.com" + rootContext),
+        "Root context: \"%s\" is not a valid URL", rootContext);
     // Remove the trailing slash since jetty will warn otherwise.
     if (rootContext.length() > 1 && rootContext.endsWith("/")) {
       rootContext = rootContext.substring(0, rootContext.length() - 1);
