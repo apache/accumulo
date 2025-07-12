@@ -323,6 +323,11 @@
         <version>1.3.5</version>
       </dependency>
       <dependency>
+        <groupId>commons-validator</groupId>
+        <artifactId>commons-validator</artifactId>
+        <version>1.10.0</version>
+      </dependency>
+      <dependency>
         <!-- legacy junit version specified here for dependency convergence -->
         <groupId>junit</groupId>
         <artifactId>junit</artifactId>

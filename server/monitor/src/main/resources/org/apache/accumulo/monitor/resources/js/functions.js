@@ -340,21 +340,21 @@ function doLoggedPostCall(call, callback, shouldSanitize) {
  * stores it on a sessionStorage variable
  */
 function getManager() {
-  return getJSONForTable('/rest/manager', 'manager');
+  return getJSONForTable(contextPath + 'rest/manager', 'manager');
 }
 
 /**
  * REST GET call for the namespaces, stores it on a global variable
  */
 function getNamespaces() {
-  return getJSONForTable('/rest/tables/namespaces', 'NAMESPACES');
+  return getJSONForTable(contextPath + 'rest/tables/namespaces', 'NAMESPACES');
 }
 
 /**
  * REST GET call for the tables, stores it on a sessionStorage variable
  */
 function getTables() {
-  return getJSONForTable('/rest/tables', 'tables');
+  return getJSONForTable(contextPath + 'rest/tables', 'tables');
 }
 
 /**
@@ -378,7 +378,7 @@ function getNamespaceTables(namespaces) {
   // Convert the list to a string for the REST call
   namespaceList = namespaces.toString();
 
-  return getJSONForTable('/rest/tables/namespaces/' + namespaceList, 'tables');
+  return getJSONForTable(contextPath + 'rest/tables/namespaces/' + namespaceList, 'tables');
 }
 
 /**
@@ -387,14 +387,14 @@ function getNamespaceTables(namespaces) {
  * @param {string} server Dead Server ID
  */
 function clearDeadServers(server) {
-  doLoggedPostCall('/rest/tservers?server=' + server, null, false);
+  doLoggedPostCall(contextPath + 'rest/tservers?server=' + server, null, false);
 }
 
 /**
  * REST GET call for the tservers, stores it on a sessionStorage variable
  */
 function getTServers() {
-  return getJSONForTable('/rest/tservers', 'tservers');
+  return getJSONForTable(contextPath + 'rest/tservers', 'tservers');
 }
 
 /**
@@ -403,35 +403,35 @@ function getTServers() {
  * @param {string} server Server ID
  */
 function getTServer(server) {
-  return getJSONForTable('/rest/tservers/' + server, 'server');
+  return getJSONForTable(contextPath + 'rest/tservers/' + server, 'server');
 }
 
 /**
  * REST GET call for the scans, stores it on a sessionStorage variable
  */
 function getScans() {
-  return getJSONForTable('/rest/scans', 'scans');
+  return getJSONForTable(contextPath + 'rest/scans', 'scans');
 }
 
 /**
  * REST GET call for the bulk imports, stores it on a sessionStorage variable
  */
 function getBulkImports() {
-  return getJSONForTable('/rest/bulkImports', 'bulkImports');
+  return getJSONForTable(contextPath + 'rest/bulkImports', 'bulkImports');
 }
 
 /**
  * REST GET call for the server stats, stores it on a sessionStorage variable
  */
 function getServerStats() {
-  return getJSONForTable('/rest/tservers/serverStats', 'serverStats');
+  return getJSONForTable(contextPath + 'rest/tservers/serverStats', 'serverStats');
 }
 
 /**
  * REST GET call for the recovery list, stores it on a sessionStorage variable
  */
 function getRecoveryList() {
-  return getJSONForTable('/rest/tservers/recovery', 'recoveryList');
+  return getJSONForTable(contextPath + 'rest/tservers/recovery', 'recoveryList');
 }
 
 /**
@@ -441,21 +441,21 @@ function getRecoveryList() {
  * @param {string} table Table ID
  */
 function getTableServers(tableID) {
-  return getJSONForTable('/rest/tables/' + tableID, 'tableServers');
+  return getJSONForTable(contextPath + 'rest/tables/' + tableID, 'tableServers');
 }
 
 /**
  * REST GET call for the logs, stores it on a sessionStorage variable
  */
 function getLogs() {
-  return getJSONForTable('/rest/logs', 'logs');
+  return getJSONForTable(contextPath + 'rest/logs', 'logs');
 }
 
 /**
  * REST POST call to clear logs
  */
 function clearLogs() {
-  doLoggedPostCall('/rest/logs/clear', refresh, false);
+  doLoggedPostCall(contextPath + 'rest/logs/clear', refresh, false);
 }
 
 /**
@@ -464,7 +464,7 @@ function clearLogs() {
  * @param {string} tableID Table ID
  */
 function clearTableProblems(tableID) {
-  doLoggedPostCall('/rest/problems/summary?s=' + tableID, refresh, true);
+  doLoggedPostCall(contextPath + 'rest/problems/summary?s=' + tableID, refresh, true);
 }
 
 /**
@@ -475,7 +475,7 @@ function clearTableProblems(tableID) {
  * @param {string} type Type of problem
  */
 function clearDetailsProblems(table, resource, type) {
-  doLoggedPostCall('/rest/problems/details?table=' + table + '&resource=' +
+  doLoggedPostCall(contextPath + 'rest/problems/details?table=' + table + '&resource=' +
     resource + '&ptype=' + type, refresh, true);
 }
 
@@ -484,7 +484,7 @@ function clearDetailsProblems(table, resource, type) {
  * stores it on a sessionStorage variable
  */
 function getProblemSummary() {
-  return getJSONForTable('/rest/problems/summary', 'problemSummary');
+  return getJSONForTable(contextPath + 'rest/problems/summary', 'problemSummary');
 }
 
 /**
@@ -492,7 +492,7 @@ function getProblemSummary() {
  * stores it on a sessionStorage variable
  */
 function getProblemDetails() {
-  return getJSONForTable('/rest/problems/details', 'problemDetails');
+  return getJSONForTable(contextPath + 'rest/problems/details', 'problemDetails');
 }
 
 /**
@@ -500,7 +500,7 @@ function getProblemDetails() {
  * stores it on a sessionStorage variable
  */
 function getReplication() {
-  return getJSONForTable('/rest/replication', 'replication');
+  return getJSONForTable(contextPath + 'rest/replication', 'replication');
 }
 
 //// Overview Plots Rest Calls
@@ -510,7 +510,7 @@ function getReplication() {
  * stores it on a sessionStorage variable
  */
 function getIngestRate() {
-  return getJSONForTable('/rest/statistics/time/ingestRate', 'ingestRate');
+  return getJSONForTable(contextPath + 'rest/statistics/time/ingestRate', 'ingestRate');
 }
 
 /**
@@ -518,7 +518,7 @@ function getIngestRate() {
  * stores it on a sessionStorage variable
  */
 function getScanEntries() {
-  return getJSONForTable('/rest/statistics/time/scanEntries', 'scanEntries');
+  return getJSONForTable(contextPath + 'rest/statistics/time/scanEntries', 'scanEntries');
 }
 
 /**
@@ -526,28 +526,28 @@ function getScanEntries() {
  * stores it on a sessionStorage variable
  */
 function getIngestByteRate() {
-  return getJSONForTable('/rest/statistics/time/ingestByteRate', 'ingestMB');
+  return getJSONForTable(contextPath + 'rest/statistics/time/ingestByteRate', 'ingestMB');
 }
 
 /**
  * REST GET call for the query byte rate, stores it on a sessionStorage variable
  */
 function getQueryByteRate() {
-  return getJSONForTable('/rest/statistics/time/queryByteRate', 'queryMB');
+  return getJSONForTable(contextPath + 'rest/statistics/time/queryByteRate', 'queryMB');
 }
 
 /**
  * REST GET call for the load average, stores it on a sessionStorage variable
  */
 function getLoadAverage() {
-  return getJSONForTable('/rest/statistics/time/load', 'loadAvg');
+  return getJSONForTable(contextPath + 'rest/statistics/time/load', 'loadAvg');
 }
 
 /**
  * REST GET call for the lookups, stores it on a sessionStorage variable
  */
 function getLookups() {
-  return getJSONForTable('/rest/statistics/time/lookups', 'lookups');
+  return getJSONForTable(contextPath + 'rest/statistics/time/lookups', 'lookups');
 }
 
 /**
@@ -555,7 +555,7 @@ function getLookups() {
  * stores it on a sessionStorage variable
  */
 function getMinorCompactions() {
-  return getJSONForTable('/rest/statistics/time/minorCompactions', 'minorCompactions');
+  return getJSONForTable(contextPath + 'rest/statistics/time/minorCompactions', 'minorCompactions');
 }
 
 /**
@@ -563,7 +563,7 @@ function getMinorCompactions() {
  * stores it on a sessionStorage variable
  */
 function getMajorCompactions() {
-  return getJSONForTable('/rest/statistics/time/majorCompactions', 'majorCompactions');
+  return getJSONForTable(contextPath + 'rest/statistics/time/majorCompactions', 'majorCompactions');
 }
 
 /**
@@ -571,7 +571,7 @@ function getMajorCompactions() {
  * stores it on a sessionStorage variable
  */
 function getIndexCacheHitRate() {
-  return getJSONForTable('/rest/statistics/time/indexCacheHitRate', 'indexCache');
+  return getJSONForTable(contextPath + 'rest/statistics/time/indexCacheHitRate', 'indexCache');
 }
 
 /**
@@ -579,14 +579,14 @@ function getIndexCacheHitRate() {
  * stores it on a sessionStorage variable
  */
 function getDataCacheHitRate() {
-  return getJSONForTable('/rest/statistics/time/dataCacheHitRate', 'dataCache');
+  return getJSONForTable(contextPath + 'rest/statistics/time/dataCacheHitRate', 'dataCache');
 }
 
 /**
  * REST GET call for the server status, stores it on a sessionStorage variable
  */
 function getStatus() {
-  return getJSONForTable('/rest/status', 'status');
+  return getJSONForTable(contextPath + 'rest/status', 'status');
 }
 
 /*
