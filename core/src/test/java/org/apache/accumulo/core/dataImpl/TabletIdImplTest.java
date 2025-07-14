@@ -16,59 +16,47 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.data;
+package org.apache.accumulo.core.dataImpl;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.TableId;
+import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
-public class ByteSequenceTest {
+class TabletIdImplTest {
 
   @Test
-  public void testCompareBytes() {
-    ByteSequence a = new ArrayByteSequence("a");
-    ByteSequence b = new ArrayByteSequence("b");
-    ByteSequence abc = new ArrayByteSequence("abc");
-
-    assertLessThan(a, b);
-    assertLessThan(a, abc);
-    assertLessThan(abc, b);
-  }
-
-  private void assertLessThan(ByteSequence lhs, ByteSequence rhs) {
-    int result = ByteSequence.compareBytes(lhs, rhs);
-    assertTrue(result < 0);
-  }
-
-  @Test
-  public void testHashCode() {
+  void testHashCode() {
     // Testing consistency
-    ByteSequence byteSeq = new ArrayByteSequence("value");
-    int hashCode1 = byteSeq.hashCode();
-    int hashCode2 = byteSeq.hashCode();
+    TabletIdImpl tabletId =
+        new TabletIdImpl(new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a")));
+    int hashCode1 = tabletId.hashCode();
+    int hashCode2 = tabletId.hashCode();
     assertEquals(hashCode1, hashCode2);
 
     // Testing equality
-    ByteSequence byteOne = new ArrayByteSequence("value");
-    ByteSequence byteTwo = new ArrayByteSequence("value");
-    assertEquals(byteOne.hashCode(), byteTwo.hashCode());
+    TabletIdImpl tabletOne =
+        new TabletIdImpl(new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a")));
+    TabletIdImpl tabletTwo =
+        new TabletIdImpl(new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a")));
+    assertEquals(tabletOne.hashCode(), tabletTwo.hashCode());
 
     // Testing even distribution
-    List<ByteSequence> byteSequences = new ArrayList<>();
+    List<TabletIdImpl> tablets = new ArrayList<>();
     for (int i = 0; i < 1000; i++) {
-      byteSequences.add(new ArrayByteSequence("value" + i));
+      tablets.add(new TabletIdImpl(
+          new KeyExtent(TableId.of("r1" + i), new Text("b" + i), new Text("a" + i))));
     }
     Set<Integer> hashCodes = new HashSet<>();
-    for (ByteSequence bytes : byteSequences) {
-      hashCodes.add(bytes.hashCode());
+    for (TabletIdImpl tabs : tablets) {
+      hashCodes.add(tabs.hashCode());
     }
-    assertEquals(byteSequences.size(), hashCodes.size(), 10);
+    assertEquals(tablets.size(), hashCodes.size(), 10);
   }
-
 }

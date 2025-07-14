@@ -27,7 +27,7 @@ import com.github.benmanes.caffeine.cache.Cache;
  * A unique identifier for a compactor group that a {@link CompactionPlanner} can schedule
  * compactions on using a {@link CompactionJob}.
  *
- * @since 3.1.0
+ * @since 4.0.0
  * @see org.apache.accumulo.core.spi.compaction
  */
 public class CompactorGroupId extends AbstractId<CompactorGroupId> {

@@ -49,7 +49,7 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -98,6 +98,7 @@ import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
+import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.manager.state.SetGoalState;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -205,7 +206,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     java.nio.file.Path confDir = config.getConfDir().toPath();
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       java.nio.file.Path configPath = config.getAccumuloDir().toPath();
       java.nio.file.Path nn = configPath.resolve("nn");
       mkdirs(nn);
@@ -516,7 +517,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Preconditions.checkState(clusterState != State.TERMINATED,
         "Cannot start a cluster that is terminated.");
 
-    if (config.useMiniDFS() && miniDFS.get() == null) {
+    if (config.getUseMiniDFS() && miniDFS.get() == null) {
       throw new IllegalStateException("Cannot restart mini when using miniDFS");
     }
 
@@ -633,7 +634,9 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     control.start(ServerType.GARBAGE_COLLECTOR);
 
     if (executor == null) {
-      executor = Executors.newSingleThreadExecutor();
+      executor = ThreadPools.getServerThreadPools().getPoolBuilder(getClass().getSimpleName())
+          .numCoreThreads(1).numMaxThreads(16).withTimeOut(1, TimeUnit.SECONDS)
+          .enableThreadPoolMetrics(false).build();
     }
 
     Set<String> groups;
@@ -1029,7 +1032,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     var miniDFSActual = miniDFS.get();
-    if (config.useMiniDFS() && miniDFSActual != null) {
+    if (config.getUseMiniDFS() && miniDFSActual != null) {
       miniDFSActual.shutdown();
     }
     for (Process p : cleanup) {
@@ -1094,6 +1097,39 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     return executor;
   }
 
+  public void stopProcessesWithTimeout(final ServerType type, final List<Process> procs,
+      final long timeout, final TimeUnit unit) {
+
+    final List<Future<Integer>> futures = new ArrayList<>();
+    for (Process proc : procs) {
+      futures.add(executor.submit(() -> {
+        proc.destroy();
+        proc.waitFor(timeout, unit);
+        return proc.exitValue();
+      }));
+    }
+
+    while (!futures.isEmpty()) {
+      futures.removeIf(f -> {
+        if (f.isDone()) {
+          try {
+            f.get();
+          } catch (ExecutionException | InterruptedException e) {
+            log.warn("{} did not fully stop after {} seconds", type, unit.toSeconds(timeout), e);
+          }
+          return true;
+        }
+        return false;
+      });
+      try {
+        Thread.sleep(250);
+      } catch (InterruptedException e) {
+        log.warn("Interrupted while trying to stop " + type + " processes.");
+        Thread.currentThread().interrupt();
+      }
+    }
+  }
+
   public int stopProcessWithTimeout(final Process proc, long timeout, TimeUnit unit)
       throws InterruptedException, ExecutionException, TimeoutException {
     FutureTask<Integer> future = new FutureTask<>(() -> {
@@ -1134,7 +1170,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public Path getTemporaryPath() {
     String p;
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       p = "/tmp/";
     } else {
       java.nio.file.Path tmp = config.getDir().toPath().resolve("tmp");
