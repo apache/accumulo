@@ -376,11 +376,6 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
           findTabletsNeedingAttention(client, metaCopy6, tabletMgmtParams, false),
           "Should have one tablet that needs splitting");
 
-      // Remove the metadata constraint from metaCopy6 so we can insert some bad json
-      client.tableOperations().removeConstraint(metaCopy6, 1);
-
-      // might need to online/offline the table to reload the Tablets
-
       // insert file bad json into a good row
       try (BatchWriter bw = client.createBatchWriter(metaCopy6)) {
         Mutation mut = new Mutation(prevR1.toMetaRow());

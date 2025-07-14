@@ -67,9 +67,9 @@ public class TabletManagement {
   }
 
   public static void addError(final BiConsumer<Key,Value> bic, final Text row,
-      final Exception error) {
+      final String errorMessage) {
     final Key errorKey = new Key(row, ERROR_COLUMN_NAME, EMPTY);
-    final Value errorValue = new Value(error.getMessage());
+    final Value errorValue = new Value(errorMessage);
     bic.accept(errorKey, errorValue);
   }
 

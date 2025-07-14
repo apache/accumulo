@@ -156,7 +156,7 @@ public class TabletManagementTest {
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
     TabletManagement.addError(entries::put, entries.firstKey().getRow(),
-        new UnsupportedOperationException("Not supported."));
+        new UnsupportedOperationException("Not supported.").getMessage());
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));

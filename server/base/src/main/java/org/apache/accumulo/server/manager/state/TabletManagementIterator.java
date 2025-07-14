@@ -233,43 +233,45 @@ public class TabletManagementIterator extends WholeRowIterator {
     };
 
     final Set<ManagementAction> actions = new HashSet<>();
-    Exception error = null;
+    String errorMsg = null;
     TabletMetadata tm = null;
     KeyExtent extent = null;
+    final String row = keys.get(0) == null ? "no key" : keys.get(0).getRow().toString();
     try {
       tm = TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
     } catch (RuntimeException e) {
-      LOG.error("Failed to convert tablet metadata at row: {}",
-          keys.get(0) == null ? "no key" : keys.get(0).getRow(), e);
-      error = e;
+      LOG.error("Failed to convert tablet metadata at row: {}", row, e);
+      errorMsg = "Failed to convert tablet metadata at row:" + row + ", error: " + e.getMessage();
     }
-    if (error == null) {
+    if (errorMsg == null) {
       try {
         // Validate that a minimum set of keys were seen to create a valid tablet
         extent = tm.getExtent();
       } catch (IllegalStateException e) {
         LOG.error("Irregular tablet metadata encountered: {}", tm, e);
-        error = e;
+        errorMsg =
+            "Irregular tablet metadata encountered at row: " + row + ", error: " + e.getMessage();
       }
     }
-    if (error == null) {
+    if (errorMsg == null) {
       try {
         LOG.trace("Evaluating extent: {}", tm);
         computeTabletManagementActions(tm, actions);
       } catch (Exception e) {
         LOG.error("Error computing tablet management actions for extent: {}", extent, e);
-        error = e;
+        errorMsg = "Error computing tablet management actions for extent: " + extent.toString()
+            + ", error: " + e.getMessage();
       }
     }
 
-    if (!actions.isEmpty() || error != null) {
-      if (error != null) {
+    if (!actions.isEmpty() || errorMsg != null) {
+      if (errorMsg != null) {
         // Insert the error into K,V pair representing
         // the tablet metadata.
         TabletManagement.addError((k, v) -> {
           keys.add(k);
           values.add(v);
-        }, currentRow, error);
+        }, currentRow, errorMsg);
       } else if (!actions.isEmpty()) {
         // If we simply returned here, then the client would get the encoded K,V
         // from the WholeRowIterator. However, it would not know the reason(s) why
@@ -284,8 +286,7 @@ public class TabletManagementIterator extends WholeRowIterator {
       // This key is being created exactly the same way as the whole row iterator creates keys.
       // This is important for ensuring that seek works as expected in the continue case. See
       // WholeRowIterator seek function for details, it looks for keys w/o columns.
-      LOG.trace("Returning extent {} with reasons: {}, error: {}", extent, actions,
-          error == null ? "null" : error.getMessage());
+      LOG.trace("Returning extent {} with reasons: {}, error: {}", extent, actions, errorMsg);
       return true;
     }
 
