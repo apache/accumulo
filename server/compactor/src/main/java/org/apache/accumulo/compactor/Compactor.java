@@ -738,48 +738,35 @@ public class Compactor extends AbstractServer
           }
           LOG.debug("Received next compaction job: {}", job);
 
-          // The errorHistory is cleared on a successful compaction. If the errorHistory map
-          // is not empty, then we have a history of recent failures. If the current job's
-          // table is in the map with 2 consecutive failures or if there is more than one
-          // entry in the map, then start backing off and complain loudly.
-          TableId tableId = TableId.of(new String(job.getExtent().getTable(), UTF_8));
+          final TableId tableId = TableId.of(new String(job.getExtent().getTable(), UTF_8));
           if (!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID)) {
-            long totalFailures = 0;
-            if (errorHistory.size() >= 2) {
-              totalFailures =
-                  errorHistory.values().stream().mapToLong(p -> p.getSecond().get()).sum();
-              LOG.warn(
-                  "This Compactor has had {} consecutive failures across different tables. Failures: {}",
+
+            final long totalFailures =
+                errorHistory.values().stream().mapToLong(p -> p.getSecond().get()).sum();
+            if (totalFailures > 0) {
+              LOG.warn("This Compactor has had {} consecutive failures. Failures: {}",
                   totalFailures, errorHistory);
-            } else if (errorHistory.containsKey(tableId)) {
-              totalFailures = errorHistory.get(tableId).getSecond().get();
-              if (totalFailures > 2) {
-                LOG.warn(
-                    "This Compactor has had {} consecutive failures for table {}. Failures: {}",
-                    totalFailures, errorHistory);
-              }
-            }
-            if (totalFailures
-                > getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
-              long interval =
-                  getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
-              if (interval > 0) {
-                long max =
-                    getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_RESET);
-                // Introduce a 30s wait per failure, up to 10 mins
-                long backoffMS = Math.min(max, interval * totalFailures);
-                LOG.warn(
-                    "Not starting next compaction for {}ms due to consecutive failures. Check the log and address any issues.",
-                    backoffMS);
-                if (backoffMS == max) {
+              if (totalFailures
+                  > getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
+                final long interval =
+                    getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
+                if (interval > 0) {
+                  final long max =
+                      getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_RESET);
+                  final long backoffMS = Math.min(max, interval * totalFailures);
+                  LOG.warn(
+                      "Not starting next compaction for {}ms due to consecutive failures. Check the log and address any issues.",
+                      backoffMS);
+                  if (backoffMS == max) {
+                    errorHistory.clear();
+                  }
+                  Thread.sleep(backoffMS);
+                } else if (interval == 0) {
+                  LOG.info(
+                      "This Compactor has had {} consecutive failures and failure backoff is disabled.",
+                      totalFailures);
                   errorHistory.clear();
                 }
-                Thread.sleep(backoffMS);
-              } else if (interval == 0) {
-                LOG.info(
-                    "This Compactor has had {} consecutive failures and failure backoff is disabled.",
-                    totalFailures);
-                errorHistory.clear();
               }
             }
           }
