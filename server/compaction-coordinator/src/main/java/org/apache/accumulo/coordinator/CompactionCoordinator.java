@@ -654,6 +654,14 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   private void printFailures() {
+
+    // Remove down compactors from failing list
+    Map<String,List<HostAndPort>> allCompactors =
+        ExternalCompactionUtil.getCompactorAddrs(getContext());
+    Set<String> allCompactorAddrs = new HashSet<>();
+    allCompactors.values().forEach(l -> l.forEach(c -> allCompactorAddrs.add(c.toString())));
+    failingCompactors.keySet().retainAll(allCompactorAddrs);
+
     LOG.warn("Compaction failure summary:");
     LOG.warn("Queue failures: {}", failingQueues);
     LOG.warn("Table failures: {}", failingTables);

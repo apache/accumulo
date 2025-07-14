@@ -1578,6 +1578,12 @@ public enum Property {
           + " time limit has been reached, the failures are cleared.",
       "2.1.4"),
   @Experimental
+  COMPACTOR_FAILURE_TERMINATION_THRESHOLD("compactor.failure.termination.threshold", "0",
+      PropertyType.TIMEDURATION,
+      "The number of consecutive failures at which the Compactor exits and the process terminates. A zero"
+          + " value disables this feature.",
+      "2.1.4"),
+  @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental
