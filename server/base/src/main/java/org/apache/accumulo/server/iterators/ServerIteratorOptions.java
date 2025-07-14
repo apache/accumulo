@@ -39,6 +39,7 @@ import org.apache.accumulo.core.spi.file.rfile.compression.NoCompression;
 import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.io.compress.Decompressor;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 public class ServerIteratorOptions {
@@ -66,8 +67,9 @@ public class ServerIteratorOptions {
     }
   }
 
-  public static void compressOption(final AccumuloConfiguration config,
-      IteratorSetting iteratorSetting, String option, Serializer serializer) {
+  @VisibleForTesting
+  static void compressOption(final AccumuloConfiguration config, IteratorSetting iteratorSetting,
+      String option, Serializer serializer) {
     final String algo = config.get(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO);
     final CompressionAlgorithm ca = Compression.getCompressionAlgorithmByName(algo);
     final Compressor c = ca.getCompressor();
@@ -113,7 +115,8 @@ public class ServerIteratorOptions {
     });
   }
 
-  public static <T> T decompressOption(Map<String,String> options, String option,
+  @VisibleForTesting
+  static <T> T decompressOption(Map<String,String> options, String option,
       Deserializer<T> deserializer) {
     var val = options.get(option);
     if (val == null) {
