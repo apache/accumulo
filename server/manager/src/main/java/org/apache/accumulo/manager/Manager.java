@@ -26,6 +26,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -257,6 +258,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
   private final TabletStateStore userTabletStore;
+  private final ExecutorService renamePool;
 
   public synchronized ManagerState getManagerState() {
     return state;
@@ -479,6 +481,9 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
+    int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
+    renamePool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balanceManager = new BalanceManager();
@@ -1607,5 +1612,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   @Override
   public ServiceLock getLock() {
     return managerLock;
+  }
+
+  /**
+   * Get Threads Pool instance which is used by blocked I/O
+   *
+   * @return {@link ExecutorService}
+   */
+  public ExecutorService getRenamePool() {
+    return this.renamePool;
   }
 }

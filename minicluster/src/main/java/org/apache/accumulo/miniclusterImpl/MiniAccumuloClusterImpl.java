@@ -206,7 +206,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     java.nio.file.Path confDir = config.getConfDir().toPath();
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       java.nio.file.Path configPath = config.getAccumuloDir().toPath();
       java.nio.file.Path nn = configPath.resolve("nn");
       mkdirs(nn);
@@ -517,7 +517,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Preconditions.checkState(clusterState != State.TERMINATED,
         "Cannot start a cluster that is terminated.");
 
-    if (config.useMiniDFS() && miniDFS.get() == null) {
+    if (config.getUseMiniDFS() && miniDFS.get() == null) {
       throw new IllegalStateException("Cannot restart mini when using miniDFS");
     }
 
@@ -1032,7 +1032,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     var miniDFSActual = miniDFS.get();
-    if (config.useMiniDFS() && miniDFSActual != null) {
+    if (config.getUseMiniDFS() && miniDFSActual != null) {
       miniDFSActual.shutdown();
     }
     for (Process p : cleanup) {
@@ -1170,7 +1170,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public Path getTemporaryPath() {
     String p;
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       p = "/tmp/";
     } else {
       java.nio.file.Path tmp = config.getDir().toPath().resolve("tmp");
