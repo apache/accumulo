@@ -64,7 +64,7 @@ public class SystemPropUtil {
   }
 
   public static void removePropWithoutDeprecationWarning(ServerContext context, String property) {
-    logIfFixed(property, null);
+    logIfFixed(Property.getPropertyByKey(property), null);
     context.getPropStore().removeProperties(SystemPropKey.of(), List.of(property));
   }
 
@@ -111,7 +111,7 @@ public class SystemPropUtil {
       throw iae;
     }
 
-    logIfFixed(property, value);
+    logIfFixed(Property.getPropertyByKey(property), value);
 
     return property;
   }
@@ -121,8 +121,8 @@ public class SystemPropUtil {
    * property is fixed, logs a warning that the property change will not take effect until related
    * processes are restarted.
    */
-  private static void logIfFixed(String property, String value) {
-    if (Property.isFixedZooPropertyKey(Property.getPropertyByKey(property))) {
+  private static void logIfFixed(Property property, String value) {
+    if (property != null && Property.isFixedZooPropertyKey(property)) {
       String s = value == null ? String.format("Removing a fixed property %s. ", property)
           : String.format("Setting a fixed property %s to value %s. ", property, value);
       log.warn(s + "Change will not take effect until related processes are restarted.");
