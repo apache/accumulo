@@ -318,6 +318,7 @@ public class CompactionCoordinator extends AbstractServer implements
 
     tserverSet.startListeningForTabletServerChanges();
     startDeadCompactionDetector();
+    startFailureSummaryLogging();
 
     LOG.info("Starting loop to check tservers for compaction summaries");
     while (!isShutdownRequested()) {
@@ -507,20 +508,6 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.trace("getCompactionJob called for queue {} by compactor {}", queue, compactorAddress);
     TIME_COMPACTOR_LAST_CHECKED.put(queue, System.currentTimeMillis());
 
-    AtomicLong queueFailures = failingQueues.get(queue);
-    if (queueFailures != null && queueFailures.get() > 10) {
-      LOG.warn("Compactions for queue {} may be in a failing state. Not executing compactions"
-          + " for this queue", queue);
-      return new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(queue));
-    }
-
-    AtomicLong compactorFailures = failingCompactors.get(compactorAddress);
-    if (compactorFailures != null && compactorFailures.get() > 10) {
-      LOG.warn("Compactor {} may be in a failing state. Not executing compactions"
-          + " for this compactor", compactorAddress);
-      return new TNextCompactionJob(new TExternalCompactionJob(), compactorCounts.get(queue));
-    }
-
     TExternalCompactionJob result = null;
 
     PrioTserver prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
@@ -550,21 +537,6 @@ public class CompactionCoordinator extends AbstractServer implements
           QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
           prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
           continue;
-        }
-
-        if (job.getExtent() != null) {
-          KeyExtent ke = KeyExtent.fromThrift(job.getExtent());
-          if (ke.tableId() != null) {
-            AtomicLong tableFailures = failingTables.get(ke.tableId());
-            if (tableFailures != null && tableFailures.get() > 10) {
-              LOG.warn(
-                  "Compactions for table {} may be in a failing state. Not executing compactions"
-                      + " for this table",
-                  ke.tableId());
-              // TODO: Need to unreserve compaction?
-              continue;
-            }
-          }
         }
 
         // It is possible that by the time this added that the tablet has already canceled the
@@ -673,6 +645,19 @@ public class CompactionCoordinator extends AbstractServer implements
       failingCompactors.computeIfAbsent(compactor, c -> new AtomicLong(0)).incrementAndGet();
     }
     failingTables.computeIfAbsent(extent.tableId(), t -> new AtomicLong(0)).incrementAndGet();
+  }
+
+  protected void startFailureSummaryLogging() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(this::printFailures, 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  private void printFailures() {
+    LOG.warn("Compaction failure summary:");
+    LOG.warn("Queue failures: {}", failingQueues);
+    LOG.warn("Table failures: {}", failingTables);
+    LOG.warn("Compactor failures: {}", failingCompactors);
   }
 
   private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {

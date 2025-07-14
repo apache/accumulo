@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -73,6 +75,8 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
+import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -93,6 +97,7 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -699,6 +704,7 @@ public class Compactor extends AbstractServer
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
+      final Map<TableId,Pair<Throwable,AtomicLong>> errorHistory = new HashMap<>();
 
       while (!isShutdownRequested()) {
         if (Thread.currentThread().isInterrupted()) {
@@ -731,6 +737,52 @@ public class Compactor extends AbstractServer
             continue;
           }
           LOG.debug("Received next compaction job: {}", job);
+
+          // The errorHistory is cleared on a successful compaction. If the errorHistory map
+          // is not empty, then we have a history of recent failures. If the current job's
+          // table is in the map with 2 consecutive failures or if there is more than one
+          // entry in the map, then start backing off and complain loudly.
+          TableId tableId = TableId.of(new String(job.getExtent().getTable(), UTF_8));
+          if (!tableId.equals(RootTable.ID) && !tableId.equals(MetadataTable.ID)) {
+            long totalFailures = 0;
+            if (errorHistory.size() >= 2) {
+              totalFailures =
+                  errorHistory.values().stream().mapToLong(p -> p.getSecond().get()).sum();
+              LOG.warn(
+                  "This Compactor has had {} consecutive failures across different tables. Failures: {}",
+                  totalFailures, errorHistory);
+            } else if (errorHistory.containsKey(tableId)) {
+              totalFailures = errorHistory.get(tableId).getSecond().get();
+              if (totalFailures > 2) {
+                LOG.warn(
+                    "This Compactor has had {} consecutive failures for table {}. Failures: {}",
+                    totalFailures, errorHistory);
+              }
+            }
+            if (totalFailures
+                > getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
+              long interval =
+                  getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
+              if (interval > 0) {
+                long max =
+                    getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_RESET);
+                // Introduce a 30s wait per failure, up to 10 mins
+                long backoffMS = Math.min(max, interval * totalFailures);
+                LOG.warn(
+                    "Not starting next compaction for {}ms due to consecutive failures. Check the log and address any issues.",
+                    backoffMS);
+                if (backoffMS == max) {
+                  errorHistory.clear();
+                }
+                Thread.sleep(backoffMS);
+              } else if (interval == 0) {
+                LOG.info(
+                    "This Compactor has had {} consecutive failures and failure backoff is disabled.",
+                    totalFailures);
+                errorHistory.clear();
+              }
+            }
+          }
 
           final LongAdder totalInputEntries = new LongAdder();
           final LongAdder totalInputBytes = new LongAdder();
@@ -817,7 +869,7 @@ public class Compactor extends AbstractServer
                 currentCompactionId.set(null);
               }
             } else if (err.get() != null) {
-              KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+              final KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
               try {
                 LOG.info("Updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent);
@@ -826,6 +878,12 @@ public class Compactor extends AbstractServer
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
                 updateCompactionFailed(job, err.get());
+                long failures = errorHistory
+                    .computeIfAbsent(fromThriftExtent.tableId(),
+                        t -> new Pair<>(err.get(), new AtomicLong(0)))
+                    .getSecond().incrementAndGet();
+                LOG.warn("Compaction for table {} has failed {} times", fromThriftExtent.tableId(),
+                    failures);
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent, e);
@@ -836,6 +894,8 @@ public class Compactor extends AbstractServer
               try {
                 LOG.trace("Updating coordinator with compaction completion.");
                 updateCompactionCompleted(job, JOB_HOLDER.getStats());
+                // job completed successfully, clear the error history
+                errorHistory.clear();
               } catch (RetriesExceededException e) {
                 LOG.error(
                     "Error updating coordinator with compaction completion, cancelling compaction.",

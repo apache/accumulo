@@ -118,6 +118,9 @@ public class CompactionCoordinatorTest {
     protected void startDeadCompactionDetector() {}
 
     @Override
+    protected void startFailureSummaryLogging() {}
+
+    @Override
     protected long getTServerCheckInterval() {
       gracefulShutdown(null);
       return 0L;
