@@ -182,7 +182,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       mkdirs(config.getAccumuloDir());
     }
 
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       File nn = new File(config.getAccumuloDir(), "nn");
       mkdirs(nn);
       File dn = new File(config.getAccumuloDir(), "dn");
@@ -480,7 +480,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       justification = "insecure socket used for reservation")
   @Override
   public synchronized void start() throws IOException, InterruptedException {
-    if (config.useMiniDFS() && miniDFS.get() == null) {
+    if (config.getUseMiniDFS() && miniDFS.get() == null) {
       throw new IllegalStateException("Cannot restart mini when using miniDFS");
     }
 
@@ -883,7 +883,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     var miniDFSActual = miniDFS.get();
-    if (config.useMiniDFS() && miniDFSActual != null) {
+    if (config.getUseMiniDFS() && miniDFSActual != null) {
       miniDFSActual.shutdown();
     }
     for (Process p : cleanup) {
@@ -979,7 +979,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public Path getTemporaryPath() {
     String p;
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       p = "/tmp/";
     } else {
       File tmp = new File(config.getDir(), "tmp");

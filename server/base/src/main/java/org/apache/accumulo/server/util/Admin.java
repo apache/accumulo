@@ -863,7 +863,7 @@ public class Admin implements KeywordExecutable {
     var zTableLocksPath = ServiceLock.path(zkRoot + Constants.ZTABLE_LOCKS);
     String fateZkPath = zkRoot + Constants.ZFATE;
     ZooReaderWriter zk = context.getZooReaderWriter();
-    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk);
+    ZooStore<Admin> zs = new ZooStore<>(fateZkPath, zk, context.getZooCache());
 
     if (fateOpsCommand.cancel) {
       cancelSubmittedFateTxs(context, fateOpsCommand.txList);
