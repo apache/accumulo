@@ -1579,7 +1579,7 @@ public enum Property {
       "2.1.4"),
   @Experimental
   COMPACTOR_FAILURE_TERMINATION_THRESHOLD("compactor.failure.termination.threshold", "0",
-      PropertyType.TIMEDURATION,
+      PropertyType.COUNT,
       "The number of consecutive failures at which the Compactor exits and the process terminates. A zero"
           + " value disables this feature.",
       "2.1.4"),

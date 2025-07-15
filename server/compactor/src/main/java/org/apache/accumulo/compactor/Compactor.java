@@ -670,6 +670,47 @@ public class Compactor extends AbstractServer
         clientAddress, queueName);
   }
 
+  private void performFailureProcessing(Map<TableId,Pair<Throwable,AtomicLong>> errorHistory)
+      throws InterruptedException {
+    // consecutive failure processing
+    final long totalFailures =
+        errorHistory.values().stream().mapToLong(p -> p.getSecond().get()).sum();
+    if (totalFailures > 0) {
+      LOG.warn("This Compactor has had {} consecutive failures. Failures: {}", totalFailures,
+          errorHistory);
+      final long failureThreshold =
+          getConfiguration().getCount(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD);
+      if (failureThreshold > 0 && totalFailures > failureThreshold) {
+        LOG.error("Consecutive failures ({}) has exceeded failure threshold ({}), exiting...",
+            totalFailures, failureThreshold);
+        throw new InterruptedException(
+            "Consecutive failures has exceeded failure threshold, exiting...");
+      }
+      if (totalFailures
+          > getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
+        final long interval =
+            getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
+        if (interval > 0) {
+          final long max =
+              getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_RESET);
+          final long backoffMS = Math.min(max, interval * totalFailures);
+          LOG.warn(
+              "Not starting next compaction for {}ms due to consecutive failures. Check the log and address any issues.",
+              backoffMS);
+          if (backoffMS == max) {
+            errorHistory.clear();
+          }
+          Thread.sleep(backoffMS);
+        } else if (interval == 0) {
+          LOG.info(
+              "This Compactor has had {} consecutive failures and failure backoff is disabled.",
+              totalFailures);
+          errorHistory.clear();
+        }
+      }
+    }
+  }
+
   @Override
   public void run() {
 
@@ -717,43 +758,7 @@ public class Compactor extends AbstractServer
           err.set(null);
           JOB_HOLDER.reset();
 
-          // consecutive failure processing
-          final long totalFailures =
-              errorHistory.values().stream().mapToLong(p -> p.getSecond().get()).sum();
-          if (totalFailures > 0) {
-            LOG.warn("This Compactor has had {} consecutive failures. Failures: {}", totalFailures,
-                errorHistory);
-            final long failureThreshold =
-                getConfiguration().getCount(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD);
-            if (failureThreshold > 0 && totalFailures > failureThreshold) {
-              LOG.error("Consecutive failures ({}) has exceeded failure threshold ({}), exiting...",
-                  totalFailures, failureThreshold);
-              throw new InterruptedException(
-                  "Consecutive failures has exceeded failure threshold, exiting...");
-            }
-            if (totalFailures
-                > getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
-              final long interval =
-                  getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
-              if (interval > 0) {
-                final long max =
-                    getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_RESET);
-                final long backoffMS = Math.min(max, interval * totalFailures);
-                LOG.warn(
-                    "Not starting next compaction for {}ms due to consecutive failures. Check the log and address any issues.",
-                    backoffMS);
-                if (backoffMS == max) {
-                  errorHistory.clear();
-                }
-                Thread.sleep(backoffMS);
-              } else if (interval == 0) {
-                LOG.info(
-                    "This Compactor has had {} consecutive failures and failure backoff is disabled.",
-                    totalFailures);
-                errorHistory.clear();
-              }
-            }
-          }
+          performFailureProcessing(errorHistory);
 
           TExternalCompactionJob job;
           try {
