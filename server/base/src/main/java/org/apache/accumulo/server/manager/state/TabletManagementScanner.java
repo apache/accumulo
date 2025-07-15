@@ -90,7 +90,7 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
       throw new RuntimeException("Error obtaining locations for table: " + tableName);
     }
     cleanable = CleanerUtil.unclosed(this, TabletManagementScanner.class, closed, log, mdScanner);
-    TabletManagementIterator.configureScanner(mdScanner, tmgmtParams);
+    TabletManagementIterator.configureScanner(context.getConfiguration(), mdScanner, tmgmtParams);
     mdScanner.setRanges(ranges);
     iter = mdScanner.iterator();
   }

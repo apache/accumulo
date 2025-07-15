@@ -377,6 +377,9 @@ public enum Property {
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
+  GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO("general.server.iter.opts.compression", "none",
+      PropertyType.COMPRESSION_TYPE,
+      "Compression algorithm name to use for server-side iterator options compression.", "2.1.4"),
   GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
       PropertyType.TIMEDURATION,
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
