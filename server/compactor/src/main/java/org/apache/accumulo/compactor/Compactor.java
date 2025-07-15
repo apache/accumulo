@@ -147,7 +147,7 @@ public class Compactor extends AbstractServer
 
   private static final SecureRandom random = new SecureRandom();
 
-  private static class ErrorHistory extends HashMap<TableId,HashMap<Throwable,AtomicLong>> {
+  private static class ErrorHistory extends HashMap<TableId,HashMap<String,AtomicLong>> {
 
     private static final long serialVersionUID = 1L;
 
@@ -175,8 +175,8 @@ public class Compactor extends AbstractServer
      * @return total number of failures for table
      */
     public long addError(TableId tid, Throwable error) {
-      computeIfAbsent(tid, t -> new HashMap<Throwable,AtomicLong>())
-          .computeIfAbsent(error, e -> new AtomicLong(0)).incrementAndGet();
+      computeIfAbsent(tid, t -> new HashMap<String,AtomicLong>())
+          .computeIfAbsent(error.toString(), e -> new AtomicLong(0)).incrementAndGet();
       return getTotalTableFailures(tid);
     }
 
@@ -185,9 +185,9 @@ public class Compactor extends AbstractServer
       StringBuilder buf = new StringBuilder();
       buf.append("\n");
       for (TableId tid : keySet()) {
-        buf.append("\tTable: ").append(tid).append("\n");
-        for (Entry<Throwable,AtomicLong> error : get(tid).entrySet()) {
-          buf.append("\t\tException: ").append(error.getKey()).append(", count: ")
+        buf.append("Table: ").append(tid).append("\n");
+        for (Entry<String,AtomicLong> error : get(tid).entrySet()) {
+          buf.append("\tException: ").append(error.getKey()).append(", count: ")
               .append(error.getValue().get());
         }
       }
@@ -722,7 +722,7 @@ public class Compactor extends AbstractServer
     final long totalFailures = errorHistory.getTotalFailures();
     if (totalFailures > 0) {
       LOG.warn("This Compactor has had {} consecutive failures. Failures: {}", totalFailures,
-          errorHistory);
+          errorHistory.toString()); // ErrorHistory.toString not invoked without .toString
       final long failureThreshold =
           getConfiguration().getCount(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD);
       if (failureThreshold > 0 && totalFailures > failureThreshold) {
