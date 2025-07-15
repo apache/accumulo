@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
+import java.util.List;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -57,6 +59,10 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
+    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL, "15s");
+    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD, "2");
+    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_RESET, "10m");
+    cfg.setProperty(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD, "3");
     cfg.setNumCompactors(2);
   }
 
@@ -68,6 +74,10 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       getCluster().getClusterControl().startCompactors(Compactor.class, 1, QUEUE1);
       Wait.waitFor(
           () -> ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client) == 1);
+      List<HostAndPort> compactors =
+          ExternalCompactionUtil.getCompactorAddrs((ClientContext) client).get(QUEUE1);
+      assertEquals(1, compactors.size());
+      final HostAndPort compactorAddr = compactors.get(0);
       createTable(client, table1, "cs1");
       client.tableOperations().setProperty(table1, TABLE_FILE_MAX.getKey(), "1001");
       client.tableOperations().setProperty(table1, TABLE_MAJC_RATIO.getKey(), "1001");
@@ -119,7 +129,27 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
 
       // Start a compaction. The invalid cache dir property should cause a failure
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
+      Wait.waitFor(
+          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
+              == null);
+      assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
 
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
+      Wait.waitFor(
+          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
+              == null);
+      assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
+
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
+      Wait.waitFor(
+          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
+              == null);
+      assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
+
+      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
+      Wait.waitFor(
+          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
+              == null);
       Wait.waitFor(
           () -> ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client) == 0);
 

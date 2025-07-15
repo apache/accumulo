@@ -725,8 +725,9 @@ public class Compactor extends AbstractServer
           errorHistory.toString()); // ErrorHistory.toString not invoked without .toString
       final long failureThreshold =
           getConfiguration().getCount(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD);
-      if (failureThreshold > 0 && totalFailures > failureThreshold) {
-        LOG.error("Consecutive failures ({}) has exceeded failure threshold ({}), exiting...",
+      if (failureThreshold > 0 && totalFailures >= failureThreshold) {
+        LOG.error(
+            "Consecutive failures ({}) has met or exceeded failure threshold ({}), exiting...",
             totalFailures, failureThreshold);
         throw new InterruptedException(
             "Consecutive failures has exceeded failure threshold, exiting...");
