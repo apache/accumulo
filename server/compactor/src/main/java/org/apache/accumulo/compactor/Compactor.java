@@ -95,7 +95,6 @@ import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.trace.thrift.TInfo;
 import org.apache.accumulo.core.util.HostAndPort;
-import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
@@ -147,6 +146,54 @@ public class Compactor extends AbstractServer
   }
 
   private static final SecureRandom random = new SecureRandom();
+
+  private static class ErrorHistory extends HashMap<TableId,HashMap<Throwable,AtomicLong>> {
+
+    private static final long serialVersionUID = 1L;
+
+    public long getTotalFailures() {
+      long total = 0;
+      for (TableId tid : keySet()) {
+        total += getTotalTableFailures(tid);
+      }
+      return total;
+    }
+
+    public long getTotalTableFailures(TableId tid) {
+      long total = 0;
+      for (AtomicLong failures : get(tid).values()) {
+        total += failures.get();
+      }
+      return total;
+    }
+
+    /**
+     * Add error for table, and return total number of failures for the table
+     *
+     * @param tid table id
+     * @param error exception
+     * @return total number of failures for table
+     */
+    public long addError(TableId tid, Throwable error) {
+      computeIfAbsent(tid, t -> new HashMap<Throwable,AtomicLong>())
+          .computeIfAbsent(error, e -> new AtomicLong(0)).incrementAndGet();
+      return getTotalTableFailures(tid);
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder buf = new StringBuilder();
+      buf.append("\n");
+      for (TableId tid : keySet()) {
+        buf.append("\tTable: ").append(tid).append("\n");
+        for (Entry<Throwable,AtomicLong> error : get(tid).entrySet()) {
+          buf.append("\t\tException: ").append(error.getKey()).append(", count: ")
+              .append(error.getValue().get());
+        }
+      }
+      return buf.toString();
+    }
+  }
 
   public static class CompactorServerOpts extends ServerOpts {
     @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
@@ -670,11 +717,9 @@ public class Compactor extends AbstractServer
         clientAddress, queueName);
   }
 
-  private void performFailureProcessing(Map<TableId,Pair<Throwable,AtomicLong>> errorHistory)
-      throws InterruptedException {
+  private void performFailureProcessing(ErrorHistory errorHistory) throws InterruptedException {
     // consecutive failure processing
-    final long totalFailures =
-        errorHistory.values().stream().mapToLong(p -> p.getSecond().get()).sum();
+    final long totalFailures = errorHistory.getTotalFailures();
     if (totalFailures > 0) {
       LOG.warn("This Compactor has had {} consecutive failures. Failures: {}", totalFailures,
           errorHistory);
@@ -743,7 +788,7 @@ public class Compactor extends AbstractServer
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final Map<TableId,Pair<Throwable,AtomicLong>> errorHistory = new HashMap<>();
+      final ErrorHistory errorHistory = new ErrorHistory();
 
       while (!isShutdownRequested()) {
         if (Thread.currentThread().isInterrupted()) {
@@ -873,10 +918,7 @@ public class Compactor extends AbstractServer
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
                 updateCompactionFailed(job, err.get());
-                long failures = errorHistory
-                    .computeIfAbsent(fromThriftExtent.tableId(),
-                        t -> new Pair<>(err.get(), new AtomicLong(0)))
-                    .getSecond().incrementAndGet();
+                long failures = errorHistory.addError(fromThriftExtent.tableId(), err.get());
                 LOG.warn("Compaction for table {} has failed {} times", fromThriftExtent.tableId(),
                     failures);
               } catch (RetriesExceededException e) {
