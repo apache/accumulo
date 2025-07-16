@@ -72,11 +72,15 @@ public class SecurityOperationsImpl implements SecurityOperations {
       if (eCause instanceof TableNotFoundException) {
         var tnfeCause = eCause.getCause();
         if (tnfeCause instanceof NamespaceNotFoundException) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
         } else if (tnfeCause instanceof ThriftTableOperationException
             && ((ThriftTableOperationException) tnfeCause).getType()
                 == TableOperationExceptionType.NOTFOUND) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
         }
       }
       throw e;
@@ -105,11 +109,15 @@ public class SecurityOperationsImpl implements SecurityOperations {
       if (eCause instanceof TableNotFoundException) {
         var tnfeCause = eCause.getCause();
         if (tnfeCause instanceof NamespaceNotFoundException) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.NAMESPACE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
         } else if (tnfeCause instanceof ThriftTableOperationException
             && ((ThriftTableOperationException) tnfeCause).getType()
                 == TableOperationExceptionType.NOTFOUND) {
-          throw new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+          var ase = new AccumuloSecurityException(null, SecurityErrorCode.TABLE_DOESNT_EXIST);
+          ase.addSuppressed(e);
+          throw ase;
         }
       }
       throw e;

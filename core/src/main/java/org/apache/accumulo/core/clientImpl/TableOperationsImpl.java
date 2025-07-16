@@ -1123,7 +1123,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (AccumuloException ae) {
       Throwable cause = ae.getCause();
       if (cause instanceof TableNotFoundException) {
-        throw (TableNotFoundException) cause;
+        var tnfe = (TableNotFoundException) cause;
+        tnfe.addSuppressed(ae);
+        throw tnfe;
       }
       throw ae;
     }
@@ -1182,7 +1184,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof TableNotFoundException) {
-        throw (TableNotFoundException) t;
+        var tnfe = (TableNotFoundException) t;
+        tnfe.addSuppressed(e);
+        throw tnfe;
       }
       throw e;
     } catch (Exception e) {
@@ -1201,7 +1205,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof TableNotFoundException) {
-        throw (TableNotFoundException) t;
+        var tnfe = (TableNotFoundException) t;
+        tnfe.addSuppressed(e);
+        throw tnfe;
       }
       throw e;
     } catch (Exception e) {
@@ -1787,7 +1793,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof TableNotFoundException) {
-        throw (TableNotFoundException) t;
+        var tnfe = (TableNotFoundException) t;
+        tnfe.addSuppressed(e);
+        throw tnfe;
       }
       throw e;
     } catch (Exception e) {
