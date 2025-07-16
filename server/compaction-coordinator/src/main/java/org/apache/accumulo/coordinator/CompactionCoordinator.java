@@ -359,6 +359,7 @@ public class CompactionCoordinator extends AbstractServer implements
     if (coordinatorAddress.server != null) {
       coordinatorAddress.server.stop();
     }
+    super.close();
     getShutdownComplete().set(true);
     LOG.info("stop requested. exiting ... ");
     try {

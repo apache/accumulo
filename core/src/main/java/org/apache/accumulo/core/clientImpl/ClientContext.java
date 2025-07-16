@@ -163,6 +163,10 @@ public class ClientContext implements AccumuloClient {
     }
   }
 
+  protected boolean isClosed() {
+    return closed;
+  }
+
   private ScanServerSelector createScanServerSelector() {
     String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(info.getProperties());
     try {

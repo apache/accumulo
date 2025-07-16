@@ -27,6 +27,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.coordinator.CompactionCoordinator;
@@ -42,19 +45,42 @@ import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
+import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
+import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.functional.ReadWriteIT;
+import org.apache.accumulo.test.metrics.TestStatsDRegistryFactory;
+import org.apache.accumulo.test.metrics.TestStatsDSink;
+import org.apache.accumulo.test.metrics.TestStatsDSink.Metric;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
+
+  private static final Logger LOG = LoggerFactory.getLogger(ClassLoaderContextCompactionIT.class);
+  private static TestStatsDSink sink;
+
+  @BeforeAll
+  public static void before() throws Exception {
+    sink = new TestStatsDSink();
+  }
+
+  @AfterAll
+  public static void after() throws Exception {
+    sink.close();
+  }
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
@@ -66,10 +92,63 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_RESET, "10m");
     cfg.setProperty(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD, "3");
     cfg.setNumCompactors(2);
+    // Tell the server processes to use a StatsDMeterRegistry and the simple logging registry
+    // that will be configured to push all metrics to the sink we started.
+    cfg.setProperty(Property.GENERAL_MICROMETER_ENABLED, "true");
+    cfg.setProperty(Property.GENERAL_MICROMETER_JVM_METRICS_ENABLED, "true");
+    cfg.setProperty("general.custom.metrics.opts.logging.step", "1s");
+    String clazzList = LoggingMeterRegistryFactory.class.getName() + ","
+        + TestStatsDRegistryFactory.class.getName();
+    cfg.setProperty(Property.GENERAL_MICROMETER_FACTORY, clazzList);
+    Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
+        TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
+    cfg.setSystemProperties(sysProps);
   }
 
   @Test
   public void testClassLoaderContextErrorKillsCompactor() throws Exception {
+
+    final AtomicBoolean shutdownTailer = new AtomicBoolean(false);
+    final AtomicLong cancellations = new AtomicLong(0);
+    final AtomicLong completions = new AtomicLong(0);
+    final AtomicLong failures = new AtomicLong(0);
+    final AtomicLong consecutive = new AtomicLong(0);
+    final AtomicLong terminations = new AtomicLong(0);
+
+    final Thread thread = Threads.createNonCriticalThread("metric-tailer", () -> {
+      while (!shutdownTailer.get()) {
+        List<String> statsDMetrics = sink.getLines();
+        for (String s : statsDMetrics) {
+          if (shutdownTailer.get()) {
+            break;
+          }
+          if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_COMPACTIONS_CANCELLED)) {
+            Metric m = TestStatsDSink.parseStatsDMetric(s);
+            LOG.info("{}", m);
+            cancellations.set(Long.parseLong(m.getValue()));
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_COMPACTIONS_COMPLETED)) {
+            Metric m = TestStatsDSink.parseStatsDMetric(s);
+            LOG.info("{}", m);
+            completions.set(Long.parseLong(m.getValue()));
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_COMPACTIONS_FAILED)) {
+            Metric m = TestStatsDSink.parseStatsDMetric(s);
+            LOG.info("{}", m);
+            failures.set(Long.parseLong(m.getValue()));
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_FAILURES_TERMINATION)) {
+            Metric m = TestStatsDSink.parseStatsDMetric(s);
+            LOG.info("{}", m);
+            terminations.set(Long.parseLong(m.getValue()));
+          } else if (s.startsWith(MetricsProducer.METRICS_COMPACTOR_FAILURES_CONSECUTIVE)) {
+            Metric m = TestStatsDSink.parseStatsDMetric(s);
+            LOG.info("{}", m);
+            consecutive.set(Long.parseLong(m.getValue()));
+          }
+
+        }
+      }
+    });
+    thread.start();
+
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       getCluster().getClusterControl().startCoordinator(CompactionCoordinator.class);
@@ -129,30 +208,49 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       // delete Test.jar, so that the classloader will fail
       assertTrue(fs.delete(dst, false));
 
+      assertEquals(0, cancellations.get());
+      assertEquals(0, completions.get());
+      assertEquals(0, failures.get());
+      assertEquals(0, terminations.get());
+      assertEquals(0, consecutive.get());
+
       // Start a compaction. The missing jar should cause a failure
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
+      Wait.waitFor(() -> failures.get() == 1);
+      Wait.waitFor(() -> consecutive.get() == 1);
 
+      Wait.waitFor(() -> failures.get() == 0);
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
+      Wait.waitFor(() -> failures.get() == 1);
+      Wait.waitFor(() -> consecutive.get() == 2);
 
+      Wait.waitFor(() -> failures.get() == 0);
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
+      Wait.waitFor(() -> failures.get() == 1);
+      Wait.waitFor(() -> consecutive.get() == 3);
 
       // Three failures have occurred, Compactor should shut down.
       Wait.waitFor(
           () -> ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client) == 0);
+      Wait.waitFor(() -> terminations.get() == 1);
+      assertEquals(0, cancellations.get());
+      assertEquals(0, completions.get());
 
     } finally {
+      shutdownTailer.set(true);
+      thread.join();
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
       getCluster().getClusterControl().stopAllServers(ServerType.COMPACTION_COORDINATOR);
     }

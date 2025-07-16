@@ -344,6 +344,7 @@ public class SimpleGarbageCollector extends AbstractServer
         gracefulShutdown(getContext().rpcCreds());
       }
     }
+    super.close();
     getShutdownComplete().set(true);
     log.info("stop requested. exiting ... ");
     try {

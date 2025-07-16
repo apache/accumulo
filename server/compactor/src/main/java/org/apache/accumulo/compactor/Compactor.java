@@ -126,6 +126,7 @@ import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -147,7 +148,7 @@ public class Compactor extends AbstractServer
 
   private static final SecureRandom random = new SecureRandom();
 
-  private static class ErrorHistory extends HashMap<TableId,HashMap<String,AtomicLong>> {
+  private static class ConsecutiveErrorHistory extends HashMap<TableId,HashMap<String,AtomicLong>> {
 
     private static final long serialVersionUID = 1L;
 
@@ -218,6 +219,11 @@ public class Compactor extends AbstractServer
   private ServerAddress compactorAddress = null;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
+  private final ConsecutiveErrorHistory errorHistory = new ConsecutiveErrorHistory();
+  private final AtomicLong completed = new AtomicLong(0);
+  private final AtomicLong cancelled = new AtomicLong(0);
+  private final AtomicLong failed = new AtomicLong(0);
+  private final AtomicLong terminated = new AtomicLong(0);
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
@@ -233,6 +239,26 @@ public class Compactor extends AbstractServer
     return FileCompactor.getTotalEntriesWritten();
   }
 
+  private double getConsecutiveFailures() {
+    return errorHistory.getTotalFailures();
+  }
+
+  private double getCancellations() {
+    return cancelled.get();
+  }
+
+  private double getCompletions() {
+    return completed.get();
+  }
+
+  private double getFailures() {
+    return failed.get();
+  }
+
+  private double getTerminated() {
+    return terminated.get();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
@@ -242,6 +268,22 @@ public class Compactor extends AbstractServer
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
         .description("Number of entries written by all compactions that have run on this compactor")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_COMPACTIONS_CANCELLED, this, Compactor::getCancellations)
+        .description("Number compactions that have been cancelled on this compactor")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_COMPACTIONS_COMPLETED, this, Compactor::getCompletions)
+        .description("Number compactions that have succeeded on this compactor").register(registry);
+    FunctionCounter.builder(METRICS_COMPACTOR_COMPACTIONS_FAILED, this, Compactor::getFailures)
+        .description("Number compactions that have failed on this compactor").register(registry);
+    FunctionCounter.builder(METRICS_COMPACTOR_FAILURES_TERMINATION, this, Compactor::getTerminated)
+        .description("Will report 1 if the Compactor terminates due to consecutive failure, else 0")
+        .register(registry);
+    Gauge.builder(METRICS_COMPACTOR_FAILURES_CONSECUTIVE, this, Compactor::getConsecutiveFailures)
+        .description(
+            "Number of consecutive compaction failures. Resets to zero on a successful compaction")
         .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
@@ -714,7 +756,8 @@ public class Compactor extends AbstractServer
         clientAddress, queueName);
   }
 
-  private void performFailureProcessing(ErrorHistory errorHistory) throws InterruptedException {
+  private void performFailureProcessing(ConsecutiveErrorHistory errorHistory)
+      throws InterruptedException {
     // consecutive failure processing
     final long totalFailures = errorHistory.getTotalFailures();
     if (totalFailures > 0) {
@@ -726,6 +769,7 @@ public class Compactor extends AbstractServer
         LOG.error(
             "Consecutive failures ({}) has met or exceeded failure threshold ({}), exiting...",
             totalFailures, failureThreshold);
+        terminated.incrementAndGet();
         throw new InterruptedException(
             "Consecutive failures has exceeded failure threshold, exiting...");
       }
@@ -786,7 +830,6 @@ public class Compactor extends AbstractServer
     try {
 
       final AtomicReference<Throwable> err = new AtomicReference<>();
-      final ErrorHistory errorHistory = new ErrorHistory();
 
       while (!isShutdownRequested()) {
         if (Thread.currentThread().isInterrupted()) {
@@ -901,6 +944,7 @@ public class Compactor extends AbstractServer
                         -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
                 updateCompactionFailed(job, null);
+                cancelled.incrementAndGet();
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction cancellation.", e);
               } finally {
@@ -916,6 +960,7 @@ public class Compactor extends AbstractServer
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
                 updateCompactionFailed(job, err.get());
+                failed.incrementAndGet();
                 errorHistory.addError(fromThriftExtent.tableId(), err.get());
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
@@ -927,6 +972,7 @@ public class Compactor extends AbstractServer
               try {
                 LOG.trace("Updating coordinator with compaction completion.");
                 updateCompactionCompleted(job, JOB_HOLDER.getStats());
+                completed.incrementAndGet();
                 // job completed successfully, clear the error history
                 errorHistory.clear();
               } catch (RetriesExceededException e) {
@@ -990,6 +1036,7 @@ public class Compactor extends AbstractServer
       }
 
       gcLogger.logGCInfo(getConfiguration());
+      super.close();
       getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
       try {
