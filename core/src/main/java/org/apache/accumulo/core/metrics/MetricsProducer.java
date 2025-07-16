@@ -73,6 +73,41 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>FunctionCounter</td>
  * <td>Number of entries written by all threads performing compactions</td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_COMPACTIONS_CANCELLED}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of compactions cancelled on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_COMPACTIONS_COMPLETED}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of compactions completed on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_COMPACTIONS_FAILED}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of compactions failed on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_FAILURES_CONSECUTIVE}</td>
+ * <td>Gauge</td>
+ * <td>Number of consecutive compaction failures on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_FAILURES_TERMINATION}</td>
+ * <td>Gauge</td>
+ * <td>Number of Compactors terminated due to consecutive failures</td>
+ * </tr>
  * <!-- fate -->
  * <tr>
  * <td>currentFateOps</td>
