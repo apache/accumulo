@@ -68,7 +68,9 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -192,6 +194,8 @@ public class FateIT {
 
   private static AtomicInteger nextFateDir = new AtomicInteger(0);
 
+    Fate<Manager> fate;
+
   private enum ExceptionLocation {
     CALL, IS_READY
   };
@@ -208,6 +212,29 @@ public class FateIT {
     zc = new ZooCache(zk, null);
   }
 
+    @BeforeEach
+    public void beforeEach() throws Exception {
+        final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, zc);
+        final AgeOffStore<Manager> store =
+                new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
+
+        Manager manager = createMock(Manager.class);
+        ServerContext sctx = createMock(ServerContext.class);
+        expect(manager.getContext()).andReturn(sctx).anyTimes();
+        expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+        expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+        replay(manager, sctx);
+
+        fate = new Fate<>(manager, store, TraceRepo::toLogString);
+    }
+
+    @AfterEach
+    public void afterEach() {
+        if (fate != null) {
+            fate.shutdown(true);
+        }
+    }
+
   @AfterAll
   public static void teardown() throws Exception {
     szk.close();
@@ -217,19 +244,6 @@ public class FateIT {
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
-
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
@@ -284,26 +298,11 @@ public class FateIT {
         // keep waiting for NoNode
         return false;
       }, SECONDS.toMillis(30), 10);
-    } finally {
-      fate.shutdown(true);
-    }
   }
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
@@ -327,25 +326,10 @@ public class FateIT {
       assertEquals(1, callStarted.getCount());
       fate.delete(txid);
       assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
-    } finally {
-      fate.shutdown(true);
-    }
   }
 
   @Test
   public void testCancelWhileSubmittedNotRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
-
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
 
@@ -363,23 +347,12 @@ public class FateIT {
     fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
     assertEquals(SUBMITTED, getTxStatus(zk, txid));
     assertTrue(fate.cancel(txid));
+    fate = null;
   }
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
@@ -404,26 +377,11 @@ public class FateIT {
       Wait.waitFor(() -> IN_PROGRESS != getTxStatus(zk, txid));
       fate.delete(txid);
       assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
-    } finally {
-      fate.shutdown(true);
-    }
   }
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
@@ -445,10 +403,6 @@ public class FateIT {
       callStarted.await();
       // cancel the transaction
       assertFalse(fate.cancel(txid));
-    } finally {
-      fate.shutdown(true);
-    }
-
   }
 
   @Test
@@ -460,19 +414,7 @@ public class FateIT {
      * is called and throws an exception (in call() or isReady()). It is then expected that: 1)
      * undo() is called on Repo3, 2) undo() is called on Repo2, 3) undo() is called on Repo1
      */
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
       ConfigurationCopy config = new ConfigurationCopy();
       config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
       config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
@@ -509,9 +451,6 @@ public class FateIT {
       assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
       assertEquals(FAILED, fate.waitForCompletion(txid));
       assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
-    } finally {
-      fate.shutdown(true);
-    }
   }
 
   private static void inCall() throws InterruptedException {
