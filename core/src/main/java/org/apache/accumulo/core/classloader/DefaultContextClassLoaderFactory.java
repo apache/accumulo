@@ -98,8 +98,12 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
 
   @SuppressWarnings("deprecation")
   @Override
-  public ClassLoader getClassLoader(String contextName) throws IOException {
-    return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
-        .getContextClassLoader(contextName);
+  public ClassLoader getClassLoader(String contextName) throws ContextClassLoaderException {
+    try {
+      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
+          .getContextClassLoader(contextName);
+    } catch (IOException e) {
+      throw new ContextClassLoaderException(contextName, e);
+    }
   }
 }

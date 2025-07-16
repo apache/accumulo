@@ -48,7 +48,7 @@ public class SamplerFactory {
 
       return sampler;
 
-    } catch (ReflectiveOperationException | IOException | RuntimeException e) {
+    } catch (ReflectiveOperationException | RuntimeException e) {
       log.error("Cannot initialize sampler {}: {}", config.getClassName(), e.getMessage(), e);
       return null;
     }

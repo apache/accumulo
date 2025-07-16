@@ -132,7 +132,7 @@ public abstract class TypedValueCombiner<V> extends Combiner {
       Class<? extends Encoder<V>> clazz =
           (Class<? extends Encoder<V>>) ClassLoaderUtil.loadClass(encoderClass, Encoder.class);
       encoder = clazz.getDeclaredConstructor().newInstance();
-    } catch (IOException | ReflectiveOperationException e) {
+    } catch (ReflectiveOperationException e) {
       throw new IllegalArgumentException(e);
     }
   }

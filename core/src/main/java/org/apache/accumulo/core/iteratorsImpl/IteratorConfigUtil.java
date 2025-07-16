@@ -236,7 +236,7 @@ public class IteratorConfigUtil {
   }
 
   private static Class<SortedKeyValueIterator<Key,Value>> loadClass(boolean useAccumuloClassLoader,
-      String context, IterInfo iterInfo) throws IOException, ReflectiveOperationException {
+      String context, IterInfo iterInfo) throws ReflectiveOperationException {
     if (useAccumuloClassLoader) {
       @SuppressWarnings("unchecked")
       var clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,

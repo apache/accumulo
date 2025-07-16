@@ -20,7 +20,6 @@ package org.apache.accumulo.server.metrics;
 
 import static org.apache.hadoop.util.StringUtils.getTrimmedStrings;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -161,7 +160,7 @@ public class MetricsInfoImpl implements MetricsInfo {
         registry.config().meterFilter(replicationFilter);
         registry.config().commonTags(commonTags);
         Metrics.globalRegistry.add(registry);
-      } catch (ReflectiveOperationException | IOException ex) {
+      } catch (ReflectiveOperationException ex) {
         LOG.warn("Could not load registry {}", factoryName, ex);
       }
     }
@@ -207,7 +206,7 @@ public class MetricsInfoImpl implements MetricsInfo {
   @VisibleForTesting
   @SuppressWarnings("deprecation")
   static MeterRegistry getRegistryFromFactory(final String factoryName, final ServerContext context)
-      throws IOException, ReflectiveOperationException {
+      throws ReflectiveOperationException {
     try {
       LOG.info("look for meter spi registry factory {}", factoryName);
       Class<? extends org.apache.accumulo.core.spi.metrics.MeterRegistryFactory> clazz =

@@ -23,6 +23,7 @@ import java.io.IOException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -76,12 +77,15 @@ public class ClassLoaderUtil {
   }
 
   @SuppressWarnings("deprecation")
-  public static ClassLoader getClassLoader(String context)
-      throws IOException, ReflectiveOperationException {
+  public static ClassLoader getClassLoader(String context) throws ContextClassLoaderException {
     if (context != null && !context.isEmpty()) {
       return FACTORY.getClassLoader(context);
     } else {
-      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
+      try {
+        return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader.getClassLoader();
+      } catch (IOException e) {
+        throw new ContextClassLoaderException(context, e);
+      }
     }
   }
 
@@ -95,7 +99,7 @@ public class ClassLoaderUtil {
           return false;
         }
         return true;
-      } catch (IOException | ReflectiveOperationException e) {
+      } catch (ContextClassLoaderException e) {
         LOG.debug("Context {} is not valid.", context, e);
         return false;
       }
@@ -105,12 +109,16 @@ public class ClassLoaderUtil {
   }
 
   public static <U> Class<? extends U> loadClass(String context, String className,
-      Class<U> extension) throws IOException, ReflectiveOperationException {
-    return getClassLoader(context).loadClass(className).asSubclass(extension);
+      Class<U> extension) throws ReflectiveOperationException {
+    try {
+      return getClassLoader(context).loadClass(className).asSubclass(extension);
+    } catch (ContextClassLoaderException e) {
+      throw new ClassNotFoundException("Error loading class from context: " + context, e);
+    }
   }
 
   public static <U> Class<? extends U> loadClass(String className, Class<U> extension)
-      throws IOException, ReflectiveOperationException {
+      throws ReflectiveOperationException {
     return loadClass(null, className, extension);
   }
 
