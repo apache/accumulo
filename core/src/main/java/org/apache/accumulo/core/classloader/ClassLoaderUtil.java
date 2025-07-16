@@ -109,7 +109,7 @@ public class ClassLoaderUtil {
   }
 
   public static <U> Class<? extends U> loadClass(String context, String className,
-      Class<U> extension) throws ReflectiveOperationException {
+      Class<U> extension) throws ClassNotFoundException {
     try {
       return getClassLoader(context).loadClass(className).asSubclass(extension);
     } catch (ContextClassLoaderException e) {
@@ -118,7 +118,7 @@ public class ClassLoaderUtil {
   }
 
   public static <U> Class<? extends U> loadClass(String className, Class<U> extension)
-      throws ReflectiveOperationException {
+      throws ClassNotFoundException {
     return loadClass(null, className, extension);
   }
 

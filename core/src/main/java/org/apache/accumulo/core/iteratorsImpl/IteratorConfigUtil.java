@@ -226,7 +226,7 @@ public class IteratorConfigUtil {
         skvi.init(prev, options, iteratorBuilder.iteratorEnvironment);
         prev = skvi;
 
-      } catch (ReflectiveOperationException e) {
+      } catch (ClassNotFoundException e) {
         log.error("Failed to load iterator {}, for table {}, from context {}", iterInfo.className,
             iteratorBuilder.iteratorEnvironment.getTableId(), iteratorBuilder.context, e);
         throw e;
@@ -236,7 +236,7 @@ public class IteratorConfigUtil {
   }
 
   private static Class<SortedKeyValueIterator<Key,Value>> loadClass(boolean useAccumuloClassLoader,
-      String context, IterInfo iterInfo) throws ReflectiveOperationException {
+      String context, IterInfo iterInfo) throws ClassNotFoundException {
     if (useAccumuloClassLoader) {
       @SuppressWarnings("unchecked")
       var clazz = (Class<SortedKeyValueIterator<Key,Value>>) ClassLoaderUtil.loadClass(context,
