@@ -902,8 +902,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       throw new RuntimeException(e);
     }
 
-    tserverSet.setCback(this);
-
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
     //
@@ -959,7 +957,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    tserverSet.startListeningForTabletServerChanges();
+    tserverSet.startListeningForTabletServerChanges(this);
     try {
       blockForTservers();
     } catch (InterruptedException ex) {

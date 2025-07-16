@@ -65,7 +65,8 @@ public class FindOfflineTablets {
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
     LiveTServerSet tservers = new LiveTServerSet(context);
-    tservers.setCback(new Listener() {
+
+    tservers.startListeningForTabletServerChanges(new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
@@ -77,7 +78,6 @@ public class FindOfflineTablets {
         }
       }
     });
-    tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
     int offline = 0;

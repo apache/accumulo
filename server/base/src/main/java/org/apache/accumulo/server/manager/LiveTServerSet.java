@@ -218,23 +218,19 @@ public class LiveTServerSet implements ZooCacheWatcher {
     this.context = context;
   }
 
-  public void setCback(Listener cback) {
+  private Listener getCback() {
+    // fail fast if not yet set
+    return Objects.requireNonNull(cback.get());
+  }
+
+  public synchronized void startListeningForTabletServerChanges(Listener cback) {
+    scanServers();
     Objects.requireNonNull(cback);
     if (this.cback.compareAndSet(null, cback)) {
       this.context.getZooCache().addZooCacheWatcher(this);
     } else if (this.cback.get() != cback) {
       throw new IllegalStateException("Attempted to set different cback object");
     }
-  }
-
-  private Listener getCback() {
-    // fail fast if not yet set
-    return Objects.requireNonNull(cback.get());
-  }
-
-  public synchronized void startListeningForTabletServerChanges() {
-    scanServers();
-
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
   }
@@ -479,7 +475,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     return find(current, tabletServer);
   }
 
-  TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
+  static TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
     HostAndPort addr;
     String sessionId = null;
     if (tabletServer.charAt(tabletServer.length() - 1) == ']') {
