@@ -419,9 +419,19 @@ public class Fate<T> {
   /**
    * Flags that FATE threadpool to clear out and end. Does not actively stop running FATE processes.
    */
-  public void shutdown() {
+  public void shutdown(boolean wait) {
     keepRunning.set(false);
-    executor.shutdown();
+    if (wait) {
+      executor.shutdownNow();
+      while (!executor.isTerminated()) {
+        try {
+          executor.awaitTermination(1, SECONDS);
+        } catch (InterruptedException e) {
+          throw new IllegalStateException(e);
+        }
+      }
+    } else {
+      executor.shutdown();
+    }
   }
-
 }

@@ -1458,7 +1458,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     sa.server.stop();
 
     log.debug("Shutting down fate.");
-    fate().shutdown();
+    fate().shutdown(false);
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
