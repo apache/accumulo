@@ -973,14 +973,6 @@ public class Mutation implements Writable {
       return family(colFam.getBytes(), colFam.getLength());
     }
 
-    /**
-     * Sets the column family, column qualifier, and column visibility of a mutation. All other
-     * fields in the key are ignored.
-     *
-     * @param key key
-     * @return a TimestampOptions object, advancing the method chain
-     * @since 4.0.0
-     */
     @Override
     public TimestampOptions keyColumns(Key key) {
       Objects.requireNonNull(key, "key cannot be null");

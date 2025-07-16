@@ -410,7 +410,7 @@ public class MutationTest {
   }
 
   @Test
-  public void testPuts() { // ------------------------------
+  public void testPuts() {
     Mutation m = new Mutation(new Text("r1"));
 
     m.put(nt("cf1"), nt("cq1"), nv("v1"));
