@@ -168,26 +168,23 @@ public class Compactor extends AbstractServer
     }
 
     /**
-     * Add error for table, and return total number of failures for the table
+     * Add error for table
      *
      * @param tid table id
      * @param error exception
-     * @return total number of failures for table
      */
-    public long addError(TableId tid, Throwable error) {
+    public void addError(TableId tid, Throwable error) {
       computeIfAbsent(tid, t -> new HashMap<String,AtomicLong>())
           .computeIfAbsent(error.toString(), e -> new AtomicLong(0)).incrementAndGet();
-      return getTotalTableFailures(tid);
     }
 
     @Override
     public String toString() {
       StringBuilder buf = new StringBuilder();
-      buf.append("\n");
       for (TableId tid : keySet()) {
-        buf.append("Table: ").append(tid).append("\n");
+        buf.append("\nTable: ").append(tid);
         for (Entry<String,AtomicLong> error : get(tid).entrySet()) {
-          buf.append("\tException: ").append(error.getKey()).append(", count: ")
+          buf.append("\n\tException: ").append(error.getKey()).append(", count: ")
               .append(error.getValue().get());
         }
       }
@@ -919,9 +916,7 @@ public class Compactor extends AbstractServer
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
                 updateCompactionFailed(job, err.get());
-                long failures = errorHistory.addError(fromThriftExtent.tableId(), err.get());
-                LOG.warn("Compaction for table {} has failed {} times", fromThriftExtent.tableId(),
-                    failures);
+                errorHistory.addError(fromThriftExtent.tableId(), err.get());
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent, e);
