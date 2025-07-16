@@ -421,6 +421,9 @@ public class Fate<T> {
    */
   public void shutdown(boolean wait) {
     keepRunning.set(false);
+    if (executor == null) {
+      return;
+    }
     executor.shutdownNow();
     if (wait) {
       while (!executor.isTerminated()) {

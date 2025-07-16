@@ -346,7 +346,6 @@ public class FateIT {
     fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
     assertEquals(SUBMITTED, getTxStatus(zk, txid));
     assertTrue(fate.cancel(txid));
-    fate = null;
   }
 
   @Test
