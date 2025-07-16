@@ -35,7 +35,6 @@ import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.coordinator.QueueSummaries.PrioTserver;
@@ -97,6 +96,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -132,9 +132,36 @@ public class CompactionCoordinator extends AbstractServer implements
   /* Map of queue name to last time compactor called to get a compaction job */
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
 
-  private final ConcurrentHashMap<String,AtomicLong> failingQueues = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<String,AtomicLong> failingCompactors = new ConcurrentHashMap<>();
-  private final ConcurrentHashMap<TableId,AtomicLong> failingTables = new ConcurrentHashMap<>();
+  static class FailureCounts {
+    long failures;
+    long successes;
+
+    FailureCounts(long failures, long successes) {
+      this.failures = failures;
+      this.successes = successes;
+    }
+
+    static FailureCounts incrementFailure(Object key, FailureCounts counts) {
+      if (counts == null) {
+        return new FailureCounts(1, 0);
+      }
+      counts.failures++;
+      return counts;
+    }
+
+    static FailureCounts incrementSuccess(Object key, FailureCounts counts) {
+      if (counts == null) {
+        return new FailureCounts(0, 1);
+      }
+      counts.successes++;
+      return counts;
+    }
+  }
+
+  private final ConcurrentHashMap<String,FailureCounts> failingQueues = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String,FailureCounts> failingCompactors =
+      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<TableId,FailureCounts> failingTables = new ConcurrentHashMap<>();
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   protected AuditedSecurityOperation security;
@@ -641,20 +668,45 @@ public class CompactionCoordinator extends AbstractServer implements
     var rc = RUNNING_CACHE.get(ecid);
     if (rc != null) {
       final String queue = rc.getQueueName();
-      failingQueues.computeIfAbsent(queue, q -> new AtomicLong(0)).incrementAndGet();
+      failingQueues.compute(queue, FailureCounts::incrementFailure);
       final String compactor = rc.getCompactorAddress();
-      failingCompactors.computeIfAbsent(compactor, c -> new AtomicLong(0)).incrementAndGet();
+      failingCompactors.compute(compactor, FailureCounts::incrementFailure);
     }
-    failingTables.computeIfAbsent(extent.tableId(), t -> new AtomicLong(0)).incrementAndGet();
+    failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
   }
 
   protected void startFailureSummaryLogging() {
     ScheduledFuture<?> future = getContext().getScheduledExecutor()
-        .scheduleWithFixedDelay(this::printFailures, 0, 5, TimeUnit.MINUTES);
+        .scheduleWithFixedDelay(this::printStats, 0, 5, TimeUnit.MINUTES);
     ThreadPools.watchNonCriticalScheduledTask(future);
   }
 
-  private void printFailures() {
+  private <T> void printStats(String logPrefix, ConcurrentHashMap<T,FailureCounts> failureCounts,
+      boolean logSuccessAtTrace) {
+    for (var key : failureCounts.keySet()) {
+      failureCounts.compute(key, (k, counts) -> {
+        if (counts != null) {
+          Level level;
+          if (counts.failures > 0) {
+            level = Level.WARN;
+          } else if (logSuccessAtTrace) {
+            level = Level.TRACE;
+          } else {
+            level = Level.DEBUG;
+          }
+
+          LOG.atLevel(level).log("{} {} failures:{} successes:{} since last time this was logged ",
+              logPrefix, k, counts.failures, counts.successes);
+        }
+
+        // clear the counts so they can start building up for the next logging if this key is ever
+        // used again
+        return null;
+      });
+    }
+  }
+
+  private void printStats() {
 
     // Remove down compactors from failing list
     Map<String,List<HostAndPort>> allCompactors =
@@ -663,45 +715,20 @@ public class CompactionCoordinator extends AbstractServer implements
     allCompactors.values().forEach(l -> l.forEach(c -> allCompactorAddrs.add(c.toString())));
     failingCompactors.keySet().retainAll(allCompactorAddrs);
 
-    LOG.warn("Compaction failure summary:");
-    LOG.warn("Queue failures: {}", failingQueues);
-    LOG.warn("Table failures: {}", failingTables);
-    LOG.warn("Compactor failures: {}", failingCompactors);
+    printStats("Queue", failingQueues, false);
+    printStats("Table", failingTables, false);
+    printStats("Compactor", failingCompactors, true);
   }
 
   private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {
     var rc = RUNNING_CACHE.get(ecid);
     if (rc != null) {
       final String queue = rc.getQueueName();
-      failingQueues.computeIfPresent(queue, (q, curr) -> {
-        long currentValue = Math.max(0L, curr.get() - 1);
-        if (currentValue == 0) {
-          return null; // remove from the map
-        } else {
-          curr.set(currentValue);
-          return curr;
-        }
-      });
+      failingQueues.compute(queue, FailureCounts::incrementSuccess);
       final String compactor = rc.getCompactorAddress();
-      failingCompactors.computeIfPresent(compactor, (c, curr) -> {
-        long currentValue = Math.max(0L, curr.get() - 1);
-        if (currentValue == 0) {
-          return null; // remove from the map
-        } else {
-          curr.set(currentValue);
-          return curr;
-        }
-      });
+      failingCompactors.compute(compactor, FailureCounts::incrementSuccess);
     }
-    failingTables.computeIfPresent(extent.tableId(), (t, curr) -> {
-      long currentValue = Math.max(0L, curr.get() - 1);
-      if (currentValue == 0) {
-        return null; // remove from the map
-      } else {
-        curr.set(currentValue);
-        return curr;
-      }
-    });
+    failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {
