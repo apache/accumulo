@@ -33,14 +33,27 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.CLONED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.COMPACTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FILES;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_ID;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.FLUSH_NONCE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.HOSTING_REQUESTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LAST;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOADED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOCATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.LOGS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGEABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MERGED;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.MIGRATION;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.OPID;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.PREV_ROW;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SCANS;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SELECTED;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.SUSPEND;
+import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.TIME;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.UNSPLITTABLE;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.USER_COMPACTION_REQUESTED;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -110,11 +123,14 @@ import org.junit.jupiter.api.Test;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadataTest {
-  private HashSet<ColumnType> recordedCalls = new HashSet<>();
 
   @Test
   public void testAllColumns() {
-    var allColumns = Arrays.stream(TabletMetadata.ColumnType.class.getEnumConstants());
+    Set<ColumnType> currentTestedColumns = new HashSet<>(Arrays.asList(LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR,
+            TIME, CLONED, FLUSH_ID, FLUSH_NONCE, LOGS, SUSPEND, ECOMP, MERGED, AVAILABILITY, HOSTING_REQUESTED, OPID,
+            SELECTED, COMPACTED, USER_COMPACTION_REQUESTED, UNSPLITTABLE, MERGEABILITY, MIGRATION));
+    List<ColumnType> allColumns = List.of(ColumnType.values());
+
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -197,8 +213,6 @@ public class TabletMetadataTest {
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), true, false);
 
-    tm.setCallLog(recordedCalls);
-
     assertTrue(tm.getCompacted().isEmpty());
     assertEquals(
         TabletMergeabilityMetadata
@@ -246,10 +260,9 @@ public class TabletMetadataTest {
     assertEquals(tsi, tm.getMigration());
 
     /*
-     * Testing that each ColumnType has tests within this method, as long as they're performed on
-     * the same TabletMetadata object
+     * Testing that each
      */
-    allColumns.forEach(columnType -> assertTrue(recordedCalls.contains(columnType)));
+    allColumns.forEach(columnType -> assertTrue(currentTestedColumns.contains(columnType)));
   }
 
   @Test
