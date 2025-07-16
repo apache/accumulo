@@ -26,8 +26,12 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.AVAILABILITY;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.DIR;
 import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType.ECOMP;
@@ -49,7 +53,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.AbstractMap;
+import java.util.Arrays;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +70,7 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -103,9 +110,11 @@ import org.junit.jupiter.api.Test;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadataTest {
+  private HashSet<ColumnType> recordedCalls = new HashSet<>();
 
   @Test
   public void testAllColumns() {
+    var allColumns = Arrays.stream(TabletMetadata.ColumnType.class.getEnumConstants());
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
     Mutation mutation = TabletColumnFamily.createPrevRowMutation(extent);
@@ -117,6 +126,15 @@ public class TabletMetadataTest {
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
+    OPID_COLUMN.put(mutation,
+        new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
+    SELECTED_COLUMN.put(mutation,
+        new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(
+            new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf"))
+            .insert()), true, fateId1, SteadyTime.from(100, TimeUnit.NANOSECONDS))
+            .getMetadataValue()));
+    AVAILABILITY_COLUMN.put(mutation, TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
+    MERGEABILITY_COLUMN.put(mutation, new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}"));
 
     String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
     String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
@@ -153,10 +171,11 @@ public class TabletMetadataTest {
         UnSplittableMetadata.toUnSplittable(extent, 100, 110, 120, Set.of(sf1, sf2));
     SplitColumnFamily.UNSPLITTABLE_COLUMN.put(mutation, new Value(unsplittableMeta.toBase64()));
 
-    SteadyTime suspensionTime = SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS);
+    SteadyTime suspensionTime = SteadyTime.from(1000L, TimeUnit.MILLISECONDS);
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
     Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
     SUSPEND_COLUMN.put(mutation, suspend);
+
     FLUSH_NONCE_COLUMN.put(mutation, new Value(Long.toHexString(10L)));
 
     ExternalCompactionId ecid = ExternalCompactionId.generate(UUID.randomUUID());
@@ -170,6 +189,7 @@ public class TabletMetadataTest {
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
 
     TServerInstance tsi = new TServerInstance("localhost:9997", 5000L);
+
     MIGRATION_COLUMN.put(mutation, new Value(tsi.getHostPortSession()));
 
     SortedMap<Key,Value> rowMap = toRowMap(mutation);
@@ -177,6 +197,20 @@ public class TabletMetadataTest {
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), true, false);
 
+    tm.setCallLog(recordedCalls);
+
+    assertTrue(tm.getCompacted().isEmpty());
+    assertEquals(
+        TabletMergeabilityMetadata
+            .fromValue(new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}")).toJson(),
+        TabletMergeabilityMetadata.toValue(tm.getTabletMergeability()).toString());
+    assertEquals(TabletAvailability.ONDEMAND, tm.getTabletAvailability());
+    assertEquals("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf",
+        tm.getSelectedFiles().getFiles().iterator().next().getMetadataPath());
+    assertEquals("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12",
+        tm.getOperationId().toString());
+    assertFalse(tm.getHostingRequested());
+    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
     assertEquals("OK", tm.getCloned());
     assertEquals("t-0001757", tm.getDirName());
     assertEquals(extent.endRow(), tm.getEndRow());
@@ -210,6 +244,12 @@ public class TabletMetadataTest {
     assertEquals(ecMeta.toJson(), tm.getExternalCompactions().get(ecid).toJson());
     assertEquals(10, tm.getFlushNonce().getAsLong());
     assertEquals(tsi, tm.getMigration());
+
+    /*
+     * Testing that each ColumnType has tests within this method, as long as they're performed on
+     * the same TabletMetadata object
+     */
+    allColumns.forEach(columnType -> assertTrue(recordedCalls.contains(columnType)));
   }
 
   @Test

@@ -113,6 +113,7 @@ import com.google.common.net.HostAndPort;
 public class TabletMetadata {
 
   private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
+  private Set<ColumnType> callLog;
 
   private final TableId tableId;
   private final Text prevEndRow;
@@ -148,6 +149,7 @@ public class TabletMetadata {
   private final TServerInstance migration;
 
   private TabletMetadata(Builder tmBuilder) {
+    this.callLog = new HashSet<>();
     this.tableId = tmBuilder.tableId;
     this.prevEndRow = tmBuilder.prevEndRow;
     this.sawPrevEndRow = tmBuilder.sawPrevEndRow;
@@ -471,6 +473,12 @@ public class TabletMetadata {
 
   }
 
+  // For testing. callLog is a set that adds ColumnTypes that are called during the testing on this
+  // TabletMetadata obj.
+  public void setCallLog(HashSet<ColumnType> callLog) {
+    this.callLog = callLog;
+  }
+
   public TableId getTableId() {
     return tableId;
   }
@@ -481,6 +489,8 @@ public class TabletMetadata {
 
   private void ensureFetched(ColumnType col) {
     Preconditions.checkState(fetchedCols.contains(col), "%s was not fetched", col);
+    // For testing. All ColumnTypes that get called in this object are added here
+    callLog.add(col);
   }
 
   public Text getPrevEndRow() {
