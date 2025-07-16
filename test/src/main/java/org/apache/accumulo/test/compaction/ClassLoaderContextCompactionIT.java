@@ -59,8 +59,10 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
     ExternalCompactionTestUtils.configureMiniCluster(cfg, coreSite);
-    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL, "15s");
-    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD, "2");
+    // After 1 failure start backing off by 5s.
+    // After 3 failures, terminate the Compactor
+    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD, "1");
+    cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL, "5s");
     cfg.setProperty(Property.COMPACTOR_FAILURE_BACKOFF_RESET, "10m");
     cfg.setProperty(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD, "3");
     cfg.setNumCompactors(2);
@@ -127,7 +129,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       // delete Test.jar, so that the classloader will fail
       assertTrue(fs.delete(dst, false));
 
-      // Start a compaction. The invalid cache dir property should cause a failure
+      // Start a compaction. The missing jar should cause a failure
       client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
@@ -146,10 +148,7 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
               == null);
       assertEquals(1, ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client));
 
-      client.tableOperations().compact(table1, new CompactionConfig().setWait(false));
-      Wait.waitFor(
-          () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
-              == null);
+      // Three failures have occurred, Compactor should shut down.
       Wait.waitFor(
           () -> ExternalCompactionUtil.countCompactors(QUEUE1, (ClientContext) client) == 0);
 

@@ -730,7 +730,7 @@ public class Compactor extends AbstractServer
             "Consecutive failures has exceeded failure threshold, exiting...");
       }
       if (totalFailures
-          > getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
+          >= getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
         final long interval =
             getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
         if (interval > 0) {
