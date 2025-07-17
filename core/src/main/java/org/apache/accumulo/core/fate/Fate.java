@@ -421,8 +421,11 @@ public class Fate<T> {
    */
   public void shutdown(boolean wait) {
     keepRunning.set(false);
+    if (executor == null) {
+      return;
+    }
+    executor.shutdownNow();
     if (wait) {
-      executor.shutdownNow();
       while (!executor.isTerminated()) {
         try {
           executor.awaitTermination(1, SECONDS);
@@ -430,8 +433,6 @@ public class Fate<T> {
           throw new IllegalStateException(e);
         }
       }
-    } else {
-      executor.shutdown();
     }
   }
 }

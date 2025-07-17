@@ -68,7 +68,9 @@ import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.KeeperException;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
@@ -192,6 +194,8 @@ public class FateIT {
 
   private static AtomicInteger nextFateDir = new AtomicInteger(0);
 
+  Fate<Manager> fate;
+
   private enum ExceptionLocation {
     CALL, IS_READY
   };
@@ -208,6 +212,28 @@ public class FateIT {
     zc = new ZooCache(zk, null);
   }
 
+  @BeforeEach
+  public void beforeEach() throws Exception {
+    final ZooStore<Manager> zooStore = new ZooStore<>(ZK_ROOT + Constants.ZFATE, zk, zc);
+    final AgeOffStore<Manager> store = new AgeOffStore<>(zooStore, 3000, System::currentTimeMillis);
+
+    Manager manager = createMock(Manager.class);
+    ServerContext sctx = createMock(ServerContext.class);
+    expect(manager.getContext()).andReturn(sctx).anyTimes();
+    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
+    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
+    replay(manager, sctx);
+
+    fate = new Fate<>(manager, store, TraceRepo::toLogString);
+  }
+
+  @AfterEach
+  public void afterEach() {
+    if (fate != null) {
+      fate.shutdown(true);
+    }
+  }
+
   @AfterAll
   public static void teardown() throws Exception {
     szk.close();
@@ -217,135 +243,92 @@ public class FateIT {
   @Timeout(30)
   public void testTransactionStatus() throws Exception {
 
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    long txid = fate.startTransaction();
+    assertEquals(TStatus.NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
+    assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
 
-      callStarted = new CountDownLatch(1);
-      finishCall = new CountDownLatch(1);
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
 
-      long txid = fate.startTransaction();
-      assertEquals(TStatus.NEW, getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(TStatus.SUBMITTED, getTxStatus(zk, txid));
-
-      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
-
-      // wait for call() to be called
-      callStarted.await();
-      assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
-      // tell the op to exit the method
-      finishCall.countDown();
-      // Check that it transitions to SUCCESSFUL and gets removed
-      final var sawSuccess = new AtomicBoolean(false);
-      Wait.waitFor(() -> {
-        TStatus s;
-        try {
-          switch (s = getTxStatus(zk, txid)) {
-            case IN_PROGRESS:
-              if (sawSuccess.get()) {
-                fail("Should never see IN_PROGRESS after seeing SUCCESSFUL");
-              }
-              break;
-            case SUCCESSFUL:
-              // expected, but might be too quick to be detected
-              if (sawSuccess.compareAndSet(false, true)) {
-                LOG.debug("Saw expected transaction status change to SUCCESSFUL");
-              }
-              break;
-            default:
-              fail("Saw unexpected status: " + s);
-          }
-        } catch (KeeperException e) {
-          if (e.code() == KeeperException.Code.NONODE) {
-            if (!sawSuccess.get()) {
-              LOG.debug("Never saw transaction status change to SUCCESSFUL, but that's okay");
+    // wait for call() to be called
+    callStarted.await();
+    assertEquals(IN_PROGRESS, getTxStatus(zk, txid));
+    // tell the op to exit the method
+    finishCall.countDown();
+    // Check that it transitions to SUCCESSFUL and gets removed
+    final var sawSuccess = new AtomicBoolean(false);
+    Wait.waitFor(() -> {
+      TStatus s;
+      try {
+        switch (s = getTxStatus(zk, txid)) {
+          case IN_PROGRESS:
+            if (sawSuccess.get()) {
+              fail("Should never see IN_PROGRESS after seeing SUCCESSFUL");
             }
-            return true;
-          } else {
-            fail("Unexpected error thrown: " + e.getMessage());
-          }
+            break;
+          case SUCCESSFUL:
+            // expected, but might be too quick to be detected
+            if (sawSuccess.compareAndSet(false, true)) {
+              LOG.debug("Saw expected transaction status change to SUCCESSFUL");
+            }
+            break;
+          default:
+            fail("Saw unexpected status: " + s);
         }
-        // keep waiting for NoNode
-        return false;
-      }, SECONDS.toMillis(30), 10);
-    } finally {
-      fate.shutdown(true);
-    }
+      } catch (KeeperException e) {
+        if (e.code() == KeeperException.Code.NONODE) {
+          if (!sawSuccess.get()) {
+            LOG.debug("Never saw transaction status change to SUCCESSFUL, but that's okay");
+          }
+          return true;
+        } else {
+          fail("Unexpected error thrown: " + e.getMessage());
+        }
+      }
+      // keep waiting for NoNode
+      return false;
+    }, SECONDS.toMillis(30), 10);
   }
 
   @Test
   public void testCancelWhileNew() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
 
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
 
-      callStarted = new CountDownLatch(1);
-      finishCall = new CountDownLatch(1);
-
-      long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileNew with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(zk, txid));
-      // cancel the transaction
-      assertTrue(fate.cancel(txid));
-      assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      Wait.waitFor(() -> FAILED == getTxStatus(zk, txid));
-      // nothing should have run
-      assertEquals(1, callStarted.getCount());
-      fate.delete(txid);
-      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
-    } finally {
-      fate.shutdown(true);
-    }
+    long txid = fate.startTransaction();
+    LOG.debug("Starting test testCancelWhileNew with {}", FateTxId.formatTid(txid));
+    assertEquals(NEW, getTxStatus(zk, txid));
+    // cancel the transaction
+    assertTrue(fate.cancel(txid));
+    assertTrue(FAILED_IN_PROGRESS == getTxStatus(zk, txid) || FAILED == getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
+    Wait.waitFor(() -> FAILED == getTxStatus(zk, txid));
+    // nothing should have run
+    assertEquals(1, callStarted.getCount());
+    fate.delete(txid);
+    assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
   }
 
   @Test
   public void testCancelWhileSubmittedNotRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
-
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
-
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
     ConfigurationCopy config = new ConfigurationCopy();
     config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
 
@@ -367,88 +350,57 @@ public class FateIT {
 
   @Test
   public void testCancelWhileSubmittedAndRunning() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
 
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
 
-      callStarted = new CountDownLatch(1);
-      finishCall = new CountDownLatch(1);
-
-      long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), false, "Test Op");
-      Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
-      // This is false because the transaction runner has reserved the FaTe
-      // transaction.
-      assertFalse(fate.cancel(txid));
-      callStarted.await();
-      finishCall.countDown();
-      Wait.waitFor(() -> IN_PROGRESS != getTxStatus(zk, txid));
-      fate.delete(txid);
-      assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
-    } finally {
-      fate.shutdown(true);
-    }
+    long txid = fate.startTransaction();
+    LOG.debug("Starting test testCancelWhileSubmitted with {}", FateTxId.formatTid(txid));
+    assertEquals(NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), false, "Test Op");
+    Wait.waitFor(() -> IN_PROGRESS == getTxStatus(zk, txid));
+    // This is false because the transaction runner has reserved the FaTe
+    // transaction.
+    assertFalse(fate.cancel(txid));
+    callStarted.await();
+    finishCall.countDown();
+    Wait.waitFor(() -> IN_PROGRESS != getTxStatus(zk, txid));
+    fate.delete(txid);
+    assertThrows(KeeperException.NoNodeException.class, () -> getTxStatus(zk, txid));
   }
 
   @Test
   public void testCancelWhileInCall() throws Exception {
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    callStarted = new CountDownLatch(1);
+    finishCall = new CountDownLatch(1);
 
-      callStarted = new CountDownLatch(1);
-      finishCall = new CountDownLatch(1);
+    long txid = fate.startTransaction();
+    LOG.debug("Starting test testCancelWhileInCall with {}", FateTxId.formatTid(txid));
+    assertEquals(NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
+    assertEquals(SUBMITTED, getTxStatus(zk, txid));
 
-      long txid = fate.startTransaction();
-      LOG.debug("Starting test testCancelWhileInCall with {}", FateTxId.formatTid(txid));
-      assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperation", txid, new TestOperation(NS, TID), true, "Test Op");
-      assertEquals(SUBMITTED, getTxStatus(zk, txid));
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
 
-      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
-
-      // wait for call() to be called
-      callStarted.await();
-      // cancel the transaction
-      assertFalse(fate.cancel(txid));
-    } finally {
-      fate.shutdown(true);
-    }
-
+    // wait for call() to be called
+    callStarted.await();
+    // cancel the transaction
+    assertFalse(fate.cancel(txid));
   }
 
   @Test
@@ -460,58 +412,43 @@ public class FateIT {
      * is called and throws an exception (in call() or isReady()). It is then expected that: 1)
      * undo() is called on Repo3, 2) undo() is called on Repo2, 3) undo() is called on Repo1
      */
-    final ZooStore<Manager> zooStore = new ZooStore<Manager>(ZK_ROOT + Constants.ZFATE, zk, zc);
-    final AgeOffStore<Manager> store =
-        new AgeOffStore<Manager>(zooStore, 3000, System::currentTimeMillis);
 
-    Manager manager = createMock(Manager.class);
-    ServerContext sctx = createMock(ServerContext.class);
-    expect(manager.getContext()).andReturn(sctx).anyTimes();
-    expect(sctx.getZooKeeperRoot()).andReturn(ZK_ROOT).anyTimes();
-    expect(sctx.getZooReaderWriter()).andReturn(zk).anyTimes();
-    replay(manager, sctx);
+    ConfigurationCopy config = new ConfigurationCopy();
+    config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
+    config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
+    fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
 
-    Fate<Manager> fate = new Fate<Manager>(manager, store, TraceRepo::toLogString);
-    try {
-      ConfigurationCopy config = new ConfigurationCopy();
-      config.set(Property.GENERAL_THREADPOOL_SIZE, "2");
-      config.set(Property.MANAGER_FATE_THREADPOOL_SIZE, "1");
-      fate.startTransactionRunners(config, new ScheduledThreadPoolExecutor(2));
+    // Wait for the transaction runner to be scheduled.
+    UtilWaitThread.sleep(3000);
 
-      // Wait for the transaction runner to be scheduled.
-      UtilWaitThread.sleep(3000);
-
-      List<String> expectedUndoOrder = List.of("OP3", "OP2", "OP1");
-      /*
-       * Test exception in call()
-       */
-      undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
-      long txid = fate.startTransaction();
-      assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperationFails", txid,
-          new TestOperationFails(1, ExceptionLocation.CALL), false, "Test Op Fails");
-      // Wait for all the undo() calls to complete
-      undoLatch.await();
-      assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
-      assertEquals(FAILED, fate.waitForCompletion(txid));
-      assertTrue(fate.getException(txid).getMessage().contains("call() failed"));
-      /*
-       * Test exception in isReady()
-       */
-      TestOperationFails.undoOrder = new ArrayList<>();
-      undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
-      txid = fate.startTransaction();
-      assertEquals(NEW, getTxStatus(zk, txid));
-      fate.seedTransaction("TestOperationFails", txid,
-          new TestOperationFails(1, ExceptionLocation.IS_READY), false, "Test Op Fails");
-      // Wait for all the undo() calls to complete
-      undoLatch.await();
-      assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
-      assertEquals(FAILED, fate.waitForCompletion(txid));
-      assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
-    } finally {
-      fate.shutdown(true);
-    }
+    List<String> expectedUndoOrder = List.of("OP3", "OP2", "OP1");
+    /*
+     * Test exception in call()
+     */
+    undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
+    long txid = fate.startTransaction();
+    assertEquals(NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperationFails", txid,
+        new TestOperationFails(1, ExceptionLocation.CALL), false, "Test Op Fails");
+    // Wait for all the undo() calls to complete
+    undoLatch.await();
+    assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
+    assertEquals(FAILED, fate.waitForCompletion(txid));
+    assertTrue(fate.getException(txid).getMessage().contains("call() failed"));
+    /*
+     * Test exception in isReady()
+     */
+    TestOperationFails.undoOrder = new ArrayList<>();
+    undoLatch = new CountDownLatch(TestOperationFails.TOTAL_NUM_OPS);
+    txid = fate.startTransaction();
+    assertEquals(NEW, getTxStatus(zk, txid));
+    fate.seedTransaction("TestOperationFails", txid,
+        new TestOperationFails(1, ExceptionLocation.IS_READY), false, "Test Op Fails");
+    // Wait for all the undo() calls to complete
+    undoLatch.await();
+    assertEquals(expectedUndoOrder, TestOperationFails.undoOrder);
+    assertEquals(FAILED, fate.waitForCompletion(txid));
+    assertTrue(fate.getException(txid).getMessage().contains("isReady() failed"));
   }
 
   private static void inCall() throws InterruptedException {
