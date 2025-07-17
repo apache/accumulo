@@ -436,20 +436,22 @@ public class Admin implements KeywordExecutable {
     JCommander cl = new JCommander(opts);
     cl.setProgramName("accumulo admin");
 
-    ServiceStatusCmdOpts serviceStatusCommandOpts = new ServiceStatusCmdOpts();
-    cl.addCommand("serviceStatus", serviceStatusCommandOpts);
+
+    ServiceStatusCmd.Opts serviceStatusCommandOpts = new ServiceStatusCmd.Opts();
+    cl.addCommand("service-status", serviceStatusCommandOpts);
+
 
     ChangeSecretCommand changeSecretCommand = new ChangeSecretCommand();
-    cl.addCommand("changeSecret", changeSecretCommand);
+    cl.addCommand("change-secret", changeSecretCommand);
 
     CheckCommand checkCommand = new CheckCommand();
     cl.addCommand("check", checkCommand);
 
     DeleteZooInstanceCommand deleteZooInstOpts = new DeleteZooInstanceCommand();
-    cl.addCommand("deleteZooInstance", deleteZooInstOpts);
+    cl.addCommand("delete-zoo-instance", deleteZooInstOpts);
 
     DumpConfigCommand dumpConfigCommand = new DumpConfigCommand();
-    cl.addCommand("dumpConfig", dumpConfigCommand);
+    cl.addCommand("dump-config", dumpConfigCommand);
 
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
@@ -458,7 +460,7 @@ public class Admin implements KeywordExecutable {
     cl.addCommand("signalShutdown", gracefulShutdownCommand);
 
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
-    cl.addCommand("listInstances", listInstancesOpts);
+    cl.addCommand("list-instances", listInstancesOpts);
 
     TabletServerLocksCommand tServerLocksOpts = new TabletServerLocksCommand();
     cl.addCommand("locks", tServerLocksOpts);
@@ -467,20 +469,20 @@ public class Admin implements KeywordExecutable {
     cl.addCommand("ping", pingCommand);
 
     RestoreZooCommand restoreZooOpts = new RestoreZooCommand();
-    cl.addCommand("restoreZoo", restoreZooOpts);
+    cl.addCommand("restore-zoo", restoreZooOpts);
 
     StopCommand stopOpts = new StopCommand();
     cl.addCommand("stop", stopOpts);
 
     StopAllCommand stopAllOpts = new StopAllCommand();
-    cl.addCommand("stopAll", stopAllOpts);
+    cl.addCommand("stop-all", stopAllOpts);
 
     StopManagerCommand stopManagerOpts = new StopManagerCommand();
-    cl.addCommand("stopManager", stopManagerOpts);
+    cl.addCommand("stop-manager", stopManagerOpts);
 
     VerifyTabletAssignmentsCommand verifyTabletAssignmentsOpts =
         new VerifyTabletAssignmentsCommand();
-    cl.addCommand("verifyTabletAssigns", verifyTabletAssignmentsOpts);
+    cl.addCommand("verify-tablet-assigns", verifyTabletAssignmentsOpts);
 
     VolumesCommand volumesCommand = new VolumesCommand();
     cl.addCommand("volumes", volumesCommand);
@@ -520,35 +522,35 @@ public class Admin implements KeywordExecutable {
           rc = 4;
         }
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(context, stopOpts.args, stopOpts.force);
-      } else if (cl.getParsedCommand().equals("signalShutdown")) {
-        signalGracefulShutdown(context, gracefulShutdownCommand.address);
-      } else if (cl.getParsedCommand().equals("dumpConfig")) {
+
+        stopTabletServer(context, stopOpts.args, opts.force);
+      } else if (cl.getParsedCommand().equals("dump-config")) {
+
+   
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
         ListVolumesUsed.listVolumes(context);
-      } else if (cl.getParsedCommand().equals("verifyTabletAssigns")) {
+      } else if (cl.getParsedCommand().equals("verify-tablet-assigns")) {
         VerifyTabletAssignments.execute(opts.getClientProps(), verifyTabletAssignmentsOpts.verbose);
-      } else if (cl.getParsedCommand().equals("changeSecret")) {
+      } else if (cl.getParsedCommand().equals("change-secret")) {
         ChangeSecret.execute(context, conf);
-      } else if (cl.getParsedCommand().equals("deleteZooInstance")) {
+      } else if (cl.getParsedCommand().equals("delete-zoo-instance")) {
         DeleteZooInstance.execute(context, deleteZooInstOpts.clean, deleteZooInstOpts.instance,
             deleteZooInstOpts.auth);
-      } else if (cl.getParsedCommand().equals("restoreZoo")) {
+      } else if (cl.getParsedCommand().equals("restore-zoo")) {
         RestoreZookeeper.execute(conf, restoreZooOpts.file, restoreZooOpts.overwrite);
       } else if (cl.getParsedCommand().equals("locks")) {
         TabletServerLocks.execute(context, args.length > 2 ? args[2] : null,
             tServerLocksOpts.delete);
       } else if (cl.getParsedCommand().equals("fate")) {
         executeFateOpsCommand(context, fateOpsCommand);
-      } else if (cl.getParsedCommand().equals("serviceStatus")) {
-        ServiceStatusCmd ssc = new ServiceStatusCmd();
-        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.noHosts);
+
+      } else if (cl.getParsedCommand().equals("service-status")) {
+        printServiceStatus(context, serviceStatusCommandOpts);
       } else if (cl.getParsedCommand().equals("check")) {
         executeCheckCommand(context, checkCommand, opts);
-      } else if (cl.getParsedCommand().equals("stopManager")
-          || cl.getParsedCommand().equals("stopAll")) {
-        boolean everything = cl.getParsedCommand().equals("stopAll");
+      } else {
+        everything = cl.getParsedCommand().equals("stop-all");
 
         if (everything) {
           flushAll(context);
