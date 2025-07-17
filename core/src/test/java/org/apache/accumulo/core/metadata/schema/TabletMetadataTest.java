@@ -279,10 +279,8 @@ public class TabletMetadataTest {
     assertEquals(tsi, tm.getMigration());
     allColumns.remove(MIGRATION);
 
-    /*
-     * Testing that all the columns are tested
-     */
-    assertTrue(allColumns.isEmpty());
+    assertTrue(allColumns.isEmpty(),
+        "Not all columns are testing. Add testing to remaining columns.");
   }
 
   @Test
