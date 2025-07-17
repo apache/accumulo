@@ -172,6 +172,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
 
     public TabletLists(Manager m, SortedMap<TServerInstance,TabletServerStatus> curTServers) {
       var destinationsMod = new TreeMap<>(curTServers);
+      // TODO does this prevent balancing and assignment?
       destinationsMod.keySet().removeAll(m.serversToShutdown);
       this.destinations = Collections.unmodifiableSortedMap(destinationsMod);
     }
@@ -283,6 +284,11 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
                 state, goal);
           }
 
+          // TODO it seems like this code is structured to handle shutting down all tservers via
+          // admin stop, however on the client side the admin stop does one tserver at a time and
+          // waits for it. So it would be very difficult to actually activate this code. Also the
+          // admin stop command has a special case that will not allow shutting down the last
+          // tserver.
           // if we are shutting down all the tabletservers, we have to do it in order
           if ((goal == TabletGoalState.SUSPENDED && state == TabletState.HOSTED)
               && manager.serversToShutdown.equals(currentTServers.keySet())) {

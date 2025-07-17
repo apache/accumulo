@@ -69,6 +69,9 @@ public class ShutdownTServer extends ManagerRepo {
             log.info("tablet server hosts no tablets {}", server);
             connection.halt(manager.getManagerLock());
             log.info("tablet server asked to halt {}", server);
+            // TODO it seems like if the tablet server dies and never comes back that this fate
+            // operation could run forever, because it only returns zero when it can actually talk
+            // to a tserver
             return 0;
           } else {
             log.info("tablet server {} still has tablets for tables: {}", server,
@@ -79,6 +82,9 @@ public class ShutdownTServer extends ManagerRepo {
         } catch (Exception ex) {
           log.error("Error talking to tablet server {}: ", server, ex);
         }
+
+        // TODO when could not talk to tserver need to check if it still has a lock in ZK... if it
+        // does not then we are done
 
         // If the connection was non-null and we could communicate with it
         // give the manager some more time to tell it to stop and for the
