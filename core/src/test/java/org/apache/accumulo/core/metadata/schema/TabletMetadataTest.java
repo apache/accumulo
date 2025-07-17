@@ -138,15 +138,16 @@ public class TabletMetadataTest {
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
-    OPID_COLUMN.put(mutation,
-        new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12"));
+    Value opidValue = new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12");
+    OPID_COLUMN.put(mutation, opidValue);
+    Path selectedPath =
+        new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf");
     SELECTED_COLUMN.put(mutation,
-        new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(
-            new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf"))
-            .insert()), true, fateId1, SteadyTime.from(100, TimeUnit.NANOSECONDS))
-            .getMetadataValue()));
+        new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(selectedPath).insert()), true,
+            fateId1, SteadyTime.from(100, TimeUnit.NANOSECONDS)).getMetadataValue()));
     AVAILABILITY_COLUMN.put(mutation, TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
-    MERGEABILITY_COLUMN.put(mutation, new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}"));
+    Value mergeabilityValue = new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}");
+    MERGEABILITY_COLUMN.put(mutation, mergeabilityValue);
 
     String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
     String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
@@ -211,18 +212,15 @@ public class TabletMetadataTest {
 
     assertTrue(tm.getCompacted().isEmpty());
     allColumns.remove(COMPACTED);
-    assertEquals(
-        TabletMergeabilityMetadata
-            .fromValue(new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}")).toJson(),
+    assertEquals(TabletMergeabilityMetadata.fromValue(mergeabilityValue).toJson(),
         TabletMergeabilityMetadata.toValue(tm.getTabletMergeability()).toString());
     allColumns.remove(MERGEABILITY);
     assertEquals(TabletAvailability.ONDEMAND, tm.getTabletAvailability());
     allColumns.remove(AVAILABILITY);
-    assertEquals("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf",
+    assertEquals(selectedPath.toString(),
         tm.getSelectedFiles().getFiles().iterator().next().getMetadataPath());
     allColumns.remove(SELECTED);
-    assertEquals("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12",
-        tm.getOperationId().toString());
+    assertEquals(opidValue.toString(), tm.getOperationId().toString());
     allColumns.remove(OPID);
     assertFalse(tm.getHostingRequested());
     allColumns.remove(HOSTING_REQUESTED);
