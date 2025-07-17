@@ -66,9 +66,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.AbstractMap;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -126,10 +125,7 @@ public class TabletMetadataTest {
 
   @Test
   public void testAllColumns() {
-    Set<ColumnType> currentTestedColumns = new HashSet<>(Arrays.asList(LOCATION, PREV_ROW, FILES, LAST, LOADED, SCANS, DIR,
-            TIME, CLONED, FLUSH_ID, FLUSH_NONCE, LOGS, SUSPEND, ECOMP, MERGED, AVAILABILITY, HOSTING_REQUESTED, OPID,
-            SELECTED, COMPACTED, USER_COMPACTION_REQUESTED, UNSPLITTABLE, MERGEABILITY, MIGRATION));
-    List<ColumnType> allColumns = List.of(ColumnType.values());
+    List<ColumnType> allColumns = new ArrayList<>(List.of(ColumnType.values()));
 
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
@@ -214,55 +210,79 @@ public class TabletMetadataTest {
         EnumSet.allOf(ColumnType.class), true, false);
 
     assertTrue(tm.getCompacted().isEmpty());
+    allColumns.remove(COMPACTED);
     assertEquals(
         TabletMergeabilityMetadata
             .fromValue(new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}")).toJson(),
         TabletMergeabilityMetadata.toValue(tm.getTabletMergeability()).toString());
+    allColumns.remove(MERGEABILITY);
     assertEquals(TabletAvailability.ONDEMAND, tm.getTabletAvailability());
+    allColumns.remove(AVAILABILITY);
     assertEquals("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf",
         tm.getSelectedFiles().getFiles().iterator().next().getMetadataPath());
+    allColumns.remove(SELECTED);
     assertEquals("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12",
         tm.getOperationId().toString());
+    allColumns.remove(OPID);
     assertFalse(tm.getHostingRequested());
+    allColumns.remove(HOSTING_REQUESTED);
     assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
+    allColumns.remove(SUSPEND);
     assertEquals("OK", tm.getCloned());
+    allColumns.remove(CLONED);
     assertEquals("t-0001757", tm.getDirName());
+    allColumns.remove(DIR);
     assertEquals(extent.endRow(), tm.getEndRow());
     assertEquals(extent, tm.getExtent());
     assertEquals(Set.of(tf1, tf2), Set.copyOf(tm.getFiles()));
+    allColumns.remove(FILES);
     assertEquals(Map.of(tf1, dfv1, tf2, dfv2), tm.getFilesMap());
     assertEquals(tm.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum(),
         tm.getFileSize());
     assertEquals(6L, tm.getFlushId().getAsLong());
+    allColumns.remove(FLUSH_ID);
     SortedMap<Key,Value> actualRowMap = tm.getKeyValues().stream().collect(
         Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new));
     assertEquals(rowMap, actualRowMap);
     assertEquals(Map.of(new StoredTabletFile(bf1), fateId1, new StoredTabletFile(bf2), fateId2),
         tm.getLoaded());
+    allColumns.remove(LOADED);
     assertEquals(HostAndPort.fromParts("server1", 8555), tm.getLocation().getHostAndPort());
+    allColumns.remove(LOCATION);
     assertEquals("s001", tm.getLocation().getSession());
     assertEquals(LocationType.CURRENT, tm.getLocation().getType());
     assertTrue(tm.hasCurrent());
     assertEquals(HostAndPort.fromParts("server2", 8555), tm.getLast().getHostAndPort());
     assertEquals("s000", tm.getLast().getSession());
+    allColumns.remove(LAST);
     assertEquals(LocationType.LAST, tm.getLast().getType());
     assertEquals(Set.of(le1, le2), tm.getLogs().stream().collect(toSet()));
+    allColumns.remove(LOGS);
     assertEquals(extent.prevEndRow(), tm.getPrevEndRow());
+    allColumns.remove(PREV_ROW);
     assertEquals(extent.tableId(), tm.getTableId());
     assertTrue(tm.sawPrevEndRow());
     assertEquals("M123456789", tm.getTime().encode());
+    allColumns.remove(TIME);
     assertEquals(Set.of(sf1, sf2), Set.copyOf(tm.getScans()));
+    allColumns.remove(SCANS);
     assertTrue(tm.hasMerged());
+    allColumns.remove(MERGED);
     assertTrue(tm.getUserCompactionsRequested().contains(userCompactFateId));
+    allColumns.remove(USER_COMPACTION_REQUESTED);
     assertEquals(unsplittableMeta, tm.getUnSplittable());
+    allColumns.remove(UNSPLITTABLE);
     assertEquals(ecMeta.toJson(), tm.getExternalCompactions().get(ecid).toJson());
+    allColumns.remove(ECOMP);
     assertEquals(10, tm.getFlushNonce().getAsLong());
+    allColumns.remove(FLUSH_NONCE);
     assertEquals(tsi, tm.getMigration());
+    allColumns.remove(MIGRATION);
 
     /*
-     * Testing that each
+     * Testing that all the columns are tested
      */
-    allColumns.forEach(columnType -> assertTrue(currentTestedColumns.contains(columnType)));
+    assertTrue(allColumns.isEmpty());
   }
 
   @Test
