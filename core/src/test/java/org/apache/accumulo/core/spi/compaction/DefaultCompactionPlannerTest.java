@@ -778,7 +778,7 @@ public class DefaultCompactionPlannerTest {
     return createCFs(pairs.toArray(new String[0]));
   }
 
-  private static Set<CompactableFile> createCFs(String... namesSizePairs) {
+  public static Set<CompactableFile> createCFs(String... namesSizePairs) {
     Set<CompactableFile> files = new HashSet<>();
 
     for (int i = 0; i < namesSizePairs.length; i += 2) {
