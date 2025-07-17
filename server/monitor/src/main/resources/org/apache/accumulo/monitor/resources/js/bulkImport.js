@@ -40,7 +40,7 @@ function refresh() {
  */
 $(document).ready(function () {
 
-  const url = '/rest/bulkImports';
+  const url = contextPath + 'rest/bulkImports';
   console.debug('REST url used to fetch data for the DataTables in bulkImport.js: ' + url);
 
   // Generates the manager bulk import status table
@@ -85,7 +85,7 @@ $(document).ready(function () {
         "type": "html",
         "render": function (data, type) {
           if (type === 'display') {
-            data = `<a href="/tservers?s=${data}">${data}</a>`;
+            data = `<a href="tservers?s=${data}">${data}</a>`;
           }
           return data;
         }

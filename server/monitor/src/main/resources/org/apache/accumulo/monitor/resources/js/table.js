@@ -45,7 +45,7 @@ function getQueuedAndRunning(data) {
  */
 function initTableServerTable(tableID) {
 
-  const url = '/rest/tables/' + tableID;
+  const url = contextPath + 'rest/tables/' + tableID;
   console.debug('REST url used to fetch data for table.js DataTable: ' + url);
 
   tableServersTable = $('#participatingTServers').DataTable({
@@ -109,7 +109,7 @@ function initTableServerTable(tableID) {
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = `<a href="/tservers?s=${row.id}">${data}</a>`;
+            data = `<a href="tservers?s=${row.id}">${data}</a>`;
           }
           return data;
         }

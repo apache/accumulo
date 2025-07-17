@@ -29,7 +29,7 @@
 
           tableList = $('#tableList').DataTable({
             "ajax": {
-              "url": "/rest/tables",
+              "url": '${rootContext}rest/tables',
               "dataSrc": "table"
             },
             "stateSave": true,
@@ -79,7 +79,7 @@
                 "type": "html",
                 "render": function (data, type, row, meta) {
                   if (type === 'display') {
-                    data = '<a href="/tables/' + row.tableId + '">' + row.tablename + '</a>';
+                    data = '<a href="tables/' + row.tableId + '">' + row.tablename + '</a>';
                   }
                   return data;
                 }

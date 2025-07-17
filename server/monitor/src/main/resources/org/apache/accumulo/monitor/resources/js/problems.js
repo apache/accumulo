@@ -25,7 +25,7 @@ $(document).ready(function () {
   // Create a table for summary. See datatables doc for more info on the dom property
   problemSummaryTable = $('#problemSummary').DataTable({
     "ajax": {
-      "url": '/rest/problems/summary',
+      "url": contextPath + 'rest/problems/summary',
       "dataSrc": "problemSummary"
     },
     "stateSave": true,
@@ -41,7 +41,7 @@ $(document).ready(function () {
         "data": "tableName",
         "type": "html",
         "render": function (data, type, row, meta) {
-          if (type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+          if (type === 'display') data = '<a href="tables/' + row.tableID + '">' + row.tableName + '</a>';
           return data;
         }
       },
@@ -68,7 +68,7 @@ $(document).ready(function () {
   // Create a table for details
   problemDetailTable = $('#problemDetails').DataTable({
     "ajax": {
-      "url": '/rest/problems/details',
+      "url": contextPath + 'rest/problems/details',
       "dataSrc": "problemDetails"
     },
     "stateSave": true,
@@ -84,7 +84,7 @@ $(document).ready(function () {
         "data": "tableName",
         "type": "html",
         "render": function (data, type, row, meta) {
-          if (type === 'display') data = '<a href="/tables/' + row.tableID + '">' + row.tableName + '</a>';
+          if (type === 'display') data = '<a href="tables/' + row.tableID + '">' + row.tableName + '</a>';
           return data;
         }
       },
