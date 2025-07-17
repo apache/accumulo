@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.manager.state.TabletManagement.Management
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_RECOVERY;
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_SPLITTING;
 import static org.apache.accumulo.core.manager.state.TabletManagement.ManagementAction.NEEDS_VOLUME_REPLACEMENT;
+import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -59,6 +60,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -96,13 +98,17 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.server.manager.LiveTServerSet;
 import org.apache.accumulo.server.manager.state.TabletManagementIterator;
 import org.apache.accumulo.server.manager.state.TabletManagementParameters;
 import org.apache.accumulo.server.metadata.TabletsMutatorImpl;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Tag;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -112,17 +118,33 @@ import com.google.common.collect.Sets;
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
  * in the metadata table when there is no work to be done on the tablet (see ACCUMULO-3580)
  */
+@Tag(MINI_CLUSTER_ONLY)
 public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   private final static Logger log = LoggerFactory.getLogger(TabletManagementIteratorIT.class);
+
+  private String cType = null;
 
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(3);
   }
 
-  @Test
-  public void test() throws AccumuloException, AccumuloSecurityException, TableExistsException,
-      TableNotFoundException, IOException {
+  @Override
+  public void setupCluster() {
+    // Overriding to *not* start cluster before test, we are going to do it manually
+  }
+
+  @Override
+  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
+    cfg.setProperty(Property.GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO, cType);
+  }
+
+  @ParameterizedTest()
+  @ValueSource(strings = {"none", "gz", "snappy"})
+  public void test(String compressionType) throws Exception {
+
+    cType = compressionType;
+    super.setupCluster();
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
 
@@ -513,7 +535,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     Map<KeyExtent,Set<TabletManagement.ManagementAction>> results = new HashMap<>();
     List<KeyExtent> resultList = new ArrayList<>();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      TabletManagementIterator.configureScanner(scanner, tabletMgmtParams);
+      TabletManagementIterator.configureScanner(((ClientContext) client).getConfiguration(),
+          scanner, tabletMgmtParams);
       scanner.updateScanIteratorOption("tabletChange", "debug", "1");
       for (Entry<Key,Value> e : scanner) {
         if (e != null) {
@@ -545,8 +568,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
   // tablet mgmt iterator works with that.
   private void testContinueScan(AccumuloClient client, String table,
       TabletManagementParameters tabletMgmtParams) throws TableNotFoundException {
+    AccumuloConfiguration conf = ((ClientContext) client).getConfiguration();
     try (Scanner scanner = client.createScanner(table, Authorizations.EMPTY)) {
-      TabletManagementIterator.configureScanner(scanner, tabletMgmtParams);
+      TabletManagementIterator.configureScanner(conf, scanner, tabletMgmtParams);
       List<Entry<Key,Value>> entries1 = new ArrayList<>();
       scanner.forEach(e -> entries1.add(e));
       assertTrue(entries1.size() > 1);
