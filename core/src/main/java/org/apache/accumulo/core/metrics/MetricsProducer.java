@@ -106,7 +106,8 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>N/A</td>
  * <td>{@value #METRICS_COMPACTOR_FAILURES_TERMINATION}</td>
  * <td>Gauge</td>
- * <td>Number of Compactors terminated due to consecutive failures</td>
+ * <td>Number of Compactors terminated due to consecutive failures. Process exits after this metric
+ * is incremented, so it's not guaranteed to be seen.</td>
  * </tr>
  * <!-- fate -->
  * <tr>

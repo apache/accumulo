@@ -226,10 +226,11 @@ public class IteratorConfigUtil {
         skvi.init(prev, options, iteratorBuilder.iteratorEnvironment);
         prev = skvi;
 
-      } catch (ClassNotFoundException e) {
+      } catch (ReflectiveOperationException e) {
         log.error("Failed to load iterator {}, for table {}, from context {}", iterInfo.className,
             iteratorBuilder.iteratorEnvironment.getTableId(), iteratorBuilder.context, e);
-        throw e;
+        // This has to be a RuntimeException to be handled properly to fail the scan
+        throw new RuntimeException(e);
       }
     }
     return prev;

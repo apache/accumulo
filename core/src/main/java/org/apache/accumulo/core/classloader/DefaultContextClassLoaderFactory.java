@@ -102,7 +102,7 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
     try {
       return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
           .getContextClassLoader(contextName);
-    } catch (IOException e) {
+    } catch (RuntimeException | IOException e) {
       throw new ContextClassLoaderException(contextName, e);
     }
   }
