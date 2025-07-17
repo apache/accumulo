@@ -50,6 +50,7 @@ import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -65,7 +66,6 @@ import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionKind;
 import org.apache.accumulo.core.tabletserver.thrift.TCompactionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob;
@@ -96,7 +96,7 @@ public class CompactionCoordinatorTest {
   private static final AtomicReference<Map<FateInstanceType,Fate<Manager>>> fateInstances =
       new AtomicReference<>(Map.of());
 
-  private static final CompactorGroupId GROUP_ID = CompactorGroupId.of("R2DQ");
+  private static final ResourceGroupId GROUP_ID = ResourceGroupId.of("R2DQ");
 
   private final HostAndPort tserverAddr = HostAndPort.fromParts("192.168.1.1", 9090);
 
@@ -286,7 +286,7 @@ public class CompactionCoordinatorTest {
     expect(job.getExternalCompactionId()).andReturn(eci.toString()).atLeastOnce();
     TKeyExtent extent = new TKeyExtent();
     extent.setTable("1".getBytes(UTF_8));
-    runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID.toString()));
+    runningCompactions.add(new RunningCompaction(job, tserverAddr.toString(), GROUP_ID));
     replay(job);
 
     var coordinator = new TestCoordinator(manager, runningCompactions);
@@ -304,13 +304,13 @@ public class CompactionCoordinatorTest {
     Entry<ExternalCompactionId,RunningCompaction> ecomp = running.entrySet().iterator().next();
     assertEquals(eci, ecomp.getKey());
     RunningCompaction rc = ecomp.getValue();
-    assertEquals(GROUP_ID.toString(), rc.getGroupName());
+    assertEquals(GROUP_ID, rc.getGroup());
     assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
     assertTrue(coordinator.getLongRunningByGroup().containsKey(GROUP_ID.toString()));
     assertTrue(coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).size() == 1);
     rc = coordinator.getLongRunningByGroup().get(GROUP_ID.toString()).iterator().next();
-    assertEquals(GROUP_ID.toString(), rc.getGroupName());
+    assertEquals(GROUP_ID, rc.getGroup());
     assertEquals(tserverAddr.toString(), rc.getCompactorAddress());
 
     verify(job);

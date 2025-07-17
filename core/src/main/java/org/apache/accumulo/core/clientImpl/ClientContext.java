@@ -222,7 +222,7 @@ public class ClientContext implements AccumuloClient {
 
                 @Override
                 public String getGroup() {
-                  return entry.getResourceGroup();
+                  return entry.getResourceGroup().canonical();
                 }
               }).collect(Collectors.toSet());
         }
@@ -459,7 +459,7 @@ public class ClientContext implements AccumuloClient {
           final ServiceLockData data = sld.orElseThrow();
           final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
           final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
-          final String group = data.getGroup(ThriftService.TABLET_SCAN);
+          final String group = data.getGroup(ThriftService.TABLET_SCAN).canonical();
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {

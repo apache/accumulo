@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -190,9 +191,10 @@ public class LiveTServerSet implements ZooCacheWatcher {
   static class TServerInfo {
     final TServerConnection connection;
     final TServerInstance instance;
-    final String resourceGroup;
+    final ResourceGroupId resourceGroup;
 
-    TServerInfo(TServerInstance instance, TServerConnection connection, String resourceGroup) {
+    TServerInfo(TServerInstance instance, TServerConnection connection,
+        ResourceGroupId resourceGroup) {
       this.connection = connection;
       this.instance = instance;
       this.resourceGroup = resourceGroup;
@@ -303,7 +305,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       log.trace("Lock exists for server: {}, adding to current set", tserverPath.getServer());
       locklessServers.remove(tserverPath);
       HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
+      ResourceGroupId resourceGroup =
+          sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
 
       if (info == null) {
@@ -390,7 +393,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     return tServerInfo.connection;
   }
 
-  public synchronized String getResourceGroup(TServerInstance server) {
+  public synchronized ResourceGroupId getResourceGroup(TServerInstance server) {
     if (server == null) {
       return null;
     }
@@ -403,26 +406,26 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   public static class LiveTServersSnapshot {
     private final Set<TServerInstance> tservers;
-    private final Map<String,Set<TServerInstance>> tserverGroups;
+    private final Map<ResourceGroupId,Set<TServerInstance>> tserverGroups;
 
     // TServerInfo is only for internal use, so this field is private w/o a getter.
     private final Map<TServerInstance,TServerInfo> tserversInfo;
 
     @VisibleForTesting
     public LiveTServersSnapshot(Set<TServerInstance> currentServers,
-        Map<String,Set<TServerInstance>> serverGroups) {
+        Map<ResourceGroupId,Set<TServerInstance>> serverGroups) {
       this.tserversInfo = null;
       this.tservers = Set.copyOf(currentServers);
-      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>();
       serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
       this.tserverGroups = Collections.unmodifiableMap(copy);
     }
 
     public LiveTServersSnapshot(Map<TServerInstance,TServerInfo> currentServers,
-        Map<String,Set<TServerInstance>> serverGroups) {
+        Map<ResourceGroupId,Set<TServerInstance>> serverGroups) {
       this.tserversInfo = Map.copyOf(currentServers);
       this.tservers = this.tserversInfo.keySet();
-      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>();
       serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
       this.tserverGroups = Collections.unmodifiableMap(copy);
     }
@@ -431,7 +434,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       return tservers;
     }
 
-    public Map<String,Set<TServerInstance>> getTserverGroups() {
+    public Map<ResourceGroupId,Set<TServerInstance>> getTserverGroups() {
       return tserverGroups;
     }
   }
@@ -439,7 +442,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
   public synchronized LiveTServersSnapshot getSnapshot() {
     if (tServersSnapshot == null) {
       HashMap<TServerInstance,TServerInfo> tServerInstances = new HashMap<>();
-      Map<String,Set<TServerInstance>> tserversGroups = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> tserversGroups = new HashMap<>();
       current.values().forEach(tServerInfo -> {
         tServerInstances.put(tServerInfo.instance, tServerInfo);
         tserversGroups.computeIfAbsent(tServerInfo.resourceGroup, rg -> new HashSet<>())
@@ -494,7 +497,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     // invalidate the snapshot forcing it to be recomputed the next time its requested
     tServersSnapshot = null;
 
-    Optional<String> resourceGroup = Optional.empty();
+    Optional<ResourceGroupId> resourceGroup = Optional.empty();
     Optional<HostAndPort> address = Optional.empty();
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.equals(server)) {
@@ -509,7 +512,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     current.remove(address.orElseThrow().toString());
 
     ResourceGroupPredicate rgPredicate = resourceGroup.map(rg -> {
-      ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
+      ResourceGroupPredicate rgp = rg2 -> rg.canonical().equals(rg2);
       return rgp;
     }).orElse(rg -> true);
     AddressSelector addrPredicate =

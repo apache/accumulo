@@ -37,6 +37,7 @@ import java.util.concurrent.Future;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.compaction.thrift.CompactorService;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -59,7 +60,7 @@ import com.google.common.net.HostAndPort;
 public class ExternalCompactionUtil {
 
   private static class RunningCompactionFuture {
-    private final String group;
+    private final ResourceGroupId group;
     private final HostAndPort compactor;
     private final Future<TExternalCompactionJob> future;
 
@@ -69,7 +70,7 @@ public class ExternalCompactionUtil {
       this.future = future;
     }
 
-    public String getGroup() {
+    public ResourceGroupId getGroup() {
       return group;
     }
 
@@ -116,7 +117,7 @@ public class ExternalCompactionUtil {
   public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
     context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true).forEach(slp -> {
-      groupsAndAddresses.computeIfAbsent(slp.getResourceGroup(), (k) -> new HashSet<>())
+      groupsAndAddresses.computeIfAbsent(slp.getResourceGroup().canonical(), (k) -> new HashSet<>())
           .add(HostAndPort.fromString(slp.getServer()));
     });
     return groupsAndAddresses;

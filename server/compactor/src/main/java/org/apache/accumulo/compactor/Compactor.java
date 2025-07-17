@@ -194,19 +194,20 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
+    final String rgName = getResourceGroup().canonical();
     FunctionCounter.builder(COMPACTOR_ENTRIES_READ.getName(), this, Compactor::getTotalEntriesRead)
         .description(COMPACTOR_ENTRIES_READ.getDescription())
-        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     FunctionCounter
         .builder(COMPACTOR_ENTRIES_WRITTEN.getName(), this, Compactor::getTotalEntriesWritten)
         .description(COMPACTOR_ENTRIES_WRITTEN.getDescription())
-        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     Gauge.builder(COMPACTOR_MAJC_IN_PROGRESS.getName(), this, Compactor::compactionInProgress)
         .description(COMPACTOR_MAJC_IN_PROGRESS.getDescription())
-        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(COMPACTOR_MAJC_STUCK.getName())
         .description(COMPACTOR_MAJC_STUCK.getDescription())
-        .tags(List.of(Tag.of("queue.id", this.getResourceGroup()))).register(registry);
+        .tags(List.of(Tag.of("queue.id", rgName))).register(registry);
     CompactionWatcher.setTimer(timer);
   }
 
@@ -453,7 +454,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
             LOG.trace("Attempting to get next job, eci = {}", eci);
             currentCompactionId.set(eci);
             return coordinatorClient.getCompactionJob(TraceUtil.traceInfo(),
-                getContext().rpcCreds(), this.getResourceGroup(),
+                getContext().rpcCreds(), this.getResourceGroup().canonical(),
                 ExternalCompactionUtil.getHostPortString(getAdvertiseAddress()), eci.toString());
           } catch (Exception e) {
             currentCompactionId.set(null);

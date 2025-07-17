@@ -44,7 +44,6 @@ import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -59,6 +58,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -566,8 +566,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
             location = sld.orElseThrow().getAddressString(ThriftService.MANAGER);
             if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-                  hp.getPort()));
+              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
             }
           }
         }
@@ -581,8 +580,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
             location = sld.orElseThrow().getAddressString(ThriftService.NONE);
             if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-                  hp.getPort()));
+              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
             }
           }
         }
@@ -596,8 +594,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
             location = sld.orElseThrow().getAddressString(ThriftService.GC);
             if (location != null && addressSelector.getPredicate().test(location)) {
               HostAndPort hp = HostAndPort.fromString(location);
-              results.add(new ServerId(type, Constants.DEFAULT_RESOURCE_GROUP_NAME, hp.getHost(),
-                  hp.getPort()));
+              results.add(new ServerId(type, ResourceGroupId.DEFAULT, hp.getHost(), hp.getPort()));
             }
           }
         }
@@ -621,7 +618,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   private ServerId createServerId(ServerId.Type type, ServiceLockPath slp) {
     Objects.requireNonNull(type);
     Objects.requireNonNull(slp);
-    String resourceGroup = Objects.requireNonNull(slp.getResourceGroup());
+    ResourceGroupId resourceGroup = Objects.requireNonNull(slp.getResourceGroup());
     HostAndPort hp = HostAndPort.fromString(Objects.requireNonNull(slp.getServer()));
     String host = hp.getHost();
     int port = hp.getPort();

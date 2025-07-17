@@ -35,6 +35,7 @@ import java.util.concurrent.FutureTask;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
 import org.apache.accumulo.core.util.threads.ThreadPools;
@@ -52,7 +53,7 @@ public class ServiceLockPaths {
 
   public static class ServiceLockPath {
     private final String type;
-    private final String resourceGroup;
+    private final ResourceGroupId resourceGroup;
     private final String server;
     private final String path;
 
@@ -100,7 +101,7 @@ public class ServiceLockPaths {
     /**
      * Create a ServiceLockPath for a worker process
      */
-    private ServiceLockPath(String type, String resourceGroup, HostAndPort server) {
+    private ServiceLockPath(String type, ResourceGroupId resourceGroup, HostAndPort server) {
       this.type = requireNonNull(type);
       Preconditions.checkArgument(
           this.type.equals(Constants.ZCOMPACTORS) || this.type.equals(Constants.ZSSERVERS)
@@ -115,7 +116,7 @@ public class ServiceLockPaths {
       return type;
     }
 
-    public String getResourceGroup() {
+    public ResourceGroupId getResourceGroup() {
       return resourceGroup;
     }
 
@@ -222,7 +223,8 @@ public class ServiceLockPaths {
           case Constants.ZSSERVERS:
           case Constants.ZTSERVERS:
           case Constants.ZDEADTSERVERS:
-            return new ServiceLockPath(type, resourceGroup, HostAndPort.fromString(server));
+            return new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
+                HostAndPort.fromString(server));
           default:
             throw new IllegalArgumentException("Unhandled zookeeper service path : " + path);
         }
@@ -247,11 +249,13 @@ public class ServiceLockPaths {
     return new ServiceLockPath(Constants.ZMONITOR_LOCK);
   }
 
-  public ServiceLockPath createCompactorPath(String resourceGroup, HostAndPort serverAddress) {
+  public ServiceLockPath createCompactorPath(ResourceGroupId resourceGroup,
+      HostAndPort serverAddress) {
     return new ServiceLockPath(Constants.ZCOMPACTORS, resourceGroup, serverAddress);
   }
 
-  public ServiceLockPath createScanServerPath(String resourceGroup, HostAndPort serverAddress) {
+  public ServiceLockPath createScanServerPath(ResourceGroupId resourceGroup,
+      HostAndPort serverAddress) {
     return new ServiceLockPath(Constants.ZSSERVERS, resourceGroup, serverAddress);
   }
 
@@ -263,11 +267,12 @@ public class ServiceLockPaths {
     return new ServiceLockPath(Constants.ZTABLE_LOCKS, tableId.canonical());
   }
 
-  public ServiceLockPath createTabletServerPath(String resourceGroup, HostAndPort serverAddress) {
+  public ServiceLockPath createTabletServerPath(ResourceGroupId resourceGroup,
+      HostAndPort serverAddress) {
     return new ServiceLockPath(Constants.ZTSERVERS, resourceGroup, serverAddress);
   }
 
-  public ServiceLockPath createDeadTabletServerPath(String resourceGroup,
+  public ServiceLockPath createDeadTabletServerPath(ResourceGroupId resourceGroup,
       HostAndPort serverAddress) {
     return new ServiceLockPath(Constants.ZDEADTSERVERS, resourceGroup, serverAddress);
   }
