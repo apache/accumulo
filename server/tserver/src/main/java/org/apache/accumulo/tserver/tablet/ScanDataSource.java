@@ -125,12 +125,17 @@ class ScanDataSource implements DataSource {
   @Override
   public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
     if (iter == null) {
-      iter = createIterator();
+      try {
+        iter = createIterator();
+      } catch (ReflectiveOperationException e) {
+        throw new IOException("Error creating iterator", e);
+      }
     }
     return iter;
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
+  private SortedKeyValueIterator<Key,Value> createIterator()
+      throws IOException, ReflectiveOperationException {
 
     Map<StoredTabletFile,DataFileValue> files;
 

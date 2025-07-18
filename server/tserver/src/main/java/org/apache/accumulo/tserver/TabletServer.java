@@ -760,7 +760,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     context.getLowMemoryDetector().logGCInfo(getConfiguration());
-
+    super.close();
     getShutdownComplete().set(true);
     log.info("TServerInfo: stop requested. exiting ... ");
     try {
