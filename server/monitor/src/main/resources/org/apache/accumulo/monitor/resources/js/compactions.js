@@ -26,7 +26,7 @@ $(function () {
   // Create a table for compactions list
   compactionsList = $('#compactionsList').DataTable({
     "ajax": {
-      "url": '/rest/compactions',
+      "url":  contextPath + 'rest/compactions',
       "dataSrc": "compactions"
     },
     "stateSave": true,
@@ -51,7 +51,7 @@ $(function () {
         "type": "html",
         "render": function (data, type, row, meta) {
           if (type === 'display') {
-            data = '<a href="/tservers?s=' + row.server + '">' + row.server + '</a>';
+            data = '<a href="tservers?s=' + row.server + '">' + row.server + '</a>';
           }
           return data;
         }

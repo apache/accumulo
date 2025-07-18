@@ -897,6 +897,11 @@ public enum Property {
           + " the dead servers resource group matches a resource group in this list,"
           + " then it will be suppressed from the dead servers list in the monitor.",
       "4.0.0"),
+  MONITOR_ROOT_CONTEXT("monitor.root.context", "/", PropertyType.STRING,
+      "The root context path of the monit   application. If this value is set, all paths for the"
+          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo/`"
+          + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",
+      "2.1.4"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
