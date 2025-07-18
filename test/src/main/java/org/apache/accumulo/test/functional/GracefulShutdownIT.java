@@ -173,7 +173,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       // Don't call `new Admin().execute(new String[] {"signalShutdown", "-h ", host, "-p ",
       // Integer.toString(port)})`
       // because this poisons the SingletonManager and puts it into SERVER mode
-      Admin.signalGracefulShutdown(ctx, gcAddress.toString());
+      Admin.signalGracefulShutdown(ctx, gcAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.GARBAGE_COLLECTOR);
         return control.getProcesses(ServerType.GARBAGE_COLLECTOR).isEmpty();
@@ -183,7 +183,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       final List<String> tservers = client.instanceOperations().getTabletServers();
       assertEquals(2, tservers.size());
       final HostAndPort tserverAddress = HostAndPort.fromString(tservers.get(0));
-      Admin.signalGracefulShutdown(ctx, tserverAddress.toString());
+      Admin.signalGracefulShutdown(ctx, tserverAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.TABLET_SERVER);
         return control.getProcesses(ServerType.TABLET_SERVER).size() == 1;
@@ -197,7 +197,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       final List<String> managers = client.instanceOperations().getManagerLocations();
       assertEquals(1, managers.size());
       final HostAndPort managerAddress = HostAndPort.fromString(managers.get(0));
-      Admin.signalGracefulShutdown(ctx, managerAddress.toString());
+      Admin.signalGracefulShutdown(ctx, managerAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.MANAGER);
         return control.getProcesses(ServerType.MANAGER).isEmpty();
@@ -227,7 +227,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
       client.tableOperations().compact(tableName, cc);
       Wait.waitFor(
           () -> ExternalCompactionTestUtils.getRunningCompactions(ctx).getCompactionsSize() > 0);
-      Admin.signalGracefulShutdown(ctx, compactorAddress.toString());
+      Admin.signalGracefulShutdown(ctx, compactorAddress);
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.COMPACTOR);
         return control.getProcesses(ServerType.COMPACTOR).isEmpty();
@@ -252,7 +252,7 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           assertNotNull(e);
           count++;
           if (count == 2) {
-            Admin.signalGracefulShutdown(ctx, sserver.toString());
+            Admin.signalGracefulShutdown(ctx, sserver);
           }
         }
         assertEquals(10, count);

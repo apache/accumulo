@@ -41,6 +41,8 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -105,18 +107,12 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(
-      commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
-  static class GracefulShutdownCommand extends SubCommandOpts {
-    @Parameter(required = true, names = {"-a", "--address"}, description = "<host:port>")
-    String address = null;
-  }
-
-  @Parameters(commandDescription = "stop the tablet server on the given hosts")
+      commandDescription = "Stop the servers at the given addresses.  If the force option is not specified, then servers will complete anything it might be working on, but not starting any new tasks.  If a port is not specified, then the port specified by tserver.port.client is used.  Not specifying the port is deprecated.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop by removing its lock")
     boolean force = false;
-    @Parameter(description = "<host> {<host> ... }")
+    @Parameter(description = "<host[:port]> {<host[:port]> ... }")
     List<String> args = new ArrayList<>();
   }
 
@@ -321,9 +317,6 @@ public class Admin implements KeywordExecutable {
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
 
-    GracefulShutdownCommand gracefulShutdownCommand = new GracefulShutdownCommand();
-    cl.addCommand("signalShutdown", gracefulShutdownCommand);
-
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listInstancesOpts);
 
@@ -413,9 +406,7 @@ public class Admin implements KeywordExecutable {
         }
 
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(context, stopOpts.args, stopOpts.force);
-      } else if (cl.getParsedCommand().equals("signalShutdown")) {
-        signalGracefulShutdown(context, gracefulShutdownCommand.address);
+        stopServers(context, stopOpts.args, stopOpts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -563,18 +554,89 @@ public class Admin implements KeywordExecutable {
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
-  // Visible for tests
-  public static void signalGracefulShutdown(final ClientContext context, String address) {
+  private static void stopServers(final ServerContext context, List<String> servers,
+      final boolean force)
+      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
+    List<String> hostOnly = new ArrayList<>();
+    Set<HostAndPort> hostAndPort = new TreeSet<>();
 
-    Objects.requireNonNull(address, "address not set");
-    final HostAndPort hp = HostAndPort.fromString(address);
+    for (var server : servers) {
+      if (server.contains(":")) {
+        hostAndPort.add(HostAndPort.fromString(server));
+      } else {
+        hostOnly.add(server);
+      }
+    }
+
+    if (!hostOnly.isEmpty()) {
+      // TODO need to see how easy it is to use serverStatus to support current functionality of
+      // specifying a host. Like what does the whole command to stop all tservers on a host look
+      // like using admin serviceStatus and admin stop.
+      // TODO start deprecation warning in 4.0 instead of 2.1.x?
+      log.warn(
+          "Not specifying a port is deprecated, will use the ports {} from {}.  Please use the admin serviceStatus "
+              + "command instead to obtain a list of host:ports that match your needs.",
+          IntStream.of(context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)).boxed()
+              .collect(Collectors.toList()),
+          Property.TSERV_CLIENTPORT.getKey());
+      // The old impl of this command with the old behavior
+      stopTabletServer(context, hostOnly, force);
+    }
+
+    if (!hostAndPort.isEmpty()) {
+      // New behavior for this command when ports are present, supports more than just tservers. Is
+      // also async.
+      if (force) {
+        // TODO do not want to pass opts, the code called only looks at dryRun could make that a
+        // method argument
+        ZooZap.Opts opts = new ZooZap.Opts();
+        var zk = context.getZooReaderWriter();
+        var iid = context.getInstanceID();
+
+        String tserversPath = Constants.ZROOT + "/" + iid + Constants.ZTSERVERS;
+        ZooZap.removeLocks(zk, tserversPath, hostAndPort::contains, opts);
+        String compactorsBasepath = Constants.ZROOT + "/" + iid + Constants.ZCOMPACTORS;
+        ZooZap.removeGroupedLocks(zk, compactorsBasepath, rg -> true, hostAndPort::contains, opts);
+        String sserversPath = Constants.ZROOT + "/" + iid + Constants.ZSSERVERS;
+        ZooZap.removeGroupedLocks(zk, sserversPath, rg -> true, hostAndPort::contains, opts);
+
+        String managerLockPath = Constants.ZROOT + "/" + iid + Constants.ZMANAGER_LOCK;
+        ZooZap.removeSingletonLock(zk, managerLockPath, hostAndPort::contains, opts);
+        String gcLockPath = Constants.ZROOT + "/" + iid + Constants.ZGC_LOCK;
+        ZooZap.removeSingletonLock(zk, gcLockPath, hostAndPort::contains, opts);
+        String monitorLockPath = Constants.ZROOT + "/" + iid + Constants.ZMONITOR_LOCK;
+        ZooZap.removeSingletonLock(zk, monitorLockPath, hostAndPort::contains, opts);
+      } else {
+        for (var server : hostAndPort) {
+          signalGracefulShutdown(context, server);
+        }
+
+        // TODO the currrent version of this command does tservers one at a time and waits. Do not
+        // want to do things one a at a time, but could wait via polling zookeeper.
+        //
+        // if(wait) {
+        // int serverCount = countServersRunning(hostAndPort);
+        // while (serverCount > 0) {
+        // log.info("Waiting for {} of {} servers to stop.", serverCount, hostAndPort.size());
+        // Thread.sleep(1000);
+        // serverCount = countServers(hostAndPort);
+        // }
+        // }
+      }
+    }
+  }
+
+  // Visible for tests
+  public static void signalGracefulShutdown(final ClientContext context, HostAndPort hp) {
+    Objects.requireNonNull(hp, "address not set");
     ServerProcessService.Client client = null;
     try {
       client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
           hp.getHost(), hp.getPort());
       client.gracefulShutdown(context.rpcCreds());
+      log.debug("Successfully asked {} to initiate shutdown", hp);
     } catch (TException e) {
-      throw new RuntimeException("Error invoking graceful shutdown for server: " + hp, e);
+      log.warn("Failed to ask {} to initiate shutdown", hp, e);
     } finally {
       if (client != null) {
         ThriftUtil.returnClient(client, context);
