@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Map;
 
@@ -25,6 +26,8 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
+import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 
 public final class PropUtil {
 
@@ -74,7 +77,28 @@ public final class PropUtil {
               "Unable to resolve classloader for context: " + prop.getValue());
         }
       }
+
+      if (prop.getKey().equals(Property.TABLE_ERASURE_CODE_POLICY.getKey())) {
+        var volumes = context.getVolumeManager().getVolumes();
+        for (var volume : volumes) {
+          if (volume.getFileSystem() instanceof DistributedFileSystem) {
+            Collection<ErasureCodingPolicyInfo> allPolicies = null;
+            try {
+              allPolicies =
+                  ((DistributedFileSystem) volume.getFileSystem()).getAllErasureCodingPolicies();
+            } catch (IOException e) {
+              throw new IllegalArgumentException("Failed to check EC policy", e);
+            }
+            if (allPolicies.stream().filter(ErasureCodingPolicyInfo::isEnabled)
+                .map(pi -> pi.getPolicy().getName())
+                .noneMatch(policy -> policy.equals(prop.getValue()))) {
+              throw new IllegalArgumentException(
+                  "EC policy " + prop.getKey() + " is not enabled in HDFS for volume "
+                      + volume.getFileSystem().getUri() + volume.getBasePath());
+            }
+          }
+        }
+      }
     }
   }
-
 }

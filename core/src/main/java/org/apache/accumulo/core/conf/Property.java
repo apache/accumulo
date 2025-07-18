@@ -1416,7 +1416,8 @@ public enum Property {
       "This determines if Accumulo will manage erasure codes on a table."
           + " When setting this to 'enable' must also set erasure.code.policy and that policy will "
           + "always be used.  When set to 'disable', replication will always be used.  When set "
-          + "to 'dir' the settings for the directory in dfs will be used.",
+          + "to 'dir' the settings for the directory in dfs will be used. Enabling erasure coding on "
+          + "volume that does not support it is a noop.",
       "2.1.4"),
 
   TABLE_ERASURE_CODE_POLICY("table.file.ec.policy", "", PropertyType.STRING,

@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
@@ -255,6 +256,17 @@ public class ErasureCodeIT extends ConfigurableMacBase {
       var exp = assertThrows(RemoteException.class, () -> RFile.newWriter().to("/tmp/test1.rf")
           .withFileSystem(dfs).withTableProperties(badOptions).build());
       assertTrue(exp.getMessage().contains("ycilop"));
+
+      // try setting invalid EC policy on table, should fail
+      var exp2 = assertThrows(AccumuloException.class, () -> c.tableOperations().setProperty(table1,
+          Property.TABLE_ERASURE_CODE_POLICY.getKey(), "ycilop"));
+      assertTrue(exp2.getMessage().contains("ycilop"));
+      assertEquals(policy1, c.tableOperations().getConfiguration(table1)
+          .get(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
+      // should be able to set a valid policy
+      c.tableOperations().setProperty(table1, Property.TABLE_ERASURE_CODE_POLICY.getKey(), policy2);
+      assertEquals(policy2, c.tableOperations().getConfiguration(table1)
+          .get(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
     }
   }
 }
