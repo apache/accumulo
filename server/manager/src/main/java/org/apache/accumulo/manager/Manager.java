@@ -87,6 +87,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
+import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -161,6 +162,13 @@ import io.opentelemetry.context.Scope;
 public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
+
+  // When in safe mode totalAssignedOrHosted() is called every 10s
+  // which logs 3 messages about assigned tablets, 1 message
+  // per TabletGroupWatcher. This DeduplicatingLogger slows
+  // down the log messages to once per minute.
+  private static final DeduplicatingLogger DEDUPE_LOG =
+      new DeduplicatingLogger(log, Duration.ofMinutes(1), 6);
 
   static final int ONE_SECOND = 1000;
   static final long CLEANUP_INTERVAL_MINUTES = 5;
@@ -391,7 +399,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
         var tableId = entry.getKey();
         var counts = entry.getValue();
-        log.debug(
+        DEDUPE_LOG.debug(
             "Watcher: {}: TableId: {}, Assigned Tablets: {}, Hosted Tablets:{}, "
                 + " Unassigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
             watcher.getName(), tableId, counts.assigned(), counts.hosted(), counts.unassigned(),
