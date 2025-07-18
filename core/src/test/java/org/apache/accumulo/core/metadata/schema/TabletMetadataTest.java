@@ -135,6 +135,9 @@ public class TabletMetadataTest {
     FateId fateId1 = FateId.from(type, UUID.randomUUID());
     FateId fateId2 = FateId.from(type, UUID.randomUUID());
 
+    mutation.put(MetadataSchema.TabletsSection.CompactedColumnFamily.STR_NAME, fateId1.canonical(),
+        "");
+
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
@@ -148,6 +151,8 @@ public class TabletMetadataTest {
     AVAILABILITY_COLUMN.put(mutation, TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
     Value mergeabilityValue = new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}");
     MERGEABILITY_COLUMN.put(mutation, mergeabilityValue);
+    TabletMergeabilityMetadata mergeability =
+        TabletMergeabilityMetadata.fromValue(mergeabilityValue);
 
     String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
     String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
@@ -210,21 +215,21 @@ public class TabletMetadataTest {
     TabletMetadata tm = TabletMetadata.convertRow(rowMap.entrySet().iterator(),
         EnumSet.allOf(ColumnType.class), true, false);
 
-    assertTrue(tm.getCompacted().isEmpty());
+    assertFalse(tm.getCompacted().isEmpty());
     allColumns.remove(COMPACTED);
-    assertEquals(TabletMergeabilityMetadata.fromValue(mergeabilityValue).toJson(),
-        TabletMergeabilityMetadata.toValue(tm.getTabletMergeability()).toString());
+    assertEquals(mergeability, tm.getTabletMergeability());
     allColumns.remove(MERGEABILITY);
     assertEquals(TabletAvailability.ONDEMAND, tm.getTabletAvailability());
     allColumns.remove(AVAILABILITY);
+    assertEquals(1, tm.getSelectedFiles().getFiles().size());
     assertEquals(selectedPath.toString(),
         tm.getSelectedFiles().getFiles().iterator().next().getMetadataPath());
     allColumns.remove(SELECTED);
-    assertEquals(opidValue.toString(), tm.getOperationId().toString());
+    assertEquals(TabletOperationId.from(opidValue.toString()), tm.getOperationId());
     allColumns.remove(OPID);
     assertFalse(tm.getHostingRequested());
     allColumns.remove(HOSTING_REQUESTED);
-    assertEquals(1000L, tm.getSuspend().suspensionTime.getMillis());
+    assertEquals(suspensionTime, tm.getSuspend().suspensionTime);
     allColumns.remove(SUSPEND);
     assertEquals("OK", tm.getCloned());
     allColumns.remove(CLONED);
@@ -278,7 +283,7 @@ public class TabletMetadataTest {
     allColumns.remove(MIGRATION);
 
     assertTrue(allColumns.isEmpty(),
-        "Not all columns are testing. Add testing to remaining columns.");
+        "Not all columns are tested. Add testing to remaining columns: " + allColumns);
   }
 
   @Test
