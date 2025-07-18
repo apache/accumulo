@@ -137,23 +137,45 @@ public class RFileOperations extends FileOperations {
       String file = options.getFilename();
       FileSystem fs = options.getFileSystem();
 
-      boolean useEC =
-          options.getTableConfiguration().getBoolean(Property.TABLE_ENABLE_ERASURE_CODES);
+      var ecEnable = EcEnabled.valueOf(
+          options.getTableConfiguration().get(Property.TABLE_ENABLE_ERASURE_CODES).toUpperCase());
 
-      if (options.dropCacheBehind) {
+      if (fs instanceof DistributedFileSystem) {
+        var builder = ((DistributedFileSystem) fs).createFile(new Path(file)).bufferSize(bufferSize)
+            .blockSize(block).overwrite(false);
 
-        EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
-        if (useEC && (fs instanceof DistributedFileSystem)) {
-          String ecPolicyName =
-              options.getTableConfiguration().get(Property.TABLE_ERASURE_CODE_POLICY);
-          outputStream =
-              ((DistributedFileSystem) fs).createFile(new Path(file)).bufferSize(bufferSize)
-                  .blockSize(block).syncBlock().ecPolicyName(ecPolicyName).build();
-        } else {
-          outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
-              (short) rep, block, null);
+        if (options.dropCacheBehind) {
+          builder = builder.syncBlock();
         }
 
+        switch (ecEnable) {
+          case ENABLE:
+            String ecPolicyName =
+                options.getTableConfiguration().get(Property.TABLE_ERASURE_CODE_POLICY);
+            builder = builder.ecPolicyName(ecPolicyName);
+            break;
+          case DISABLE:
+            // force replication
+            builder = builder.replication((short) rep).replicate();
+            break;
+          case DIR:
+            // use the directory settings for replication or EC
+            builder = builder.replication((short) rep);
+            break;
+          default:
+            throw new IllegalStateException(ecEnable.name());
+        }
+
+        outputStream = builder.build();
+      } else if (options.dropCacheBehind) {
+        EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
+        outputStream = fs.create(new Path(file), FsPermission.getDefault(), set, bufferSize,
+            (short) rep, block, null);
+      } else {
+        outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
+      }
+
+      if (options.dropCacheBehind) {
         try {
           // Tell the DataNode that the file does not need to be cached in the OS page cache
           outputStream.setDropBehind(Boolean.TRUE);
@@ -163,15 +185,6 @@ public class RFileOperations extends FileOperations {
         } catch (IOException e) {
           LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.filename,
               e.getMessage());
-        }
-      } else {
-        if (useEC && (fs instanceof DistributedFileSystem)) {
-          String ecPolicyName =
-              options.getTableConfiguration().get(Property.TABLE_ERASURE_CODE_POLICY);
-          outputStream = ((DistributedFileSystem) fs).createFile(new Path(file))
-              .bufferSize(bufferSize).blockSize(block).ecPolicyName(ecPolicyName).build();
-        } else {
-          outputStream = fs.create(new Path(file), false, bufferSize, (short) rep, block);
         }
       }
     }

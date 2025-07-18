@@ -82,17 +82,17 @@ public class ErasureCodeConfigurer extends CompressionConfigurer {
     Map<String,String> overs = new HashMap<>(super.override(params).getOverrides());
     if (this.byPassEC) {
       // Allow for user initiated compactions to pass an options to bypass EC.
-      overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "false");
+      overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
     } else {
       long inputsSum =
           params.getInputFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum();
       if (inputsSum >= this.ecSize) {
-        overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), Boolean.toString(true));
+        overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
         if (ecPolicyName != null) {
           overs.put(Property.TABLE_ERASURE_CODE_POLICY.getKey(), ecPolicyName);
         }
       } else {
-        overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), Boolean.toString(false));
+        overs.put(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "disable");
       }
     }
     return new Overrides(overs);
