@@ -1204,7 +1204,7 @@ public class TabletClientHandler implements TabletClientService.Iface {
           Set<KeyExtent> unopenedOverlapping =
               KeyExtent.findOverlapping(extent, server.unopenedTablets);
           Set<KeyExtent> openingOverlapping =
-              KeyExtent.findOverlapping(extent, server.openingTablets);
+              KeyExtent.findOverlapping(extent, server.openingTablets.immutableView());
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.getOnlineTablets());
 

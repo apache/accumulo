@@ -100,7 +100,6 @@ import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
-import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.HostAndPort;
 import org.apache.accumulo.core.util.MapCounter;
 import org.apache.accumulo.core.util.Pair;
@@ -213,8 +212,9 @@ public class TabletServer extends AbstractServer
   private final AtomicLong syncCounter = new AtomicLong(0);
 
   final OnlineTablets onlineTablets = new OnlineTablets();
+  final OpeningTablets openingTablets = new OpeningTablets();
   final SortedSet<KeyExtent> unopenedTablets = Collections.synchronizedSortedSet(new TreeSet<>());
-  final SortedSet<KeyExtent> openingTablets = Collections.synchronizedSortedSet(new TreeSet<>());
+
   final Map<KeyExtent,Long> recentlyUnloadedCache = Collections.synchronizedMap(new LRUMap<>(1000));
 
   final TabletServerResourceManager resourceManager;
@@ -787,7 +787,7 @@ public class TabletServer extends AbstractServer
       // any tablets that are moving between sets
       synchronized (openingTablets) {
         synchronized (onlineTablets) {
-          return new OpeningAndOnlineCompactables(Set.copyOf(openingTablets),
+          return new OpeningAndOnlineCompactables(Set.copyOf(openingTablets.immutableView()),
               onlineTablets.snapshot());
         }
       }
@@ -954,18 +954,6 @@ public class TabletServer extends AbstractServer
       }
     }
 
-    // Tell the Manager we are shutting down so that it doesn't try
-    // to assign tablets.
-    ManagerClientService.Client iface = managerConnection(getManagerAddress());
-    try {
-      iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-          getClientAddressString());
-    } catch (TException e) {
-      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
-    } finally {
-      returnManagerConnection(iface);
-    }
-
     log.debug("Stopping Replication Server");
     if (this.replServer != null) {
       this.replServer.stop();
@@ -978,11 +966,14 @@ public class TabletServer extends AbstractServer
         .getPoolBuilder(ThreadPoolNames.TSERVER_SHUTDOWN_UNLOAD_TABLET_POOL).numCoreThreads(8)
         .numMaxThreads(16).build();
 
-    iface = managerConnection(getManagerAddress());
+    ManagerClientService.Client iface = managerConnection(getManagerAddress());
     boolean managerDown = false;
 
     try {
       for (DataLevel level : new DataLevel[] {DataLevel.USER, DataLevel.METADATA, DataLevel.ROOT}) {
+        // stop any new tablets from loading for this level and wait for any that are current
+        // loading.
+        openingTablets.stopLoadingTablets(level);
         getOnlineTablets().keySet().forEach(ke -> {
           if (DataLevel.of(ke.tableId()) == level) {
             futures.add(
@@ -1215,7 +1206,7 @@ public class TabletServer extends AbstractServer
     synchronized (this.unopenedTablets) {
       synchronized (this.openingTablets) {
         offlineTabletsCopy.addAll(this.unopenedTablets);
-        offlineTabletsCopy.addAll(this.openingTablets);
+        offlineTabletsCopy.addAll(this.openingTablets.immutableView());
       }
     }
 

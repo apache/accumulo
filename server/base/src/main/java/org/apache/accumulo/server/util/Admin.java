@@ -111,11 +111,14 @@ public class Admin implements KeywordExecutable {
     String address = null;
   }
 
+  // TODO update description
   @Parameters(commandDescription = "stop the tablet server on the given hosts")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop by removing its lock")
     boolean force = false;
+    // TODO this is actually expecting host:port
+    // TODO would be nice to support regexes (would probably want a dry run option)
     @Parameter(description = "<host> {<host> ... }")
     List<String> args = new ArrayList<>();
   }
@@ -603,11 +606,16 @@ public class Admin implements KeywordExecutable {
         log.info("Only 1 tablet server running. Not attempting shutdown of {}", server);
         return;
       }
+
+      // TODO what if we want to stop a tserver on another port????
       for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer =
             qualifyWithZooKeeperSessionId(zTServerRoot, zc, address.toString());
         log.info("Stopping server {}", finalServer);
+        // TODO this is a blocking call that will wait for the tserver to unload all tablets and
+        // halt. Also there seems to be a bug on the server side where this could go on forever.
+        // Want to be able to queue up stopping all the tservers and then potentially wait.
         ThriftClientTypes.MANAGER.executeVoid(context, client -> client
             .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
       }

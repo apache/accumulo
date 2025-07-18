@@ -76,7 +76,7 @@ class AssignmentHandler implements Runnable {
           Set<KeyExtent> unopenedOverlapping =
               KeyExtent.findOverlapping(extent, server.unopenedTablets);
           Set<KeyExtent> openingOverlapping =
-              KeyExtent.findOverlapping(extent, server.openingTablets);
+              KeyExtent.findOverlapping(extent, server.openingTablets.immutableView());
           Set<KeyExtent> onlineOverlapping =
               KeyExtent.findOverlapping(extent, server.onlineTablets.snapshot());
 
@@ -98,7 +98,10 @@ class AssignmentHandler implements Runnable {
         }
 
         server.unopenedTablets.remove(extent);
-        server.openingTablets.add(extent);
+
+        if (!server.openingTablets.add(extent)) {
+          return;
+        }
       }
     }
 
