@@ -432,7 +432,7 @@ public class CollectTabletStats {
       Collection<SortedKeyValueIterator<Key,Value>> dataFiles, Authorizations authorizations,
       byte[] defaultLabels, HashSet<Column> columnSet, List<IterInfo> ssiList,
       Map<String,Map<String,String>> ssio, boolean useTableIterators, TableConfiguration conf,
-      ServerContext context) throws IOException {
+      ServerContext context) throws IOException, ReflectiveOperationException {
 
     SortedMapIterator smi = new SortedMapIterator(new TreeMap<>());
 

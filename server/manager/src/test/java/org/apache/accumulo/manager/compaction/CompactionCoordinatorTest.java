@@ -126,6 +126,9 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
+    protected void startFailureSummaryLogging() {}
+
+    @Override
     protected void startDeadCompactionDetector() {}
 
     @Override
@@ -148,7 +151,7 @@ public class CompactionCoordinatorTest {
 
     @Override
     public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-        TKeyExtent extent) throws ThriftSecurityException {}
+        TKeyExtent extent, String exceptionClassName) throws ThriftSecurityException {}
 
     void setMetadataCompactionIds(Set<ExternalCompactionId> mci) {
       metadataCompactionIds = mci;

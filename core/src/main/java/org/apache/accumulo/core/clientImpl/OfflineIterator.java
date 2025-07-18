@@ -107,7 +107,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }
   }
@@ -133,13 +134,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return ret;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  private void nextTablet()
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException,
+      AccumuloSecurityException, ReflectiveOperationException {
 
     Range nextRange;
 
@@ -205,8 +207,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
-      Collection<StoredTabletFile> absFiles)
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+      Collection<StoredTabletFile> absFiles) throws TableNotFoundException, AccumuloException,
+      IOException, AccumuloSecurityException, ReflectiveOperationException {
 
     // possible race condition here, if table is renamed
     String tableName = context.getQualifiedTableName(tableId);

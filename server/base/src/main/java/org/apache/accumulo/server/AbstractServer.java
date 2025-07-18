@@ -453,7 +453,11 @@ public abstract class AbstractServer
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    if (context != null) {
+      context.close();
+    }
+  }
 
   protected void waitForUpgrade() throws InterruptedException {
     while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {

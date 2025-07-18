@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.core.iteratorsImpl.conf;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -44,12 +43,12 @@ public class ColumnToClassMapping<K> {
   }
 
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c)
-      throws ReflectiveOperationException, IOException {
+      throws ReflectiveOperationException {
     this(objectStrings, c, null);
   }
 
   public ColumnToClassMapping(Map<String,String> objectStrings, Class<? extends K> c,
-      String context) throws ReflectiveOperationException, IOException {
+      String context) throws ReflectiveOperationException {
     this();
 
     for (Entry<String,String> entry : objectStrings.entrySet()) {

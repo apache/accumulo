@@ -897,6 +897,11 @@ public enum Property {
           + " the dead servers resource group matches a resource group in this list,"
           + " then it will be suppressed from the dead servers list in the monitor.",
       "4.0.0"),
+  MONITOR_ROOT_CONTEXT("monitor.root.context", "/", PropertyType.STRING,
+      "The root context path of the monit   application. If this value is set, all paths for the"
+          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo/`"
+          + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",
+      "2.1.4"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
@@ -1243,6 +1248,35 @@ public enum Property {
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_THRESHOLD("compactor.failure.backoff.threshold", "3",
+      PropertyType.COUNT,
+      "The number of consecutive failures that must occur before the Compactor starts to back off"
+          + " processing compactions.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_INTERVAL("compactor.failure.backoff.interval", "0",
+      PropertyType.TIMEDURATION,
+      "The time basis for computing the wait time for compaction failure backoff. A value of zero disables"
+          + " the backoff feature. When a non-zero value is supplied, then after compactor.failure.backoff.threshold"
+          + " failures have occurred, the compactor will wait compactor.failure.backoff.interval * the number of"
+          + " failures seconds before executing the next compaction. For example, if this value is 10s, then after"
+          + " three failures the Compactor will wait 30s before starting the next compaction. If the compaction fails"
+          + " again, then it will wait 40s before starting the next compaction.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_RESET("compactor.failure.backoff.reset", "10m",
+      PropertyType.TIMEDURATION,
+      "The maximum amount of time that the compactor will wait before executing the next compaction. When this"
+          + " time limit has been reached, the failures are cleared.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_TERMINATION_THRESHOLD("compactor.failure.termination.threshold", "0",
+      PropertyType.COUNT,
+      "The number of consecutive failures at which the Compactor exits and the process terminates. A zero"
+          + " value disables this feature.",
+      "2.1.4"),
+  @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,

@@ -136,7 +136,7 @@ $(function () {
   // Create a table for tserver list
   tserversTable = $('#tservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "servers"
     },
     "stateSave": true,
@@ -189,7 +189,7 @@ $(function () {
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
+            data = '<a href="tservers?s=' + row.id + '">' + row.hostname + '</a>';
           }
           return data;
         }
@@ -263,7 +263,7 @@ $(function () {
   // Create a table for deadServers list
   deadTServersTable = $('#deadtservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "deadServers"
     },
     "stateSave": true,
@@ -301,7 +301,7 @@ $(function () {
   // Create a table for badServers list
   badTServersTable = $('#badtservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "badServers"
     },
     "stateSave": true,
