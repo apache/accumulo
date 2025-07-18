@@ -53,6 +53,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -180,18 +181,19 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     private final Map<TServerInstance,List<Path>> logsForDeadServers = new TreeMap<>();
     // read only list of tablet servers that are not shutting down
     private final SortedMap<TServerInstance,TabletServerStatus> destinations;
-    private final Map<String,Set<TServerInstance>> currentTServerGrouping;
+    private final Map<ResourceGroupId,Set<TServerInstance>> currentTServerGrouping;
     private final List<VolumeUtil.VolumeReplacements> volumeReplacements = new ArrayList<>();
 
     public TabletLists(SortedMap<TServerInstance,TabletServerStatus> curTServers,
-        Map<String,Set<TServerInstance>> grouping, Set<TServerInstance> serversToShutdown) {
+        Map<ResourceGroupId,Set<TServerInstance>> grouping,
+        Set<TServerInstance> serversToShutdown) {
 
       var destinationsMod = new TreeMap<>(curTServers);
       if (!serversToShutdown.isEmpty()) {
         // Remove servers that are in the process of shutting down from the lists of tablet
         // servers.
         destinationsMod.keySet().removeAll(serversToShutdown);
-        HashMap<String,Set<TServerInstance>> groupingCopy = new HashMap<>();
+        HashMap<ResourceGroupId,Set<TServerInstance>> groupingCopy = new HashMap<>();
         grouping.forEach((group, groupsServers) -> {
           if (Collections.disjoint(groupsServers, serversToShutdown)) {
             groupingCopy.put(group, groupsServers);

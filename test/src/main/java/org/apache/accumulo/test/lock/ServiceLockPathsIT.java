@@ -22,8 +22,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
@@ -53,40 +53,59 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
     assertNotNull(paths.getManager(true));
     assertNull(paths.getMonitor(true)); // monitor not started
     assertEquals(2, paths.getTabletServer(rg -> true, AddressSelector.all(), true).size());
-    assertEquals(1, paths.getTabletServer(rg -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME),
-        AddressSelector.all(), true).size());
     assertEquals(1,
-        paths.getTabletServer(rg -> rg.equals("TTEST"), AddressSelector.all(), true).size());
-    assertEquals(0,
-        paths.getTabletServer(rg -> rg.equals("FAKE"), AddressSelector.all(), true).size());
-    assertEquals(0,
-        paths.getTabletServer(rg -> rg.equals("CTEST"), AddressSelector.all(), true).size());
-    assertEquals(0,
-        paths.getTabletServer(rg -> rg.equals("STEST"), AddressSelector.all(), true).size());
+        paths.getTabletServer(rg -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true)
+            .size());
+    assertEquals(1, paths
+        .getTabletServer(rg -> rg.equals(ResourceGroupId.of("TTEST")), AddressSelector.all(), true)
+        .size());
+    assertEquals(0, paths
+        .getTabletServer(rg -> rg.equals(ResourceGroupId.of("FAKE")), AddressSelector.all(), true)
+        .size());
+    assertEquals(0, paths
+        .getTabletServer(rg -> rg.equals(ResourceGroupId.of("CTEST")), AddressSelector.all(), true)
+        .size());
+    assertEquals(0, paths
+        .getTabletServer(rg -> rg.equals(ResourceGroupId.of("STEST")), AddressSelector.all(), true)
+        .size());
 
     assertEquals(4, paths.getCompactor(rg -> true, AddressSelector.all(), true).size());
-    assertEquals(1, paths.getCompactor(rg -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME),
-        AddressSelector.all(), true).size());
+    assertEquals(1,
+        paths.getCompactor(rg -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true)
+            .size());
     assertEquals(3,
-        paths.getCompactor(rg -> rg.equals("CTEST"), AddressSelector.all(), true).size());
+        paths
+            .getCompactor(rg -> rg.equals(ResourceGroupId.of("CTEST")), AddressSelector.all(), true)
+            .size());
     assertEquals(0,
-        paths.getCompactor(rg -> rg.equals("FAKE"), AddressSelector.all(), true).size());
+        paths.getCompactor(rg -> rg.equals(ResourceGroupId.of("FAKE")), AddressSelector.all(), true)
+            .size());
     assertEquals(0,
-        paths.getCompactor(rg -> rg.equals("TTEST"), AddressSelector.all(), true).size());
+        paths
+            .getCompactor(rg -> rg.equals(ResourceGroupId.of("TTEST")), AddressSelector.all(), true)
+            .size());
     assertEquals(0,
-        paths.getCompactor(rg -> rg.equals("STEST"), AddressSelector.all(), true).size());
+        paths
+            .getCompactor(rg -> rg.equals(ResourceGroupId.of("STEST")), AddressSelector.all(), true)
+            .size());
 
     assertEquals(3, paths.getScanServer(rg -> true, AddressSelector.all(), true).size());
-    assertEquals(1, paths.getScanServer(rg -> rg.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME),
-        AddressSelector.all(), true).size());
-    assertEquals(2,
-        paths.getScanServer(rg -> rg.equals("STEST"), AddressSelector.all(), true).size());
+    assertEquals(1,
+        paths.getScanServer(rg -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true)
+            .size());
+    assertEquals(2, paths
+        .getScanServer(rg -> rg.equals(ResourceGroupId.of("STEST")), AddressSelector.all(), true)
+        .size());
     assertEquals(0,
-        paths.getScanServer(rg -> rg.equals("FAKE"), AddressSelector.all(), true).size());
-    assertEquals(0,
-        paths.getScanServer(rg -> rg.equals("CTEST"), AddressSelector.all(), true).size());
-    assertEquals(0,
-        paths.getScanServer(rg -> rg.equals("TTEST"), AddressSelector.all(), true).size());
+        paths
+            .getScanServer(rg -> rg.equals(ResourceGroupId.of("FAKE")), AddressSelector.all(), true)
+            .size());
+    assertEquals(0, paths
+        .getScanServer(rg -> rg.equals(ResourceGroupId.of("CTEST")), AddressSelector.all(), true)
+        .size());
+    assertEquals(0, paths
+        .getScanServer(rg -> rg.equals(ResourceGroupId.of("TTEST")), AddressSelector.all(), true)
+        .size());
 
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
 

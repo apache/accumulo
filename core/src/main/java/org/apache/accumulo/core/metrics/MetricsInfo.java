@@ -25,6 +25,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
+
 import com.google.common.net.HostAndPort;
 
 import io.micrometer.core.instrument.Tag;
@@ -66,11 +68,11 @@ public interface MetricsInfo {
    *
    * @param resourceGroupName the resource group name
    */
-  static Tag resourceGroupTag(final String resourceGroupName) {
-    if (resourceGroupName == null || resourceGroupName.isEmpty()) {
+  static Tag resourceGroupTag(final ResourceGroupId resourceGroupName) {
+    if (resourceGroupName == null) {
       return Tag.of(RESOURCE_GROUP_TAG_KEY, "NOT_PROVIDED");
     }
-    return Tag.of(RESOURCE_GROUP_TAG_KEY, resourceGroupName);
+    return Tag.of(RESOURCE_GROUP_TAG_KEY, resourceGroupName.canonical());
   }
 
   /**
@@ -96,7 +98,7 @@ public interface MetricsInfo {
    * Common tags for all services.
    */
   static Collection<Tag> serviceTags(final String instanceName, final String applicationName,
-      final HostAndPort hostAndPort, final String resourceGroupName) {
+      final HostAndPort hostAndPort, final ResourceGroupId resourceGroupName) {
     List<Tag> tags = new ArrayList<>();
     tags.add(instanceNameTag(instanceName));
     tags.add(processTag(applicationName));

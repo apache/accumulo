@@ -139,7 +139,7 @@ public class ECAdminIT extends SharedMiniClusterBase {
         RunningCompactionSummary rcs = compactionsByEcid.get(tec.job.getExternalCompactionId());
         assertNotNull(rcs);
         assertEquals(tec.getJob().getExternalCompactionId(), rcs.getEcid());
-        assertEquals(tec.groupName, rcs.getGroupName());
+        assertEquals(tec.groupName, rcs.getGroup().canonical());
         assertEquals(tec.getCompactor(), rcs.getAddr());
       });
 

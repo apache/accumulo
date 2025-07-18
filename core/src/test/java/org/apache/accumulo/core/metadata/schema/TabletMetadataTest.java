@@ -67,6 +67,7 @@ import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -93,7 +94,6 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
@@ -166,7 +166,7 @@ public class TabletMetadataTest {
         Set.of(StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf")));
     CompactionMetadata ecMeta =
         new CompactionMetadata(jobFiles, tmpFile, "cid1", CompactionKind.USER, (short) 3,
-            CompactorGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
+            ResourceGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
     mutation.put(ExternalCompactionColumnFamily.STR_NAME, ecid.canonical(), ecMeta.toJson());
 
     TServerInstance tsi = new TServerInstance("localhost:9997", 5000L);
@@ -426,7 +426,7 @@ public class TabletMetadataTest {
     StoredTabletFile stf = StoredTabletFile.of(new Path("file:///accumulo/tables/t-0/b-0/b2.rf"));
     CompactionMetadata ecMeta =
         new CompactionMetadata(Set.of(stf), tmpFile, "cid1", CompactionKind.USER, (short) 3,
-            CompactorGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
+            ResourceGroupId.of("Q1"), true, FateId.from(FateInstanceType.USER, UUID.randomUUID()));
 
     // Verify the various collections are immutable and non-null (except for getKeyValues) if
     // nothing set on the builder
@@ -751,7 +751,7 @@ public class TabletMetadataTest {
     var ecid1 = ExternalCompactionId.generate(UUID.randomUUID());
     CompactionMetadata ecm =
         new CompactionMetadata(Set.of(sf1, sf2), rf1, "cid1", CompactionKind.USER, (short) 3,
-            CompactorGroupId.of("Q1"), true, FateId.from(type, UUID.randomUUID()));
+            ResourceGroupId.of("Q1"), true, FateId.from(type, UUID.randomUUID()));
 
     LogEntry le1 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());
     LogEntry le2 = LogEntry.fromPath("localhost+8020/" + UUID.randomUUID());

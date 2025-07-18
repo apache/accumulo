@@ -74,6 +74,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
@@ -97,7 +98,6 @@ import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -154,9 +154,9 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // this cast should fail if the compaction is running in the tserver
       CompactorIterEnv cienv = (CompactorIterEnv) env;
 
-      Preconditions.checkArgument(!cienv.getQueueName().isEmpty());
-      Preconditions
-          .checkArgument(options.getOrDefault("expectedQ", "").equals(cienv.getQueueName()));
+      Preconditions.checkArgument(cienv.getQueueName() != null);
+      Preconditions.checkArgument(
+          options.getOrDefault("expectedQ", "").equals(cienv.getQueueName().canonical()));
       Preconditions.checkArgument(cienv.isUserCompaction());
       Preconditions.checkArgument(cienv.getIteratorScope() == IteratorScope.majc);
       Preconditions.checkArgument(!cienv.isSamplingEnabled());
@@ -404,7 +404,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
 
         CompactionMetadata cm = new CompactionMetadata(tabletMeta.getFiles(),
             ReferencedTabletFile.of(tmpFile), "localhost:16789", CompactionKind.SYSTEM, (short) 10,
-            CompactorGroupId.of(GROUP1), false, null);
+            ResourceGroupId.of(GROUP1), false, null);
 
         mutator.mutateTablet(tabletMeta.getExtent())
             .putExternalCompaction(allCids.get(tableId).get(i), cm).mutate();
@@ -701,7 +701,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // this cast should fail if the compaction is running in the tserver
       CompactorIterEnv cienv = (CompactorIterEnv) env;
 
-      Preconditions.checkArgument(!cienv.getQueueName().isEmpty());
+      Preconditions.checkArgument(cienv.getQueueName() != null);
     }
   }
 

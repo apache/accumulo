@@ -20,6 +20,7 @@ package org.apache.accumulo.server.manager.state;
 
 import java.util.function.Supplier;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
 import org.apache.accumulo.core.manager.balancer.TabletServerIdImpl;
@@ -139,7 +140,7 @@ public enum TabletGoalState {
             }
 
             @Override
-            public String getResourceGroup() {
+            public ResourceGroupId getResourceGroup() {
               return resourceGroup;
             }
           });

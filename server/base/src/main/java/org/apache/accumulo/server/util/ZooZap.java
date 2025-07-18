@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -132,7 +133,7 @@ public class ZooZap implements KeywordExecutable {
 
     if (opts.includeGroups != null) {
       var groups = Arrays.stream(opts.includeGroups.split(",")).map(String::trim)
-          .collect(Collectors.toSet());
+          .map(ResourceGroupId::of).collect(Collectors.toSet());
       rgp = groups::contains;
     } else {
       rgp = g -> true;

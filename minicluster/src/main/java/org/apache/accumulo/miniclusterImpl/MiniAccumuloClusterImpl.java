@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -77,6 +76,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -720,8 +720,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
-          Constants.DEFAULT_RESOURCE_GROUP_NAME);
+      ServiceLockData sld =
+          new ServiceLockData(miniUUID, "localhost", ThriftService.NONE, ResourceGroupId.DEFAULT);
       miniLock = new ServiceLock(miniLockZk, slp, miniUUID);
       miniLock.lock(miniLockWatcher, sld);
 

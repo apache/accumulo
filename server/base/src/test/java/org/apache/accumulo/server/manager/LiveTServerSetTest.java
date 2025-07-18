@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
@@ -45,7 +45,7 @@ public class LiveTServerSetTest {
 
     TServerInfo server1 =
         new TServerInfo(new TServerInstance(HostAndPort.fromParts("localhost", 1234), "5555"),
-            mockConn, Constants.DEFAULT_RESOURCE_GROUP_NAME);
+            mockConn, ResourceGroupId.DEFAULT);
     servers.put("server1", server1);
 
     ServerContext ctx = EasyMock.createMock(ServerContext.class);

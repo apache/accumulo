@@ -45,6 +45,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -78,7 +79,7 @@ public class AdminTest {
     String server = "localhost:12345";
     final long session = 123456789L;
     ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), server, ThriftService.TABLET_SCAN,
-        Constants.DEFAULT_RESOURCE_GROUP_NAME);
+        ResourceGroupId.DEFAULT);
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";

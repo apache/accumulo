@@ -36,6 +36,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.util.DurationFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,7 +144,8 @@ class ActiveCompactionHelper {
   }
 
   public static Stream<String> activeCompactions(InstanceOperations instanceOps,
-      Predicate<String> resourceGroupPredicate, BiPredicate<String,Integer> hostPortPredicate) {
+      Predicate<ResourceGroupId> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate) {
 
     try {
       final Set<ServerId> compactionServers = new HashSet<>();

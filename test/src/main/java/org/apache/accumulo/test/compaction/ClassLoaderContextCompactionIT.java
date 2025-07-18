@@ -43,6 +43,7 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -171,8 +172,8 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
 
     final String table1 = this.getUniqueNames(1)[0];
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      Wait.waitFor(
-          () -> ExternalCompactionUtil.countCompactors(GROUP1, (ClientContext) client) == 1);
+      Wait.waitFor(() -> ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
+          (ClientContext) client) == 1);
       Set<HostAndPort> compactors =
           ExternalCompactionUtil.getCompactorAddrs((ClientContext) client).get(GROUP1);
       assertEquals(1, compactors.size());
@@ -228,7 +229,8 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);
-      assertEquals(1, ExternalCompactionUtil.countCompactors(GROUP1, (ClientContext) client));
+      assertEquals(1, ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
+          (ClientContext) client));
       Wait.waitFor(() -> failures.get() == 1);
       Wait.waitFor(() -> consecutive.get() == 1);
 
@@ -237,7 +239,8 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);
-      assertEquals(1, ExternalCompactionUtil.countCompactors(GROUP1, (ClientContext) client));
+      assertEquals(1, ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
+          (ClientContext) client));
       Wait.waitFor(() -> failures.get() == 1);
       Wait.waitFor(() -> consecutive.get() == 2);
 
@@ -246,13 +249,14 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
       Wait.waitFor(
           () -> ExternalCompactionUtil.getRunningCompaction(compactorAddr, (ClientContext) client)
               == null);
-      assertEquals(1, ExternalCompactionUtil.countCompactors(GROUP1, (ClientContext) client));
+      assertEquals(1, ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
+          (ClientContext) client));
       Wait.waitFor(() -> failures.get() == 1);
       Wait.waitFor(() -> consecutive.get() == 3);
 
       // Three failures have occurred, Compactor should shut down.
-      Wait.waitFor(
-          () -> ExternalCompactionUtil.countCompactors(GROUP1, (ClientContext) client) == 0);
+      Wait.waitFor(() -> ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
+          (ClientContext) client) == 0);
       Wait.waitFor(() -> terminations.get() == 1);
       assertEquals(0, cancellations.get());
       assertEquals(0, completions.get());

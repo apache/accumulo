@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
@@ -73,7 +74,7 @@ public interface TabletBalancer {
      * @return map of resource group name to set of TServerInstance objects
      * @since 4.0.0
      */
-    Map<String,Set<TabletServerId>> currentResourceGroups();
+    Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups();
   }
 
   /**
@@ -105,7 +106,7 @@ public interface TabletBalancer {
      * @return map of resource group name to set of TServerInstance objects
      * @since 4.0.0
      */
-    Map<String,Set<TabletServerId>> currentResourceGroups();
+    Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups();
 
     /**
      * Return the DataLevel name for which the Manager is currently balancing. Balancers should
@@ -162,7 +163,7 @@ public interface TabletBalancer {
 
     TabletServerId getTabletServer();
 
-    String getResourceGroup();
+    ResourceGroupId getResourceGroup();
   }
 
   /**

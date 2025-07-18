@@ -111,8 +111,9 @@ public class ServiceStatusCmd {
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
         context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
-    compactors.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, hostsByGroups.keySet(),
         hostsByGroups, errors.get());
   }
@@ -128,8 +129,9 @@ public class ServiceStatusCmd {
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> scanServers =
         context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
-    scanServers.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
+    scanServers.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, hostsByGroups.keySet(),
         hostsByGroups, errors.get());
   }
@@ -155,8 +157,9 @@ public class ServiceStatusCmd {
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
         context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
-    compactors.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, hostsByGroups.keySet(),
         hostsByGroups, errors.get());
   }
@@ -175,7 +178,8 @@ public class ServiceStatusCmd {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
       var services = sld.getServices();
       services.forEach(sd -> {
-        byGroup.computeIfAbsent(sd.getGroup(), set -> new TreeSet<>()).add(sd.getAddress());
+        byGroup.computeIfAbsent(sd.getGroup().canonical(), set -> new TreeSet<>())
+            .add(sd.getAddress());
       });
     });
     return new StatusSummary(displayNames, byGroup.keySet(), byGroup, result.getErrorCount());

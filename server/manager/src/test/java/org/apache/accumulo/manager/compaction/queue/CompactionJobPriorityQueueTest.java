@@ -31,12 +31,12 @@ import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.CompactableFileImpl;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.manager.compaction.queue.CompactionJobPriorityQueue.CompactionJobPriorityQueueStats;
@@ -46,7 +46,7 @@ import org.junit.jupiter.api.Test;
 
 public class CompactionJobPriorityQueueTest {
 
-  private static final CompactorGroupId GROUP = CompactorGroupId.of("TEST");
+  private static final ResourceGroupId GROUP = ResourceGroupId.of("TEST");
 
   @Test
   public void testTabletFileReplacement() {

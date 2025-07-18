@@ -43,7 +43,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -64,6 +63,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -613,7 +613,7 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
             Ample.DataLevel.ROOT, true, Ample.DataLevel.USER, true, Ample.DataLevel.METADATA, true),
         onlineTables,
         new LiveTServerSet.LiveTServersSnapshot(tservers,
-            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers)),
+            Map.of(ResourceGroupId.DEFAULT, tservers)),
         Set.of(), Ample.DataLevel.USER, Map.of(), true, replacements,
         SteadyTime.from(10000, TimeUnit.NANOSECONDS));
   }

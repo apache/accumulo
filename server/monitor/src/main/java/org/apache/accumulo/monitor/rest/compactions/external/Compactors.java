@@ -33,8 +33,8 @@ public class Compactors {
   public Compactors(ExternalCompactionInfo ecInfo) {
     ecInfo.getCompactors().forEach(csi -> {
       var fetchedTime = ecInfo.getFetchedTimeMillis();
-      compactors
-          .add(new CompactorInfo(fetchedTime, csi.getResourceGroup(), csi.toHostPortString()));
+      compactors.add(new CompactorInfo(fetchedTime, csi.getResourceGroup().canonical(),
+          csi.toHostPortString()));
     });
     numCompactors = compactors.size();
   }
