@@ -121,7 +121,7 @@ public class CompactionCoordinatorTest {
     }
 
     @Override
-    protected int countCompactors(String groupName) {
+    protected int countCompactors(ResourceGroupId groupName) {
       return 3;
     }
 

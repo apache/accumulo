@@ -253,16 +253,15 @@ public class ExternalCompactionUtil {
     return runningIds;
   }
 
-  public static int countCompactors(String groupName, ClientContext context) {
+  public static int countCompactors(ResourceGroupId group, ClientContext context) {
     var start = Timer.startNew();
     int count = context.getServerPaths()
-        .getCompactor(rg -> rg.equals(ResourceGroupId.of(groupName)), AddressSelector.all(), true)
-        .size();
+        .getCompactor(rg -> rg.equals(group), AddressSelector.all(), true).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
-      LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
+      LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, group);
     } else {
-      LOG.trace("Took {} ms to count {} compactors for {}", elapsed, count, groupName);
+      LOG.trace("Took {} ms to count {} compactors for {}", elapsed, count, group);
     }
     return count;
   }

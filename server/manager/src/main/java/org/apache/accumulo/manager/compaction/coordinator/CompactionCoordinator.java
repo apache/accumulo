@@ -282,7 +282,7 @@ public class CompactionCoordinator
   private final QueueMetrics queueMetrics;
   private final Manager manager;
 
-  private final LoadingCache<String,Integer> compactorCounts;
+  private final LoadingCache<ResourceGroupId,Integer> compactorCounts;
 
   private volatile long coordinatorStartTime;
 
@@ -344,7 +344,7 @@ public class CompactionCoordinator
     // At this point the manager does not have its lock so no actions should be taken yet
   }
 
-  protected int countCompactors(String groupName) {
+  protected int countCompactors(ResourceGroupId groupName) {
     return ExternalCompactionUtil.countCompactors(groupName, ctx);
   }
 
@@ -544,7 +544,7 @@ public class CompactionCoordinator
       result = new TExternalCompactionJob();
     }
 
-    return new TNextCompactionJob(result, compactorCounts.get(groupName));
+    return new TNextCompactionJob(result, compactorCounts.get(groupId));
   }
 
   private void checkTabletDir(KeyExtent extent, Path path) {
