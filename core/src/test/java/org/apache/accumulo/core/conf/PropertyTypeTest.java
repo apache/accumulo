@@ -242,4 +242,10 @@ public class PropertyTypeTest extends WithTestNames {
     //
     invalid(null, "", "bzip2", "lzo", "zstd");
   }
+
+  @Test
+  public void testTypeEC() {
+    valid("enable", "ENABLE", "dir", "DIR", "disable", "DISABLE");
+    invalid(null, "policy", "XOR-2-1-1024k");
+  }
 }

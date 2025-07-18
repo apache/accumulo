@@ -43,8 +43,6 @@ import com.google.common.base.Preconditions;
  * used. If this is not set, then it will fall back to what is set on the table.</li>
  * </ul>
  *
- * </p>
- *
  * @since 2.1.4
  */
 public class ErasureCodeConfigurer extends CompressionConfigurer {
