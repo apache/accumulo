@@ -68,9 +68,9 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       final Set<ServerId> sservers = iops.getServers(ServerId.Type.SCAN_SERVER);
       assertEquals(NUM_SCANSERVERS, sservers.size());
       sservers.forEach(expectedServerId -> {
-        ServerId actualServerId = iops.getServer(expectedServerId.getType(),
-            expectedServerId.getResourceGroup().canonical(), expectedServerId.getHost(),
-            expectedServerId.getPort());
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
         assertNotNull(actualServerId, "Expected to find scan server " + expectedServerId);
         assertEquals(expectedServerId, actualServerId);
       });
@@ -79,9 +79,9 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       final Set<ServerId> tservers = iops.getServers(ServerId.Type.TABLET_SERVER);
       assertEquals(NUM_TABLETSERVERS, tservers.size());
       tservers.forEach(expectedServerId -> {
-        ServerId actualServerId = iops.getServer(expectedServerId.getType(),
-            expectedServerId.getResourceGroup().canonical(), expectedServerId.getHost(),
-            expectedServerId.getPort());
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
         assertNotNull(actualServerId, "Expected to find tablet server " + expectedServerId);
         assertEquals(expectedServerId, actualServerId);
       });
@@ -90,9 +90,9 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       final Set<ServerId> compactors = iops.getServers(ServerId.Type.COMPACTOR);
       assertEquals(NUM_COMPACTORS, compactors.size());
       compactors.forEach(expectedServerId -> {
-        ServerId actualServerId = iops.getServer(expectedServerId.getType(),
-            expectedServerId.getResourceGroup().canonical(), expectedServerId.getHost(),
-            expectedServerId.getPort());
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
         assertNotNull(actualServerId, "Expected to find compactor " + expectedServerId);
         assertEquals(expectedServerId, actualServerId);
       });
@@ -101,9 +101,9 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       final Set<ServerId> managers = iops.getServers(ServerId.Type.MANAGER);
       assertEquals(1, managers.size()); // Assuming there is only one manager
       managers.forEach(expectedServerId -> {
-        ServerId actualServerId = iops.getServer(expectedServerId.getType(),
-            expectedServerId.getResourceGroup().canonical(), expectedServerId.getHost(),
-            expectedServerId.getPort());
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
         assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
         assertEquals(expectedServerId, actualServerId);
       });
@@ -112,9 +112,9 @@ public class InstanceOperationsIT extends AccumuloClusterHarness {
       final Set<ServerId> gcs = iops.getServers(ServerId.Type.GARBAGE_COLLECTOR);
       assertEquals(1, gcs.size()); // Assuming there is only one garbage collector
       gcs.forEach(expectedServerId -> {
-        ServerId actualServerId = iops.getServer(expectedServerId.getType(),
-            expectedServerId.getResourceGroup().canonical(), expectedServerId.getHost(),
-            expectedServerId.getPort());
+        ServerId actualServerId =
+            iops.getServer(expectedServerId.getType(), expectedServerId.getResourceGroup(),
+                expectedServerId.getHost(), expectedServerId.getPort());
         assertNotNull(actualServerId, "Expected to find manager " + expectedServerId);
         assertEquals(expectedServerId, actualServerId);
       });

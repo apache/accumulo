@@ -350,7 +350,7 @@ public class ServiceLockPaths {
     return get(Constants.ZDEADTSERVERS, resourceGroupPredicate, address, withLock);
   }
 
-  public interface ResourceGroupPredicate extends Predicate<String> {
+  public interface ResourceGroupPredicate extends Predicate<ResourceGroupId> {
 
   }
 
@@ -432,7 +432,7 @@ public class ServiceLockPaths {
         || serverType.equals(Constants.ZTSERVERS) || serverType.equals(Constants.ZDEADTSERVERS)) {
       final List<String> resourceGroups = zooCache.getChildren(typePath);
       for (final String group : resourceGroups) {
-        if (resourceGroupPredicate.test(group)) {
+        if (resourceGroupPredicate.test(ResourceGroupId.of(group))) {
           final Collection<String> servers;
           final Predicate<String> addressPredicate;
 

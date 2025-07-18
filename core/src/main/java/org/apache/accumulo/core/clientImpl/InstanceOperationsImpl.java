@@ -477,7 +477,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port) {
+  public ServerId getServer(ServerId.Type type, ResourceGroupId resourceGroup, String host,
+      int port) {
     Objects.requireNonNull(type, "type parameter cannot be null");
     Objects.requireNonNull(host, "host parameter cannot be null");
 
@@ -533,7 +534,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   }
 
   @Override
-  public Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+  public Set<ServerId> getServers(ServerId.Type type,
+      Predicate<ResourceGroupId> resourceGroupPredicate,
       BiPredicate<String,Integer> hostPortPredicate) {
     Objects.requireNonNull(type, "Server type was null");
     Objects.requireNonNull(resourceGroupPredicate, "Resource group predicate was null");
@@ -547,8 +549,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     return getServers(type, resourceGroupPredicate, addressPredicate);
   }
 
-  private Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
-      AddressSelector addressSelector) {
+  private Set<ServerId> getServers(ServerId.Type type,
+      Predicate<ResourceGroupId> resourceGroupPredicate, AddressSelector addressSelector) {
 
     final Set<ServerId> results = new HashSet<>();
 

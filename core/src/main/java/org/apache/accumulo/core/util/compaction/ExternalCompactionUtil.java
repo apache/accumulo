@@ -256,7 +256,8 @@ public class ExternalCompactionUtil {
   public static int countCompactors(String groupName, ClientContext context) {
     var start = Timer.startNew();
     int count = context.getServerPaths()
-        .getCompactor(rg -> rg.equals(groupName), AddressSelector.all(), true).size();
+        .getCompactor(rg -> rg.equals(ResourceGroupId.of(groupName)), AddressSelector.all(), true)
+        .size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, groupName);

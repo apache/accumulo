@@ -512,7 +512,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     current.remove(address.orElseThrow().toString());
 
     ResourceGroupPredicate rgPredicate = resourceGroup.map(rg -> {
-      ResourceGroupPredicate rgp = rg2 -> rg.canonical().equals(rg2);
+      ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
       return rgp;
     }).orElse(rg -> true);
     AddressSelector addrPredicate =
