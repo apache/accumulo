@@ -463,6 +463,7 @@ public class ScanServer extends AbstractServer
       }
 
       gcLogger.logGCInfo(getConfiguration());
+      super.close();
       getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
       try {

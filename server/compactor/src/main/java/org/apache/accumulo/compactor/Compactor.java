@@ -28,6 +28,7 @@ import java.security.SecureRandom;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -38,6 +39,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.function.Supplier;
@@ -124,6 +126,7 @@ import com.beust.jcommander.Parameter;
 import com.google.common.base.Preconditions;
 
 import io.micrometer.core.instrument.FunctionCounter;
+import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.LongTaskTimer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
@@ -144,6 +147,51 @@ public class Compactor extends AbstractServer
   }
 
   private static final SecureRandom random = new SecureRandom();
+
+  private static class ConsecutiveErrorHistory extends HashMap<TableId,HashMap<String,AtomicLong>> {
+
+    private static final long serialVersionUID = 1L;
+
+    public long getTotalFailures() {
+      long total = 0;
+      for (TableId tid : keySet()) {
+        total += getTotalTableFailures(tid);
+      }
+      return total;
+    }
+
+    public long getTotalTableFailures(TableId tid) {
+      long total = 0;
+      for (AtomicLong failures : get(tid).values()) {
+        total += failures.get();
+      }
+      return total;
+    }
+
+    /**
+     * Add error for table
+     *
+     * @param tid table id
+     * @param error exception
+     */
+    public void addError(TableId tid, Throwable error) {
+      computeIfAbsent(tid, t -> new HashMap<String,AtomicLong>())
+          .computeIfAbsent(error.toString(), e -> new AtomicLong(0)).incrementAndGet();
+    }
+
+    @Override
+    public String toString() {
+      StringBuilder buf = new StringBuilder();
+      for (TableId tid : keySet()) {
+        buf.append("\nTable: ").append(tid);
+        for (Entry<String,AtomicLong> error : get(tid).entrySet()) {
+          buf.append("\n\tException: ").append(error.getKey()).append(", count: ")
+              .append(error.getValue().get());
+        }
+      }
+      return buf.toString();
+    }
+  }
 
   public static class CompactorServerOpts extends ServerOpts {
     @Parameter(required = true, names = {"-q", "--queue"}, description = "compaction queue name")
@@ -171,6 +219,11 @@ public class Compactor extends AbstractServer
   private ServerAddress compactorAddress = null;
 
   private final AtomicBoolean compactionRunning = new AtomicBoolean(false);
+  private final ConsecutiveErrorHistory errorHistory = new ConsecutiveErrorHistory();
+  private final AtomicLong completed = new AtomicLong(0);
+  private final AtomicLong cancelled = new AtomicLong(0);
+  private final AtomicLong failed = new AtomicLong(0);
+  private final AtomicLong terminated = new AtomicLong(0);
 
   protected Compactor(CompactorServerOpts opts, String[] args) {
     super("compactor", opts, args);
@@ -186,6 +239,26 @@ public class Compactor extends AbstractServer
     return FileCompactor.getTotalEntriesWritten();
   }
 
+  private double getConsecutiveFailures() {
+    return errorHistory.getTotalFailures();
+  }
+
+  private double getCancellations() {
+    return cancelled.get();
+  }
+
+  private double getCompletions() {
+    return completed.get();
+  }
+
+  private double getFailures() {
+    return failed.get();
+  }
+
+  private double getTerminated() {
+    return terminated.get();
+  }
+
   @Override
   public void registerMetrics(MeterRegistry registry) {
     super.registerMetrics(registry);
@@ -195,6 +268,22 @@ public class Compactor extends AbstractServer
     FunctionCounter
         .builder(METRICS_COMPACTOR_ENTRIES_WRITTEN, this, Compactor::getTotalEntriesWritten)
         .description("Number of entries written by all compactions that have run on this compactor")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_COMPACTIONS_CANCELLED, this, Compactor::getCancellations)
+        .description("Number compactions that have been cancelled on this compactor")
+        .register(registry);
+    FunctionCounter
+        .builder(METRICS_COMPACTOR_COMPACTIONS_COMPLETED, this, Compactor::getCompletions)
+        .description("Number compactions that have succeeded on this compactor").register(registry);
+    FunctionCounter.builder(METRICS_COMPACTOR_COMPACTIONS_FAILED, this, Compactor::getFailures)
+        .description("Number compactions that have failed on this compactor").register(registry);
+    FunctionCounter.builder(METRICS_COMPACTOR_FAILURES_TERMINATION, this, Compactor::getTerminated)
+        .description("Will report 1 if the Compactor terminates due to consecutive failure, else 0")
+        .register(registry);
+    Gauge.builder(METRICS_COMPACTOR_FAILURES_CONSECUTIVE, this, Compactor::getConsecutiveFailures)
+        .description(
+            "Number of consecutive compaction failures. Resets to zero on a successful compaction")
         .register(registry);
     LongTaskTimer timer = LongTaskTimer.builder(METRICS_COMPACTOR_MAJC_STUCK)
         .description("Number and duration of stuck major compactions").register(registry);
@@ -395,16 +484,17 @@ public class Compactor extends AbstractServer
    * Notify the CompactionCoordinator the job failed
    *
    * @param job current compaction job
+   * @param exception cause of failure
    * @throws RetriesExceededException thrown when retries have been exceeded
    */
-  protected void updateCompactionFailed(TExternalCompactionJob job)
+  protected void updateCompactionFailed(TExternalCompactionJob job, Throwable exception)
       throws RetriesExceededException {
     RetryableThriftCall<String> thriftCall =
         new RetryableThriftCall<>(1000, RetryableThriftCall.MAX_WAIT_TIME, 25, () -> {
           Client coordinatorClient = getCoordinatorClient();
           try {
             coordinatorClient.compactionFailed(TraceUtil.traceInfo(), getContext().rpcCreds(),
-                job.getExternalCompactionId(), job.extent);
+                job.getExternalCompactionId(), job.extent, exception.getClass().getName());
             return "";
           } finally {
             ThriftUtil.returnClient(coordinatorClient, getContext());
@@ -666,6 +756,48 @@ public class Compactor extends AbstractServer
         clientAddress, queueName);
   }
 
+  private void performFailureProcessing(ConsecutiveErrorHistory errorHistory)
+      throws InterruptedException {
+    // consecutive failure processing
+    final long totalFailures = errorHistory.getTotalFailures();
+    if (totalFailures > 0) {
+      LOG.warn("This Compactor has had {} consecutive failures. Failures: {}", totalFailures,
+          errorHistory.toString()); // ErrorHistory.toString not invoked without .toString
+      final long failureThreshold =
+          getConfiguration().getCount(Property.COMPACTOR_FAILURE_TERMINATION_THRESHOLD);
+      if (failureThreshold > 0 && totalFailures >= failureThreshold) {
+        LOG.error(
+            "Consecutive failures ({}) has met or exceeded failure threshold ({}), exiting...",
+            totalFailures, failureThreshold);
+        terminated.incrementAndGet();
+        throw new InterruptedException(
+            "Consecutive failures has exceeded failure threshold, exiting...");
+      }
+      if (totalFailures
+          >= getConfiguration().getCount(Property.COMPACTOR_FAILURE_BACKOFF_THRESHOLD)) {
+        final long interval =
+            getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_INTERVAL);
+        if (interval > 0) {
+          final long max =
+              getConfiguration().getTimeInMillis(Property.COMPACTOR_FAILURE_BACKOFF_RESET);
+          final long backoffMS = Math.min(max, interval * totalFailures);
+          LOG.warn(
+              "Not starting next compaction for {}ms due to consecutive failures. Check the log and address any issues.",
+              backoffMS);
+          if (backoffMS == max) {
+            errorHistory.clear();
+          }
+          Thread.sleep(backoffMS);
+        } else if (interval == 0) {
+          LOG.info(
+              "This Compactor has had {} consecutive failures and failure backoff is disabled.",
+              totalFailures);
+          errorHistory.clear();
+        }
+      }
+    }
+  }
+
   @Override
   public void run() {
 
@@ -711,6 +843,8 @@ public class Compactor extends AbstractServer
           currentCompactionId.set(null);
           err.set(null);
           JOB_HOLDER.reset();
+
+          performFailureProcessing(errorHistory);
 
           TExternalCompactionJob job;
           try {
@@ -809,14 +943,15 @@ public class Compactor extends AbstractServer
                     new TCompactionStatusUpdate(TCompactionState.CANCELLED, "Compaction cancelled",
                         -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
-                updateCompactionFailed(job);
+                updateCompactionFailed(job, null);
+                cancelled.incrementAndGet();
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction cancellation.", e);
               } finally {
                 currentCompactionId.set(null);
               }
             } else if (err.get() != null) {
-              KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
+              final KeyExtent fromThriftExtent = KeyExtent.fromThrift(job.getExtent());
               try {
                 LOG.info("Updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent);
@@ -824,7 +959,9 @@ public class Compactor extends AbstractServer
                     TCompactionState.FAILED, "Compaction failed due to: " + err.get().getMessage(),
                     -1, -1, -1, fcr.getCompactionAge().toNanos());
                 updateCompactionState(job, update);
-                updateCompactionFailed(job);
+                updateCompactionFailed(job, err.get());
+                failed.incrementAndGet();
+                errorHistory.addError(fromThriftExtent.tableId(), err.get());
               } catch (RetriesExceededException e) {
                 LOG.error("Error updating coordinator with compaction failure: id: {}, extent: {}",
                     job.getExternalCompactionId(), fromThriftExtent, e);
@@ -835,6 +972,9 @@ public class Compactor extends AbstractServer
               try {
                 LOG.trace("Updating coordinator with compaction completion.");
                 updateCompactionCompleted(job, JOB_HOLDER.getStats());
+                completed.incrementAndGet();
+                // job completed successfully, clear the error history
+                errorHistory.clear();
               } catch (RetriesExceededException e) {
                 LOG.error(
                     "Error updating coordinator with compaction completion, cancelling compaction.",
@@ -896,6 +1036,7 @@ public class Compactor extends AbstractServer
       }
 
       gcLogger.logGCInfo(getConfiguration());
+      super.close();
       getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
       try {

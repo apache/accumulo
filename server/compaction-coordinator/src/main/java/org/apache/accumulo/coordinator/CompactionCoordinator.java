@@ -55,6 +55,7 @@ import org.apache.accumulo.core.compaction.thrift.TNextCompactionJob;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ServiceLock;
@@ -95,6 +96,7 @@ import org.apache.thrift.transport.TTransportException;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.event.Level;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -129,6 +131,37 @@ public class CompactionCoordinator extends AbstractServer implements
 
   /* Map of queue name to last time compactor called to get a compaction job */
   private static final Map<String,Long> TIME_COMPACTOR_LAST_CHECKED = new ConcurrentHashMap<>();
+
+  static class FailureCounts {
+    long failures;
+    long successes;
+
+    FailureCounts(long failures, long successes) {
+      this.failures = failures;
+      this.successes = successes;
+    }
+
+    static FailureCounts incrementFailure(Object key, FailureCounts counts) {
+      if (counts == null) {
+        return new FailureCounts(1, 0);
+      }
+      counts.failures++;
+      return counts;
+    }
+
+    static FailureCounts incrementSuccess(Object key, FailureCounts counts) {
+      if (counts == null) {
+        return new FailureCounts(0, 1);
+      }
+      counts.successes++;
+      return counts;
+    }
+  }
+
+  private final ConcurrentHashMap<String,FailureCounts> failingQueues = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String,FailureCounts> failingCompactors =
+      new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<TableId,FailureCounts> failingTables = new ConcurrentHashMap<>();
 
   private final GarbageCollectionLogger gcLogger = new GarbageCollectionLogger();
   protected AuditedSecurityOperation security;
@@ -312,6 +345,7 @@ public class CompactionCoordinator extends AbstractServer implements
 
     tserverSet.startListeningForTabletServerChanges();
     startDeadCompactionDetector();
+    startFailureSummaryLogging();
 
     LOG.info("Starting loop to check tservers for compaction summaries");
     while (!isShutdownRequested()) {
@@ -352,6 +386,7 @@ public class CompactionCoordinator extends AbstractServer implements
     if (coordinatorAddress.server != null) {
       coordinatorAddress.server.stop();
     }
+    super.close();
     getShutdownComplete().set(true);
     LOG.info("stop requested. exiting ... ");
     try {
@@ -531,6 +566,7 @@ public class CompactionCoordinator extends AbstractServer implements
           prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
           continue;
         }
+
         // It is possible that by the time this added that the tablet has already canceled the
         // compaction or the compactor that made this request is dead. In these cases the compaction
         // is not actually running.
@@ -602,6 +638,7 @@ public class CompactionCoordinator extends AbstractServer implements
     LOG.debug("Compaction completed, id: {}, stats: {}, extent: {}", externalCompactionId, stats,
         extent);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
+    captureSuccess(ecid, extent);
     compactionFinalizer.commitCompaction(ecid, extent, stats.fileSize, stats.entriesWritten);
     // It's possible that RUNNING might not have an entry for this ecid in the case
     // of a coordinator restart when the Coordinator can't find the TServer for the
@@ -611,16 +648,87 @@ public class CompactionCoordinator extends AbstractServer implements
 
   @Override
   public void compactionFailed(TInfo tinfo, TCredentials credentials, String externalCompactionId,
-      TKeyExtent extent) throws ThriftSecurityException {
+      TKeyExtent extent, String exceptionClassName) throws ThriftSecurityException {
     // do not expect users to call this directly, expect other tservers to call this method
     if (!security.canPerformSystemActions(credentials)) {
       throw new AccumuloSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED).asThriftException();
     }
     KeyExtent fromThriftExtent = KeyExtent.fromThrift(extent);
-    LOG.info("Compaction failed: id: {}, extent: {}", externalCompactionId, fromThriftExtent);
+    LOG.info("Compaction failed: id: {}, extent: {}, compactor exception:{}", externalCompactionId,
+        fromThriftExtent, exceptionClassName);
     final var ecid = ExternalCompactionId.of(externalCompactionId);
+    if (exceptionClassName != null) {
+      captureFailure(ecid, fromThriftExtent);
+    }
     compactionFailed(Map.of(ecid, KeyExtent.fromThrift(extent)));
+  }
+
+  private void captureFailure(ExternalCompactionId ecid, KeyExtent extent) {
+    var rc = RUNNING_CACHE.get(ecid);
+    if (rc != null) {
+      final String queue = rc.getQueueName();
+      failingQueues.compute(queue, FailureCounts::incrementFailure);
+      final String compactor = rc.getCompactorAddress();
+      failingCompactors.compute(compactor, FailureCounts::incrementFailure);
+    }
+    failingTables.compute(extent.tableId(), FailureCounts::incrementFailure);
+  }
+
+  protected void startFailureSummaryLogging() {
+    ScheduledFuture<?> future = getContext().getScheduledExecutor()
+        .scheduleWithFixedDelay(this::printStats, 0, 5, TimeUnit.MINUTES);
+    ThreadPools.watchNonCriticalScheduledTask(future);
+  }
+
+  private <T> void printStats(String logPrefix, ConcurrentHashMap<T,FailureCounts> failureCounts,
+      boolean logSuccessAtTrace) {
+    for (var key : failureCounts.keySet()) {
+      failureCounts.compute(key, (k, counts) -> {
+        if (counts != null) {
+          Level level;
+          if (counts.failures > 0) {
+            level = Level.WARN;
+          } else if (logSuccessAtTrace) {
+            level = Level.TRACE;
+          } else {
+            level = Level.DEBUG;
+          }
+
+          LOG.atLevel(level).log("{} {} failures:{} successes:{} since last time this was logged ",
+              logPrefix, k, counts.failures, counts.successes);
+        }
+
+        // clear the counts so they can start building up for the next logging if this key is ever
+        // used again
+        return null;
+      });
+    }
+  }
+
+  private void printStats() {
+
+    // Remove down compactors from failing list
+    Map<String,List<HostAndPort>> allCompactors =
+        ExternalCompactionUtil.getCompactorAddrs(getContext());
+    Set<String> allCompactorAddrs = new HashSet<>();
+    allCompactors.values().forEach(l -> l.forEach(c -> allCompactorAddrs.add(c.toString())));
+    failingCompactors.keySet().retainAll(allCompactorAddrs);
+
+    printStats("Queue", failingQueues, false);
+    printStats("Table", failingTables, false);
+    printStats("Compactor", failingCompactors, true);
+  }
+
+  private void captureSuccess(ExternalCompactionId ecid, KeyExtent extent) {
+    var rc = RUNNING_CACHE.get(ecid);
+    if (rc != null) {
+      final String queue = rc.getQueueName();
+      failingQueues.compute(queue, FailureCounts::incrementSuccess);
+      final String compactor = rc.getCompactorAddress();
+      failingCompactors.compute(compactor, FailureCounts::incrementSuccess);
+    }
+    failingTables.compute(extent.tableId(), FailureCounts::incrementSuccess);
   }
 
   void compactionFailed(Map<ExternalCompactionId,KeyExtent> compactions) {

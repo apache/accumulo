@@ -84,6 +84,8 @@ import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Provides a server context for Accumulo server components that operate with the system credentials
  * and have access to the system files and configuration.
@@ -461,6 +463,7 @@ public class ServerContext extends ClientContext {
 
   @Override
   public void close() {
+    Preconditions.checkState(!isClosed(), "ServerContext.close was already called.");
     getMetricsInfo().close();
     super.close();
   }

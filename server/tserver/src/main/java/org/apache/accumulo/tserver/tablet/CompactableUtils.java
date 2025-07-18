@@ -278,7 +278,7 @@ public class CompactableUtils {
     String context = ClassLoaderUtil.tableContext(tableConfig);
     try {
       return ConfigurationTypeHelper.getClassInstance(context, className, baseClass);
-    } catch (IOException | ReflectiveOperationException e) {
+    } catch (ReflectiveOperationException e) {
       throw new RuntimeException(e);
     }
   }
@@ -559,8 +559,8 @@ public class CompactableUtils {
    */
   static CompactionStats compact(Tablet tablet, CompactionJob job,
       CompactableImpl.CompactionInfo cInfo, CompactionEnv cenv,
-      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName)
-      throws IOException, CompactionCanceledException, InterruptedException {
+      Map<StoredTabletFile,DataFileValue> compactFiles, TabletFile tmpFileName) throws IOException,
+      CompactionCanceledException, InterruptedException, ReflectiveOperationException {
     TableConfiguration tableConf = tablet.getTableConfiguration();
 
     AccumuloConfiguration compactionConfig = getCompactionConfig(tableConf,

@@ -73,6 +73,42 @@ import io.micrometer.core.instrument.MeterRegistry;
  * <td>FunctionCounter</td>
  * <td>Number of entries written by all threads performing compactions</td>
  * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_COMPACTIONS_CANCELLED}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of compactions cancelled on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_COMPACTIONS_COMPLETED}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of compactions completed on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_COMPACTIONS_FAILED}</td>
+ * <td>FunctionCounter</td>
+ * <td>Number of compactions failed on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_FAILURES_CONSECUTIVE}</td>
+ * <td>Gauge</td>
+ * <td>Number of consecutive compaction failures on a compactor</td>
+ * </tr>
+ * <tr>
+ * <td>N/A</td>
+ * <td>N/A</td>
+ * <td>{@value #METRICS_COMPACTOR_FAILURES_TERMINATION}</td>
+ * <td>Gauge</td>
+ * <td>Number of Compactors terminated due to consecutive failures. Process exits after this metric
+ * is incremented, so it's not guaranteed to be seen.</td>
+ * </tr>
  * <!-- fate -->
  * <tr>
  * <td>currentFateOps</td>
@@ -625,6 +661,12 @@ public interface MetricsProducer {
   String METRICS_COMPACTOR_MAJC_STUCK = METRICS_COMPACTOR_PREFIX + "majc.stuck";
   String METRICS_COMPACTOR_ENTRIES_READ = METRICS_COMPACTOR_PREFIX + "entries.read";
   String METRICS_COMPACTOR_ENTRIES_WRITTEN = METRICS_COMPACTOR_PREFIX + "entries.written";
+  String METRICS_COMPACTOR_COMPACTIONS_CANCELLED = METRICS_COMPACTOR_PREFIX + "majc.cancelled";
+  String METRICS_COMPACTOR_COMPACTIONS_COMPLETED = METRICS_COMPACTOR_PREFIX + "majc.completed";
+  String METRICS_COMPACTOR_COMPACTIONS_FAILED = METRICS_COMPACTOR_PREFIX + "majc.failed";
+  String METRICS_COMPACTOR_FAILURES_CONSECUTIVE =
+      METRICS_COMPACTOR_PREFIX + "majc.failures.consecutive";
+  String METRICS_COMPACTOR_FAILURES_TERMINATION = METRICS_COMPACTOR_PREFIX + "terminated";
 
   String METRICS_FATE_PREFIX = "accumulo.fate.";
   String METRICS_FATE_TYPE_IN_PROGRESS = METRICS_FATE_PREFIX + "ops.in.progress.by.type";

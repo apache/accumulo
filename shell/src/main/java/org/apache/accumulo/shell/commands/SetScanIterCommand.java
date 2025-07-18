@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellCommandException;
 import org.apache.commons.cli.CommandLine;
@@ -43,7 +44,7 @@ public class SetScanIterCommand extends SetIterCommand {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      ShellCommandException {
+      ShellCommandException, ContextClassLoaderException {
     Shell.log.warn("Deprecated, use {}", new SetShellIterCommand().getName());
     return super.execute(fullCommand, cl, shellState);
   }

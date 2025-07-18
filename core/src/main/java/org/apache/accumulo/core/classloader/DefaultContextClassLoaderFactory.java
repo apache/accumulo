@@ -20,6 +20,7 @@ package org.apache.accumulo.core.classloader;
 
 import static java.util.concurrent.TimeUnit.MINUTES;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
@@ -97,8 +98,12 @@ public class DefaultContextClassLoaderFactory implements ContextClassLoaderFacto
 
   @SuppressWarnings("deprecation")
   @Override
-  public ClassLoader getClassLoader(String contextName) {
-    return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
-        .getContextClassLoader(contextName);
+  public ClassLoader getClassLoader(String contextName) throws ContextClassLoaderException {
+    try {
+      return org.apache.accumulo.start.classloader.vfs.AccumuloVFSClassLoader
+          .getContextClassLoader(contextName);
+    } catch (RuntimeException | IOException e) {
+      throw new ContextClassLoaderException(contextName, e);
+    }
   }
 }

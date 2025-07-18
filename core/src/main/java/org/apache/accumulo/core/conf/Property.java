@@ -1561,6 +1561,34 @@ public enum Property {
   COMPACTOR_CLIENTPORT("compactor.port.client", "9133", PropertyType.PORT,
       "The port used for handling client connections on the compactor servers.", "2.1.0"),
   @Experimental
+  COMPACTOR_FAILURE_BACKOFF_THRESHOLD("compactor.failure.backoff.threshold", "3",
+      PropertyType.COUNT,
+      "The number of consecutive failures that must occur before the Compactor starts to back off"
+          + " processing compactions.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_INTERVAL("compactor.failure.backoff.interval", "0",
+      PropertyType.TIMEDURATION,
+      "The time basis for computing the wait time for compaction failure backoff. A value of zero disables"
+          + " the backoff feature. When a non-zero value is supplied, then after compactor.failure.backoff.threshold"
+          + " failures have occurred, the compactor will wait compactor.failure.backoff.interval * the number of"
+          + " failures seconds before executing the next compaction. For example, if this value is 10s, then after"
+          + " three failures the Compactor will wait 30s before starting the next compaction. If the compaction fails"
+          + " again, then it will wait 40s before starting the next compaction.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_RESET("compactor.failure.backoff.reset", "10m",
+      PropertyType.TIMEDURATION,
+      "The maximum amount of time that the compactor will wait before executing the next compaction. When this"
+          + " time limit has been reached, the failures are cleared.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_TERMINATION_THRESHOLD("compactor.failure.termination.threshold", "0",
+      PropertyType.COUNT,
+      "The number of consecutive failures at which the Compactor exits and the process terminates. A zero"
+          + " value disables this feature.",
+      "2.1.4"),
+  @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   @Experimental

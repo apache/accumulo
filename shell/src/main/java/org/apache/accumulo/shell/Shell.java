@@ -67,6 +67,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.core.tabletserver.thrift.ConstraintViolationException;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
@@ -469,7 +470,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      ContextClassLoaderException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();

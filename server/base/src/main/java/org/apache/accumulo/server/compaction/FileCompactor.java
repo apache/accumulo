@@ -312,8 +312,8 @@ public class FileCompactor implements Callable<CompactionStats> {
   }
 
   @Override
-  public CompactionStats call()
-      throws IOException, CompactionCanceledException, InterruptedException {
+  public CompactionStats call() throws IOException, CompactionCanceledException,
+      InterruptedException, ReflectiveOperationException {
 
     FileSKVWriter mfw = null;
 
@@ -539,7 +539,8 @@ public class FileCompactor implements Callable<CompactionStats> {
 
   private void compactLocalityGroup(String lgName, Set<ByteSequence> columnFamilies,
       boolean inclusive, FileSKVWriter mfw, CompactionStats majCStats,
-      EnumSet<FilePrefix> dropCacheFilePrefixes) throws IOException, CompactionCanceledException {
+      EnumSet<FilePrefix> dropCacheFilePrefixes)
+      throws IOException, CompactionCanceledException, ReflectiveOperationException {
     ArrayList<FileSKVIterator> readers = new ArrayList<>(filesToCompact.size());
     Span compactSpan = TraceUtil.startSpan(this.getClass(), "compact");
     try (Scope span = compactSpan.makeCurrent()) {
@@ -562,7 +563,6 @@ public class FileCompactor implements Callable<CompactionStats> {
 
       SortedKeyValueIterator<Key,Value> itr = iterEnv.getTopLevelIterator(IteratorConfigUtil
           .convertItersAndLoad(env.getIteratorScope(), cfsi, acuTableConf, iterators, iterEnv));
-
       itr.seek(extent.toDataRange(), columnFamilies, inclusive);
 
       if (inclusive) {
