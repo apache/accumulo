@@ -127,10 +127,15 @@ public class TabletManagementScanner implements ClosableIterator<TabletManagemen
     Entry<Key,Value> e = iter.next();
     try {
       TabletManagement tm = TabletManagementIterator.decode(e);
-      log.trace(
-          "Returning metadata tablet, extent: {}, tabletAvailability: {}, actions: {}, error: {}",
-          tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getTabletAvailability(),
-          tm.getActions(), tm.getErrorMessage());
+      if (log.isTraceEnabled()) {
+        if (tm.getErrorMessage() == null) {
+          log.trace("Returning metadata tablet, extent: {}, tabletAvailability: {}, actions: {}",
+              tm.getTabletMetadata().getExtent(), tm.getTabletMetadata().getTabletAvailability(),
+              tm.getActions());
+        } else {
+          log.trace("Returning metadata tablet error: {}", tm.getErrorMessage());
+        }
+      }
       return tm;
     } catch (IOException e1) {
       throw new RuntimeException("Error creating TabletMetadata object", e1);
