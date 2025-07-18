@@ -58,6 +58,8 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed
  * to constructor(s) and all other configurations are optional.
@@ -111,6 +113,7 @@ public class MiniAccumuloConfigImpl {
   private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
+  private int numMiniDFSDataNodes = 1;
 
   private boolean useCredentialProvider = false;
 
@@ -619,7 +622,17 @@ public class MiniAccumuloConfigImpl {
    * underlying miniDFS cannot be restarted.
    */
   public void useMiniDFS(boolean useMiniDFS) {
+    useMiniDFS(useMiniDFS, 1);
+  }
+
+  public void useMiniDFS(boolean useMiniDFS, int numDataNodes) {
+    Preconditions.checkArgument(numDataNodes > 0);
     this.useMiniDFS = useMiniDFS;
+    this.numMiniDFSDataNodes = numDataNodes;
+  }
+
+  public int getNumDataNodes() {
+    return numMiniDFSDataNodes;
   }
 
   /**
