@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.UtilWaitThread.sleepUninterruptibly;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -74,6 +75,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
 import org.apache.accumulo.core.manager.balancer.BalanceParamsImpl;
 import org.apache.accumulo.core.manager.balancer.TServerStatusImpl;
@@ -169,6 +171,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     CurrentState, HighlyAvailableService, ServerProcessService.Iface {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
+
+  // When in safe mode totalAssignedOrHosted() is called every 10s
+  // which logs 3 messages about assigned tablets, 1 message
+  // per TabletGroupWatcher. This DeduplicatingLogger slows
+  // down the log messages to once per minute.
+  private static final DeduplicatingLogger DEDUPE_LOG =
+      new DeduplicatingLogger(log, Duration.ofMinutes(1), 6);
 
   static final int ONE_SECOND = 1000;
   private static final long CLEANUP_INTERVAL_MINUTES = 5;
@@ -333,7 +342,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
     int result = 0;
     for (TabletGroupWatcher watcher : watchers) {
       for (TableCounts counts : watcher.getStats().values()) {
-        log.debug(
+        DEDUPE_LOG.debug(
             "Watcher: {}: Assigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
             watcher.getName(), counts.assigned(), counts.assignedToDeadServers(),
             counts.suspended());
