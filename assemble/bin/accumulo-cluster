@@ -536,7 +536,6 @@ function control_services() {
         for tserver in ${!G}; do
           if echo "$tserver" | grep -q "$addr"; then
             if ! isDebug; then
-	      # TODO this is going to warn now
               "$accumulo_cmd" admin stop "$addr"
             else
               debug "Stopping tservers on $addr via admin command"
