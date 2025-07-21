@@ -51,7 +51,8 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class ServerThatWontStart extends AbstractServer {
 
     protected ServerThatWontStart(String[] args) {
-      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf) -> getServerContext(), args);
+      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf, rgid) -> getServerContext(),
+          args);
     }
 
     @Override
@@ -68,7 +69,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class TestManager extends Manager {
 
     protected TestManager(String[] args) throws IOException {
-      super(new ConfigOpts(), (conf) -> getServerContext(), args);
+      super(new ConfigOpts(), (conf, rgid) -> getServerContext(), args);
     }
 
   }

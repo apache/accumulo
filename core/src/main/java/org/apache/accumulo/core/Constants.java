@@ -83,6 +83,8 @@ public class Constants {
   public static final String ZPREPARE_FOR_UPGRADE = "/upgrade_ready";
   public static final String ZUPGRADE_PROGRESS = "/upgrade_progress";
 
+  public static final String ZRESOURCEGROUPS = "/resource_groups";
+
   /**
    * Base znode for storing secret keys that back delegation tokens
    */

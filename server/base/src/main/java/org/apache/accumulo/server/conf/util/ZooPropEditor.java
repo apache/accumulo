@@ -33,6 +33,7 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.server.ServerContext;
@@ -40,6 +41,7 @@ import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.IdBasedPropStoreKey;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.PropStoreWatcher;
@@ -216,7 +218,11 @@ public class ZooPropEditor implements KeywordExecutable {
       return NamespacePropKey.of(nid);
     }
 
-    // no table or namespace, assume system.
+    if (!opts.resourceGroupOpt.isEmpty()) {
+      return ResourceGroupPropKey.of(ResourceGroupId.of(opts.resourceGroupOpt));
+    }
+
+    // no table, namespace or resource group, assume system.
     return SystemPropKey.of();
   }
 
@@ -250,6 +256,9 @@ public class ZooPropEditor implements KeywordExecutable {
       return context.getNamespaceIdToNameMap()
           .getOrDefault(((NamespacePropKey) propStoreKey).getId(), "unknown");
     }
+    if (propStoreKey instanceof ResourceGroupPropKey) {
+      return ((ResourceGroupPropKey) propStoreKey).getId().canonical();
+    }
     if (propStoreKey instanceof SystemPropKey) {
       return "system";
     }
@@ -276,6 +285,9 @@ public class ZooPropEditor implements KeywordExecutable {
     @Parameter(names = {"-tid", "--table-id"},
         description = "table id to display/set/delete properties for")
     public String tableIdOpt = "";
+    @Parameter(names = {"-r", "--resource-group"},
+        description = "resource group name to display/set/delete properties for")
+    private String resourceGroupOpt = "";
 
     @Override
     public void parseArgs(String programName, String[] args, Object... others) {

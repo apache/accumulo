@@ -121,7 +121,7 @@ public class SystemPropUtil {
    * property is fixed, logs a warning that the property change will not take effect until related
    * processes are restarted.
    */
-  private static void logIfFixed(Property property, String value) {
+  public static void logIfFixed(Property property, String value) {
     if (property != null && Property.isFixedZooPropertyKey(property)) {
       String s = value == null ? String.format("Removing a fixed property %s. ", property)
           : String.format("Setting a fixed property %s to value %s. ", property, value);

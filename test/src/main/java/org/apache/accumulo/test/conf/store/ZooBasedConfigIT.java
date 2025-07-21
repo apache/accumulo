@@ -56,6 +56,7 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -178,7 +179,8 @@ public class ZooBasedConfigIT {
     // force create empty sys config node.
     zk.create(Constants.ZCONFIG, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
     var propKey = SystemPropKey.of();
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, propKey, parent);
+    ZooBasedConfiguration zbc =
+        new SystemConfiguration(context, propKey, ResourceGroupPropKey.DEFAULT, parent);
     assertNotNull(zbc);
   }
 
@@ -191,7 +193,8 @@ public class ZooBasedConfigIT {
 
     var sysPropKey = SystemPropKey.of();
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
+    ZooBasedConfiguration zbc =
+        new SystemConfiguration(context, sysPropKey, ResourceGroupPropKey.DEFAULT, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));
@@ -254,7 +257,8 @@ public class ZooBasedConfigIT {
     TestListener testListener = new TestListener();
     propStore.registerAsListener(sysPropKey, testListener);
 
-    ZooBasedConfiguration zbc = new SystemConfiguration(context, sysPropKey, parent);
+    ZooBasedConfiguration zbc =
+        new SystemConfiguration(context, sysPropKey, ResourceGroupPropKey.DEFAULT, parent);
 
     assertNotNull(zbc.getSnapshot());
     assertEquals("true", zbc.get(Property.TABLE_BLOOM_ENABLED));

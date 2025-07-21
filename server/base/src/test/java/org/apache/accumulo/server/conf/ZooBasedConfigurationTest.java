@@ -54,6 +54,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -103,10 +104,14 @@ public class ZooBasedConfigurationTest {
 
     expect(propStore.get(eq(sysKey))).andReturn(new VersionedProperties()).once(); // default empty
                                                                                    // sys props
+    expect(propStore.get(eq(ResourceGroupPropKey.DEFAULT))).andReturn(new VersionedProperties())
+        .once();
+
     replay(context, propStore);
     assertNotNull(context.getPropStore());
 
-    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysKey, siteConfig);
+    ZooBasedConfiguration configuration =
+        new SystemConfiguration(context, sysKey, ResourceGroupPropKey.DEFAULT, siteConfig);
     assertNotNull(configuration);
 
   }
@@ -114,6 +119,7 @@ public class ZooBasedConfigurationTest {
   @Test
   public void get() {
     var sysPropKey = SystemPropKey.of();
+    var rgPropKey = ResourceGroupPropKey.DEFAULT;
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
@@ -121,10 +127,12 @@ public class ZooBasedConfigurationTest {
     VersionedProperties vProps = new VersionedProperties(3, Instant.now(), Map
         .of(TABLE_BLOOM_ENABLED.getKey(), "true", TABLE_SPLIT_THRESHOLD.getKey(), "int expected"));
     expect(propStore.get(eq(sysPropKey))).andReturn(vProps).once();
+    expect(propStore.get(eq(rgPropKey))).andReturn(new VersionedProperties()).once();
 
     replay(context, propStore);
 
-    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysPropKey, siteConfig);
+    ZooBasedConfiguration configuration =
+        new SystemConfiguration(context, sysPropKey, rgPropKey, siteConfig);
 
     assertNotNull(configuration);
     assertEquals("1G", configuration.get(TABLE_SPLIT_THRESHOLD));
@@ -184,6 +192,23 @@ public class ZooBasedConfigurationTest {
 
     ZooBasedConfiguration sysConfig =
         new ZooBasedConfiguration(log, context, sysPropKey, defaultConfig);
+    assertNotNull(sysConfig);
+    assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED));
+  }
+
+  @Test
+  public void resourceGroupPropTest() {
+    var rgPropKey = ResourceGroupPropKey.DEFAULT;
+    VersionedProperties vProps =
+        new VersionedProperties(99, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
+    expect(propStore.get(eq(rgPropKey))).andReturn(vProps).once();
+
+    replay(propStore, context);
+
+    AccumuloConfiguration defaultConfig = new ConfigurationCopy(DefaultConfiguration.getInstance());
+
+    ZooBasedConfiguration sysConfig =
+        new ZooBasedConfiguration(log, context, rgPropKey, defaultConfig);
     assertNotNull(sysConfig);
     assertEquals("true", sysConfig.get(TABLE_BLOOM_ENABLED));
   }

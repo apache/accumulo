@@ -64,6 +64,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.WithTestNames;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -211,6 +212,8 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var setOnSystem = Set.of(GC_PORT, TSERV_SCAN_MAX_OPENFILES);
     var sysProps = new VersionedProperties(1, Instant.now(), setToMap(setOnSystem));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
+    var rgPropKey = ResourceGroupPropKey.DEFAULT;
+    expect(propStore.get(eq(rgPropKey))).andReturn(new VersionedProperties()).once();
 
     readyMocks(context, propStore);
 
@@ -224,7 +227,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var shouldNotBeSet = Sets.difference(ALL_PROPERTIES, shouldBeSet);
     assertFalse(shouldNotBeSet.isEmpty());
 
-    var conf = new SystemConfiguration(context, sysPropKey, parent);
+    var conf = new SystemConfiguration(context, sysPropKey, rgPropKey, parent);
 
     verifyIsSet(conf, shouldBeSet, shouldNotBeSet, inGetProperties(conf));
     // also verify using isPropertySet

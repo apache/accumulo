@@ -58,6 +58,7 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
@@ -94,6 +95,8 @@ public class Upgrader12to13 implements Upgrader {
     initializeFateTable(context);
     LOG.info("Adding table mappings to zookeeper");
     addTableMappingsToZooKeeper(context);
+    LOG.info("Adding default resource group node to zookeeper");
+    addDefaultResourceGroupConfigNode(context);
   }
 
   @Override
@@ -436,6 +439,14 @@ public class Upgrader12to13 implements Upgrader {
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+  }
+
+  private void addDefaultResourceGroupConfigNode(ServerContext context) {
+    try {
+      ResourceGroupPropKey.DEFAULT.createZNode(context.getZooSession());
+    } catch (KeeperException | InterruptedException | IOException e) {
+      throw new IllegalStateException("Error creating default resource group config node", e);
     }
   }
 }

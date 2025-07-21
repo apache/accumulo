@@ -150,14 +150,18 @@ public interface InstanceOperations {
    * Retrieve the system-wide, merged view of the system configuration. Accumulo has multiple layers
    * of properties, in order of precedence (highest - lowest):
    * <ul>
-   * <li>the properties set in Zookeeper</li>
+   * <li>the resource group properties set in Zookeeper</li>
+   * <li>the system properties set in Zookeeper</li>
    * <li>the properties set in the site configuration file</li>
    * <li>the default properties</li>
    * </ul>
    * The properties returned is the merged view of these properties. The properties that are stored
    * in ZooKeeper can be modified with {@link #modifyProperties modifyProperties},
    * {@link #setProperty setProperty} and {@link #removeProperty removeProperty}. Properties can be
-   * further refined by namesapce {@link NamespaceOperations} and by table {@link TableOperations}.
+   * further refined by namespace {@link NamespaceOperations} and by table {@link TableOperations}.
+   *
+   * Note that this connects to a random server, so the configuration returned will be influenced by
+   * the site configuration local to the server and the resource group of the server.
    *
    * @return A map of system properties set in zookeeper. If a property is not set in zookeeper,
    *         then it will return the value set in accumulo.properties on some server. If nothing is
@@ -167,6 +171,9 @@ public interface InstanceOperations {
 
   /**
    * Retrieve the site configuration (that is set in the server configuration file).
+   *
+   * Note that this connects to a random server, so the configuration returned will be influenced by
+   * the site configuration local to the server.
    *
    * @return A map of system properties set in accumulo.properties on some server. If nothing is set
    *         in an accumulo.properties file, the default value for each property will be used.

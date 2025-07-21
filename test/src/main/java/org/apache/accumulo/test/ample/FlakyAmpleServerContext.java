@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.ample.metadata.TestAmple;
@@ -38,8 +39,8 @@ public class FlakyAmpleServerContext extends ServerContext {
 
   private final Supplier<Ample> ampleSupplier;
 
-  public FlakyAmpleServerContext(SiteConfiguration siteConfig) {
-    super(siteConfig);
+  public FlakyAmpleServerContext(SiteConfiguration siteConfig, ResourceGroupId rgid) {
+    super(siteConfig, rgid);
     // Each instance of TestAmple created will create a new Hadoop configuration object. These
     // seemed to hang around and cause OOME and process death. Did not track down why they were
     // hanging around, but decided to avoid creating a new instance of TestAmple each time Ample is

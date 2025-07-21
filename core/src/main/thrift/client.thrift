@@ -329,6 +329,14 @@ service ClientService {
     1:ThriftSecurityException sec
   )
 
+  TVersionedProperties getVersionedResourceGroupProperties(
+    1:TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:ThriftSecurityException sec
+  )
+
   map<string, string> getTableConfiguration(
     1:TInfo tinfo
     3:security.TCredentials credentials

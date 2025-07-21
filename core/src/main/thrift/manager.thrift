@@ -411,6 +411,59 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
   )
 
+  void createResourceGroupNode(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+  
+  void removeResourceGroupNode(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+    
+  void setResourceGroupProperty(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+    4:string property
+    5:string value
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:ThriftPropertyException tpe
+  )
+ 
+  void modifyResourceGroupProperties(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+    4:client.TVersionedProperties vProperties
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftConcurrentModificationException tcme
+    4:ThriftPropertyException tpe
+  )
+
+  void removeResourceGroupProperty(
+    1:client.TInfo tinfo
+    2:security.TCredentials credentials
+    3:string resourceGroup
+    4:string property
+  ) throws (
+    1:client.ThriftSecurityException sec
+    2:client.ThriftNotActiveServiceException tnase
+  )
+
+
   // system monitoring methods
   ManagerMonitorInfo getManagerStats(
     1:client.TInfo tinfo

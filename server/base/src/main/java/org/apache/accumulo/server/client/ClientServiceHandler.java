@@ -51,6 +51,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -59,6 +60,7 @@ import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.securityImpl.thrift.TCredentials;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.security.AuditedSecurityOperation;
@@ -66,6 +68,8 @@ import org.apache.accumulo.server.util.TableDiskUsage;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class ClientServiceHandler implements ClientService.Iface {
   private static final Logger log = LoggerFactory.getLogger(ClientServiceHandler.class);
@@ -97,6 +101,16 @@ public class ClientServiceHandler implements ClientService.Iface {
       throw new ThriftTableOperationException(null, namespaceName, operation,
           TableOperationExceptionType.NAMESPACE_NOTFOUND, null);
     }
+  }
+
+  public static ResourceGroupId checkResourceGroupId(ClientContext context, String rgName) {
+    Preconditions.checkArgument(rgName != null && !rgName.isBlank(),
+        "Supplied resource group name is null or empty");
+    ResourceGroupId rgid = context.getResourceGroupId(rgName);
+    if (rgid == null) {
+      throw new IllegalArgumentException("Resource group " + rgName + " does not exist");
+    }
+    return rgid;
   }
 
   @Override
@@ -340,6 +354,16 @@ public class ClientServiceHandler implements ClientService.Iface {
       throws ThriftSecurityException {
     checkSystemPermission(credentials);
     return Optional.of(context.getPropStore().get(SystemPropKey.of()))
+        .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
+        .orElseThrow();
+  }
+
+  @Override
+  public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo,
+      TCredentials credentials, String group) throws ThriftSecurityException {
+    checkSystemPermission(credentials);
+    return Optional
+        .of(context.getPropStore().get(ResourceGroupPropKey.of(ResourceGroupId.of(group))))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
         .orElseThrow();
   }
