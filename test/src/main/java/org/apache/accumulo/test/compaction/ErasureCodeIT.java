@@ -264,6 +264,8 @@ public class ErasureCodeIT extends ConfigurableMacBase {
           .to("/tmp/test2.rf").withFileSystem(dfs).withTableProperties(badOptions2).build());
       assertTrue(exp3.getMessage().contains("empty")
           && exp3.getMessage().contains(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
+      // Verify assumption about default value
+      assertEquals("", Property.TABLE_ERASURE_CODE_POLICY.getDefaultValue());
 
       // try setting invalid EC policy on table, should fail
       var exp2 = assertThrows(AccumuloException.class, () -> c.tableOperations().setProperty(table1,
