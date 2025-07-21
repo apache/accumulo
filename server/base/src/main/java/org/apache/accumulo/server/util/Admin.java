@@ -41,8 +41,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
@@ -107,7 +105,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(
-      commandDescription = "Stop the servers at the given addresses.  If the force option is not specified, then servers will complete anything it might be working on, but not starting any new tasks.  If a port is not specified, then the port specified by tserver.port.client is used.  Not specifying the port is deprecated.")
+      commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  When no port is specified uses ports from tserver.port.client property.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop by removing its lock")
@@ -569,16 +567,6 @@ public class Admin implements KeywordExecutable {
     }
 
     if (!hostOnly.isEmpty()) {
-      // TODO need to see how easy it is to use serverStatus to support current functionality of
-      // specifying a host. Like what does the whole command to stop all tservers on a host look
-      // like using admin serviceStatus and admin stop.
-      // TODO start deprecation warning in 4.0 instead of 2.1.x?
-      log.warn(
-          "Not specifying a port is deprecated, will use the ports {} from {}.  Please use the admin serviceStatus "
-              + "command instead to obtain a list of host:ports that match your needs.",
-          IntStream.of(context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)).boxed()
-              .collect(Collectors.toList()),
-          Property.TSERV_CLIENTPORT.getKey());
       // The old impl of this command with the old behavior
       stopTabletServer(context, hostOnly, force);
     }
@@ -587,8 +575,6 @@ public class Admin implements KeywordExecutable {
       // New behavior for this command when ports are present, supports more than just tservers. Is
       // also async.
       if (force) {
-        // TODO do not want to pass opts, the code called only looks at dryRun could make that a
-        // method argument
         ZooZap.Opts opts = new ZooZap.Opts();
         var zk = context.getZooReaderWriter();
         var iid = context.getInstanceID();
@@ -610,18 +596,6 @@ public class Admin implements KeywordExecutable {
         for (var server : hostAndPort) {
           signalGracefulShutdown(context, server);
         }
-
-        // TODO the currrent version of this command does tservers one at a time and waits. Do not
-        // want to do things one a at a time, but could wait via polling zookeeper.
-        //
-        // if(wait) {
-        // int serverCount = countServersRunning(hostAndPort);
-        // while (serverCount > 0) {
-        // log.info("Waiting for {} of {} servers to stop.", serverCount, hostAndPort.size());
-        // Thread.sleep(1000);
-        // serverCount = countServers(hostAndPort);
-        // }
-        // }
       }
     }
   }
@@ -633,10 +607,14 @@ public class Admin implements KeywordExecutable {
     try {
       client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
           hp.getHost(), hp.getPort());
+      if (client == null) {
+        log.warn("Failed to initiate shutdown for {}", hp);
+        return;
+      }
       client.gracefulShutdown(context.rpcCreds());
-      log.debug("Successfully asked {} to initiate shutdown", hp);
+      log.info("Initiated shutdown for {}", hp);
     } catch (TException e) {
-      log.warn("Failed to ask {} to initiate shutdown", hp, e);
+      log.warn("Failed to initiate shutdown for {}", hp, e);
     } finally {
       if (client != null) {
         ThriftUtil.returnClient(client, context);
