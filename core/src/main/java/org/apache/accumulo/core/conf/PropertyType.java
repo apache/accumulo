@@ -162,7 +162,8 @@ public enum PropertyType {
       "One of the currently supported filename extensions for storing table data files. "
           + "Currently, only " + RFile.EXTENSION + " is supported."),
 
-  EC("erasurecode", in(false, "enable", "disable", "dir"), "One of 'enable','disable','dir'.");
+  EC("erasurecode", in(false, "enable", "disable", "inherited"),
+      "One of 'enable','disable','inherited'.");
 
   private final String shortname;
   private final String format;

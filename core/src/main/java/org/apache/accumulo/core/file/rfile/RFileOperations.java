@@ -158,7 +158,7 @@ public class RFileOperations extends FileOperations {
             // force replication
             builder = builder.replication((short) rep).replicate();
             break;
-          case DIR:
+          case INHERITED:
             // use the directory settings for replication or EC
             builder = builder.replication((short) rep);
             break;

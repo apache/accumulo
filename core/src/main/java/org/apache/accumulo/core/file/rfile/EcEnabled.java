@@ -19,5 +19,5 @@
 package org.apache.accumulo.core.file.rfile;
 
 public enum EcEnabled {
-  ENABLE, DISABLE, DIR
+  ENABLE, DISABLE, INHERITED
 }
