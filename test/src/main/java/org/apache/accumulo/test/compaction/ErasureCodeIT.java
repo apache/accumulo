@@ -257,6 +257,14 @@ public class ErasureCodeIT extends ConfigurableMacBase {
           .withFileSystem(dfs).withTableProperties(badOptions).build());
       assertTrue(exp.getMessage().contains("ycilop"));
 
+      // Enable erasure coding but do not set a policy. The default value for the policy is empty
+      // string, so this should cause a failure.
+      var badOptions2 = Map.of(Property.TABLE_ENABLE_ERASURE_CODES.getKey(), "enable");
+      var exp3 = assertThrows(IllegalArgumentException.class, () -> RFile.newWriter()
+          .to("/tmp/test2.rf").withFileSystem(dfs).withTableProperties(badOptions2).build());
+      assertTrue(exp3.getMessage().contains("empty")
+          && exp3.getMessage().contains(Property.TABLE_ERASURE_CODE_POLICY.getKey()));
+
       // try setting invalid EC policy on table, should fail
       var exp2 = assertThrows(AccumuloException.class, () -> c.tableOperations().setProperty(table1,
           Property.TABLE_ERASURE_CODE_POLICY.getKey(), "ycilop"));

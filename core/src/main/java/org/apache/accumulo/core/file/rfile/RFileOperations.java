@@ -152,6 +152,10 @@ public class RFileOperations extends FileOperations {
           case ENABLE:
             String ecPolicyName =
                 options.getTableConfiguration().get(Property.TABLE_ERASURE_CODE_POLICY);
+            // The default value of this property is empty string. If empty string is given to this
+            // builder it will disable erasure coding. So adding an explicit check for that.
+            Preconditions.checkArgument(!ecPolicyName.isBlank(), "Blank or empty value set for %s",
+                Property.TABLE_ERASURE_CODE_POLICY.getKey());
             builder = builder.ecPolicyName(ecPolicyName);
             break;
           case DISABLE:
