@@ -149,8 +149,11 @@ public class ListScansCommand extends Command {
   }
 
   static Predicate<ResourceGroupId> rgRegexPredicate(String rgRegex) {
+    if (rgRegex == null || rgRegex.isBlank()) {
+      return rgid -> true;
+    }
     final Pattern p = Pattern.compile(rgRegex);
-    return (rgid) -> p.matcher(rgid.canonical()).matches();
+    return rgid -> p.matcher(rgid.canonical()).matches();
   }
 
   private static Stream<String> appendHeader(Stream<String> stream) {
