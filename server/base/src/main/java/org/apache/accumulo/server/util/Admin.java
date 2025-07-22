@@ -50,7 +50,6 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -62,6 +61,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
@@ -1036,9 +1036,8 @@ public class Admin implements KeywordExecutable {
     ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors
-        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
-            "fake_admin_util_host", Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
+        ServiceLockData.ThriftService.NONE, "fake_admin_util_host", ResourceGroupId.DEFAULT));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));

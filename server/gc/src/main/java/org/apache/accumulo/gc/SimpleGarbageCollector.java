@@ -33,7 +33,6 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -41,6 +40,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService.Iface;
 import org.apache.accumulo.core.gc.thrift.GCStatus;
@@ -326,15 +326,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
           long gcDelay = getConfiguration().getTimeInMillis(Property.GC_CYCLE_DELAY);
 
           if (lastCompactorCheck.hasElapsed(gcDelay * 3, MILLISECONDS)) {
-            Map<String,Set<TableId>> resourceMapping = new HashMap<>();
+            Map<ResourceGroupId,Set<TableId>> resourceMapping = new HashMap<>();
             for (TableId tid : SystemTables.tableIds()) {
               TableConfiguration tconf = getContext().getTableConfiguration(tid);
-              String resourceGroup = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
-              resourceGroup =
-                  resourceGroup == null ? Constants.DEFAULT_RESOURCE_GROUP_NAME : resourceGroup;
-              resourceMapping.computeIfAbsent(resourceGroup, k -> new HashSet<>()).add(tid);
+              String propVal = tconf.get(TableLoadBalancer.TABLE_ASSIGNMENT_GROUP_PROPERTY);
+              ResourceGroupId rg =
+                  propVal == null ? ResourceGroupId.DEFAULT : ResourceGroupId.of(propVal);
+              resourceMapping.computeIfAbsent(rg, k -> new HashSet<>()).add(tid);
             }
-            for (Entry<String,Set<TableId>> e : resourceMapping.entrySet()) {
+            for (Entry<ResourceGroupId,Set<TableId>> e : resourceMapping.entrySet()) {
               if (ExternalCompactionUtil.countCompactors(e.getKey(), getContext()) == 0) {
                 log.warn("No Compactors exist in resource group {} for system table {}", e.getKey(),
                     e.getValue());

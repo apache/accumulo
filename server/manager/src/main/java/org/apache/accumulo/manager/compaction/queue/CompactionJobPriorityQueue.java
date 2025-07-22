@@ -37,10 +37,10 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.Stat;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
@@ -65,7 +65,7 @@ public class CompactionJobPriorityQueue {
 
   private static final Logger log = LoggerFactory.getLogger(CompactionJobPriorityQueue.class);
 
-  private final CompactorGroupId groupId;
+  private final ResourceGroupId groupId;
 
   @VisibleForTesting
   static final int FUTURE_CHECK_THRESHOLD = 10_000;
@@ -151,7 +151,7 @@ public class CompactionJobPriorityQueue {
 
   private final AtomicLong nextSeq = new AtomicLong(0);
 
-  public CompactionJobPriorityQueue(CompactorGroupId groupId, long maxSize,
+  public CompactionJobPriorityQueue(ResourceGroupId groupId, long maxSize,
       SizeTrackingTreeMap.Weigher<CompactionJob> weigher) {
     this.jobQueue = new SizeTrackingTreeMap<>(mj -> weigher.weigh(mj.job));
     this.maxSize = new AtomicLong(maxSize);

@@ -31,6 +31,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.util.DurationFormat;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -147,9 +148,12 @@ public class ListScansCommand extends Command {
         .orElse((h, p) -> true);
   }
 
-  static Predicate<String> rgRegexPredicate(String rgRegex) {
-    return Optional.ofNullable(rgRegex).map(regex -> Pattern.compile(regex).asMatchPredicate())
-        .orElse(rg -> true);
+  static Predicate<ResourceGroupId> rgRegexPredicate(String rgRegex) {
+    if (rgRegex == null || rgRegex.isBlank()) {
+      return rgid -> true;
+    }
+    final Pattern p = Pattern.compile(rgRegex);
+    return rgid -> p.matcher(rgid.canonical()).matches();
   }
 
   private static Stream<String> appendHeader(Stream<String> stream) {
