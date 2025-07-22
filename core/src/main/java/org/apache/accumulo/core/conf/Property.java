@@ -1039,7 +1039,7 @@ public enum Property {
       "2.0.0"),
   MONITOR_ROOT_CONTEXT("monitor.root.context", "/", PropertyType.STRING,
       "The root context path of the monitor application. If this value is set, all paths for the"
-          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo/`"
+          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo`"
           + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",
       "2.1.4"),
   @Deprecated(since = "2.1.0")
@@ -2021,7 +2021,7 @@ public enum Property {
 
       // MONITOR options
       MONITOR_PORT, MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE,
-      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL,
+      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL, MONITOR_ROOT_CONTEXT,
 
       // REPLICATION options
       REPLICATION_RECEIPT_SERVICE_PORT, REPLICATION_MIN_THREADS, REPLICATION_THREADCHECK,
