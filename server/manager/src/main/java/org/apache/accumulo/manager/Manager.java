@@ -186,6 +186,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   final AuditedSecurityOperation security;
   final Map<TServerInstance,AtomicInteger> badServers =
       Collections.synchronizedMap(new HashMap<>());
+  // If this were a set in zookeeper then this functionality would be much cleaner
   final Set<TServerInstance> serversToShutdown = Collections.synchronizedSet(new HashSet<>());
   final Migrations migrations = new Migrations();
   final EventCoordinator nextEvent = new EventCoordinator();
@@ -1810,6 +1811,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   // recovers state from the persistent transaction to shutdown a server
   public void shutdownTServer(TServerInstance server) {
     nextEvent.event("Tablet Server shutdown requested for %s", server);
+    // TODO add before signaling
     serversToShutdown.add(server);
   }
 
@@ -1896,7 +1898,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
   @Override
   public Set<TServerInstance> shutdownServers() {
     synchronized (serversToShutdown) {
-      return new HashSet<>(serversToShutdown);
+      return Set.copyOf(serversToShutdown);
     }
   }
 
