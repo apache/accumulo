@@ -141,7 +141,6 @@ public class TabletMetadataTest {
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
-    Value opidValue1 = new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12");
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING,
         FateId.from(FateInstanceType.META, UUID.randomUUID()));
     OPID_COLUMN.put(mutation, new Value(opid.canonical()));
@@ -192,6 +191,8 @@ public class TabletMetadataTest {
 
     SteadyTime suspensionTime = SteadyTime.from(1000L, TimeUnit.MILLISECONDS);
     TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
+    SuspendingTServer suspendingTServer =
+        new SuspendingTServer(HostAndPort.fromParts("server1", 8555), suspensionTime);
     Value suspend = SuspendingTServer.toValue(ser1, suspensionTime);
     SUSPEND_COLUMN.put(mutation, suspend);
 
@@ -231,7 +232,7 @@ public class TabletMetadataTest {
     allColumns.remove(OPID);
     assertFalse(tm.getHostingRequested());
     allColumns.remove(HOSTING_REQUESTED);
-    assertEquals(suspensionTime, tm.getSuspend().suspensionTime);
+    assertEquals(suspendingTServer, tm.getSuspend());
     allColumns.remove(SUSPEND);
     assertEquals("OK", tm.getCloned());
     allColumns.remove(CLONED);
