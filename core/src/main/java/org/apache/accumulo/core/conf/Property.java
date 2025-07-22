@@ -1412,11 +1412,11 @@ public enum Property {
           + "constraint.",
       "2.0.0"),
 
-  TABLE_ENABLE_ERASURE_CODES("table.file.ec", "inherited", PropertyType.EC,
+  TABLE_ENABLE_ERASURE_CODES("table.file.ec", "inherit", PropertyType.EC,
       "This determines if Accumulo will manage erasure codes on a table."
           + " When setting this to 'enable' must also set erasure.code.policy and that policy will "
           + "always be used regardless of DFS directory settings.  When set to 'disable', replication "
-          + "will always be used regardless of DFS directory settings.  When set to 'inherited' "
+          + "will always be used regardless of DFS directory settings.  When set to 'inherit' "
           + "the settings from the directory in dfs will be used. Enabling erasure coding on volume "
           + "that does not support it is a noop.",
       "2.1.4"),

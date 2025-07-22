@@ -245,7 +245,7 @@ public class PropertyTypeTest extends WithTestNames {
 
   @Test
   public void testTypeEC() {
-    valid("enable", "ENABLE", "inherited", "INHERITED", "disable", "DISABLE");
+    valid("enable", "ENABLE", "inherit", "INHERIT", "disable", "DISABLE");
     invalid(null, "policy", "XOR-2-1-1024k");
   }
 }
