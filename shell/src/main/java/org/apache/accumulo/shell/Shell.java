@@ -145,6 +145,7 @@ import org.apache.accumulo.shell.commands.QuitCommand;
 import org.apache.accumulo.shell.commands.QuotedStringTokenizer;
 import org.apache.accumulo.shell.commands.RenameNamespaceCommand;
 import org.apache.accumulo.shell.commands.RenameTableCommand;
+import org.apache.accumulo.shell.commands.ResourceGroupCommand;
 import org.apache.accumulo.shell.commands.RevokeCommand;
 import org.apache.accumulo.shell.commands.ScanCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
@@ -418,6 +419,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
+    Command[] resourceGroupCommands = {new ResourceGroupCommand()};
     Command[] stateCommands =
         {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
             new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};
@@ -441,6 +443,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     commandGrouping.put("-- Help Commands ------------------------", helpCommands);
     commandGrouping.put("-- Iterator Configuration ---------------", iteratorCommands);
     commandGrouping.put("-- Permissions Administration Commands --", permissionsCommands);
+    commandGrouping.put("-- Resource Group Commands --------------", resourceGroupCommands);
     commandGrouping.put("-- Shell State Commands -----------------", stateCommands);
     commandGrouping.put("-- Table Administration Commands --------", tableCommands);
     commandGrouping.put("-- Table Control Commands ---------------", tableControlCommands);

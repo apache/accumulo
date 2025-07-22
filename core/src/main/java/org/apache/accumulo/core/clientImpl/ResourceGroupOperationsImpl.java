@@ -24,6 +24,7 @@ import java.time.Duration;
 import java.util.ConcurrentModificationException;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
@@ -52,12 +53,12 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public boolean exists(String group) {
     Objects.requireNonNull(group, "group parameter must be supplied");
-    for (String zrg : context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS)) {
-      if (zrg.equals(group)) {
-        return true;
-      }
-    }
-    return false;
+    return list().contains(group);
+  }
+
+  @Override
+  public Set<String> list() {
+    return Set.copyOf(context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS));
   }
 
   @Override

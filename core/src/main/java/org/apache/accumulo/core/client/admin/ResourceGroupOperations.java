@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.client.admin;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -54,6 +55,14 @@ public interface ResourceGroupOperations {
    * @since 4.0.0
    */
   boolean exists(String group);
+
+  /**
+   * Retrieve a list of resource groups in Accumulo.
+   *
+   * @return Set of resource groups in accumulo
+   * @since 4.0.0
+   */
+  Set<String> list();
 
   /**
    * Create a configuration node in zookeeper for a resource group. If not defined, then processes
