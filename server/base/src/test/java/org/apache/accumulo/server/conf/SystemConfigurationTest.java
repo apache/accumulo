@@ -80,19 +80,17 @@ public class SystemConfigurationTest {
     expectLastCall().anyTimes();
 
     var sysPropKey = SystemPropKey.of();
-    var rgPropKey = ResourceGroupPropKey.DEFAULT;
     VersionedProperties sysProps =
         new VersionedProperties(1, Instant.now(), Map.of(GC_PORT.getKey(), "1234",
             TSERV_SCAN_MAX_OPENFILES.getKey(), "19", TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).once();
-    expect(propStore.get(eq(rgPropKey))).andReturn(new VersionedProperties()).once();
     replay(propStore);
 
     ConfigurationCopy defaultConfig =
         new ConfigurationCopy(Map.of(TABLE_BLOOM_SIZE.getKey(), TABLE_BLOOM_SIZE.getDefaultValue(),
             TABLE_DURABILITY.getKey(), TABLE_DURABILITY.getDefaultValue()));
 
-    sysConfig = new SystemConfiguration(context, sysPropKey, rgPropKey, defaultConfig);
+    sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
   }
 
   @AfterEach
@@ -184,19 +182,21 @@ public class SystemConfigurationTest {
     assertTrue(sysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
 
     SystemConfiguration testSysConfig =
-        new SystemConfiguration(context, sysPropKey, testRGPropKey, sysConfig.getParent());
+        new SystemConfiguration(context, sysPropKey, sysConfig.getParent());
+    ResourceGroupConfiguration rgConfig =
+        new ResourceGroupConfiguration(context, testRGPropKey, testSysConfig);
 
-    assertEquals("9997", testSysConfig.get(TSERV_CLIENTPORT)); // default
-    assertEquals("1234", testSysConfig.get(GC_PORT)); // fixed sys config
-    assertEquals("19", testSysConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
-    assertEquals("false", testSysConfig.get(TABLE_BLOOM_ENABLED)); // sys config
-    assertEquals("4096", testSysConfig.get(TABLE_BLOOM_SIZE)); // default
+    assertEquals("9997", rgConfig.get(TSERV_CLIENTPORT)); // default
+    assertEquals("1234", rgConfig.get(GC_PORT)); // fixed sys config
+    assertEquals("19", rgConfig.get(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertEquals("false", rgConfig.get(TABLE_BLOOM_ENABLED)); // sys config
+    assertEquals("4096", rgConfig.get(TABLE_BLOOM_SIZE)); // default
 
-    assertFalse(testSysConfig.isPropertySet(TSERV_CLIENTPORT)); // default
-    assertTrue(testSysConfig.isPropertySet(GC_PORT)); // fixed sys config
-    assertTrue(testSysConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
-    assertTrue(testSysConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
-    assertTrue(testSysConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
+    assertFalse(rgConfig.isPropertySet(TSERV_CLIENTPORT)); // default
+    assertTrue(rgConfig.isPropertySet(GC_PORT)); // fixed sys config
+    assertTrue(rgConfig.isPropertySet(TSERV_SCAN_MAX_OPENFILES)); // fixed sys config
+    assertTrue(rgConfig.isPropertySet(TABLE_BLOOM_ENABLED)); // sys config
+    assertTrue(rgConfig.isPropertySet(TABLE_BLOOM_SIZE)); // default
 
   }
 }

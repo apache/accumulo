@@ -104,14 +104,11 @@ public class ZooBasedConfigurationTest {
 
     expect(propStore.get(eq(sysKey))).andReturn(new VersionedProperties()).once(); // default empty
                                                                                    // sys props
-    expect(propStore.get(eq(ResourceGroupPropKey.DEFAULT))).andReturn(new VersionedProperties())
-        .once();
 
     replay(context, propStore);
     assertNotNull(context.getPropStore());
 
-    ZooBasedConfiguration configuration =
-        new SystemConfiguration(context, sysKey, ResourceGroupPropKey.DEFAULT, siteConfig);
+    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysKey, siteConfig);
     assertNotNull(configuration);
 
   }
@@ -119,7 +116,6 @@ public class ZooBasedConfigurationTest {
   @Test
   public void get() {
     var sysPropKey = SystemPropKey.of();
-    var rgPropKey = ResourceGroupPropKey.DEFAULT;
 
     var siteConfig = SiteConfiguration.empty().build();
     expect(context.getSiteConfiguration()).andReturn(siteConfig).anyTimes();
@@ -127,12 +123,10 @@ public class ZooBasedConfigurationTest {
     VersionedProperties vProps = new VersionedProperties(3, Instant.now(), Map
         .of(TABLE_BLOOM_ENABLED.getKey(), "true", TABLE_SPLIT_THRESHOLD.getKey(), "int expected"));
     expect(propStore.get(eq(sysPropKey))).andReturn(vProps).once();
-    expect(propStore.get(eq(rgPropKey))).andReturn(new VersionedProperties()).once();
 
     replay(context, propStore);
 
-    ZooBasedConfiguration configuration =
-        new SystemConfiguration(context, sysPropKey, rgPropKey, siteConfig);
+    ZooBasedConfiguration configuration = new SystemConfiguration(context, sysPropKey, siteConfig);
 
     assertNotNull(configuration);
     assertEquals("1G", configuration.get(TABLE_SPLIT_THRESHOLD));

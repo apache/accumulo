@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.server.util;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_PREFIX;
 import static org.apache.accumulo.core.conf.Property.COMPACTOR_PREFIX;
 import static org.apache.accumulo.core.conf.Property.SSERV_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TSERV_PREFIX;
@@ -40,7 +41,9 @@ public class ResourceGroupPropUtil {
         (log, replacement) -> log.warn("{} was deprecated and will be removed in a future release;"
             + " setting its replacement {} instead", original, replacement));
 
-    if (property.startsWith(COMPACTOR_PREFIX.getKey()) || property.startsWith(SSERV_PREFIX.getKey())
+    if (property.startsWith(COMPACTION_PREFIX.getKey())
+        || property.startsWith(COMPACTOR_PREFIX.getKey())
+        || property.startsWith(SSERV_PREFIX.getKey())
         || property.startsWith(TSERV_PREFIX.getKey())) {
 
       if (!Property.isValidProperty(property, value)) {

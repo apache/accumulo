@@ -150,7 +150,6 @@ public interface InstanceOperations {
    * Retrieve the system-wide, merged view of the system configuration. Accumulo has multiple layers
    * of properties, in order of precedence (highest - lowest):
    * <ul>
-   * <li>the resource group properties set in Zookeeper</li>
    * <li>the system properties set in Zookeeper</li>
    * <li>the properties set in the site configuration file</li>
    * <li>the default properties</li>

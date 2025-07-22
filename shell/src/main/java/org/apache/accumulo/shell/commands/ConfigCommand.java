@@ -206,7 +206,7 @@ public class ConfigCommand extends Command {
         systemConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
         Shell.log.warn("System configuration is dependent on the server's site configuration and"
-            + " applicable ZooKeeper system and resource group overrides. To get the system"
+            + " applicable ZooKeeper system overrides. To get the system"
             + " configuration for a specific server set the system property: "
             + TServerClient.DEBUG_HOST);
       } catch (AccumuloSecurityException e) {
@@ -239,6 +239,13 @@ public class ConfigCommand extends Command {
       final TreeMap<String,String> defaults = new TreeMap<>();
       for (Entry<String,String> defaultEntry : DefaultConfiguration.getInstance()) {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
+      }
+
+      final TreeMap<ResourceGroupId,TreeMap<String,String>> resourceGroupConfigs = new TreeMap<>();
+      for (ResourceGroupId rg : shellState.getAccumuloClient().resourceGroupOperations().list()) {
+        TreeMap<String,String> rgConfig = new TreeMap<>();
+        resourceGroupConfigs.put(rg, rgConfig);
+        rgConfig.putAll(shellState.getAccumuloClient().resourceGroupOperations().getProperties(rg));
       }
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
@@ -334,6 +341,15 @@ public class ConfigCommand extends Command {
         String curVal = propEntry.getValue();
         String dfault = defaults.get(key);
         String nspVal = namespaceConfig.get(key);
+
+        Map<ResourceGroupId,String> rgVals = new TreeMap<>();
+        for (ResourceGroupId rg : resourceGroupConfigs.keySet()) {
+          String rgVal = resourceGroupConfigs.get(rg).get(key);
+          if (rgVal != null) {
+            rgVals.put(rg, rgVal);
+          }
+        }
+
         boolean printed = false;
 
         if (sysVal != null) {
@@ -352,6 +368,12 @@ public class ConfigCommand extends Command {
           }
           if (!siteConfig.containsKey(key) || !Objects.equals(siteVal, sysVal)) {
             printConfLine(output, "system", printed ? "   @override" : key, sysVal);
+            printed = true;
+          }
+          for (Entry<ResourceGroupId,String> rgEntry : rgVals.entrySet()) {
+            String rgVal = key.toLowerCase().contains("password")
+                ? rgEntry.getValue().replaceAll(".", "*") : rgEntry.getValue();
+            printConfLine(output, "rg " + rgEntry.getKey(), printed ? "   @override" : key, rgVal);
             printed = true;
           }
         }
@@ -459,7 +481,7 @@ public class ConfigCommand extends Command {
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
     resourceGroupOpt = new Option(ShellOptions.resourceGroupOption, "resourceGroup", true,
-        "resource group to display/set/delete properties for");
+        "resource group from which to set or delete properties");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
@@ -474,8 +496,8 @@ public class ConfigCommand extends Command {
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
-    og.addOption(resourceGroupOpt);
 
+    tgroup.addOption(resourceGroupOpt);
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
 

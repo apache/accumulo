@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import java.util.Set;
+import java.util.TreeSet;
+
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.shell.Shell;
@@ -38,11 +41,13 @@ public class ResourceGroupCommand extends Command {
     final ResourceGroupOperations ops = shellState.getAccumuloClient().resourceGroupOperations();
 
     if (cl.hasOption(createOpt.getOpt())) {
-      ops.createConfiguration(ResourceGroupId.of(cl.getOptionValue(createOpt)));
+      ops.create(ResourceGroupId.of(cl.getOptionValue(createOpt)));
     } else if (cl.hasOption(deleteOpt.getOpt())) {
-      ops.removeConfiguration(ResourceGroupId.of(cl.getOptionValue(deleteOpt)));
+      ops.remove(ResourceGroupId.of(cl.getOptionValue(deleteOpt)));
     } else if (cl.hasOption(listOpt.getOpt())) {
-      shellState.printLines(ops.list().iterator(), false);
+      Set<String> sorted = new TreeSet<>();
+      ops.list().forEach(rg -> sorted.add(rg.canonical()));
+      shellState.printLines(sorted.iterator(), false);
     }
     return 0;
   }

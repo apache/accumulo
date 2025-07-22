@@ -47,7 +47,8 @@ public class ResourceGroupPropKey extends IdBasedPropStoreKey<ResourceGroupId> {
   }
 
   public void removeZNode(ZooSession zoo) throws KeeperException, InterruptedException {
-    zoo.asReaderWriter().recursiveDelete(getPath(), NodeMissingPolicy.SKIP);
+    zoo.asReaderWriter().recursiveDelete(Constants.ZRESOURCEGROUPS + "/" + getId().canonical(),
+        NodeMissingPolicy.SKIP);
   }
 
   public void createZNode(ZooReaderWriter zrw) throws KeeperException, InterruptedException {

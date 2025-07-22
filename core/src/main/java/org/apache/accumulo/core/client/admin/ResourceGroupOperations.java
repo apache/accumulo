@@ -62,7 +62,7 @@ public interface ResourceGroupOperations {
    * @return Set of resource groups in accumulo
    * @since 4.0.0
    */
-  Set<String> list();
+  Set<ResourceGroupId> list();
 
   /**
    * Create a configuration node in zookeeper for a resource group. If not defined, then processes
@@ -75,11 +75,24 @@ public interface ResourceGroupOperations {
    *
    * @since 4.0.0
    */
-  void createConfiguration(final ResourceGroupId group)
+  void create(final ResourceGroupId group) throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Returns the properties set for this resource group in zookeeper merged with the system
+   * configuration.
+   *
+   * @param group resource group
+   * @return Map of property keys/values
+   * @throws AccumuloException if a general error occurs
+   * @throws AccumuloSecurityException if the user does not have permission
+   *
+   * @since 4.0.0
+   */
+  Map<String,String> getConfiguration(final ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Returns properties set for this resource group in zookeeper.
+   * Returns the un-merged properties set for this resource group in zookeeper.
    *
    * @param group resource group
    * @return Map of property keys/values
@@ -206,7 +219,6 @@ public interface ResourceGroupOperations {
    *
    * @since 4.0.0
    */
-  void removeConfiguration(final ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException;
+  void remove(final ResourceGroupId group) throws AccumuloException, AccumuloSecurityException;
 
 }

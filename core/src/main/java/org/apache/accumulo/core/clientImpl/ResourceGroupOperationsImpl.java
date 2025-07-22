@@ -22,6 +22,8 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 import java.time.Duration;
 import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -31,6 +33,7 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
+import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -53,19 +56,31 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public boolean exists(String group) {
     Objects.requireNonNull(group, "group parameter must be supplied");
-    return list().contains(group);
+    return list().contains(ResourceGroupId.of(group));
   }
 
   @Override
-  public Set<String> list() {
-    return Set.copyOf(context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS));
+  public Set<ResourceGroupId> list() {
+    Set<ResourceGroupId> groups = new HashSet<>();
+    context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS)
+        .forEach(c -> groups.add(ResourceGroupId.of(c)));
+    return Set.copyOf(groups);
   }
 
   @Override
-  public void createConfiguration(ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException {
+  public void create(ResourceGroupId group) throws AccumuloException, AccumuloSecurityException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .createResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
+  }
+
+  @Override
+  public Map<String,String> getConfiguration(ResourceGroupId group)
+      throws AccumuloException, AccumuloSecurityException {
+    Map<String,String> config = new HashMap<>();
+    config.putAll(ThriftClientTypes.CLIENT.execute(context, client -> client
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT)));
+    config.putAll(getProperties(group));
+    return Map.copyOf(config);
   }
 
   @Override
@@ -182,8 +197,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   }
 
   @Override
-  public void removeConfiguration(ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException {
+  public void remove(ResourceGroupId group) throws AccumuloException, AccumuloSecurityException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
   }

@@ -51,7 +51,6 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
@@ -93,9 +92,6 @@ public class TableConfigurationTest {
         new VersionedProperties(1, Instant.now(), Map.of(TABLE_BLOOM_ENABLED.getKey(), "true"));
     expect(propStore.get(eq(sysPropKey))).andReturn(sysProps).times(2);
 
-    var rgPropKey = ResourceGroupPropKey.DEFAULT;
-    expect(propStore.get(eq(rgPropKey))).andReturn(new VersionedProperties()).times(2);
-
     var nsPropKey = NamespacePropKey.of(NID);
     VersionedProperties nsProps = new VersionedProperties(2, Instant.now(),
         Map.of(TABLE_FILE_MAX.getKey(), "21", TABLE_BLOOM_ENABLED.getKey(), "false"));
@@ -112,8 +108,7 @@ public class TableConfigurationTest {
 
     replay(propStore);
 
-    SystemConfiguration sysConfig =
-        new SystemConfiguration(context, sysPropKey, rgPropKey, defaultConfig);
+    SystemConfiguration sysConfig = new SystemConfiguration(context, sysPropKey, defaultConfig);
     NamespaceId nsid = nsPropKey.getId();
     if (nsid == null) {
       throw new IllegalStateException("missing test namespaceId");

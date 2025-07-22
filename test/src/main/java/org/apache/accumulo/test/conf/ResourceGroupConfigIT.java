@@ -28,6 +28,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -36,6 +37,7 @@ import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
@@ -89,15 +91,15 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       final ClientContext cc = (ClientContext) client;
       final InstanceOperations iops = client.instanceOperations();
       final ResourceGroupOperations rgOps = client.resourceGroupOperations();
+      final ZooReaderWriter zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
 
       // Default node created in instance init
-      assertTrue(getCluster().getServerContext().getZooSession().asReaderWriter()
-          .exists(ResourceGroupPropKey.DEFAULT.getPath()));
+      assertTrue(zrw.exists(ResourceGroupPropKey.DEFAULT.getPath()));
 
-      rgOps.createConfiguration(rgid);
-      assertTrue(
-          getCluster().getServerContext().getZooSession().asReaderWriter().exists(rgpk.getPath()));
-      assertTrue(client.resourceGroupOperations().getProperties(rgid).isEmpty());
+      assertFalse(zrw.exists(Constants.ZRESOURCEGROUPS + "/" + rgid.canonical()));
+      rgOps.create(rgid);
+      assertTrue(zrw.exists(rgpk.getPath()));
+      assertTrue(rgOps.getProperties(rgid).isEmpty());
 
       rgOps.setProperty(rgid, Property.COMPACTION_WARN_TIME.getKey(), "1m");
 
@@ -144,10 +146,10 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
           cc.getServerPaths().getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
           rgid, Property.COMPACTION_WARN_TIME, "1m");
 
-      rgOps.removeConfiguration(rgid);
-      assertFalse(
-          getCluster().getServerContext().getZooSession().asReaderWriter().exists(rgpk.getPath()));
-
+      rgOps.remove(rgid);
+      assertFalse(zrw.exists(rgpk.getPath()));
+      assertFalse(zrw.exists(rgpk.getPath()));
+      assertFalse(zrw.exists(Constants.ZRESOURCEGROUPS + "/" + rgid.canonical()));
     }
 
   }
