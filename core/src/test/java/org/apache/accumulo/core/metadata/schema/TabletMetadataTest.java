@@ -141,18 +141,19 @@ public class TabletMetadataTest {
     DIRECTORY_COLUMN.put(mutation, new Value("t-0001757"));
     FLUSH_COLUMN.put(mutation, new Value("6"));
     TIME_COLUMN.put(mutation, new Value("M123456789"));
-    Value opidValue = new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12");
-    OPID_COLUMN.put(mutation, opidValue);
+    Value opidValue1 = new Value("SPLITTING:FATE:META:12345678-9abc-def1-2345-6789abcdef12");
+    var opid = TabletOperationId.from(TabletOperationType.SPLITTING,
+        FateId.from(FateInstanceType.META, UUID.randomUUID()));
+    OPID_COLUMN.put(mutation, new Value(opid.canonical()));
     Path selectedPath =
         new Path("hdfs://nn.somewhere.com:86753/accumulo/tables/42/t-0000/F00001.rf");
     SELECTED_COLUMN.put(mutation,
         new Value(new SelectedFiles(Set.of(new ReferencedTabletFile(selectedPath).insert()), true,
             fateId1, SteadyTime.from(100, TimeUnit.NANOSECONDS)).getMetadataValue()));
     AVAILABILITY_COLUMN.put(mutation, TabletAvailabilityUtil.toValue(TabletAvailability.ONDEMAND));
-    Value mergeabilityValue = new Value("{\"delay\":1,\"steadyTime\":1,\"never\"=false}");
-    MERGEABILITY_COLUMN.put(mutation, mergeabilityValue);
-    TabletMergeabilityMetadata mergeability =
-        TabletMergeabilityMetadata.fromValue(mergeabilityValue);
+    TabletMergeabilityMetadata tmm = TabletMergeabilityMetadata.after(Duration.ofMinutes(3),
+        SteadyTime.from(Duration.ofMinutes(1)));
+    MERGEABILITY_COLUMN.put(mutation, TabletMergeabilityMetadata.toValue(tmm));
 
     String bf1 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf1");
     String bf2 = serialize("hdfs://nn1/acc/tables/1/t-0001/bf2");
@@ -216,8 +217,9 @@ public class TabletMetadataTest {
         EnumSet.allOf(ColumnType.class), true, false);
 
     assertFalse(tm.getCompacted().isEmpty());
+    assertEquals(Set.of(fateId1), tm.getCompacted());
     allColumns.remove(COMPACTED);
-    assertEquals(mergeability, tm.getTabletMergeability());
+    assertEquals(tmm, tm.getTabletMergeability());
     allColumns.remove(MERGEABILITY);
     assertEquals(TabletAvailability.ONDEMAND, tm.getTabletAvailability());
     allColumns.remove(AVAILABILITY);
@@ -225,7 +227,7 @@ public class TabletMetadataTest {
     assertEquals(selectedPath.toString(),
         tm.getSelectedFiles().getFiles().iterator().next().getMetadataPath());
     allColumns.remove(SELECTED);
-    assertEquals(TabletOperationId.from(opidValue.toString()), tm.getOperationId());
+    assertEquals(opid, tm.getOperationId());
     allColumns.remove(OPID);
     assertFalse(tm.getHostingRequested());
     allColumns.remove(HOSTING_REQUESTED);
