@@ -898,8 +898,8 @@ public enum Property {
           + " then it will be suppressed from the dead servers list in the monitor.",
       "4.0.0"),
   MONITOR_ROOT_CONTEXT("monitor.root.context", "/", PropertyType.STRING,
-      "The root context path of the monit   application. If this value is set, all paths for the"
-          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo/`"
+      "The root context path of the monitor application. If this value is set, all paths for the"
+          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo`"
           + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",
       "2.1.4"),
   // per table properties
@@ -1622,7 +1622,7 @@ public enum Property {
 
       // MONITOR options
       MONITOR_PORT, MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE,
-      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL,
+      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL, MONITOR_ROOT_CONTEXT,
 
       // COMPACTOR options
       COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_CLIENTPORT, COMPACTOR_THREADCHECK,
