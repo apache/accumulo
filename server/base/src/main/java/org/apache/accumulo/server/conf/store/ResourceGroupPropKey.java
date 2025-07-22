@@ -50,26 +50,27 @@ public class ResourceGroupPropKey extends IdBasedPropStoreKey<ResourceGroupId> {
     zoo.asReaderWriter().recursiveDelete(getPath(), NodeMissingPolicy.SKIP);
   }
 
-  public void createZNode(ZooSession zoo)
-      throws KeeperException, InterruptedException, IOException {
+  public void createZNode(ZooReaderWriter zrw) throws KeeperException, InterruptedException {
 
-    final byte[] EMPTY_BYTE_ARRAY = new byte[0];
-    final ZooReaderWriter zrw = zoo.asReaderWriter();
+    zrw.mkdirs(Constants.ZRESOURCEGROUPS + "/" + getId().canonical());
 
-    zrw.putPersistentData(Constants.ZRESOURCEGROUPS, EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.SKIP);
-    zrw.putPersistentData(Constants.ZRESOURCEGROUPS + "/" + getId().canonical(), EMPTY_BYTE_ARRAY,
-        ZooUtil.NodeExistsPolicy.SKIP);
     var rgPropPath = getPath();
     if (zrw.exists(rgPropPath)) {
       return;
     }
-    boolean created = zrw.putPrivatePersistentData(rgPropPath,
-        VersionedPropCodec.getDefault().toBytes(new VersionedProperties()),
-        ZooUtil.NodeExistsPolicy.FAIL);
-    if (!created) {
+    try {
+      boolean created = zrw.putPrivatePersistentData(rgPropPath,
+          VersionedPropCodec.getDefault().toBytes(new VersionedProperties()),
+          ZooUtil.NodeExistsPolicy.FAIL);
+      if (!created) {
+        throw new IllegalStateException(
+            "Failed to create default resource group props during initialization at: "
+                + rgPropPath);
+      }
+    } catch (IOException e) {
       throw new IllegalStateException(
-          "Failed to create default resource group props during initialization at: " + rgPropPath);
+          "Failed to create default resource group props during initialization at: " + rgPropPath,
+          e);
     }
 
   }

@@ -93,6 +93,7 @@ import org.apache.accumulo.server.util.SystemPropUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.token.Token;
 import org.apache.thrift.TException;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.slf4j.Logger;
 
@@ -463,8 +464,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
         return;
       }
       final ResourceGroupPropKey key = ResourceGroupPropKey.of(rgid);
-      key.createZNode(context.getZooSession());
-    } catch (Exception e) {
+      key.createZNode(context.getZooSession().asReaderWriter());
+    } catch (KeeperException | InterruptedException e) {
       Manager.log.error("Problem creating resource group config node in zookeeper", e);
       throw new TException(e.getMessage());
     }

@@ -444,8 +444,8 @@ public class Upgrader12to13 implements Upgrader {
 
   private void addDefaultResourceGroupConfigNode(ServerContext context) {
     try {
-      ResourceGroupPropKey.DEFAULT.createZNode(context.getZooSession());
-    } catch (KeeperException | InterruptedException | IOException e) {
+      ResourceGroupPropKey.DEFAULT.createZNode(context.getZooSession().asReaderWriter());
+    } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Error creating default resource group config node", e);
     }
   }
