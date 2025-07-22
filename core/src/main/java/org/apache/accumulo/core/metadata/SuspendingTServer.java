@@ -33,7 +33,7 @@ public class SuspendingTServer {
   public final HostAndPort server;
   public final SteadyTime suspensionTime;
 
-  SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
+  public SuspendingTServer(HostAndPort server, SteadyTime suspensionTime) {
     this.server = Objects.requireNonNull(server);
     this.suspensionTime = Objects.requireNonNull(suspensionTime);
   }
