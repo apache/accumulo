@@ -66,7 +66,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.lang.reflect.Constructor;
 import java.time.Duration;
 import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -125,7 +124,7 @@ public class TabletMetadataTest {
 
   @Test
   public void testAllColumns() {
-    List<ColumnType> allColumns = new ArrayList<>(List.of(ColumnType.values()));
+    Set<ColumnType> allColumns = EnumSet.allOf(ColumnType.class);
 
     KeyExtent extent = new KeyExtent(TableId.of("5"), new Text("df"), new Text("da"));
 
