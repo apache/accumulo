@@ -349,7 +349,14 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
-    manager.tserverSet.tabletServerShuttingDown(tabletServer);
+    var tserver = new TServerInstance(tabletServer);
+    if (!manager.isShuttingDown(tserver)) {
+      Fate<Manager> fate = manager.fate();
+      long tid = fate.startTransaction();
+      String msg = "Shutdown tserver " + tabletServer;
+      fate.seedTransaction("ShutdownTServer", tid,
+          new TraceRepo<>(new ShutdownTServer(tserver, false)), true, msg);
+    }
   }
 
   @Override

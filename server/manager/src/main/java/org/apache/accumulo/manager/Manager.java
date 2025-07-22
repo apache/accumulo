@@ -1819,8 +1819,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener, 
 
   // recovers state from the persistent transaction to shutdown a server
   public void shutdownTServer(TServerInstance server) {
-    nextEvent.event("Tablet Server shutdown requested for %s", server);
     serversToShutdown.add(server);
+    nextEvent.event("Tablet Server shutdown requested for %s", server);
+  }
+
+  public boolean isShuttingDown(TServerInstance server) {
+    return serversToShutdown.contains(server);
   }
 
   public EventCoordinator getEventCoordinator() {

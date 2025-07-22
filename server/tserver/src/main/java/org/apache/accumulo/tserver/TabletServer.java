@@ -54,7 +54,6 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -89,7 +88,6 @@ import org.apache.accumulo.core.master.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.MetadataTable;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
@@ -97,7 +95,6 @@ import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
-import org.apache.accumulo.core.tabletserver.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.ComparablePair;
 import org.apache.accumulo.core.util.Halt;
@@ -109,7 +106,6 @@ import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.ServerServices;
 import org.apache.accumulo.core.util.ServerServices.Service;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.threads.ThreadPoolNames;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.server.AbstractServer;
@@ -954,13 +950,29 @@ public class TabletServer extends AbstractServer
       }
     }
 
-    // Tell the Manager we are shutting down so that it doesn't try
-    // to assign tablets.
     ManagerClientService.Client iface = managerConnection(getManagerAddress());
     try {
-      iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-          getClientAddressString());
-    } catch (TException e) {
+      // Ask the manager to unload our tablets and stop loading new tablets
+      if (iface == null) {
+        Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!");
+      } else {
+        iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
+            getTabletSession().getHostPortSession());
+      }
+
+      boolean managerDown = false;
+      while (!getOnlineTablets().isEmpty()) {
+        log.info("Shutdown requested, waiting for manager to unload {} tablets",
+            getOnlineTablets().size());
+
+        managerDown = sendManagerMessages(managerDown, iface);
+
+        UtilWaitThread.sleep(1000);
+      }
+
+      sendManagerMessages(managerDown, iface);
+
+    } catch (TException | RuntimeException e) {
       Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
@@ -969,66 +981,6 @@ public class TabletServer extends AbstractServer
     log.debug("Stopping Replication Server");
     if (this.replServer != null) {
       this.replServer.stop();
-    }
-
-    // Best-effort attempt at unloading tablets.
-    log.debug("Unloading tablets");
-    final List<Future<?>> futures = new ArrayList<>();
-    final ThreadPoolExecutor tpe = getContext().threadPools()
-        .getPoolBuilder(ThreadPoolNames.TSERVER_SHUTDOWN_UNLOAD_TABLET_POOL).numCoreThreads(8)
-        .numMaxThreads(16).build();
-
-    iface = managerConnection(getManagerAddress());
-    boolean managerDown = false;
-
-    try {
-      for (DataLevel level : new DataLevel[] {DataLevel.USER, DataLevel.METADATA, DataLevel.ROOT}) {
-        getOnlineTablets().keySet().forEach(ke -> {
-          if (DataLevel.of(ke.tableId()) == level) {
-            futures.add(
-                tpe.submit(new UnloadTabletHandler(this, ke, TUnloadTabletGoal.UNASSIGNED, 5000)));
-          }
-        });
-        while (!futures.isEmpty()) {
-          Iterator<Future<?>> unloads = futures.iterator();
-          while (unloads.hasNext()) {
-            Future<?> f = unloads.next();
-            if (f.isDone()) {
-              if (!managerDown) {
-                ManagerMessage mm = managerMessages.poll();
-                try {
-                  mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
-                } catch (TException e) {
-                  managerDown = true;
-                  LOG.debug("Error sending message to Manager during tablet unloading, msg: {}",
-                      e.getMessage());
-                }
-              }
-              unloads.remove();
-            }
-          }
-          log.debug("Waiting on {} {} tablets to close.", futures.size(), level);
-          UtilWaitThread.sleep(1000);
-        }
-        log.debug("All {} tablets unloaded", level);
-      }
-    } finally {
-      if (!managerDown) {
-        try {
-          ManagerMessage mm = managerMessages.poll();
-          do {
-            if (mm != null) {
-              mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
-            }
-            mm = managerMessages.poll();
-          } while (mm != null);
-        } catch (TException e) {
-          LOG.debug("Error sending message to Manager during tablet unloading, msg: {}",
-              e.getMessage());
-        }
-      }
-      returnManagerConnection(iface);
-      tpe.shutdown();
     }
 
     log.debug("Stopping Thrift Servers");
@@ -1052,6 +1004,21 @@ public class TabletServer extends AbstractServer
     } catch (Exception e) {
       log.warn("Failed to release tablet server lock", e);
     }
+  }
+
+  private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client iface) {
+    ManagerMessage mm = managerMessages.poll();
+    while (mm != null && !managerDown) {
+      try {
+        mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+        mm = managerMessages.poll();
+      } catch (TException e) {
+        managerDown = true;
+        LOG.debug("Error sending message to Manager during tablet unloading, msg: {}",
+            e.getMessage());
+      }
+    }
+    return managerDown;
   }
 
   @SuppressWarnings("deprecation")
