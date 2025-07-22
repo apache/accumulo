@@ -26,20 +26,28 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.data.ResourceGroupId;
 
 /**
- * A ResourceGroup is a named set of Compactor, ScanServer, or TabletServer processes. These
- * processes can be assigned to a single resource group when they are started. Resource group
- * processes can execute with configurations that are different than processes running within other
- * resource groups. You could achieve a similar effect by placing resource group processes on hosts
- * with different site properties files.
+ * A ResourceGroup is a grouping of Accumulo server processes that have some shared characteristic
+ * that is different than server processes in other resource groups. Examples could be homogeneous
+ * hardware configurations for the server processes in one resource group but different than other
+ * resource groups, or a resource group could be created for physical separation of processing for
+ * table(s).
  *
- * This object is for defining, interacting, and removing resource group configurations.
+ * A default resource group exists in which all server processes are assigned. The Manager, Monitor,
+ * and GarbageCollector are assigned to the default resource group. Compactor, ScanServer and
+ * TabletServer processes are also assigned to the default resource group, unless their respective
+ * properties are set.
+ *
+ * This object is for defining, interacting, and removing resource group configurations. When the
+ * Accumulo server processes get the system configuration, they will receive a merged view of the
+ * system configuration and applicable resource group configuration, with any property defined in
+ * the resource group configuration given higher priority.
  *
  * @since 4.0.0
  */
 public interface ResourceGroupOperations {
 
   /**
-   * A method to check if a resource group exists in Accumulo.
+   * A method to check if a resource group configuration exists in Accumulo.
    *
    * @param group the name of the resource group
    * @return true if the group exists
