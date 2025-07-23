@@ -77,7 +77,6 @@ public class ResourceGroupCommand extends Command {
 
   @Override
   public int numArgs() {
-    // TODO Auto-generated method stub
     return 0;
   }
 
