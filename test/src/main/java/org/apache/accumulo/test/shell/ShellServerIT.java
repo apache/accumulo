@@ -55,10 +55,12 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
@@ -75,6 +77,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
@@ -2472,5 +2475,43 @@ public class ShellServerIT extends SharedMiniClusterBase {
     byte[] r = new byte[16];
     RANDOM.get().nextBytes(r);
     return new String(Base64.getEncoder().encode(r), UTF_8);
+  }
+
+  @Test
+  public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      ResourceGroupOperations ops = client.resourceGroupOperations();
+
+      String badRG = "test-RG";
+      String goodRG = "testRG";
+
+      assertEquals(1, ops.list().size());
+      assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+      ts.exec("resourcegroup -c " + badRG, false, "contains invalid characters");
+      ts.exec("resourcegroup -c " + goodRG, true);
+
+      assertEquals(2, ops.list().size());
+      assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
+      assertTrue(ops.list().contains(ResourceGroupId.of(goodRG)));
+
+      ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
+          false, "contains invalid characters");
+      ts.exec("config -rg " + goodRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
+          true);
+
+      Map<String,String> props = ops.getProperties(ResourceGroupId.of(goodRG));
+      assertEquals(1, props.size());
+      assertTrue(props.containsKey(Property.COMPACTION_WARN_TIME.getKey()));
+      assertEquals("3m", props.get(Property.COMPACTION_WARN_TIME.getKey()));
+
+      ts.exec("resourcegroup -d " + badRG, false, "contains invalid characters");
+      ts.exec("resourcegroup -d " + goodRG, true);
+      assertEquals(1, ops.list().size());
+      assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+    }
+
   }
 }
