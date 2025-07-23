@@ -427,6 +427,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftResourceGroupNotExistsException rgne    
   )
     
   void setResourceGroupProperty(
@@ -439,6 +440,7 @@ service ManagerClientService {
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
     3:ThriftPropertyException tpe
+    4:client.ThriftResourceGroupNotExistsException rgne
   )
  
   void modifyResourceGroupProperties(
@@ -451,6 +453,7 @@ service ManagerClientService {
     2:client.ThriftNotActiveServiceException tnase
     3:client.ThriftConcurrentModificationException tcme
     4:ThriftPropertyException tpe
+    5:client.ThriftResourceGroupNotExistsException rgne
   )
 
   void removeResourceGroupProperty(
@@ -461,6 +464,7 @@ service ManagerClientService {
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase
+    3:client.ThriftResourceGroupNotExistsException rgne
   )
 
 

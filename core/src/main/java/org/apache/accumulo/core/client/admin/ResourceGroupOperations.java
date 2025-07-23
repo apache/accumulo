@@ -24,6 +24,7 @@ import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.data.ResourceGroupId;
 
 /**
@@ -85,11 +86,12 @@ public interface ResourceGroupOperations {
    * @return Map of property keys/values
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
+   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
    *
    * @since 4.0.0
    */
   Map<String,String> getConfiguration(final ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
 
   /**
    * Returns the un-merged properties set for this resource group in zookeeper.
@@ -98,11 +100,12 @@ public interface ResourceGroupOperations {
    * @return Map of property keys/values
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
+   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
    *
    * @since 4.0.0
    */
   Map<String,String> getProperties(final ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
 
   /**
    * Sets a resource group property in zookeeper. Servers will pull this setting and override the
@@ -118,11 +121,12 @@ public interface ResourceGroupOperations {
    * @param value the value to set a system property to
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
+   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
    *
    * @since 4.0.0
    */
   void setProperty(final ResourceGroupId group, final String property, final String value)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
 
   /**
    * Modify resource group properties using a Consumer that accepts a mutable map containing the
@@ -183,6 +187,7 @@ public interface ResourceGroupOperations {
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws IllegalArgumentException if the Consumer alters the map by adding properties that
    *         cannot be stored in ZooKeeper
+   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
    *
    * @return The map that became Accumulo's new properties for this resource group. This map is
    *         immutable and contains the snapshot passed to mapMutator and the changes made by
@@ -190,8 +195,8 @@ public interface ResourceGroupOperations {
    * @since 4.0.0
    */
   Map<String,String> modifyProperties(final ResourceGroupId group,
-      final Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException;
+      final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ResourceGroupNotFoundException;
 
   /**
    * Removes a resource group property from zookeeper. Changes can be seen using
@@ -202,11 +207,12 @@ public interface ResourceGroupOperations {
    * @param property the name of a system property
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
+   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
    *
    * @since 4.0.0
    */
   void removeProperty(final ResourceGroupId group, final String property)
-      throws AccumuloException, AccumuloSecurityException;
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
 
   /**
    * Removes a configuration node in zookeeper for a resource group. If not defined, then processes
@@ -216,9 +222,11 @@ public interface ResourceGroupOperations {
    * @param group resource group
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
+   * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
    *
    * @since 4.0.0
    */
-  void remove(final ResourceGroupId group) throws AccumuloException, AccumuloSecurityException;
+  void remove(final ResourceGroupId group)
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
 
 }

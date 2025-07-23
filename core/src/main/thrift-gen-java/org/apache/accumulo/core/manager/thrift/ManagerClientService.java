@@ -61,13 +61,13 @@ public class ManagerClientService {
 
     public void createResourceGroupNode(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void removeResourceGroupNode(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void removeResourceGroupNode(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException;
 
-    public void setResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property, java.lang.String value) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException;
+    public void setResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property, java.lang.String value) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException;
 
-    public void modifyResourceGroupProperties(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties vProperties) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.thrift.TException;
+    public void modifyResourceGroupProperties(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties vProperties) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException;
 
-    public void removeResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void removeResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException;
 
     public ManagerMonitorInfo getManagerStats(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
@@ -699,7 +699,7 @@ public class ManagerClientService {
     }
 
     @Override
-    public void removeResourceGroupNode(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void removeResourceGroupNode(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       send_removeResourceGroupNode(tinfo, credentials, resourceGroup);
       recv_removeResourceGroupNode();
@@ -714,7 +714,7 @@ public class ManagerClientService {
       sendBase("removeResourceGroupNode", args);
     }
 
-    public void recv_removeResourceGroupNode() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_removeResourceGroupNode() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       removeResourceGroupNode_result result = new removeResourceGroupNode_result();
       receiveBase(result, "removeResourceGroupNode");
@@ -724,11 +724,14 @@ public class ManagerClientService {
       if (result.tnase != null) {
         throw result.tnase;
       }
+      if (result.rgne != null) {
+        throw result.rgne;
+      }
       return;
     }
 
     @Override
-    public void setResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property, java.lang.String value) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException
+    public void setResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property, java.lang.String value) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       send_setResourceGroupProperty(tinfo, credentials, resourceGroup, property, value);
       recv_setResourceGroupProperty();
@@ -745,7 +748,7 @@ public class ManagerClientService {
       sendBase("setResourceGroupProperty", args);
     }
 
-    public void recv_setResourceGroupProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException
+    public void recv_setResourceGroupProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       setResourceGroupProperty_result result = new setResourceGroupProperty_result();
       receiveBase(result, "setResourceGroupProperty");
@@ -758,11 +761,14 @@ public class ManagerClientService {
       if (result.tpe != null) {
         throw result.tpe;
       }
+      if (result.rgne != null) {
+        throw result.rgne;
+      }
       return;
     }
 
     @Override
-    public void modifyResourceGroupProperties(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties vProperties) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.thrift.TException
+    public void modifyResourceGroupProperties(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties vProperties) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       send_modifyResourceGroupProperties(tinfo, credentials, resourceGroup, vProperties);
       recv_modifyResourceGroupProperties();
@@ -778,7 +784,7 @@ public class ManagerClientService {
       sendBase("modifyResourceGroupProperties", args);
     }
 
-    public void recv_modifyResourceGroupProperties() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.thrift.TException
+    public void recv_modifyResourceGroupProperties() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       modifyResourceGroupProperties_result result = new modifyResourceGroupProperties_result();
       receiveBase(result, "modifyResourceGroupProperties");
@@ -794,11 +800,14 @@ public class ManagerClientService {
       if (result.tpe != null) {
         throw result.tpe;
       }
+      if (result.rgne != null) {
+        throw result.rgne;
+      }
       return;
     }
 
     @Override
-    public void removeResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void removeResourceGroupProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup, java.lang.String property) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       send_removeResourceGroupProperty(tinfo, credentials, resourceGroup, property);
       recv_removeResourceGroupProperty();
@@ -814,7 +823,7 @@ public class ManagerClientService {
       sendBase("removeResourceGroupProperty", args);
     }
 
-    public void recv_removeResourceGroupProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void recv_removeResourceGroupProperty() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       removeResourceGroupProperty_result result = new removeResourceGroupProperty_result();
       receiveBase(result, "removeResourceGroupProperty");
@@ -823,6 +832,9 @@ public class ManagerClientService {
       }
       if (result.tnase != null) {
         throw result.tnase;
+      }
+      if (result.rgne != null) {
+        throw result.rgne;
       }
       return;
     }
@@ -1816,7 +1828,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -1864,7 +1876,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -1909,7 +1921,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException, ThriftPropertyException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -1954,7 +1966,7 @@ public class ManagerClientService {
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException {
+      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -2942,6 +2954,8 @@ public class ManagerClientService {
           result.sec = sec;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
           result.tnase = tnase;
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+          result.rgne = rgne;
         }
         return result;
       }
@@ -2978,6 +2992,8 @@ public class ManagerClientService {
           result.tnase = tnase;
         } catch (ThriftPropertyException tpe) {
           result.tpe = tpe;
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+          result.rgne = rgne;
         }
         return result;
       }
@@ -3016,6 +3032,8 @@ public class ManagerClientService {
           result.tcme = tcme;
         } catch (ThriftPropertyException tpe) {
           result.tpe = tpe;
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+          result.rgne = rgne;
         }
         return result;
       }
@@ -3050,6 +3068,8 @@ public class ManagerClientService {
           result.sec = sec;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
           result.tnase = tnase;
+        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+          result.rgne = rgne;
         }
         return result;
       }
@@ -4651,6 +4671,10 @@ public class ManagerClientService {
               result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
               result.setTnaseIsSet(true);
               msg = result;
+            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) {
+              result.rgne = (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) e;
+              result.setRgneIsSet(true);
+              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -4728,6 +4752,10 @@ public class ManagerClientService {
             } else if (e instanceof ThriftPropertyException) {
               result.tpe = (ThriftPropertyException) e;
               result.setTpeIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) {
+              result.rgne = (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) e;
+              result.setRgneIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -4811,6 +4839,10 @@ public class ManagerClientService {
               result.tpe = (ThriftPropertyException) e;
               result.setTpeIsSet(true);
               msg = result;
+            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) {
+              result.rgne = (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) e;
+              result.setRgneIsSet(true);
+              msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
@@ -4884,6 +4916,10 @@ public class ManagerClientService {
             } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) {
               result.tnase = (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException) e;
               result.setTnaseIsSet(true);
+              msg = result;
+            } else if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) {
+              result.rgne = (org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException) e;
+              result.setRgneIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -26775,17 +26811,20 @@ public class ManagerClientService {
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField RGNE_FIELD_DESC = new org.apache.thrift.protocol.TField("rgne", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeResourceGroupNode_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeResourceGroupNode_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      TNASE((short)2, "tnase"),
+      RGNE((short)3, "rgne");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -26805,6 +26844,8 @@ public class ManagerClientService {
             return SEC;
           case 2: // TNASE
             return TNASE;
+          case 3: // RGNE
+            return RGNE;
           default:
             return null;
         }
@@ -26855,6 +26896,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
+      tmpMap.put(_Fields.RGNE, new org.apache.thrift.meta_data.FieldMetaData("rgne", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeResourceGroupNode_result.class, metaDataMap);
     }
@@ -26864,11 +26907,13 @@ public class ManagerClientService {
 
     public removeResourceGroupNode_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase,
+      org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne)
     {
       this();
       this.sec = sec;
       this.tnase = tnase;
+      this.rgne = rgne;
     }
 
     /**
@@ -26881,6 +26926,9 @@ public class ManagerClientService {
       if (other.isSetTnase()) {
         this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
+      if (other.isSetRgne()) {
+        this.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException(other.rgne);
+      }
     }
 
     @Override
@@ -26892,6 +26940,7 @@ public class ManagerClientService {
     public void clear() {
       this.sec = null;
       this.tnase = null;
+      this.rgne = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -26944,6 +26993,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException getRgne() {
+      return this.rgne;
+    }
+
+    public removeResourceGroupNode_result setRgne(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+      this.rgne = rgne;
+      return this;
+    }
+
+    public void unsetRgne() {
+      this.rgne = null;
+    }
+
+    /** Returns true if field rgne is set (has been assigned a value) and false otherwise */
+    public boolean isSetRgne() {
+      return this.rgne != null;
+    }
+
+    public void setRgneIsSet(boolean value) {
+      if (!value) {
+        this.rgne = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -26963,6 +27037,14 @@ public class ManagerClientService {
         }
         break;
 
+      case RGNE:
+        if (value == null) {
+          unsetRgne();
+        } else {
+          setRgne((org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException)value);
+        }
+        break;
+
       }
     }
 
@@ -26975,6 +27057,9 @@ public class ManagerClientService {
 
       case TNASE:
         return getTnase();
+
+      case RGNE:
+        return getRgne();
 
       }
       throw new java.lang.IllegalStateException();
@@ -26992,6 +27077,8 @@ public class ManagerClientService {
         return isSetSec();
       case TNASE:
         return isSetTnase();
+      case RGNE:
+        return isSetRgne();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -27027,6 +27114,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_rgne = true && this.isSetRgne();
+      boolean that_present_rgne = true && that.isSetRgne();
+      if (this_present_rgne || that_present_rgne) {
+        if (!(this_present_rgne && that_present_rgne))
+          return false;
+        if (!this.rgne.equals(that.rgne))
+          return false;
+      }
+
       return true;
     }
 
@@ -27041,6 +27137,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
       if (isSetTnase())
         hashCode = hashCode * 8191 + tnase.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetRgne()) ? 131071 : 524287);
+      if (isSetRgne())
+        hashCode = hashCode * 8191 + rgne.hashCode();
 
       return hashCode;
     }
@@ -27069,6 +27169,16 @@ public class ManagerClientService {
       }
       if (isSetTnase()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetRgne(), other.isSetRgne());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRgne()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rgne, other.rgne);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -27109,6 +27219,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tnase);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("rgne:");
+      if (this.rgne == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.rgne);
       }
       first = false;
       sb.append(")");
@@ -27174,6 +27292,15 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // RGNE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+                struct.rgne.read(iprot);
+                struct.setRgneIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -27198,6 +27325,11 @@ public class ManagerClientService {
         if (struct.tnase != null) {
           oprot.writeFieldBegin(TNASE_FIELD_DESC);
           struct.tnase.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.rgne != null) {
+          oprot.writeFieldBegin(RGNE_FIELD_DESC);
+          struct.rgne.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -27225,19 +27357,25 @@ public class ManagerClientService {
         if (struct.isSetTnase()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetRgne()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
         if (struct.isSetTnase()) {
           struct.tnase.write(oprot);
         }
+        if (struct.isSetRgne()) {
+          struct.rgne.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, removeResourceGroupNode_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
@@ -27247,6 +27385,11 @@ public class ManagerClientService {
           struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
           struct.tnase.read(iprot);
           struct.setTnaseIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+          struct.rgne.read(iprot);
+          struct.setRgneIsSet(true);
         }
       }
     }
@@ -28072,6 +28215,7 @@ public class ManagerClientService {
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tpe", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField RGNE_FIELD_DESC = new org.apache.thrift.protocol.TField("rgne", org.apache.thrift.protocol.TType.STRUCT, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new setResourceGroupProperty_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new setResourceGroupProperty_resultTupleSchemeFactory();
@@ -28079,12 +28223,14 @@ public class ManagerClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
     public @org.apache.thrift.annotation.Nullable ThriftPropertyException tpe; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       TNASE((short)2, "tnase"),
-      TPE((short)3, "tpe");
+      TPE((short)3, "tpe"),
+      RGNE((short)4, "rgne");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -28106,6 +28252,8 @@ public class ManagerClientService {
             return TNASE;
           case 3: // TPE
             return TPE;
+          case 4: // RGNE
+            return RGNE;
           default:
             return null;
         }
@@ -28158,6 +28306,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
       tmpMap.put(_Fields.TPE, new org.apache.thrift.meta_data.FieldMetaData("tpe", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftPropertyException.class)));
+      tmpMap.put(_Fields.RGNE, new org.apache.thrift.meta_data.FieldMetaData("rgne", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(setResourceGroupProperty_result.class, metaDataMap);
     }
@@ -28168,12 +28318,14 @@ public class ManagerClientService {
     public setResourceGroupProperty_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase,
-      ThriftPropertyException tpe)
+      ThriftPropertyException tpe,
+      org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne)
     {
       this();
       this.sec = sec;
       this.tnase = tnase;
       this.tpe = tpe;
+      this.rgne = rgne;
     }
 
     /**
@@ -28189,6 +28341,9 @@ public class ManagerClientService {
       if (other.isSetTpe()) {
         this.tpe = new ThriftPropertyException(other.tpe);
       }
+      if (other.isSetRgne()) {
+        this.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException(other.rgne);
+      }
     }
 
     @Override
@@ -28201,6 +28356,7 @@ public class ManagerClientService {
       this.sec = null;
       this.tnase = null;
       this.tpe = null;
+      this.rgne = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -28278,6 +28434,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException getRgne() {
+      return this.rgne;
+    }
+
+    public setResourceGroupProperty_result setRgne(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+      this.rgne = rgne;
+      return this;
+    }
+
+    public void unsetRgne() {
+      this.rgne = null;
+    }
+
+    /** Returns true if field rgne is set (has been assigned a value) and false otherwise */
+    public boolean isSetRgne() {
+      return this.rgne != null;
+    }
+
+    public void setRgneIsSet(boolean value) {
+      if (!value) {
+        this.rgne = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -28305,6 +28486,14 @@ public class ManagerClientService {
         }
         break;
 
+      case RGNE:
+        if (value == null) {
+          unsetRgne();
+        } else {
+          setRgne((org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException)value);
+        }
+        break;
+
       }
     }
 
@@ -28320,6 +28509,9 @@ public class ManagerClientService {
 
       case TPE:
         return getTpe();
+
+      case RGNE:
+        return getRgne();
 
       }
       throw new java.lang.IllegalStateException();
@@ -28339,6 +28531,8 @@ public class ManagerClientService {
         return isSetTnase();
       case TPE:
         return isSetTpe();
+      case RGNE:
+        return isSetRgne();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -28383,6 +28577,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_rgne = true && this.isSetRgne();
+      boolean that_present_rgne = true && that.isSetRgne();
+      if (this_present_rgne || that_present_rgne) {
+        if (!(this_present_rgne && that_present_rgne))
+          return false;
+        if (!this.rgne.equals(that.rgne))
+          return false;
+      }
+
       return true;
     }
 
@@ -28401,6 +28604,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTpe()) ? 131071 : 524287);
       if (isSetTpe())
         hashCode = hashCode * 8191 + tpe.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetRgne()) ? 131071 : 524287);
+      if (isSetRgne())
+        hashCode = hashCode * 8191 + rgne.hashCode();
 
       return hashCode;
     }
@@ -28439,6 +28646,16 @@ public class ManagerClientService {
       }
       if (isSetTpe()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tpe, other.tpe);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetRgne(), other.isSetRgne());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRgne()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rgne, other.rgne);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -28487,6 +28704,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tpe);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("rgne:");
+      if (this.rgne == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.rgne);
       }
       first = false;
       sb.append(")");
@@ -28561,6 +28786,15 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 4: // RGNE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+                struct.rgne.read(iprot);
+                struct.setRgneIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -28592,6 +28826,11 @@ public class ManagerClientService {
           struct.tpe.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.rgne != null) {
+          oprot.writeFieldBegin(RGNE_FIELD_DESC);
+          struct.rgne.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -28620,7 +28859,10 @@ public class ManagerClientService {
         if (struct.isSetTpe()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetRgne()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
@@ -28630,12 +28872,15 @@ public class ManagerClientService {
         if (struct.isSetTpe()) {
           struct.tpe.write(oprot);
         }
+        if (struct.isSetRgne()) {
+          struct.rgne.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, setResourceGroupProperty_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
@@ -28650,6 +28895,11 @@ public class ManagerClientService {
           struct.tpe = new ThriftPropertyException();
           struct.tpe.read(iprot);
           struct.setTpeIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+          struct.rgne.read(iprot);
+          struct.setRgneIsSet(true);
         }
       }
     }
@@ -29376,6 +29626,7 @@ public class ManagerClientService {
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TCME_FIELD_DESC = new org.apache.thrift.protocol.TField("tcme", org.apache.thrift.protocol.TType.STRUCT, (short)3);
     private static final org.apache.thrift.protocol.TField TPE_FIELD_DESC = new org.apache.thrift.protocol.TField("tpe", org.apache.thrift.protocol.TType.STRUCT, (short)4);
+    private static final org.apache.thrift.protocol.TField RGNE_FIELD_DESC = new org.apache.thrift.protocol.TField("rgne", org.apache.thrift.protocol.TType.STRUCT, (short)5);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new modifyResourceGroupProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new modifyResourceGroupProperties_resultTupleSchemeFactory();
@@ -29384,13 +29635,15 @@ public class ManagerClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException tcme; // required
     public @org.apache.thrift.annotation.Nullable ThriftPropertyException tpe; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
       TNASE((short)2, "tnase"),
       TCME((short)3, "tcme"),
-      TPE((short)4, "tpe");
+      TPE((short)4, "tpe"),
+      RGNE((short)5, "rgne");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -29414,6 +29667,8 @@ public class ManagerClientService {
             return TCME;
           case 4: // TPE
             return TPE;
+          case 5: // RGNE
+            return RGNE;
           default:
             return null;
         }
@@ -29468,6 +29723,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException.class)));
       tmpMap.put(_Fields.TPE, new org.apache.thrift.meta_data.FieldMetaData("tpe", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftPropertyException.class)));
+      tmpMap.put(_Fields.RGNE, new org.apache.thrift.meta_data.FieldMetaData("rgne", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(modifyResourceGroupProperties_result.class, metaDataMap);
     }
@@ -29479,13 +29736,15 @@ public class ManagerClientService {
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
       org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase,
       org.apache.accumulo.core.clientImpl.thrift.ThriftConcurrentModificationException tcme,
-      ThriftPropertyException tpe)
+      ThriftPropertyException tpe,
+      org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne)
     {
       this();
       this.sec = sec;
       this.tnase = tnase;
       this.tcme = tcme;
       this.tpe = tpe;
+      this.rgne = rgne;
     }
 
     /**
@@ -29504,6 +29763,9 @@ public class ManagerClientService {
       if (other.isSetTpe()) {
         this.tpe = new ThriftPropertyException(other.tpe);
       }
+      if (other.isSetRgne()) {
+        this.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException(other.rgne);
+      }
     }
 
     @Override
@@ -29517,6 +29779,7 @@ public class ManagerClientService {
       this.tnase = null;
       this.tcme = null;
       this.tpe = null;
+      this.rgne = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -29619,6 +29882,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException getRgne() {
+      return this.rgne;
+    }
+
+    public modifyResourceGroupProperties_result setRgne(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+      this.rgne = rgne;
+      return this;
+    }
+
+    public void unsetRgne() {
+      this.rgne = null;
+    }
+
+    /** Returns true if field rgne is set (has been assigned a value) and false otherwise */
+    public boolean isSetRgne() {
+      return this.rgne != null;
+    }
+
+    public void setRgneIsSet(boolean value) {
+      if (!value) {
+        this.rgne = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -29654,6 +29942,14 @@ public class ManagerClientService {
         }
         break;
 
+      case RGNE:
+        if (value == null) {
+          unsetRgne();
+        } else {
+          setRgne((org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException)value);
+        }
+        break;
+
       }
     }
 
@@ -29672,6 +29968,9 @@ public class ManagerClientService {
 
       case TPE:
         return getTpe();
+
+      case RGNE:
+        return getRgne();
 
       }
       throw new java.lang.IllegalStateException();
@@ -29693,6 +29992,8 @@ public class ManagerClientService {
         return isSetTcme();
       case TPE:
         return isSetTpe();
+      case RGNE:
+        return isSetRgne();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -29746,6 +30047,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_rgne = true && this.isSetRgne();
+      boolean that_present_rgne = true && that.isSetRgne();
+      if (this_present_rgne || that_present_rgne) {
+        if (!(this_present_rgne && that_present_rgne))
+          return false;
+        if (!this.rgne.equals(that.rgne))
+          return false;
+      }
+
       return true;
     }
 
@@ -29768,6 +30078,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTpe()) ? 131071 : 524287);
       if (isSetTpe())
         hashCode = hashCode * 8191 + tpe.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetRgne()) ? 131071 : 524287);
+      if (isSetRgne())
+        hashCode = hashCode * 8191 + rgne.hashCode();
 
       return hashCode;
     }
@@ -29816,6 +30130,16 @@ public class ManagerClientService {
       }
       if (isSetTpe()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tpe, other.tpe);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetRgne(), other.isSetRgne());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRgne()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rgne, other.rgne);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -29872,6 +30196,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tpe);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("rgne:");
+      if (this.rgne == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.rgne);
       }
       first = false;
       sb.append(")");
@@ -29955,6 +30287,15 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 5: // RGNE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+                struct.rgne.read(iprot);
+                struct.setRgneIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -29991,6 +30332,11 @@ public class ManagerClientService {
           struct.tpe.write(oprot);
           oprot.writeFieldEnd();
         }
+        if (struct.rgne != null) {
+          oprot.writeFieldBegin(RGNE_FIELD_DESC);
+          struct.rgne.write(oprot);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -30022,7 +30368,10 @@ public class ManagerClientService {
         if (struct.isSetTpe()) {
           optionals.set(3);
         }
-        oprot.writeBitSet(optionals, 4);
+        if (struct.isSetRgne()) {
+          optionals.set(4);
+        }
+        oprot.writeBitSet(optionals, 5);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
@@ -30035,12 +30384,15 @@ public class ManagerClientService {
         if (struct.isSetTpe()) {
           struct.tpe.write(oprot);
         }
+        if (struct.isSetRgne()) {
+          struct.rgne.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, modifyResourceGroupProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(4);
+        java.util.BitSet incoming = iprot.readBitSet(5);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
@@ -30060,6 +30412,11 @@ public class ManagerClientService {
           struct.tpe = new ThriftPropertyException();
           struct.tpe.read(iprot);
           struct.setTpeIsSet(true);
+        }
+        if (incoming.get(4)) {
+          struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+          struct.rgne.read(iprot);
+          struct.setRgneIsSet(true);
         }
       }
     }
@@ -30779,17 +31136,20 @@ public class ManagerClientService {
 
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField TNASE_FIELD_DESC = new org.apache.thrift.protocol.TField("tnase", org.apache.thrift.protocol.TType.STRUCT, (short)2);
+    private static final org.apache.thrift.protocol.TField RGNE_FIELD_DESC = new org.apache.thrift.protocol.TField("rgne", org.apache.thrift.protocol.TType.STRUCT, (short)3);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new removeResourceGroupProperty_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new removeResourceGroupProperty_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase; // required
+    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SEC((short)1, "sec"),
-      TNASE((short)2, "tnase");
+      TNASE((short)2, "tnase"),
+      RGNE((short)3, "rgne");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -30809,6 +31169,8 @@ public class ManagerClientService {
             return SEC;
           case 2: // TNASE
             return TNASE;
+          case 3: // RGNE
+            return RGNE;
           default:
             return null;
         }
@@ -30859,6 +31221,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
       tmpMap.put(_Fields.TNASE, new org.apache.thrift.meta_data.FieldMetaData("tnase", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException.class)));
+      tmpMap.put(_Fields.RGNE, new org.apache.thrift.meta_data.FieldMetaData("rgne", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(removeResourceGroupProperty_result.class, metaDataMap);
     }
@@ -30868,11 +31232,13 @@ public class ManagerClientService {
 
     public removeResourceGroupProperty_result(
       org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase)
+      org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase,
+      org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne)
     {
       this();
       this.sec = sec;
       this.tnase = tnase;
+      this.rgne = rgne;
     }
 
     /**
@@ -30885,6 +31251,9 @@ public class ManagerClientService {
       if (other.isSetTnase()) {
         this.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException(other.tnase);
       }
+      if (other.isSetRgne()) {
+        this.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException(other.rgne);
+      }
     }
 
     @Override
@@ -30896,6 +31265,7 @@ public class ManagerClientService {
     public void clear() {
       this.sec = null;
       this.tnase = null;
+      this.rgne = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -30948,6 +31318,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException getRgne() {
+      return this.rgne;
+    }
+
+    public removeResourceGroupProperty_result setRgne(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException rgne) {
+      this.rgne = rgne;
+      return this;
+    }
+
+    public void unsetRgne() {
+      this.rgne = null;
+    }
+
+    /** Returns true if field rgne is set (has been assigned a value) and false otherwise */
+    public boolean isSetRgne() {
+      return this.rgne != null;
+    }
+
+    public void setRgneIsSet(boolean value) {
+      if (!value) {
+        this.rgne = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -30967,6 +31362,14 @@ public class ManagerClientService {
         }
         break;
 
+      case RGNE:
+        if (value == null) {
+          unsetRgne();
+        } else {
+          setRgne((org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException)value);
+        }
+        break;
+
       }
     }
 
@@ -30979,6 +31382,9 @@ public class ManagerClientService {
 
       case TNASE:
         return getTnase();
+
+      case RGNE:
+        return getRgne();
 
       }
       throw new java.lang.IllegalStateException();
@@ -30996,6 +31402,8 @@ public class ManagerClientService {
         return isSetSec();
       case TNASE:
         return isSetTnase();
+      case RGNE:
+        return isSetRgne();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -31031,6 +31439,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_rgne = true && this.isSetRgne();
+      boolean that_present_rgne = true && that.isSetRgne();
+      if (this_present_rgne || that_present_rgne) {
+        if (!(this_present_rgne && that_present_rgne))
+          return false;
+        if (!this.rgne.equals(that.rgne))
+          return false;
+      }
+
       return true;
     }
 
@@ -31045,6 +31462,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTnase()) ? 131071 : 524287);
       if (isSetTnase())
         hashCode = hashCode * 8191 + tnase.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetRgne()) ? 131071 : 524287);
+      if (isSetRgne())
+        hashCode = hashCode * 8191 + rgne.hashCode();
 
       return hashCode;
     }
@@ -31073,6 +31494,16 @@ public class ManagerClientService {
       }
       if (isSetTnase()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tnase, other.tnase);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetRgne(), other.isSetRgne());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRgne()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rgne, other.rgne);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -31113,6 +31544,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tnase);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("rgne:");
+      if (this.rgne == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.rgne);
       }
       first = false;
       sb.append(")");
@@ -31178,6 +31617,15 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 3: // RGNE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+                struct.rgne.read(iprot);
+                struct.setRgneIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -31202,6 +31650,11 @@ public class ManagerClientService {
         if (struct.tnase != null) {
           oprot.writeFieldBegin(TNASE_FIELD_DESC);
           struct.tnase.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.rgne != null) {
+          oprot.writeFieldBegin(RGNE_FIELD_DESC);
+          struct.rgne.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -31229,19 +31682,25 @@ public class ManagerClientService {
         if (struct.isSetTnase()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetRgne()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
         if (struct.isSetTnase()) {
           struct.tnase.write(oprot);
         }
+        if (struct.isSetRgne()) {
+          struct.rgne.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, removeResourceGroupProperty_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
           struct.sec.read(iprot);
@@ -31251,6 +31710,11 @@ public class ManagerClientService {
           struct.tnase = new org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException();
           struct.tnase.read(iprot);
           struct.setTnaseIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.rgne = new org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException();
+          struct.rgne.read(iprot);
+          struct.setRgneIsSet(true);
         }
       }
     }

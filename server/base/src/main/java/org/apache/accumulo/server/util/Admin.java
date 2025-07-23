@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -864,8 +865,8 @@ public class Admin implements KeywordExecutable {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided input")
   private void printResourceGroupConfiguration(AccumuloClient accumuloClient, ResourceGroupId group,
-      File outputDirectory)
-      throws IOException, AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
+      File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException,
+      ResourceGroupNotFoundException {
     Path rgScript = outputDirectory.toPath().resolve(group + RG_FILE_SUFFIX);
     try (BufferedWriter nsWriter = Files.newBufferedWriter(rgScript)) {
       nsWriter.write(createRGFormat.format(new String[] {group.canonical()}));

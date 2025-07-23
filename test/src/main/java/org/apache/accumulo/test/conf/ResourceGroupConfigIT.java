@@ -22,16 +22,19 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -147,17 +150,31 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
           cc.getServerPaths().getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
           rgid, Property.COMPACTION_WARN_TIME, "1m");
 
+      // test error cases
+      ResourceGroupId invalid = ResourceGroupId.of("INVALID");
+      Consumer<Map<String,String>> consumer = (m) -> {};
+      assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.getConfiguration(invalid));
+      assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.getProperties(invalid));
+      assertThrows(ResourceGroupNotFoundException.class,
+          () -> rgOps.setProperty(invalid, Property.COMPACTION_WARN_TIME.getKey(), "1m"));
+      assertThrows(ResourceGroupNotFoundException.class,
+          () -> rgOps.modifyProperties(invalid, consumer));
+      assertThrows(ResourceGroupNotFoundException.class,
+          () -> rgOps.removeProperty(invalid, Property.COMPACTION_WARN_TIME.getKey()));
+      assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.remove(invalid));
+
       rgOps.remove(rgid);
       assertFalse(zrw.exists(rgpk.getPath()));
       assertFalse(zrw.exists(rgpk.getPath()));
       assertFalse(zrw.exists(Constants.ZRESOURCEGROUPS + "/" + rgid.canonical()));
+
     }
 
   }
 
   private void checkProperty(InstanceOperations iops, ResourceGroupOperations ops,
       Set<ServiceLockPath> locks, ResourceGroupId group, Property property, String value)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     assertEquals(1, locks.size());
     ServiceLockPath slp = locks.iterator().next();
     assertEquals(group, slp.getResourceGroup());

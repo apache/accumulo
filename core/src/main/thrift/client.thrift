@@ -99,6 +99,10 @@ exception ThriftTableOperationException {
   5:string description
 }
 
+exception ThriftResourceGroupNotExistsException {
+  1:string resourceGroupName
+}
+
 exception ThriftNotActiveServiceException {
   1:string serv
   2:string description
@@ -335,6 +339,7 @@ service ClientService {
     3:string resourceGroup
   ) throws (
     1:ThriftSecurityException sec
+    2:ThriftResourceGroupNotExistsException rgne
   )
 
   map<string, string> getTableConfiguration(

@@ -59,6 +59,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
@@ -2478,7 +2479,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException {
+  public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException,
+      ResourceGroupNotFoundException {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ResourceGroupOperations ops = client.resourceGroupOperations();

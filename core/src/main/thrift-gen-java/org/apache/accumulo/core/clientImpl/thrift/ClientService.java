@@ -73,7 +73,7 @@ public class ClientService {
 
     public TVersionedProperties getVersionedSystemProperties(TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) throws ThriftSecurityException, org.apache.thrift.TException;
 
-    public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws ThriftSecurityException, org.apache.thrift.TException;
+    public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws ThriftSecurityException, ThriftResourceGroupNotExistsException, org.apache.thrift.TException;
 
     public java.util.Map<java.lang.String,java.lang.String> getTableConfiguration(TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tableName) throws ThriftTableOperationException, ThriftSecurityException, org.apache.thrift.TException;
 
@@ -823,7 +823,7 @@ public class ClientService {
     }
 
     @Override
-    public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws ThriftSecurityException, org.apache.thrift.TException
+    public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String resourceGroup) throws ThriftSecurityException, ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       send_getVersionedResourceGroupProperties(tinfo, credentials, resourceGroup);
       return recv_getVersionedResourceGroupProperties();
@@ -838,7 +838,7 @@ public class ClientService {
       sendBase("getVersionedResourceGroupProperties", args);
     }
 
-    public TVersionedProperties recv_getVersionedResourceGroupProperties() throws ThriftSecurityException, org.apache.thrift.TException
+    public TVersionedProperties recv_getVersionedResourceGroupProperties() throws ThriftSecurityException, ThriftResourceGroupNotExistsException, org.apache.thrift.TException
     {
       getVersionedResourceGroupProperties_result result = new getVersionedResourceGroupProperties_result();
       receiveBase(result, "getVersionedResourceGroupProperties");
@@ -847,6 +847,9 @@ public class ClientService {
       }
       if (result.sec != null) {
         throw result.sec;
+      }
+      if (result.rgne != null) {
+        throw result.rgne;
       }
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "getVersionedResourceGroupProperties failed: unknown result");
     }
@@ -2134,7 +2137,7 @@ public class ClientService {
       }
 
       @Override
-      public TVersionedProperties getResult() throws ThriftSecurityException, org.apache.thrift.TException {
+      public TVersionedProperties getResult() throws ThriftSecurityException, ThriftResourceGroupNotExistsException, org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
@@ -3326,6 +3329,8 @@ public class ClientService {
           result.success = iface.getVersionedResourceGroupProperties(args.tinfo, args.credentials, args.resourceGroup);
         } catch (ThriftSecurityException sec) {
           result.sec = sec;
+        } catch (ThriftResourceGroupNotExistsException rgne) {
+          result.rgne = rgne;
         }
         return result;
       }
@@ -5302,6 +5307,10 @@ public class ClientService {
             if (e instanceof ThriftSecurityException) {
               result.sec = (ThriftSecurityException) e;
               result.setSecIsSet(true);
+              msg = result;
+            } else if (e instanceof ThriftResourceGroupNotExistsException) {
+              result.rgne = (ThriftResourceGroupNotExistsException) e;
+              result.setRgneIsSet(true);
               msg = result;
             } else if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
@@ -31552,17 +31561,20 @@ public class ClientService {
 
     private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.STRUCT, (short)0);
     private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField RGNE_FIELD_DESC = new org.apache.thrift.protocol.TField("rgne", org.apache.thrift.protocol.TType.STRUCT, (short)2);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new getVersionedResourceGroupProperties_resultStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new getVersionedResourceGroupProperties_resultTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable TVersionedProperties success; // required
     public @org.apache.thrift.annotation.Nullable ThriftSecurityException sec; // required
+    public @org.apache.thrift.annotation.Nullable ThriftResourceGroupNotExistsException rgne; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       SUCCESS((short)0, "success"),
-      SEC((short)1, "sec");
+      SEC((short)1, "sec"),
+      RGNE((short)2, "rgne");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -31582,6 +31594,8 @@ public class ClientService {
             return SUCCESS;
           case 1: // SEC
             return SEC;
+          case 2: // RGNE
+            return RGNE;
           default:
             return null;
         }
@@ -31632,6 +31646,8 @@ public class ClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, TVersionedProperties.class)));
       tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftSecurityException.class)));
+      tmpMap.put(_Fields.RGNE, new org.apache.thrift.meta_data.FieldMetaData("rgne", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ThriftResourceGroupNotExistsException.class)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(getVersionedResourceGroupProperties_result.class, metaDataMap);
     }
@@ -31641,11 +31657,13 @@ public class ClientService {
 
     public getVersionedResourceGroupProperties_result(
       TVersionedProperties success,
-      ThriftSecurityException sec)
+      ThriftSecurityException sec,
+      ThriftResourceGroupNotExistsException rgne)
     {
       this();
       this.success = success;
       this.sec = sec;
+      this.rgne = rgne;
     }
 
     /**
@@ -31658,6 +31676,9 @@ public class ClientService {
       if (other.isSetSec()) {
         this.sec = new ThriftSecurityException(other.sec);
       }
+      if (other.isSetRgne()) {
+        this.rgne = new ThriftResourceGroupNotExistsException(other.rgne);
+      }
     }
 
     @Override
@@ -31669,6 +31690,7 @@ public class ClientService {
     public void clear() {
       this.success = null;
       this.sec = null;
+      this.rgne = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -31721,6 +31743,31 @@ public class ClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public ThriftResourceGroupNotExistsException getRgne() {
+      return this.rgne;
+    }
+
+    public getVersionedResourceGroupProperties_result setRgne(@org.apache.thrift.annotation.Nullable ThriftResourceGroupNotExistsException rgne) {
+      this.rgne = rgne;
+      return this;
+    }
+
+    public void unsetRgne() {
+      this.rgne = null;
+    }
+
+    /** Returns true if field rgne is set (has been assigned a value) and false otherwise */
+    public boolean isSetRgne() {
+      return this.rgne != null;
+    }
+
+    public void setRgneIsSet(boolean value) {
+      if (!value) {
+        this.rgne = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -31740,6 +31787,14 @@ public class ClientService {
         }
         break;
 
+      case RGNE:
+        if (value == null) {
+          unsetRgne();
+        } else {
+          setRgne((ThriftResourceGroupNotExistsException)value);
+        }
+        break;
+
       }
     }
 
@@ -31752,6 +31807,9 @@ public class ClientService {
 
       case SEC:
         return getSec();
+
+      case RGNE:
+        return getRgne();
 
       }
       throw new java.lang.IllegalStateException();
@@ -31769,6 +31827,8 @@ public class ClientService {
         return isSetSuccess();
       case SEC:
         return isSetSec();
+      case RGNE:
+        return isSetRgne();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -31804,6 +31864,15 @@ public class ClientService {
           return false;
       }
 
+      boolean this_present_rgne = true && this.isSetRgne();
+      boolean that_present_rgne = true && that.isSetRgne();
+      if (this_present_rgne || that_present_rgne) {
+        if (!(this_present_rgne && that_present_rgne))
+          return false;
+        if (!this.rgne.equals(that.rgne))
+          return false;
+      }
+
       return true;
     }
 
@@ -31818,6 +31887,10 @@ public class ClientService {
       hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
       if (isSetSec())
         hashCode = hashCode * 8191 + sec.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetRgne()) ? 131071 : 524287);
+      if (isSetRgne())
+        hashCode = hashCode * 8191 + rgne.hashCode();
 
       return hashCode;
     }
@@ -31846,6 +31919,16 @@ public class ClientService {
       }
       if (isSetSec()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetRgne(), other.isSetRgne());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetRgne()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.rgne, other.rgne);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -31886,6 +31969,14 @@ public class ClientService {
         sb.append("null");
       } else {
         sb.append(this.sec);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("rgne:");
+      if (this.rgne == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.rgne);
       }
       first = false;
       sb.append(")");
@@ -31954,6 +32045,15 @@ public class ClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 2: // RGNE
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
+                struct.rgne = new ThriftResourceGroupNotExistsException();
+                struct.rgne.read(iprot);
+                struct.setRgneIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -31978,6 +32078,11 @@ public class ClientService {
         if (struct.sec != null) {
           oprot.writeFieldBegin(SEC_FIELD_DESC);
           struct.sec.write(oprot);
+          oprot.writeFieldEnd();
+        }
+        if (struct.rgne != null) {
+          oprot.writeFieldBegin(RGNE_FIELD_DESC);
+          struct.rgne.write(oprot);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -32005,19 +32110,25 @@ public class ClientService {
         if (struct.isSetSec()) {
           optionals.set(1);
         }
-        oprot.writeBitSet(optionals, 2);
+        if (struct.isSetRgne()) {
+          optionals.set(2);
+        }
+        oprot.writeBitSet(optionals, 3);
         if (struct.isSetSuccess()) {
           struct.success.write(oprot);
         }
         if (struct.isSetSec()) {
           struct.sec.write(oprot);
         }
+        if (struct.isSetRgne()) {
+          struct.rgne.write(oprot);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, getVersionedResourceGroupProperties_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(2);
+        java.util.BitSet incoming = iprot.readBitSet(3);
         if (incoming.get(0)) {
           struct.success = new TVersionedProperties();
           struct.success.read(iprot);
@@ -32027,6 +32138,11 @@ public class ClientService {
           struct.sec = new ThriftSecurityException();
           struct.sec.read(iprot);
           struct.setSecIsSet(true);
+        }
+        if (incoming.get(2)) {
+          struct.rgne = new ThriftResourceGroupNotExistsException();
+          struct.rgne.read(iprot);
+          struct.setRgneIsSet(true);
         }
       }
     }

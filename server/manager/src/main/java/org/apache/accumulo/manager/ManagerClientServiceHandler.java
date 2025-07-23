@@ -480,9 +480,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
 
+    final ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
     try {
-      final ResourceGroupId rgid =
-          ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
       if (rgid.equals(ResourceGroupId.DEFAULT)) {
         throw new IllegalArgumentException(
             "Cannot remove default resource group configuration node");
@@ -502,8 +501,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
+    ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
     try {
-      ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
       PropUtil.removeProperties(context, ResourceGroupPropKey.of(rgid), List.of(property));
     } catch (Exception e) {
       Manager.log.error("Problem removing config property in zookeeper", e);
@@ -518,9 +517,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
 
+    final ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
     try {
-      final ResourceGroupId rgid =
-          ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
       PropUtil.setProperties(context, ResourceGroupPropKey.of(rgid), Map.of(property, value));
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
@@ -537,8 +535,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     if (!security.canPerformSystemActions(c)) {
       throw new ThriftSecurityException(c.getPrincipal(), SecurityErrorCode.PERMISSION_DENIED);
     }
+    ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
     try {
-      ResourceGroupId rgid = ClientServiceHandler.checkResourceGroupId(context, resourceGroup);
       PropUtil.replaceProperties(context, ResourceGroupPropKey.of(rgid), properties.getVersion(),
           properties.getProperties());
     } catch (IllegalArgumentException iae) {

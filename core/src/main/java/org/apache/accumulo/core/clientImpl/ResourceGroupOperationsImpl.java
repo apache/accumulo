@@ -32,9 +32,11 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.clientImpl.thrift.ConfigurationType;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -75,7 +77,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public Map<String,String> getConfiguration(ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     Map<String,String> config = new HashMap<>();
     config.putAll(ThriftClientTypes.CLIENT.execute(context, client -> client
         .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT)));
@@ -85,20 +87,29 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public Map<String,String> getProperties(ResourceGroupId group)
-      throws AccumuloException, AccumuloSecurityException {
-    TVersionedProperties rgProps = ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
-            context.rpcCreds(), group.canonical()));
-    if (rgProps != null && rgProps.getPropertiesSize() > 0) {
-      return Map.copyOf(rgProps.getProperties());
-    } else {
-      return Map.of();
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    try {
+      TVersionedProperties rgProps = ThriftClientTypes.CLIENT.execute(context,
+          client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
+              context.rpcCreds(), group.canonical()));
+      if (rgProps != null && rgProps.getPropertiesSize() > 0) {
+        return Map.copyOf(rgProps.getProperties());
+      } else {
+        return Map.of();
+      }
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftResourceGroupNotExistsException) {
+        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        throw new ResourceGroupNotFoundException(te.getResourceGroupName());
+      }
+      throw e;
     }
   }
 
   @Override
   public void setProperty(ResourceGroupId group, String property, String value)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
@@ -107,20 +118,39 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       log.warn("{} was deprecated and will be removed in a future release;"
           + " setting its replacement {} instead", property, replacement);
     });
-    ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.setResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
-            group.canonical(), property, value));
+    try {
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.setResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+              group.canonical(), property, value));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftResourceGroupNotExistsException) {
+        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        throw new ResourceGroupNotFoundException(te.getResourceGroupName());
+      }
+      throw e;
+    }
     checkLocalityGroups(property);
   }
 
   private Map<String,String> tryToModifyProperties(final ResourceGroupId group,
-      final Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+      final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
+      AccumuloSecurityException, IllegalArgumentException, ResourceGroupNotFoundException {
     checkArgument(mapMutator != null, "mapMutator is null");
 
-    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
-        client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
-            context.rpcCreds(), group.canonical()));
+    TVersionedProperties vProperties;
+    try {
+      vProperties = ThriftClientTypes.CLIENT.execute(context,
+          client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
+              context.rpcCreds(), group.canonical()));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftResourceGroupNotExistsException) {
+        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        throw new ResourceGroupNotFoundException(te.getResourceGroupName());
+      }
+      throw e;
+    }
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -143,17 +173,26 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     }
 
     // Send to server
-    ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.modifyResourceGroupProperties(TraceUtil.traceInfo(), context.rpcCreds(),
-            group.canonical(), vProperties));
+    try {
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.modifyResourceGroupProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+              group.canonical(), vProperties));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftResourceGroupNotExistsException) {
+        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        throw new ResourceGroupNotFoundException(te.getResourceGroupName());
+      }
+      throw e;
+    }
 
     return vProperties.getProperties();
   }
 
   @Override
   public Map<String,String> modifyProperties(ResourceGroupId group,
-      Consumer<Map<String,String>> mapMutator)
-      throws AccumuloException, AccumuloSecurityException, IllegalArgumentException {
+      Consumer<Map<String,String>> mapMutator) throws AccumuloException, AccumuloSecurityException,
+      IllegalArgumentException, ResourceGroupNotFoundException {
 
     var log = LoggerFactory.getLogger(InstanceOperationsImpl.class);
 
@@ -182,7 +221,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public void removeProperty(ResourceGroupId group, String property)
-      throws AccumuloException, AccumuloSecurityException {
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     checkArgument(property != null, "property is null");
     DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
       // force a warning on the client side, but send the name the user used to the server-side
@@ -190,16 +229,35 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       log.warn("{} was deprecated and will be removed in a future release; assuming user meant"
           + " its replacement {} and will remove that instead", property, replacement);
     });
-    ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.removeResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
-            group.canonical(), property));
+    try {
+      ThriftClientTypes.MANAGER.executeVoid(context,
+          client -> client.removeResourceGroupProperty(TraceUtil.traceInfo(), context.rpcCreds(),
+              group.canonical(), property));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftResourceGroupNotExistsException) {
+        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        throw new ResourceGroupNotFoundException(te.getResourceGroupName());
+      }
+      throw e;
+    }
     checkLocalityGroups(property);
   }
 
   @Override
-  public void remove(ResourceGroupId group) throws AccumuloException, AccumuloSecurityException {
-    ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-        .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
+  public void remove(ResourceGroupId group)
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    try {
+      ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+          .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      Throwable t = e.getCause();
+      if (t instanceof ThriftResourceGroupNotExistsException) {
+        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        throw new ResourceGroupNotFoundException(te.getResourceGroupName());
+      }
+      throw e;
+    }
   }
 
   private void checkLocalityGroups(String propChanged)

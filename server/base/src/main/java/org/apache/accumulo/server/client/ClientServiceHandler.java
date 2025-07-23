@@ -46,6 +46,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -103,12 +104,13 @@ public class ClientServiceHandler implements ClientService.Iface {
     }
   }
 
-  public static ResourceGroupId checkResourceGroupId(ClientContext context, String rgName) {
+  public static ResourceGroupId checkResourceGroupId(ClientContext context, String rgName)
+      throws ThriftResourceGroupNotExistsException {
     Preconditions.checkArgument(rgName != null && !rgName.isBlank(),
         "Supplied resource group name is null or empty");
     ResourceGroupId rgid = context.getResourceGroupId(rgName);
     if (rgid == null) {
-      throw new IllegalArgumentException("Resource group " + rgName + " does not exist");
+      throw new ThriftResourceGroupNotExistsException(rgName);
     }
     return rgid;
   }
@@ -360,8 +362,10 @@ public class ClientServiceHandler implements ClientService.Iface {
 
   @Override
   public TVersionedProperties getVersionedResourceGroupProperties(TInfo tinfo,
-      TCredentials credentials, String group) throws ThriftSecurityException {
+      TCredentials credentials, String group)
+      throws ThriftSecurityException, ThriftResourceGroupNotExistsException {
     checkSystemPermission(credentials);
+    checkResourceGroupId(context, group);
     return Optional
         .of(context.getPropStore().get(ResourceGroupPropKey.of(ResourceGroupId.of(group))))
         .map(vProps -> new TVersionedProperties(vProps.getDataVersion(), vProps.asMap()))
