@@ -676,7 +676,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!");
       } else {
         iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-            getTabletSession().getHostPortSession());
+            getTabletSession().getHostPortSession(), getResourceGroup().canonical());
       }
 
       boolean managerDown = false;

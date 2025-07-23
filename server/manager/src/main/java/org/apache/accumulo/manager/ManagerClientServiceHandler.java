@@ -339,7 +339,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer)
+  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer,
+      String resourceGroup)
       throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
@@ -353,9 +354,10 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       Fate<Manager> fate = manager.fate(FateInstanceType.META);
       var tid = fate.startTransaction();
       String msg = "Shutdown tserver " + tabletServer;
-      // TODO resource group
+
       fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
-          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.DEFAULT, false)), true, msg);
+          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.of(resourceGroup), false)),
+          true, msg);
     }
   }
 
