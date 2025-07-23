@@ -1162,17 +1162,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
     last--;
 
     if (a1[last] == a2[last]) {
-      for (int i = 0; i < last; i++) {
-        if (a1[i] != a2[i]) {
-          return false;
-        }
-      }
+      return Arrays.equals(a1, a2);
     } else {
       return false;
     }
-
-    return true;
-
   }
 
   /**
