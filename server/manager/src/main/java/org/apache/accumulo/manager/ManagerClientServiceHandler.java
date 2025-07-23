@@ -350,7 +350,9 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
     var tserver = new TServerInstance(tabletServer);
-    if (!manager.isShuttingDown(tserver)) {
+    if (manager.shutdownTServer(tserver)) {
+      // If there is an exception seeding the fate tx this should cause the RPC to fail which should
+      // cause the tserver to halt. Because of that not making an attempt to handle failure here.
       Fate<Manager> fate = manager.fate();
       long tid = fate.startTransaction();
       String msg = "Shutdown tserver " + tabletServer;
