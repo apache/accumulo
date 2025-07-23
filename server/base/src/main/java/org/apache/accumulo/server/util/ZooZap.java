@@ -262,8 +262,8 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  private static void removeGroupedLocks(ZooReaderWriter zoo, String path,
-      Predicate<String> groupPredicate, Predicate<HostAndPort> hostPortPredicate, Opts opts)
+  static void removeGroupedLocks(ZooReaderWriter zoo, String path, Predicate<String> groupPredicate,
+      Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
     if (zoo.exists(path)) {
       List<String> groups = zoo.getChildren(path);
@@ -275,7 +275,7 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  private static void removeLocks(ZooReaderWriter zoo, String path,
+  static void removeLocks(ZooReaderWriter zoo, String path,
       Predicate<HostAndPort> hostPortPredicate, Opts opts)
       throws KeeperException, InterruptedException {
     if (zoo.exists(path)) {
@@ -293,7 +293,7 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  private static void removeSingletonLock(ZooReaderWriter zoo, String path,
+  static void removeSingletonLock(ZooReaderWriter zoo, String path,
       Predicate<HostAndPort> hostPortPredicate, Opts ops)
       throws KeeperException, InterruptedException {
     var lockData = ServiceLock.getLockData(zoo.getZooKeeper(), ServiceLock.path(path));
