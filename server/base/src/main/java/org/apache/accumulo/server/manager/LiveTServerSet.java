@@ -28,7 +28,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.Constants;
@@ -243,9 +242,6 @@ public class LiveTServerSet implements Watcher {
   // as above, indexed by TServerInstance
   private final Map<TServerInstance,TServerInfo> currentInstances = new HashMap<>();
 
-  private final ConcurrentHashMap<String,TServerInfo> serversShuttingDown =
-      new ConcurrentHashMap<>();
-
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<String,Long> locklessServers = new HashMap<>();
 
@@ -266,19 +262,6 @@ public class LiveTServerSet implements Watcher {
 
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 0, 5000, TimeUnit.MILLISECONDS));
-  }
-
-  public void tabletServerShuttingDown(String server) {
-
-    TServerInfo info = null;
-    synchronized (this) {
-      info = current.get(server);
-    }
-    if (info != null) {
-      serversShuttingDown.put(server, info);
-    } else {
-      log.info("Tablet Server reported it's shutting down, but not in list of current servers");
-    }
   }
 
   public synchronized void scanServers() {
@@ -329,7 +312,6 @@ public class LiveTServerSet implements Watcher {
         doomed.add(info.instance);
         current.remove(zPath);
         currentInstances.remove(info.instance);
-        serversShuttingDown.remove(zPath);
       }
 
       Long firstSeen = locklessServers.get(zPath);
@@ -408,7 +390,6 @@ public class LiveTServerSet implements Watcher {
 
   public synchronized Set<TServerInstance> getCurrentServers() {
     Set<TServerInstance> current = currentInstances.keySet();
-    serversShuttingDown.values().forEach(tsi -> current.remove(tsi.instance));
     return new HashSet<>(current);
   }
 
