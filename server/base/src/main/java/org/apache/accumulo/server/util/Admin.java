@@ -108,7 +108,7 @@ public class Admin implements KeywordExecutable {
       commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  When no port is specified uses ports from tserver.port.client property.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
-        description = "force the given server to stop by removing its lock")
+        description = "force the given server to stop immediately by removing its lock.  Does not wait for any task the server is currently working.")
     boolean force = false;
     @Parameter(description = "<host[:port]> {<host[:port]> ... }")
     List<String> args = new ArrayList<>();
