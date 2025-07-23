@@ -97,6 +97,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       assertTrue(zrw.exists(ResourceGroupPropKey.DEFAULT.getPath()));
 
       assertFalse(zrw.exists(Constants.ZRESOURCEGROUPS + "/" + rgid.canonical()));
+      // This will get created by mini, but doing it here manually for testing.
       rgOps.create(rgid);
       assertTrue(zrw.exists(rgpk.getPath()));
       assertTrue(rgOps.getProperties(rgid).isEmpty());

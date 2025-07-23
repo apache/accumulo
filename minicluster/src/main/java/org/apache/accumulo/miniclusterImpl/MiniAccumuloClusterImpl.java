@@ -552,7 +552,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
 
       if (!config.useExistingZooKeepers()) {
         log.warn("Starting ZooKeeper");
-        control.start(ServerType.ZOOKEEPER);
+        try {
+          control.start(ServerType.ZOOKEEPER);
+        } catch (IOException | KeeperException | InterruptedException e) {
+          throw new IOException("Error starting zookeeper", e);
+        }
       }
 
       if (!initialized) {
@@ -613,8 +617,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     log.info("Starting MAC against instance {} and zookeeper(s) {}.", config.getInstanceName(),
         config.getZooKeepers());
 
-    control.start(ServerType.TABLET_SERVER);
-    control.start(ServerType.SCAN_SERVER);
+    try {
+      control.start(ServerType.TABLET_SERVER);
+    } catch (IOException | KeeperException | InterruptedException e) {
+      throw new IOException("Error starting tablet servers", e);
+    }
+    try {
+      control.start(ServerType.SCAN_SERVER);
+    } catch (IOException | KeeperException | InterruptedException e) {
+      throw new IOException("Error starting scan servers", e);
+    }
 
     int ret = 0;
     for (int i = 0; i < 5; i++) {
@@ -630,8 +642,16 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
           + ". Check the logs in " + config.getLogDir() + " for errors.");
     }
 
-    control.start(ServerType.MANAGER);
-    control.start(ServerType.GARBAGE_COLLECTOR);
+    try {
+      control.start(ServerType.MANAGER);
+    } catch (IOException | KeeperException | InterruptedException e) {
+      throw new IOException("Error starting manager", e);
+    }
+    try {
+      control.start(ServerType.GARBAGE_COLLECTOR);
+    } catch (IOException | KeeperException | InterruptedException e) {
+      throw new IOException("Error starting garbage collector", e);
+    }
 
     if (executor == null) {
       executor = ThreadPools.getServerThreadPools().getPoolBuilder(getClass().getSimpleName())
@@ -654,7 +674,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     } catch (ClassNotFoundException e) {
       throw new IllegalArgumentException("Unable to find declared CompactionPlanner class", e);
     }
-    control.start(ServerType.COMPACTOR);
+    try {
+      control.start(ServerType.COMPACTOR);
+    } catch (IOException | KeeperException | InterruptedException e) {
+      throw new IOException("Error starting compactor", e);
+    }
 
     final AtomicBoolean lockAcquired = new AtomicBoolean(false);
     final CountDownLatch lockWatcherInvoked = new CountDownLatch(1);

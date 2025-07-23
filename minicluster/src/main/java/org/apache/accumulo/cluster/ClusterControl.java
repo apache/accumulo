@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * Basic functionality required to control an Accumulo cluster
@@ -49,12 +50,13 @@ public interface ClusterControl {
   /**
    * Starts all occurrences of the given server
    */
-  void startAllServers(ServerType server) throws IOException;
+  void startAllServers(ServerType server) throws InterruptedException, IOException, KeeperException;
 
   /**
    * Start the given process on the host
    */
-  void start(ServerType server, String hostname) throws IOException;
+  void start(ServerType server, String hostname)
+      throws InterruptedException, IOException, KeeperException;
 
   /**
    * Stops all occurrences of the given server
