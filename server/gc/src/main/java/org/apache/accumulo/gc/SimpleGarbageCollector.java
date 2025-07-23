@@ -198,15 +198,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
     // This is created outside of the run loop and passed to the walogCollector so that
     // only a single timed task is created (internal to LiveTServerSet) using SimpleTimer.
-    final LiveTServerSet liveTServerSet =
-        new LiveTServerSet(getContext(), (current, deleted, added) -> {
-          log.debug("Number of current servers {}, tservers added {}, removed {}",
-              current == null ? -1 : current.size(), added, deleted);
+    final LiveTServerSet liveTServerSet = new LiveTServerSet(getContext());
+    liveTServerSet.startListeningForTabletServerChanges((current, deleted, added) -> {
+      log.debug("Number of current servers {}, tservers added {}, removed {}",
+          current == null ? -1 : current.size(), added, deleted);
 
-          if (log.isTraceEnabled()) {
-            log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
-          }
-        });
+      if (log.isTraceEnabled()) {
+        log.trace("Current servers: {}\nAdded: {}\n Removed: {}", current, added, deleted);
+      }
+    });
 
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {

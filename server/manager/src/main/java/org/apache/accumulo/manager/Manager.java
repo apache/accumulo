@@ -502,8 +502,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
-    timeKeeper = new ManagerTime(this, aconf);
-    tserverSet = new LiveTServerSet(context, this);
+    timeKeeper = new ManagerTime();
+    tserverSet = new LiveTServerSet(context);
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
@@ -912,6 +912,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     final ServerContext context = getContext();
 
     balanceManager.setManager(this);
+    try {
+      timeKeeper.setManager(this);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
@@ -968,7 +973,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    tserverSet.startListeningForTabletServerChanges();
+    tserverSet.startListeningForTabletServerChanges(this);
     try {
       blockForTservers();
     } catch (InterruptedException ex) {
