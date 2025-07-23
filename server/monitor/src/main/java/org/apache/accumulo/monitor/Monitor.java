@@ -102,6 +102,7 @@ import org.glassfish.jersey.servlet.ServletContainer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.net.HostAndPort;
 
@@ -358,6 +359,10 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   public void run() {
     ServerContext context = getContext();
     int[] ports = getConfiguration().getPort(Property.MONITOR_PORT);
+    String rootContext = getConfiguration().get(Property.MONITOR_ROOT_CONTEXT);
+    // Needs leading slash in order to property create rest endpoint requests
+    Preconditions.checkArgument(rootContext.startsWith("/"),
+        "Root context: \"%s\" does not have a leading '/'", rootContext);
     for (int port : ports) {
       try {
         log.debug("Trying monitor on port {}", port);
@@ -411,9 +416,13 @@ public class Monitor extends AbstractServer implements Connection.Listener {
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
         monitorHostAndPort, getResourceGroup()));
 
+    // Needed to support the existing zk monitor address format
+    if (!rootContext.endsWith("/")) {
+      rootContext = rootContext + "/";
+    }
     try {
       URL url = new URL(server.isSecure() ? "https" : "http", monitorHostAndPort.getHost(),
-          server.getPort(), "/");
+          server.getPort(), rootContext);
       final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
       // Delete before we try to re-create in case the previous session hasn't yet expired
       zoo.delete(Constants.ZMONITOR_HTTP_ADDR);

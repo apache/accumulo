@@ -26,6 +26,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
@@ -47,15 +48,15 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
   private final SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus;
   private final Map<KeyExtent,TServerInstance> thriftUnassigned;
   private final Map<KeyExtent,TServerInstance> thriftAssignmentsOut;
-  private final Map<String,Set<TabletServerId>> tserverGroups;
+  private final Map<ResourceGroupId,Set<TabletServerId>> tserverGroups;
 
   public static AssignmentParamsImpl fromThrift(
       SortedMap<TServerInstance,TabletServerStatus> currentStatus,
-      Map<String,Set<TServerInstance>> currentTServerGrouping,
+      Map<ResourceGroupId,Set<TServerInstance>> currentTServerGrouping,
       Map<KeyExtent,TServerInstance> unassigned, Map<KeyExtent,TServerInstance> assignmentsOut) {
 
     SortedMap<TabletServerId,TServerStatus> currentStatusNew = new TreeMap<>();
-    Map<String,Set<TabletServerId>> tserverGroups = new HashMap<>();
+    Map<ResourceGroupId,Set<TabletServerId>> tserverGroups = new HashMap<>();
     currentTServerGrouping.forEach((group, serversInGroup) -> {
       Set<TabletServerId> servers = new HashSet<>();
       serversInGroup.forEach(tsi -> {
@@ -85,8 +86,8 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
   }
 
   public AssignmentParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Map<String,Set<TabletServerId>> currentGroups, Map<TabletId,TabletServerId> unassigned,
-      Map<TabletId,TabletServerId> assignmentsOut) {
+      Map<ResourceGroupId,Set<TabletServerId>> currentGroups,
+      Map<TabletId,TabletServerId> unassigned, Map<TabletId,TabletServerId> assignmentsOut) {
     this.currentStatus = currentStatus;
     this.tserverGroups = currentGroups;
     this.unassigned = unassigned;
@@ -97,7 +98,8 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
   }
 
   private AssignmentParamsImpl(SortedMap<TabletServerId,TServerStatus> currentStatus,
-      Map<String,Set<TabletServerId>> currentGroups, Map<TabletId,TabletServerId> unassigned,
+      Map<ResourceGroupId,Set<TabletServerId>> currentGroups,
+      Map<TabletId,TabletServerId> unassigned,
       SortedMap<TServerInstance,TabletServerStatus> thriftCurrentStatus,
       Map<KeyExtent,TServerInstance> thriftUnassigned,
       Map<KeyExtent,TServerInstance> thriftAssignmentsOut) {
@@ -116,7 +118,7 @@ public class AssignmentParamsImpl implements TabletBalancer.AssignmentParameters
   }
 
   @Override
-  public Map<String,Set<TabletServerId>> currentResourceGroups() {
+  public Map<ResourceGroupId,Set<TabletServerId>> currentResourceGroups() {
     return tserverGroups;
   }
 

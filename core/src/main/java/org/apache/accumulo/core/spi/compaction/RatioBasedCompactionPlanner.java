@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
@@ -136,10 +137,10 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
   }
 
   private static class CompactionGroup {
-    final CompactorGroupId cgid;
+    final ResourceGroupId cgid;
     final Long maxSize;
 
-    public CompactionGroup(CompactorGroupId cgid, Long maxSize) {
+    public CompactionGroup(ResourceGroupId cgid, Long maxSize) {
       Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
       this.cgid = Objects.requireNonNull(cgid, "Compaction ID is null");
       this.maxSize = maxSize;
@@ -196,7 +197,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
         Long maxSize = groupConfig.maxSize == null ? null
             : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
-        CompactorGroupId cgid;
+        ResourceGroupId cgid;
         String group = Objects.requireNonNull(groupConfig.group, "'group' must be specified");
         cgid = params.getGroupManager().getGroup(group);
         tmpGroups.add(new CompactionGroup(cgid, maxSize));
@@ -650,7 +651,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, larsmaIndex + 1);
   }
 
-  CompactorGroupId getGroup(Collection<CompactableFile> files) {
+  ResourceGroupId getGroup(Collection<CompactableFile> files) {
 
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
 

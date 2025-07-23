@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.tserverOps;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -40,12 +41,12 @@ public class ShutdownTServer extends ManagerRepo {
 
   private static final long serialVersionUID = 2L;
   private static final Logger log = LoggerFactory.getLogger(ShutdownTServer.class);
-  private final String resourceGroup;
+  private final ResourceGroupId resourceGroup;
   private final HostAndPort hostAndPort;
   private final String serverSession;
   private final boolean force;
 
-  public ShutdownTServer(TServerInstance server, String resourceGroup, boolean force) {
+  public ShutdownTServer(TServerInstance server, ResourceGroupId resourceGroup, boolean force) {
     this.hostAndPort = server.getHostAndPort();
     this.resourceGroup = resourceGroup;
     this.serverSession = server.getSession();

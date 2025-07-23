@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 public interface InstanceOperations {
 
@@ -231,7 +232,7 @@ public interface InstanceOperations {
    * @return ServerId if found, else null
    * @since 4.0.0
    */
-  ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
+  ServerId getServer(ServerId.Type type, ResourceGroupId resourceGroup, String host, int port);
 
   /**
    * Returns all servers of the given types. For the Manager, Monitor, and Garbage Collector, the
@@ -251,7 +252,7 @@ public interface InstanceOperations {
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+  Set<ServerId> getServers(ServerId.Type type, Predicate<ResourceGroupId> resourceGroupPredicate,
       BiPredicate<String,Integer> hostPortPredicate);
 
   /**

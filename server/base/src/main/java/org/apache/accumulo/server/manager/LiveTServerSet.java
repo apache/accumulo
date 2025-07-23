@@ -27,13 +27,16 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -76,7 +79,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   private static final Logger log = LoggerFactory.getLogger(LiveTServerSet.class);
 
-  private final Listener cback;
+  private final AtomicReference<Listener> cback;
   private final ServerContext context;
 
   public class TServerConnection {
@@ -190,9 +193,10 @@ public class LiveTServerSet implements ZooCacheWatcher {
   static class TServerInfo {
     final TServerConnection connection;
     final TServerInstance instance;
-    final String resourceGroup;
+    final ResourceGroupId resourceGroup;
 
-    TServerInfo(TServerInstance instance, TServerConnection connection, String resourceGroup) {
+    TServerInfo(TServerInstance instance, TServerConnection connection,
+        ResourceGroupId resourceGroup) {
       this.connection = connection;
       this.instance = instance;
       this.resourceGroup = resourceGroup;
@@ -211,15 +215,24 @@ public class LiveTServerSet implements ZooCacheWatcher {
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<ServiceLockPath,Long> locklessServers = new HashMap<>();
 
-  public LiveTServerSet(ServerContext context, Listener cback) {
-    this.cback = cback;
+  public LiveTServerSet(ServerContext context) {
+    this.cback = new AtomicReference<>(null);
     this.context = context;
-    this.context.getZooCache().addZooCacheWatcher(this);
   }
 
-  public synchronized void startListeningForTabletServerChanges() {
-    scanServers();
+  private Listener getCback() {
+    // fail fast if not yet set
+    return Objects.requireNonNull(cback.get());
+  }
 
+  public synchronized void startListeningForTabletServerChanges(Listener cback) {
+    scanServers();
+    Objects.requireNonNull(cback);
+    if (this.cback.compareAndSet(null, cback)) {
+      this.context.getZooCache().addZooCacheWatcher(this);
+    } else if (this.cback.get() != cback) {
+      throw new IllegalStateException("Attempted to set different cback object");
+    }
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
   }
@@ -250,7 +263,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
         checkServer(updates, doomed, tserverPath);
       }
 
-      this.cback.update(this, doomed, updates);
+      this.getCback().update(this, doomed, updates);
     } catch (Exception ex) {
       log.error("{}", ex.getMessage(), ex);
     }
@@ -303,7 +316,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
       log.trace("Lock exists for server: {}, adding to current set", tserverPath.getServer());
       locklessServers.remove(tserverPath);
       HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      String resourceGroup = sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
+      ResourceGroupId resourceGroup =
+          sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
       TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
 
       if (info == null) {
@@ -362,7 +376,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
                 final Set<TServerInstance> updates = new HashSet<>();
                 final Set<TServerInstance> doomed = new HashSet<>();
                 checkServer(updates, doomed, slp);
-                this.cback.update(this, doomed, updates);
+                this.getCback().update(this, doomed, updates);
               } catch (Exception ex) {
                 log.error("Error processing event for tserver: " + slp.toString(), ex);
               }
@@ -390,7 +404,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     return tServerInfo.connection;
   }
 
-  public synchronized String getResourceGroup(TServerInstance server) {
+  public synchronized ResourceGroupId getResourceGroup(TServerInstance server) {
     if (server == null) {
       return null;
     }
@@ -403,26 +417,26 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   public static class LiveTServersSnapshot {
     private final Set<TServerInstance> tservers;
-    private final Map<String,Set<TServerInstance>> tserverGroups;
+    private final Map<ResourceGroupId,Set<TServerInstance>> tserverGroups;
 
     // TServerInfo is only for internal use, so this field is private w/o a getter.
     private final Map<TServerInstance,TServerInfo> tserversInfo;
 
     @VisibleForTesting
     public LiveTServersSnapshot(Set<TServerInstance> currentServers,
-        Map<String,Set<TServerInstance>> serverGroups) {
+        Map<ResourceGroupId,Set<TServerInstance>> serverGroups) {
       this.tserversInfo = null;
       this.tservers = Set.copyOf(currentServers);
-      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>();
       serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
       this.tserverGroups = Collections.unmodifiableMap(copy);
     }
 
     public LiveTServersSnapshot(Map<TServerInstance,TServerInfo> currentServers,
-        Map<String,Set<TServerInstance>> serverGroups) {
+        Map<ResourceGroupId,Set<TServerInstance>> serverGroups) {
       this.tserversInfo = Map.copyOf(currentServers);
       this.tservers = this.tserversInfo.keySet();
-      Map<String,Set<TServerInstance>> copy = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> copy = new HashMap<>();
       serverGroups.forEach((k, v) -> copy.put(k, Set.copyOf(v)));
       this.tserverGroups = Collections.unmodifiableMap(copy);
     }
@@ -431,7 +445,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       return tservers;
     }
 
-    public Map<String,Set<TServerInstance>> getTserverGroups() {
+    public Map<ResourceGroupId,Set<TServerInstance>> getTserverGroups() {
       return tserverGroups;
     }
   }
@@ -439,7 +453,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
   public synchronized LiveTServersSnapshot getSnapshot() {
     if (tServersSnapshot == null) {
       HashMap<TServerInstance,TServerInfo> tServerInstances = new HashMap<>();
-      Map<String,Set<TServerInstance>> tserversGroups = new HashMap<>();
+      Map<ResourceGroupId,Set<TServerInstance>> tserversGroups = new HashMap<>();
       current.values().forEach(tServerInfo -> {
         tServerInstances.put(tServerInfo.instance, tServerInfo);
         tserversGroups.computeIfAbsent(tServerInfo.resourceGroup, rg -> new HashSet<>())
@@ -464,7 +478,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     return find(current, tabletServer);
   }
 
-  TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
+  static TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
     HostAndPort addr;
     String sessionId = null;
     if (tabletServer.charAt(tabletServer.length() - 1) == ']') {
@@ -494,7 +508,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     // invalidate the snapshot forcing it to be recomputed the next time its requested
     tServersSnapshot = null;
 
-    Optional<String> resourceGroup = Optional.empty();
+    Optional<ResourceGroupId> resourceGroup = Optional.empty();
     Optional<HostAndPort> address = Optional.empty();
     for (Entry<String,TServerInfo> entry : current.entrySet()) {
       if (entry.getValue().instance.equals(server)) {
