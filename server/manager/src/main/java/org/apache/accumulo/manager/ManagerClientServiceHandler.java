@@ -52,6 +52,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -345,7 +346,17 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
-    manager.tserverSet.tabletServerShuttingDown(tabletServer);
+    var tserver = new TServerInstance(tabletServer);
+    if (manager.shutdownTServer(tserver)) {
+      // If there is an exception seeding the fate tx this should cause the RPC to fail which should
+      // cause the tserver to halt. Because of that not making an attempt to handle failure here.
+      Fate<Manager> fate = manager.fate(FateInstanceType.META);
+      var tid = fate.startTransaction();
+      String msg = "Shutdown tserver " + tabletServer;
+      // TODO resource group
+      fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
+          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.DEFAULT, false)), true, msg);
+    }
   }
 
   @Override

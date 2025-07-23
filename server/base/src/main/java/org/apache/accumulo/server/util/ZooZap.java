@@ -24,6 +24,7 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -33,6 +34,7 @@ import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -147,28 +149,31 @@ public class ZooZap implements KeywordExecutable {
 
     var zrw = context.getZooSession().asReaderWriter();
     if (opts.zapManager) {
-      ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
       try {
-        removeSingletonLock(zrw, managerLockPath, addressSelector, opts);
-      } catch (KeeperException | InterruptedException e) {
+        ServiceLockPath managerLockPath = context.getServerPaths().createManagerPath();
+        filterSingleton(context, managerLockPath, addressSelector)
+            .ifPresent(slp -> removeSingletonLock(zrw, slp, opts));
+      } catch (RuntimeException e) {
         log.error("Error deleting manager lock", e);
       }
     }
 
     if (opts.zapGc) {
-      ServiceLockPath gcLockPath = context.getServerPaths().createGarbageCollectorPath();
       try {
-        removeSingletonLock(zrw, gcLockPath, addressSelector, opts);
-      } catch (KeeperException | InterruptedException e) {
-        log.error("Error deleting manager lock", e);
+        ServiceLockPath gcLockPath = context.getServerPaths().createGarbageCollectorPath();
+        filterSingleton(context, gcLockPath, addressSelector)
+            .ifPresent(slp -> removeSingletonLock(zrw, slp, opts));
+      } catch (RuntimeException e) {
+        log.error("Error deleting gc lock", e);
       }
     }
 
     if (opts.zapMonitor) {
-      ServiceLockPath monitorLockPath = context.getServerPaths().createMonitorPath();
       try {
-        removeSingletonLock(zrw, monitorLockPath, addressSelector, opts);
-      } catch (KeeperException | InterruptedException e) {
+        ServiceLockPath monitorPath = context.getServerPaths().createMonitorPath();
+        filterSingleton(context, monitorPath, addressSelector)
+            .ifPresent(slp -> removeSingletonLock(zrw, slp, opts));
+      } catch (RuntimeException e) {
         log.error("Error deleting monitor lock", e);
       }
     }
@@ -235,11 +240,26 @@ public class ZooZap implements KeywordExecutable {
     }
   }
 
-  private static void removeSingletonLock(ZooReaderWriter zoo, ServiceLockPath path,
-      AddressSelector addressSelector, Opts ops) throws KeeperException, InterruptedException {
-    if (addressSelector.getPredicate().test(path.getServer())) {
+  private static void removeSingletonLock(ZooReaderWriter zoo, ServiceLockPath path, Opts ops) {
+    try {
       zapDirectory(zoo, path, ops);
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
     }
   }
 
+  static Optional<ServiceLockPath> filterSingleton(ServerContext context, ServiceLockPath path,
+      AddressSelector addressSelector) {
+    Optional<ServiceLockData> sld = context.getZooCache().getLockData(path);
+    return sld.filter(lockData -> {
+      for (var service : ServiceLockData.ThriftService.values()) {
+        var address = lockData.getAddress(service);
+        if (address != null) {
+          return addressSelector.getPredicate().test(address.toString());
+        }
+      }
+
+      return false;
+    }).map(lockData -> path);
+  }
 }
