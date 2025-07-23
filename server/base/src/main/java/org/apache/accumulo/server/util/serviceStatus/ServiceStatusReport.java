@@ -87,7 +87,7 @@ public class ServiceStatusReport {
 
   public String toCsv() {
     StringBuilder sb = new StringBuilder();
-    sb.append("Service, Resource Group, Host Count, Hosts, Error Count\n");
+    sb.append("Service,Resource Group,Host Count,Hosts,Error Count\n");
 
     for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
       ReportKey reportKey = entry.getKey();
