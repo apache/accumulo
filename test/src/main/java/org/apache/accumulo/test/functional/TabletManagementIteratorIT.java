@@ -374,8 +374,9 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       }
       IllegalStateException ise = assertThrows(IllegalStateException.class,
           () -> findTabletsNeedingAttention(client, metaCopy6, createParameters(client), false));
-      assertEquals("No prev endrow seen.  tableId: " + badTableId + " endrow: null",
-          ise.getMessage());
+      assertTrue(ise.getMessage().startsWith("Irregular tablet metadata encountered at row: "));
+      assertTrue(ise.getMessage()
+          .endsWith("No prev endrow seen.  tableId: " + badTableId + " endrow: null"));
 
       // with errors suppressed, should return prior state
       tabletMgmtParams = createParameters(client);
