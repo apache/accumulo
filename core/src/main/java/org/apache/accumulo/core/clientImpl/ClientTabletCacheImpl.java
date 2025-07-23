@@ -682,9 +682,9 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
   }
 
-  private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession, CachedTablet before)
-      throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
-      InvalidTabletHostingRequestException {
+  private void lookupTablet(ClientContext context, Text row, LockCheckerSession lcSession,
+      CachedTablet before) throws AccumuloException, AccumuloSecurityException,
+      TableNotFoundException, InvalidTabletHostingRequestException {
     Text metadataRow = new Text(tableId.canonical());
     metadataRow.append(new byte[] {';'}, 0, 1);
     metadataRow.append(row.getBytes(), 0, row.getLength());
@@ -695,7 +695,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
     }
 
     try (var unused = lookupLocks.lock(ptl.getExtent())) {
-      // Now that the lock is acquired, detect if another thread populated cache since the last time the cache was read.  If so then do not need to read from metadata store.
+      // Now that the lock is acquired, detect if another thread populated cache since the last time
+      // the cache was read. If so then do not need to read from metadata store.
       CachedTablet after = findTabletInCache(row);
       if (after != null && after != before && lcSession.checkLock(after) != null) {
         return;
@@ -863,8 +864,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
   }
 
   private CachedTablet lookupTabletLocationAndCheckLock(ClientContext context, Text row,
-      LockCheckerSession lcSession, CachedTablet before) throws AccumuloException, AccumuloSecurityException,
-      TableNotFoundException, InvalidTabletHostingRequestException {
+      LockCheckerSession lcSession, CachedTablet before) throws AccumuloException,
+      AccumuloSecurityException, TableNotFoundException, InvalidTabletHostingRequestException {
     lookupTablet(context, row, lcSession, before);
     return lcSession.checkLock(findTabletInCache(row));
   }
