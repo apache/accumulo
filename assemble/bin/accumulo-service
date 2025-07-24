@@ -243,9 +243,7 @@ function list_processes() {
       loop_err=1
     fi
   done
-  if [[ $loop_err == 1 ]]; then
-    exit 1
-  fi
+  [[ -z $loop_err ]] # return non-zero if any errors occurred during the loop
 }
 
 function main() {
