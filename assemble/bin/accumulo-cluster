@@ -276,9 +276,9 @@ function quote() {
   exit 1
 }
 
-# call debug to print, or execute if debug is off
-function debugOrRun() {
-  debug "$(quote "$@")" || "$@"
+# call debug to print the command only, or execute asynchronously if debug is off
+function debugOrRunAsync() {
+  debug "$(quote "$@")" || ("$@") &
 }
 
 function canRunOnHost() {
@@ -458,9 +458,9 @@ function execute_command() {
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
-    debugOrRun bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*"
+    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*"
   else
-    debugOrRun "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*'"
+    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*'"
   fi
 }
 
@@ -659,6 +659,8 @@ function control_services() {
     fi
   fi
 
+  wait
+
 }
 
 function prune_group() {
@@ -844,7 +846,7 @@ function main() {
   conf="${ACCUMULO_CONF_DIR:-$basedir/conf}"
 
   accumulo_cmd="$bin/accumulo"
-  SSH=('ssh' '-qnf' '-o' 'ConnectTimeout=2')
+  SSH=('ssh' '-qn' '-o' 'ConnectTimeout=2' '-o' 'BatchMode=yes')
 
   mapfile -t LOCAL_HOST_ADDRESSES < <(get_localhost_addresses)
   debug "LOCAL_HOST_ADDRESSES=${LOCAL_HOST_ADDRESSES[*]}"
