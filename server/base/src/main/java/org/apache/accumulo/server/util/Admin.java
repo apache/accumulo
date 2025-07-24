@@ -263,11 +263,16 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandDescription = "show service status")
   public static class ServiceStatusCmdOpts extends SubCommandOpts {
-    @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
+    @Parameter(names = "--json",
+        description = "provide output in json format (--showHosts ignored)")
     boolean json = false;
-    @Parameter(names = "--noHosts",
-        description = "provide a summary of service counts without host details")
-    boolean noHosts = false;
+    @Parameter(names = "--showHosts",
+        description = "provide a summary of service counts with host details")
+    boolean showHosts = false;
+
+    @Parameter(names = "--csv",
+        description = "provide output in csv format (--json and --noHost ignored)")
+    boolean csv = false;
   }
 
   public static void main(String[] args) {
@@ -427,7 +432,8 @@ public class Admin implements KeywordExecutable {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         ServiceStatusCmd ssc = new ServiceStatusCmd();
-        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.noHosts);
+        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.showHosts,
+            serviceStatusCommandOpts.csv);
       } else if (cl.getParsedCommand().equals("stopManager")
           || cl.getParsedCommand().equals("stopAll")) {
         boolean everything = cl.getParsedCommand().equals("stopAll");

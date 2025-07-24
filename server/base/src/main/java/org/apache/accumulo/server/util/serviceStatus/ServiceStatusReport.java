@@ -22,6 +22,9 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,14 +48,15 @@ public class ServiceStatusReport {
 
   private final String reportTime;
   private final int zkReadErrors;
-  private final boolean noHosts;
+  private final boolean showHosts;
   private final Map<ReportKey,StatusSummary> summaries;
 
-  public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries, final boolean noHosts) {
+  public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries,
+      final boolean showHosts) {
     reportTime = rptTimeFmt.format(ZonedDateTime.now(ZoneId.of("UTC")));
     zkReadErrors = summaries.values().stream().map(StatusSummary::getErrorCount)
         .reduce(Integer::sum).orElse(0);
-    this.noHosts = noHosts;
+    this.showHosts = showHosts;
     this.summaries = summaries;
   }
 
@@ -69,11 +73,43 @@ public class ServiceStatusReport {
   }
 
   public String toJson() {
-    return gson.toJson(this, ServiceStatusReport.class);
+    // return gson.toJson(this, ServiceStatusReport.class);
+
+    Map<ReportKey,StatusSummary> noHostSummaries = summaries.entrySet().stream().collect(Collectors
+        .toMap(Map.Entry::getKey, e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
+    ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
+    return gson.toJson(noHostReport, ServiceStatusReport.class);
   }
 
   public static ServiceStatusReport fromJson(final String json) {
     return gson.fromJson(json, ServiceStatusReport.class);
+  }
+
+  public String toCsv() {
+    StringBuilder sb = new StringBuilder();
+    sb.append("Service,Resource Group,Host Count,Hosts,Error Count\n");
+
+    for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
+      ReportKey reportKey = entry.getKey();
+      StatusSummary summary = entry.getValue();
+
+      if (summary == null || summary.getServiceByGroups() == null) {
+        continue;
+      }
+
+      Map<String,Set<String>> groupMap = summary.getServiceByGroups();
+      int errorCount = summary.getErrorCount();
+
+      for (Map.Entry<String,Set<String>> groupEntry : groupMap.entrySet()) {
+        String group = groupEntry.getKey();
+        Set<String> hosts = groupEntry.getValue();
+        String hostList = String.join(";", hosts);
+        sb.append(reportKey.name()).append(",").append(group).append(",").append(hosts.size())
+            .append(",").append(hostList).append(",").append(errorCount).append("\n");
+      }
+    }
+
+    return sb.toString();
   }
 
   public String report(final StringBuilder sb) {
@@ -83,13 +119,13 @@ public class ServiceStatusReport {
         .reduce(Integer::sum).orElse(0);
     sb.append("ZooKeeper read errors: ").append(zkErrors).append("\n");
 
-    fmtServiceStatus(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), noHosts);
-    fmtServiceStatus(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), noHosts);
-    fmtServiceStatus(sb, ReportKey.GC, summaries.get(ReportKey.GC), noHosts);
-    fmtServiceStatus(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), noHosts);
-    fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), noHosts);
-    fmtServiceStatus(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), noHosts);
-    fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), noHosts);
+    fmtServiceStatus(sb, ReportKey.MANAGER, summaries.get(ReportKey.MANAGER), showHosts);
+    fmtServiceStatus(sb, ReportKey.MONITOR, summaries.get(ReportKey.MONITOR), showHosts);
+    fmtServiceStatus(sb, ReportKey.GC, summaries.get(ReportKey.GC), showHosts);
+    fmtServiceStatus(sb, ReportKey.T_SERVER, summaries.get(ReportKey.T_SERVER), showHosts);
+    fmtResourceGroups(sb, ReportKey.S_SERVER, summaries.get(ReportKey.S_SERVER), showHosts);
+    fmtServiceStatus(sb, ReportKey.COORDINATOR, summaries.get(ReportKey.COORDINATOR), showHosts);
+    fmtResourceGroups(sb, ReportKey.COMPACTOR, summaries.get(ReportKey.COMPACTOR), showHosts);
 
     sb.append("\n");
     LOG.trace("fmtStatus - with hosts: {}", summaries);
@@ -97,7 +133,7 @@ public class ServiceStatusReport {
   }
 
   private void fmtServiceStatus(final StringBuilder sb, final ReportKey displayNames,
-      final StatusSummary summary, boolean noHosts) {
+      final StatusSummary summary, boolean showHosts) {
     if (summary == null) {
       sb.append(displayNames).append(": unavailable").append("\n");
       return;
@@ -105,10 +141,11 @@ public class ServiceStatusReport {
 
     fmtCounts(sb, summary);
 
-    // skip host info if requested
-    if (noHosts) {
+    // skip host info if NOT showing hosts
+    if (!showHosts) {
       return;
     }
+
     if (summary.getServiceCount() > 0) {
       var hosts = summary.getServiceByGroups();
       hosts.values().forEach(s -> s.forEach(h -> sb.append(I2).append(h).append("\n")));
@@ -125,7 +162,7 @@ public class ServiceStatusReport {
   }
 
   private void fmtResourceGroups(final StringBuilder sb, final ReportKey reportKey,
-      final StatusSummary summary, boolean noHosts) {
+      final StatusSummary summary, boolean showHosts) {
     if (summary == null) {
       sb.append(reportKey).append(": unavailable").append("\n");
       return;
@@ -133,8 +170,8 @@ public class ServiceStatusReport {
 
     fmtCounts(sb, summary);
 
-    // skip host info if requested
-    if (noHosts) {
+    // skip host info if NOT showing hosts
+    if (!showHosts) {
       return;
     }
 
@@ -158,7 +195,7 @@ public class ServiceStatusReport {
   @Override
   public String toString() {
     return "ServiceStatusReport{reportTime='" + reportTime + '\'' + ", zkReadErrors=" + zkReadErrors
-        + ", noHosts=" + noHosts + ", status=" + summaries + '}';
+        + ", Hosts=" + showHosts + ", status=" + summaries + '}';
   }
 
   public enum ReportKey {

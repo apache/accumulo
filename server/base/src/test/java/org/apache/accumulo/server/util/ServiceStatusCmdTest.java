@@ -400,7 +400,8 @@ public class ServiceStatusCmdTest {
     replay(zooReader); // needed for @AfterAll verify
     Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
-    assertFalse(opts.noHosts);
+    assertFalse(opts.showHosts);
+    assertFalse(opts.csv);
   }
 
 }
