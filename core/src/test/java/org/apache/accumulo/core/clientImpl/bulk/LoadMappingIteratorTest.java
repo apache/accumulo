@@ -133,7 +133,7 @@ public class LoadMappingIteratorTest {
     try (LoadMappingIterator iterator = createLoadMappingIter(loadRanges)) {
       assertEquals(nke("c", "g"), iterator.next().getKey());
       var e = assertThrows(IllegalStateException.class, iterator::next);
-      String expected = "KeyExtents are not in sorted order: 1;g;c comes after 1;c<";
+      String expected = "KeyExtents are not in sorted order: 1;g;c was seen before 1;c<";
       assertEquals(expected, e.getMessage());
     }
   }
