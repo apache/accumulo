@@ -137,7 +137,8 @@ public abstract class AbstractServer
     log.info("Instance " + context.getInstanceID());
     context.init(applicationName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
-    TraceUtil.initializeTracer(context.getConfiguration());
+    TraceUtil.setProcessTracing(
+        context.getConfiguration().getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED));
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
