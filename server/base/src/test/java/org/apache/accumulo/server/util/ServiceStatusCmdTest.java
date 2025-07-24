@@ -499,7 +499,7 @@ public class ServiceStatusCmdTest {
     replay(zooReader, zooCache);
     Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
-    assertFalse(opts.noHosts);
+    assertFalse(opts.showHosts);
   }
 
 }
