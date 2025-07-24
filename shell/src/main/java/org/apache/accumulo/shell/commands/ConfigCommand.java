@@ -72,6 +72,13 @@ public class ConfigCommand extends Command {
   private int COL2 = 7;
   private LineReader reader;
 
+  public ConfigCommand() {
+    Shell.log.warn("System configuration is dependent on the server's site configuration and"
+        + " applicable ZooKeeper system overrides. To get the system"
+        + " configuration for a specific server set the system property: "
+        + TServerClient.DEBUG_HOST);
+  }
+
   @Override
   public void registerCompletion(final Token root,
       final Map<Command.CompletionSet,Set<String>> completionSet) {
@@ -205,10 +212,6 @@ public class ConfigCommand extends Command {
       try {
         systemConfig
             .putAll(shellState.getAccumuloClient().instanceOperations().getSystemConfiguration());
-        Shell.log.warn("System configuration is dependent on the server's site configuration and"
-            + " applicable ZooKeeper system overrides. To get the system"
-            + " configuration for a specific server set the system property: "
-            + TServerClient.DEBUG_HOST);
       } catch (AccumuloSecurityException e) {
         if (e.getSecurityErrorCode() == PERMISSION_DENIED) {
           Shell.log.warn(

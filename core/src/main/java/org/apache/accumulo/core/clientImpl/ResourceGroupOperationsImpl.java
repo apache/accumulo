@@ -57,7 +57,6 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public boolean exists(String group) {
-    Objects.requireNonNull(group, "group parameter must be supplied");
     return list().contains(ResourceGroupId.of(group));
   }
 
