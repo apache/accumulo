@@ -85,7 +85,7 @@ public class LoadMappingIterator
 
     if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
       throw new IllegalStateException(
-          String.format("KeyExtents are not in sorted order: %s comes after %s", lastKeyExtent,
+          String.format("KeyExtents are not in sorted order: %s was seen before %s", lastKeyExtent,
               currentKeyExtent));
     }
 
