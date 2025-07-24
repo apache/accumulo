@@ -231,6 +231,7 @@ function list_processes() {
     local pid_file
     local pid
     local port
+    local loop_err
     pid_file="$ACCUMULO_PID_DIR/accumulo-$process.pid"
     pid=$(<"$pid_file") # read the contents of the file into the $pid variable
     port=$(ss -tnlp 2>/dev/null | grep -wF "pid=$pid" | awk '{print $4}' | awk -F : '{print $NF}' | paste -sd,)
@@ -239,8 +240,12 @@ function list_processes() {
       echo "$process $pid $port"
     else
       echo "ERROR unexpected port format $(hostname) process:$process pid:$pid ports:$port" >&2
+      loop_err=1
     fi
   done
+  if [[ $loop_err == 1 ]]; then
+    exit 1
+  fi
 }
 
 function main() {
