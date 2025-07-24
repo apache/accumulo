@@ -235,7 +235,7 @@ function list_processes() {
     pid=$(<"$pid_file") # read the contents of the file into the $pid variable
     port=$(ss -tnlp 2>/dev/null | grep -F "pid=$pid," | awk '{print $4}' | awk -F : '{print $NF}' | paste -sd,)
 
-    if [[ $port =~ ^[1-9][0-9]+(,[0-9]+)*$ ]]; then
+    if [[ $port =~ ^[1-9][0-9]{1,4}(,[1-9][0-9]{1,4})*$ ]]; then
       echo "$process $pid $port"
     else
       echo "ERROR unexpected port format $(hostname) process:$process pid:$pid ports:$port" >&2
