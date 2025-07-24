@@ -222,13 +222,13 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   public synchronized void startListeningForTabletServerChanges(Listener cback) {
-    scanServers();
     Objects.requireNonNull(cback);
     if (this.cback.compareAndSet(null, cback)) {
       this.context.getZooCache().addZooCacheWatcher(this);
     } else if (this.cback.get() != cback) {
       throw new IllegalStateException("Attempted to set different cback object");
     }
+    scanServers();
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
   }
