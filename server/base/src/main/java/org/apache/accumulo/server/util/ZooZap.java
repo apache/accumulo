@@ -22,7 +22,6 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -182,12 +181,9 @@ public class ZooZap implements KeywordExecutable {
       try {
         Set<ServiceLockPath> tserverLockPaths =
             context.getServerPaths().getTabletServer(rgp, addressSelector, false);
-        Set<String> tserverResourceGroupPaths = new HashSet<>();
-        tserverLockPaths.forEach(p -> tserverResourceGroupPaths
-            .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
-        for (String group : tserverResourceGroupPaths) {
-          message("Deleting tserver " + group + " from zookeeper", opts);
-          zrw.recursiveDelete(group.toString(), NodeMissingPolicy.SKIP);
+        for (var serverLockPath : tserverLockPaths) {
+          message("Deleting tserver " + serverLockPath.getServer() + " from zookeeper", opts);
+          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting tserver locks", e);
@@ -197,13 +193,10 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapCompactors) {
       Set<ServiceLockPath> compactorLockPaths =
           context.getServerPaths().getCompactor(rgp, addressSelector, false);
-      Set<String> compactorResourceGroupPaths = new HashSet<>();
-      compactorLockPaths.forEach(p -> compactorResourceGroupPaths
-          .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
       try {
-        for (String group : compactorResourceGroupPaths) {
-          message("Deleting compactor " + group + " from zookeeper", opts);
-          zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
+        for (var serverLockPath : compactorLockPaths) {
+          message("Deleting compactor " + serverLockPath.getServer() + " from zookeeper", opts);
+          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting compactors from zookeeper", e);
@@ -214,14 +207,10 @@ public class ZooZap implements KeywordExecutable {
     if (opts.zapScanServers) {
       Set<ServiceLockPath> sserverLockPaths =
           context.getServerPaths().getScanServer(rgp, addressSelector, false);
-      Set<String> sserverResourceGroupPaths = new HashSet<>();
-      sserverLockPaths.forEach(p -> sserverResourceGroupPaths
-          .add(p.toString().substring(0, p.toString().lastIndexOf('/'))));
-
       try {
-        for (String group : sserverResourceGroupPaths) {
-          message("Deleting sserver " + group + " from zookeeper", opts);
-          zrw.recursiveDelete(group, NodeMissingPolicy.SKIP);
+        for (var serverLockPath : sserverLockPaths) {
+          message("Deleting sserver " + serverLockPath.getServer() + " from zookeeper", opts);
+          zrw.recursiveDelete(serverLockPath.toString(), NodeMissingPolicy.SKIP);
         }
       } catch (KeeperException | InterruptedException e) {
         log.error("Error deleting scan server locks", e);
