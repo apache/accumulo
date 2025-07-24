@@ -277,7 +277,7 @@ function quote() {
 }
 
 # call debug to print the command only, or execute asynchronously if debug is off
-function debugOrRun() {
+function debugOrRunAsync() {
   debug "$(quote "$@")" || ("$@") &
 }
 
@@ -458,9 +458,9 @@ function execute_command() {
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
-    debugOrRun bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*"
+    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*"
   else
-    debugOrRun "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*'"
+    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -a $host $*'"
   fi
 }
 
