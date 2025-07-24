@@ -54,6 +54,16 @@ public class ServiceStatusReport {
   private final boolean showHosts;
   private final Map<ReportKey,StatusSummary> summaries;
 
+  // Gson requires a default constructor when JDK Unsafe usage is disabled
+  @SuppressWarnings("unused")
+  private ServiceStatusReport() {
+    reportTime = "";
+    zkReadErrors = 0;
+    showHosts = false;
+    summaries = Map.of();
+
+  }
+
   public ServiceStatusReport(final Map<ReportKey,StatusSummary> summaries,
       final boolean showHosts) {
     reportTime = rptTimeFmt.format(ZonedDateTime.now(ZoneId.of("UTC")));
