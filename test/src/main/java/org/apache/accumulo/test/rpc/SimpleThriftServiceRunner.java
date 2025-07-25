@@ -20,9 +20,16 @@ package org.apache.accumulo.test.rpc;
 
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.test.rpc.thrift.SimpleThriftService;
+import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
+import org.apache.thrift.protocol.TMessage;
+import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.protocol.TProtocolFactory;
 import org.apache.thrift.server.TServer;
 import org.apache.thrift.server.TSimpleServer;
+import org.apache.thrift.transport.TTransport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * A utility for starting a simple thrift server, and providing a corresponding client for in-memory
@@ -51,14 +58,65 @@ public class SimpleThriftServiceRunner {
   }
 
   public SimpleThriftService.Client client() {
-    return new SimpleThriftService.Client(new TBinaryProtocol(mocket.getClientTransport()));
+    return new SimpleThriftService.Client(
+        new LoggingBinaryProtocol("client", mocket.getClientTransport()));
+  }
+
+  private static class LoggingBinaryProtocol extends TBinaryProtocol {
+    private static final Logger log = LoggerFactory.getLogger(LoggingBinaryProtocol.class);
+    private final String type;
+
+    private LoggingBinaryProtocol(String type, TTransport trans) {
+      super(trans);
+      this.type = type;
+    }
+
+    @Override
+    public TMessage readMessageBegin() throws TException {
+      TMessage message = super.readMessageBegin();
+      log.debug("{}:readMessageBegin:{}", type, message);
+      return message;
+    }
+
+    @Override
+    public void readMessageEnd() throws TException {
+      log.debug("{}:readMessageEnd", type);
+      super.readMessageEnd();
+    }
+
+    @Override
+    public void writeMessageBegin(TMessage message) throws TException {
+      log.debug("{}:writeMessageBegin:{}", type, message);
+      super.writeMessageBegin(message);
+    }
+
+    @Override
+    public void writeMessageEnd() throws TException {
+      log.debug("{}:writeMessageEnd", type);
+      super.writeMessageEnd();
+    }
+  }
+
+  private static class LoggingProtocolFactory implements TProtocolFactory {
+    private static final long serialVersionUID = 1L;
+    private final String type;
+
+    LoggingProtocolFactory(String clientOrServer) {
+      this.type = clientOrServer;
+    }
+
+    @Override
+    public TProtocol getProtocol(TTransport trans) {
+      return new LoggingBinaryProtocol(type, trans);
+    }
   }
 
   private TServer createServer() {
     TServer.Args args = new TServer.Args(mocket.getServerTransport());
     SimpleThriftService.Iface actualHandler = TraceUtil.wrapService(handler);
     args.processor(new SimpleThriftService.Processor<>(actualHandler));
-    args.protocolFactory(new TBinaryProtocol.Factory());
+    args.inputProtocolFactory(new LoggingProtocolFactory("serverInput"));
+    args.outputProtocolFactory(new LoggingProtocolFactory("serverOutput"));
     return new TSimpleServer(args);
   }
 
