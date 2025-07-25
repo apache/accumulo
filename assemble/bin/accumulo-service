@@ -152,7 +152,8 @@ function find_processes() {
   local expected_pid
   local found_pid
   for filepath in "$ACCUMULO_PID_DIR"/*; do
-    if file=$(expr "$filepath" : '^.*/accumulo-\('"$service_type"'.*\)[.]pid$'); then
+    if [[ $filepath =~ ^.*/accumulo-("$service_type".*)[.]pid$ ]]; then
+      file="${BASH_REMATCH[1]}"
       expected_pid=$(<"$filepath")
       found_pid=$(pgrep -F "$filepath" -f "$file")
       if [[ $found_pid != "$expected_pid" ]]; then
@@ -169,7 +170,7 @@ function stop_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if $all_flag; then
+  if [[ $all_flag == 'true' ]]; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -198,7 +199,7 @@ function kill_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if $all_flag; then
+  if [[ $all_flag == 'true' ]]; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -230,16 +231,19 @@ function list_processes() {
     local pid_file
     local pid
     local port
-    pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
-    pid=$(<"$pid_file")
-    port=$(netstat -tnlp 2>/dev/null | grep "$pid" | awk '{print $4}' | awk -F ':' '{print $NF}' | paste -sd "," -)
-    # check that only a single port was seen
-    if (($(echo "$port" | grep -c -E '^[0-9]+(,[0-9]+)*$') != 1)); then
-      echo "ERROR unexpected ports $(hostname) process:$process pid:$pid ports:$port" >&2
-    else
+    local loop_err
+    pid_file="$ACCUMULO_PID_DIR/accumulo-$process.pid"
+    pid=$(<"$pid_file") # read the contents of the file into the $pid variable
+    port=$(ss -tnlp 2>/dev/null | grep -wF "pid=$pid" | awk '{print $4}' | awk -F : '{print $NF}' | paste -sd,)
+
+    if [[ $port =~ ^[1-9][0-9]{1,4}(,[1-9][0-9]{1,4})*$ ]]; then
       echo "$process $pid $port"
+    else
+      echo "ERROR unexpected port format $(hostname) process:$process pid:$pid ports:$port" >&2
+      loop_err=1
     fi
   done
+  [[ -z $loop_err ]] # return non-zero if any errors occurred during the loop
 }
 
 function main() {
