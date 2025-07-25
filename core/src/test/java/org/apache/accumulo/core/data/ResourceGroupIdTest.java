@@ -18,21 +18,22 @@
  */
 package org.apache.accumulo.core.data;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 public class ResourceGroupIdTest {
   @Test
   public void testIllegalIds() {
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(""));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(" "));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("\t"));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9"));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9group1"));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$"));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$group1"));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group1 "));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group 1"));
-    Assertions.assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("gro$up1"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(""));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(" "));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("\t"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9group1"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$group1"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group1 "));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group 1"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("gro$up1"));
   }
 }
