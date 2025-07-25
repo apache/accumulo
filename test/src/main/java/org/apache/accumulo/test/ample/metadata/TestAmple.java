@@ -213,6 +213,7 @@ public class TestAmple {
         }
 
         @Override
+        @SuppressWarnings("deprecation")
         protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)
             throws TableNotFoundException {
           if (dataLevel == Ample.DataLevel.ROOT) {
