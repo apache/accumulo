@@ -18,9 +18,9 @@
  */
 package org.apache.accumulo.core.data;
 
-import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertThrows;
+
+import org.junit.jupiter.api.Test;
 
 public class ResourceGroupIdTest {
   @Test
