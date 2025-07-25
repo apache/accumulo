@@ -35,6 +35,7 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class ShutdownIT extends ConfigurableMacBase {
@@ -124,6 +125,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     String doomed = tabletServers.get(0);
     log.info("Stopping " + doomed);
     assertEquals(0, cluster.exec(Admin.class, "stop", doomed).getProcess().waitFor());
+    Wait.waitFor(() -> c.instanceOperations().getTabletServers().size() == 1);
     tabletServers = c.instanceOperations().getTabletServers();
     assertEquals(1, tabletServers.size());
     assertNotEquals(tabletServers.get(0), doomed);
