@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -271,6 +272,12 @@ public class ZooCacheIT {
 
     assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
     assertEquals(List.of("test2"), zooCache.getChildren(base));
+
+    // after the event, ensure that zoocache will still eventually see updates. May have
+    // reregistered watchers.
+    zrw.putPersistentData(base + "/test2", new byte[] {4, 3, 2, 1},
+        ZooUtil.NodeExistsPolicy.OVERWRITE);
+    Wait.waitFor(() -> Arrays.equals(new byte[] {4, 3, 2, 1}, zooCache.get(base + "/test2")));
   }
 
   @SuppressWarnings("deprecation")
@@ -312,6 +319,11 @@ public class ZooCacheIT {
 
     assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
     assertEquals(List.of("test2"), zooCache.getChildren(base));
+
+    // after the event, ensure that zoocache will still eventually see updates.
+    zrw.putPersistentData(base + "/test2", new byte[] {4, 3, 2, 1},
+        ZooUtil.NodeExistsPolicy.OVERWRITE);
+    Wait.waitFor(() -> Arrays.equals(new byte[] {4, 3, 2, 1}, zooCache.get(base + "/test2")));
   }
 
   private Thread findZookeeperSendThread() {
