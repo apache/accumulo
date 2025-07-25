@@ -160,7 +160,10 @@ public enum PropertyType {
 
   FILENAME_EXT("file name extension", in(true, RFile.EXTENSION),
       "One of the currently supported filename extensions for storing table data files. "
-          + "Currently, only " + RFile.EXTENSION + " is supported.");
+          + "Currently, only " + RFile.EXTENSION + " is supported."),
+
+  EC("erasurecode", in(false, "enable", "disable", "inherit"),
+      "One of 'enable','disable','inherit'.");
 
   private final String shortname;
   private final String format;
