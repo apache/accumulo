@@ -16,17 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.shell;
+package org.apache.accumulo.core.client;
 
-/**
- * Abstract class to encompass the Options available on the Accumulo Shell
- */
-public abstract class ShellOptions {
-  // Global options flags
-  public static final String userOption = "u";
-  public static final String tableOption = "t";
-  public static final String namespaceOption = "ns";
-  public static final String resourceGroupOption = "rg";
-  public static final String helpOption = "?";
-  public static final String helpLongOption = "help";
+public class ResourceGroupNotFoundException extends Exception {
+
+  private static final long serialVersionUID = 1L;
+
+  public ResourceGroupNotFoundException(String group) {
+    super("Resource group " + group + " does not exist");
+  }
+
 }

@@ -35,6 +35,7 @@ import org.apache.accumulo.core.conf.ConfigCheckUtil;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
@@ -45,6 +46,7 @@ import org.apache.accumulo.server.conf.store.NamespacePropKey;
 import org.apache.accumulo.server.conf.store.PropChangeListener;
 import org.apache.accumulo.server.conf.store.PropStore;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.slf4j.Logger;
@@ -62,7 +64,7 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   // cache expiration is used to remove configurations after deletion, not time sensitive
   private static final int CACHE_EXPIRATION_HRS = 1;
-  private final Supplier<SystemConfiguration> systemConfig;
+  private final Supplier<ResourceGroupConfiguration> systemConfig;
   private final Cache<TableId,NamespaceConfiguration> tableParentConfigs;
   private final Cache<TableId,TableConfiguration> tableConfigs;
   private final Cache<NamespaceId,NamespaceConfiguration> namespaceConfigs;
@@ -75,13 +77,14 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   private final ConfigRefreshRunner refresher;
 
-  public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig) {
+  public ServerConfigurationFactory(ServerContext context, SiteConfiguration siteConfig,
+      ResourceGroupId rgid) {
     this.context = context;
     this.siteConfig = siteConfig;
     this.systemConfig = memoize(() -> {
       var sysConf = new SystemConfiguration(context, SystemPropKey.of(), siteConfig);
       ConfigCheckUtil.validate(sysConf, "system config");
-      return sysConf;
+      return new ResourceGroupConfiguration(context, ResourceGroupPropKey.of(rgid), sysConf);
     });
     tableParentConfigs =
         Caches.getInstance().createNewBuilder(CacheName.TABLE_PARENT_CONFIGS, false)
