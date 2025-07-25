@@ -1304,7 +1304,10 @@ public enum Property {
       "4.0.0"),
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
-      "The interval at which to check for dead compactors.", "2.1.0");
+      "The interval at which to check for dead compactors.", "2.1.0"),
+  GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
+      PropertyType.COUNT,
+      "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
 
   private final String key;
   private final String defaultValue;

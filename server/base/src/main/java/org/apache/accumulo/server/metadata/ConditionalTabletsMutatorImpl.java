@@ -36,7 +36,9 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ConditionalMutation;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -53,7 +55,8 @@ import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
-public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMutator {
+public class ConditionalTabletsMutatorImpl
+    implements Ample.ConditionalTabletsMutator, AutoCloseable {
 
   private static final Logger log = LoggerFactory.getLogger(ConditionalTabletsMutatorImpl.class);
 
@@ -69,6 +72,8 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   final Map<KeyExtent,Ample.RejectionHandler> rejectedHandlers = new HashMap<>();
   private final Map<KeyExtent,Supplier<String>> operationDescriptions = new HashMap<>();
   private final Function<DataLevel,String> tableMapper;
+  private final Supplier<ConditionalWriter> sharedWriter;
+  private volatile boolean sharedWriterCreated = false;
 
   public ConditionalTabletsMutatorImpl(ServerContext context) {
     this(context, DataLevel::metaTable);
@@ -78,6 +83,13 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       Function<DataLevel,String> tableMapper) {
     this.context = context;
     this.tableMapper = Objects.requireNonNull(tableMapper);
+    this.sharedWriter = Suppliers.memoize(() -> {
+      try {
+        return createSharedConditionalWriter();
+      } catch (TableNotFoundException e) {
+        throw new RuntimeException("Failed to create shared ConditionalWriter for Ample", e);
+      }
+    });
   }
 
   @Override
@@ -106,6 +118,16 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
     } else {
       return context.createConditionalWriter(getTableMapper().apply(dataLevel));
     }
+  }
+
+  private ConditionalWriter createSharedConditionalWriter() throws TableNotFoundException {
+    int maxThreads =
+        context.getConfiguration().getCount(Property.GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX);
+    var config = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+    log.info("Creating shared ConditionalWriter for Ample with max threads: {} for level: {}",
+        maxThreads, dataLevel);
+    sharedWriterCreated = true;
+    return context.createConditionalWriter(getTableMapper().apply(dataLevel), config);
   }
 
   protected Map<KeyExtent,TabletMetadata> readTablets(List<KeyExtent> extents) {
@@ -227,7 +249,18 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   public Map<KeyExtent,Ample.ConditionalResult> process() {
     Preconditions.checkState(active);
     if (dataLevel != null) {
-      try (ConditionalWriter conditionalWriter = createConditionalWriter(dataLevel)) {
+      ConditionalWriter conditionalWriter = null;
+      boolean shouldClose = false;
+
+      try {
+        if (dataLevel == Ample.DataLevel.ROOT) {
+          conditionalWriter = createConditionalWriter(dataLevel);
+          shouldClose = true;
+        } else {
+          conditionalWriter = sharedWriter.get();
+          shouldClose = false; // don't close shared writers
+        }
+
         var results = writeMutations(conditionalWriter);
 
         var resultsMap = new HashMap<KeyExtent,ConditionalWriter.Result>();
@@ -300,6 +333,9 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
       } catch (TableNotFoundException e) {
         throw new RuntimeException(e);
       } finally {
+        if (shouldClose && conditionalWriter != null) {
+          conditionalWriter.close();
+        }
         // render inoperable because reuse is not tested
         extents.clear();
         mutations.clear();
@@ -336,7 +372,18 @@ public class ConditionalTabletsMutatorImpl implements Ample.ConditionalTabletsMu
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    try {
+      if (sharedWriterCreated && sharedWriter != null) {
+        ConditionalWriter writer = sharedWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      }
+    } catch (Exception e) {
+      log.warn("Error closing shared ConditionalWriter", e);
+    }
+  }
 
   protected Function<DataLevel,String> getTableMapper() {
     return tableMapper;
