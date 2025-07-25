@@ -38,6 +38,7 @@ import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -61,6 +62,7 @@ import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
 import org.apache.accumulo.core.clientImpl.ClientContext;
@@ -70,6 +72,8 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -78,7 +82,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.AgeOffFilter;
 import org.apache.accumulo.core.iterators.user.GrepIterator;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -483,6 +489,45 @@ public class CompactionIT extends AccumuloClusterHarness {
     }
   }
 
+  public static class FourConfigurer implements CompactionConfigurer {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Overrides override(InputParameters params) {
+      if (new Text("4").equals(params.getTabletId().getEndRow())) {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
+      } else {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none"));
+      }
+    }
+  }
+
+  public static class UriConfigurer implements CompactionConfigurer {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Overrides override(InputParameters params) {
+      // This will validate the paths looks like a tablet file path and throw an exception if it
+      // does not
+      var parts = TabletFile.parsePath(new Path(params.getOutputFile()));
+      // For this test should be producing A files
+      Preconditions.checkArgument(
+          parts.getFileName().startsWith(FilePrefix.FULL_COMPACTION.getPrefix() + ""));
+      Preconditions.checkArgument(parts.getFileName().endsWith(RFile.EXTENSION));
+
+      if (parts.getTabletDir()
+          .equals(MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)) {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
+      } else {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none"));
+      }
+    }
+  }
+
   @Test
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
@@ -527,6 +572,43 @@ public class CompactionIT extends AccumuloClusterHarness {
       assertTrue(sizes > data.length * 10 && sizes < data.length * 11,
           "Unexpected files sizes : " + sizes);
 
+      // compact using a custom configurer that considers tablet end row
+      client.tableOperations().addSplits(tableName, new TreeSet<>(List.of(new Text("4"))));
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setConfigurer(new PluginConfig(FourConfigurer.class.getName())));
+      var tabletSizes = getFilesSizesPerTablet(client, tableName);
+      assertTrue(tabletSizes.get("4") > 0 && tabletSizes.get("4") < 1000, tabletSizes.toString());
+      assertTrue(tabletSizes.get("null") > 500_000 && tabletSizes.get("4") < 510_000,
+          tabletSizes.toString());
+
+      // compact using a custom configurer that considers the output path, should invert which file
+      // is compressed
+      client.tableOperations().addSplits(tableName, new TreeSet<>(List.of(new Text("4"))));
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setConfigurer(new PluginConfig(UriConfigurer.class.getName())));
+      tabletSizes = getFilesSizesPerTablet(client, tableName);
+      assertTrue(tabletSizes.get("4") > 500_000 && tabletSizes.get("4") < 510_000,
+          tabletSizes.toString());
+      assertTrue(tabletSizes.get("null") > 0 && tabletSizes.get("null") < 1000,
+          tabletSizes.toString());
+
+    }
+  }
+
+  private Map<String,Long> getFilesSizesPerTablet(AccumuloClient client, String table)
+      throws Exception {
+    var ctx = (ClientContext) client;
+    var ample = ctx.getAmple();
+    var id = ctx.getTableId(table);
+
+    try (var tablets = ample.readTablets().forTable(id).build()) {
+      Map<String,Long> sizes = new TreeMap<>();
+      for (var tablet : tablets) {
+        var tsize = tablet.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+        var endRow = tablet.getEndRow();
+        sizes.put(endRow == null ? "null" : endRow.toString(), tsize);
+      }
+      return sizes;
     }
   }
 
