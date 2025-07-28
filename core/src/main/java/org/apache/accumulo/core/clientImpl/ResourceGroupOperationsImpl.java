@@ -57,7 +57,8 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public boolean exists(String group) {
-    return list().contains(ResourceGroupId.of(group));
+    ResourceGroupId rg = ResourceGroupId.of(group);
+    return context.getZooCache().get(Constants.ZRESOURCEGROUPS + "/" + rg.canonical()) != null;
   }
 
   @Override
@@ -79,7 +80,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     Map<String,String> config = new HashMap<>();
     config.putAll(ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT)));
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.PROCESS)));
     config.putAll(getProperties(group));
     return Map.copyOf(config);
   }

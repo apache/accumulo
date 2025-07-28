@@ -509,7 +509,8 @@ public class ZooInfoViewer implements KeywordExecutable {
      * @return true if print all is set AND no namespaces or table names were provided.
      */
     boolean printAllProps() {
-      return !printSystemOpt && namespacesOpt.isEmpty() && tablesOpt.isEmpty();
+      return !printSystemOpt && namespacesOpt.isEmpty() && tablesOpt.isEmpty()
+          && resourceGroupOpt.isEmpty();
     }
 
     boolean printSysProps() {
@@ -517,7 +518,7 @@ public class ZooInfoViewer implements KeywordExecutable {
     }
 
     boolean printResourceGroupProps() {
-      return printAllProps() || resourceGroupOpt.isEmpty();
+      return printAllProps() || !resourceGroupOpt.isEmpty();
     }
 
     boolean printNamespaceProps() {

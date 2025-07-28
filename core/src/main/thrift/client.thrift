@@ -59,7 +59,8 @@ enum TableOperationExceptionType {
 }
 
 enum ConfigurationType {
-  CURRENT
+  PROCESS
+  SYSTEM
   SITE
   DEFAULT
 }

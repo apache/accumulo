@@ -53,7 +53,6 @@ public interface ResourceGroupOperations {
    *
    * @param group the name of the resource group
    * @return true if the group exists
-   * @since 4.0.0
    */
   boolean exists(String group);
 
@@ -61,7 +60,6 @@ public interface ResourceGroupOperations {
    * Retrieve a list of resource groups in Accumulo.
    *
    * @return Set of resource groups in accumulo
-   * @since 4.0.0
    */
   Set<ResourceGroupId> list();
 
@@ -73,8 +71,6 @@ public interface ResourceGroupOperations {
    * @param group resource group
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
-   *
-   * @since 4.0.0
    */
   void create(final ResourceGroupId group) throws AccumuloException, AccumuloSecurityException;
 
@@ -87,8 +83,6 @@ public interface ResourceGroupOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
-   *
-   * @since 4.0.0
    */
   Map<String,String> getConfiguration(final ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
@@ -101,8 +95,6 @@ public interface ResourceGroupOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
-   *
-   * @since 4.0.0
    */
   Map<String,String> getProperties(final ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
@@ -122,8 +114,6 @@ public interface ResourceGroupOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
-   *
-   * @since 4.0.0
    */
   void setProperty(final ResourceGroupId group, final String property, final String value)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
@@ -192,7 +182,6 @@ public interface ResourceGroupOperations {
    * @return The map that became Accumulo's new properties for this resource group. This map is
    *         immutable and contains the snapshot passed to mapMutator and the changes made by
    *         mapMutator.
-   * @since 4.0.0
    */
   Map<String,String> modifyProperties(final ResourceGroupId group,
       final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
@@ -208,8 +197,6 @@ public interface ResourceGroupOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
-   *
-   * @since 4.0.0
    */
   void removeProperty(final ResourceGroupId group, final String property)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;
@@ -223,8 +210,6 @@ public interface ResourceGroupOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
-   *
-   * @since 4.0.0
    */
   void remove(final ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;

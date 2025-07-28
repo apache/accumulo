@@ -64,7 +64,8 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   // cache expiration is used to remove configurations after deletion, not time sensitive
   private static final int CACHE_EXPIRATION_HRS = 1;
-  private final Supplier<ResourceGroupConfiguration> systemConfig;
+  private final Supplier<SystemConfiguration> systemConfig;
+  private final Supplier<ResourceGroupConfiguration> resourceGroupConfig;
   private final Cache<TableId,NamespaceConfiguration> tableParentConfigs;
   private final Cache<TableId,TableConfiguration> tableConfigs;
   private final Cache<NamespaceId,NamespaceConfiguration> namespaceConfigs;
@@ -84,7 +85,11 @@ public class ServerConfigurationFactory extends ServerConfiguration {
     this.systemConfig = memoize(() -> {
       var sysConf = new SystemConfiguration(context, SystemPropKey.of(), siteConfig);
       ConfigCheckUtil.validate(sysConf, "system config");
-      return new ResourceGroupConfiguration(context, ResourceGroupPropKey.of(rgid), sysConf);
+      return sysConf;
+    });
+    this.resourceGroupConfig = memoize(() -> {
+      return new ResourceGroupConfiguration(context, ResourceGroupPropKey.of(rgid),
+          (SystemConfiguration) getSystemConfiguration());
     });
     tableParentConfigs =
         Caches.getInstance().createNewBuilder(CacheName.TABLE_PARENT_CONFIGS, false)
@@ -109,6 +114,10 @@ public class ServerConfigurationFactory extends ServerConfiguration {
 
   public DefaultConfiguration getDefaultConfiguration() {
     return DefaultConfiguration.getInstance();
+  }
+
+  public ResourceGroupConfiguration getResourceGroupConfiguration() {
+    return resourceGroupConfig.get();
   }
 
   @Override

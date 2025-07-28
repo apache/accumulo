@@ -180,6 +180,10 @@ public class ServerContext extends ClientContext {
 
   @Override
   public AccumuloConfiguration getConfiguration() {
+    return serverConfFactory.get().getResourceGroupConfiguration();
+  }
+
+  public AccumuloConfiguration getSystemConfiguration() {
     return serverConfFactory.get().getSystemConfiguration();
   }
 

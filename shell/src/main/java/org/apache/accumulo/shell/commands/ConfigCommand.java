@@ -247,8 +247,8 @@ public class ConfigCommand extends Command {
       final TreeMap<ResourceGroupId,TreeMap<String,String>> resourceGroupConfigs = new TreeMap<>();
       for (ResourceGroupId rg : shellState.getAccumuloClient().resourceGroupOperations().list()) {
         TreeMap<String,String> rgConfig = new TreeMap<>();
-        resourceGroupConfigs.put(rg, rgConfig);
         rgConfig.putAll(shellState.getAccumuloClient().resourceGroupOperations().getProperties(rg));
+        resourceGroupConfigs.put(rg, rgConfig);
       }
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
@@ -377,7 +377,6 @@ public class ConfigCommand extends Command {
             String rgVal = key.toLowerCase().contains("password")
                 ? rgEntry.getValue().replaceAll(".", "*") : rgEntry.getValue();
             printConfLine(output, "rg " + rgEntry.getKey(), printed ? "   @override" : key, rgVal);
-            printed = true;
           }
         }
         if (nspVal != null) {

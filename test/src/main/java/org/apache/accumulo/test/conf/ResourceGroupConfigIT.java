@@ -124,31 +124,37 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
           cc.getServerPaths().getCompactor(rg -> rg.equals(ResourceGroupId.DEFAULT),
               AddressSelector.all(), true),
           ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
+          Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
           cc.getServerPaths().getScanServer(rg -> rg.equals(ResourceGroupId.DEFAULT),
               AddressSelector.all(), true),
           ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
+          Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
           cc.getServerPaths().getTabletServer(rg -> rg.equals(ResourceGroupId.DEFAULT),
               AddressSelector.all(), true),
           ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
+          Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
           cc.getServerPaths().getCompactor(rg -> rg.equals(rgid), AddressSelector.all(), true),
-          rgid, Property.COMPACTION_WARN_TIME, "1m");
+          rgid, Property.COMPACTION_WARN_TIME, "1m",
+          Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
           cc.getServerPaths().getScanServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
-          rgid, Property.COMPACTION_WARN_TIME, "1m");
+          rgid, Property.COMPACTION_WARN_TIME, "1m",
+          Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
           cc.getServerPaths().getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
-          rgid, Property.COMPACTION_WARN_TIME, "1m");
+          rgid, Property.COMPACTION_WARN_TIME, "1m",
+          Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       // test error cases
       ResourceGroupId invalid = ResourceGroupId.of("INVALID");
@@ -173,7 +179,8 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   }
 
   private void checkProperty(InstanceOperations iops, ResourceGroupOperations ops,
-      Set<ServiceLockPath> locks, ResourceGroupId group, Property property, String value)
+      Set<ServiceLockPath> locks, ResourceGroupId group, Property property, String rgValue,
+      String defaultValue)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     assertEquals(1, locks.size());
     ServiceLockPath slp = locks.iterator().next();
@@ -184,11 +191,11 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       // validate property value for resource group
       Map<String,String> rgProps = ops.getProperties(group);
       assertEquals(1, rgProps.size());
-      assertEquals(value, rgProps.get(property.getKey()));
+      assertEquals(rgValue, rgProps.get(property.getKey()));
     }
     // validate proper merge
     Map<String,String> sysConfig = iops.getSystemConfiguration();
-    assertEquals(value, sysConfig.get(property.getKey()));
+    assertEquals(defaultValue, sysConfig.get(property.getKey()));
     System.clearProperty(TServerClient.DEBUG_HOST);
   }
 

@@ -208,7 +208,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Map<String,String> getSystemConfiguration()
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT));
+        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SYSTEM));
   }
 
   @Override

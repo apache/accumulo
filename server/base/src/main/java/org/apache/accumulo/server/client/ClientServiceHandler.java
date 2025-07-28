@@ -333,9 +333,11 @@ public class ClientServiceHandler implements ClientService.Iface {
       ConfigurationType type) throws TException {
     checkSystemPermission(credentials);
     switch (type) {
-      case CURRENT:
-        context.getPropStore().getCache().remove(SystemPropKey.of());
+      case PROCESS:
         return conf(credentials, context.getConfiguration());
+      case SYSTEM:
+        context.getPropStore().getCache().remove(SystemPropKey.of());
+        return conf(credentials, context.getSystemConfiguration());
       case SITE:
         return conf(credentials, context.getSiteConfiguration());
       case DEFAULT:
