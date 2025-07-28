@@ -28,6 +28,7 @@ public class ResourceGroupIdTest {
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(""));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of(" "));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("\t"));
+    assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("_"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("9group1"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("$"));
