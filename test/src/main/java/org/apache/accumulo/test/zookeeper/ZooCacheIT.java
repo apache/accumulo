@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -239,95 +240,76 @@ public class ZooCacheIT {
     });
   }
 
-  @Test
-  public void testZookeeperRestart() throws Exception {
+  private void testDisruptingZookeeper(String child, Runnable zkDisruption) throws Exception {
     final String root = Constants.ZROOT + UUID.randomUUID();
     final String base = root + Constants.ZTSERVERS;
-    final String child = "test2";
     final String fullPath = base + "/" + child;
-    final byte[] data1 = new byte[] {1, 2, 3, 4};
-    final byte[] data2 = new byte[] {4, 3, 2, 1};
+    final String data1 = "1234";
+    final String data2 = "4321";
     TestZooCache zooCache = new TestZooCache(zk, Set.of(base));
 
     zrw.mkdirs(base);
-    zrw.putPersistentData(base + "/test2", new byte[] {1, 2, 3, 4}, ZooUtil.NodeExistsPolicy.FAIL);
+    zrw.putPersistentData(fullPath, data1.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.FAIL);
 
-    assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
-    assertEquals(List.of("test2"), zooCache.getChildren(base));
+    assertArrayEquals(data1.getBytes(UTF_8), zooCache.get(fullPath));
+    assertEquals(List.of(child), zooCache.getChildren(base));
 
     long uc1 = zooCache.getUpdateCount();
 
-    assertTrue(zooCache.dataCached(base + "/test2"));
+    assertTrue(zooCache.dataCached(fullPath));
     assertTrue(zooCache.childrenCached(base));
 
-    assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
-    assertEquals(List.of("test2"), zooCache.getChildren(base));
+    assertArrayEquals(data1.getBytes(UTF_8), zooCache.get(fullPath));
+    assertEquals(List.of(child), zooCache.getChildren(base));
 
     assertEquals(uc1, zooCache.getUpdateCount());
 
-    // restarting zookeeper should cause the cache to be cleared
-    szk.restart();
+    // disrupt zookeeper in some way that should cause zoocache to be cleared
+    zkDisruption.run();
 
     // clearing the cache should increment the update count
     Wait.waitFor(() -> uc1 != zooCache.getUpdateCount());
     // The data and children previously cached should no longer be cached
-    assertFalse(zooCache.dataCached(base + "/test2"));
+    assertFalse(zooCache.dataCached(fullPath));
     assertFalse(zooCache.childrenCached(base));
 
-    assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
-    assertEquals(List.of("test2"), zooCache.getChildren(base));
+    assertArrayEquals(data1.getBytes(UTF_8), zooCache.get(fullPath));
+    assertEquals(List.of(child), zooCache.getChildren(base));
 
     // after the event, ensure that zoocache will still eventually see updates. May have
     // reregistered watchers.
-    zrw.putPersistentData(base + "/test2", new byte[] {4, 3, 2, 1},
-        ZooUtil.NodeExistsPolicy.OVERWRITE);
-    Wait.waitFor(() -> Arrays.equals(new byte[] {4, 3, 2, 1}, zooCache.get(base + "/test2")));
+    zrw.putPersistentData(fullPath, data2.getBytes(UTF_8), ZooUtil.NodeExistsPolicy.OVERWRITE);
+    Wait.waitFor(() -> Arrays.equals(data2.getBytes(UTF_8), zooCache.get(fullPath)));
+  }
+
+  @Test
+  public void testZookeeperRestart() throws Exception {
+    testDisruptingZookeeper("restart", () -> {
+      try {
+        szk.restart();
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    });
   }
 
   @SuppressWarnings("deprecation")
   @Test
   public void testDisconnect() throws Exception {
-    final String root = Constants.ZROOT + UUID.randomUUID();
-    final String base = root + Constants.ZTSERVERS;
-    TestZooCache zooCache = new TestZooCache(zk, Set.of(base));
-
-    zrw.mkdirs(base);
-    zrw.putPersistentData(base + "/test2", new byte[] {1, 2, 3, 4}, ZooUtil.NodeExistsPolicy.FAIL);
-
-    assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
-    assertEquals(List.of("test2"), zooCache.getChildren(base));
-
-    long uc1 = zooCache.getUpdateCount();
-
-    assertTrue(zooCache.dataCached(base + "/test2"));
-    assertTrue(zooCache.childrenCached(base));
-
-    assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
-    assertEquals(List.of("test2"), zooCache.getChildren(base));
-
-    assertEquals(uc1, zooCache.getUpdateCount());
-
-    // Find the zookeeper thread that sends stuff to the server and pause it for longer than the
-    // session timeout. This should cause the server to disconnect the session which should cause
-    // the cache to clear.
-    Thread sendThread = findZookeeperSendThread();
-    sendThread.suspend();
-    UtilWaitThread.sleep(SESSION_TIMEOUT.plusSeconds(1).toMillis());
-    sendThread.resume();
-
-    // clearing the cache should increment the update count
-    Wait.waitFor(() -> uc1 != zooCache.getUpdateCount());
-    // The data and children previously cached should no longer be cached
-    assertFalse(zooCache.dataCached(base + "/test2"));
-    assertFalse(zooCache.childrenCached(base));
-
-    assertArrayEquals(new byte[] {1, 2, 3, 4}, zooCache.get(base + "/test2"));
-    assertEquals(List.of("test2"), zooCache.getChildren(base));
-
-    // after the event, ensure that zoocache will still eventually see updates.
-    zrw.putPersistentData(base + "/test2", new byte[] {4, 3, 2, 1},
-        ZooUtil.NodeExistsPolicy.OVERWRITE);
-    Wait.waitFor(() -> Arrays.equals(new byte[] {4, 3, 2, 1}, zooCache.get(base + "/test2")));
+    testDisruptingZookeeper("disconnect", () -> {
+      try {
+        // Find the zookeeper thread that sends stuff to the server and pause it for longer than the
+        // session timeout. This should cause the server to disconnect the session which should
+        // cause
+        // the cache to clear.
+        Thread sendThread = findZookeeperSendThread();
+        sendThread.suspend();
+        UtilWaitThread.sleep(SESSION_TIMEOUT.plusSeconds(1).toMillis());
+        sendThread.resume();
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
+      }
+    });
   }
 
   private Thread findZookeeperSendThread() {
