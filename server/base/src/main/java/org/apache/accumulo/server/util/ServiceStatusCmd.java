@@ -54,7 +54,7 @@ public class ServiceStatusCmd {
    * Read the service statuses from ZooKeeper, build the status report and then output the report to
    * stdout.
    */
-  public void execute(final ServerContext context, final boolean json, final boolean noHosts) {
+  public void execute(final ServerContext context, final boolean json, final boolean showHosts) {
 
     if (LOG.isTraceEnabled()) {
       LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
@@ -69,7 +69,7 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
     services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
 
-    ServiceStatusReport report = new ServiceStatusReport(services, noHosts);
+    ServiceStatusReport report = new ServiceStatusReport(services, showHosts);
 
     if (json) {
       System.out.println(report.toJson());

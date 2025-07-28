@@ -30,7 +30,6 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -209,9 +208,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   private LiveTServersSnapshot tServersSnapshot = null;
 
-  private final ConcurrentHashMap<String,TServerInfo> serversShuttingDown =
-      new ConcurrentHashMap<>();
-
   // The set of entries in zookeeper without locks, and the first time each was noticed
   private final Map<ServiceLockPath,Long> locklessServers = new HashMap<>();
 
@@ -226,28 +222,15 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   public synchronized void startListeningForTabletServerChanges(Listener cback) {
-    scanServers();
     Objects.requireNonNull(cback);
     if (this.cback.compareAndSet(null, cback)) {
       this.context.getZooCache().addZooCacheWatcher(this);
     } else if (this.cback.get() != cback) {
       throw new IllegalStateException("Attempted to set different cback object");
     }
+    scanServers();
     ThreadPools.watchCriticalScheduledTask(this.context.getScheduledExecutor()
         .scheduleWithFixedDelay(this::scanServers, 5000, 5000, TimeUnit.MILLISECONDS));
-  }
-
-  public void tabletServerShuttingDown(String server) {
-
-    TServerInfo info = null;
-    synchronized (this) {
-      info = current.get(server);
-    }
-    if (info != null) {
-      serversShuttingDown.put(server, info);
-    } else {
-      log.info("Tablet Server reported it's shutting down, but not in list of current servers");
-    }
   }
 
   public synchronized void scanServers() {
@@ -297,7 +280,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
       if (info != null) {
         doomed.add(info.instance);
         current.remove(tserverPath.getServer());
-        serversShuttingDown.remove(tserverPath.toString());
         log.trace("removed {} from current set and adding to doomed list", tserverPath.getServer());
       }
 
@@ -466,7 +448,6 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
   public synchronized Set<TServerInstance> getCurrentServers() {
     Set<TServerInstance> current = new HashSet<>(getSnapshot().getTservers());
-    serversShuttingDown.values().forEach(tsi -> current.remove(tsi.instance));
     return current;
   }
 

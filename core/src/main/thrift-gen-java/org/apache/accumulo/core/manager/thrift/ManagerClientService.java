@@ -51,7 +51,7 @@ public class ManagerClientService {
 
     public void shutdownTabletServer(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, boolean force) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
-    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
+    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException;
 
     public void setSystemProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String property, java.lang.String value) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, ThriftPropertyException, org.apache.thrift.TException;
 
@@ -101,7 +101,7 @@ public class ManagerClientService {
 
     public void shutdownTabletServer(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, boolean force, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
-    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, java.lang.String resourceGroup, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void setSystemProperty(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String property, java.lang.String value, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
@@ -524,18 +524,19 @@ public class ManagerClientService {
     }
 
     @Override
-    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
+    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, java.lang.String resourceGroup) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException, org.apache.thrift.TException
     {
-      send_tabletServerStopping(tinfo, credentials, tabletServer);
+      send_tabletServerStopping(tinfo, credentials, tabletServer, resourceGroup);
       recv_tabletServerStopping();
     }
 
-    public void send_tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer) throws org.apache.thrift.TException
+    public void send_tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, java.lang.String resourceGroup) throws org.apache.thrift.TException
     {
       tabletServerStopping_args args = new tabletServerStopping_args();
       args.setTinfo(tinfo);
       args.setCredentials(credentials);
       args.setTabletServer(tabletServer);
+      args.setResourceGroup(resourceGroup);
       sendBase("tabletServerStopping", args);
     }
 
@@ -1395,9 +1396,9 @@ public class ManagerClientService {
     }
 
     @Override
-    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void tabletServerStopping(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, java.lang.String resourceGroup, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      tabletServerStopping_call method_call = new tabletServerStopping_call(tinfo, credentials, tabletServer, resultHandler, this, ___protocolFactory, ___transport);
+      tabletServerStopping_call method_call = new tabletServerStopping_call(tinfo, credentials, tabletServer, resourceGroup, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
@@ -1406,11 +1407,13 @@ public class ManagerClientService {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
       private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
       private java.lang.String tabletServer;
-      public tabletServerStopping_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private java.lang.String resourceGroup;
+      public tabletServerStopping_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.lang.String tabletServer, java.lang.String resourceGroup, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
         this.credentials = credentials;
         this.tabletServer = tabletServer;
+        this.resourceGroup = resourceGroup;
       }
 
       @Override
@@ -1420,6 +1423,7 @@ public class ManagerClientService {
         args.setTinfo(tinfo);
         args.setCredentials(credentials);
         args.setTabletServer(tabletServer);
+        args.setResourceGroup(resourceGroup);
         args.write(prot);
         prot.writeMessageEnd();
       }
@@ -2356,7 +2360,7 @@ public class ManagerClientService {
       public tabletServerStopping_result getResult(I iface, tabletServerStopping_args args) throws org.apache.thrift.TException {
         tabletServerStopping_result result = new tabletServerStopping_result();
         try {
-          iface.tabletServerStopping(args.tinfo, args.credentials, args.tabletServer);
+          iface.tabletServerStopping(args.tinfo, args.credentials, args.tabletServer, args.resourceGroup);
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
           result.sec = sec;
         } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceException tnase) {
@@ -3713,7 +3717,7 @@ public class ManagerClientService {
 
       @Override
       public void start(I iface, tabletServerStopping_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.tabletServerStopping(args.tinfo, args.credentials, args.tabletServer,resultHandler);
+        iface.tabletServerStopping(args.tinfo, args.credentials, args.tabletServer, args.resourceGroup,resultHandler);
       }
     }
 
@@ -19348,6 +19352,7 @@ public class ManagerClientService {
     private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
     private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
     private static final org.apache.thrift.protocol.TField TABLET_SERVER_FIELD_DESC = new org.apache.thrift.protocol.TField("tabletServer", org.apache.thrift.protocol.TType.STRING, (short)3);
+    private static final org.apache.thrift.protocol.TField RESOURCE_GROUP_FIELD_DESC = new org.apache.thrift.protocol.TField("resourceGroup", org.apache.thrift.protocol.TType.STRING, (short)4);
 
     private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new tabletServerStopping_argsStandardSchemeFactory();
     private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new tabletServerStopping_argsTupleSchemeFactory();
@@ -19355,12 +19360,14 @@ public class ManagerClientService {
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
     public @org.apache.thrift.annotation.Nullable java.lang.String tabletServer; // required
+    public @org.apache.thrift.annotation.Nullable java.lang.String resourceGroup; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
       TINFO((short)1, "tinfo"),
       CREDENTIALS((short)2, "credentials"),
-      TABLET_SERVER((short)3, "tabletServer");
+      TABLET_SERVER((short)3, "tabletServer"),
+      RESOURCE_GROUP((short)4, "resourceGroup");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -19382,6 +19389,8 @@ public class ManagerClientService {
             return CREDENTIALS;
           case 3: // TABLET_SERVER
             return TABLET_SERVER;
+          case 4: // RESOURCE_GROUP
+            return RESOURCE_GROUP;
           default:
             return null;
         }
@@ -19434,6 +19443,8 @@ public class ManagerClientService {
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
       tmpMap.put(_Fields.TABLET_SERVER, new org.apache.thrift.meta_data.FieldMetaData("tabletServer", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+      tmpMap.put(_Fields.RESOURCE_GROUP, new org.apache.thrift.meta_data.FieldMetaData("resourceGroup", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
       org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(tabletServerStopping_args.class, metaDataMap);
     }
@@ -19444,12 +19455,14 @@ public class ManagerClientService {
     public tabletServerStopping_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
       org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      java.lang.String tabletServer)
+      java.lang.String tabletServer,
+      java.lang.String resourceGroup)
     {
       this();
       this.tinfo = tinfo;
       this.credentials = credentials;
       this.tabletServer = tabletServer;
+      this.resourceGroup = resourceGroup;
     }
 
     /**
@@ -19465,6 +19478,9 @@ public class ManagerClientService {
       if (other.isSetTabletServer()) {
         this.tabletServer = other.tabletServer;
       }
+      if (other.isSetResourceGroup()) {
+        this.resourceGroup = other.resourceGroup;
+      }
     }
 
     @Override
@@ -19477,6 +19493,7 @@ public class ManagerClientService {
       this.tinfo = null;
       this.credentials = null;
       this.tabletServer = null;
+      this.resourceGroup = null;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -19554,6 +19571,31 @@ public class ManagerClientService {
       }
     }
 
+    @org.apache.thrift.annotation.Nullable
+    public java.lang.String getResourceGroup() {
+      return this.resourceGroup;
+    }
+
+    public tabletServerStopping_args setResourceGroup(@org.apache.thrift.annotation.Nullable java.lang.String resourceGroup) {
+      this.resourceGroup = resourceGroup;
+      return this;
+    }
+
+    public void unsetResourceGroup() {
+      this.resourceGroup = null;
+    }
+
+    /** Returns true if field resourceGroup is set (has been assigned a value) and false otherwise */
+    public boolean isSetResourceGroup() {
+      return this.resourceGroup != null;
+    }
+
+    public void setResourceGroupIsSet(boolean value) {
+      if (!value) {
+        this.resourceGroup = null;
+      }
+    }
+
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
@@ -19581,6 +19623,14 @@ public class ManagerClientService {
         }
         break;
 
+      case RESOURCE_GROUP:
+        if (value == null) {
+          unsetResourceGroup();
+        } else {
+          setResourceGroup((java.lang.String)value);
+        }
+        break;
+
       }
     }
 
@@ -19596,6 +19646,9 @@ public class ManagerClientService {
 
       case TABLET_SERVER:
         return getTabletServer();
+
+      case RESOURCE_GROUP:
+        return getResourceGroup();
 
       }
       throw new java.lang.IllegalStateException();
@@ -19615,6 +19668,8 @@ public class ManagerClientService {
         return isSetCredentials();
       case TABLET_SERVER:
         return isSetTabletServer();
+      case RESOURCE_GROUP:
+        return isSetResourceGroup();
       }
       throw new java.lang.IllegalStateException();
     }
@@ -19659,6 +19714,15 @@ public class ManagerClientService {
           return false;
       }
 
+      boolean this_present_resourceGroup = true && this.isSetResourceGroup();
+      boolean that_present_resourceGroup = true && that.isSetResourceGroup();
+      if (this_present_resourceGroup || that_present_resourceGroup) {
+        if (!(this_present_resourceGroup && that_present_resourceGroup))
+          return false;
+        if (!this.resourceGroup.equals(that.resourceGroup))
+          return false;
+      }
+
       return true;
     }
 
@@ -19677,6 +19741,10 @@ public class ManagerClientService {
       hashCode = hashCode * 8191 + ((isSetTabletServer()) ? 131071 : 524287);
       if (isSetTabletServer())
         hashCode = hashCode * 8191 + tabletServer.hashCode();
+
+      hashCode = hashCode * 8191 + ((isSetResourceGroup()) ? 131071 : 524287);
+      if (isSetResourceGroup())
+        hashCode = hashCode * 8191 + resourceGroup.hashCode();
 
       return hashCode;
     }
@@ -19715,6 +19783,16 @@ public class ManagerClientService {
       }
       if (isSetTabletServer()) {
         lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tabletServer, other.tabletServer);
+        if (lastComparison != 0) {
+          return lastComparison;
+        }
+      }
+      lastComparison = java.lang.Boolean.compare(isSetResourceGroup(), other.isSetResourceGroup());
+      if (lastComparison != 0) {
+        return lastComparison;
+      }
+      if (isSetResourceGroup()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.resourceGroup, other.resourceGroup);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -19764,6 +19842,14 @@ public class ManagerClientService {
         sb.append("null");
       } else {
         sb.append(this.tabletServer);
+      }
+      first = false;
+      if (!first) sb.append(", ");
+      sb.append("resourceGroup:");
+      if (this.resourceGroup == null) {
+        sb.append("null");
+      } else {
+        sb.append(this.resourceGroup);
       }
       first = false;
       sb.append(")");
@@ -19843,6 +19929,14 @@ public class ManagerClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
+            case 4: // RESOURCE_GROUP
+              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
+                struct.resourceGroup = iprot.readString();
+                struct.setResourceGroupIsSet(true);
+              } else { 
+                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
+              }
+              break;
             default:
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
           }
@@ -19874,6 +19968,11 @@ public class ManagerClientService {
           oprot.writeString(struct.tabletServer);
           oprot.writeFieldEnd();
         }
+        if (struct.resourceGroup != null) {
+          oprot.writeFieldBegin(RESOURCE_GROUP_FIELD_DESC);
+          oprot.writeString(struct.resourceGroup);
+          oprot.writeFieldEnd();
+        }
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
@@ -19902,7 +20001,10 @@ public class ManagerClientService {
         if (struct.isSetTabletServer()) {
           optionals.set(2);
         }
-        oprot.writeBitSet(optionals, 3);
+        if (struct.isSetResourceGroup()) {
+          optionals.set(3);
+        }
+        oprot.writeBitSet(optionals, 4);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
@@ -19912,12 +20014,15 @@ public class ManagerClientService {
         if (struct.isSetTabletServer()) {
           oprot.writeString(struct.tabletServer);
         }
+        if (struct.isSetResourceGroup()) {
+          oprot.writeString(struct.resourceGroup);
+        }
       }
 
       @Override
       public void read(org.apache.thrift.protocol.TProtocol prot, tabletServerStopping_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(4);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
@@ -19931,6 +20036,10 @@ public class ManagerClientService {
         if (incoming.get(2)) {
           struct.tabletServer = iprot.readString();
           struct.setTabletServerIsSet(true);
+        }
+        if (incoming.get(3)) {
+          struct.resourceGroup = iprot.readString();
+          struct.setResourceGroupIsSet(true);
         }
       }
     }
