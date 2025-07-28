@@ -243,6 +243,10 @@ public class ZooCacheIT {
   public void testZookeeperRestart() throws Exception {
     final String root = Constants.ZROOT + UUID.randomUUID();
     final String base = root + Constants.ZTSERVERS;
+    final String child = "test2";
+    final String fullPath = base + "/" + child;
+    final byte[] data1 = new byte[] {1, 2, 3, 4};
+    final byte[] data2 = new byte[] {4, 3, 2, 1};
     TestZooCache zooCache = new TestZooCache(zk, Set.of(base));
 
     zrw.mkdirs(base);
