@@ -300,8 +300,7 @@ public class ZooCacheIT {
       try {
         // Find the zookeeper thread that sends stuff to the server and pause it for longer than the
         // session timeout. This should cause the server to disconnect the session which should
-        // cause
-        // the cache to clear.
+        // cause the cache to clear.
         Thread sendThread = findZookeeperSendThread();
         sendThread.suspend();
         UtilWaitThread.sleep(SESSION_TIMEOUT.plusSeconds(1).toMillis());
@@ -314,15 +313,17 @@ public class ZooCacheIT {
 
   private Thread findZookeeperSendThread() {
     Map<Thread,StackTraceElement[]> traces = Thread.getAllStackTraces();
+    String className = ClientCnxn.class.getSimpleName() + "$SendThread";
     for (var entry : traces.entrySet()) {
       Thread thread = entry.getKey();
       StackTraceElement[] stackTrace = entry.getValue();
       for (var ste : stackTrace) {
-        if (ste.getClassName().contains(ClientCnxn.class.getSimpleName() + "$SendThread")) {
+        if (ste.getClassName().contains(className)) {
           return thread;
         }
       }
     }
-    return null;
+
+    throw new IllegalStateException("Unable to find stack trace containing class " + className);
   }
 }
