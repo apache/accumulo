@@ -37,7 +37,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -119,7 +118,6 @@ public abstract class AbstractServer
     }
     log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
     this.resourceGroup = ResourceGroupId.of(getResourceGroupPropertyValue(siteConfig));
-    ClusterConfigParser.validateGroupName(resourceGroup);
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig, resourceGroup);
     try {
