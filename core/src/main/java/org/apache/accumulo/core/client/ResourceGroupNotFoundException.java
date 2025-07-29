@@ -18,6 +18,9 @@
  */
 package org.apache.accumulo.core.client;
 
+/**
+ * @since 4.0.0
+ */
 public class ResourceGroupNotFoundException extends Exception {
 
   private static final long serialVersionUID = 1L;
