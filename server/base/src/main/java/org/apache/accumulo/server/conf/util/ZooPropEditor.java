@@ -222,6 +222,10 @@ public class ZooPropEditor implements KeywordExecutable {
     }
 
     if (!opts.resourceGroupOpt.isEmpty()) {
+      if (!context.resourceGroupOperations().exists(opts.resourceGroupOpt)) {
+        throw new IllegalArgumentException(
+            "Could not find resource group " + opts.resourceGroupOpt);
+      }
       return ResourceGroupPropKey.of(ResourceGroupId.of(opts.resourceGroupOpt));
     }
 
