@@ -20,6 +20,7 @@ package org.apache.accumulo.test.zookeeper;
 
 import java.io.File;
 import java.io.IOException;
+import java.time.Duration;
 
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.util.PortUtils;
@@ -68,6 +69,10 @@ public class ZooKeeperTestingServer implements AutoCloseable {
     }
   }
 
+  public void restart() throws Exception {
+    zkServer.restart();
+  }
+
   @FunctionalInterface
   public interface ZooSessionConstructor<T extends ZooSession> {
     public T construct(String clientName, String connectString, int timeout, String instanceSecret)
@@ -81,10 +86,10 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * This can be used to construct a subclass of the ZooKeeper client that implements non-standard
    * behavior for a test.
    */
-  public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f, String root)
-      throws IOException, InterruptedException {
+  public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f, String root,
+      Duration timeout) throws IOException, InterruptedException {
     return f.construct(ZooKeeperTestingServer.class.getSimpleName(),
-        zkServer.getConnectString() + root, 30_000, SECRET);
+        zkServer.getConnectString() + root, (int) timeout.toMillis(), SECRET);
   }
 
   /**
@@ -95,7 +100,7 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    */
   public <T extends ZooSession> T newClient(ZooSessionConstructor<T> f)
       throws IOException, InterruptedException {
-    return newClient(f, "");
+    return newClient(f, "", Duration.ofSeconds(30));
   }
 
   /**
@@ -112,7 +117,11 @@ public class ZooKeeperTestingServer implements AutoCloseable {
    * object.
    */
   public ZooSession newClient(String root) throws IOException, InterruptedException {
-    return newClient(ZooSession::new, root);
+    return newClient(ZooSession::new, root, Duration.ofSeconds(30));
+  }
+
+  public ZooSession newClient(Duration timeout) throws IOException, InterruptedException {
+    return newClient(ZooSession::new, "", timeout);
   }
 
   @Override
