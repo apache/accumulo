@@ -55,14 +55,9 @@ public class CloneTable extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
 
-    Utils.getIdLock().lock();
-    try {
-      cloneInfo.setTableId(
-          Utils.getNextId(cloneInfo.getTableName(), environment.getContext(), TableId::of));
-      return new ClonePermissions(cloneInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    cloneInfo.setTableId(
+        Utils.getNextId(cloneInfo.getTableName(), environment.getContext(), TableId::of));
+    return new ClonePermissions(cloneInfo);
   }
 
   @Override

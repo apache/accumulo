@@ -39,6 +39,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -72,6 +76,7 @@ import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -832,6 +837,33 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
     expected.put(new TabletIdImpl(ke), availability);
+  }
+
+  @Test
+  public void testUniquenessOfTableId() throws ExecutionException, InterruptedException {
+    Set<TableId> hash = new HashSet<>();
+
+    ExecutorService pool = Executors.newFixedThreadPool(64);
+
+    for (int i = 0; i < 1000; i++) {
+      int finalI = i;
+
+      Future<TableId> future = pool.submit(() -> {
+        TableId tableId = null;
+
+        try {
+          tableId = Utils.getNextId("yes" + finalI, getServerContext(), TableId::of);
+        } catch (Exception e) {
+          System.out.println(e.getMessage());
+        }
+        return tableId;
+      });
+
+      hash.add(future.get());
+
+    }
+
+    assertEquals(1000, hash.size());
   }
 
 }
