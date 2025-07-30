@@ -174,7 +174,8 @@ public class ZooInfoViewer implements KeywordExecutable {
     } else {
       log.info("Filters:");
       log.info("system: {}", opts.printSysProps());
-      log.info("resource groups: {}", opts.printResourceGroupProps());
+      log.info("resource groups: {} {}", opts.printResourceGroupProps(),
+          opts.getResourceGroups().size() > 0 ? opts.getResourceGroups() : "");
       log.info("namespaces: {} {}", opts.printNamespaceProps(),
           opts.getNamespaces().size() > 0 ? opts.getNamespaces() : "");
       log.info("tables: {} {}", opts.printTableProps(),

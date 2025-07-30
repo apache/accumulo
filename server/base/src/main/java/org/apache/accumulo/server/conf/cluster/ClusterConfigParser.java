@@ -34,14 +34,14 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.zookeeper.KeeperException;
 import org.yaml.snakeyaml.Yaml;
 
 import com.google.common.base.Preconditions;
@@ -51,6 +51,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @SuppressFBWarnings(value = {"LI_LAZY_INIT_STATIC", "PA_PUBLIC_PRIMITIVE_ATTRIBUTE"},
     justification = "visible for testing")
 public class ClusterConfigParser {
+
+  static void validateGroupNames(List<String> names) {
+    for (String name : names) {
+      if (!ResourceGroupId.GROUP_NAME_PATTERN.matcher(name).matches()) {
+        throw new IllegalArgumentException("Group name: " + name + " contains invalid characters");
+      }
+    }
+  }
 
   // visible for testing
   public static SiteConfiguration siteConf = null;
@@ -141,7 +149,7 @@ public class ClusterConfigParser {
         throw new IllegalArgumentException("Malformed configuration, has too many levels: " + k);
       }
     }).sorted().distinct().collect(Collectors.toList());
-    ResourceGroupId.validateGroupNames(groups);
+    validateGroupNames(groups);
     return groups;
   }
 
@@ -151,9 +159,8 @@ public class ClusterConfigParser {
       if (!zkGroups.contains(cg)) {
         if (createMissingRG) {
           try {
-            ResourceGroupPropKey.of(ResourceGroupId.of(cg))
-                .createZNode(ctx.getZooSession().asReaderWriter());
-          } catch (KeeperException | InterruptedException e) {
+            ctx.resourceGroupOperations().create(ResourceGroupId.of(cg));
+          } catch (AccumuloException | AccumuloSecurityException e) {
             throw new IllegalStateException("Error creating resource group: " + cg, e);
           }
         } else {

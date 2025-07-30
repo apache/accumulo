@@ -1295,11 +1295,4 @@ public class ClientContext implements AccumuloClient {
     return pathsToWatch;
   }
 
-  public ResourceGroupId getResourceGroupId(String rg) {
-    if (resourceGroupOperations().exists(rg)) {
-      return ResourceGroupId.of(rg);
-    }
-    return null;
-  }
-
 }

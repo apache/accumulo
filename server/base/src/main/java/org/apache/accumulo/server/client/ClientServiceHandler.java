@@ -108,11 +108,12 @@ public class ClientServiceHandler implements ClientService.Iface {
       throws ThriftResourceGroupNotExistsException {
     Preconditions.checkArgument(rgName != null && !rgName.isBlank(),
         "Supplied resource group name is null or empty");
-    ResourceGroupId rgid = context.getResourceGroupId(rgName);
-    if (rgid == null) {
+
+    if (context.resourceGroupOperations().exists(rgName)) {
+      return ResourceGroupId.of(rgName);
+    } else {
       throw new ThriftResourceGroupNotExistsException(rgName);
     }
-    return rgid;
   }
 
   @Override

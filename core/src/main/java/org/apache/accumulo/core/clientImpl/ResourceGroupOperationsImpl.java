@@ -66,6 +66,9 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     Set<ResourceGroupId> groups = new HashSet<>();
     context.getZooCache().getChildren(Constants.ZRESOURCEGROUPS)
         .forEach(c -> groups.add(ResourceGroupId.of(c)));
+    if (!groups.contains(ResourceGroupId.DEFAULT)) {
+      throw new IllegalStateException("Default resource group not found in ZooKeeper");
+    }
     return Set.copyOf(groups);
   }
 

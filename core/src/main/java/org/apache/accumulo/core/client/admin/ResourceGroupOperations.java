@@ -32,7 +32,8 @@ import org.apache.accumulo.core.data.ResourceGroupId;
  * that is different than server processes in other resource groups. Examples could be homogeneous
  * hardware configurations for the server processes in one resource group but different than other
  * resource groups, or a resource group could be created for physical separation of processing for
- * table(s).
+ * table(s), or to dedicate compute resources for scans, compactions, and ingest for specific
+ * tables.
  *
  * A default resource group exists in which all server processes are assigned. The Manager, Monitor,
  * and GarbageCollector are assigned to the default resource group. Compactor, ScanServer and
@@ -60,6 +61,7 @@ public interface ResourceGroupOperations {
    * Retrieve a list of resource groups in Accumulo.
    *
    * @return Set of resource groups in accumulo
+   * @throws IllegalStateException if default resource group does not exist
    */
   Set<ResourceGroupId> list();
 
@@ -210,6 +212,7 @@ public interface ResourceGroupOperations {
    * @throws AccumuloException if a general error occurs
    * @throws AccumuloSecurityException if the user does not have permission
    * @throws ResourceGroupNotFoundException if the specified resource group doesn't exist
+   * @throws IllegalArgumentException if user tries to remove the default resource group
    */
   void remove(final ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException;

@@ -20,8 +20,6 @@ package org.apache.accumulo.core.data;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 
 public class ResourceGroupIdTest {
@@ -39,20 +37,6 @@ public class ResourceGroupIdTest {
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("group 1"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("gro$up1"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("invalid_Group_"));
-  }
-
-  @Test
-  public void testGroupNamePattern() {
-    ResourceGroupId.validateGroupNames(List.of("a"));
-    ResourceGroupId.validateGroupNames(List.of("a", "b"));
-    ResourceGroupId.validateGroupNames(List.of("default", "reg_ular"));
-    assertThrows(RuntimeException.class,
-        () -> ResourceGroupId.validateGroupNames(List.of("a1b2c3d4__")));
-    assertThrows(RuntimeException.class,
-        () -> ResourceGroupId.validateGroupNames(List.of("0abcde")));
-    assertThrows(RuntimeException.class, () -> ResourceGroupId.validateGroupNames(List.of("a-b")));
-    assertThrows(RuntimeException.class, () -> ResourceGroupId.validateGroupNames(List.of("a*b")));
-    assertThrows(RuntimeException.class, () -> ResourceGroupId.validateGroupNames(List.of("a?b")));
   }
 
 }

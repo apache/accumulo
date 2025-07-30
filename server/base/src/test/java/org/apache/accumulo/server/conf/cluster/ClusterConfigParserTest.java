@@ -30,6 +30,7 @@ import java.io.PrintStream;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -289,6 +290,23 @@ public class ClusterConfigParserTest extends WithTestNames {
               Set.of(ResourceGroupId.DEFAULT.canonical()), false, ps));
       assertTrue(exception.getMessage().contains("Check the format"));
     }
+  }
+
+  @Test
+  public void testGroupNamePattern() {
+    ClusterConfigParser.validateGroupNames(List.of("a"));
+    ClusterConfigParser.validateGroupNames(List.of("a", "b"));
+    ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a-b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a*b")));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a?b")));
   }
 
 }
