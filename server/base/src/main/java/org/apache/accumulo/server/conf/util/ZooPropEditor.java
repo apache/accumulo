@@ -165,6 +165,8 @@ public class ZooPropEditor implements KeywordExecutable {
     String scope;
     if (propKey instanceof SystemPropKey) {
       scope = "SYSTEM";
+    } else if (propKey instanceof ResourceGroupPropKey) {
+      scope = "RESOURCE GROUP";
     } else if (propKey instanceof NamespacePropKey) {
       scope = "NAMESPACE";
     } else if (propKey instanceof TablePropKey) {
@@ -183,13 +185,14 @@ public class ZooPropEditor implements KeywordExecutable {
       writer.printf(": Name: %s\n", getDisplayName(propKey, context));
       writer.printf(": Id: %s\n", propKey instanceof IdBasedPropStoreKey
           ? ((IdBasedPropStoreKey<?>) propKey).getId() : "N/A");
-      writer.printf(": Data version: %d\n", props.getDataVersion());
-      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
 
       // skip filtering if no props
       if (props.asMap().isEmpty()) {
         return;
       }
+
+      writer.printf(": Data version: %d\n", props.getDataVersion());
+      writer.printf(": Timestamp: %s\n", props.getTimestampISO());
 
       SortedMap<String,String> sortedMap = new TreeMap<>(props.asMap());
       sortedMap.forEach((name, value) -> writer.printf("%s=%s\n", name, value));
