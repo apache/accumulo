@@ -203,7 +203,8 @@ public class TestAmple {
         conditionallyMutateTablets(ConditionalWriterInterceptor interceptor) {
       Objects.requireNonNull(interceptor);
 
-      return new ConditionalTabletsMutatorImpl(getContext(), tables::get) {
+      return new ConditionalTabletsMutatorImpl(getContext(), tables::get,
+          getContext().getSharedMetadataWriter(), getContext().getSharedUserWriter()) {
 
         @Override
         protected Retry createUnknownRetry() {
