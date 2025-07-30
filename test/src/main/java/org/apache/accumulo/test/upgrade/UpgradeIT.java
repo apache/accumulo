@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.test.upgrade;
 
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -27,7 +26,6 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
@@ -64,6 +62,12 @@ public class UpgradeIT extends AccumuloClusterHarness {
       return null;
     }
 
+    @Override
+    public void startServiceLockVerificationThread() {}
+
+    @Override
+    public void close() {}
+
   }
 
   // This class exists because Manager constructor is not visible
@@ -72,6 +76,12 @@ public class UpgradeIT extends AccumuloClusterHarness {
     protected TestManager(String[] args) throws IOException {
       super(new ConfigOpts(), (conf) -> new ServerContext(conf), args);
     }
+
+    @Override
+    public void startServiceLockVerificationThread() {}
+
+    @Override
+    public void close() {}
 
   }
 
@@ -82,8 +92,6 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.getClusterServerConfiguration().setNumDefaultCompactors(0);
-    cfg.getClusterServerConfiguration().setNumDefaultScanServers(0);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
   }
 
@@ -102,6 +110,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
     zrw.putPersistentData(upgradePath, new byte[0], NodeExistsPolicy.SKIP);
 
     getCluster().stop();
+
     getCluster().getClusterControl().startAllServers(ServerType.ZOOKEEPER);
 
     // Confirm all servers down
@@ -128,29 +137,11 @@ public class UpgradeIT extends AccumuloClusterHarness {
         .getTabletServer((rg) -> true, AddressSelector.all(), true).size() == 0);
 
     // Validate the exception from the servers
-    final AtomicReference<Throwable> err = new AtomicReference<>();
-    Thread svrThread = new Thread() {
-
-      @Override
-      @SuppressWarnings("resource")
-      public void run() {
-        try {
-          List<String> args = new ArrayList<>();
-          args.add("--props");
-          args.add(getCluster().getAccumuloPropertiesPath());
-          new ServerThatWontStart(args.toArray(new String[0]));
-        } catch (Exception e) {
-          err.set(e);
-        }
-      }
-
-    };
-    svrThread.start();
-    svrThread.join();
-
-    assertNotNull(err.get());
-    assertTrue(err.get() instanceof IllegalStateException);
-    IllegalStateException ise = (IllegalStateException) err.get();
+    List<String> args = new ArrayList<>();
+    args.add("--props");
+    args.add(getCluster().getAccumuloPropertiesPath());
+    IllegalStateException ise = assertThrows(IllegalStateException.class,
+        () -> new ServerThatWontStart(args.toArray(new String[0])));
     assertTrue(ise.getMessage()
         .startsWith("Instance has been prepared for upgrade to a minor or major version"));
 
@@ -167,30 +158,14 @@ public class UpgradeIT extends AccumuloClusterHarness {
     ServerContext ctx = getCluster().getServerContext();
     UpgradeUtilIT.downgradePersistentVersion(ctx);
 
-    final AtomicReference<Throwable> err = new AtomicReference<>();
-    Thread testMgrThread = new Thread() {
-      @Override
-      public void run() {
-        try {
-          List<String> args = new ArrayList<>();
-          args.add("--props");
-          args.add(getCluster().getAccumuloPropertiesPath());
-          TestManager mgr = new TestManager(args.toArray(new String[0]));
-          mgr.runServer();
-          mgr.close();
-        } catch (Exception e) {
-          err.set(e);
-        }
-      }
-    };
-    testMgrThread.start();
-    testMgrThread.join();
-
-    assertNotNull(err.get());
-    assertTrue(err.get() instanceof IllegalStateException);
-    IllegalStateException ise = (IllegalStateException) err.get();
-    assertTrue(ise.getMessage().equals("Upgrade not started, " + Constants.ZUPGRADE_PROGRESS
-        + " node does not exist. Did you run 'accumulo upgrade --start'?"));
+    List<String> args = new ArrayList<>();
+    args.add("--props");
+    args.add(getCluster().getAccumuloPropertiesPath());
+    try (TestManager mgr = new TestManager(args.toArray(new String[0]))) {
+      IllegalStateException ise = assertThrows(IllegalStateException.class, () -> mgr.runServer());
+      assertTrue(ise.getMessage().equals("Upgrade not started, " + Constants.ZUPGRADE_PROGRESS
+          + " node does not exist. Did you run 'accumulo upgrade --start'?"));
+    }
   }
 
 }
