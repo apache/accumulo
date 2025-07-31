@@ -203,8 +203,7 @@ public class TestAmple {
         conditionallyMutateTablets(ConditionalWriterInterceptor interceptor) {
       Objects.requireNonNull(interceptor);
 
-      return new ConditionalTabletsMutatorImpl(getContext(), tables::get,
-          getContext().getSharedMetadataWriter(), getContext().getSharedUserWriter()) {
+      return new ConditionalTabletsMutatorImpl(getContext(), tables::get) {
 
         @Override
         protected Retry createUnknownRetry() {
@@ -214,7 +213,6 @@ public class TestAmple {
         }
 
         @Override
-        @SuppressWarnings("deprecation")
         protected ConditionalWriter createConditionalWriter(Ample.DataLevel dataLevel)
             throws TableNotFoundException {
           if (dataLevel == Ample.DataLevel.ROOT) {

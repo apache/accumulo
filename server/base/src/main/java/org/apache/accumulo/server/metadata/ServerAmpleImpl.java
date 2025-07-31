@@ -27,10 +27,8 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -68,29 +66,14 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   private final ServerContext context;
   private final ScanServerRefStore scanServerRefStore;
-  private final Supplier<ConditionalWriter> sharedMetadataWriter;
-  private final Supplier<ConditionalWriter> sharedUserWriter;
 
   public ServerAmpleImpl(ServerContext context) {
     this(context, DataLevel::metaTable);
   }
 
   public ServerAmpleImpl(ServerContext context, Function<DataLevel,String> tableMapper) {
-    this(context, tableMapper, context.getSharedMetadataWriter(), context.getSharedUserWriter());
-  }
-
-  public ServerAmpleImpl(ServerContext context, Supplier<ConditionalWriter> sharedMetadataWriter,
-      Supplier<ConditionalWriter> sharedUserWriter) {
-    this(context, DataLevel::metaTable, sharedMetadataWriter, sharedUserWriter);
-  }
-
-  public ServerAmpleImpl(ServerContext context, Function<DataLevel,String> tableMapper,
-      Supplier<ConditionalWriter> sharedMetadataWriter,
-      Supplier<ConditionalWriter> sharedUserWriter) {
     super(context, tableMapper);
     this.context = context;
-    this.sharedMetadataWriter = sharedMetadataWriter;
-    this.sharedUserWriter = sharedUserWriter;
     this.scanServerRefStore =
         new ScanServerRefStoreImpl(context, SystemTables.SCAN_REF.tableName());
   }
@@ -110,16 +93,16 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public ConditionalTabletsMutator conditionallyMutateTablets() {
-    return new ConditionalTabletsMutatorImpl(context, getTableMapper(), sharedMetadataWriter,
-        sharedUserWriter);
+    return new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+        context.getSharedMetadataWriter(), context.getSharedUserWriter());
   }
 
   @Override
   public AsyncConditionalTabletsMutator
       conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
     return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
-        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper(), sharedMetadataWriter,
-            sharedUserWriter));
+        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+            context.getSharedMetadataWriter(), context.getSharedUserWriter()));
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {

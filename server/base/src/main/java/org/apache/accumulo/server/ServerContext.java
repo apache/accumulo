@@ -290,7 +290,7 @@ public class ServerContext extends ClientContext {
 
   @Override
   public Ample getAmple() {
-    return new ServerAmpleImpl(this, sharedMetadataWriter, sharedUserWriter);
+    return new ServerAmpleImpl(this);
   }
 
   public Set<String> getBaseUris() {
