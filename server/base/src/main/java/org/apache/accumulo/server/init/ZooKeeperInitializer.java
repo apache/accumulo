@@ -95,7 +95,7 @@ public class ZooKeeperInitializer {
   void initialize(final ServerContext context, final String rootTabletDirName,
       final String rootTabletFileUri) throws KeeperException, InterruptedException {
     ZooReaderWriter zrwChroot = context.getZooSession().asReaderWriter();
-    zrwChroot.putPersistentData(Constants.ZTABLES, Constants.ZTABLES_INITIAL_ID,
+    zrwChroot.putPersistentData(Constants.ZTABLE_ID_COUNTER, Constants.ZTABLES_INITIAL_ID,
         ZooUtil.NodeExistsPolicy.FAIL);
     zrwChroot.putPersistentData(Constants.ZNAMESPACES,
         NamespaceMapping

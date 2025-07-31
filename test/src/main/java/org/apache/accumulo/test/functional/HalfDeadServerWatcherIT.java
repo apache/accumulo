@@ -32,6 +32,7 @@ import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -102,11 +103,15 @@ public class HalfDeadServerWatcherIT extends AccumuloClusterHarness {
       getOnlineTablets().keySet().forEach(ke -> {
         if (!ke.isMeta()) {
           final TableId tid = ke.tableId();
-          final String tableZPath = Constants.ZTABLES + "/" + tid.canonical();
+          String tableZPath = null;
           try {
+            tableZPath = Constants.ZNAMESPACES + "/" + getContext().getNamespaceId(tid)
+                + Constants.ZTABLES + "/" + tid.canonical();
             this.getContext().getZooSession().asReader().exists(tableZPath, new StuckWatcher());
           } catch (KeeperException | InterruptedException e) {
             LOG.error("Error setting watch at: {}", tableZPath, e);
+          } catch (TableNotFoundException e) {
+            LOG.error("Error getting namespace for table: {}", tableZPath, e);
           }
           LOG.info("Set StuckWatcher at: {}", tableZPath);
         }
