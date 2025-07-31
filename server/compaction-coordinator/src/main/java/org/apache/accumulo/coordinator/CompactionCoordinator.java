@@ -455,6 +455,9 @@ public class CompactionCoordinator extends AbstractServer implements
   }
 
   private void updateSummaries(TServerInstance tsi, Set<String> queuesSeen) {
+
+    String originalThreadName = Thread.currentThread().getName();
+    Thread.currentThread().setName(originalThreadName + " [tserver=" + tsi.getHostPort() + "]");
     try {
       TabletClientService.Client client = null;
       try {
@@ -480,6 +483,8 @@ public class CompactionCoordinator extends AbstractServer implements
       LOG.warn("Error getting external compaction summaries from tablet server: {}",
           tsi.getHostAndPort(), e);
       QUEUE_SUMMARIES.remove(Set.of(tsi));
+    } finally {
+      Thread.currentThread().setName(originalThreadName);
     }
   }
 
@@ -546,6 +551,9 @@ public class CompactionCoordinator extends AbstractServer implements
       LOG.trace("Getting compaction for queue {} from tserver {}", queue, tserver.getHostAndPort());
       // Get a compaction from the tserver
       TabletClientService.Client client = null;
+      String originalThreadName = Thread.currentThread().getName();
+      Thread.currentThread()
+          .setName(originalThreadName + " [tserver=" + tserver.getHostPort() + "]");
       try {
         client = getTabletServerConnection(tserver);
         if (client == null) {
@@ -578,10 +586,11 @@ public class CompactionCoordinator extends AbstractServer implements
       } catch (TException e) {
         LOG.warn("Error from tserver {} while trying to reserve compaction, trying next tserver",
             ExternalCompactionUtil.getHostPortString(tserver.getHostAndPort()), e);
-        QUEUE_SUMMARIES.removeSummary(tserver, queue, prioTserver.prio);
+        QUEUE_SUMMARIES.remove(Set.of(tserver));
         prioTserver = QUEUE_SUMMARIES.getNextTserver(queue);
       } finally {
         ThriftUtil.returnClient(client, getContext());
+        Thread.currentThread().setName(originalThreadName);
       }
     }
 
@@ -609,8 +618,9 @@ public class CompactionCoordinator extends AbstractServer implements
       return null;
     }
     ServerContext serverContext = getContext();
-    TTransport transport = serverContext.getTransportPool().getTransport(
-        ThriftClientTypes.TABLET_SERVER, connection.getAddress(), 0, serverContext, true);
+    TTransport transport =
+        serverContext.getTransportPool().getTransport(ThriftClientTypes.TABLET_SERVER,
+            connection.getAddress(), getContext().getClientTimeoutInMillis(), serverContext, true);
     return ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
   }
 
