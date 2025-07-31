@@ -31,10 +31,10 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
@@ -51,7 +51,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class ServerThatWontStart extends AbstractServer {
 
     protected ServerThatWontStart(String[] args) {
-      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf, rgid) -> getServerContext(),
+      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf, rgid) -> new ServerContext(conf),
           args);
     }
 
@@ -63,14 +63,26 @@ public class UpgradeIT extends AccumuloClusterHarness {
       return null;
     }
 
+    @Override
+    public void startServiceLockVerificationThread() {}
+
+    @Override
+    public void close() {}
+
   }
 
   // This class exists because Manager constructor is not visible
   private class TestManager extends Manager {
 
     protected TestManager(String[] args) throws IOException {
-      super(new ConfigOpts(), (conf, rgid) -> getServerContext(), args);
+      super(new ConfigOpts(), (conf, rgid) -> new ServerContext(conf), args);
     }
+
+    @Override
+    public void startServiceLockVerificationThread() {}
+
+    @Override
+    public void close() {}
 
   }
 
@@ -102,21 +114,28 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
     getCluster().getClusterControl().startAllServers(ServerType.ZOOKEEPER);
 
-    final ZooReader zr = zs.asReader();
-    Wait.waitFor(() -> zr.getChildren(Constants.ZCOMPACTORS).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(Constants.ZGC_LOCK).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(Constants.ZSSERVERS).isEmpty());
-    Wait.waitFor(() -> zr.getChildren(Constants.ZTSERVERS).isEmpty());
+    // Confirm all servers down
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getCompactor((rg) -> true, AddressSelector.all(), true).size() == 0);
+    Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
+    Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getScanServer((rg) -> true, AddressSelector.all(), true).size() == 0);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getTabletServer((rg) -> true, AddressSelector.all(), true).size() == 0);
 
     assertThrows(IllegalStateException.class,
         () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
 
-    assertTrue(zr.getChildren(Constants.ZCOMPACTORS).isEmpty());
-    assertTrue(zr.getChildren(Constants.ZGC_LOCK).isEmpty());
-    assertTrue(zr.getChildren(Constants.ZMANAGER_LOCK).isEmpty());
-    assertTrue(zr.getChildren(Constants.ZSSERVERS).isEmpty());
-    assertTrue(zr.getChildren(Constants.ZTSERVERS).isEmpty());
+    // Confirm no servers started
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getCompactor((rg) -> true, AddressSelector.all(), true).size() == 0);
+    Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
+    Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getScanServer((rg) -> true, AddressSelector.all(), true).size() == 0);
+    Wait.waitFor(() -> getServerContext().getServerPaths()
+        .getTabletServer((rg) -> true, AddressSelector.all(), true).size() == 0);
 
     // Validate the exception from the servers
     List<String> args = new ArrayList<>();
