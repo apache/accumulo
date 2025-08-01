@@ -39,9 +39,12 @@ import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
@@ -60,16 +63,39 @@ import com.google.common.net.HostAndPort;
 public interface TServerClient<C extends TServiceClient> {
 
   static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
+  static final String DEBUG_RG = "org.apache.accumulo.client.rpc.debug.group";
 
-  Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections)
-      throws TTransportException;
+  Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections,
+      ResourceGroupId rgid) throws TTransportException;
 
   default Pair<String,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned,
-      ThriftService service) throws TTransportException {
+      ThriftService service, ResourceGroupId rgid) throws TTransportException {
     checkArgument(context != null, "context is null");
 
     final String debugHost = System.getProperty(DEBUG_HOST, null);
+    final String debugRG = System.getProperty(DEBUG_RG, null);
+
+    if (debugHost != null && debugRG != null) {
+      LOG.warn("System properties {} and {} are both set. If set incorrectly then"
+          + " this client may not find a server to connect to.", DEBUG_HOST, DEBUG_RG);
+    }
+
+    ResourceGroupPredicate rgp = rgid == ResourceGroupId.ANY ? r -> true : r -> r.equals(rgid);
+    if (debugRG != null && !rgid.canonical().equals(debugRG)) {
+      if (type == ThriftClientTypes.CLIENT || type == ThriftClientTypes.COMPACTOR
+          || type == ThriftClientTypes.SERVER_PROCESS || type == ThriftClientTypes.TABLET_INGEST
+          || type == ThriftClientTypes.TABLET_MGMT || type == ThriftClientTypes.TABLET_SCAN
+          || type == ThriftClientTypes.TABLET_SERVER) {
+        LOG.debug("System property '{}' set to '{}' overriding group argument '{}'", DEBUG_RG,
+            debugRG, rgid);
+        rgp = r -> r.canonical().equals(debugRG);
+      } else {
+        LOG.debug(
+            "System property '{}' set to '{}' but ignored when making RPCs to management servers",
+            DEBUG_RG, debugRG);
+      }
+    }
 
     if (preferCachedConnections && debugHost == null) {
       Pair<String,TTransport> cachedTransport =
@@ -83,27 +109,23 @@ public interface TServerClient<C extends TServiceClient> {
 
     final long rpcTimeout = context.getClientTimeoutInMillis();
     final ZooCache zc = context.getZooCache();
+    final ServiceLockPaths sp = context.getServerPaths();
     final List<ServiceLockPath> serverPaths = new ArrayList<>();
+
     if (type == ThriftClientTypes.CLIENT && debugHost != null) {
       // add all three paths to the set even though they may not be correct.
       // The entire set will be checked in the code below to validate
       // that the path is correct and the lock is held and will return the
       // correct one.
       HostAndPort hp = HostAndPort.fromString(debugHost);
-      serverPaths.addAll(
-          context.getServerPaths().getCompactor(rg -> true, AddressSelector.exact(hp), true));
-      serverPaths.addAll(
-          context.getServerPaths().getScanServer(rg -> true, AddressSelector.exact(hp), true));
-      serverPaths.addAll(
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hp), true));
+      serverPaths.addAll(sp.getCompactor(rgp, AddressSelector.exact(hp), true));
+      serverPaths.addAll(sp.getScanServer(rgp, AddressSelector.exact(hp), true));
+      serverPaths.addAll(sp.getTabletServer(rgp, AddressSelector.exact(hp), true));
     } else {
-      serverPaths.addAll(
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false));
+      serverPaths.addAll(sp.getTabletServer(rgp, AddressSelector.all(), false));
       if (type == ThriftClientTypes.CLIENT) {
-        serverPaths.addAll(
-            context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), false));
-        serverPaths.addAll(
-            context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false));
+        serverPaths.addAll(sp.getCompactor(rgp, AddressSelector.all(), false));
+        serverPaths.addAll(sp.getScanServer(rgp, AddressSelector.all(), false));
       }
       if (serverPaths.isEmpty()) {
         if (warned.compareAndSet(false, true)) {
@@ -111,7 +133,12 @@ public interface TServerClient<C extends TServiceClient> {
               "There are no servers serving the {} api: check that zookeeper and accumulo are running.",
               type);
         }
-        throw new TTransportException("There are no servers for type: " + type);
+        // If the user set the system property for the resource group, then don't throw
+        // a TTransportException here. That will cause the call to be continuously retried.
+        // Instead, let this continue so that we can throw a different error below.
+        if (debugRG == null) {
+          throw new TTransportException("There are no servers for type: " + type);
+        }
       }
     }
 
@@ -134,8 +161,14 @@ public interface TServerClient<C extends TServiceClient> {
           } catch (TTransportException e) {
             if (type == ThriftClientTypes.CLIENT && debugHost != null) {
               LOG.error(
-                  "Error creating transport to debug host: {}. If this server is down, then you will need to remove or change the system property {}.",
+                  "Error creating transport to debug host: {}. If this server is"
+                      + " down, then you will need to remove or change the system property {}.",
                   debugHost, DEBUG_HOST);
+            } else if (debugRG != null && rgp.test(ResourceGroupId.of(debugRG))) {
+              LOG.error(
+                  "Error creating transport to debug group: {}. If all servers are"
+                      + " down, then you will need to remove or change the system property {}.",
+                  debugRG, DEBUG_RG);
             } else {
               LOG.trace("Error creating transport to {}", tserverClientAddress);
             }
@@ -155,18 +188,22 @@ public interface TServerClient<C extends TServiceClient> {
       throw new UncheckedIOException("Error creating transport to debug host: " + debugHost
           + ". If this server is down, then you will need to remove or change the system property "
           + DEBUG_HOST + ".", new IOException(""));
+    } else if (debugRG != null && rgp.test(ResourceGroupId.of(debugRG))) {
+      throw new UncheckedIOException("Error creating transport to debug group: " + debugRG
+          + ". If all servers are down, then you will need to remove or change the system property "
+          + DEBUG_RG + ".", new IOException(""));
     } else {
       throw new TTransportException("Failed to connect to any server for API type " + type);
     }
   }
 
-  default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec)
+  default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec, ResourceGroupId rgid)
       throws AccumuloException, AccumuloSecurityException {
     while (true) {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true);
+        Pair<String,C> pair = getThriftServerConnection(context, true, rgid);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -200,13 +237,13 @@ public interface TServerClient<C extends TServiceClient> {
     }
   }
 
-  default void executeVoid(Logger LOG, ClientContext context, ExecVoid<C> exec)
-      throws AccumuloException, AccumuloSecurityException {
+  default void executeVoid(Logger LOG, ClientContext context, ExecVoid<C> exec,
+      ResourceGroupId rgid) throws AccumuloException, AccumuloSecurityException {
     while (true) {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true);
+        Pair<String,C> pair = getThriftServerConnection(context, true, rgid);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);

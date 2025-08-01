@@ -24,6 +24,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.apache.thrift.TServiceClientFactory;
@@ -115,12 +116,12 @@ public abstract class ThriftClientTypes<C extends TServiceClient> {
     }
   }
 
-  public <R> R execute(ClientContext context, Exec<R,C> exec)
+  public <R> R execute(ClientContext context, Exec<R,C> exec, ResourceGroupId rgid)
       throws AccumuloException, AccumuloSecurityException {
     throw new UnsupportedOperationException("This method has not been implemented");
   }
 
-  public void executeVoid(ClientContext context, ExecVoid<C> exec)
+  public void executeVoid(ClientContext context, ExecVoid<C> exec, ResourceGroupId rgid)
       throws AccumuloException, AccumuloSecurityException {
     throw new UnsupportedOperationException("This method has not been implemented");
   }
