@@ -25,6 +25,7 @@ import org.apache.accumulo.core.classloader.ClassLoaderUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 
 public final class PropUtil {
 
@@ -72,6 +73,8 @@ public final class PropUtil {
           throw new IllegalArgumentException(
               "Unable to resolve classloader for context: " + prop.getValue());
         }
+      } else if (propStoreKey instanceof ResourceGroupPropKey) {
+        ResourceGroupPropUtil.validateResourceGroupProperty(prop.getKey(), prop.getValue());
       }
     }
   }

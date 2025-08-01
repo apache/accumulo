@@ -18,28 +18,27 @@
  */
 package org.apache.accumulo.server.conf;
 
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.conf.store.SystemPropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SystemConfiguration extends ZooBasedConfiguration {
+public class ResourceGroupConfiguration extends ZooBasedConfiguration {
 
-  private static final Logger log = LoggerFactory.getLogger(SystemConfiguration.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ResourceGroupConfiguration.class);
 
   private final RuntimeFixedProperties runtimeFixedProps;
 
-  public SystemConfiguration(ServerContext context, SystemPropKey propStoreKey,
-      AccumuloConfiguration parent) {
-    super(log, context, propStoreKey, parent);
-    runtimeFixedProps = new RuntimeFixedProperties(getSnapshot(), context.getSiteConfiguration());
+  public ResourceGroupConfiguration(ServerContext context, ResourceGroupPropKey rgPropKey,
+      SystemConfiguration parent) {
+    super(LOG, context, rgPropKey, parent);
+    runtimeFixedProps = parent.getRuntimeFixedProperties();
   }
 
   @Override
   public String get(Property property) {
-    log.trace("system config get() - property request for {}", property);
+    LOG.trace("resource group config get() - property request for {}", property);
     if (Property.isFixedZooPropertyKey(property)) {
       return runtimeFixedProps.get(property);
     }
@@ -52,7 +51,7 @@ public class SystemConfiguration extends ZooBasedConfiguration {
 
     if (value == null || !property.getType().isValidFormat(value)) {
       if (value != null) {
-        log.error("Using parent value for {} due to improperly formatted {}: {}", key,
+        LOG.error("Using parent value for {} due to improperly formatted {}: {}", key,
             property.getType(), value);
       }
       value = getParent().get(property);
@@ -66,10 +65,6 @@ public class SystemConfiguration extends ZooBasedConfiguration {
       return runtimeFixedProps.wasPropertySet(prop);
     }
     return super.isPropertySet(prop);
-  }
-
-  RuntimeFixedProperties getRuntimeFixedProperties() {
-    return runtimeFixedProps;
   }
 
 }
