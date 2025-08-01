@@ -1417,7 +1417,7 @@ public enum Property {
           + " When setting this to 'enable' must also set erasure.code.policy and that policy will "
           + "always be used regardless of DFS directory settings.  When set to 'disable', replication "
           + "will always be used regardless of DFS directory settings.  When set to 'inherit' "
-          + "the settings from the directory in dfs will be used. Enabling erasure coding on volume "
+          + "the settings from the directory in dfs will be used. Enabling erasure coding on a volume "
           + "that does not support it is a noop.",
       "2.1.4"),
 
