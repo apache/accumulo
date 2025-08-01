@@ -23,12 +23,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService.Client;
 import org.apache.accumulo.core.util.Pair;
-import org.apache.thrift.TApplicationException;
-import org.apache.thrift.TException;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,8 +47,7 @@ public class TabletManagementClientServiceThriftClient extends ThriftClientTypes
 
   @Override
   public Pair<String,Client> getThriftServerConnection(ClientContext context,
-      boolean preferCachedConnections)
-      throws ThriftSecurityException, TApplicationException, TTransportException, TException {
+      boolean preferCachedConnections) throws TTransportException {
     return getThriftServerConnection(LOG, this, context, preferCachedConnections,
         warnedAboutTServersBeingDown, ThriftService.TABLET_MANAGEMENT);
   }

@@ -27,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.accumulo.core.Constants;
@@ -41,6 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -82,30 +84,6 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   }
 
   @Test
-  public void testConfigurationDoesntExist() throws Exception {
-    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      final ResourceGroupOperations rgOps = client.resourceGroupOperations();
-      assertThrows(ResourceGroupNotFoundException.class,
-          () -> rgOps.getConfiguration(ResourceGroupId.of("INVALID")));
-    }
-  }
-
-  @Test
-  public void testConfigurationNoServers() throws Exception {
-    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
-      final ResourceGroupOperations rgOps = client.resourceGroupOperations();
-      final ResourceGroupId rgid = ResourceGroupId.of("FAKE");
-      rgOps.create(rgid);
-      AccumuloException ae =
-          assertThrows(AccumuloException.class, () -> rgOps.getConfiguration(rgid));
-      assertEquals(
-          "No running servers in resource group: " + rgid.canonical()
-              + ". Start a server or use zoo-info-viewer to see the resource group configuration.",
-          ae.getMessage());
-    }
-  }
-
-  @Test
   public void testConfiguration() throws Exception {
 
     final ResourceGroupId rgid = ResourceGroupId.of(RG);
@@ -142,25 +120,40 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       Wait.waitFor(() -> cc.getServerPaths()
           .getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true).size() == 1);
 
-      checkProperty(iops, rgOps, ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
+      checkProperty(iops, rgOps,
+          cc.getServerPaths().getCompactor(rg -> rg.equals(ResourceGroupId.DEFAULT),
+              AddressSelector.all(), true),
+          ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
           Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
-      checkProperty(iops, rgOps, ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
+      checkProperty(iops, rgOps,
+          cc.getServerPaths().getScanServer(rg -> rg.equals(ResourceGroupId.DEFAULT),
+              AddressSelector.all(), true),
+          ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
           Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
-      checkProperty(iops, rgOps, ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
+      checkProperty(iops, rgOps,
+          cc.getServerPaths().getTabletServer(rg -> rg.equals(ResourceGroupId.DEFAULT),
+              AddressSelector.all(), true),
+          ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
           Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
-      checkProperty(iops, rgOps, rgid, Property.COMPACTION_WARN_TIME, "1m",
+      checkProperty(iops, rgOps,
+          cc.getServerPaths().getCompactor(rg -> rg.equals(rgid), AddressSelector.all(), true),
+          rgid, Property.COMPACTION_WARN_TIME, "1m",
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
-      checkProperty(iops, rgOps, rgid, Property.COMPACTION_WARN_TIME, "1m",
+      checkProperty(iops, rgOps,
+          cc.getServerPaths().getScanServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
+          rgid, Property.COMPACTION_WARN_TIME, "1m",
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
-      checkProperty(iops, rgOps, rgid, Property.COMPACTION_WARN_TIME, "1m",
+      checkProperty(iops, rgOps,
+          cc.getServerPaths().getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
+          rgid, Property.COMPACTION_WARN_TIME, "1m",
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       // test error cases
@@ -186,9 +179,14 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   }
 
   private void checkProperty(InstanceOperations iops, ResourceGroupOperations ops,
-      ResourceGroupId group, Property property, String rgValue, String defaultValue)
+      Set<ServiceLockPath> locks, ResourceGroupId group, Property property, String rgValue,
+      String defaultValue)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
-    System.setProperty(TServerClient.DEBUG_RG, group.canonical());
+    assertEquals(1, locks.size());
+    ServiceLockPath slp = locks.iterator().next();
+    assertEquals(group, slp.getResourceGroup());
+    String serverAddr = slp.getServer();
+    System.setProperty(TServerClient.DEBUG_HOST, serverAddr);
     if (!group.equals(ResourceGroupId.DEFAULT)) {
       // validate property value for resource group
       Map<String,String> rgProps = ops.getProperties(group);
@@ -198,8 +196,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
     // validate proper merge
     Map<String,String> sysConfig = iops.getSystemConfiguration();
     assertEquals(defaultValue, sysConfig.get(property.getKey()));
-    System.clearProperty(TServerClient.DEBUG_RG);
-
+    System.clearProperty(TServerClient.DEBUG_HOST);
   }
 
 }
