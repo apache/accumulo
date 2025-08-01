@@ -282,11 +282,16 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
             break out;
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
-          if (!metric.getName().startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)) {
+          // When the tablet server flushes memory to disk that can cause metrics that may throw the
+          // test off, so only look for metrics from the compactor.
+          String process = metric.getTags().getOrDefault("process.name", "none");
+          if (!metric.getName().startsWith(MetricsProducer.METRICS_COMPACTOR_PREFIX)
+              || !process.equals("compactor")) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
-          log.debug("Found metric: {} with value: {}", metric.getName(), value);
+          log.debug("Found metric: {} {} with value: {}", metric.getName(), metric.getTags(),
+              value);
           switch (metric.getName()) {
             case MetricsProducer.METRICS_COMPACTOR_ENTRIES_READ:
               totalEntriesRead.addAndGet(value);
