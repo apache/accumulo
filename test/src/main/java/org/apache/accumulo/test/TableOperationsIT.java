@@ -841,6 +841,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
   @Test
   public void testUniquenessOfTableId() throws ExecutionException, InterruptedException {
+    List<Future<TableId>> futureList = new ArrayList<>();
+
     Set<TableId> hash = new HashSet<>();
 
     ExecutorService pool = Executors.newFixedThreadPool(64);
@@ -852,16 +854,21 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         TableId tableId = null;
 
         try {
-          tableId = Utils.getNextId("yes" + finalI, getServerContext(), TableId::of);
+          tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
         } catch (Exception e) {
-          System.out.println(e.getMessage());
+          e.printStackTrace();
         }
         return tableId;
       });
 
-      hash.add(future.get());
-
+      futureList.add(future);
     }
+
+    for (Future<TableId> tab : futureList) {
+      hash.add(tab.get());
+    }
+
+    pool.shutdown();
 
     assertEquals(1000, hash.size());
   }
