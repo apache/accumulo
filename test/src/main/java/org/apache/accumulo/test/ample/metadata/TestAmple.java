@@ -258,6 +258,32 @@ public class TestAmple {
       public void setServiceLock(ServiceLock lock) {
         context.setServiceLock(lock);
       }
+
+      @Override
+      public java.util.function.Supplier<ConditionalWriter> getSharedMetadataWriter() {
+        return () -> {
+          try {
+            return new ConditionalWriterDelegator(
+                createConditionalWriter(ample.tables.get(Ample.DataLevel.METADATA)),
+                ample.cwInterceptor.get());
+          } catch (TableNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        };
+      }
+
+      @Override
+      public java.util.function.Supplier<ConditionalWriter> getSharedUserWriter() {
+        return () -> {
+          try {
+            return new ConditionalWriterDelegator(
+                createConditionalWriter(ample.tables.get(Ample.DataLevel.USER)),
+                ample.cwInterceptor.get());
+          } catch (TableNotFoundException e) {
+            throw new RuntimeException(e);
+          }
+        };
+      }
     };
   }
 
