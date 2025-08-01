@@ -20,6 +20,7 @@ package org.apache.accumulo.core.clientImpl;
 
 import static com.google.common.base.Preconditions.checkArgument;
 
+import java.io.UncheckedIOException;
 import java.time.Duration;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -39,11 +40,13 @@ import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftResourceGroupNotExistsException;
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfigurationError;
 import org.apache.accumulo.core.util.Retry;
+import org.apache.thrift.TException;
 import org.slf4j.LoggerFactory;
 
 public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
@@ -57,6 +60,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public boolean exists(String group) {
+    checkArgument(group != null, "group argument must be supplied");
     ResourceGroupId rg = ResourceGroupId.of(group);
     return context.getZooCache().get(Constants.ZRESOURCEGROUPS + "/" + rg.canonical()) != null;
   }
@@ -74,6 +78,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   @Override
   public void create(ResourceGroupId group) throws AccumuloException, AccumuloSecurityException {
+    checkArgument(group != null, "group argument must be supplied");
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .createResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
   }
@@ -81,16 +86,39 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public Map<String,String> getConfiguration(ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    checkArgument(group != null, "group argument must be supplied");
+
     Map<String,String> config = new HashMap<>();
-    config.putAll(ThriftClientTypes.CLIENT.execute(context, client -> client
-        .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.PROCESS)));
-    config.putAll(getProperties(group));
+    final String old = System.getProperty(TServerClient.DEBUG_RG);
+
+    try {
+      System.setProperty(TServerClient.DEBUG_RG, group.canonical());
+      config.putAll(ThriftClientTypes.CLIENT.execute(context, client -> client
+          .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.PROCESS)));
+    } catch (AccumuloException e) {
+      if (e.getCause() instanceof TException
+          && e.getCause().getCause() instanceof ResourceGroupNotFoundException) {
+        throw new ResourceGroupNotFoundException(group.canonical());
+      }
+    } catch (UncheckedIOException e) {
+      throw new AccumuloException(
+          "No running servers in resource group: " + group
+              + ". Start a server or use zoo-info-viewer to see the resource group configuration.",
+          e);
+    } finally {
+      if (old == null) {
+        System.clearProperty(TServerClient.DEBUG_RG);
+      } else {
+        System.setProperty(TServerClient.DEBUG_RG, old);
+      }
+    }
     return Map.copyOf(config);
   }
 
   @Override
   public Map<String,String> getProperties(ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    checkArgument(group != null, "group argument must be supplied");
     try {
       TVersionedProperties rgProps = ThriftClientTypes.CLIENT.execute(context,
           client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
@@ -113,6 +141,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public void setProperty(ResourceGroupId group, String property, String value)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    checkArgument(group != null, "group argument must be supplied");
     checkArgument(property != null, "property is null");
     checkArgument(value != null, "value is null");
     DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
@@ -139,7 +168,6 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   private Map<String,String> tryToModifyProperties(final ResourceGroupId group,
       final Consumer<Map<String,String>> mapMutator) throws AccumuloException,
       AccumuloSecurityException, IllegalArgumentException, ResourceGroupNotFoundException {
-    checkArgument(mapMutator != null, "mapMutator is null");
 
     TVersionedProperties vProperties;
     try {
@@ -196,6 +224,8 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   public Map<String,String> modifyProperties(ResourceGroupId group,
       Consumer<Map<String,String>> mapMutator) throws AccumuloException, AccumuloSecurityException,
       IllegalArgumentException, ResourceGroupNotFoundException {
+    checkArgument(group != null, "group argument must be supplied");
+    checkArgument(mapMutator != null, "mapMutator is null");
 
     var log = LoggerFactory.getLogger(InstanceOperationsImpl.class);
 
@@ -225,6 +255,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public void removeProperty(ResourceGroupId group, String property)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    checkArgument(group != null, "group argument must be supplied");
     checkArgument(property != null, "property is null");
     DeprecatedPropertyUtil.getReplacementName(property, (log, replacement) -> {
       // force a warning on the client side, but send the name the user used to the server-side
@@ -250,6 +281,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   @Override
   public void remove(ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    checkArgument(group != null, "group argument must be supplied");
     try {
       ThriftClientTypes.MANAGER.executeVoid(context, client -> client
           .removeResourceGroupNode(TraceUtil.traceInfo(), context.rpcCreds(), group.canonical()));
