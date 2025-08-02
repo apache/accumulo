@@ -38,6 +38,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.Exec;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes.ExecVoid;
@@ -64,7 +65,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   private void executeVoid(ExecVoid<ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client));
+      ThriftClientTypes.CLIENT.executeVoid(context, client -> exec.execute(client),
+          ResourceGroupId.ANY);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
@@ -101,7 +103,8 @@ public class SecurityOperationsImpl implements SecurityOperations {
   private <R> R execute(Exec<R,ClientService.Client> exec)
       throws AccumuloException, AccumuloSecurityException {
     try {
-      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client));
+      return ThriftClientTypes.CLIENT.execute(context, client -> exec.execute(client),
+          ResourceGroupId.ANY);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {

@@ -655,7 +655,8 @@ public class Admin implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo),
+        ResourceGroupId.DEFAULT);
   }
 
   private static void stopServers(final ServerContext context, List<String> servers,
@@ -758,7 +759,8 @@ public class Admin implements KeywordExecutable {
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
+            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force),
+            ResourceGroupId.DEFAULT);
       }
     }
   }

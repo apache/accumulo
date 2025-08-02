@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -85,9 +86,11 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
       // wait for tablet assignment
       Wait.waitFor(() -> {
-        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
+        ManagerMonitorInfo stats =
+            ThriftClientTypes.MANAGER.execute(context,
+                client -> client.getManagerStats(TraceUtil.traceInfo(),
+                    creds.toThrift(c.instanceOperations().getInstanceId())),
+                ResourceGroupId.DEFAULT);
         int unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
@@ -100,9 +103,11 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
       // wait for tablets to be balanced
       Wait.waitFor(() -> {
-        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
-            client -> client.getManagerStats(TraceUtil.traceInfo(),
-                creds.toThrift(c.instanceOperations().getInstanceId())));
+        ManagerMonitorInfo stats =
+            ThriftClientTypes.MANAGER.execute(context,
+                client -> client.getManagerStats(TraceUtil.traceInfo(),
+                    creds.toThrift(c.instanceOperations().getInstanceId())),
+                ResourceGroupId.DEFAULT);
 
         List<Integer> counts = new ArrayList<>();
         for (TabletServerStatus server : stats.tServerInfo) {

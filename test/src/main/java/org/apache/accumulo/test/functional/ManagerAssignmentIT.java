@@ -456,7 +456,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   public static List<TabletStats> getTabletStats(AccumuloClient c, String tableId)
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.TABLET_SERVER.execute((ClientContext) c, client -> client
-        .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
+        .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId),
+        ResourceGroupId.ANY);
   }
 
   @Test
@@ -534,7 +535,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       try {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
+                getCluster().getServerContext().rpcCreds(), finalAddress, false),
+            ResourceGroupId.DEFAULT);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }
@@ -585,7 +587,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       try {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
+                getCluster().getServerContext().rpcCreds(), finalAddress, false),
+            ResourceGroupId.DEFAULT);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }

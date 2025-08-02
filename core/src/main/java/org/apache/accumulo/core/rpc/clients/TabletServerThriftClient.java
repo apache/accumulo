@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService.Client;
 import org.apache.accumulo.core.util.Pair;
@@ -46,21 +47,21 @@ public class TabletServerThriftClient extends ThriftClientTypes<Client>
 
   @Override
   public Pair<String,Client> getThriftServerConnection(ClientContext context,
-      boolean preferCachedConnections) throws TTransportException {
+      boolean preferCachedConnections, ResourceGroupId rgid) throws TTransportException {
     return getThriftServerConnection(LOG, this, context, preferCachedConnections,
-        warnedAboutTServersBeingDown, ThriftService.TSERV);
+        warnedAboutTServersBeingDown, ThriftService.TSERV, rgid);
   }
 
   @Override
-  public <R> R execute(ClientContext context, Exec<R,Client> exec)
+  public <R> R execute(ClientContext context, Exec<R,Client> exec, ResourceGroupId rgid)
       throws AccumuloException, AccumuloSecurityException {
-    return execute(LOG, context, exec);
+    return execute(LOG, context, exec, rgid);
   }
 
   @Override
-  public void executeVoid(ClientContext context, ExecVoid<Client> exec)
+  public void executeVoid(ClientContext context, ExecVoid<Client> exec, ResourceGroupId rgid)
       throws AccumuloException, AccumuloSecurityException {
-    executeVoid(LOG, context, exec);
+    executeVoid(LOG, context, exec, rgid);
   }
 
 }
