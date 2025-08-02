@@ -95,13 +95,9 @@ public class ImportTable extends ManagerRepo {
 
     // assuming only the manager process is creating tables
 
-    Utils.getIdLock().lock();
-    try {
-      tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), TableId::of);
-      return new ImportSetupPermissions(tableInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    tableInfo.tableId = Utils.getNextId(tableInfo.tableName, env.getContext(), TableId::of);
+    return new ImportSetupPermissions(tableInfo);
+
   }
 
   @SuppressFBWarnings(value = "OS_OPEN_STREAM",

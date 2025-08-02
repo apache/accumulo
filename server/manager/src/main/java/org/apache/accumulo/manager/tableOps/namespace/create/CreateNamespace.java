@@ -46,14 +46,9 @@ public class CreateNamespace extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
-    Utils.getIdLock().lock();
-    try {
-      namespaceInfo.namespaceId =
-          Utils.getNextId(namespaceInfo.namespaceName, manager.getContext(), NamespaceId::of);
-      return new SetupNamespacePermissions(namespaceInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    namespaceInfo.namespaceId =
+        Utils.getNextId(namespaceInfo.namespaceName, manager.getContext(), NamespaceId::of);
+    return new SetupNamespacePermissions(namespaceInfo);
 
   }
 

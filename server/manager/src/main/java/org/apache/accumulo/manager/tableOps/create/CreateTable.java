@@ -79,14 +79,9 @@ public class CreateTable extends ManagerRepo {
 
     // assuming only the manager process is creating tables
 
-    Utils.getIdLock().lock();
-    try {
-      String tName = tableInfo.getTableName();
-      tableInfo.setTableId(Utils.getNextId(tName, manager.getContext(), TableId::of));
-      return new SetupPermissions(tableInfo);
-    } finally {
-      Utils.getIdLock().unlock();
-    }
+    String tName = tableInfo.getTableName();
+    tableInfo.setTableId(Utils.getNextId(tName, manager.getContext(), TableId::of));
+    return new SetupPermissions(tableInfo);
   }
 
   @Override
