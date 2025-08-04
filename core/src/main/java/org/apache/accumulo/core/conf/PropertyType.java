@@ -175,7 +175,9 @@ public enum PropertyType {
           + "5. no fate operations are repeated."),
   FATE_THREADPOOL_SIZE("(deprecated) Manager FATE thread pool size", new FateThreadPoolSize(),
       "No format check. Allows any value to be set but will warn the user that the"
-          + " property is no longer used.");
+          + " property is no longer used."),
+  EC("erasurecode", in(false, "enable", "disable", "inherit"),
+      "One of 'enable','disable','inherit'.");
 
   private final String shortname;
   private final String format;

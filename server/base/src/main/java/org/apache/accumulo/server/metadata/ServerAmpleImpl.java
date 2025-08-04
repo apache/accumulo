@@ -46,6 +46,7 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.AmpleImpl;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.BlipSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
@@ -92,14 +93,16 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public ConditionalTabletsMutator conditionallyMutateTablets() {
-    return new ConditionalTabletsMutatorImpl(context, getTableMapper());
+    return new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+        context.getSharedMetadataWriter(), context.getSharedUserWriter());
   }
 
   @Override
   public AsyncConditionalTabletsMutator
       conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
     return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
-        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper()));
+        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+            context.getSharedMetadataWriter(), context.getSharedUserWriter()));
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {

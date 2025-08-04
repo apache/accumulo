@@ -225,7 +225,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
       String oldTestBuildData =
           System.setProperty("test.build.data", dfs.toAbsolutePath().toString());
-      miniDFS.set(new MiniDFSCluster.Builder(conf).build());
+      miniDFS.set(new MiniDFSCluster.Builder(conf).numDataNodes(config.getNumDataNodes()).build());
       if (oldTestBuildData == null) {
         System.clearProperty("test.build.data");
       } else {

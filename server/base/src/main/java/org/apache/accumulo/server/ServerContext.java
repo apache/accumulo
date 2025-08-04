@@ -42,6 +42,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.core.clientImpl.ThriftTransportPool;
@@ -56,6 +59,7 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.SslConnectionParams;
 import org.apache.accumulo.core.spi.crypto.CryptoServiceFactory;
@@ -108,9 +112,12 @@ public class ServerContext extends ClientContext {
   private final Supplier<LowMemoryDetector> lowMemoryDetector;
   private final AtomicReference<ServiceLock> serverLock = new AtomicReference<>();
   private final Supplier<MetricsInfo> metricsInfoSupplier;
+  private final Supplier<ConditionalWriter> sharedMetadataWriter;
+  private final Supplier<ConditionalWriter> sharedUserWriter;
 
   private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
   private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedWritersCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig), ResourceGroupId.DEFAULT);
@@ -144,6 +151,9 @@ public class ServerContext extends ClientContext {
             SecurityOperation.getAuthenticator(this), SecurityOperation.getPermHandler(this)));
     lowMemoryDetector = memoize(() -> new LowMemoryDetector());
     metricsInfoSupplier = memoize(() -> new MetricsInfoImpl(this));
+
+    sharedMetadataWriter = memoize(() -> createSharedConditionalWriter(DataLevel.METADATA));
+    sharedUserWriter = memoize(() -> createSharedConditionalWriter(DataLevel.USER));
   }
 
   /**
@@ -490,6 +500,29 @@ public class ServerContext extends ClientContext {
     return metricsInfoSupplier.get();
   }
 
+  private ConditionalWriter createSharedConditionalWriter(DataLevel level) {
+    try {
+      int maxThreads =
+          getConfiguration().getCount(Property.GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX);
+      var config = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+      String tableName = level.metaTable();
+      log.info("Creating shared ConditionalWriter for DataLevel {} with max threads: {}", level,
+          maxThreads);
+      sharedWritersCreated.set(true);
+      return createConditionalWriter(tableName, config);
+    } catch (TableNotFoundException e) {
+      throw new RuntimeException("Failed to create shared ConditionalWriter for level " + level, e);
+    }
+  }
+
+  public Supplier<ConditionalWriter> getSharedMetadataWriter() {
+    return sharedMetadataWriter;
+  }
+
+  public Supplier<ConditionalWriter> getSharedUserWriter() {
+    return sharedUserWriter;
+  }
+
   @Override
   public void close() {
     Preconditions.checkState(!isClosed(), "ServerContext.close was already called.");
@@ -498,6 +531,25 @@ public class ServerContext extends ClientContext {
     }
     if (sharedSchedExecutorCreated.get()) {
       getScheduledExecutor().shutdownNow();
+    }
+    if (sharedWritersCreated.get()) {
+      try {
+        ConditionalWriter writer = sharedMetadataWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      } catch (Exception e) {
+        log.warn("Error closing shared metadata ConditionalWriter", e);
+      }
+
+      try {
+        ConditionalWriter writer = sharedUserWriter.get();
+        if (writer != null) {
+          writer.close();
+        }
+      } catch (Exception e) {
+        log.warn("Error closing shared user ConditionalWriter", e);
+      }
     }
     super.close();
   }
