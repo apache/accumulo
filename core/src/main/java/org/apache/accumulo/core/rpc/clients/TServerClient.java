@@ -74,24 +74,26 @@ public interface TServerClient<C extends TServiceClient> {
     checkArgument(context != null, "context is null");
 
     final String debugHost = System.getProperty(DEBUG_HOST, null);
+    final boolean debugHostSpecified = debugHost != null;
     final String debugRG = System.getProperty(DEBUG_RG, null);
+    final boolean debugRGSpecified = debugRG != null;
+    final ResourceGroupId debugRGid = debugRGSpecified ? ResourceGroupId.of(debugRG) : null;
 
-    if (debugHost != null && debugRG != null) {
+    if (debugHostSpecified && debugRGSpecified) {
       LOG.warn("System properties {} and {} are both set. If set incorrectly then"
           + " this client may not find a server to connect to.", DEBUG_HOST, DEBUG_RG);
     }
 
-    if (debugRG != null) {
+    if (debugRGSpecified) {
       if (type == ThriftClientTypes.CLIENT || type == ThriftClientTypes.COMPACTOR
           || type == ThriftClientTypes.SERVER_PROCESS || type == ThriftClientTypes.TABLET_INGEST
           || type == ThriftClientTypes.TABLET_MGMT || type == ThriftClientTypes.TABLET_SCAN
           || type == ThriftClientTypes.TABLET_SERVER) {
-        final ResourceGroupId dgid = ResourceGroupId.of(debugRG);
-        if (rgp.test(dgid)) {
+        if (rgp.test(debugRGid)) {
           // its safe to potentially narrow the predicate
           LOG.debug("System property '{}' set to '{}' overriding predicate argument", DEBUG_RG,
               debugRG);
-          rgp = r -> r.equals(dgid);
+          rgp = r -> r.equals(debugRGid);
         } else {
           LOG.warn("System property '{}' set to '{}' does not intersect with predicate argument."
               + " Ignoring degug system property.", DEBUG_RG, debugRG);
@@ -103,7 +105,7 @@ public interface TServerClient<C extends TServiceClient> {
       }
     }
 
-    if (preferCachedConnections && debugHost == null) {
+    if (preferCachedConnections && !debugHostSpecified && !debugRGSpecified) {
       Pair<String,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type);
       if (cachedTransport != null) {
@@ -118,7 +120,7 @@ public interface TServerClient<C extends TServiceClient> {
     final ServiceLockPaths sp = context.getServerPaths();
     final List<ServiceLockPath> serverPaths = new ArrayList<>();
 
-    if (type == ThriftClientTypes.CLIENT && debugHost != null) {
+    if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
       // add all three paths to the set even though they may not be correct.
       // The entire set will be checked in the code below to validate
       // that the path is correct and the lock is held and will return the
@@ -142,7 +144,7 @@ public interface TServerClient<C extends TServiceClient> {
         // If the user set the system property for the resource group, then don't throw
         // a TTransportException here. That will cause the call to be continuously retried.
         // Instead, let this continue so that we can throw a different error below.
-        if (debugRG == null) {
+        if (!debugRGSpecified) {
           throw new TTransportException("There are no servers for type: " + type);
         }
       }
@@ -159,18 +161,18 @@ public interface TServerClient<C extends TServiceClient> {
             TTransport transport = context.getTransportPool().getTransport(type,
                 tserverClientAddress, rpcTimeout, context, preferCachedConnections);
             C client = ThriftUtil.createClient(type, transport);
-            if (type == ThriftClientTypes.CLIENT && debugHost != null) {
+            if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
               LOG.info("Connecting to debug host: {}", debugHost);
             }
             warned.set(false);
             return new Pair<String,C>(tserverClientAddress.toString(), client);
           } catch (TTransportException e) {
-            if (type == ThriftClientTypes.CLIENT && debugHost != null) {
+            if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
               LOG.error(
                   "Error creating transport to debug host: {}. If this server is"
                       + " down, then you will need to remove or change the system property {}.",
                   debugHost, DEBUG_HOST);
-            } else if (debugRG != null && rgp.test(ResourceGroupId.of(debugRG))) {
+            } else if (debugRGSpecified && rgp.test(debugRGid)) {
               LOG.error(
                   "Error creating transport to debug group: {}. If all servers are"
                       + " down, then you will need to remove or change the system property {}.",
@@ -190,11 +192,11 @@ public interface TServerClient<C extends TServiceClient> {
     }
     // Need to throw a different exception, when a TTransportException is
     // thrown below, then the operation will be retried endlessly.
-    if (type == ThriftClientTypes.CLIENT && debugHost != null) {
+    if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
       throw new UncheckedIOException("Error creating transport to debug host: " + debugHost
           + ". If this server is down, then you will need to remove or change the system property "
           + DEBUG_HOST + ".", new IOException(""));
-    } else if (debugRG != null && rgp.test(ResourceGroupId.of(debugRG))) {
+    } else if (debugRGSpecified && rgp.test(debugRGid)) {
       throw new UncheckedIOException("Error creating transport to debug group: " + debugRG
           + ". If all servers are down, then you will need to remove or change the system property "
           + DEBUG_RG + ".", new IOException(""));
