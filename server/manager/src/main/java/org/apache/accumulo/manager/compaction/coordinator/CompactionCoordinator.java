@@ -691,7 +691,7 @@ public class CompactionCoordinator
     });
 
     Map<String,String> overrides = CompactionPluginUtils.computeOverrides(compactionConfig, ctx,
-        rcJob.getExtent(), rcJob.getFiles(), selectedFiles);
+        rcJob.getExtent(), rcJob.getFiles(), selectedFiles, ecm.getCompactTmpName());
 
     IteratorConfig iteratorSettings = SystemIteratorUtil
         .toIteratorConfig(compactionConfig.map(CompactionConfig::getIterators).orElse(List.of()));

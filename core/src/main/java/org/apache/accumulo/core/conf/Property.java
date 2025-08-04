@@ -1226,6 +1226,20 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
+  TABLE_ENABLE_ERASURE_CODES("table.file.ec", "inherit", PropertyType.EC,
+      "This determines if Accumulo will manage erasure codes on a table."
+          + " When setting this to 'enable' must also set erasure.code.policy and that policy will "
+          + "always be used regardless of DFS directory settings.  When set to 'disable', replication "
+          + "will always be used regardless of DFS directory settings.  When set to 'inherit' "
+          + "the settings from the directory in dfs will be used. Enabling erasure coding on a volume "
+          + "that does not support it is a noop.",
+      "2.1.4"),
+
+  TABLE_ERASURE_CODE_POLICY("table.file.ec.policy", "", PropertyType.STRING,
+      "The name of the erasure code policy to be used.  Policy must be available and enabled in hdfs.  "
+          + "To view if policy is enabled check hdfs ec -listPolicies.  This setting is only used when "
+          + "table.file.ec is set to enable.",
+      "2.1.4"),
   // Compactor properties
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
