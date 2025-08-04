@@ -853,11 +853,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Future<TableId> future = pool.submit(() -> {
         TableId tableId = null;
 
-        try {
-          tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
-        } catch (Exception e) {
-          e.printStackTrace();
-        }
+        tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
+
         return tableId;
       });
 
