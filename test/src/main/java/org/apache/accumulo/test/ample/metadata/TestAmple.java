@@ -259,30 +259,36 @@ public class TestAmple {
         context.setServiceLock(lock);
       }
 
+      private final java.util.function.Supplier<ConditionalWriter> sharedMetadataWriter =
+          Suppliers.memoize(() -> {
+            try {
+              return new ConditionalWriterDelegator(
+                  createConditionalWriter(ample.tables.get(Ample.DataLevel.METADATA)),
+                  ample.cwInterceptor.get());
+            } catch (TableNotFoundException e) {
+              throw new RuntimeException(e);
+            }
+          });
+
+      private final java.util.function.Supplier<ConditionalWriter> sharedUserWriter =
+          Suppliers.memoize(() -> {
+            try {
+              return new ConditionalWriterDelegator(
+                  createConditionalWriter(ample.tables.get(Ample.DataLevel.USER)),
+                  ample.cwInterceptor.get());
+            } catch (TableNotFoundException e) {
+              throw new RuntimeException(e);
+            }
+          });
+
       @Override
       public java.util.function.Supplier<ConditionalWriter> getSharedMetadataWriter() {
-        return () -> {
-          try {
-            return new ConditionalWriterDelegator(
-                createConditionalWriter(ample.tables.get(Ample.DataLevel.METADATA)),
-                ample.cwInterceptor.get());
-          } catch (TableNotFoundException e) {
-            throw new RuntimeException(e);
-          }
-        };
+        return sharedMetadataWriter;
       }
 
       @Override
       public java.util.function.Supplier<ConditionalWriter> getSharedUserWriter() {
-        return () -> {
-          try {
-            return new ConditionalWriterDelegator(
-                createConditionalWriter(ample.tables.get(Ample.DataLevel.USER)),
-                ample.cwInterceptor.get());
-          } catch (TableNotFoundException e) {
-            throw new RuntimeException(e);
-          }
-        };
+        return sharedUserWriter;
       }
     };
   }
