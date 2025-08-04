@@ -107,7 +107,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value),
-        ResourceGroupId.DEFAULT);
+        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
     checkLocalityGroups(property);
   }
 
@@ -117,7 +117,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
         client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupId.ANY);
+        rgid -> true);
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -142,7 +142,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties),
-        ResourceGroupId.DEFAULT);
+        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
 
     return vProperties.getProperties();
   }
@@ -189,7 +189,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property),
-        ResourceGroupId.DEFAULT);
+        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
     checkLocalityGroups(property);
   }
 
@@ -213,7 +213,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT),
-        ResourceGroupId.ANY);
+        rgid -> true);
   }
 
   @Override
@@ -221,7 +221,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SITE),
-        ResourceGroupId.ANY);
+        rgid -> true);
   }
 
   @Override
@@ -229,7 +229,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context,
         client -> client.getSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupId.ANY);
+        rgid -> true);
   }
 
   @Override
@@ -331,7 +331,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName),
-        ResourceGroupId.ANY);
+        rgid -> true);
   }
 
   @Override
@@ -465,7 +465,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void waitForBalance() throws AccumuloException {
     try {
       ThriftClientTypes.MANAGER.executeVoid(context,
-          client -> client.waitForBalance(TraceUtil.traceInfo()), ResourceGroupId.DEFAULT);
+          client -> client.waitForBalance(TraceUtil.traceInfo()),
+          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new IllegalStateException("Unexpected exception thrown", ex);
@@ -482,7 +483,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Duration getManagerTime() throws AccumuloException, AccumuloSecurityException {
     return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupId.DEFAULT));
+        rgid -> rgid.equals(ResourceGroupId.DEFAULT)));
   }
 
   @Override

@@ -33,18 +33,10 @@ public class ResourceGroupId extends AbstractId<ResourceGroupId> {
   static final Cache<String,ResourceGroupId> cache = Caches.getInstance()
       .createNewBuilder(CacheName.RESOURCE_GROUP_ID, false).weakValues().build();
 
-  public static final ResourceGroupId ANY = new ResourceGroupId();
-
   public static final ResourceGroupId DEFAULT =
       ResourceGroupId.of(Constants.DEFAULT_RESOURCE_GROUP_NAME);
 
   private static final long serialVersionUID = 1L;
-
-  // Used only to instantiate the ANY constant.
-  // Not validated and not cached.
-  private ResourceGroupId() {
-    super("");
-  }
 
   private ResourceGroupId(String canonical) {
     super(canonical);

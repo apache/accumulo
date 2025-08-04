@@ -86,11 +86,10 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
       // wait for tablet assignment
       Wait.waitFor(() -> {
-        ManagerMonitorInfo stats =
-            ThriftClientTypes.MANAGER.execute(context,
-                client -> client.getManagerStats(TraceUtil.traceInfo(),
-                    creds.toThrift(c.instanceOperations().getInstanceId())),
-                ResourceGroupId.DEFAULT);
+        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerStats(TraceUtil.traceInfo(),
+                creds.toThrift(c.instanceOperations().getInstanceId())),
+            rgid -> rgid.equals(ResourceGroupId.DEFAULT));
         int unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
@@ -103,11 +102,10 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
 
       // wait for tablets to be balanced
       Wait.waitFor(() -> {
-        ManagerMonitorInfo stats =
-            ThriftClientTypes.MANAGER.execute(context,
-                client -> client.getManagerStats(TraceUtil.traceInfo(),
-                    creds.toThrift(c.instanceOperations().getInstanceId())),
-                ResourceGroupId.DEFAULT);
+        ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
+            client -> client.getManagerStats(TraceUtil.traceInfo(),
+                creds.toThrift(c.instanceOperations().getInstanceId())),
+            rgid -> rgid.equals(ResourceGroupId.DEFAULT));
 
         List<Integer> counts = new ArrayList<>();
         for (TabletServerStatus server : stats.tServerInfo) {

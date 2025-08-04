@@ -310,7 +310,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
             log.info("Sending shutdown command to {} via ManagerClientService", ts);
             client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
-          }, ResourceGroupId.DEFAULT);
+          }, rgid -> rgid.equals(ResourceGroupId.DEFAULT));
         } catch (AccumuloSecurityException | AccumuloException e) {
           throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
         }

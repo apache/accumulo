@@ -46,7 +46,7 @@ public class ListBulkCommand extends Command {
     ClientContext context = shellState.getContext();
     ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupId.DEFAULT);
+        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
 
     final boolean paginate = !cl.hasOption(disablePaginationOpt.getOpt());
 

@@ -41,7 +41,7 @@ public class GetManagerStats {
     var context = new ServerContext(SiteConfiguration.auto());
     stats = ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupId.DEFAULT);
+        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
     if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {

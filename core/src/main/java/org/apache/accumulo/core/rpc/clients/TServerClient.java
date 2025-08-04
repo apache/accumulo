@@ -66,11 +66,11 @@ public interface TServerClient<C extends TServiceClient> {
   static final String DEBUG_RG = "org.apache.accumulo.client.rpc.debug.group";
 
   Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections,
-      ResourceGroupId rgid) throws TTransportException;
+      ResourceGroupPredicate rgp) throws TTransportException;
 
   default Pair<String,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned,
-      ThriftService service, ResourceGroupId rgid) throws TTransportException {
+      ThriftService service, ResourceGroupPredicate rgp) throws TTransportException {
     checkArgument(context != null, "context is null");
 
     final String debugHost = System.getProperty(DEBUG_HOST, null);
@@ -81,15 +81,21 @@ public interface TServerClient<C extends TServiceClient> {
           + " this client may not find a server to connect to.", DEBUG_HOST, DEBUG_RG);
     }
 
-    ResourceGroupPredicate rgp = rgid == ResourceGroupId.ANY ? r -> true : r -> r.equals(rgid);
-    if (debugRG != null && !rgid.canonical().equals(debugRG)) {
+    if (debugRG != null) {
       if (type == ThriftClientTypes.CLIENT || type == ThriftClientTypes.COMPACTOR
           || type == ThriftClientTypes.SERVER_PROCESS || type == ThriftClientTypes.TABLET_INGEST
           || type == ThriftClientTypes.TABLET_MGMT || type == ThriftClientTypes.TABLET_SCAN
           || type == ThriftClientTypes.TABLET_SERVER) {
-        LOG.debug("System property '{}' set to '{}' overriding group argument '{}'", DEBUG_RG,
-            debugRG, rgid);
-        rgp = r -> r.canonical().equals(debugRG);
+        final ResourceGroupId dgid = ResourceGroupId.of(debugRG);
+        if (rgp.test(dgid)) {
+          // its safe to potentially narrow the predicate
+          LOG.debug("System property '{}' set to '{}' overriding predicate argument", DEBUG_RG,
+              debugRG);
+          rgp = r -> r.equals(dgid);
+        } else {
+          LOG.warn("System property '{}' set to '{}' does not intersect with predicate argument."
+              + " Ignoring degug system property.", DEBUG_RG, debugRG);
+        }
       } else {
         LOG.debug(
             "System property '{}' set to '{}' but ignored when making RPCs to management servers",
@@ -197,13 +203,13 @@ public interface TServerClient<C extends TServiceClient> {
     }
   }
 
-  default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec, ResourceGroupId rgid)
-      throws AccumuloException, AccumuloSecurityException {
+  default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec,
+      ResourceGroupPredicate rgp) throws AccumuloException, AccumuloSecurityException {
     while (true) {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true, rgid);
+        Pair<String,C> pair = getThriftServerConnection(context, true, rgp);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -238,12 +244,12 @@ public interface TServerClient<C extends TServiceClient> {
   }
 
   default void executeVoid(Logger LOG, ClientContext context, ExecVoid<C> exec,
-      ResourceGroupId rgid) throws AccumuloException, AccumuloSecurityException {
+      ResourceGroupPredicate rgp) throws AccumuloException, AccumuloSecurityException {
     while (true) {
       String server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true, rgid);
+        Pair<String,C> pair = getThriftServerConnection(context, true, rgp);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);

@@ -1155,7 +1155,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       ClientContext context = (ClientContext) c;
       return ThriftClientTypes.MANAGER.execute(context,
           client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-          ResourceGroupId.DEFAULT);
+          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
     }
   }
 

@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -486,7 +485,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     ServerContext ctx = getCluster().getServerContext();
     return ThriftClientTypes.CLIENT.execute(ctx,
         client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()),
-        ResourceGroupId.ANY).getProperties();
+        rgid -> true).getProperties();
   }
 
   interface PropertyShim {
