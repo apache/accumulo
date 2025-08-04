@@ -148,6 +148,9 @@ public class RFileOperations extends FileOperations {
           builder = builder.syncBlock();
         }
 
+        // create parent directories if they do not exists
+        builder = builder.recursive();
+
         switch (ecEnable) {
           case ENABLE:
             String ecPolicyName =
