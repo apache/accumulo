@@ -401,7 +401,6 @@ public class ServiceStatusCmdTest {
     Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
     assertFalse(opts.showHosts);
-    assertFalse(opts.csv);
   }
 
 }

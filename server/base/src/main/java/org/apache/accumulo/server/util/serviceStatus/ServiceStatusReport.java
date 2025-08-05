@@ -22,7 +22,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -86,33 +85,6 @@ public class ServiceStatusReport {
 
   public static ServiceStatusReport fromJson(final String json) {
     return gson.fromJson(json, ServiceStatusReport.class);
-  }
-
-  public String toCsv() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("Service,Resource Group,Host Count,Hosts,Error Count\n");
-
-    for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
-      ReportKey reportKey = entry.getKey();
-      StatusSummary summary = entry.getValue();
-
-      if (summary == null || summary.getServiceByGroups() == null) {
-        continue;
-      }
-
-      Map<String,Set<String>> groupMap = summary.getServiceByGroups();
-      int errorCount = summary.getErrorCount();
-
-      for (Map.Entry<String,Set<String>> groupEntry : groupMap.entrySet()) {
-        String group = groupEntry.getKey();
-        Set<String> hosts = groupEntry.getValue();
-        String hostList = String.join(";", hosts);
-        sb.append(reportKey.name()).append(",").append(group).append(",").append(hosts.size())
-            .append(",").append(hostList).append(",").append(errorCount).append("\n");
-      }
-    }
-
-    return sb.toString();
   }
 
   public String report(final StringBuilder sb) {
