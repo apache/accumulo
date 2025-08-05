@@ -22,11 +22,11 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -111,9 +111,9 @@ public class ShellIT extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  private File config;
-  public LineReader reader;
-  public Terminal terminal;
+  private Path config;
+  private LineReader reader;
+  private Terminal terminal;
 
   void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
       throws IOException {
@@ -163,7 +163,7 @@ public class ShellIT extends SharedMiniClusterBase {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
     input = new StringInputStream();
-    config = Files.createTempFile(null, null).toFile();
+    config = Files.createTempFile(null, null);
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -175,10 +175,10 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @AfterEach
   public void teardownShell() {
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
+    try {
+      Files.deleteIfExists(config);
+    } catch (IOException e) {
+      log.error("Unable to delete {}", config, e);
     }
     shell.shutdown();
   }
@@ -500,7 +500,8 @@ public class ShellIT extends SharedMiniClusterBase {
 
     for (Property property : Property.values()) {
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
 
       // Skip test if we can't set this property via shell
       if (!Property.isValidZooPropertyKey(property.getKey())) {
@@ -513,6 +514,12 @@ public class ShellIT extends SharedMiniClusterBase {
         case PATH:
         case PREFIX:
         case STRING:
+        case FATE_THREADPOOL_SIZE:
+          // deprecated value
+        case FATE_META_CONFIG:
+          // json based type
+        case FATE_USER_CONFIG:
+          // json based type
         case JSON:
           Shell.log.debug("Skipping " + propertyType + " Property Types");
           continue;

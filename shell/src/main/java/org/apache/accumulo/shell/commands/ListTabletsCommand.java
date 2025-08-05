@@ -21,6 +21,7 @@ package org.apache.accumulo.shell.commands;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
@@ -31,7 +32,6 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletInformation;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -47,7 +47,7 @@ import com.google.common.annotations.VisibleForTesting;
 
 /**
  * Utility that generates single line tablet info. The output of this could be fed to sort, awk,
- * grep, etc. in order to answer questions like which tablets have the most files.
+ * grep, etc. to answer questions like which tablets have the most files.
  */
 public class ListTabletsCommand extends Command {
 
@@ -148,13 +148,13 @@ public class ListTabletsCommand extends Command {
       throws NamespaceNotFoundException {
 
     final TableOperations tableOps = shellState.getAccumuloClient().tableOperations();
-    var tableIdMap = tableOps.tableIdMap();
+    final Map<String,String> tableIdMap = tableOps.tableIdMap();
 
     Set<TableInfo> tableSet = new TreeSet<>();
 
     if (cl.hasOption(optTablePattern.getOpt())) {
       Pattern tablePattern = Pattern.compile(cl.getOptionValue(optTablePattern.getOpt()));
-      for (String table : tableOps.list()) {
+      for (String table : tableIdMap.keySet()) {
         if (tablePattern.matcher(table).matches()) {
           TableId id = TableId.of(tableIdMap.get(table));
           tableSet.add(new TableInfo(table, id));
@@ -165,17 +165,9 @@ public class ListTabletsCommand extends Command {
 
     if (cl.hasOption(optNamespace.getOpt())) {
       String nsName = cl.getOptionValue(optNamespace.getOpt());
-      NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(), nsName);
-      List<String> tables = Namespaces.getTableNames(shellState.getContext(), namespaceId);
-      tables.forEach(name -> {
-        String tableIdString = tableIdMap.get(name);
-        if (tableIdString != null) {
-          TableId id = TableId.of(tableIdString);
-          tableSet.add(new TableInfo(name, id));
-        } else {
-          Shell.log.warn("Table not found: {}", name);
-        }
-      });
+      NamespaceId namespaceId = shellState.getContext().getNamespaceId(nsName);
+      shellState.getContext().getTableMapping(namespaceId).createQualifiedNameToIdMap(nsName)
+          .forEach((name, id) -> tableSet.add(new TableInfo(name, id)));
       return tableSet;
     }
 

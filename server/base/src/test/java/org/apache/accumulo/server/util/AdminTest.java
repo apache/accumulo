@@ -45,12 +45,11 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.ClientContext;
-import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
@@ -71,33 +70,16 @@ import org.junit.jupiter.api.Test;
 public class AdminTest {
 
   @Test
-  public void testZooKeeperTserverPath() {
-    ClientContext context = createMock(ClientContext.class);
-    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
-
-    expect(context.getZooKeeperRoot()).andReturn(ZooUtil.getRoot(instanceId));
-
-    replay(context);
-
-    assertEquals(ZooUtil.getRoot(instanceId) + Constants.ZTSERVERS,
-        Admin.getTServersZkPath(context));
-
-    verify(context);
-  }
-
-  @Test
   public void testQualifySessionId() throws KeeperException, InterruptedException {
     ClientContext ctx = createMock(ClientContext.class);
     ZooCache zc = createMock(ZooCache.class);
-    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    String root = ZooUtil.getRoot(instanceId);
-    String type = root + Constants.ZTSERVERS;
+    String type = Constants.ZTSERVERS;
     String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
     final long session = 123456789L;
     ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), server, ThriftService.TABLET_SCAN,
-        Constants.DEFAULT_RESOURCE_GROUP_NAME);
+        ResourceGroupId.DEFAULT);
 
     String serverPath = group + "/" + server;
     String validZLockEphemeralNode = "zlock#" + UUID.randomUUID() + "#0000000000";
@@ -114,7 +96,7 @@ public class AdminTest {
           stat.setEphemeralOwner(session);
           return new byte[0];
         });
-    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(root, zc)).anyTimes();
+    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc)).anyTimes();
     replay(ctx, zc);
 
     assertEquals(server + "[" + Long.toHexString(session) + "]",
@@ -127,17 +109,15 @@ public class AdminTest {
   public void testCannotQualifySessionId() throws KeeperException, InterruptedException {
     ClientContext ctx = createMock(ClientContext.class);
     ZooCache zc = createMock(ZooCache.class);
-    InstanceId instanceId = InstanceId.of(UUID.randomUUID());
 
-    String root = ZooUtil.getRoot(instanceId);
-    String type = root + Constants.ZTSERVERS;
+    String type = Constants.ZTSERVERS;
     String group = type + "/" + Constants.DEFAULT_RESOURCE_GROUP_NAME;
     String server = "localhost:12345";
 
     String serverPath = group + "/" + server;
     expect(zc.getChildren(type)).andReturn(List.of(Constants.DEFAULT_RESOURCE_GROUP_NAME));
     expect(zc.getChildren(serverPath)).andReturn(Collections.emptyList());
-    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(root, zc)).anyTimes();
+    expect(ctx.getServerPaths()).andReturn(new ServiceLockPaths(zc)).anyTimes();
     replay(ctx, zc);
 
     // A server that isn't in ZooKeeper. Can't qualify it, should return the original

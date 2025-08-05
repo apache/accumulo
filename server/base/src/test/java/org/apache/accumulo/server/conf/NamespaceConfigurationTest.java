@@ -73,10 +73,12 @@ public class NamespaceConfigurationTest {
     parent = createMock(AccumuloConfiguration.class);
     reset(propStore);
 
-    var nsPropStoreKey = NamespacePropKey.of(iid, NSID);
+    var nsPropStoreKey = NamespacePropKey.of(NSID);
     expect(propStore.get(eq(nsPropStoreKey))).andReturn(new VersionedProperties(123, Instant.now(),
         Map.of(Property.INSTANCE_SECRET.getKey(), "sekrit"))).anyTimes();
     propStore.registerAsListener(eq(nsPropStoreKey), anyObject());
+    expectLastCall().anyTimes();
+    propStore.invalidate(nsPropStoreKey);
     expectLastCall().anyTimes();
 
     replay(propStore, context);
@@ -118,7 +120,7 @@ public class NamespaceConfigurationTest {
   @Test
   public void testGet_SkipParentIfAccumuloNS() {
     reset(propStore);
-    var nsPropKey = NamespacePropKey.of(iid, Namespace.ACCUMULO.id());
+    var nsPropKey = NamespacePropKey.of(Namespace.ACCUMULO.id());
     expect(propStore.get(eq(nsPropKey))).andReturn(new VersionedProperties(Map.of("a", "b")))
         .anyTimes();
     propStore.registerAsListener(eq(nsPropKey), anyObject());
@@ -142,7 +144,7 @@ public class NamespaceConfigurationTest {
     replay(parent);
     reset(propStore);
 
-    var nsPropKey = NamespacePropKey.of(iid, NSID);
+    var nsPropKey = NamespacePropKey.of(NSID);
     expect(propStore.get(eq(nsPropKey)))
         .andReturn(
             new VersionedProperties(123, Instant.now(), Map.of("foo", "bar", "tick", "tock")))

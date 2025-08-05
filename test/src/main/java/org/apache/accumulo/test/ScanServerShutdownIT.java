@@ -66,7 +66,7 @@ public class ScanServerShutdownIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.SSERV_SCAN_EXECUTORS_DEFAULT_THREADS, "1");
 
       // Set our custom implementation that shuts down after 3 batch scans
-      cfg.setServerClass(ServerType.SCAN_SERVER, SelfStoppingScanServer.class);
+      cfg.setServerClass(ServerType.SCAN_SERVER, rg -> SelfStoppingScanServer.class);
     }
   }
 

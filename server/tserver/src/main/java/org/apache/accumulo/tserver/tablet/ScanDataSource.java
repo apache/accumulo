@@ -47,7 +47,8 @@ import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.server.conf.TableConfiguration.ParsedIteratorConfig;
 import org.apache.accumulo.server.fs.FileManager.ScanFileManager;
-import org.apache.accumulo.server.iterators.TabletIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
+import org.apache.accumulo.server.iterators.SystemIteratorEnvironmentImpl;
 import org.apache.accumulo.tserver.InMemoryMap.MemoryIterator;
 import org.apache.accumulo.tserver.TabletServer;
 import org.apache.accumulo.tserver.scan.ScanParameters;
@@ -124,12 +125,17 @@ class ScanDataSource implements DataSource {
   @Override
   public SortedKeyValueIterator<Key,Value> iterator() throws IOException {
     if (iter == null) {
-      iter = createIterator();
+      try {
+        iter = createIterator();
+      } catch (ReflectiveOperationException e) {
+        throw new IOException("Error creating iterator", e);
+      }
     }
     return iter;
   }
 
-  private SortedKeyValueIterator<Key,Value> createIterator() throws IOException {
+  private SortedKeyValueIterator<Key,Value> createIterator()
+      throws IOException, ReflectiveOperationException {
 
     Map<StoredTabletFile,DataFileValue> files;
 
@@ -184,9 +190,15 @@ class ScanDataSource implements DataSource {
 
     MultiIterator multiIter = new MultiIterator(iters, tablet.getExtent());
 
-    TabletIteratorEnvironment iterEnv = new TabletIteratorEnvironment(tablet.getContext(),
-        IteratorScope.scan, tablet.getTableConfiguration(), tablet.getExtent().tableId(),
-        fileManager, files, scanParams.getAuthorizations(), samplerConfig, new ArrayList<>());
+    var builder = new SystemIteratorEnvironmentImpl.Builder(tablet.getContext())
+        .withTopLevelIterators(new ArrayList<>()).withScope(IteratorScope.scan)
+        .withTableId(tablet.getExtent().tableId())
+        .withAuthorizations(scanParams.getAuthorizations());
+    if (samplerConfig != null) {
+      builder.withSamplingEnabled();
+      builder.withSamplerConfiguration(samplerConfig.toSamplerConfiguration());
+    }
+    SystemIteratorEnvironment iterEnv = (SystemIteratorEnvironment) builder.build();
 
     statsIterator = new StatsIterator(multiIter, TabletServer.seekCount, tablet.getScannedCounter(),
         tablet.getScanMetrics().getScannedCounter());

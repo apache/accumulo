@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.time.Duration;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -31,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 public interface InstanceOperations {
 
@@ -177,7 +179,7 @@ public interface InstanceOperations {
    * {@link #getSystemConfiguration} for a merged view.
    *
    * @return A map of the system properties set in Zookeeper only.
-   * @since 3.1
+   * @since 4.0.0
    */
   Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
 
@@ -230,7 +232,7 @@ public interface InstanceOperations {
    * @return ServerId if found, else null
    * @since 4.0.0
    */
-  ServerId getServer(ServerId.Type type, String resourceGroup, String host, int port);
+  ServerId getServer(ServerId.Type type, ResourceGroupId resourceGroup, String host, int port);
 
   /**
    * Returns all servers of the given types. For the Manager, Monitor, and Garbage Collector, the
@@ -250,7 +252,7 @@ public interface InstanceOperations {
    * @return set of servers of the supplied type matching the supplied test
    * @since 4.0.0
    */
-  Set<ServerId> getServers(ServerId.Type type, Predicate<String> resourceGroupPredicate,
+  Set<ServerId> getServers(ServerId.Type type, Predicate<ResourceGroupId> resourceGroupPredicate,
       BiPredicate<String,Integer> hostPortPredicate);
 
   /**
@@ -357,4 +359,14 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   InstanceId getInstanceId();
+
+  /**
+   * Return the current manager time. This duration represents the amount of time an accumulo
+   * manager process has been running. The duration is persisted and should only increase over the
+   * lifetime of an Accumulo instance.
+   *
+   * @return current time
+   * @since 4.0.0
+   */
+  Duration getManagerTime() throws AccumuloException, AccumuloSecurityException;
 }

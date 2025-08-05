@@ -28,13 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.dataImpl.thrift.InitialMultiScan;
 import org.apache.accumulo.core.dataImpl.thrift.InitialScan;
 import org.apache.accumulo.core.dataImpl.thrift.IterInfo;
@@ -79,6 +80,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.manager.state.Assignment;
 import org.apache.accumulo.server.manager.state.TabletStateStore;
+import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.rpc.ThriftServerType;
@@ -313,10 +315,12 @@ public class NullTserver {
             TabletManagementClientService.Processor.class,
             TabletManagementClientService.Iface.class, tch, context));
 
-    TServerUtils.startTServer(context.getConfiguration(), ThriftServerType.CUSTOM_HS_HA,
-        muxProcessor, "NullTServer", "null tserver", 2, ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000,
-        10 * 1024 * 1024, null, null, -1, context.getConfiguration().getCount(Property.RPC_BACKLOG),
-        context.getMetricsInfo(), false, HostAndPort.fromParts("0.0.0.0", opts.port));
+    ServerAddress sa = TServerUtils.createThriftServer(context.getConfiguration(),
+        ThriftServerType.CUSTOM_HS_HA, muxProcessor, "NullTServer", 2,
+        ThreadPools.DEFAULT_TIMEOUT_MILLISECS, 1000, 10 * 1024 * 1024, null, null, -1,
+        context.getConfiguration().getCount(Property.RPC_BACKLOG), context.getMetricsInfo(), false,
+        HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, opts.port));
+    sa.startThriftServer("null tserver");
 
     AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
@@ -352,7 +356,7 @@ public class NullTserver {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
       ServiceLockData sld = new ServiceLockData(nullTServerUUID, "localhost", ThriftService.TSERV,
-          Constants.DEFAULT_RESOURCE_GROUP_NAME);
+          ResourceGroupId.DEFAULT);
       miniLock = new ServiceLock(zk, slp, UUID.randomUUID());
       miniLock.lock(miniLockWatcher, sld);
       context.setServiceLock(miniLock);

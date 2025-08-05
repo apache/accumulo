@@ -27,6 +27,7 @@ import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -53,10 +54,10 @@ public class ServiceStatusCmd {
    * Read the service statuses from ZooKeeper, build the status report and then output the report to
    * stdout.
    */
-  public void execute(final ServerContext context, final boolean json, final boolean noHosts) {
+  public void execute(final ServerContext context, final boolean json, final boolean showHosts) {
 
     if (LOG.isTraceEnabled()) {
-      LOG.trace("zooRoot: {}", context.getZooKeeperRoot());
+      LOG.trace("zooRoot: {}", ZooUtil.getRoot(context.getInstanceID()));
     }
 
     final Map<ServiceStatusReport.ReportKey,StatusSummary> services = new TreeMap<>();
@@ -68,7 +69,7 @@ public class ServiceStatusCmd {
     services.put(ServiceStatusReport.ReportKey.COMPACTOR, getCompactorStatus(context));
     services.put(ServiceStatusReport.ReportKey.GC, getGcStatus(context));
 
-    ServiceStatusReport report = new ServiceStatusReport(services, noHosts);
+    ServiceStatusReport report = new ServiceStatusReport(services, showHosts);
 
     if (json) {
       System.out.println(report.toJson());
@@ -110,8 +111,9 @@ public class ServiceStatusCmd {
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
         context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true);
-    compactors.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, hostsByGroups.keySet(),
         hostsByGroups, errors.get());
   }
@@ -127,8 +129,9 @@ public class ServiceStatusCmd {
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> scanServers =
         context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
-    scanServers.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
+    scanServers.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER, hostsByGroups.keySet(),
         hostsByGroups, errors.get());
   }
@@ -154,8 +157,9 @@ public class ServiceStatusCmd {
     final Map<String,Set<String>> hostsByGroups = new TreeMap<>();
     final Set<ServiceLockPath> compactors =
         context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true);
-    compactors.forEach(c -> hostsByGroups
-        .computeIfAbsent(c.getResourceGroup(), (k) -> new TreeSet<>()).add(c.getServer()));
+    compactors.forEach(
+        c -> hostsByGroups.computeIfAbsent(c.getResourceGroup().canonical(), (k) -> new TreeSet<>())
+            .add(c.getServer()));
     return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, hostsByGroups.keySet(),
         hostsByGroups, errors.get());
   }
@@ -174,7 +178,8 @@ public class ServiceStatusCmd {
       ServiceLockData.ServiceDescriptors sld = ServiceLockData.parseServiceDescriptors(data);
       var services = sld.getServices();
       services.forEach(sd -> {
-        byGroup.computeIfAbsent(sd.getGroup(), set -> new TreeSet<>()).add(sd.getAddress());
+        byGroup.computeIfAbsent(sd.getGroup().canonical(), set -> new TreeSet<>())
+            .add(sd.getAddress());
       });
     });
     return new StatusSummary(displayNames, byGroup.keySet(), byGroup, result.getErrorCount());

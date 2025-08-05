@@ -37,18 +37,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
+import java.util.TreeMap;
 import java.util.UUID;
 
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.MockServerContext;
 import org.apache.accumulo.server.ServerContext;
@@ -167,7 +167,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine().trim();
@@ -205,7 +205,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     String line;
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       boolean found = false;
       while (scanner.hasNext()) {
         line = scanner.nextLine();
@@ -237,8 +237,9 @@ public class ZooInfoViewerTest {
     var sysPropBytes = propCodec
         .toBytes(new VersionedProperties(123, Instant.now(), Map.of("s1", "sv1", "s2", "sv2")));
     Capture<Stat> sStat = newCapture();
-    expect(zk.getData(eq(SystemPropKey.of(iid).getPath()), isA(PropStoreWatcher.class),
-        capture(sStat))).andAnswer(() -> {
+    expect(
+        zk.getData(eq(SystemPropKey.of().getPath()), isA(PropStoreWatcher.class), capture(sStat)))
+        .andAnswer(() -> {
           Stat s = sStat.getValue();
           s.setCtime(System.currentTimeMillis());
           s.setMtime(System.currentTimeMillis());
@@ -255,7 +256,7 @@ public class ZooInfoViewerTest {
         propCodec.toBytes(new VersionedProperties(123, Instant.now(), Map.of("n1", "nv1")));
     NamespaceId nsId = NamespaceId.of("a");
     Capture<Stat> nsStat = newCapture();
-    expect(zk.getData(eq(NamespacePropKey.of(iid, nsId).getPath()), isA(PropStoreWatcher.class),
+    expect(zk.getData(eq(NamespacePropKey.of(nsId).getPath()), isA(PropStoreWatcher.class),
         capture(nsStat))).andAnswer(() -> {
           Stat s = nsStat.getValue();
           s.setCtime(System.currentTimeMillis());
@@ -266,17 +267,17 @@ public class ZooInfoViewerTest {
           return nsPropBytes;
         }).once();
 
-    var mockTableIdMap = Map.of(TableId.of("t"), "t_table");
-    expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
-
-    var tBasePath = ZooUtil.getRoot(iid) + ZTABLES;
+    TreeMap<TableId,String> mockTableIdMap = new TreeMap<>();
+    mockTableIdMap.put(TableId.of("t"), "t_table");
+    expect(context.createTableIdToQualifiedNameMap()).andReturn(mockTableIdMap).once();
 
     var tProps = new VersionedProperties(123, Instant.now(), Map.of("t1", "tv1"));
     var tPropBytes = propCodec.toBytes(tProps);
     TableId tid = TableId.of("t");
     Capture<Stat> stat = newCapture();
-    expect(zk.getData(eq(TablePropKey.of(iid, tid).getPath()), isA(PropStoreWatcher.class),
-        capture(stat))).andAnswer(() -> {
+    expect(
+        zk.getData(eq(TablePropKey.of(tid).getPath()), isA(PropStoreWatcher.class), capture(stat)))
+        .andAnswer(() -> {
           Stat s = stat.getValue();
           s.setCtime(System.currentTimeMillis());
           s.setMtime(System.currentTimeMillis());
@@ -286,7 +287,7 @@ public class ZooInfoViewerTest {
           return tPropBytes;
         }).once();
 
-    expect(zk.getData(tBasePath + "/t" + ZTABLE_NAMESPACE, null, null))
+    expect(zk.getData(ZTABLES + "/t" + ZTABLE_NAMESPACE, null, null))
         .andReturn("+default".getBytes(UTF_8)).anyTimes();
 
     context.close();
@@ -294,7 +295,7 @@ public class ZooInfoViewerTest {
 
     replay(context, zk);
 
-    NamespacePropKey nsKey = NamespacePropKey.of(iid, nsId);
+    NamespacePropKey nsKey = NamespacePropKey.of(nsId);
     log.trace("namespace base path: {}", nsKey.getPath());
 
     String testFileName = "./target/zoo-info-viewer-" + System.currentTimeMillis() + ".txt";
@@ -312,7 +313,7 @@ public class ZooInfoViewerTest {
     verify(context, zk);
 
     Map<String,String> props = new HashMap<>();
-    try (Scanner scanner = new Scanner(new File(testFileName))) {
+    try (Scanner scanner = new Scanner(Path.of(testFileName))) {
       while (scanner.hasNext()) {
         String line = scanner.nextLine();
         if (line.contains("=")) {
@@ -335,11 +336,12 @@ public class ZooInfoViewerTest {
 
     var mockNamespaceIdMap = Map.of(NamespaceId.of("+accumulo"), "accumulo",
         NamespaceId.of("+default"), "", NamespaceId.of("a_nsid"), "a_namespace_name");
-    var mockTableIdMap = Map.of(TableId.of("t_tid"), "t_tablename");
+    var mockTableIdMap = new TreeMap<TableId,String>();
+    mockTableIdMap.put(TableId.of("t_tid"), "t_tablename");
     var context = MockServerContext.get();
     expect(context.getInstanceID()).andReturn(iid).once();
     expect(context.getNamespaceIdToNameMap()).andReturn(mockNamespaceIdMap);
-    expect(context.getTableIdToNameMap()).andReturn(mockTableIdMap).once();
+    expect(context.createTableIdToQualifiedNameMap()).andReturn(mockTableIdMap).once();
 
     replay(context);
 
@@ -356,7 +358,7 @@ public class ZooInfoViewerTest {
 
     String line;
     Map<String,String> ids = new HashMap<>();
-    try (Scanner in = new Scanner(new File(testFileName))) {
+    try (Scanner in = new Scanner(Path.of(testFileName))) {
       while (in.hasNext()) {
         line = in.nextLine().trim();
         if (line.contains("=>") && !line.contains("ID Mapping")) {

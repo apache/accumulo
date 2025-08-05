@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -37,13 +39,10 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientInfo;
-import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooCache.ZooCacheWatcher;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.commons.io.FileUtils;
 import org.apache.zookeeper.WatchedEvent;
 import org.apache.zookeeper.Watcher.Event.EventType;
 import org.junit.jupiter.api.BeforeAll;
@@ -57,8 +56,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(ZooCacheIT.class);
 
-  private static String pathName = "/zcTest-42";
-  private static File testDir;
+  private static String pathName = "zcTest-42";
+  private static Path testDir;
 
   @Override
   protected Duration defaultTimeout() {
@@ -67,21 +66,22 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   @BeforeAll
-  public static void createTestDirectory() {
-    testDir = new File(createTestDir(ZooCacheIT.class.getName()), pathName);
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
+  public static void createTestDirectory() throws IOException {
+    testDir = createTestDir(ZooCacheIT.class.getName()).toPath().resolve(pathName);
+    Files.deleteIfExists(testDir);
+    Files.createDirectories(testDir);
   }
 
   @Test
   public void test() throws Exception {
-    assertEquals(0, exec(CacheTestClean.class, pathName, testDir.getAbsolutePath()).waitFor());
+    assertEquals(0,
+        exec(CacheTestClean.class, "/" + pathName, testDir.toAbsolutePath().toString()).waitFor());
     final AtomicReference<Exception> ref = new AtomicReference<>();
     List<Thread> threads = new ArrayList<>();
     for (int i = 0; i < 3; i++) {
       Thread reader = new Thread(() -> {
         try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
-          CacheTestReader.main(new String[] {pathName, testDir.getAbsolutePath(),
+          CacheTestReader.main(new String[] {"/" + pathName, testDir.toAbsolutePath().toString(),
               ClientInfo.from(client.properties()).getZooKeepers()});
         } catch (Exception ex) {
           ref.set(ex);
@@ -91,7 +91,8 @@ public class ZooCacheIT extends ConfigurableMacBase {
       threads.add(reader);
     }
     assertEquals(0,
-        exec(CacheTestWriter.class, pathName, testDir.getAbsolutePath(), "3", "50").waitFor());
+        exec(CacheTestWriter.class, "/" + pathName, testDir.toAbsolutePath().toString(), "3", "50")
+            .waitFor());
     for (Thread t : threads) {
       t.join();
       if (ref.get() != null) {
@@ -106,8 +107,6 @@ public class ZooCacheIT extends ConfigurableMacBase {
     try (final AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build();
         final ClientContext ctx = ((ClientContext) client)) {
 
-      final InstanceId iid = ctx.getInstanceID();
-      final String zooRoot = ZooUtil.getRoot(iid);
       final String tableName = "test_Table";
 
       final AtomicBoolean tableCreatedEvent = new AtomicBoolean(false);
@@ -127,8 +126,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
 
           final String eventPath = event.getPath();
 
-          if (event.getType() != EventType.None
-              && !eventPath.startsWith(zooRoot + Constants.ZTABLES)) {
+          if (event.getType() != EventType.None && !eventPath.startsWith(Constants.ZTABLES)) {
             return;
           }
           // LOG.info("received event {}", event);
@@ -143,13 +141,13 @@ public class ZooCacheIT extends ConfigurableMacBase {
             case PersistentWatchRemoved:
               break;
             case NodeCreated:
-              if (eventPath.equals(zooRoot + Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableCreatedEvent");
                 tableCreatedEvent.set(true);
               }
               break;
             case NodeDeleted:
-              if (eventPath.equals(zooRoot + Constants.ZTABLES + "/" + tableId)) {
+              if (eventPath.equals(Constants.ZTABLES + "/" + tableId)) {
                 LOG.info("Setting tableDeletedEvent");
                 tableDeletedEvent.set(true);
               }
@@ -194,7 +192,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       final String tid = ctx.tableOperations().tableIdMap().get(tableName);
       tableId.set(tid);
       // we might miss the table created event, don't check for it
-      final String tableZPath = zooRoot + Constants.ZTABLES + "/" + tid;
+      final String tableZPath = Constants.ZTABLES + "/" + tid;
       assertFalse(cache.childrenCached(tableZPath));
       assertNotNull(cache.getChildren(tableZPath));
       assertTrue(cache.childrenCached(tableZPath));
@@ -213,7 +211,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       Wait.waitFor(() -> connectionClosedEvent.get(), 30_000);
       connectionClosedEvent.set(false);
       // Cache should be cleared
-      assertFalse(cache.childrenCached(zooRoot + Constants.ZTABLES));
+      assertFalse(cache.childrenCached(Constants.ZTABLES));
 
       getCluster().getClusterControl().start(ServerType.ZOOKEEPER);
 
@@ -221,7 +219,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       connectionOpenEvent.set(false);
 
       // Cache should be cleared
-      assertFalse(cache.childrenCached(zooRoot + Constants.ZTABLES));
+      assertFalse(cache.childrenCached(Constants.ZTABLES));
 
       // let's assume that are tableId will be one more than the previous (safe assumption)
       String newTableId = Integer.parseInt(tid) + 1 + "";
@@ -229,7 +227,7 @@ public class ZooCacheIT extends ConfigurableMacBase {
       client.tableOperations().create(tableName);
       Wait.waitFor(() -> tableCreatedEvent.get(), 60_000);
 
-      final String newTableZPath = zooRoot + Constants.ZTABLES + "/" + newTableId;
+      final String newTableZPath = Constants.ZTABLES + "/" + newTableId;
       assertFalse(cache.childrenCached(newTableZPath));
       assertNotNull(cache.getChildren(newTableZPath));
       assertTrue(cache.childrenCached(newTableZPath));

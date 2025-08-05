@@ -25,8 +25,8 @@ import java.util.Set;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.AccumuloTable;
 import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.util.ColumnFQ;
@@ -75,7 +75,7 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     printRunning();
 
     log.trace("********** Looking for offline tablets **********");
-    if (FindOfflineTablets.findOffline(context, AccumuloTable.ROOT.tableName(), false, true,
+    if (FindOfflineTablets.findOffline(context, SystemTables.ROOT.tableName(), false, true,
         log::trace, log::warn) != 0) {
       status = Admin.CheckCommand.CheckStatus.FAILED;
     } else {
@@ -86,8 +86,8 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
     status = checkRequiredColumns(context, status);
 
     log.trace("********** Looking for invalid columns **********");
-    final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
+    final String json =
+        new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
     status = checkColumns(context, rtm.getKeyValues().iterator(), status);
 
@@ -97,10 +97,9 @@ public class RootMetadataCheckRunner implements MetadataCheckRunner {
 
   @Override
   public Admin.CheckCommand.CheckStatus checkRequiredColumns(ServerContext context,
-      Admin.CheckCommand.CheckStatus status)
-      throws TableNotFoundException, InterruptedException, KeeperException {
-    final String path = context.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-    final String json = new String(context.getZooSession().asReader().getData(path), UTF_8);
+      Admin.CheckCommand.CheckStatus status) throws InterruptedException, KeeperException {
+    final String json =
+        new String(context.getZooSession().asReader().getData(RootTable.ZROOT_TABLET), UTF_8);
     final var rtm = new RootTabletMetadata(json);
     final Set<Text> rowsSeen = new HashSet<>();
     final Set<ColumnFQ> requiredColFQs = new HashSet<>(requiredColFQs());

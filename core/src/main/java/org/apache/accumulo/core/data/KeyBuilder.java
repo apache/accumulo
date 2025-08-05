@@ -105,7 +105,7 @@ public class KeyBuilder {
      *
      * @param row the row to use for the key
      * @return this builder
-     * @since 3.1.0
+     * @since 4.0.0
      */
     ColumnFamilyStep row(final ByteSequence row);
 
@@ -150,7 +150,7 @@ public class KeyBuilder {
      *
      * @param columnFamily the column family to use for the {@link Key}
      * @return this builder
-     * @since 3.1.0
+     * @since 4.0.0
      */
     ColumnQualifierStep family(final ByteSequence columnFamily);
 
@@ -203,7 +203,7 @@ public class KeyBuilder {
      *
      * @param columnQualifier the column qualifier to use for the {@link Key}
      * @return this builder
-     * @since 3.1.0
+     * @since 4.0.0
      */
     ColumnVisibilityStep qualifier(final ByteSequence columnQualifier);
 
@@ -257,7 +257,7 @@ public class KeyBuilder {
      *
      * @param columnVisibility the column visibility to use for the {@link Key}
      * @return this builder
-     * @since 3.1.0
+     * @since 4.0.0
      */
     Build visibility(ByteSequence columnVisibility);
 

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.cli;
 
-import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +38,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class ConfigOpts extends Help {
 
   private static final Logger log = LoggerFactory.getLogger(ConfigOpts.class);
+
+  public static final String BIND_ALL_ADDRESSES = "0.0.0.0";
 
   @Parameter(names = {"-p", "-props", "--props"}, description = "Sets path to accumulo.properties."
       + "The classpath will be searched if this property is not set")
@@ -70,7 +72,8 @@ public class ConfigOpts extends Help {
     if (siteConfig == null) {
       String propsPath = getPropertiesPath();
       siteConfig = (propsPath == null ? SiteConfiguration.fromEnv()
-          : SiteConfiguration.fromFile(new File(propsPath))).withOverrides(getOverrides()).build();
+          : SiteConfiguration.fromFile(Path.of(propsPath).toFile())).withOverrides(getOverrides())
+          .build();
     }
     return siteConfig;
   }

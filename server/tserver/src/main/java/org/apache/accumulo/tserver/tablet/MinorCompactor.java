@@ -101,14 +101,14 @@ public class MinorCompactor extends FileCompactor {
             if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
               log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
                   + " Halting...", getExtent(), e);
-              Halt.halt("TabletServer lock does not exist", -1);
+              Halt.halt(-1, "TabletServer lock does not exist", e);
             } else {
               throw e;
             }
           }
 
           return ret;
-        } catch (IOException | UnsatisfiedLinkError e) {
+        } catch (IOException | ReflectiveOperationException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
         } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the
@@ -124,7 +124,7 @@ public class MinorCompactor extends FileCompactor {
           }
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName, e);
           retryCounter++;
-        } catch (CompactionCanceledException e) {
+        } catch (CompactionCanceledException | InterruptedException e) {
           throw new IllegalStateException(e);
         }
 
@@ -148,7 +148,6 @@ public class MinorCompactor extends FileCompactor {
 
       } while (true);
     } finally {
-      thread = null;
       runningCompactions.remove(this);
     }
   }

@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -30,7 +30,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -117,11 +117,18 @@ public class ChaoticLoadBalancerTest {
     TestChaoticLoadBalancer balancer = new TestChaoticLoadBalancer();
 
     Map<TabletId,TabletServerId> assignments = new HashMap<>();
-    balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
-        Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, servers.keySet()), metadataTable,
-        assignments));
+    Map<TabletId,TabletServerId> unassigned = new HashMap<>(metadataTable);
 
-    assertEquals(assignments.size(), metadataTable.size());
+    while (!unassigned.isEmpty()) {
+      balancer.getAssignments(new AssignmentParamsImpl(getAssignments(servers),
+          Map.of(ResourceGroupId.DEFAULT, servers.keySet()), unassigned, assignments));
+      assignments.forEach((tablet, tserver) -> {
+        servers.get(tserver).tablets.add(tablet);
+        assertTrue(unassigned.containsKey(tablet));
+        unassigned.remove(tablet);
+      });
+      assignments.clear();
+    }
   }
 
   SortedMap<TabletServerId,TServerStatus> getAssignments(Map<TabletServerId,FakeTServer> servers) {
@@ -161,9 +168,9 @@ public class ChaoticLoadBalancerTest {
     List<TabletMigration> migrationsOut = new ArrayList<>();
     while (!migrationsOut.isEmpty()) {
       SortedMap<TabletServerId,TServerStatus> current = getAssignments(servers);
-      balancer.balance(new BalanceParamsImpl(current,
-          Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, current.keySet()), migrations,
-          migrationsOut, DataLevel.USER, Map.of()));
+      balancer
+          .balance(new BalanceParamsImpl(current, Map.of(ResourceGroupId.DEFAULT, current.keySet()),
+              migrations, migrationsOut, DataLevel.USER, Map.of()));
     }
   }
 

@@ -140,7 +140,7 @@ public class FateLogger {
       }
 
       @Override
-      public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+      public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
         store.runnable(keepWaiting, idConsumer);
       }
 
@@ -192,6 +192,11 @@ public class FateLogger {
       @Override
       public void deleteDeadReservations() {
         store.deleteDeadReservations();
+      }
+
+      @Override
+      public void close() {
+        store.close();
       }
     };
   }

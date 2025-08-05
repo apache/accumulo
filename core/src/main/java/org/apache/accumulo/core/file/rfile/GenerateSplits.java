@@ -22,10 +22,10 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toCollection;
 
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -196,8 +196,8 @@ public class GenerateSplits implements KeywordExecutable {
     log.info("Generated {} splits", desiredSplits.size());
     if (opts.outputFile != null) {
       log.info("Writing splits to file {} ", opts.outputFile);
-      try (var writer = new PrintWriter(new BufferedWriter(
-          new OutputStreamWriter(new FileOutputStream(opts.outputFile), UTF_8)))) {
+      try (var writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+          Files.newOutputStream(java.nio.file.Path.of(opts.outputFile)), UTF_8)))) {
         desiredSplits.forEach(writer::println);
       }
     } else {

@@ -21,22 +21,31 @@ package org.apache.accumulo.core.fate.user;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.SortedMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ConditionalWriter;
+import org.apache.accumulo.core.client.ConditionalWriterConfig;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
@@ -51,12 +60,14 @@ import org.apache.accumulo.core.fate.ReadOnlyRepo;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.StackOverflowException;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.RepoColumnFamily;
+import org.apache.accumulo.core.fate.user.schema.FateSchema.TxAdminColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxColumnFamily;
 import org.apache.accumulo.core.fate.user.schema.FateSchema.TxInfoColumnFamily;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
@@ -64,6 +75,7 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Suppliers;
 
 public class UserFateStore<T> extends AbstractFateStore<T> {
 
@@ -71,6 +83,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   private final ClientContext context;
   private final String tableName;
+  private final Supplier<ConditionalWriter> writer;
 
   private static final FateInstanceType fateInstanceType = FateInstanceType.USER;
   private static final com.google.common.collect.Range<Integer> REPO_RANGE =
@@ -99,6 +112,14 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     super(lockID, isLockHeld, maxDeferred, fateIdGenerator);
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
+    this.writer = Suppliers.memoize(() -> {
+      try {
+        return createConditionalWriterForFateTable(this.tableName);
+      } catch (TableNotFoundException e) {
+        throw new IllegalStateException(
+            "Incorrect use of UserFateStore, table " + tableName + " does not exist.");
+      }
+    });
   }
 
   @Override
@@ -136,36 +157,14 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
 
   @Override
   public Seeder<T> beginSeeding() {
-    // TODO: For now can handle seeding 1 transaction at a time so just process
-    // everything in attemptToSeedTransaction
-    // Part 2 of the changes in #5160 will allow multiple seeding attempts to be combined
-    // into one conditional mutation and we will need to track the pending operations
-    // and futures in a map
-    return new Seeder<T>() {
-      @Override
-      public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
-          FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
-        return CompletableFuture
-            .completedFuture(seedTransaction(fateOp, fateKey, repo, autoCleanUp));
-      }
-
-      @Override
-      public void close() {
-        // TODO: This will be used in Part 2 of #5160
-      }
-    };
+    return new BatchSeeder();
   }
 
-  private Optional<FateId> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, Repo<T> repo,
-      boolean autoCleanUp) {
-    final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+  private FateMutator<T> seedTransaction(Fate.FateOperation fateOp, FateKey fateKey, FateId fateId,
+      Repo<T> repo, boolean autoCleanUp) {
     Supplier<FateMutator<T>> mutatorFactory = () -> newMutator(fateId).requireAbsent()
         .putKey(fateKey).putCreateTime(System.currentTimeMillis());
-    if (seedTransaction(mutatorFactory, fateKey + " " + fateId, fateOp, repo, autoCleanUp)) {
-      return Optional.of(fateId);
-    } else {
-      return Optional.empty();
-    }
+    return buildMutator(mutatorFactory, fateOp, repo, autoCleanUp);
   }
 
   @Override
@@ -176,16 +175,22 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     return seedTransaction(mutatorFactory, fateId.canonical(), fateOp, repo, autoCleanUp);
   }
 
+  private FateMutator<T> buildMutator(Supplier<FateMutator<T>> mutatorFactory,
+      Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp) {
+    var mutator = mutatorFactory.get();
+    mutator =
+        mutator.putFateOp(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
+    if (autoCleanUp) {
+      mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
+    }
+    return mutator;
+  }
+
   private boolean seedTransaction(Supplier<FateMutator<T>> mutatorFactory, String logId,
       Fate.FateOperation fateOp, Repo<T> repo, boolean autoCleanUp) {
+    var mutator = buildMutator(mutatorFactory, fateOp, repo, autoCleanUp);
     int maxAttempts = 5;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
-      var mutator = mutatorFactory.get();
-      mutator =
-          mutator.putFateOp(serializeTxInfo(fateOp)).putRepo(1, repo).putStatus(TStatus.SUBMITTED);
-      if (autoCleanUp) {
-        mutator = mutator.putAutoClean(serializeTxInfo(autoCleanUp));
-      }
       var status = mutator.tryMutate();
       if (status == FateMutator.Status.ACCEPTED) {
         // signal to the super class that a new fate transaction was seeded and is ready to run
@@ -232,8 +237,8 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       // attempt or was not written at all).
       try (Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY)) {
         scanner.setRange(getRow(fateId));
-        scanner.fetchColumn(TxColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
-            TxColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
+        scanner.fetchColumn(TxAdminColumnFamily.RESERVATION_COLUMN.getColumnFamily(),
+            TxAdminColumnFamily.RESERVATION_COLUMN.getColumnQualifier());
         FateReservation persistedRes =
             scanner.stream().map(entry -> FateReservation.deserialize(entry.getValue().get()))
                 .findFirst().orElse(null);
@@ -278,34 +283,41 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
       Scanner scanner = context.createScanner(tableName, Authorizations.EMPTY);
       scanner.setRange(new Range());
       RowFateStatusFilter.configureScanner(scanner, statuses);
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
-      TxColumnFamily.RESERVATION_COLUMN.fetch(scanner);
+      // columns fetched here must be in/added to TxAdminColumnFamily for locality group benefits
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.RESERVATION_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.FATE_OP_COLUMN.fetch(scanner);
       return scanner.stream().onClose(scanner::close).map(e -> {
         String txUUIDStr = e.getKey().getRow().toString();
         FateId fateId = FateId.from(fateInstanceType, txUUIDStr);
         SortedMap<Key,Value> rowMap;
         TStatus status = TStatus.UNKNOWN;
         FateReservation reservation = null;
+        Fate.FateOperation fateOp = null;
         try {
           rowMap = WholeRowIterator.decodeRow(e.getKey(), e.getValue());
         } catch (IOException ex) {
           throw new RuntimeException(ex);
         }
-        // expect status and optionally reservation
-        Preconditions.checkState(rowMap.size() == 1 || rowMap.size() == 2,
-            "Invalid row seen: %s. Expected to see one entry for the status and optionally an "
-                + "entry for the fate reservation",
+        // Always expect a status, optionally expect a fate operation (present if seeded)
+        // and optionally expect a fate reservation (present if currently reserved)
+        Preconditions.checkState(rowMap.size() >= 1 && rowMap.size() <= 3,
+            "Invalid row seen: %s. Expected to see tx status and optionally a fate op and "
+                + "optionally a fate reservation",
             rowMap);
         for (Entry<Key,Value> entry : rowMap.entrySet()) {
           Text colf = entry.getKey().getColumnFamily();
           Text colq = entry.getKey().getColumnQualifier();
           Value val = entry.getValue();
           switch (colq.toString()) {
-            case TxColumnFamily.STATUS:
+            case TxAdminColumnFamily.STATUS:
               status = TStatus.valueOf(val.toString());
               break;
-            case TxColumnFamily.RESERVATION:
+            case TxAdminColumnFamily.RESERVATION:
               reservation = FateReservation.deserialize(val.get());
+              break;
+            case TxAdminColumnFamily.FATE_OP:
+              fateOp = (Fate.FateOperation) deserializeTxInfo(TxInfo.FATE_OP, val.get());
               break;
             default:
               throw new IllegalStateException("Unexpected column seen: " + colf + ":" + colq);
@@ -313,6 +325,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         }
         final TStatus finalStatus = status;
         final Optional<FateReservation> finalReservation = Optional.ofNullable(reservation);
+        final Optional<Fate.FateOperation> finalFateOp = Optional.ofNullable(fateOp);
         return new FateIdStatusBase(fateId) {
           @Override
           public TStatus getStatus() {
@@ -322,6 +335,11 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
           @Override
           public Optional<FateReservation> getFateReservation() {
             return finalReservation;
+          }
+
+          @Override
+          public Optional<Fate.FateOperation> getFateOperation() {
+            return finalFateOp;
           }
         };
       });
@@ -348,7 +366,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   protected TStatus _getStatus(FateId fateId) {
     return scanTx(scanner -> {
       scanner.setRange(getRow(fateId));
-      TxColumnFamily.STATUS_COLUMN.fetch(scanner);
+      TxAdminColumnFamily.STATUS_COLUMN.fetch(scanner);
       return scanner.stream().map(e -> TStatus.valueOf(e.getValue().toString())).findFirst()
           .orElse(TStatus.UNKNOWN);
     });
@@ -377,7 +395,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   }
 
   private FateMutatorImpl<T> newMutator(FateId fateId) {
-    return new FateMutatorImpl<>(context, tableName, fateId);
+    return new FateMutatorImpl<>(context, tableName, fateId, writer);
   }
 
   private <R> R scanTx(Function<Scanner,R> func) {
@@ -391,6 +409,113 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
   @Override
   public FateInstanceType type() {
     return fateInstanceType;
+  }
+
+  private class BatchSeeder implements Seeder<T> {
+    private final AtomicBoolean closed = new AtomicBoolean(false);
+
+    private final Map<FateId,Pair<FateMutator<T>,CompletableFuture<Optional<FateId>>>> pending =
+        new HashMap<>();
+
+    @Override
+    public CompletableFuture<Optional<FateId>> attemptToSeedTransaction(FateOperation fateOp,
+        FateKey fateKey, Repo<T> repo, boolean autoCleanUp) {
+      Preconditions.checkState(!closed.get(), "Can't attempt to seed with a closed seeder.");
+
+      final var fateId = fateIdGenerator.fromTypeAndKey(type(), fateKey);
+      // If not already submitted, add to the pending list and return the future
+      // or the existing future if duplicate. The pending map will store the mutator
+      // to be processed on close in a one batch.
+      return pending.computeIfAbsent(fateId, id -> {
+        FateMutator<T> mutator = seedTransaction(fateOp, fateKey, fateId, repo, autoCleanUp);
+        CompletableFuture<Optional<FateId>> future = new CompletableFuture<>();
+        return new Pair<>(mutator, future);
+      }).getSecond();
+    }
+
+    @Override
+    public void close() {
+      closed.set(true);
+
+      int maxAttempts = 5;
+
+      // This loop will submit all the pending mutations as one batch
+      // to a conditional writer and any known results will be removed
+      // from the pending map. Unknown results will be re-attempted up
+      // to the maxAttempts count
+      for (int attempt = 0; attempt < maxAttempts && !pending.isEmpty(); attempt++) {
+        var currentResults = tryMutateBatch();
+        for (Entry<FateId,ConditionalWriter.Status> result : currentResults.entrySet()) {
+          var fateId = result.getKey();
+          var status = result.getValue();
+          var future = pending.get(fateId).getSecond();
+          switch (result.getValue()) {
+            case ACCEPTED:
+              seededTx();
+              log.trace("Attempt to seed {} returned {}", fateId.canonical(), status);
+              // Complete the future with the fatId and remove from pending
+              future.complete(Optional.of(fateId));
+              pending.remove(fateId);
+              break;
+            case REJECTED:
+              log.debug("Attempt to seed {} returned {}", fateId.canonical(), status);
+              // Rejected so complete with an empty optional and remove from pending
+              future.complete(Optional.empty());
+              pending.remove(fateId);
+              break;
+            case UNKNOWN:
+              log.debug("Attempt to seed {} returned {} status, retrying", fateId.canonical(),
+                  status);
+              // unknown, so don't remove from map so that we try again if still under
+              // max attempts
+              break;
+            default:
+              // do not expect other statuses
+              throw new IllegalStateException("Unhandled status for mutation " + status);
+          }
+        }
+
+        if (!pending.isEmpty()) {
+          // At this point can not reliably determine if the unknown pending mutations were
+          // successful or not because no reservation was acquired. For example since no
+          // reservation was acquired it is possible that seeding was a success and something
+          // immediately picked it up and started operating on it and changing it.
+          // If scanning after that point can not conclude success or failure. Another situation
+          // is that maybe the fateId already existed in a seeded form prior to getting this
+          // unknown.
+          UtilWaitThread.sleep(250);
+        }
+      }
+
+      // Any remaining will be UNKNOWN status, so complete the futures with an optional empty
+      pending.forEach((fateId, pair) -> {
+        pair.getSecond().complete(Optional.empty());
+        log.warn("Repeatedly received unknown status when attempting to seed {}",
+            fateId.canonical());
+      });
+    }
+
+    // Submit all the pending mutations to a single conditional writer
+    // as one batch and return the results for each mutation
+    private Map<FateId,ConditionalWriter.Status> tryMutateBatch() {
+      if (pending.isEmpty()) {
+        return Map.of();
+      }
+
+      final Map<FateId,ConditionalWriter.Status> resultsMap = new HashMap<>();
+      try {
+        Iterator<ConditionalWriter.Result> results = writer.get()
+            .write(pending.values().stream().map(pair -> pair.getFirst().getMutation()).iterator());
+        while (results.hasNext()) {
+          var result = results.next();
+          var row = new Text(result.getMutation().getRow());
+          resultsMap.put(FateId.from(FateInstanceType.USER, row.toString()), result.getStatus());
+        }
+      } catch (AccumuloException | AccumuloSecurityException e) {
+        throw new IllegalStateException(e);
+      }
+      return resultsMap;
+    }
   }
 
   private class FateTxStoreImpl extends AbstractFateTxStoreImpl {
@@ -444,7 +569,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         final ColumnFQ cq;
         switch (txInfo) {
           case FATE_OP:
-            cq = TxInfoColumnFamily.FATE_OP_COLUMN;
+            cq = TxAdminColumnFamily.FATE_OP_COLUMN;
             break;
           case AUTO_CLEAN:
             cq = TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
@@ -575,5 +700,18 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     Preconditions.checkArgument(REPO_RANGE.contains(position),
         "Position %s is not in the valid range of [0,%s]", position, MAX_REPOS);
     return position;
+  }
+
+  private ConditionalWriter createConditionalWriterForFateTable(String tableName)
+      throws TableNotFoundException {
+    int maxThreads =
+        context.getConfiguration().getCount(Property.MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX);
+    ConditionalWriterConfig cwConfig = new ConditionalWriterConfig().setMaxWriteThreads(maxThreads);
+    return context.createConditionalWriter(tableName, cwConfig);
+  }
+
+  @Override
+  public void close() {
+    writer.get().close();
   }
 }

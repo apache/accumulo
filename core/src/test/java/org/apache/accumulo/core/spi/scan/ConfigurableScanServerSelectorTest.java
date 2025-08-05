@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -54,7 +55,7 @@ public class ConfigurableScanServerSelectorTest {
   static class InitParams implements ScanServerSelector.InitParameters {
 
     private final Map<String,String> opts;
-    private final Supplier<Map<String,String>> scanServers;
+    private final Supplier<Map<String,ResourceGroupId>> scanServers;
 
     InitParams(Set<String> scanServers) {
       this(scanServers, Map.of());
@@ -62,18 +63,17 @@ public class ConfigurableScanServerSelectorTest {
 
     InitParams(Set<String> scanServers, Map<String,String> opts) {
       this.opts = opts;
-      var scanServersMap = new HashMap<String,String>();
-      scanServers.forEach(
-          sserv -> scanServersMap.put(sserv, ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME));
+      var scanServersMap = new HashMap<String,ResourceGroupId>();
+      scanServers.forEach(sserv -> scanServersMap.put(sserv, ResourceGroupId.DEFAULT));
       this.scanServers = () -> scanServersMap;
     }
 
-    InitParams(Map<String,String> scanServers, Map<String,String> opts) {
+    InitParams(Map<String,ResourceGroupId> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = () -> scanServers;
     }
 
-    InitParams(Supplier<Map<String,String>> scanServers, Map<String,String> opts) {
+    InitParams(Supplier<Map<String,ResourceGroupId>> scanServers, Map<String,String> opts) {
       this.opts = opts;
       this.scanServers = scanServers;
     }
@@ -98,7 +98,7 @@ public class ConfigurableScanServerSelectorTest {
         }
 
         @Override
-        public String getGroup() {
+        public ResourceGroupId getGroup() {
           return entry.getValue();
         }
 
@@ -433,9 +433,12 @@ public class ConfigurableScanServerSelectorTest {
         ("[" + defaultProfile + ", " + profile1 + "," + profile2 + "]").replace('\'', '"'));
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
-    selector.init(new InitParams(Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", "g1",
-        "ss5:5", "g1", "ss6:6", "g2", "ss7:7", "g2", "ss8:8", "g2"), opts));
+    var dg = ResourceGroupId.DEFAULT;
+    selector.init(new InitParams(
+        Map.of("ss1:1", dg, "ss2:2", dg, "ss3:3", dg, "ss4:4", ResourceGroupId.of("g1"), "ss5:5",
+            ResourceGroupId.of("g1"), "ss6:6", ResourceGroupId.of("g2"), "ss7:7",
+            ResourceGroupId.of("g2"), "ss8:8", ResourceGroupId.of("g2")),
+        opts));
 
     Set<String> servers = new HashSet<>();
 
@@ -511,13 +514,13 @@ public class ConfigurableScanServerSelectorTest {
 
     ConfigurableScanServerSelector selector = new ConfigurableScanServerSelector();
 
-    AtomicReference<Map<String,String>> scanServers = new AtomicReference<>(Map.of());
+    AtomicReference<Map<String,ResourceGroupId>> scanServers = new AtomicReference<>(Map.of());
 
     selector.init(new InitParams(scanServers::get, opts));
 
     var tabletId = nti("1", "m");
 
-    var dg = ScanServerSelector.DEFAULT_SCAN_SERVER_GROUP_NAME;
+    var dg = ResourceGroupId.DEFAULT;
 
     var params = new SelectorParams(tabletId, Map.of(), Map.of()) {
       @Override

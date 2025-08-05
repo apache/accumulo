@@ -23,9 +23,11 @@ import static java.util.stream.Collectors.toSet;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.util.ArrayList;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -139,6 +141,40 @@ public class LoadPlanTest {
   }
 
   @Test
+  public void testIllegalJson() {
+    assertThrows(NullPointerException.class, () -> LoadPlan.fromJson(null));
+
+    List<String> illegalJson = new ArrayList<>();
+    // Test json with extraneous stuff in it
+    illegalJson.add("{'dest':[],'destinations':[]}");
+    // lets try XML
+    illegalJson.add("<destinations></destinations>");
+    // try an empty string
+    illegalJson.add("");
+    illegalJson.add(" ");
+    // try incomplete json
+    illegalJson.add("{'destinations':[{'fileName':'f1.rf'");
+    // try extra field in the destination
+    illegalJson.add(
+        "{'destinations':[{'host':'localhost',fileName':'f1.rf','startRow':null,'endRow':'g','rangeType':'TABLE'}]}");
+    // try an illegal range type
+    illegalJson.add(
+        "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow':null,'rangeType':'LARGE'}]}");
+    // try object value instead of array for destinations field
+    illegalJson.add(
+        "{'destinations':{'fileName':'f1.rf','startRow':null,'endRow': null,'rangeType':'TABLE'}}");
+    // try array of array value instead of array for destinations field
+    illegalJson.add(
+        "{'destinations':[[{'fileName':'f1.rf','startRow':null,'endRow': null,'rangeType':'TABLE'}]]}");
+    // try a row value that is not valid base 64
+    illegalJson.add(
+        "{'destinations':[{'fileName':'f1.rf','startRow':null,'endRow': '~!@#$%^&*()_+','rangeType':'TABLE'}]}");
+
+    illegalJson.forEach(json -> assertThrows(IllegalArgumentException.class,
+        () -> LoadPlan.fromJson(json.replace("'", "\""))));
+  }
+
+  @Test
   public void testTableSplits() {
     assertThrows(IllegalArgumentException.class,
         () -> new LoadPlan.TableSplits(new Text("004"), new Text("004")));
@@ -157,5 +193,31 @@ public class LoadPlanTest {
 
   public static Set<String> toString(Collection<Destination> destinations) {
     return destinations.stream().map(d -> toString(d)).collect(Collectors.toSet());
+  }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    LoadPlan.TableSplits tableSplits =
+        new LoadPlan.TableSplits(new Text("text1"), new Text("text2"));
+    int hashCode1 = tableSplits.hashCode();
+    int hashCode2 = tableSplits.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    LoadPlan.TableSplits tableOne = new LoadPlan.TableSplits(new Text("text1"), new Text("text2"));
+    LoadPlan.TableSplits tableTwo = new LoadPlan.TableSplits(new Text("text1"), new Text("text2"));
+    assertEquals(tableOne.hashCode(), tableTwo.hashCode());
+
+    // Testing even distribution
+    List<LoadPlan.TableSplits> tables = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      tables.add(new LoadPlan.TableSplits(new Text("text1" + i), new Text("text2" + i)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (LoadPlan.TableSplits tabs : tables) {
+      hashCodes.add(tabs.hashCode());
+    }
+    assertEquals(tables.size(), hashCodes.size(), 10);
   }
 }

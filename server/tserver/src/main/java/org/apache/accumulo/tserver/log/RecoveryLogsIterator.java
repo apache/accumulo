@@ -169,7 +169,7 @@ public class RecoveryLogsIterator
       if (iterator.hasNext()) {
         Key firstKey = iterator.next().getKey();
         LogFileKey key = LogFileKey.fromKey(firstKey);
-        if (key.event != LogEvents.OPEN) {
+        if (key.getEvent() != LogEvents.OPEN) {
           throw new IllegalStateException("First log entry is not OPEN " + sortedLogs);
         }
       }

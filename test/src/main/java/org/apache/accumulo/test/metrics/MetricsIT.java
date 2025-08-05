@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TERMINATION;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
@@ -47,6 +51,7 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -119,7 +124,11 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
     Set<Metric> unexpectedMetrics = Set.of(
-            SCAN_YIELDS
+            SCAN_YIELDS,
+            COMPACTOR_MAJC_CANCELLED,
+            COMPACTOR_MAJC_FAILED,
+            COMPACTOR_MAJC_FAILURES_CONSECUTIVE,
+            COMPACTOR_MAJC_FAILURES_TERMINATION
     );
 
     // add sserver as flaky until scan server included in mini tests.
@@ -290,7 +299,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             log.info("METRICS, received from statsd - name: '{}' num tags: {}, tags: {} = {}",
                 a.getName(), t.size(), t, a.getValue());
             // check hostname is always set and is valid
-            assertNotEquals("0.0.0.0", a.getTags().get(MetricsInfo.HOST_TAG_KEY));
+            assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES,
+                a.getTags().get(MetricsInfo.HOST_TAG_KEY));
             assertNotNull(a.getTags().get(MetricsInfo.INSTANCE_NAME_TAG_KEY));
 
             assertNotNull(a.getTags().get(MetricsInfo.PROCESS_NAME_TAG_KEY));

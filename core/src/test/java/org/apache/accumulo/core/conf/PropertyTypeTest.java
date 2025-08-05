@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.WithTestNames;
+import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.file.rfile.RFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,17 +85,21 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   private void valid(final String... args) {
-    for (String s : args) {
-      assertTrue(type.isValidFormat(s),
-          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
-    }
+    assertAll(() -> {
+      for (String s : args) {
+        assertTrue(type.isValidFormat(s),
+            s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
+      }
+    });
   }
 
   private void invalid(final String... args) {
-    for (String s : args) {
-      assertFalse(type.isValidFormat(s),
-          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
-    }
+    assertAll(() -> {
+      for (String s : args) {
+        assertFalse(type.isValidFormat(s),
+            s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
+      }
+    });
   }
 
   @Test
@@ -230,4 +236,107 @@ public class PropertyTypeTest extends WithTestNames {
         "hdfs:/volA,hdfs :/::/volB");
   }
 
+  @Test
+  public void testTypeFATE_USER_CONFIG() {
+    var allUserFateOps = Fate.FateOperation.getAllUserFateOps();
+    int poolSize1 = allUserFateOps.size() / 2;
+    var validPool1Ops =
+        allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var validPool2Ops =
+        allUserFateOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
+    // should be valid: one pool for all ops, order should not matter, all ops split across
+    // multiple pools (note validated in the same order as described here)
+    valid(
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + validPool2Ops + "," + validPool1Ops + "\": 10}",
+        "{\"" + validPool1Ops + "\": 2, \"" + validPool2Ops + "\": 3}");
+    // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
+    // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
+    // FateOperation (note validated in the same order as described here)
+    var invalidPool1Ops =
+        allUserFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops = allUserFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
+        .collect(Collectors.joining(","));
+    invalid("", null, "{\"" + invalidPool1Ops + "\": 2, \"" + invalidPool2Ops + "\": 3}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 0}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": -1}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": x}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(", "))
+            + "\": 10}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10, \""
+            + allUserFateOps.stream().map(Enum::name).limit(1).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + allUserFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + ",INVALID_FATEOP\": 10}");
+  }
+
+  @Test
+  public void testTypeFATE_META_CONFIG() {
+    var allMetaFateOps = Fate.FateOperation.getAllMetaFateOps();
+    int poolSize1 = allMetaFateOps.size() / 2;
+    var validPool1Ops =
+        allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var validPool2Ops =
+        allMetaFateOps.stream().map(Enum::name).skip(poolSize1).collect(Collectors.joining(","));
+    // should be valid: one pool for all ops, order should not matter, all ops split across
+    // multiple pools (note validated in the same order as described here)
+    valid(
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + validPool2Ops + "," + validPool1Ops + "\": 10}",
+        "{\"" + validPool1Ops + "\": 2, \"" + validPool2Ops + "\": 3}");
+
+    var invalidPool1Ops =
+        allMetaFateOps.stream().map(Enum::name).limit(poolSize1).collect(Collectors.joining(","));
+    var invalidPool2Ops = allMetaFateOps.stream().map(Enum::name).skip(poolSize1 + 1)
+        .collect(Collectors.joining(","));
+    // should be invalid: invalid json, null, missing FateOperation, pool size of 0, pool size of
+    // -1, invalid pool size, invalid key, same FateOperation repeated in a different pool, invalid
+    // FateOperation (note validated in the same order as described here)
+    invalid("", null, "{\"" + invalidPool1Ops + "\": 2, \"" + invalidPool2Ops + "\": 3}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": 0}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": -1}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(",")) + "\": x}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(", "))
+            + "\": 10}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + "\": 10, \""
+            + allMetaFateOps.stream().map(Enum::name).limit(1).collect(Collectors.joining(","))
+            + "\": 10}",
+        "{\"" + allMetaFateOps.stream().map(Enum::name).collect(Collectors.joining(","))
+            + ",INVALID_FATEOP\": 10}");
+  }
+
+  @Test
+  public void testTypeFATE_THREADPOOL_SIZE() {
+    // nothing to test, this type is used for a deprecated property and will accept any prop value.
+  }
+
+  @Test
+  public void testTypeDROP_CACHE_SELECTION() {
+    valid("all", "ALL", "NON-import", "NON-IMPORT", "non-import", "none", "NONE", "nOnE");
+    invalid(null, "", "AL L", " ALL", "non import", "     ");
+  }
+
+  @Test
+  public void testTypeCOMPRESSION_TYPE() {
+    valid("none", "gz", "lz4", "snappy");
+    // The following are valid at runtime with the correct configuration
+    //
+    // bzip2 java implementation does not implement Compressor/Decompressor, requires native
+    // lzo not included in implementation due to license issues, but can be added by user
+    // zstd requires hadoop native libraries built with zstd support
+    //
+    invalid(null, "", "bzip2", "lzo", "zstd");
+  }
+
+  @Test
+  public void testTypeEC() {
+    valid("enable", "ENABLE", "inherit", "INHERIT", "disable", "DISABLE");
+    invalid(null, "policy", "XOR-2-1-1024k");
+  }
 }

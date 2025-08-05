@@ -26,9 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.File;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -62,6 +63,7 @@ import org.apache.accumulo.server.util.DumpZookeeper;
 import org.apache.accumulo.server.util.ECAdmin;
 import org.apache.accumulo.server.util.Info;
 import org.apache.accumulo.server.util.LoginProperties;
+import org.apache.accumulo.server.util.UpgradeUtil;
 import org.apache.accumulo.server.util.ZooKeeperMain;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.accumulo.shell.Shell;
@@ -124,7 +126,7 @@ public class KeywordStartIT {
    */
   @Test
   public void testExpectedClasses() {
-    assumeTrue(new File(System.getProperty("user.dir") + "/src").exists());
+    assumeTrue(Files.exists(Path.of(System.getProperty("user.dir")).resolve("src")));
     TreeMap<String,Class<? extends KeywordExecutable>> expectSet = new TreeMap<>();
     expectSet.put("admin", Admin.class);
     expectSet.put("check-compaction-config", CheckCompactionConfig.class);
@@ -149,6 +151,7 @@ public class KeywordStartIT {
     expectSet.put("split-large", SplitLarge.class);
     expectSet.put("sserver", ScanServerExecutable.class);
     expectSet.put("tserver", TServerExecutable.class);
+    expectSet.put("upgrade", UpgradeUtil.class);
     expectSet.put("version", Version.class);
     expectSet.put("wal-info", LogReader.class);
     expectSet.put("zoo-info-viewer", ZooInfoViewer.class);

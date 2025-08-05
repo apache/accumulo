@@ -18,22 +18,28 @@
  */
 package org.apache.accumulo.manager.split;
 
+import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.fate.FateKey;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
+import org.apache.accumulo.manager.Manager;
+import org.apache.accumulo.manager.tableOps.split.FindSplits;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.hadoop.fs.FileSystem;
@@ -49,9 +55,65 @@ public class Splitter {
 
   private static final Logger LOG = LoggerFactory.getLogger(Splitter.class);
 
+  private final Manager manager;
   private final ThreadPoolExecutor splitExecutor;
   // tracks which tablets are queued in splitExecutor
-  private final Set<Text> queuedTablets = ConcurrentHashMap.newKeySet();
+  private final Map<Text,KeyExtent> queuedTablets = new ConcurrentHashMap<>();
+
+  class SplitWorker implements Runnable {
+
+    @Override
+    public void run() {
+      try {
+        while (manager.stillManager()) {
+          if (queuedTablets.isEmpty()) {
+            sleepUninterruptibly(10, TimeUnit.MILLISECONDS);
+            continue;
+          }
+
+          final Map<Text,KeyExtent> userSplits = new HashMap<>();
+          final Map<Text,KeyExtent> metaSplits = new HashMap<>();
+
+          // Go through all the queued up splits and partition
+          // into the different store types to be submitted.
+          queuedTablets.forEach((metaRow, extent) -> {
+            switch (FateInstanceType.fromTableId((extent.tableId()))) {
+              case USER:
+                userSplits.put(metaRow, extent);
+                break;
+              case META:
+                metaSplits.put(metaRow, extent);
+                break;
+              default:
+                throw new IllegalStateException("Unexpected FateInstanceType");
+            }
+          });
+
+          // see the user and then meta splits
+          // The meta plits (zk) will be processed one at a time but there will not be
+          // many of those splits. The user splits are processed as a batch.
+          seedSplits(FateInstanceType.USER, userSplits);
+          seedSplits(FateInstanceType.META, metaSplits);
+        }
+      } catch (Exception e) {
+        LOG.error("Failed to split", e);
+      }
+    }
+  }
+
+  private void seedSplits(FateInstanceType instanceType, Map<Text,KeyExtent> splits) {
+    if (!splits.isEmpty()) {
+      try (var seeder = manager.fate(instanceType).beginSeeding()) {
+        for (KeyExtent extent : splits.values()) {
+          @SuppressWarnings("unused")
+          var unused = seeder.attemptToSeedTransaction(Fate.FateOperation.SYSTEM_SPLIT,
+              FateKey.forSplit(extent), new FindSplits(extent), true);
+        }
+      } finally {
+        queuedTablets.keySet().removeAll(splits.keySet());
+      }
+    }
+  }
 
   public static class FileInfo {
     final Text firstRow;
@@ -151,12 +213,12 @@ public class Splitter {
 
   final LoadingCache<CacheKey,FileInfo> splitFileCache;
 
-  public Splitter(ServerContext context) {
-    int numThreads = context.getConfiguration().getCount(Property.MANAGER_SPLIT_WORKER_THREADS);
+  public Splitter(Manager manager) {
+    this.manager = manager;
+    ServerContext context = manager.getContext();
 
-    this.splitExecutor = context.threadPools().getPoolBuilder("split_seeder")
-        .numCoreThreads(numThreads).numMaxThreads(numThreads).withTimeOut(0L, TimeUnit.MILLISECONDS)
-        .enableThreadPoolMetrics().build();
+    this.splitExecutor = context.threadPools().getPoolBuilder("split_seeder").numCoreThreads(1)
+        .numMaxThreads(1).withTimeOut(0L, TimeUnit.MILLISECONDS).enableThreadPoolMetrics().build();
 
     Weigher<CacheKey,
         FileInfo> weigher = (key, info) -> key.tableId.canonical().length()
@@ -175,7 +237,9 @@ public class Splitter {
 
   }
 
-  public synchronized void start() {}
+  public synchronized void start() {
+    splitExecutor.execute(new SplitWorker());
+  }
 
   public synchronized void stop() {
     splitExecutor.shutdownNow();
@@ -185,29 +249,14 @@ public class Splitter {
     return splitFileCache.get(new CacheKey(tableId, tabletFile));
   }
 
-  public void initiateSplit(SeedSplitTask seedSplitTask) {
+  public void initiateSplit(KeyExtent extent) {
     // Want to avoid queuing the same tablet multiple times, it would not cause bugs but would waste
     // work. Use the metadata row to identify a tablet because the KeyExtent also includes the prev
     // end row which may change when splits happen. The metaRow is conceptually tableId+endRow and
     // that does not change for a split.
-    Text metaRow = seedSplitTask.getExtent().toMetaRow();
+    Text metaRow = extent.toMetaRow();
     int qsize = queuedTablets.size();
-    if (qsize < 10_000 && queuedTablets.add(metaRow)) {
-      Runnable taskWrapper = () -> {
-        try {
-          seedSplitTask.run();
-        } finally {
-          queuedTablets.remove(metaRow);
-        }
-      };
-
-      try {
-        splitExecutor.execute(taskWrapper);
-      } catch (RejectedExecutionException rje) {
-        queuedTablets.remove(metaRow);
-        throw rje;
-      }
-    } else {
+    if (qsize >= 10_000 || queuedTablets.putIfAbsent(metaRow, extent) != null) {
       LOG.trace("Did not add {} to split queue {}", metaRow, qsize);
     }
   }

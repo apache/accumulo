@@ -53,16 +53,15 @@ class PopulateZookeeper extends ManagerRepo {
 
     Utils.getTableNameLock().lock();
     try {
-      // write tableName & tableId to zookeeper
-      Utils.checkTableNameDoesNotExist(manager.getContext(), tableInfo.getTableName(),
-          tableInfo.getNamespaceId(), tableInfo.getTableId(), TableOperation.CREATE);
-
+      var context = manager.getContext();
+      // write tableName & tableId, first to Table Mapping and then to Zookeeper
+      context.getTableMapping(tableInfo.getNamespaceId()).put(tableInfo.getTableId(),
+          tableInfo.getTableName(), TableOperation.CREATE);
       manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
           tableInfo.getTableName());
 
       try {
-        PropUtil.setProperties(manager.getContext(),
-            TablePropKey.of(manager.getContext(), tableInfo.getTableId()), tableInfo.props);
+        PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId()), tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,
@@ -70,7 +69,7 @@ class PopulateZookeeper extends ManagerRepo {
                 + tableInfo.props);
       }
 
-      manager.getContext().clearTableListCache();
+      context.clearTableListCache();
       return new ChooseDir(tableInfo);
     } finally {
       Utils.getTableNameLock().unlock();
@@ -80,7 +79,7 @@ class PopulateZookeeper extends ManagerRepo {
 
   @Override
   public void undo(FateId fateId, Manager manager) throws Exception {
-    manager.getTableManager().removeTable(tableInfo.getTableId());
+    manager.getTableManager().removeTable(tableInfo.getTableId(), tableInfo.getNamespaceId());
     Utils.unreserveTable(manager, tableInfo.getTableId(), fateId, LockType.WRITE);
     manager.getContext().clearTableListCache();
   }

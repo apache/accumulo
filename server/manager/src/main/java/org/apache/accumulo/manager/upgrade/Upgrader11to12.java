@@ -44,29 +44,38 @@ import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.util.Encoding;
+import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.TextUtil;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
-import org.apache.accumulo.server.init.ZooKeeperInitializer;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
@@ -89,8 +98,8 @@ public class Upgrader11to12 implements Upgrader {
       List.of(new Range("~sserv", "~sserx"), new Range("~scanref", "~scanreg"));
 
   @VisibleForTesting
-  static final Set<Text> UPGRADE_FAMILIES =
-      Set.of(DataFileColumnFamily.NAME, CHOPPED, ExternalCompactionColumnFamily.NAME);
+  static final Set<Text> UPGRADE_FAMILIES = Set.of(DataFileColumnFamily.NAME, CHOPPED,
+      ExternalCompactionColumnFamily.NAME, ScanFileColumnFamily.NAME);
 
   private static final String ZTRACERS = "/tracers";
 
@@ -100,17 +109,15 @@ public class Upgrader11to12 implements Upgrader {
   @Override
   public void upgradeZookeeper(@NonNull ServerContext context) {
     log.debug("Upgrade ZooKeeper: upgrading to data version {}", METADATA_FILE_JSON_ENCODING);
-    var zooRoot = ZooUtil.getRoot(context.getInstanceID());
-    var rootBase = zooRoot + ZROOT_TABLET;
 
     try {
       var zrw = context.getZooSession().asReaderWriter();
 
       // clean up nodes no longer in use
-      zrw.recursiveDelete(zooRoot + ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
+      zrw.recursiveDelete(ZTRACERS, ZooUtil.NodeMissingPolicy.SKIP);
 
       Stat stat = new Stat();
-      byte[] rootData = zrw.getData(rootBase, stat);
+      byte[] rootData = zrw.getData(ZROOT_TABLET, stat);
 
       String json = new String(rootData, UTF_8);
 
@@ -128,32 +135,35 @@ public class Upgrader11to12 implements Upgrader {
       if (!mutations.isEmpty()) {
         log.info("Root metadata in ZooKeeper before upgrade: {}", json);
         rtm.update(mutations.get(0));
-        zrw.overwritePersistentData(rootBase, rtm.toJson().getBytes(UTF_8), stat.getVersion());
+        zrw.overwritePersistentData(ZROOT_TABLET, rtm.toJson().getBytes(UTF_8), stat.getVersion());
         log.info("Root metadata in ZooKeeper after upgrade: {}", rtm.toJson());
       }
 
-      String zPath = context.getZooKeeperRoot() + Constants.ZNAMESPACES;
-      byte[] namespacesData = zrw.getData(zPath);
+      byte[] namespacesData = zrw.getData(Constants.ZNAMESPACES);
       if (namespacesData.length != 0) {
         throw new IllegalStateException(
             "Unexpected data found under namespaces node: " + new String(namespacesData, UTF_8));
       }
-      List<String> namespaceIdList = zrw.getChildren(zPath);
+      List<String> namespaceIdList = zrw.getChildren(Constants.ZNAMESPACES);
       Map<String,String> namespaceMap = new HashMap<>();
       for (String namespaceId : namespaceIdList) {
-        String namespaceNamePath = zPath + "/" + namespaceId + ZNAMESPACE_NAME;
+        String namespaceNamePath = Constants.ZNAMESPACES + "/" + namespaceId + ZNAMESPACE_NAME;
         namespaceMap.put(namespaceId, new String(zrw.getData(namespaceNamePath), UTF_8));
       }
-      byte[] mapping = NamespaceMapping.serialize(namespaceMap);
-      zrw.putPersistentData(zPath, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
+      byte[] mapping = NamespaceMapping.serializeMap(namespaceMap);
+      zrw.putPersistentData(Constants.ZNAMESPACES, mapping, ZooUtil.NodeExistsPolicy.OVERWRITE);
 
       for (String namespaceId : namespaceIdList) {
-        String namespaceNamePath = zPath + "/" + namespaceId + ZNAMESPACE_NAME;
+        String namespaceNamePath = Constants.ZNAMESPACES + "/" + namespaceId + ZNAMESPACE_NAME;
         zrw.delete(namespaceNamePath);
       }
 
       log.info("Removing problems reports from zookeeper");
       removeZKProblemReports(context);
+
+      log.info("Creating ZooKeeper entries for ScanServerRefTable");
+      preparePre4_0NewTableState(context, SystemTables.SCAN_REF.tableId(), Namespace.ACCUMULO.id(),
+          SystemTables.SCAN_REF.tableName(), TableState.ONLINE, ZooUtil.NodeExistsPolicy.FAIL);
 
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
@@ -162,6 +172,36 @@ public class Upgrader11to12 implements Upgrader {
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "Could not read or write root metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+  }
+
+  private static final String ZTABLE_NAME = "/name";
+  private static final String ZTABLE_COMPACT_ID = "/compact-id";
+  private static final String ZTABLE_COMPACT_CANCEL_ID = "/compact-cancel-id";
+  private static final String ZTABLE_STATE = "/state";
+  private static final byte[] ZERO_BYTE = {'0'};
+
+  public static void preparePre4_0NewTableState(ServerContext context, TableId tableId,
+      NamespaceId namespaceId, String tableName, TableState state, NodeExistsPolicy existsPolicy)
+      throws KeeperException, InterruptedException {
+    // state gets created last
+    log.debug("Creating ZooKeeper entries for new table {} (ID: {}) in namespace (ID: {})",
+        tableName, tableId, namespaceId);
+    Pair<String,String> qualifiedTableName = TableNameUtil.qualify(tableName);
+    tableName = qualifiedTableName.getSecond();
+    String zTablePath = Constants.ZTABLES + "/" + tableId;
+    final ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
+    zoo.putPersistentData(zTablePath, new byte[0], existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_NAMESPACE,
+        namespaceId.canonical().getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_NAME, tableName.getBytes(UTF_8), existsPolicy);
+    zoo.putPersistentData(zTablePath + Constants.ZTABLE_FLUSH_ID, ZERO_BYTE, existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_COMPACT_ID, ZERO_BYTE, existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_COMPACT_CANCEL_ID, ZERO_BYTE, existsPolicy);
+    zoo.putPersistentData(zTablePath + ZTABLE_STATE, state.name().getBytes(UTF_8), existsPolicy);
+    var propKey = TablePropKey.of(tableId);
+    if (!context.getPropStore().exists(propKey)) {
+      context.getPropStore().create(propKey, Map.of());
     }
   }
 
@@ -182,7 +222,7 @@ public class Upgrader11to12 implements Upgrader {
     var metaName = Ample.DataLevel.USER.metaTable();
     upgradeTabletsMetadata(context, metaName);
     removeScanServerRange(context, metaName);
-    createScanServerRefTable(context);
+    createScanServerRefTableMetadataEntries(context);
     log.info("Removing problems reports from metadata table");
     removeMetadataProblemReports(context);
   }
@@ -229,6 +269,10 @@ public class Upgrader11to12 implements Upgrader {
         var family = key.getColumnFamily();
         if (family.equals(DataFileColumnFamily.NAME)) {
           upgradeDataFileCF(key, value, update);
+        } else if (family.equals(ScanFileColumnFamily.NAME)) {
+          log.debug("Deleting scan reference from:{}. Ref: {}", tableName, key.getRow());
+          update.at().family(ScanFileColumnFamily.NAME).qualifier(key.getColumnQualifier())
+              .delete();
         } else if (family.equals(CHOPPED)) {
           log.warn(
               "Deleting chopped reference from:{}. Previous split or delete may not have completed cleanly. Ref: {}",
@@ -282,16 +326,17 @@ public class Upgrader11to12 implements Upgrader {
     log.info("Scan Server Ranges {} removed from table {}", OLD_SCAN_SERVERS_RANGES, tableName);
   }
 
-  public void createScanServerRefTable(ServerContext context) {
-    ZooKeeperInitializer zkInit = new ZooKeeperInitializer();
-    zkInit.initScanRefTableState(context);
-
+  public void createScanServerRefTableMetadataEntries(ServerContext context) {
     try {
       FileSystemInitializer initializer = new FileSystemInitializer(
           new InitialConfiguration(context.getHadoopConf(), context.getSiteConfiguration()));
-      FileSystemInitializer.InitialTablet scanRefTablet = initializer.createScanRefTablet(context);
+      // For upgrading an existing system set to never merge. If the mergeability is changed
+      // then we would look to use the thrift client to look up the current Manager time to
+      // set as part of the mergeability metadata
+      FileSystemInitializer.InitialTablet scanRefTablet =
+          initializer.createScanRefTablet(context, TabletMergeabilityMetadata.never());
       // Add references to the Metadata Table
-      try (BatchWriter writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+      try (BatchWriter writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
         writer.addMutation(scanRefTablet.createMutation());
       } catch (MutationsRejectedException | TableNotFoundException e) {
         log.error("Failed to write tablet refs to metadata table");
@@ -306,18 +351,17 @@ public class Upgrader11to12 implements Upgrader {
   private static final String ZPROBLEMS = "/problems";
 
   private void removeZKProblemReports(ServerContext context) {
-    String zpath = context.getZooKeeperRoot() + ZPROBLEMS;
     try {
-      if (!context.getZooSession().asReaderWriter().exists(zpath)) {
+      if (!context.getZooSession().asReaderWriter().exists(ZPROBLEMS)) {
         // could be running a second time and the node was already deleted
         return;
       }
-      var children = context.getZooSession().asReaderWriter().getChildren(zpath);
+      var children = context.getZooSession().asReaderWriter().getChildren(ZPROBLEMS);
       for (var child : children) {
         var pr = ProblemReport.decodeZooKeeperEntry(context, child);
         logProblemDeletion(pr);
       }
-      context.getZooSession().asReaderWriter().recursiveDelete(zpath,
+      context.getZooSession().asReaderWriter().recursiveDelete(ZPROBLEMS,
           ZooUtil.NodeMissingPolicy.SKIP);
     } catch (Exception e) {
       throw new IllegalStateException(e);
@@ -343,8 +387,8 @@ public class Upgrader11to12 implements Upgrader {
   private void removeMetadataProblemReports(ServerContext context) {
     try (
         var scanner =
-            context.createScanner(AccumuloTable.METADATA.tableName(), Authorizations.EMPTY);
-        var writer = context.createBatchWriter(AccumuloTable.METADATA.tableName())) {
+            context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
+        var writer = context.createBatchWriter(SystemTables.METADATA.tableName())) {
       scanner.setRange(ProblemSection.getRange());
       for (Map.Entry<Key,Value> entry : scanner) {
         var pr = ProblemReport.decodeMetadataEntry(entry.getKey(), entry.getValue());
@@ -421,7 +465,7 @@ public class Upgrader11to12 implements Upgrader {
       String problemType = dis.readUTF();
       String resource = dis.readUTF();
 
-      String zpath = context.getZooKeeperRoot() + ZPROBLEMS + "/" + node;
+      String zpath = ZPROBLEMS + "/" + node;
       byte[] enc = context.getZooSession().asReaderWriter().getData(zpath);
 
       return new ProblemReport(tableId, ProblemType.valueOf(problemType), resource, enc);

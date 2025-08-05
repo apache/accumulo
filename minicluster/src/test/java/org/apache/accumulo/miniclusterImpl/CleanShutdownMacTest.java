@@ -23,9 +23,9 @@ import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
@@ -41,13 +41,15 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class CleanShutdownMacTest extends WithTestNames {
 
   @TempDir
-  private static File tmpDir;
+  private static Path tmpDir;
 
   @Test
   public void testExecutorServiceShutdown() throws Exception {
-    File tmp = new File(tmpDir, testName());
-    assertTrue(tmp.isDirectory() || tmp.mkdir(), "Failed to make a new sub-directory");
-    MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp, "foo");
+    Path tmp = tmpDir.resolve(testName());
+    if (!Files.isDirectory(tmp)) {
+      Files.createDirectories(tmp);
+    }
+    MiniAccumuloClusterImpl cluster = new MiniAccumuloClusterImpl(tmp.toFile(), "foo");
 
     ExecutorService mockService = createMock(ExecutorService.class);
     Future<Integer> future = createMock(Future.class);

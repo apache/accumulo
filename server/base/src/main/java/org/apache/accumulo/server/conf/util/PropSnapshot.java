@@ -46,16 +46,16 @@ public class PropSnapshot implements PropChangeListener {
   private final Lock updateLock = new ReentrantLock();
   private final AtomicBoolean needsUpdate = new AtomicBoolean(true);
   private final AtomicReference<VersionedProperties> vPropRef = new AtomicReference<>();
-  private final PropStoreKey<?> propStoreKey;
+  private final PropStoreKey propStoreKey;
   private final PropStore propStore;
 
-  public static PropSnapshot create(final PropStoreKey<?> propStoreKey, final PropStore propStore) {
+  public static PropSnapshot create(final PropStoreKey propStoreKey, final PropStore propStore) {
     var ps = new PropSnapshot(propStoreKey, propStore);
     propStore.registerAsListener(propStoreKey, ps);
     return ps;
   }
 
-  private PropSnapshot(final PropStoreKey<?> propStoreKey, final PropStore propStore) {
+  private PropSnapshot(final PropStoreKey propStoreKey, final PropStore propStore) {
     this.propStoreKey = propStoreKey;
     this.propStore = propStore;
   }
@@ -81,6 +81,7 @@ public class PropSnapshot implements PropChangeListener {
     updateLock.lock();
     try {
       needsUpdate.set(true);
+      propStore.invalidate(propStoreKey);
     } finally {
       updateLock.unlock();
     }
@@ -110,7 +111,7 @@ public class PropSnapshot implements PropChangeListener {
   }
 
   @Override
-  public void zkChangeEvent(final PropStoreKey<?> eventPropKey) {
+  public void zkChangeEvent(final PropStoreKey eventPropKey) {
     if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
       log.debug("Saw zk change event for {} - update properties required", propStoreKey);
@@ -118,7 +119,7 @@ public class PropSnapshot implements PropChangeListener {
   }
 
   @Override
-  public void cacheChangeEvent(final PropStoreKey<?> eventPropKey) {
+  public void cacheChangeEvent(final PropStoreKey eventPropKey) {
     if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
       log.debug("Saw cache change event for {} - update properties required", propStoreKey);
@@ -126,7 +127,7 @@ public class PropSnapshot implements PropChangeListener {
   }
 
   @Override
-  public void deleteEvent(final PropStoreKey<?> eventPropKey) {
+  public void deleteEvent(final PropStoreKey eventPropKey) {
     if (propStoreKey.equals(eventPropKey)) {
       requireUpdate();
       log.debug("Received property delete event for {} - update properties required", propStoreKey);

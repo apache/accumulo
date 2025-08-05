@@ -28,6 +28,7 @@ import static org.easymock.EasyMock.createStrictMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
+import static org.easymock.EasyMock.isA;
 import static org.easymock.EasyMock.mock;
 import static org.easymock.EasyMock.newCapture;
 import static org.easymock.EasyMock.replay;
@@ -56,14 +57,18 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.RootTabletMetadata;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.store.TablePropKey;
+import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.data.Stat;
@@ -145,6 +150,11 @@ public class Upgrader11to12Test {
     Value value3 = new Value("1,2");
     scanData.put(key3, value3);
 
+    String fileName4 = "hdfs://localhost:8020/accumulo/tables/13/default_tablet/C000000x.rf";
+    Key key4 =
+        Key.builder(false).row(row2).family(ScanFileColumnFamily.NAME).qualifier(fileName4).build();
+    scanData.put(key4, new Value());
+
     ArrayList<Mutation> mutations = new ArrayList<>();
 
     Upgrader11to12 upgrader = new Upgrader11to12();
@@ -159,9 +169,9 @@ public class Upgrader11to12Test {
 
     var u2 = mutations.get(1);
     LOG.info("c:{}", u2.prettyPrint());
-    // 1 add, 1 delete
-    assertEquals(2, u2.getUpdates().size());
-    assertEquals(1, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
+    // 1 add, 2 delete
+    assertEquals(3, u2.getUpdates().size());
+    assertEquals(2, u2.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
 
   }
 
@@ -338,6 +348,7 @@ public class Upgrader11to12Test {
     assertEquals(1, u1.getUpdates().stream().filter(ColumnUpdate::isDeleted).count());
   }
 
+  @SuppressWarnings("unchecked")
   @Test
   public void upgradeZooKeeperTest() throws Exception {
 
@@ -354,18 +365,17 @@ public class Upgrader11to12Test {
     ServerContext context = createMock(ServerContext.class);
     ZooSession zk = createStrictMock(ZooSession.class);
     ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
-    final var zkRoot = ZooUtil.getRoot(iid);
+    ZooPropStore store = createMock(ZooPropStore.class);
 
     expect(context.getInstanceID()).andReturn(iid).anyTimes();
     expect(context.getZooSession()).andReturn(zk).anyTimes();
     expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
-    expect(context.getZooKeeperRoot()).andReturn(zkRoot).anyTimes();
 
-    zrw.recursiveDelete(zkRoot + "/tracers", ZooUtil.NodeMissingPolicy.SKIP);
+    zrw.recursiveDelete("/tracers", ZooUtil.NodeMissingPolicy.SKIP);
     expectLastCall().once();
 
     Capture<Stat> statCapture = newCapture();
-    expect(zrw.getData(eq(zkRoot + "/root_tablet"), capture(statCapture))).andAnswer(() -> {
+    expect(zrw.getData(eq("/root_tablet"), capture(statCapture))).andAnswer(() -> {
       Stat stat = statCapture.getValue();
       stat.setCtime(System.currentTimeMillis());
       stat.setMtime(System.currentTimeMillis());
@@ -376,34 +386,41 @@ public class Upgrader11to12Test {
     }).once();
 
     Capture<byte[]> byteCapture = newCapture();
-    expect(zrw.overwritePersistentData(eq(zkRoot + "/root_tablet"), capture(byteCapture), eq(123)))
+    expect(zrw.overwritePersistentData(eq("/root_tablet"), capture(byteCapture), eq(123)))
         .andReturn(true).once();
 
-    expect(zrw.getData(eq(zkRoot + Constants.ZNAMESPACES))).andReturn(new byte[0]).once();
+    expect(zrw.getData(eq(Constants.ZNAMESPACES))).andReturn(new byte[0]).once();
     Map<String,String> mockNamespaces = Map.of("ns1", "ns1name", "ns2", "ns2name");
-    expect(zrw.getChildren(eq(zkRoot + Constants.ZNAMESPACES)))
+    expect(zrw.getChildren(eq(Constants.ZNAMESPACES)))
         .andReturn(List.copyOf(mockNamespaces.keySet())).once();
     for (String ns : mockNamespaces.keySet()) {
-      expect(zrw.getData(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME))
+      expect(zrw.getData(Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME))
           .andReturn(mockNamespaces.get(ns).getBytes(UTF_8)).once();
     }
-    byte[] mapping = NamespaceMapping.serialize(mockNamespaces);
-    expect(zrw.putPersistentData(eq(zkRoot + Constants.ZNAMESPACES), aryEq(mapping),
+    byte[] mapping = NamespaceMapping.serializeMap(mockNamespaces);
+    expect(zrw.putPersistentData(eq(Constants.ZNAMESPACES), aryEq(mapping),
         eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
     for (String ns : mockNamespaces.keySet()) {
-      zrw.delete(zkRoot + Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
+      zrw.delete(Constants.ZNAMESPACES + "/" + ns + ZNAMESPACE_NAME);
       expectLastCall().once();
     }
 
-    expect(zrw.exists(zkRoot + "/problems")).andReturn(false).once();
+    expect(zrw.exists("/problems")).andReturn(false).once();
 
-    replay(context, zk, zrw);
+    expect(zrw.putPersistentData(isA(String.class), isA(byte[].class), isA(NodeExistsPolicy.class)))
+        .andReturn(true).times(7);
+    expect(context.getPropStore()).andReturn(store).atLeastOnce();
+    expect(store.exists(isA(TablePropKey.class))).andReturn(false).atLeastOnce();
+    store.create(isA(TablePropKey.class), isA(Map.class));
+    expectLastCall().once();
+
+    replay(context, zk, zrw, store);
 
     upgrader.upgradeZookeeper(context);
 
     assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
 
-    verify(context, zk, zrw);
+    verify(context, zk, zrw, store);
   }
 
   @Test

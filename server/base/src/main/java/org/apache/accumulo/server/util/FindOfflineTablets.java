@@ -26,7 +26,7 @@ import java.util.function.Consumer;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
@@ -64,7 +64,9 @@ public class FindOfflineTablets {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
-    LiveTServerSet tservers = new LiveTServerSet(context, new Listener() {
+    LiveTServerSet tservers = new LiveTServerSet(context);
+
+    tservers.startListeningForTabletServerChanges(new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
@@ -76,7 +78,6 @@ public class FindOfflineTablets {
         }
       }
     });
-    tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
     int offline = 0;
@@ -92,12 +93,12 @@ public class FindOfflineTablets {
       }
     }
 
-    if (AccumuloTable.ROOT.tableName().equals(tableName)) {
+    if (SystemTables.ROOT.tableName().equals(tableName)) {
       return 0;
     }
 
     if (!skipRootScan) {
-      printInfoMethod.accept("Scanning " + AccumuloTable.ROOT.tableName());
+      printInfoMethod.accept("Scanning " + SystemTables.ROOT.tableName());
       try (TabletsMetadata tabletsMetadata =
           context.getAmple().readTablets().forLevel(DataLevel.METADATA).build()) {
         if ((offline =
@@ -107,11 +108,11 @@ public class FindOfflineTablets {
       }
     }
 
-    if (AccumuloTable.METADATA.tableName().equals(tableName)) {
+    if (SystemTables.METADATA.tableName().equals(tableName)) {
       return 0;
     }
 
-    printInfoMethod.accept("Scanning " + AccumuloTable.METADATA.tableName());
+    printInfoMethod.accept("Scanning " + SystemTables.METADATA.tableName());
 
     try (var metaScanner = context.getAmple().readTablets().forLevel(DataLevel.USER).build()) {
       return checkTablets(context, metaScanner.iterator(), tservers, printProblemMethod);

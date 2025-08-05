@@ -39,6 +39,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -68,10 +72,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.data.constraints.DefaultKeySizeConstraint;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.TabletIdImpl;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -195,6 +200,18 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void createTableWithSystemUser() throws TableExistsException, AccumuloException,
+      AccumuloSecurityException, TableNotFoundException {
+    String tableName = getUniqueNames(1)[0];
+    AccumuloClient client = getServerContext();
+    client.tableOperations().create(tableName);
+    Map<String,String> props = client.tableOperations().getConfiguration(tableName);
+    assertEquals(DefaultKeySizeConstraint.class.getName(),
+        props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
+    client.tableOperations().delete(tableName);
   }
 
   @Test
@@ -331,7 +348,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       for (Entry<Key,Value> entry : s) {
         final Key key = entry.getKey();
         String row = key.getRow().toString();
-        String cf = key.getColumnFamily().toString(), cq = key.getColumnQualifier().toString();
+        String cf = key.getColumnFamily().toString();
+        String cq = key.getColumnQualifier().toString();
         String value = entry.getValue().toString();
 
         if (rowCounts.containsKey(row)) {
@@ -436,10 +454,10 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(TimeType.LOGICAL, timeType);
 
     // check system tables
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.METADATA.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.METADATA.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
-    timeType = accumuloClient.tableOperations().getTimeType(AccumuloTable.ROOT.tableName());
+    timeType = accumuloClient.tableOperations().getTimeType(SystemTables.ROOT.tableName());
     assertEquals(TimeType.LOGICAL, timeType);
 
     // test non-existent table
@@ -819,6 +837,37 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     KeyExtent ke = new KeyExtent(TableId.of(id), endRow == null ? null : new Text(endRow),
         prevEndRow == null ? null : new Text(prevEndRow));
     expected.put(new TabletIdImpl(ke), availability);
+  }
+
+  @Test
+  public void testUniquenessOfTableId() throws ExecutionException, InterruptedException {
+    List<Future<TableId>> futureList = new ArrayList<>();
+
+    Set<TableId> hash = new HashSet<>();
+
+    ExecutorService pool = Executors.newFixedThreadPool(64);
+
+    for (int i = 0; i < 1000; i++) {
+      int finalI = i;
+
+      Future<TableId> future = pool.submit(() -> {
+        TableId tableId = null;
+
+        tableId = Utils.getNextId("Testing" + finalI, getServerContext(), TableId::of);
+
+        return tableId;
+      });
+
+      futureList.add(future);
+    }
+
+    for (Future<TableId> tab : futureList) {
+      hash.add(tab.get());
+    }
+
+    pool.shutdown();
+
+    assertEquals(1000, hash.size());
   }
 
 }

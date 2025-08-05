@@ -51,7 +51,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.AccumuloTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
@@ -95,7 +95,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
   @Test
   public void systemPermissionsTest() throws Exception {
-    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
 
     // verify that the test is being run by root
     try (AccumuloClient c = Accumulo.newClient().from(getClientProps()).build()) {
@@ -149,7 +150,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private void testMissingSystemPermission(String tableNamePrefix, AccumuloClient root_client,
       ClusterUser rootUser, AccumuloClient test_user_client, ClusterUser testUser,
       SystemPermission perm) throws Exception {
-    String tableName, user, password = "password", namespace;
+    String tableName;
+    String user;
+    String password = "password";
+    String namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the lack of the {} permission properly restricts the user", perm);
 
@@ -459,7 +463,10 @@ public class PermissionsIT extends AccumuloClusterHarness {
   private void testGrantedSystemPermission(String tableNamePrefix, AccumuloClient root_client,
       ClusterUser rootUser, AccumuloClient test_user_client, ClusterUser testUser,
       SystemPermission perm) throws Exception {
-    String tableName, user, password = "password", namespace;
+    String tableName;
+    String user;
+    String password = "password";
+    String namespace;
     boolean passwordBased = testUser.getPassword() != null;
     log.debug("Confirming that the presence of the {} permission properly permits the user", perm);
 
@@ -676,7 +683,8 @@ public class PermissionsIT extends AccumuloClusterHarness {
   @Test
   public void tablePermissionTest() throws Exception {
     // create the test user
-    ClusterUser testUser = getUser(0), rootUser = getAdminUser();
+    ClusterUser testUser = getUser(0);
+    ClusterUser rootUser = getAdminUser();
 
     String principal = testUser.getPrincipal();
     AuthenticationToken token = testUser.getToken();
@@ -693,7 +701,7 @@ public class PermissionsIT extends AccumuloClusterHarness {
 
         // check for read-only access to metadata table
         loginAs(rootUser);
-        verifyHasOnlyTheseTablePermissions(c, c.whoami(), AccumuloTable.METADATA.tableName(),
+        verifyHasOnlyTheseTablePermissions(c, c.whoami(), SystemTables.METADATA.tableName(),
             TablePermission.READ, TablePermission.ALTER_TABLE);
         String tableName = getUniqueNames(1)[0] + "__TABLE_PERMISSION_TEST__";
 

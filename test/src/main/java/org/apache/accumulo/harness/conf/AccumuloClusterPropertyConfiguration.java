@@ -21,9 +21,10 @@ package org.apache.accumulo.harness.conf;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 
-import java.io.File;
-import java.io.FileReader;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,14 +54,15 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static AccumuloClusterPropertyConfiguration get() {
 
-    String clusterTypeValue = null, clientConf = null;
+    String clusterTypeValue = null;
+    String clientConf = null;
     String propertyFile = System.getProperty(ACCUMULO_IT_PROPERTIES_FILE);
 
     if (propertyFile != null) {
       // Check for properties provided in a file
-      File f = new File(propertyFile);
+      Path f = Path.of(propertyFile);
       Properties fileProperties = new Properties();
-      try (FileReader reader = new FileReader(f, UTF_8)) {
+      try (BufferedReader reader = Files.newBufferedReader(f)) {
         fileProperties.load(reader);
         clusterTypeValue = fileProperties.getProperty(ACCUMULO_CLUSTER_TYPE_KEY);
         clientConf = fileProperties.getProperty(ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
@@ -98,12 +100,12 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
           throw new RuntimeException(
               "Expected client configuration to be provided: " + ACCUMULO_CLUSTER_CLIENT_CONF_KEY);
         }
-        File clientConfFile = new File(clientConf);
-        if (!clientConfFile.exists() || !clientConfFile.isFile()) {
+        Path clientConfFile = Path.of(clientConf);
+        if (!Files.isRegularFile(clientConfFile)) {
           throw new RuntimeException(
               "Client configuration should be a normal file: " + clientConfFile);
         }
-        return new StandaloneAccumuloClusterConfiguration(clientConfFile);
+        return new StandaloneAccumuloClusterConfiguration(clientConfFile.toFile());
       default:
         throw new RuntimeException(
             "Clusters other than MiniAccumuloCluster are not yet implemented");
@@ -132,12 +134,12 @@ public abstract class AccumuloClusterPropertyConfiguration implements AccumuloCl
 
     // Check for properties provided in a file
     if (propertyFile != null) {
-      File f = new File(propertyFile);
-      if (f.exists() && f.isFile() && f.canRead()) {
+      Path f = Path.of(propertyFile);
+      if (Files.exists(f) && Files.isRegularFile(f) && Files.isReadable(f)) {
         Properties fileProperties = new Properties();
-        FileReader reader = null;
+        BufferedReader reader = null;
         try {
-          reader = new FileReader(f, UTF_8);
+          reader = Files.newBufferedReader(f, UTF_8);
         } catch (IOException e) {
           log.warn("Could not read properties from specified file: {}", propertyFile, e);
         }

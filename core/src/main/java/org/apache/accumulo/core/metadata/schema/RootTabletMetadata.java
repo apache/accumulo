@@ -61,21 +61,16 @@ public class RootTabletMetadata {
 
   private static final int VERSION = 1;
 
-  public static String zooPath(ClientContext ctx) {
-    return ctx.getZooKeeperRoot() + RootTable.ZROOT_TABLET;
-  }
-
   /**
    * Reads the tablet metadata for the root tablet from zookeeper
    */
   public static RootTabletMetadata read(ClientContext ctx) {
     try {
-      final String zpath = zooPath(ctx);
       ZooReader zooReader = ctx.getZooSession().asReader();
       // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
       // zookeeper
-      zooReader.sync(zpath);
-      byte[] bytes = zooReader.getData(zpath);
+      zooReader.sync(RootTable.ZROOT_TABLET);
+      byte[] bytes = zooReader.getData(RootTable.ZROOT_TABLET);
       return new RootTabletMetadata(new String(bytes, UTF_8));
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException(e);
@@ -199,9 +194,10 @@ public class RootTabletMetadata {
    * Convert this class to a {@link TabletMetadata}
    */
   public TabletMetadata toTabletMetadata() {
-    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
+    // Create a tablet metadata object from the RootTabletMetadata
+    // Keep the key/values in case they are needed
     return TabletMetadata.convertRow(getKeyValues().iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false, false);
+        EnumSet.allOf(TabletMetadata.ColumnType.class), true, false);
   }
 
   public static boolean needsUpgrade(final String json) {

@@ -253,6 +253,12 @@ public class TestStore implements FateStore<String> {
         throw new UnsupportedOperationException(
             "Only the 'reserved' set should be used for reservations in the test store");
       }
+
+      @Override
+      public Optional<Fate.FateOperation> getFateOperation() {
+        throw new UnsupportedOperationException("Test not configured or expected to be calling "
+            + "this method. Functionality can be added if needed.");
+      }
     });
   }
 
@@ -267,7 +273,7 @@ public class TestStore implements FateStore<String> {
   }
 
   @Override
-  public void runnable(AtomicBoolean keepWaiting, Consumer<FateId> idConsumer) {
+  public void runnable(AtomicBoolean keepWaiting, Consumer<FateIdStatus> idConsumer) {
     throw new UnsupportedOperationException();
   }
 
@@ -284,5 +290,10 @@ public class TestStore implements FateStore<String> {
   @Override
   public boolean isDeferredOverflow() {
     return false;
+  }
+
+  @Override
+  public void close() {
+    // no-op
   }
 }

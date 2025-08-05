@@ -28,12 +28,12 @@ import org.junit.jupiter.api.BeforeAll;
  * Run all of the merge test using a flaky Fate impl that will run merge fate steps multiple times
  * to ensure idempotent.
  */
-public class MergeTabletsFlakyFateIT extends MergeTabletsBaseIT {
+public class MergeTabletsFlakyFateIT extends MergeTabletsITBase {
 
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
-      cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class);
+      cfg.setServerClass(ServerType.MANAGER, rg -> FlakyFateManager.class);
     });
 
   }

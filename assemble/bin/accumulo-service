@@ -140,9 +140,20 @@ function control_process() {
 function find_processes() {
   local service_type=$1
   local file
-  for file in "$ACCUMULO_PID_DIR"/*; do
-    if file=$(expr "$file" : '^.*/accumulo-\('"$service_type"'.*\)[.]pid$'); then
-      RUNNING_PROCESSES+=("$file")
+  local filepath
+  local expected_pid
+  local found_pid
+  for filepath in "$ACCUMULO_PID_DIR"/*; do
+    if [[ $filepath =~ ^.*/accumulo-("$service_type".*)[.]pid$ ]]; then
+      file="${BASH_REMATCH[1]}"
+      expected_pid=$(<"$filepath")
+      found_pid=$(pgrep -F "$filepath" -f "$file")
+      if [[ $found_pid != "$expected_pid" ]]; then
+        echo "removing stale pid file $filepath" >&2
+        rm "$filepath"
+      else
+        RUNNING_PROCESSES+=("$file")
+      fi
     fi
   done
 }
@@ -151,7 +162,7 @@ function stop_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if $all_flag; then
+  if [[ $all_flag == 'true' ]]; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -180,7 +191,7 @@ function kill_service() {
   local service_type=$1
   local service_name=$2
   local all_flag=$3
-  if $all_flag; then
+  if [[ $all_flag == 'true' ]]; then
     find_processes "$service_type"
     for process in "${RUNNING_PROCESSES[@]}"; do
       local pid_file="${ACCUMULO_PID_DIR}/accumulo-${process}.pid"
@@ -207,10 +218,24 @@ function kill_service() {
 function list_processes() {
   local service_type=$1
   find_processes "$service_type"
-  echo "Currently running ${service_type} processes:"
+  echo "Currently running ${service_type} processes (fields: process pid port):"
   for process in "${RUNNING_PROCESSES[@]}"; do
-    echo "$process"
+    local pid_file
+    local pid
+    local port
+    local loop_err
+    pid_file="$ACCUMULO_PID_DIR/accumulo-$process.pid"
+    pid=$(<"$pid_file") # read the contents of the file into the $pid variable
+    port=$(ss -tnlp 2>/dev/null | grep -wF "pid=$pid" | awk '{print $4}' | awk -F : '{print $NF}' | paste -sd,)
+
+    if [[ $port =~ ^[1-9][0-9]{1,4}(,[1-9][0-9]{1,4})*$ ]]; then
+      echo "$process $pid $port"
+    else
+      echo "ERROR unexpected port format $(hostname) process:$process pid:$pid ports:$port" >&2
+      loop_err=1
+    fi
   done
+  [[ -z $loop_err ]] # return non-zero if any errors occurred during the loop
 }
 
 function main() {
@@ -239,16 +264,6 @@ function main() {
   group=$(get_group "$@")
   export ACCUMULO_RESOURCE_GROUP="$group"
 
-  if [[ -f "${conf}/accumulo-env.sh" ]]; then
-    #shellcheck source=../conf/accumulo-env.sh
-    source "${conf}/accumulo-env.sh"
-  fi
-  ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
-  ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-${basedir}/run}"
-
-  mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
-  mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
-
   HOST="$(hostname)"
   if [[ -z $HOST ]]; then
     HOST=$(ip addr | grep 'state UP' -A2 | tail -n1 | awk '{print $2}' | cut -f1 -d'/')
@@ -259,6 +274,16 @@ function main() {
   shift 2
   local service_name=""
   local all_flag=false
+
+  if [[ -f "${conf}/accumulo-env.sh" ]]; then
+    #shellcheck source=../conf/accumulo-env.sh
+    source "${conf}/accumulo-env.sh"
+  fi
+  ACCUMULO_LOG_DIR="${ACCUMULO_LOG_DIR:-${basedir}/logs}"
+  ACCUMULO_PID_DIR="${ACCUMULO_PID_DIR:-${basedir}/run}"
+
+  mkdir -p "$ACCUMULO_LOG_DIR" 2>/dev/null
+  mkdir -p "$ACCUMULO_PID_DIR" 2>/dev/null
 
   # Check and see if accumulo-cluster is calling this script
   if [[ -z $ACCUMULO_CLUSTER_ARG ]]; then

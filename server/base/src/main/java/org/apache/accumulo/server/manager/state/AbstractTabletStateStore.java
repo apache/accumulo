@@ -87,7 +87,7 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
       for (Assignment assignment : assignments) {
         tabletsMutator.mutateTablet(assignment.tablet).requireAbsentOperation()
             .requireAbsentLocation().deleteSuspension()
-            .putLocation(TabletMetadata.Location.future(assignment.server))
+            .putLocation(TabletMetadata.Location.future(assignment.server)).deleteMigration()
             .submit(tabletMetadata -> {
               Preconditions.checkArgument(tabletMetadata.getExtent().equals(assignment.tablet));
               return tabletMetadata.getLocation() != null && tabletMetadata.getLocation()
@@ -158,6 +158,12 @@ public abstract class AbstractTabletStateStore implements TabletStateStore {
         if (tm.getLocation() != null && tm.getLocation().getType() != null
             && tm.getLocation().getType().equals(LocationType.FUTURE)) {
           tabletMutator.deleteLocation(tm.getLocation());
+        }
+
+        if (tm.getMigration() != null) {
+          // Since the tablet server died, any migration plans may no longer be valid, so remove
+          // any migrations that may exist
+          tabletMutator.deleteMigration();
         }
 
         processSuspension(tabletMutator, tm, suspensionTimestamp);

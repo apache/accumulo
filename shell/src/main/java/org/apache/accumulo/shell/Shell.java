@@ -24,11 +24,13 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.io.UncheckedIOException;
 import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -67,7 +69,9 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.thrift.TConstraintViolationSummary;
+import org.apache.accumulo.core.spi.common.ContextClassLoaderFactory.ContextClassLoaderException;
 import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
+import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.format.DefaultFormatter;
 import org.apache.accumulo.core.util.format.Formatter;
@@ -185,6 +189,8 @@ import com.beust.jcommander.ParameterException;
 import com.google.auto.service.AutoService;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 /**
  * A convenient console interface to perform basic accumulo functions Includes auto-complete, help,
@@ -459,7 +465,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
   }
 
   public ClassLoader getClassLoader(final CommandLine cl, final Shell shellState)
-      throws AccumuloException, TableNotFoundException, AccumuloSecurityException {
+      throws AccumuloException, TableNotFoundException, AccumuloSecurityException,
+      ContextClassLoaderException {
 
     boolean tables =
         cl.hasOption(OptUtil.tableOpt().getOpt()) || !shellState.getTableName().isEmpty();
@@ -533,13 +540,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
     String home = System.getProperty("HOME");
     if (home == null) {
-      home = System.getenv("HOME");
+      home = System.getProperty("user.home");
     }
     String configDir = home + "/" + HISTORY_DIR_NAME;
     String historyPath = configDir + "/" + HISTORY_FILE_NAME;
-    File accumuloDir = new File(configDir);
-    if (!accumuloDir.exists() && !accumuloDir.mkdirs()) {
-      log.warn("Unable to make directory for history at {}", accumuloDir);
+    Path accumuloDir = Path.of(configDir);
+    if (Files.notExists(accumuloDir)) {
+      try {
+        Files.createDirectories(accumuloDir);
+      } catch (IOException e) {
+        log.warn("Unable to make directory for history at {}", accumuloDir, e);
+      }
     }
 
     // Disable shell highlighting
@@ -552,7 +563,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     reader.unsetOpt(LineReader.Option.HISTORY_TIMESTAMPED);
 
     // Set history file
-    reader.setVariable(LineReader.HISTORY_FILE, new File(historyPath));
+    reader.setVariable(LineReader.HISTORY_FILE, Path.of(historyPath));
 
     // Turn Ctrl+C into Exception when trying to cancel a command instead of JVM exit
     Thread executeThread = Thread.currentThread();
@@ -767,9 +778,15 @@ public class Shell extends ShellOptions implements KeywordExecutable {
               expectedArgLen == 1 ? "" : "s", actualArgLen == 1 ? "was" : "were", actualArgLen)));
           sc.printHelp(this);
         } else {
-          int tmpCode = sc.execute(input, cl, this);
-          exitCode += tmpCode;
-          writer.flush();
+          Span span = TraceUtil.startSpan(this.getClass(), "command::" + command);
+          span.setAttribute("shell.commandLine", input);
+          try (Scope scope = span.makeCurrent()) {
+            int tmpCode = sc.execute(input, cl, this);
+            exitCode += tmpCode;
+            writer.flush();
+          } finally {
+            span.end();
+          }
         }
 
       } catch (ConstraintViolationException e) {
@@ -998,8 +1015,12 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     @SuppressFBWarnings(value = "PATH_TRAVERSAL_OUT",
         justification = "app is run in same security context as user providing the filename")
     public PrintFile(String filename) throws FileNotFoundException {
-      writer = new PrintWriter(
-          new BufferedWriter(new OutputStreamWriter(new FileOutputStream(filename), UTF_8)));
+      try {
+        writer = new PrintWriter(new BufferedWriter(
+            new OutputStreamWriter(Files.newOutputStream(Path.of(filename)), UTF_8)));
+      } catch (IOException e) {
+        throw new UncheckedIOException("Error creating output stream for file: " + filename, e);
+      }
     }
 
     @Override
@@ -1101,7 +1122,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
 
   private void printConstraintViolationException(ConstraintViolationException cve) {
     printException(cve, "");
-    int COL1 = 50, COL2 = 14;
+    int COL1 = 50;
+    int COL2 = 14;
     int col3 = Math.max(1, Math.min(Integer.MAX_VALUE, terminal.getWidth() - COL1 - COL2 - 6));
     logError(String.format("%" + COL1 + "s-+-%" + COL2 + "s-+-%" + col3 + "s%n", repeat("-", COL1),
         repeat("-", COL2), repeat("-", col3)));

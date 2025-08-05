@@ -375,6 +375,7 @@ service ManagerClientService {
     1:client.TInfo tinfo
     2:security.TCredentials credentials
     3:string tabletServer
+    4:string resourceGroup
   ) throws (
     1:client.ThriftSecurityException sec
     2:client.ThriftNotActiveServiceException tnase

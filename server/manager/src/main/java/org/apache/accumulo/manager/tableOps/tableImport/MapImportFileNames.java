@@ -31,6 +31,7 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperationExceptionType;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.file.FileOperations;
+import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.server.fs.VolumeManager;
@@ -70,6 +71,7 @@ class MapImportFileNames extends ManagerRepo {
 
         mappingsWriter = new BufferedWriter(new OutputStreamWriter(fs.create(path), UTF_8));
 
+        var names = namer.getNextNames(files.length);
         for (FileStatus fileStatus : files) {
           String fileName = fileStatus.getPath().getName();
           log.info("filename " + fileStatus.getPath());
@@ -87,7 +89,7 @@ class MapImportFileNames extends ManagerRepo {
             continue;
           }
 
-          String newName = "I" + namer.getNextName() + "." + extension;
+          String newName = FilePrefix.BULK_IMPORT.createFileName(names.next() + "." + extension);
 
           mappingsWriter.append(fileName);
           mappingsWriter.append(':');

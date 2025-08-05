@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
-import java.io.FileReader;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -51,12 +51,12 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.configuration2.PropertiesConfiguration;
-import org.apache.commons.io.FileUtils;
 import org.apache.hadoop.hdfs.DFSConfigKeys;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
+import org.junit.jupiter.api.io.TempDir;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -66,19 +66,15 @@ public class MiniAccumuloClusterTest extends WithTestNames {
   public static final String ROOT_PASSWORD = "superSecret";
   public static final String ROOT_USER = "root";
 
-  public static File testDir;
+  @TempDir
+  private static Path tempDir;
 
   private static MiniAccumuloCluster accumulo;
 
   @BeforeAll
   public static void setupMiniCluster() throws Exception {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
-    assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
-    testDir = new File(baseDir, MiniAccumuloClusterTest.class.getName());
-    FileUtils.deleteQuietly(testDir);
-    assertTrue(testDir.mkdir());
-
-    MiniAccumuloConfig config = new MiniAccumuloConfig(testDir, ROOT_PASSWORD).setJDWPEnabled(true);
+    MiniAccumuloConfig config =
+        new MiniAccumuloConfig(tempDir.toFile(), ROOT_PASSWORD).setJDWPEnabled(true);
     config.setZooKeeperPort(0);
     HashMap<String,String> site = new HashMap<>();
     site.put(Property.TSERV_WAL_SORT_BUFFER_SIZE.getKey(), "15%");
@@ -204,10 +200,9 @@ public class MiniAccumuloClusterTest extends WithTestNames {
 
   @Test
   public void testRandomPorts() throws Exception {
-    File confDir = new File(testDir, "conf");
-    File accumuloProps = new File(confDir, "accumulo.properties");
+    Path accumuloProps = tempDir.resolve("conf").resolve("accumulo.properties");
     var config = new PropertiesConfiguration();
-    try (var reader = new FileReader(accumuloProps, UTF_8)) {
+    try (var reader = Files.newBufferedReader(accumuloProps, UTF_8)) {
       config.read(reader);
     }
     for (Property randomPortProp : new Property[] {Property.TSERV_CLIENTPORT, Property.MONITOR_PORT,
