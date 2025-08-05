@@ -77,8 +77,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
         new String[] {"-q", QUEUE1});
     getCluster().getClusterControl().start(ServerType.SCAN_SERVER, Map.of(), 1,
         new String[] {"-g", "DEFAULT"});
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty(), 60_000);
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty(), 60_000);
     try {
       Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals(localHostName)));
@@ -147,8 +147,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
         new String[] {"-q", QUEUE1});
     getCluster().getClusterControl().start(ServerType.SCAN_SERVER, Map.of(), 1,
         new String[] {"-g", "DEFAULT"});
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty(), 60_000);
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty(), 60_000);
     try {
       Map<ServerType,HostAndPort> zkAddrs = getAdvertiseAddressFromZooKeeper(false);
       zkAddrs.values().forEach(hp -> assertTrue(hp.getHost().equals(localHostName)));
@@ -237,8 +237,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     sserverArgs.add("-g");
     sserverArgs.add("DEFAULT");
     control.start(ServerType.SCAN_SERVER, Map.of(), 1, sserverArgs.toArray(new String[] {}));
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty(), 60_000);
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty(), 60_000);
   }
 
   private void restartClusterWithProperties(Map<String,String> properties, boolean skipCoordinator)
@@ -260,8 +260,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     }
     control.start(ServerType.COMPACTOR, properties, 1, new String[] {"-q", QUEUE1});
     control.start(ServerType.SCAN_SERVER, properties, 1, new String[] {"-g", "DEFAULT"});
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty());
-    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty());
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getCompactors().isEmpty(), 60_000);
+    Wait.waitFor(() -> !getServerContext().instanceOperations().getScanServers().isEmpty(), 60_000);
   }
 
   private Map<ServerType,HostAndPort> getAdvertiseAddressFromZooKeeper(boolean skipCoordinator)
