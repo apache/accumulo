@@ -73,12 +73,15 @@ public class ServiceStatusReport {
   }
 
   public String toJson() {
-    // return gson.toJson(this, ServiceStatusReport.class);
-
-    Map<ReportKey,StatusSummary> noHostSummaries = summaries.entrySet().stream().collect(Collectors
-        .toMap(Map.Entry::getKey, e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
-    ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
-    return gson.toJson(noHostReport, ServiceStatusReport.class);
+    if (showHosts) {
+      return gson.toJson(this, ServiceStatusReport.class);
+    } else {
+      Map<ReportKey,StatusSummary> noHostSummaries =
+          summaries.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+              e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
+      ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
+      return gson.toJson(noHostReport, ServiceStatusReport.class);
+    }
   }
 
   public static ServiceStatusReport fromJson(final String json) {
@@ -170,25 +173,22 @@ public class ServiceStatusReport {
 
     fmtCounts(sb, summary);
 
-    // skip host info if NOT showing hosts
-    if (!showHosts) {
-      return;
+    // add summary info only when not displaying the hosts
+    if (!summary.getResourceGroups().isEmpty() && !showHosts) {
+      sb.append(I2).append("resource groups:\n");
+      summary.getResourceGroups().forEach(
+          (group, size) -> sb.append(I4).append(group).append(": ").append(size).append("\n"));
     }
 
-    if (!summary.getResourceGroups().isEmpty()) {
-      sb.append(I2).append("resource groups:\n");
-      summary.getResourceGroups().forEach(g -> sb.append(I4).append(g).append("\n"));
-
-      if (summary.getServiceCount() > 0) {
-        sb.append(I2).append("hosts (by group):\n");
-        var groups = summary.getServiceByGroups();
-        groups.forEach((g, h) -> {
-          sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
-          h.forEach(n -> {
-            sb.append(I6).append(n).append("\n");
-          });
+    if (summary.getServiceCount() > 0 && showHosts) {
+      var groups = summary.getServiceByGroups();
+      sb.append(I2).append("hosts (by group):\n");
+      groups.forEach((g, h) -> {
+        sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
+        h.forEach(n -> {
+          sb.append(I6).append(n).append("\n");
         });
-      }
+      });
     }
   }
 

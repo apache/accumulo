@@ -18,27 +18,25 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 
 public class StatusSummary {
 
   private final ServiceStatusReport.ReportKey serviceType;
-  private final Set<String> resourceGroups;
+  private final Map<String,Integer> resourceGroups;
   private final Map<String,Set<String>> serviceByGroups;
   private final int serviceCount;
   private final int errorCount;
 
-  public StatusSummary(ServiceStatusReport.ReportKey serviceType, final Set<String> resourceGroups,
-      final Map<String,Set<String>> serviceByGroups, final int errorCount) {
+  public StatusSummary(ServiceStatusReport.ReportKey serviceType,
+      final Map<String,Integer> resourceGroups, final Map<String,Set<String>> serviceByGroups,
+      final int serviceCount, final int errorCount) {
     this.serviceType = serviceType;
     this.resourceGroups = resourceGroups;
     this.serviceByGroups = serviceByGroups;
-    this.serviceCount =
-        serviceByGroups.values().stream().map(Set::size).reduce(Integer::sum).orElse(0);
+    this.serviceCount = serviceCount;
     this.errorCount = errorCount;
   }
 
@@ -50,7 +48,7 @@ public class StatusSummary {
     return serviceType.getDisplayName();
   }
 
-  public Set<String> getResourceGroups() {
+  public Map<String,Integer> getResourceGroups() {
     return resourceGroups;
   }
 
@@ -67,23 +65,7 @@ public class StatusSummary {
   }
 
   public StatusSummary withoutHosts() {
-    Map<String,Set<String>> tmpHosts = new TreeMap<>();
-
-    for (Map.Entry<String,Set<String>> entry : this.serviceByGroups.entrySet()) {
-
-      String group = entry.getKey();
-      int size = entry.getValue().size();
-      ;
-
-      Set<String> hosts = new HashSet<>();
-      for (int i = 0; i < size; i++) {
-        hosts.add("");
-      }
-
-      tmpHosts.put(group, hosts);
-    }
-
-    return new StatusSummary(this.serviceType, this.resourceGroups, tmpHosts, this.errorCount);
+    return new StatusSummary(serviceType, resourceGroups, Map.of(), serviceCount, errorCount);
   }
 
   @Override
