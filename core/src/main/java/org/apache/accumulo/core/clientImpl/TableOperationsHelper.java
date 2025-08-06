@@ -34,7 +34,9 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 
 public abstract class TableOperationsHelper implements TableOperations {
 
@@ -251,4 +253,10 @@ public abstract class TableOperationsHelper implements TableOperations {
     }
     return constraints;
   }
+
+  @Override
+  public NamespaceId getNamespace(String table) {
+    return NamespaceId.of(TableNameUtil.qualify(table).getFirst());
+  }
+
 }

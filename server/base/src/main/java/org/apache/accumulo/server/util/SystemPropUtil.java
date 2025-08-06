@@ -89,8 +89,10 @@ public class SystemPropUtil {
       log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
     }
-    if (Property.isValidTablePropertyKey(property)) {
-      PropUtil.validateProperties(context, key, Map.of(property, value));
+    if (property.startsWith(Property.TABLE_PREFIX.getKey())) {
+      throw new IllegalArgumentException(
+          "Table property " + property + " cannot be set at the system level."
+              + " Set table properties at the namespace or table level.");
     }
 
     // Find the property taking prefix into account
