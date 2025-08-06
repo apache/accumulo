@@ -116,7 +116,8 @@ public class ServerContext extends ClientContext {
 
   private final AtomicBoolean metricsInfoCreated = new AtomicBoolean(false);
   private final AtomicBoolean sharedSchedExecutorCreated = new AtomicBoolean(false);
-  private final AtomicBoolean sharedWritersCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedMetadataWritersCreated = new AtomicBoolean(false);
+  private final AtomicBoolean sharedUserWritersCreated = new AtomicBoolean(false);
 
   public ServerContext(SiteConfiguration siteConfig) {
     this(ServerInfo.fromServerConfig(siteConfig));
@@ -495,7 +496,11 @@ public class ServerContext extends ClientContext {
       String tableName = level.metaTable();
       log.info("Creating shared ConditionalWriter for DataLevel {} with max threads: {}", level,
           maxThreads);
-      sharedWritersCreated.set(true);
+      if (level == DataLevel.METADATA) {
+        sharedMetadataWritersCreated.set(true);
+      } else if (level == DataLevel.USER) {
+        sharedUserWritersCreated.set(true);
+      }
       return createConditionalWriter(tableName, config);
     } catch (TableNotFoundException e) {
       throw new RuntimeException("Failed to create shared ConditionalWriter for level " + level, e);
@@ -519,7 +524,7 @@ public class ServerContext extends ClientContext {
     if (sharedSchedExecutorCreated.get()) {
       getScheduledExecutor().shutdownNow();
     }
-    if (sharedWritersCreated.get()) {
+    if (sharedMetadataWritersCreated.get()) {
       try {
         ConditionalWriter writer = sharedMetadataWriter.get();
         if (writer != null) {
@@ -528,7 +533,8 @@ public class ServerContext extends ClientContext {
       } catch (Exception e) {
         log.warn("Error closing shared metadata ConditionalWriter", e);
       }
-
+    }
+    if (sharedUserWritersCreated.get()) {
       try {
         ConditionalWriter writer = sharedUserWriter.get();
         if (writer != null) {
