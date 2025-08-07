@@ -324,6 +324,12 @@ public class DefaultCompactionPlanner implements CompactionPlanner {
           var futureFile = getExpectedFile(group, nextExpected);
           Preconditions.checkState(expectedFiles.add(futureFile), "Unexpected duplicate %s in %s",
               futureFile, expectedFiles);
+          // Include this expected file in the set of files used for planning future compactions.
+          // This will cause any compaction that would include this file to be ignored. If a
+          // compaction would include this file, then it is best if the compactions run
+          // sequentially.
+          Preconditions.checkState(filesCopy.add(futureFile), "Unexpected duplicate %s in %s",
+              futureFile, filesCopy);
           // look for any compaction work in the remaining set of files
           group = findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact,
               maxSizeToCompact);
