@@ -28,8 +28,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
@@ -39,6 +42,7 @@ import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -58,6 +62,9 @@ import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
@@ -94,6 +101,8 @@ public class Upgrader12to13 implements Upgrader {
     initializeFateTable(context);
     LOG.info("Adding table mappings to zookeeper");
     addTableMappingsToZooKeeper(context);
+    LOG.info("Moving table properties from system to namespaces");
+    moveTableProperties(context);
   }
 
   @Override
@@ -436,6 +445,52 @@ public class Upgrader12to13 implements Upgrader {
     } catch (KeeperException ex) {
       throw new IllegalStateException(
           "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+  }
+
+  void moveTableProperties(ServerContext context) {
+    try {
+      final SystemPropKey spk = SystemPropKey.of();
+      final VersionedProperties sysProps = context.getPropStore().get(spk);
+      final Map<String,String> sysTableProps = new HashMap<>();
+      sysProps.asMap().entrySet().stream()
+          .filter(e -> e.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
+          .forEach(e -> sysTableProps.put(e.getKey(), e.getValue()));
+      LOG.info("Adding the following table properties to namespaces unless overridden, {}",
+          sysTableProps);
+
+      for (String ns : context.namespaceOperations().list()) {
+        final NamespacePropKey nsk = NamespacePropKey.of(NamespaceId.of(ns));
+        final Map<String,String> nsProps = context.getPropStore().get(nsk).asMap();
+        final Map<String,String> nsPropAdditions = new HashMap<>();
+
+        for (Entry<String,String> e : sysTableProps.entrySet()) {
+          final String nsVal = nsProps.get(e.getKey());
+          // If it's not set, then add the system table property
+          // to the namespace. If it is set, then it doesnt matter
+          // what the value is, we can ignore it.
+          if (nsVal == null) {
+            nsPropAdditions.put(e.getKey(), e.getValue());
+          }
+        }
+        try {
+          LOG.debug("Added table properties {} to namespace {}", nsPropAdditions, ns);
+          context.getPropStore().putAll(nsk, nsPropAdditions);
+        } catch (IllegalStateException e1) {
+          throw e1;
+        }
+        LOG.info("Namespace '{}' completed.", ns);
+      }
+
+      LOG.info("Removing table properties from system configuration.");
+      context.getPropStore().removeProperties(spk, sysTableProps.keySet());
+
+      LOG.info(
+          "Moving table properties from system configuration to namespace configurations complete.");
+
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IllegalStateException(
+          "Error trying to move table properties from system to namespace", e);
     }
   }
 }
