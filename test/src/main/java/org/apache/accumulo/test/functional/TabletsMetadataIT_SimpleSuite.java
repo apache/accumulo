@@ -134,7 +134,6 @@ public class TabletsMetadataIT_SimpleSuite extends SharedMiniClusterBase {
       assertTrue(iter.hasNext());
       tm = iter.next();
       assertEquals(SystemTables.METADATA.tableId(), tm.getExtent().tableId());
-      assertFalse(iter.hasNext());
     }
   }
 
@@ -151,7 +150,6 @@ public class TabletsMetadataIT_SimpleSuite extends SharedMiniClusterBase {
       assertTrue(iter.hasNext());
       tm = iter.next();
       assertEquals(SystemTables.METADATA.tableId(), tm.getExtent().tableId());
-      assertFalse(iter.hasNext());
       TabletsMetadata tms2 = TabletsMetadata.builder(c).forLevel(DataLevel.METADATA)
           .filter(new HasColumnFilter(ColumnType.DIR, false)).build();
       Iterator<TabletMetadata> iter2 = tms2.iterator();

@@ -18,26 +18,31 @@
  */
 package org.apache.accumulo.server.util.serviceStatus;
 
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.TreeMap;
 
 public class StatusSummary {
 
-  private ServiceStatusReport.ReportKey serviceType;
-  private Set<String> resourceGroups;
-  private Map<String,Set<String>> serviceByGroups;
-  private int serviceCount;
-  private int errorCount;
+  private final ServiceStatusReport.ReportKey serviceType;
+  private final Map<String,Integer> resourceGroups;
+  private final Map<String,Set<String>> serviceByGroups;
+  private final int serviceCount;
+  private final int errorCount;
 
   // Default constructor required for Gson
   @SuppressWarnings("unused")
-  private StatusSummary() {}
+  private StatusSummary() {
+    serviceType = null;
+    resourceGroups = Map.of();
+    serviceByGroups = Map.of();
+    serviceCount = 0;
+    errorCount = 0;
+  }
 
-  public StatusSummary(ServiceStatusReport.ReportKey serviceType, final Set<String> resourceGroups,
-      final Map<String,Set<String>> serviceByGroups, final int errorCount) {
+  public StatusSummary(ServiceStatusReport.ReportKey serviceType,
+      final Map<String,Integer> resourceGroups, final Map<String,Set<String>> serviceByGroups,
+      final int errorCount) {
     this.serviceType = serviceType;
     this.resourceGroups = resourceGroups;
     this.serviceByGroups = serviceByGroups;
@@ -54,7 +59,7 @@ public class StatusSummary {
     return serviceType.getDisplayName();
   }
 
-  public Set<String> getResourceGroups() {
+  public Map<String,Integer> getResourceGroups() {
     return resourceGroups;
   }
 
@@ -71,23 +76,7 @@ public class StatusSummary {
   }
 
   public StatusSummary withoutHosts() {
-    Map<String,Set<String>> tmpHosts = new TreeMap<>();
-
-    for (Map.Entry<String,Set<String>> entry : this.serviceByGroups.entrySet()) {
-
-      String group = entry.getKey();
-      int size = entry.getValue().size();
-      ;
-
-      Set<String> hosts = new HashSet<>();
-      for (int i = 0; i < size; i++) {
-        hosts.add("");
-      }
-
-      tmpHosts.put(group, hosts);
-    }
-
-    return new StatusSummary(this.serviceType, this.resourceGroups, tmpHosts, this.errorCount);
+    return new StatusSummary(serviceType, resourceGroups, Map.of(), errorCount);
   }
 
   @Override
