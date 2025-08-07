@@ -93,7 +93,7 @@ import com.google.common.net.HostAndPort;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
 
-public class ThriftScanner {
+public final class ThriftScanner {
   private static final Logger log = LoggerFactory.getLogger(ThriftScanner.class);
 
   // This set is initially empty when the client starts. The first time this

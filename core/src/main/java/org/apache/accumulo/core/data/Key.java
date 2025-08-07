@@ -1437,4 +1437,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
     r.colVisibility = Arrays.copyOf(colVisibility, colVisibility.length);
     return r;
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

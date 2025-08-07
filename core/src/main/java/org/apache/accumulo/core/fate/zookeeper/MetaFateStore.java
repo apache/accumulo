@@ -654,6 +654,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
+  @Override
   public void close() {
     // no-op
   }
@@ -800,6 +806,12 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     public boolean isReservedBy(FateReservation reservation) {
       return isReserved() && this.reservation.orElseThrow().equals(reservation);
+    }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 }

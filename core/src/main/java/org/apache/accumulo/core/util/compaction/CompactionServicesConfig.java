@@ -115,4 +115,10 @@ public class CompactionServicesConfig {
   public Map<String,Map<String,String>> getOptions() {
     return options;
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

@@ -134,6 +134,12 @@ public class BoundedRangeFileInputStream extends InputStream {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
+  @Override
   public void close() {
     // Synchronize on the FSDataInputStream to ensure we are blocked if in the read method:
     // Once this close completes, the underlying decompression stream may be returned to

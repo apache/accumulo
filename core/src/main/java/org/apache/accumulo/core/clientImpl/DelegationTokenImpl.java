@@ -148,4 +148,10 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
     return super.equals(obj) && identifier.equals(((DelegationTokenImpl) obj).identifier);
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
 }

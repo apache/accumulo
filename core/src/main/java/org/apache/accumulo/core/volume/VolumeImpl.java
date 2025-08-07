@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
  * Basic Volume implementation that contains a FileSystem and a base path that should be used within
  * that filesystem.
  */
-public class VolumeImpl implements Volume {
+public final class VolumeImpl implements Volume {
 
   private static final Logger log = LoggerFactory.getLogger(VolumeImpl.class);
 

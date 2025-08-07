@@ -198,6 +198,12 @@ public class BloomFilterLayer {
       }
       return writer.getLength();
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
   }
 
   static class BloomFilterLoader {

@@ -262,4 +262,10 @@ public class Value implements WritableComparable<Object> {
     WritableComparator.define(Value.class, new Comparator());
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
 }

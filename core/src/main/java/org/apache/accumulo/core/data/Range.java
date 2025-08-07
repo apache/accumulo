@@ -923,4 +923,10 @@ public class Range implements WritableComparable<Range> {
     return Range.prefix(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()),
         new Text(cvPrefix.toString()));
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

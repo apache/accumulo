@@ -51,7 +51,7 @@ import org.apache.hadoop.io.WritableUtils;
  * scanner.addScanIterator(cfg);
  * </pre>
  */
-public class IteratorSetting implements Writable {
+public final class IteratorSetting implements Writable {
   private int priority;
   private String name;
   private String iteratorClass;
@@ -394,5 +394,11 @@ public class IteratorSetting implements Writable {
       WritableUtils.writeString(dout, e.getKey());
       WritableUtils.writeString(dout, e.getValue());
     }
+  }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

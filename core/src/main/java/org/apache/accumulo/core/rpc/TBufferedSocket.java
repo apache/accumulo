@@ -26,7 +26,7 @@ import org.apache.thrift.transport.TIOStreamTransport;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransportException;
 
-public class TBufferedSocket extends TIOStreamTransport {
+public final class TBufferedSocket extends TIOStreamTransport {
 
   String client;
 

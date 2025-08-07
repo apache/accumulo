@@ -140,4 +140,10 @@ public class CredentialProviderToken extends PasswordToken {
     return clone;
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
 }

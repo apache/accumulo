@@ -586,4 +586,10 @@ public class KeyExtent implements Comparable<KeyExtent> {
     }
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
 }
