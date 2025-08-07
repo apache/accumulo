@@ -54,9 +54,11 @@ import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -744,6 +746,17 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
       ops.getTabletInformation(sysTable, new Range())
           .forEach(ti -> assertEquals(TabletAvailability.HOSTED, ti.getTabletAvailability()));
     }
+  }
+
+  @Test
+  public void test_getNamespace() throws Exception {
+    assertEquals(NamespaceId.of(Namespace.ACCUMULO.name()),
+        ops.getNamespace(SystemTables.METADATA.tableName()));
+    ops.create("table1");
+    assertEquals(NamespaceId.of(Namespace.DEFAULT.name()), ops.getNamespace("table1"));
+    client.namespaceOperations().create("ns1");
+    ops.create("ns1.table1");
+    assertEquals(NamespaceId.of("ns1"), ops.getNamespace("ns1.table1"));
   }
 
   /**
