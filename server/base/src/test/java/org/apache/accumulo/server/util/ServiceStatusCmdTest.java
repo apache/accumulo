@@ -111,7 +111,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put(NO_GROUP_TAG, hosts);
 
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Set.of(), hostByGroup, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.MANAGER, Map.of(), hostByGroup, 3, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -150,7 +150,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of(host1, host2)));
 
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Set.of(), hostByGroup, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.MONITOR, Map.of(), hostByGroup, 2, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -199,7 +199,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put(NO_GROUP_TAG, new TreeSet<>(List.of(host1, host2, host3)));
 
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Set.of(), hostByGroup, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.T_SERVER, Map.of(), hostByGroup, 3, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -258,7 +258,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put("rg1", new TreeSet<>(List.of("host1:8080", "host3:9091")));
 
     StatusSummary expected = new StatusSummary(ServiceStatusReport.ReportKey.S_SERVER,
-        Set.of("default", "rg1"), hostByGroup, 0);
+        Map.of("default", 2, "rg1", 2), hostByGroup, 4, 0);
 
     assertEquals(expected, status);
 
@@ -298,7 +298,7 @@ public class ServiceStatusCmdTest {
     hostByGroup.put(NO_GROUP_TAG, hosts);
 
     StatusSummary expected =
-        new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, Set.of(), hostByGroup, 0);
+        new StatusSummary(ServiceStatusReport.ReportKey.COORDINATOR, Map.of(), hostByGroup, 3, 0);
 
     assertEquals(expected.hashCode(), status.hashCode());
     assertEquals(expected.getDisplayName(), status.getDisplayName());
@@ -401,7 +401,6 @@ public class ServiceStatusCmdTest {
     Admin.ServiceStatusCmdOpts opts = new Admin.ServiceStatusCmdOpts();
     assertFalse(opts.json);
     assertFalse(opts.showHosts);
-    assertFalse(opts.csv);
   }
 
 }

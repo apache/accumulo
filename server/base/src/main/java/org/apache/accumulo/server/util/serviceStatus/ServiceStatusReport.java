@@ -22,7 +22,6 @@ import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
@@ -73,43 +72,19 @@ public class ServiceStatusReport {
   }
 
   public String toJson() {
-    // return gson.toJson(this, ServiceStatusReport.class);
-
-    Map<ReportKey,StatusSummary> noHostSummaries = summaries.entrySet().stream().collect(Collectors
-        .toMap(Map.Entry::getKey, e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
-    ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
-    return gson.toJson(noHostReport, ServiceStatusReport.class);
+    if (showHosts) {
+      return gson.toJson(this, ServiceStatusReport.class);
+    } else {
+      Map<ReportKey,StatusSummary> noHostSummaries =
+          summaries.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey,
+              e -> e.getValue().withoutHosts(), (a, b) -> b, TreeMap::new));
+      ServiceStatusReport noHostReport = new ServiceStatusReport(noHostSummaries, false);
+      return gson.toJson(noHostReport, ServiceStatusReport.class);
+    }
   }
 
   public static ServiceStatusReport fromJson(final String json) {
     return gson.fromJson(json, ServiceStatusReport.class);
-  }
-
-  public String toCsv() {
-    StringBuilder sb = new StringBuilder();
-    sb.append("Service,Resource Group,Host Count,Hosts,Error Count\n");
-
-    for (Map.Entry<ReportKey,StatusSummary> entry : summaries.entrySet()) {
-      ReportKey reportKey = entry.getKey();
-      StatusSummary summary = entry.getValue();
-
-      if (summary == null || summary.getServiceByGroups() == null) {
-        continue;
-      }
-
-      Map<String,Set<String>> groupMap = summary.getServiceByGroups();
-      int errorCount = summary.getErrorCount();
-
-      for (Map.Entry<String,Set<String>> groupEntry : groupMap.entrySet()) {
-        String group = groupEntry.getKey();
-        Set<String> hosts = groupEntry.getValue();
-        String hostList = String.join(";", hosts);
-        sb.append(reportKey.name()).append(",").append(group).append(",").append(hosts.size())
-            .append(",").append(hostList).append(",").append(errorCount).append("\n");
-      }
-    }
-
-    return sb.toString();
   }
 
   public String report(final StringBuilder sb) {
@@ -170,25 +145,22 @@ public class ServiceStatusReport {
 
     fmtCounts(sb, summary);
 
-    // skip host info if NOT showing hosts
-    if (!showHosts) {
-      return;
+    // add summary info only when not displaying the hosts
+    if (!summary.getResourceGroups().isEmpty() && !showHosts) {
+      sb.append(I2).append("resource groups:\n");
+      summary.getResourceGroups().forEach(
+          (group, size) -> sb.append(I4).append(group).append(": ").append(size).append("\n"));
     }
 
-    if (!summary.getResourceGroups().isEmpty()) {
-      sb.append(I2).append("resource groups:\n");
-      summary.getResourceGroups().forEach(g -> sb.append(I4).append(g).append("\n"));
-
-      if (summary.getServiceCount() > 0) {
-        sb.append(I2).append("hosts (by group):\n");
-        var groups = summary.getServiceByGroups();
-        groups.forEach((g, h) -> {
-          sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
-          h.forEach(n -> {
-            sb.append(I6).append(n).append("\n");
-          });
+    if (summary.getServiceCount() > 0 && showHosts) {
+      var groups = summary.getServiceByGroups();
+      sb.append(I2).append("hosts (by group):\n");
+      groups.forEach((g, h) -> {
+        sb.append(I4).append(g).append(" (").append(h.size()).append(")").append(":\n");
+        h.forEach(n -> {
+          sb.append(I6).append(n).append("\n");
         });
-      }
+      });
     }
   }
 

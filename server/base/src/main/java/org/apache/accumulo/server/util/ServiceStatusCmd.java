@@ -21,6 +21,7 @@ package org.apache.accumulo.server.util;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -54,8 +55,7 @@ public class ServiceStatusCmd {
    * Read the service statuses from ZooKeeper, build the status report and then output the report to
    * stdout.
    */
-  public void execute(final ServerContext context, final boolean json, final boolean showHosts,
-      final boolean csv) {
+  public void execute(final ServerContext context, final boolean json, final boolean showHosts) {
 
     ZooReader zooReader = context.getZooReader();
 
@@ -75,9 +75,7 @@ public class ServiceStatusCmd {
 
     ServiceStatusReport report = new ServiceStatusReport(services, showHosts);
 
-    if (csv) {
-      System.out.println(report.toCsv());
-    } else if (json) {
+    if (json) {
       System.out.println(report.toJson());
     } else {
       StringBuilder sb = new StringBuilder(8192);
@@ -134,8 +132,6 @@ public class ServiceStatusCmd {
       ServiceStatusReport.ReportKey displayNames) {
     AtomicInteger errorSum = new AtomicInteger(0);
 
-    // Set<String> hostNames = new TreeSet<>();
-    Set<String> groupNames = new TreeSet<>();
     Map<String,Set<String>> hostsByGroups = new TreeMap<>();
 
     var nodeNames = readNodeNames(zooReader, basePath);
@@ -152,7 +148,6 @@ public class ServiceStatusCmd {
           String[] tokens = nodeData.getHosts().split(",");
           if (tokens.length == 2) {
             String groupName = tokens[1];
-            groupNames.add(groupName);
             hostsByGroups.computeIfAbsent(groupName, s -> new TreeSet<>()).add(host);
           } else {
             hostsByGroups.computeIfAbsent(NO_GROUP_TAG, s -> new TreeSet<>()).add(host);
@@ -162,7 +157,18 @@ public class ServiceStatusCmd {
       });
       errorSum.addAndGet(lock.getFirst());
     });
-    return new StatusSummary(displayNames, groupNames, hostsByGroups, errorSum.get());
+
+    AtomicInteger hostTotal = new AtomicInteger();
+    Map<String,Integer> groupSummary = new HashMap<>();
+    hostsByGroups.forEach((group, host) -> {
+      hostTotal.set(hostTotal.get() + host.size());
+      if (!group.equals(NO_GROUP_TAG)) {
+        groupSummary.put(group, host.size());
+      }
+    });
+
+    return new StatusSummary(displayNames, groupSummary, hostsByGroups, hostTotal.get(),
+        errorSum.get());
   }
 
   /**
@@ -181,7 +187,7 @@ public class ServiceStatusCmd {
     hostByGroup.put(NO_GROUP_TAG, hosts);
 
     return new StatusSummary(temp.getServiceType(), temp.getResourceGroups(), hostByGroup,
-        temp.getErrorCount());
+        hosts.size(), temp.getErrorCount());
 
   }
 
@@ -231,7 +237,8 @@ public class ServiceStatusCmd {
     var result = readAllNodesData(zooReader, lockPath);
     Map<String,Set<String>> byGroup = new TreeMap<>();
     byGroup.put(NO_GROUP_TAG, result.getHosts());
-    return new StatusSummary(displayNames, Set.of(), byGroup, result.getErrorCount());
+    return new StatusSummary(displayNames, Map.of(), byGroup, result.getHosts().size(),
+        result.getErrorCount());
   }
 
   /**
@@ -255,9 +262,11 @@ public class ServiceStatusCmd {
         hostsByGroups.computeIfAbsent(group, set -> new TreeSet<>()).add(host);
       });
     });
+    Map<String,Integer> groupSummary = new HashMap<>();
+    hostsByGroups.forEach((group, hosts) -> groupSummary.put(group, hosts.size()));
 
-    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, queues, hostsByGroups,
-        errors.get());
+    return new StatusSummary(ServiceStatusReport.ReportKey.COMPACTOR, groupSummary, hostsByGroups,
+        groupSummary.values().stream().reduce(Integer::sum).orElse(0), errors.get());
   }
 
   /**
