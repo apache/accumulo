@@ -23,9 +23,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.conf.util.ZooPropEditor;
@@ -140,6 +143,23 @@ public class ZooPropEditorIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(() -> client.namespaceOperations().getNamespaceProperties(namespace)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()) == null, 5000, 500);
 
+    }
+  }
+
+  @Test
+  public void testTablePropInSystemConfigFails() {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      ZooPropEditor tool = new ZooPropEditor();
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+
+        String[] setSystemPropArgs =
+            {"-p", getCluster().getAccumuloPropertiesPath(), "-s", e.getKey() + "=" + e.getValue()};
+        IllegalStateException ise =
+            assertThrows(IllegalStateException.class, () -> tool.execute(setSystemPropArgs));
+        assertTrue(ise.getMessage().startsWith("Failed to set property for system"));
+      }
     }
   }
 }

@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -42,6 +43,7 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
@@ -101,13 +103,13 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
       log.debug("Tables: {}", client.tableOperations().list());
 
-      // override default in namespace, and then over-ride that for table prop
       AccumuloException ae = assertThrows(AccumuloException.class, () -> client.instanceOperations()
           .setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
       assertTrue(ae.getMessage()
           .contains("Table property " + Property.TABLE_BLOOM_ENABLED.getKey()
               + " cannot be set at the system level."
               + " Set table properties at the namespace or table level."));
+      // override default in namespace, and then over-ride that for table prop
       client.namespaceOperations().setProperty(nid.canonical(),
           Property.TABLE_BLOOM_ENABLED.getKey(), "true");
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
@@ -711,5 +713,20 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     assertEquals(iterations * 19, afterE);
 
     executor.shutdown();
+  }
+
+  @Test
+  public void testTablePropInSystemConfigFails() {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+        AccumuloException ae = assertThrows(AccumuloException.class,
+            () -> client.instanceOperations().setProperty(e.getKey(), e.getValue()));
+        assertTrue(ae.getMessage()
+            .contains("Table property " + e.getKey() + " cannot be set at the system level."
+                + " Set table properties at the namespace or table level."));
+      }
+    }
   }
 }

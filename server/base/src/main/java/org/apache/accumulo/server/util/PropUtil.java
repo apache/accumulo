@@ -64,9 +64,7 @@ public final class PropUtil {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
       if (propStoreKey instanceof SystemPropKey
           && prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
-        throw new IllegalArgumentException(
-            "Table property " + prop.getKey() + " cannot be set at the system level."
-                + " Set table properties at the namespace or table level.");
+        throwIaeForTablePropInSysConfig(prop.getKey());
       } else if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {
         String exceptionMessage = "Invalid property for : ";
         if (!Property.isValidTablePropertyKey(prop.getKey())) {
@@ -106,4 +104,11 @@ public final class PropUtil {
       }
     }
   }
+
+  public static void throwIaeForTablePropInSysConfig(String prop) {
+    throw new IllegalArgumentException(
+        "Table property " + prop + " cannot be set at the system level."
+            + " Set table properties at the namespace or table level.");
+  }
+
 }

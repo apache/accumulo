@@ -1075,6 +1075,8 @@ public interface TableOperations {
    *
    * @param table fully qualified table name
    * @return namespace id
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @since 4.0.0
    */
   NamespaceId getNamespace(String table);
 }

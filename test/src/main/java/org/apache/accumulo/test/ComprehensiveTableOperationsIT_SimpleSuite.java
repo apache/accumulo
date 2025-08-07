@@ -757,6 +757,12 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     client.namespaceOperations().create("ns1");
     ops.create("ns1.table1");
     assertEquals(NamespaceId.of("ns1"), ops.getNamespace("ns1.table1"));
+
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace((String) null));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(""));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(".foo"));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace("foo."));
+    assertThrows(IllegalArgumentException.class, () -> ops.getNamespace(".foo."));
   }
 
   /**
