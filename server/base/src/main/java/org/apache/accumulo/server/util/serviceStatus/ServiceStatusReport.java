@@ -163,7 +163,7 @@ public class ServiceStatusReport {
     }
     // only default group is present, omit grouping from report
     if (!summary.getResourceGroups().isEmpty()
-        && summary.getResourceGroups().equals(Set.of(DEFAULT_RESOURCE_GROUP_NAME))) {
+        && summary.getResourceGroups().keySet().equals(Set.of(DEFAULT_RESOURCE_GROUP_NAME))) {
       fmtServiceStatus(sb, reportKey, summary, showHosts);
       return;
     }
