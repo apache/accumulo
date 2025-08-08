@@ -48,8 +48,6 @@ public class LockTable extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager manager) throws Exception {
-    // TODO could this get a READ table lock?
-    // TODO need to pass a LockRange, the ranges seems really complex for this
     return Utils.reserveNamespace(manager, namespaceId, fateId,
         DistributedReadWriteLock.LockType.READ, true, TableOperation.SET_TABLET_AVAILABILITY)
         + Utils.reserveTable(manager, tableId, fateId, DistributedReadWriteLock.LockType.WRITE,
