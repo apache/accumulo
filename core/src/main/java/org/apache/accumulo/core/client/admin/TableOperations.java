@@ -35,6 +35,7 @@ import java.util.stream.Stream;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
@@ -43,6 +44,7 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.LoadPlan;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -1069,4 +1071,14 @@ public interface TableOperations {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Returns the namespace for the given table name
+   *
+   * @param table fully qualified table name
+   * @return namespace id
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @throws NamespaceNotFoundException when namespace for table name does not exist
+   * @since 4.0.0
+   */
+  NamespaceId getNamespace(String table) throws NamespaceNotFoundException;
 }
