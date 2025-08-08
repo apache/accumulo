@@ -430,10 +430,10 @@ public class AdminUtil<T> {
 
     for (TransactionStatus txStatus : fateStatus.getTransactions()) {
       fmt.format(
-          "%-15s fateId: %s  status: %-18s locked: %-15s locking: %-15s op: %-15s created: %s lock range: (%s,%s]%n",
+          "%-15s fateId: %s  status: %-18s locked: %-15s locking: %-15s op: %-15s created: %s lock range: %s%n",
           txStatus.getFateOp(), txStatus.getFateId(), txStatus.getStatus(), txStatus.getHeldLocks(),
           txStatus.getWaitingLocks(), txStatus.getTop(), txStatus.getTimeCreatedFormatted(),
-          txStatus.getLockRange().getStartRow(), txStatus.getLockRange().getEndRow());
+          txStatus.getLockRange());
     }
     fmt.format(" %s transactions", fateStatus.getTransactions().size());
   }
