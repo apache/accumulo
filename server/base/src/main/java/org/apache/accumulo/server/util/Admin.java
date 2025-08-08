@@ -396,8 +396,7 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandDescription = "show service status")
   public static class ServiceStatusCmdOpts extends SubCommandOpts {
-    @Parameter(names = "--json",
-        description = "provide output in json format (--showHosts ignored)")
+    @Parameter(names = "--json", description = "provide output in json format")
     boolean json = false;
     @Parameter(names = "--showHosts",
         description = "provide a summary of service counts with host details")
