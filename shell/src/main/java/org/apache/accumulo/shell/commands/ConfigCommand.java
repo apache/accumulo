@@ -32,9 +32,12 @@ import java.util.TreeMap;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
@@ -62,11 +65,19 @@ public class ConfigCommand extends Command {
   private Option disablePaginationOpt;
   private Option outputFileOpt;
   private Option namespaceOpt;
+  private Option resourceGroupOpt;
   private Option showExpOpt;
 
   private int COL1 = 10;
   private int COL2 = 7;
   private LineReader reader;
+
+  public ConfigCommand() {
+    Shell.log.warn("System configuration is dependent on the server's site configuration and"
+        + " applicable ZooKeeper system overrides. To get the system"
+        + " configuration for a specific server set the system property: "
+        + TServerClient.DEBUG_HOST);
+  }
 
   @Override
   public void registerCompletion(final Token root,
@@ -85,7 +96,7 @@ public class ConfigCommand extends Command {
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException, IOException,
-      NamespaceNotFoundException {
+      NamespaceNotFoundException, ResourceGroupNotFoundException {
     reader = shellState.getReader();
 
     boolean force = cl.hasOption(forceOpt);
@@ -99,6 +110,14 @@ public class ConfigCommand extends Command {
     if (namespace != null
         && !shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
+    final String resourceGroup = cl.getOptionValue(resourceGroupOpt.getOpt());
+    ResourceGroupId rgid = null;
+    if (resourceGroup != null) {
+      if (!shellState.getAccumuloClient().resourceGroupOperations().exists(resourceGroup)) {
+        throw new ResourceGroupNotFoundException(resourceGroup);
+      }
+      rgid = ResourceGroupId.of(resourceGroup);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table, namespace, or system
@@ -121,6 +140,9 @@ public class ConfigCommand extends Command {
         }
         shellState.getAccumuloClient().namespaceOperations().removeProperty(namespace, property);
         Shell.log.debug("Successfully deleted namespace configuration option.");
+      } else if (rgid != null) {
+        shellState.getAccumuloClient().resourceGroupOperations().removeProperty(rgid, property);
+        Shell.log.debug("Successfully deleted resource group configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           Shell.log.warn(invalidTablePropFormatString, property);
@@ -172,6 +194,9 @@ public class ConfigCommand extends Command {
         shellState.getAccumuloClient().namespaceOperations().setProperty(namespace, property,
             value);
         Shell.log.debug("Successfully set table configuration option.");
+      } else if (rgid != null) {
+        shellState.getAccumuloClient().resourceGroupOperations().setProperty(rgid, property, value);
+        Shell.log.debug("Successfully set resource group configuration option.");
       } else {
         if (!Property.isValidZooPropertyKey(property)) {
           throw new BadArgumentException("Property cannot be modified in zookeeper", fullCommand,
@@ -217,6 +242,13 @@ public class ConfigCommand extends Command {
       final TreeMap<String,String> defaults = new TreeMap<>();
       for (Entry<String,String> defaultEntry : DefaultConfiguration.getInstance()) {
         defaults.put(defaultEntry.getKey(), defaultEntry.getValue());
+      }
+
+      final TreeMap<ResourceGroupId,TreeMap<String,String>> resourceGroupConfigs = new TreeMap<>();
+      for (ResourceGroupId rg : shellState.getAccumuloClient().resourceGroupOperations().list()) {
+        TreeMap<String,String> rgConfig = new TreeMap<>();
+        rgConfig.putAll(shellState.getAccumuloClient().resourceGroupOperations().getProperties(rg));
+        resourceGroupConfigs.put(rg, rgConfig);
       }
 
       final TreeMap<String,String> namespaceConfig = new TreeMap<>();
@@ -312,6 +344,15 @@ public class ConfigCommand extends Command {
         String curVal = propEntry.getValue();
         String dfault = defaults.get(key);
         String nspVal = namespaceConfig.get(key);
+
+        Map<ResourceGroupId,String> rgVals = new TreeMap<>();
+        for (ResourceGroupId rg : resourceGroupConfigs.keySet()) {
+          String rgVal = resourceGroupConfigs.get(rg).get(key);
+          if (rgVal != null) {
+            rgVals.put(rg, rgVal);
+          }
+        }
+
         boolean printed = false;
 
         if (sysVal != null) {
@@ -331,6 +372,11 @@ public class ConfigCommand extends Command {
           if (!siteConfig.containsKey(key) || !Objects.equals(siteVal, sysVal)) {
             printConfLine(output, "system", printed ? "   @override" : key, sysVal);
             printed = true;
+          }
+          for (Entry<ResourceGroupId,String> rgEntry : rgVals.entrySet()) {
+            String rgVal = key.toLowerCase().contains("password")
+                ? rgEntry.getValue().replaceAll(".", "*") : rgEntry.getValue();
+            printConfLine(output, "rg " + rgEntry.getKey(), printed ? "   @override" : key, rgVal);
           }
         }
         if (nspVal != null) {
@@ -436,6 +482,8 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
+    resourceGroupOpt = new Option(ShellOptions.resourceGroupOption, "resourceGroup", true,
+        "resource group from which to set or delete properties");
 
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
@@ -444,12 +492,14 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
+    resourceGroupOpt.setArgName("resourceGroup");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
 
+    tgroup.addOption(resourceGroupOpt);
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
 

@@ -18,14 +18,17 @@
  */
 package org.apache.accumulo.core.data;
 
+import java.util.regex.Pattern;
+
 import org.apache.accumulo.core.Constants;
-import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.util.cache.Caches;
 import org.apache.accumulo.core.util.cache.Caches.CacheName;
 
 import com.github.benmanes.caffeine.cache.Cache;
 
 public class ResourceGroupId extends AbstractId<ResourceGroupId> {
+
+  public static final Pattern GROUP_NAME_PATTERN = Pattern.compile("^[a-zA-Z]+(_?[a-zA-Z0-9])*$");
 
   // cache is for canonicalization/deduplication of created objects,
   // to limit the number of ResourceGroupId objects in the JVM at any given moment
@@ -40,7 +43,10 @@ public class ResourceGroupId extends AbstractId<ResourceGroupId> {
 
   private ResourceGroupId(String canonical) {
     super(canonical);
-    ClusterConfigParser.validateGroupName(this);
+    if (!GROUP_NAME_PATTERN.matcher(canonical).matches()) {
+      throw new IllegalArgumentException(
+          "Group name: " + canonical + " contains invalid characters");
+    }
   }
 
   /**

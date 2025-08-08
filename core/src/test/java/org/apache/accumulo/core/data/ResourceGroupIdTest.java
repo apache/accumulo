@@ -38,4 +38,5 @@ public class ResourceGroupIdTest {
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("gro$up1"));
     assertThrows(IllegalArgumentException.class, () -> ResourceGroupId.of("invalid_Group_"));
   }
+
 }
