@@ -34,7 +34,7 @@ public class FateLockTest {
   public void testParsing() {
     var fateId = FateId.from(FateInstanceType.USER, UUID.randomUUID());
     // ZooKeeper docs state that sequence numbers are formatted using %010d
-    String lockData = "WRITE:" + fateId.canonical();
+    String lockData = "WRITE_" + fateId.canonical() + "_N_N";
     var lockNode =
         new FateLock.NodeName(FateLock.PREFIX + lockData + "#" + String.format("%010d", 40));
     assertEquals(40, lockNode.sequence);

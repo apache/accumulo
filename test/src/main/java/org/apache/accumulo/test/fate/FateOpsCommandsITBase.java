@@ -785,7 +785,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     AdminUtil.FateStatus status = null;
     try {
       status = AdminUtil.getTransactionStatus(Map.of(store.type(), mockedStore), null, null, null,
-          new HashMap<>(), new HashMap<>());
+          new HashMap<>(), new HashMap<>(), Map.of());
     } catch (Exception e) {
       fail("An unexpected error occurred in getTransactionStatus():\n" + e);
     }
