@@ -483,10 +483,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
   private Map<String,String> getStoredConfiguration() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
-    return ThriftClientTypes.CLIENT
-        .execute(ctx,
-            client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()))
-        .getProperties();
+    return ThriftClientTypes.CLIENT.execute(ctx,
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()),
+        rgid -> true).getProperties();
   }
 
   interface PropertyShim {

@@ -482,7 +482,7 @@ public class Gatherer {
             tsr = client.contiuneGetSummaries(tinfo, tsr.sessionId);
           }
           return tsr;
-        });
+        }, rgid -> true);
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }
