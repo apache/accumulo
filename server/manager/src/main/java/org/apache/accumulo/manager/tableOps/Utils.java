@@ -100,8 +100,8 @@ public class Utils {
   }
 
   /**
-   * Widen a range to the greatest table split that is below the range and least table split that is
-   * above the range.
+   * Widen a range to the greatest table split that is before the range and least table split that
+   * is after the range.
    */
   public static KeyExtent widen(Ample ample, KeyExtent extent) {
     Text prevRowOfStartRowTablet = extent.prevEndRow();
@@ -116,7 +116,7 @@ public class Utils {
     }
 
     if (extent.endRow() != null) {
-      // find the tablet containing endRow and pass its end row to the CompactionDriver constructor.
+      // find the tablet containing endRow and use its endRow
       endRowOfEndRowTablet = findContaining(ample, extent.tableId(), extent.endRow()).endRow();
     }
 
