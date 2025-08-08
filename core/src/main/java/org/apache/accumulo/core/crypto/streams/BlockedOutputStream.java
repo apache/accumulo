@@ -114,6 +114,12 @@ public class BlockedOutputStream extends OutputStream {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
+  @Override
   public void close() throws IOException {
     flush();
     out.close();

@@ -162,6 +162,12 @@ public class LoadPlan {
     public RangeType getRangeType() {
       return rangeType;
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
   }
 
   private LoadPlan(List<Destination> destinations) {

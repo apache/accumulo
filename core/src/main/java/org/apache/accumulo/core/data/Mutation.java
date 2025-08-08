@@ -1623,4 +1623,10 @@ public class Mutation implements Writable {
 
     return sb.toString();
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

@@ -185,4 +185,10 @@ public class FateKey {
         () -> buf.append("ExternalCompactionID", compactionId.orElseThrow()));
     return buf.toString();
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

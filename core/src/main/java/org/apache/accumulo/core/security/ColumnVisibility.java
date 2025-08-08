@@ -544,6 +544,12 @@ public class ColumnVisibility {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
+  @Override
   public String toString() {
     return "[" + new String(expression, UTF_8) + "]";
   }

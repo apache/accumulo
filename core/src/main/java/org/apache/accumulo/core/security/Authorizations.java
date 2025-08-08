@@ -235,6 +235,12 @@ public class Authorizations implements Iterable<byte[]>, Serializable, Authoriza
     checkAuths();
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
   /**
    * Returns a serialized form of these authorizations.
    *

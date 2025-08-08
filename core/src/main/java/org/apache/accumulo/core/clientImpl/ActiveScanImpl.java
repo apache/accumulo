@@ -161,4 +161,10 @@ public class ActiveScanImpl extends ActiveScan {
   public ServerId getServerId() {
     return server;
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

@@ -82,4 +82,10 @@ public class ScanCacheProvider implements CacheProvider {
   public BlockCache getIndexCache() {
     return indexCache;
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

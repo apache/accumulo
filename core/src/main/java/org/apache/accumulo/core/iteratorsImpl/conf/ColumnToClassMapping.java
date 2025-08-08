@@ -100,4 +100,10 @@ public class ColumnToClassMapping<K> {
   public boolean isEmpty() {
     return objectsCol.isEmpty() && objectsCF.isEmpty();
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

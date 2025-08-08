@@ -716,4 +716,10 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   public void shutdown() {
     this.scheduleThreadPool.shutdown();
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

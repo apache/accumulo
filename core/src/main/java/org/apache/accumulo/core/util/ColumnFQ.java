@@ -72,6 +72,12 @@ public class ColumnFQ implements Comparable<ColumnFQ> {
   }
 
   @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (!(o instanceof ColumnFQ)) {
       return false;

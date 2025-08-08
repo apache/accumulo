@@ -427,6 +427,12 @@ public final class BCFile {
       return ba;
     }
 
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
+
     /**
      * Callback to make sure a meta block is added to the internal list when its stream is closed.
      */
@@ -742,12 +748,18 @@ public final class BCFile {
       RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, decrypter);
       return new BlockReader(rbs);
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
   }
 
   /**
    * Index for all Meta blocks.
    */
-  static class MetaIndex {
+  static final class MetaIndex {
     // use a tree map, for getting a meta block entry by name
     final Map<String,MetaIndexEntry> index;
 
@@ -836,7 +848,7 @@ public final class BCFile {
   /**
    * Index of all compressed data blocks.
    */
-  static class DataIndex {
+  static final class DataIndex {
     static final String BLOCK_NAME = "BCFile.index";
 
     private final CompressionAlgorithm defaultCompressionAlgorithm;

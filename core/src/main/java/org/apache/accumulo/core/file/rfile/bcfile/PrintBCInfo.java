@@ -108,4 +108,10 @@ public class PrintBCInfo {
   public void setCryptoService(CryptoService cryptoService) {
     this.cryptoService = cryptoService;
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

@@ -167,6 +167,15 @@
         </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <configuration>
+          <omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</omitVisitors>
+        </configuration>
+      </plugin>
+    </plugins>
   </build>
   <profiles>
     <profile>

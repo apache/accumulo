@@ -191,6 +191,12 @@ public class ZooCache {
     log.trace("{} created new cache watching {}", cacheId, pathsToWatch, new Exception());
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
   public void addZooCacheWatcher(ZooCacheWatcher watcher) {
     externalWatchers.add(requireNonNull(watcher));
   }

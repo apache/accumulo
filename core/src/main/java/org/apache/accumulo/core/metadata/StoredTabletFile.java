@@ -78,6 +78,12 @@ public class StoredTabletFile extends AbstractTabletFile<StoredTabletFile> {
     this.referencedTabletFile = ReferencedTabletFile.of(getPath(), fileCq.range);
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
   /**
    * Return the exact string that is stored in the metadata table. This is important for updating
    * and deleting metadata entries. If the exact string is not used, erroneous entries can pollute

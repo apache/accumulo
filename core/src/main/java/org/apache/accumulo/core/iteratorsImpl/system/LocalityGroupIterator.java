@@ -99,6 +99,12 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
       }
       defaultGroup = foundDefault;
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
   }
 
   /**

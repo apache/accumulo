@@ -30,7 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.net.HostAndPort;
 
 @VisibleForTesting
-public class ThriftTransportKey {
+public final class ThriftTransportKey {
   private final ThriftClientTypes<?> type;
   private final HostAndPort server;
   private final long timeout;

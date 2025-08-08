@@ -175,6 +175,12 @@ public class FateLock implements QueueLock {
     public int hashCode() {
       return Objects.hash(sequence, fateLockEntry.get());
     }
+
+    @Override
+    @SuppressWarnings("deprecation")
+    public final void finalize() {
+      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
   }
 
   @Override

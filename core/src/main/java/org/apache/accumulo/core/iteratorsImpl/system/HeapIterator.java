@@ -125,4 +125,10 @@ public abstract class HeapIterator implements SortedKeyValueIterator<Key,Value> 
       pullReferencesFromHeap();
     }
   }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

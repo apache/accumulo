@@ -237,4 +237,10 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
     return new ReferencedTabletFile(path, range);
   }
 
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
+
 }

@@ -149,4 +149,10 @@ public class SequenceFileIterator implements FileSKVIterator {
 
   @Override
   public void setCacheProvider(CacheProvider cacheProvider) {}
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+  }
 }

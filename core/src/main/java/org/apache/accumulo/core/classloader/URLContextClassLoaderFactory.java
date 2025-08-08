@@ -37,7 +37,7 @@ import com.github.benmanes.caffeine.cache.Cache;
  * URLClassLoader based on the given context value which is a CSV list of URLs. For example,
  * file://path/one/jar1.jar,file://path/two/jar2.jar
  */
-public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
+public final class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
 
   private static final AtomicBoolean isInstantiated = new AtomicBoolean(false);
   private static final Logger LOG = LoggerFactory.getLogger(URLContextClassLoaderFactory.class);
@@ -54,6 +54,12 @@ public class URLContextClassLoaderFactory implements ContextClassLoaderFactory {
     if (!isInstantiated.compareAndSet(false, true)) {
       throw new IllegalStateException("Can only instantiate " + className + " once");
     }
+  }
+
+  @Override
+  @SuppressWarnings("deprecation")
+  public final void finalize() {
+    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
   @Override
