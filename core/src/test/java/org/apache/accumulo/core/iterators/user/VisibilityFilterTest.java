@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -240,6 +241,19 @@ public class VisibilityFilterTest {
     assertEquals("false", opts.get("filterInvalid"));
     assertEquals("true", opts.get("negate"));
     assertEquals(new Authorizations("abc", "def").serialize(), opts.get("auths"));
+  }
+
+  @Test
+  public void testDeepCopyAfterInit() throws IOException {
+    IteratorSetting is = new IteratorSetting(1, VisibilityFilter.class);
+    VisibilityFilter.setAuthorizations(is, new Authorizations("abc"));
+    Map<String,String> opts = is.getOptions();
+    Filter filter = new VisibilityFilter();
+    TreeMap<Key,Value> source = new TreeMap<>();
+    filter.init(new SortedMapIterator(source), opts, null);
+    Filter copyFilter = (Filter) filter.deepCopy(null);
+    Key k = new Key("row", "cf", "cq", "abc");
+    assertTrue(copyFilter.accept(k, new Value()));
   }
 
 }
