@@ -355,6 +355,8 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
       // ensure the table data and splits are correct
       assertEquals(expectedRows, getTableRows(client, table));
       assertEquals(splits.keySet(), new TreeSet<>(client.tableOperations().listSplits(table)));
+    } finally {
+      executor.shutdownNow();
     }
   }
 
