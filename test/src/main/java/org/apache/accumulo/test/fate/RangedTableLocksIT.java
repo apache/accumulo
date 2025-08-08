@@ -277,10 +277,10 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
 
       for (var lockRange : List.of(LockRange.of("c", "f"), LockRange.of(null, "f"),
           LockRange.of("c", null))) {
-        var expception = assertThrows(AcceptableThriftTableOperationException.class,
+        var exception = assertThrows(AcceptableThriftTableOperationException.class,
             () -> Utils.widen(ample, nonExistentTableId, lockRange, op, true));
-        assertEquals(nonExistentTableId.canonical(), expception.getTableId());
-        assertEquals(TableOperationExceptionType.NOTFOUND, expception.getType());
+        assertEquals(nonExistentTableId.canonical(), exception.getTableId());
+        assertEquals(TableOperationExceptionType.NOTFOUND, exception.getType());
 
         assertEquals(LockRange.infinite(),
             Utils.widen(ample, nonExistentTableId, lockRange, op, false));
