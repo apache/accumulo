@@ -282,7 +282,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying table properties: tableId: " + tableId.canonical());
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException();
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
 
   }
@@ -490,7 +490,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying namespace properties");
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException("All properties", "failed", iae.getMessage());
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
   }
 
