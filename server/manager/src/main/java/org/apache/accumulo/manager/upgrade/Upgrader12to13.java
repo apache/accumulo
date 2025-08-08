@@ -456,8 +456,8 @@ public class Upgrader12to13 implements Upgrader {
       sysProps.asMap().entrySet().stream()
           .filter(e -> e.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
           .forEach(e -> sysTableProps.put(e.getKey(), e.getValue()));
-      LOG.info("Adding the following table properties to namespaces unless overridden, {}",
-          sysTableProps);
+      LOG.info("Adding the following table properties to namespaces unless overridden:");
+      sysTableProps.forEach((k, v) -> LOG.info("{} -> {}", k, v));
 
       for (String ns : context.namespaceOperations().list()) {
         final NamespacePropKey nsk = NamespacePropKey.of(NamespaceId.of(ns));
@@ -474,8 +474,9 @@ public class Upgrader12to13 implements Upgrader {
           }
         }
         try {
-          LOG.debug("Added table properties {} to namespace {}", nsPropAdditions, ns);
           context.getPropStore().putAll(nsk, nsPropAdditions);
+          LOG.debug("Added table properties to namespace {}:", ns);
+          nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
         } catch (IllegalStateException e1) {
           throw e1;
         }
