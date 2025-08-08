@@ -287,7 +287,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying table properties: tableId: " + tableId.canonical());
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException();
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
 
   }
@@ -455,7 +455,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       SystemPropUtil.setSystemProperty(manager.getContext(), property, value);
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
-      throw new ThriftPropertyException(property, value, "Property is invalid");
+      throw new ThriftPropertyException(property, value,
+          "Property is invalid. message: " + iae.getMessage());
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());
@@ -517,7 +518,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying namespace properties");
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException("All properties", "failed", iae.getMessage());
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
   }
 
