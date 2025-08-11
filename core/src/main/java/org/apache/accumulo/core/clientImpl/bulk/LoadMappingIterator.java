@@ -34,6 +34,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonParseException;
 import com.google.gson.stream.JsonReader;
 
 /**
@@ -45,6 +46,7 @@ public class LoadMappingIterator
   private JsonReader reader;
   private Gson gson = createGson();
   private Map<String,String> renameMap;
+  private KeyExtent lastKeyExtent = null;
 
   LoadMappingIterator(TableId tableId, InputStream loadMapFile) throws IOException {
     this.tableId = tableId;
@@ -72,12 +74,27 @@ public class LoadMappingIterator
 
   @Override
   public Map.Entry<KeyExtent,Bulk.Files> next() {
-    Bulk.Mapping bm = gson.fromJson(reader, Bulk.Mapping.class);
+    Bulk.Mapping bm;
+    try {
+      bm = gson.fromJson(reader, Bulk.Mapping.class);
+    } catch (JsonParseException e) {
+      throw new IllegalStateException("Failed to read next mapping", e);
+    }
+
+    KeyExtent currentKeyExtent = bm.getKeyExtent(tableId);
+
+    if (lastKeyExtent != null && currentKeyExtent.compareTo(lastKeyExtent) < 0) {
+      throw new IllegalStateException(
+          String.format("KeyExtents are not in sorted order: %s was seen before %s", lastKeyExtent,
+              currentKeyExtent));
+    }
+
+    lastKeyExtent = currentKeyExtent;
+
     if (renameMap != null) {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId),
-          bm.getFiles().mapNames(renameMap));
+      return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles().mapNames(renameMap));
     } else {
-      return new AbstractMap.SimpleEntry<>(bm.getKeyExtent(tableId), bm.getFiles());
+      return new AbstractMap.SimpleEntry<>(currentKeyExtent, bm.getFiles());
     }
   }
 
