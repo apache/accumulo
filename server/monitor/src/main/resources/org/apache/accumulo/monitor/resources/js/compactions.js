@@ -26,7 +26,7 @@ $(document).ready(function () {
   // Create a table for compactions list
   compactionsList = $('#compactionsList').DataTable({
     "ajax": {
-      "url":  contextPath + 'rest/compactions',
+      "url": contextPath + 'rest/compactions',
       "dataSrc": "compactions"
     },
     "stateSave": true,
