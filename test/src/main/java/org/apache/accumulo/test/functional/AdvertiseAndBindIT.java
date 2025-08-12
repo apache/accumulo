@@ -49,6 +49,8 @@ public class AdvertiseAndBindIT extends ConfigurableMacBase {
     cfg.setNumCompactors(1);
     cfg.setNumScanServers(1);
     cfg.setNumTservers(1);
+    cfg.setProperty(Property.COMPACTOR_PORTSEARCH, "true");
+    cfg.setProperty(Property.TSERV_PORTSEARCH, "true");
     cfg.setServerClass(ServerType.COMPACTION_COORDINATOR, CompactionCoordinator.class);
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
   }
