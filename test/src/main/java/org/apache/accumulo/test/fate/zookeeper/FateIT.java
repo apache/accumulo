@@ -42,7 +42,6 @@ import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
@@ -191,8 +190,6 @@ public class FateIT {
   private static CountDownLatch callStarted;
   private static CountDownLatch finishCall;
   private static CountDownLatch undoLatch;
-
-  private static AtomicInteger nextFateDir = new AtomicInteger(0);
 
   Fate<Manager> fate;
 
