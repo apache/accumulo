@@ -57,12 +57,6 @@ public final class URLContextClassLoaderFactory implements ContextClassLoaderFac
   }
 
   @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
-  }
-
-  @Override
   public ClassLoader getClassLoader(String context) {
     if (context == null) {
       throw new IllegalArgumentException("Unknown context");
