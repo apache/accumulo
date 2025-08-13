@@ -421,6 +421,9 @@ public class Upgrader12to13 implements Upgrader {
               return tableName;
             });
       }
+      // Ensure the default namespace table mapping node gets created
+      // in case there are not tables in the default namespace
+      mapOfTableMaps.putIfAbsent(Namespace.DEFAULT.id().canonical(), new HashMap<>());
       for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
         zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
             NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
