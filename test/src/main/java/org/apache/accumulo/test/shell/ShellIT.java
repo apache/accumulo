@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.test.shell;
 
-import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
+import static org.apache.accumulo.core.conf.Property.TSERV_COMPACTION_WARN_TIME;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,7 +42,9 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -123,10 +125,10 @@ public class ShellIT extends SharedMiniClusterBase {
   private LineReader reader;
   private Terminal terminal;
 
-  void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
+  void execExpectList(String cmd, boolean expectGoodExit, List<String> expectedStrings)
       throws IOException {
     exec(cmd);
-    if (expecteGoodExit) {
+    if (expectGoodExit) {
       assertGoodExit("", true);
     } else {
       assertBadExit("", true);
@@ -652,17 +654,36 @@ public class ShellIT extends SharedMiniClusterBase {
 
     Shell.log.debug("Starting prop file not found test --------------------------");
     exec("config --propFile " + fileName, false,
-        "FileNotFoundException: " + fileName + "(No such file or directory)");
+        "FileNotFoundException: " + fileName + " (No such file or directory)");
   }
 
   @Test
   public void setpropsViaFile() throws Exception {
-
     File file = File.createTempFile("propFile", ".conf", tempDir);
     PrintWriter writer = new PrintWriter(file.getAbsolutePath());
-    writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
+    writer.println(TSERV_COMPACTION_WARN_TIME.getKey() + "=11m");
     writer.close();
     exec("config --propFile " + file.getAbsolutePath(), true);
+  }
+
+  @Test
+  public void createTableWithPropsFile() throws Exception {
+    File file = File.createTempFile("propFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("table.custom.test1=true");
+    writer.println("table.custom.test2=false");
+    writer.close();
+    exec("createtable test --propFile " + file.getAbsolutePath()
+        + " -prop table.custom.test3=optional", true);
+
+    assertTrue(shell.getAccumuloClient().tableOperations().exists("test"));
+    Map<String,String> tableIds = shell.getAccumuloClient().tableOperations().tableIdMap();
+
+    TableConfiguration tableConf =
+        getCluster().getServerContext().getTableConfiguration(TableId.of(tableIds.get("test")));
+    assertEquals("true", tableConf.get("table.custom.test1"));
+    assertEquals("false", tableConf.get("table.custom.test2"));
+    assertEquals("optional", tableConf.get("table.custom.test3"));
   }
 
   @Test
