@@ -129,6 +129,7 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -171,6 +172,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -2287,6 +2289,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
         .map(tm -> new TabletInformationImpl(tm, TabletState.compute(tm, liveTserverSet).toString(),
             currentTime));
+  }
+
+  @Override
+  public NamespaceId getNamespace(String table) throws NamespaceNotFoundException {
+    return context.getNamespaceId(TableNameUtil.qualify(table).getFirst());
   }
 
 }
