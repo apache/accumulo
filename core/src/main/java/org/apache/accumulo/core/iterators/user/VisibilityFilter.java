@@ -77,7 +77,7 @@ public class VisibilityFilter extends Filter implements OptionDescriber {
   public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
     VisibilityFilter result = (VisibilityFilter) super.deepCopy(env);
     result.filterInvalid = this.filterInvalid;
-    result.ve = this.ve;
+    result.accessEvaluator = this.accessEvaluator;
     result.cache = this.cache;
     return result;
   }
