@@ -44,7 +44,7 @@ public class FlakyFate<T> extends Fate<T> {
   @Override
   protected void startFateExecutors(T environment, AccumuloConfiguration conf,
       Set<FateExecutor<T>> fateExecutors) {
-    for (var poolConfig : getPoolConfigurations(conf).entrySet()) {
+    for (var poolConfig : getPoolConfigurations(conf, getStore().type()).entrySet()) {
       fateExecutors.add(
           new FlakyFateExecutor<>(this, environment, poolConfig.getKey(), poolConfig.getValue()));
     }

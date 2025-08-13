@@ -72,6 +72,8 @@ public class Fate<T> {
 
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
 
+  private boolean metricsEnabled = false;
+
   private final FateStore<T> store;
   private final ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
@@ -114,8 +116,8 @@ public class Fate<T> {
     TABLE_TABLET_AVAILABILITY(TFateOperation.TABLE_TABLET_AVAILABILITY);
 
     private final TFateOperation top;
-    private static final Set<FateOperation> nonThriftOps = Collections.unmodifiableSet(
-        EnumSet.of(COMMIT_COMPACTION, SHUTDOWN_TSERVER, SYSTEM_SPLIT, SYSTEM_MERGE));
+    private static final Set<FateOperation> nonThriftOps = Arrays.stream(FateOperation.values())
+        .filter(fateOp -> fateOp.top == null).collect(Collectors.toUnmodifiableSet());
     private static final Set<FateOperation> allUserFateOps =
         Collections.unmodifiableSet(EnumSet.allOf(FateOperation.class));
     private static final Set<FateOperation> allMetaFateOps =
@@ -170,7 +172,7 @@ public class Fate<T> {
     public void run() {
       // Read from the config here and here only. Must avoid reading the same property from the
       // config more than once since it can change at any point in this execution
-      var poolConfigs = getPoolConfigurations(conf);
+      var poolConfigs = getPoolConfigurations(conf, store.type());
       var idleCheckIntervalMillis = conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
 
       // shutdown task: shutdown fate executors whose set of fate operations are no longer present
@@ -184,7 +186,7 @@ public class Fate<T> {
           if (!poolConfigs.containsKey(fateExecutor.getFateOps())) {
             if (!fateExecutor.isShutdown()) {
               log.debug("The config for {} has changed invalidating {}. Gracefully shutting down "
-                  + "the FateExecutor.", getFateConfigProp(), fateExecutor);
+                  + "the FateExecutor.", getFateConfigProp(store.type()), fateExecutor);
               fateExecutor.initiateShutdown();
             } else if (fateExecutor.isShutdown() && fateExecutor.isAlive()) {
               log.debug("{} has been shutdown, but is still actively working on transactions.",
@@ -273,7 +275,7 @@ public class Fate<T> {
 
   protected void startFateExecutors(T environment, AccumuloConfiguration conf,
       Set<FateExecutor<T>> fateExecutors) {
-    for (var poolConf : getPoolConfigurations(conf).entrySet()) {
+    for (var poolConf : getPoolConfigurations(conf, store.type()).entrySet()) {
       // no fate threads are running at this point; fine not to synchronize
       fateExecutors
           .add(new FateExecutor<>(this, environment, poolConf.getKey(), poolConf.getValue()));
@@ -285,9 +287,11 @@ public class Fate<T> {
    * of fate operations and each value is an integer for the number of threads assigned to work
    * those fate operations.
    */
-  protected Map<Set<FateOperation>,Integer> getPoolConfigurations(AccumuloConfiguration conf) {
+  @VisibleForTesting
+  public static Map<Set<FateOperation>,Integer> getPoolConfigurations(AccumuloConfiguration conf,
+      FateInstanceType type) {
     Map<Set<FateOperation>,Integer> poolConfigs = new HashMap<>();
-    final var json = JsonParser.parseString(conf.get(getFateConfigProp())).getAsJsonObject();
+    final var json = JsonParser.parseString(conf.get(getFateConfigProp(type))).getAsJsonObject();
 
     for (var entry : json.entrySet()) {
       var key = entry.getKey();
@@ -310,8 +314,8 @@ public class Fate<T> {
     return store;
   }
 
-  protected Property getFateConfigProp() {
-    return this.store.type() == FateInstanceType.USER ? Property.MANAGER_FATE_USER_CONFIG
+  protected static Property getFateConfigProp(FateInstanceType type) {
+    return type == FateInstanceType.USER ? Property.MANAGER_FATE_USER_CONFIG
         : Property.MANAGER_FATE_META_CONFIG;
   }
 
@@ -321,6 +325,10 @@ public class Fate<T> {
 
   public Duration getPoolWatcherDelay() {
     return POOL_WATCHER_DELAY;
+  }
+
+  public Set<FateExecutor<T>> getFateExecutors() {
+    return fateExecutors;
   }
 
   /**
@@ -526,9 +534,12 @@ public class Fate<T> {
 
     // interrupt the background threads
     synchronized (fateExecutors) {
-      for (var fateExecutor : fateExecutors) {
+      var fateExecutorsIter = fateExecutors.iterator();
+      while (fateExecutorsIter.hasNext()) {
+        var fateExecutor = fateExecutorsIter.next();
         fateExecutor.shutdownNow();
         fateExecutor.getIdleCountHistory().clear();
+        fateExecutorsIter.remove();
       }
     }
     if (deadResCleanerExecutor != null) {

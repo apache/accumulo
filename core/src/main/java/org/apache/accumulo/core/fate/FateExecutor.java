@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
 import org.apache.accumulo.core.util.ShutdownUtil;
@@ -60,7 +61,9 @@ import com.google.common.base.Preconditions;
 
 /**
  * Handles finding and working on FATE work. Only finds/works on fate operations that it is assigned
- * to work on defined by 'fateOps'
+ * to work on defined by 'fateOps'. These executors may be stopped and new ones started throughout
+ * FATEs life, depending on changes to {@link Property#MANAGER_FATE_USER_CONFIG} and
+ * {@link Property#MANAGER_FATE_META_CONFIG}.
  */
 public class FateExecutor<T> {
   private static final Logger log = LoggerFactory.getLogger(FateExecutor.class);
@@ -75,13 +78,16 @@ public class FateExecutor<T> {
   private final Set<TransactionRunner> runningTxRunners;
   private final Set<Fate.FateOperation> fateOps;
   private final ConcurrentLinkedQueue<Integer> idleCountHistory = new ConcurrentLinkedQueue<>();
+  private final FateExecutorMetrics<T> fateExecutorMetrics;
 
   public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize) {
-    final String operatesOn = fate.getStore().type().name().toLowerCase() + "."
-        + fateOps.stream().map(fo -> fo.name().toLowerCase()).collect(Collectors.joining("."));
+    final FateInstanceType type = fate.getStore().type();
+    final String typeStr = type.name().toLowerCase();
+    final String operatesOn =
+        fateOps.stream().map(fo -> fo.name().toLowerCase()).collect(Collectors.joining("."));
     final String transactionRunnerPoolName =
-        ThreadPoolNames.MANAGER_FATE_POOL_PREFIX.poolName + operatesOn;
-    final String workFinderThreadName = "fate.work.finder." + operatesOn;
+        ThreadPoolNames.MANAGER_FATE_POOL_PREFIX.poolName + typeStr + "." + operatesOn;
+    final String workFinderThreadName = "fate.work.finder." + typeStr + "." + operatesOn;
 
     this.fate = fate;
     this.environment = environment;
@@ -89,9 +95,10 @@ public class FateExecutor<T> {
     this.workQueue = new LinkedTransferQueue<>();
     this.runningTxRunners = Collections.synchronizedSet(new HashSet<>());
     this.poolName = transactionRunnerPoolName;
-    this.transactionExecutor =
-        ThreadPools.getServerThreadPools().getPoolBuilder(transactionRunnerPoolName)
-            .numCoreThreads(poolSize).enableThreadPoolMetrics().build();
+    this.transactionExecutor = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(transactionRunnerPoolName).numCoreThreads(poolSize).build();
+    this.fateExecutorMetrics =
+        new FateExecutorMetrics<>(type, operatesOn, runningTxRunners, workQueue);
 
     this.workFinder = Threads.createCriticalThread(workFinderThreadName, new WorkFinder());
     this.workFinder.start();
@@ -151,7 +158,7 @@ public class FateExecutor<T> {
       // suggest that the pool size be increased or the fate ops assigned to that pool be
       // split into separate pools.
       final long interval = Math.min(60, TimeUnit.MILLISECONDS.toMinutes(idleCheckIntervalMillis));
-      var fateConfigProp = fate.getFateConfigProp();
+      var fateConfigProp = Fate.getFateConfigProp(fate.getStore().type());
 
       if (interval == 0) {
         idleCountHistory.clear();
@@ -201,17 +208,23 @@ public class FateExecutor<T> {
     return fateOps;
   }
 
+  public FateExecutorMetrics<T> getFateExecutorMetrics() {
+    return fateExecutorMetrics;
+  }
+
   /**
    * Initiates the shutdown of this FateExecutor. This means the pool executing TransactionRunners
    * will no longer accept new TransactionRunners, the currently running TransactionRunners will
-   * terminate after they are done with their current transaction, if applicable, and the work
-   * finder is interrupted. {@link #isShutdown()} returns true after this is called.
+   * terminate after they are done with their current transaction, if applicable, the work finder is
+   * interrupted, and the metrics created for this FateExecutor are removed from the registry (if
+   * metrics were enabled). {@link #isShutdown()} returns true after this is called.
    */
   protected void initiateShutdown() {
     transactionExecutor.shutdown();
     synchronized (runningTxRunners) {
       runningTxRunners.forEach(TransactionRunner::flagStop);
     }
+    fateExecutorMetrics.clearMetrics();
     workFinder.interrupt();
   }
 

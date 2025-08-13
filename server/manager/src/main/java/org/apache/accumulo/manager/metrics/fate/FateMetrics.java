@@ -25,15 +25,18 @@ import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 import java.util.EnumMap;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.fate.FateExecutor;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.util.threads.ThreadPools;
+import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.server.ServerContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -55,14 +58,18 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
   protected final ServerContext context;
   protected final ReadOnlyFateStore<FateMetrics<T>> readOnlyFateStore;
   protected final long refreshDelay;
+  private final Set<FateExecutor<Manager>> fateExecutors;
+  private MeterRegistry registry;
 
   protected final AtomicLong totalCurrentOpsCount = new AtomicLong(0);
   private final EnumMap<TStatus,AtomicLong> txStatusCounters = new EnumMap<>(TStatus.class);
 
-  public FateMetrics(final ServerContext context, final long minimumRefreshDelay) {
+  public FateMetrics(final ServerContext context, final long minimumRefreshDelay,
+      Set<FateExecutor<Manager>> fateExecutors) {
     this.context = context;
     this.refreshDelay = Math.max(DEFAULT_MIN_REFRESH_DELAY, minimumRefreshDelay);
     this.readOnlyFateStore = Objects.requireNonNull(buildReadOnlyStore(context));
+    this.fateExecutors = fateExecutors;
 
     for (TStatus status : TStatus.values()) {
       txStatusCounters.put(status, new AtomicLong(0));
@@ -91,10 +98,25 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
 
     metricValues.getOpTypeCounters().forEach((name, count) -> Metrics
         .gauge(FATE_TYPE_IN_PROGRESS.getName(), Tags.of(OP_TYPE_TAG, name), count));
+
+    // there may have been new fate executors added, so these need to be registered.
+    // fate executors removed will have their metrics removed from the registry before they are
+    // removed from the set.
+    if (registry != null) {
+      synchronized (fateExecutors) {
+        fateExecutors.forEach(fe -> {
+          var feMetrics = fe.getFateExecutorMetrics();
+          if (!feMetrics.isRegistered()) {
+            feMetrics.registerMetrics(registry);
+          }
+        });
+      }
+    }
   }
 
   @Override
   public void registerMetrics(final MeterRegistry registry) {
+    this.registry = registry;
     String type = readOnlyFateStore.type().name().toLowerCase();
 
     Gauge.builder(FATE_OPS.getName(), totalCurrentOpsCount, AtomicLong::get)
@@ -103,6 +125,10 @@ public abstract class FateMetrics<T extends FateMetricValues> implements Metrics
     txStatusCounters.forEach((status, counter) -> Gauge
         .builder(FATE_TX.getName(), counter, AtomicLong::get).description(FATE_TX.getDescription())
         .tags("state", status.name().toLowerCase(), "instanceType", type).register(registry));
+
+    synchronized (fateExecutors) {
+      fateExecutors.forEach(fe -> fe.getFateExecutorMetrics().registerMetrics(registry));
+    }
 
     // get fate status is read only operation - no reason to be nice on shutdown.
     ScheduledExecutorService scheduler = ThreadPools.getServerThreadPools()
