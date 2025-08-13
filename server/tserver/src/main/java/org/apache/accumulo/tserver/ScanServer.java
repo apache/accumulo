@@ -1137,9 +1137,9 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
-      tserver.runServer();
-    }
+    ScanServer sserver = new ScanServer(new ConfigOpts(), args);
+    sserver.runServer();
+    sserver.close();
   }
 
 }

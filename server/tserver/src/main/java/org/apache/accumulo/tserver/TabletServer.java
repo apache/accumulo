@@ -214,9 +214,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    try (TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args)) {
-      tserver.runServer();
-    }
+    TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args);
+    tserver.runServer();
+    tserver.close();
   }
 
   protected TabletServer(ConfigOpts opts,
