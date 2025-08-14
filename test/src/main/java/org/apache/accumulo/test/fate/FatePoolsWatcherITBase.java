@@ -87,7 +87,6 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     // a transaction), and creating new FateExecutors as needed. Essentially, FateExecutor1's pool
     // size should be increased and FateExecutor3 and 4 should replace 2.
 
-    boolean allAssertsOccurred = false;
     final ConfigurationCopy config = initConfigIncTest1();
     final var env = new PoolResizeTestEnv();
     final Fate<PoolResizeTestEnv> fate = new FastFate<>(env, store, false, r -> r + "", config);
@@ -104,12 +103,13 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     final int numWorkersSet3 = 9;
     final int numWorkersSet4 = 8;
 
+    // create one transaction for each FateExecutor to work on
+    fate.seedTransaction(fateOpFromSet1, fate.startTransaction(), new PoolResizeTestRepo(), true,
+        "testing");
+    fate.seedTransaction(fateOpFromSet2, fate.startTransaction(), new PoolResizeTestRepo(), true,
+        "testing");
+
     try {
-      // create one transaction for each FateExecutor to work on
-      fate.seedTransaction(fateOpFromSet1, fate.startTransaction(), new PoolResizeTestRepo(), true,
-          "testing");
-      fate.seedTransaction(fateOpFromSet2, fate.startTransaction(), new PoolResizeTestRepo(), true,
-          "testing");
 
       // wait for the FateExecutors to work on the transactions
       Wait.waitFor(() -> env.numWorkers.get() == 2);
@@ -171,12 +171,8 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(0, fate.getTxRunnersActive(set2));
       assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
       assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
-      allAssertsOccurred = true;
-    } catch (Exception e) {
-      System.out.println("Failure: " + e);
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
-      assertTrue(allAssertsOccurred);
       assertEquals(0, fate.getTotalTxRunnersActive());
     }
   }
@@ -687,7 +683,8 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     @Override
     public long isReady(FateId fateId, PoolResizeTestEnv environment) throws Exception {
       environment.numWorkers.incrementAndGet();
-      environment.isReadyLatch.await();
+      assertTrue(environment.isReadyLatch.await(2, TimeUnit.MINUTES),
+          "Timed out waiting for isReady latch");
       return 0;
     }
 
