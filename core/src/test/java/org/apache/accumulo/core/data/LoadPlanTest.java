@@ -194,4 +194,30 @@ public class LoadPlanTest {
   public static Set<String> toString(Collection<Destination> destinations) {
     return destinations.stream().map(d -> toString(d)).collect(Collectors.toSet());
   }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    LoadPlan.TableSplits tableSplits =
+        new LoadPlan.TableSplits(new Text("text1"), new Text("text2"));
+    int hashCode1 = tableSplits.hashCode();
+    int hashCode2 = tableSplits.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    LoadPlan.TableSplits tableOne = new LoadPlan.TableSplits(new Text("text1"), new Text("text2"));
+    LoadPlan.TableSplits tableTwo = new LoadPlan.TableSplits(new Text("text1"), new Text("text2"));
+    assertEquals(tableOne.hashCode(), tableTwo.hashCode());
+
+    // Testing even distribution
+    List<LoadPlan.TableSplits> tables = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      tables.add(new LoadPlan.TableSplits(new Text("text1" + i), new Text("text2" + i)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (LoadPlan.TableSplits tabs : tables) {
+      hashCodes.add(tabs.hashCode());
+    }
+    assertEquals(tables.size(), hashCodes.size(), 10);
+  }
 }

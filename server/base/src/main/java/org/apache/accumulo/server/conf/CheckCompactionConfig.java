@@ -32,11 +32,11 @@ import java.util.Set;
 import org.apache.accumulo.core.cli.Help;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner;
 import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionPlannerInitParams;
 import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
@@ -112,7 +112,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
       return;
     }
 
-    Map<CompactorGroupId,Set<String>> groupToServices = new HashMap<>();
+    Map<ResourceGroupId,Set<String>> groupToServices = new HashMap<>();
     for (var entry : servicesConfig.getPlanners().entrySet()) {
       String serviceId = entry.getKey();
       String plannerClassName = entry.getValue();
@@ -136,7 +136,7 @@ public class CheckCompactionConfig implements KeywordExecutable {
     }
 
     boolean dupesFound = false;
-    for (Entry<CompactorGroupId,Set<String>> e : groupToServices.entrySet()) {
+    for (Entry<ResourceGroupId,Set<String>> e : groupToServices.entrySet()) {
       if (e.getValue().size() > 1) {
         log.warn("Compaction services " + e.getValue().toString()
             + " mapped to the same compactor group: " + e.getKey());

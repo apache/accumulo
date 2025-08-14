@@ -22,10 +22,12 @@ import static org.apache.accumulo.core.Constants.DEFAULT_COMPACTION_SERVICE_NAME
 
 import java.lang.annotation.Annotation;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -50,7 +52,7 @@ import com.google.common.base.Preconditions;
 
 public enum Property {
   COMPACTION_PREFIX("compaction.", null, PropertyType.PREFIX,
-      "Both major and minor compaction properties can be included under this prefix.", "3.1.0"),
+      "Both major and minor compaction properties can be included under this prefix.", "4.0.0"),
   COMPACTION_SERVICE_PREFIX(COMPACTION_PREFIX + "service.", null, PropertyType.PREFIX,
       "This prefix should be used to define all properties for the compaction services."
           + "See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.\n"
@@ -62,7 +64,7 @@ public enum Property {
           + "{ \"group\":\"medium\", \"maxSize\":\"512M\"},{\"group\":\"large\"}]`\n"
           + "`compaction.service.newService.opts.maxOpen=50`.\n"
           + "Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.",
-      "3.1.0"),
+      "4.0.0"),
   COMPACTION_SERVICE_DEFAULT_PLANNER(
       COMPACTION_SERVICE_PREFIX + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
       RatioBasedCompactionPlanner.class.getName(), PropertyType.CLASSNAME,
@@ -75,13 +77,18 @@ public enum Property {
       "4.0.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
       "When a compaction has not made progress for this time period, a warning will be logged.",
-      "3.1.0"),
+      "4.0.0"),
   // SSL properties local to each node (see also instance.ssl.enabled which must be consistent
   // across all nodes in an instance)
   RPC_PREFIX("rpc.", null, PropertyType.PREFIX,
       "Properties in this category related to the configuration of SSL keys for"
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
+  RPC_PROCESS_ADVERTISE_ADDRESS("rpc.advertise.addr", "", PropertyType.STRING,
+      "The address to use when registering this server in ZooKeeper. This could be an"
+          + " IP address or hostname and defaults to rpc.bind.addr property value. Port "
+          + "numbers, if not specified, will default to the port property for the specific server type.",
+      "2.1.4"),
   RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic. If not set then the process binds to all addresses.",
       "2.1.4"),
@@ -365,16 +372,18 @@ public enum Property {
       "A comma separated list of tags to emit with all metrics from the process. Example:"
           + "\"tag1=value1,tag2=value2\".",
       "4.0.0"),
-  // TODO: Make sure to backport this to 3.1, then remove here in 4.0
-  @Deprecated(since = "3.1.0")
+  @Deprecated(since = "4.0.0")
   @ReplacedBy(property = RPC_PROCESS_BIND_ADDRESS)
   GENERAL_PROCESS_BIND_ADDRESS("general.process.bind.addr", "0.0.0.0", PropertyType.STRING,
       "The local IP address to which this server should bind for sending and receiving network traffic.",
       "3.0.0"),
+  GENERAL_SERVER_ITERATOR_OPTIONS_COMPRESSION_ALGO("general.server.iter.opts.compression", "none",
+      PropertyType.COMPRESSION_TYPE,
+      "Compression algorithm name to use for server-side iterator options compression.", "2.1.4"),
   GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL("general.server.lock.verification.interval", "2m",
       PropertyType.TIMEDURATION,
       "Interval at which the Manager and TabletServer should verify their server locks. A value of zero"
-          + " disables this check. The default value change from 0 to 2m in 3.1.0.",
+          + " disables this check. The default value changed from 0 to 2m in 4.0.0.",
       "2.1.4"),
   // properties that are specific to manager server behavior
   MANAGER_PREFIX("manager.", null, PropertyType.PREFIX,
@@ -386,6 +395,11 @@ public enum Property {
       "The balancer class that accumulo will use to make tablet assignment and "
           + "migration decisions.",
       "1.3.5"),
+  MANAGER_TABLET_BALANCER_TSERVER_THRESHOLD("manager.tablet.balancer.tserver.threshold", "0",
+      PropertyType.COUNT,
+      "Indicates the minimum number of tservers for assignment and balancing operations for user tables. A"
+          + " value of zero (default) disables this threshold allowing assignment and balancing to always occur.",
+      "2.1.4"),
   MANAGER_TABLET_GROUP_WATCHER_INTERVAL("manager.tablet.watcher.interval", "60s",
       PropertyType.TIMEDURATION,
       "Time to wait between scanning tablet states to identify tablets that need to be assigned, un-assigned, migrated, etc.",
@@ -395,7 +409,7 @@ public enum Property {
       "Maximum number of threads the TabletGroupWatcher will use in its BatchScanner to"
           + " look for tablets that need maintenance.",
       "2.1.4"),
-  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.mininum", "10",
+  MANAGER_TABLET_REFRESH_MINTHREADS("manager.tablet.refresh.threads.minimum", "10",
       PropertyType.COUNT,
       "The Manager will notify TabletServers that a Tablet needs to be refreshed after certain operations"
           + " are performed (e.g. Bulk Import). This property specifies the number of core threads in a"
@@ -437,6 +451,10 @@ public enum Property {
   MANAGER_WAL_CLOSER_IMPLEMENTATION("manager.wal.closer.implementation",
       "org.apache.accumulo.server.manager.recovery.HadoopLogCloser", PropertyType.CLASSNAME,
       "A class that implements a mechanism to steal write access to a write-ahead log.", "2.1.0"),
+  MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX("manager.fate.conditional.writer.threads.max", "3",
+      PropertyType.COUNT,
+      "Maximum number of threads to use for writing data to tablet servers of the FATE system table.",
+      "4.0.0"),
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
@@ -510,13 +528,13 @@ public enum Property {
           + "needed.",
       "4.0.0"),
   SPLIT_PREFIX("split.", null, PropertyType.PREFIX,
-      "System wide properties related to splitting tablets.", "3.1.0"),
+      "System wide properties related to splitting tablets.", "4.0.0"),
   SPLIT_MAXOPEN("split.files.max", "300", PropertyType.COUNT,
       "To find a tablets split points, all RFiles are opened and their indexes"
           + " are read. This setting determines how many RFiles can be opened at once."
           + " When there are more RFiles than this setting the tablet will be marked"
           + " as un-splittable.",
-      "3.1.0"),
+      "4.0.0"),
   // properties that are specific to scan server behavior
   SSERV_PREFIX("sserver.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the scan servers.", "2.1.0"),
@@ -879,6 +897,11 @@ public enum Property {
           + " the dead servers resource group matches a resource group in this list,"
           + " then it will be suppressed from the dead servers list in the monitor.",
       "4.0.0"),
+  MONITOR_ROOT_CONTEXT("monitor.root.context", "/", PropertyType.STRING,
+      "The root context path of the monitor application. If this value is set, all paths for the"
+          + " monitor application will be hosted using this context. As an example, setting this to `/accumulo`"
+          + " would cause all `/rest/` endpoints to be hosted at `/accumulo/rest/*`.",
+      "2.1.4"),
   // per table properties
   TABLE_PREFIX("table.", null, PropertyType.PREFIX,
       "Properties in this category affect tablet server treatment of tablets,"
@@ -931,7 +954,7 @@ public enum Property {
           + ". These two properties together can be used to control that amount of time it takes for a scan "
           + "server to see a write to a tablet server. The default value of this property is set to such a "
           + "high value that is should never cause a minor compaction.",
-      "3.1.0"),
+      "4.0.0"),
   TABLE_COMPACTION_DISPATCHER("table.compaction.dispatcher",
       SimpleCompactionDispatcher.class.getName(), PropertyType.CLASSNAME,
       "A configurable dispatcher that decides what compaction service a table should use.",
@@ -1203,6 +1226,20 @@ public enum Property {
           + "also consider configuring the `" + NoDeleteConstraint.class.getName() + "` "
           + "constraint.",
       "2.0.0"),
+  TABLE_ENABLE_ERASURE_CODES("table.file.ec", "inherit", PropertyType.EC,
+      "This determines if Accumulo will manage erasure codes on a table."
+          + " When setting this to 'enable' must also set erasure.code.policy and that policy will "
+          + "always be used regardless of DFS directory settings.  When set to 'disable', replication "
+          + "will always be used regardless of DFS directory settings.  When set to 'inherit' "
+          + "the settings from the directory in dfs will be used. Enabling erasure coding on a volume "
+          + "that does not support it is a noop.",
+      "2.1.4"),
+
+  TABLE_ERASURE_CODE_POLICY("table.file.ec.policy", "", PropertyType.STRING,
+      "The name of the erasure code policy to be used.  Policy must be available and enabled in hdfs.  "
+          + "To view if policy is enabled check hdfs ec -listPolicies.  This setting is only used when "
+          + "table.file.ec is set to enable.",
+      "2.1.4"),
   // Compactor properties
   COMPACTOR_PREFIX("compactor.", null, PropertyType.PREFIX,
       "Properties in this category affect the behavior of the accumulo compactor server.", "2.1.0"),
@@ -1225,6 +1262,35 @@ public enum Property {
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_THRESHOLD("compactor.failure.backoff.threshold", "3",
+      PropertyType.COUNT,
+      "The number of consecutive failures that must occur before the Compactor starts to back off"
+          + " processing compactions.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_INTERVAL("compactor.failure.backoff.interval", "0",
+      PropertyType.TIMEDURATION,
+      "The time basis for computing the wait time for compaction failure backoff. A value of zero disables"
+          + " the backoff feature. When a non-zero value is supplied, then after compactor.failure.backoff.threshold"
+          + " failures have occurred, the compactor will wait compactor.failure.backoff.interval * the number of"
+          + " failures seconds before executing the next compaction. For example, if this value is 10s, then after"
+          + " three failures the Compactor will wait 30s before starting the next compaction. If the compaction fails"
+          + " again, then it will wait 40s before starting the next compaction.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_BACKOFF_RESET("compactor.failure.backoff.reset", "10m",
+      PropertyType.TIMEDURATION,
+      "The maximum amount of time that the compactor will wait before executing the next compaction. When this"
+          + " time limit has been reached, the failures are cleared.",
+      "2.1.4"),
+  @Experimental
+  COMPACTOR_FAILURE_TERMINATION_THRESHOLD("compactor.failure.termination.threshold", "0",
+      PropertyType.COUNT,
+      "The number of consecutive failures at which the Compactor exits and the process terminates. A zero"
+          + " value disables this feature.",
+      "2.1.4"),
+  @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
@@ -1252,7 +1318,10 @@ public enum Property {
       "4.0.0"),
   COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL(
       "compaction.coordinator.compactor.dead.check.interval", "5m", PropertyType.TIMEDURATION,
-      "The interval at which to check for dead compactors.", "2.1.0");
+      "The interval at which to check for dead compactors.", "2.1.0"),
+  GENERAL_AMPLE_CONDITIONAL_WRITER_THREADS_MAX("general.ample.conditional.writer.threads.max", "8",
+      PropertyType.COUNT,
+      "The maximum number of threads for the shared ConditionalWriter used by Ample.", "4.0.0");
 
   private final String key;
   private final String defaultValue;
@@ -1520,35 +1589,69 @@ public enum Property {
 
   // these properties are fixed to a specific value at startup and require a restart for changes to
   // take effect; these are always system-level properties, and not namespace or table properties
-  public static final EnumSet<Property> fixedProperties = EnumSet.of(
-      // port options
-      GC_PORT, MANAGER_CLIENTPORT, TSERV_CLIENTPORT, SSERV_CLIENTPORT, SSERV_PORTSEARCH,
-      COMPACTOR_PORTSEARCH, TSERV_PORTSEARCH,
+  public static final Set<Property> FIXED_PROPERTIES = Collections.unmodifiableSet(EnumSet.of(
+      // RPC options
+      RPC_BACKLOG, RPC_SSL_KEYSTORE_TYPE, RPC_SSL_TRUSTSTORE_TYPE, RPC_USE_JSSE,
+      RPC_SSL_ENABLED_PROTOCOLS, RPC_SSL_CLIENT_PROTOCOL, RPC_SASL_QOP, RPC_MAX_MESSAGE_SIZE,
 
-      // max message options
-      RPC_MAX_MESSAGE_SIZE,
+      // INSTANCE options
+      INSTANCE_ZK_HOST, INSTANCE_ZK_TIMEOUT, INSTANCE_SECRET, INSTANCE_SECURITY_AUTHENTICATOR,
+      INSTANCE_SECURITY_AUTHORIZOR, INSTANCE_SECURITY_PERMISSION_HANDLER, INSTANCE_RPC_SSL_ENABLED,
+      INSTANCE_RPC_SSL_CLIENT_AUTH, INSTANCE_RPC_SASL_ENABLED, INSTANCE_CRYPTO_FACTORY,
 
-      // compaction coordiantor properties
-      MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
+      // GENERAL options
+      GENERAL_KERBEROS_RENEWAL_PERIOD, GENERAL_OPENTELEMETRY_ENABLED, GENERAL_VOLUME_CHOOSER,
+      GENERAL_DELEGATION_TOKEN_LIFETIME, GENERAL_DELEGATION_TOKEN_UPDATE_INTERVAL,
+      GENERAL_IDLE_PROCESS_INTERVAL, GENERAL_MICROMETER_ENABLED,
+      GENERAL_MICROMETER_JVM_METRICS_ENABLED, GENERAL_MICROMETER_LOG_METRICS,
+      GENERAL_MICROMETER_FACTORY, GENERAL_SERVER_LOCK_VERIFICATION_INTERVAL,
+      GENERAL_CACHE_MANAGER_IMPL, GENERAL_MICROMETER_CACHE_METRICS_ENABLED,
+      GENERAL_LOW_MEM_DETECTOR_INTERVAL,
 
-      // block cache options
-      GENERAL_CACHE_MANAGER_IMPL, TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE,
-      TSERV_SUMMARYCACHE_SIZE, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+      // MANAGER options
+      MANAGER_THREADCHECK, MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL, MANAGER_METADATA_SUSPENDABLE,
+      MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT,
+      MANAGER_CLIENTPORT, MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT,
+      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME, MANAGER_COMPACTION_SERVICE_PRIORITY_QUEUE_SIZE,
+      MANAGER_TABLET_REFRESH_MINTHREADS, MANAGER_TABLET_REFRESH_MAXTHREADS,
+      MANAGER_TABLET_MERGEABILITY_INTERVAL, MANAGER_FATE_CONDITIONAL_WRITER_THREADS_MAX,
 
-      // blocksize options
-      TSERV_DEFAULT_BLOCKSIZE, SSERV_DEFAULT_BLOCKSIZE,
+      // SSERV options
+      SSERV_CACHED_TABLET_METADATA_REFRESH_PERCENT, SSERV_THREADCHECK, SSERV_CLIENTPORT,
+      SSERV_PORTSEARCH, SSERV_DATACACHE_SIZE, SSERV_INDEXCACHE_SIZE, SSERV_SUMMARYCACHE_SIZE,
+      SSERV_DEFAULT_BLOCKSIZE, SSERV_SCAN_REFERENCE_EXPIRATION_TIME,
+      SSERV_CACHED_TABLET_METADATA_EXPIRATION, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
+      SSERV_WAL_SORT_MAX_CONCURRENT, SSERV_GROUP_NAME,
 
-      // sserver specific options
-      SSERV_SCAN_REFERENCE_EXPIRATION_TIME, SSERV_CACHED_TABLET_METADATA_EXPIRATION,
+      // TSERV options
+      TSERV_TOTAL_MUTATION_QUEUE_MAX, TSERV_WAL_MAX_SIZE, TSERV_WAL_MAX_AGE,
+      TSERV_WAL_TOLERATED_CREATION_FAILURES, TSERV_WAL_TOLERATED_WAIT_INCREMENT,
+      TSERV_WAL_TOLERATED_MAXIMUM_WAIT_DURATION, TSERV_MAX_IDLE, TSERV_SESSION_MAXIDLE,
+      TSERV_SCAN_RESULTS_MAX_TIMEOUT, TSERV_MINC_MAXCONCURRENT, TSERV_THREADCHECK,
+      TSERV_LOG_BUSY_TABLETS_COUNT, TSERV_LOG_BUSY_TABLETS_INTERVAL, TSERV_WAL_SORT_MAX_CONCURRENT,
+      TSERV_SLOW_FILEPERMIT_MILLIS, TSERV_WAL_BLOCKSIZE, TSERV_CLIENTPORT, TSERV_PORTSEARCH,
+      TSERV_DATACACHE_SIZE, TSERV_INDEXCACHE_SIZE, TSERV_SUMMARYCACHE_SIZE, TSERV_DEFAULT_BLOCKSIZE,
+      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM,
+      TSERV_SCAN_MAX_OPENFILES, TSERV_ONDEMAND_UNLOADER_INTERVAL, TSERV_GROUP_NAME,
 
-      // thread options
-      TSERV_MINTHREADS, TSERV_MINTHREADS_TIMEOUT, SSERV_MINTHREADS, SSERV_MINTHREADS_TIMEOUT,
-      MANAGER_MINTHREADS, MANAGER_MINTHREADS_TIMEOUT, COMPACTOR_MINTHREADS,
-      COMPACTOR_MINTHREADS_TIMEOUT,
+      // GC options
+      GC_CANDIDATE_BATCH_SIZE, GC_CYCLE_START, GC_PORT,
 
-      // others
-      TSERV_NATIVEMAP_ENABLED, TSERV_MAXMEM, TSERV_SCAN_MAX_OPENFILES,
-      MANAGER_RECOVERY_WAL_EXISTENCE_CACHE_TIME);
+      // MONITOR options
+      MONITOR_PORT, MONITOR_SSL_KEYSTORETYPE, MONITOR_SSL_TRUSTSTORETYPE,
+      MONITOR_SSL_INCLUDE_PROTOCOLS, MONITOR_LOCK_CHECK_INTERVAL, MONITOR_ROOT_CONTEXT,
+
+      // COMPACTOR options
+      COMPACTOR_CANCEL_CHECK_INTERVAL, COMPACTOR_CLIENTPORT, COMPACTOR_THREADCHECK,
+      COMPACTOR_PORTSEARCH, COMPACTOR_MINTHREADS, COMPACTOR_MINTHREADS_TIMEOUT,
+      COMPACTOR_GROUP_NAME,
+
+      // COMPACTION_COORDINATOR options
+      COMPACTION_COORDINATOR_DEAD_COMPACTOR_CHECK_INTERVAL,
+
+      // COMPACTION_SERVICE options
+      COMPACTION_SERVICE_DEFAULT_PLANNER, COMPACTION_SERVICE_DEFAULT_MAX_OPEN,
+      COMPACTION_SERVICE_DEFAULT_GROUPS));
 
   /**
    * Checks if the given property may be changed via Zookeeper, but not recognized until the restart
@@ -1558,7 +1661,7 @@ public enum Property {
    * @return true if property may be changed via Zookeeper but only heeded upon some restart
    */
   public static boolean isFixedZooPropertyKey(Property key) {
-    return fixedProperties.contains(key);
+    return FIXED_PROPERTIES.contains(key);
   }
 
   /**

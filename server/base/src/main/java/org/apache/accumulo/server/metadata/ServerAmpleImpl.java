@@ -92,14 +92,16 @@ public class ServerAmpleImpl extends AmpleImpl implements Ample {
 
   @Override
   public ConditionalTabletsMutator conditionallyMutateTablets() {
-    return new ConditionalTabletsMutatorImpl(context, getTableMapper());
+    return new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+        context.getSharedMetadataWriter(), context.getSharedUserWriter());
   }
 
   @Override
   public AsyncConditionalTabletsMutator
       conditionallyMutateTablets(Consumer<ConditionalResult> resultsConsumer) {
     return new AsyncConditionalTabletsMutatorImpl(resultsConsumer,
-        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper()));
+        () -> new ConditionalTabletsMutatorImpl(context, getTableMapper(),
+            context.getSharedMetadataWriter(), context.getSharedUserWriter()));
   }
 
   private void mutateRootGcCandidates(Consumer<RootGcCandidates> mutator) {

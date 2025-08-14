@@ -41,8 +41,8 @@ public class FlakyExternalCompaction2IT extends ExternalCompaction2ITBase {
     @Override
     public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
       super.configureMiniCluster(cfg, coreSite);
-      cfg.setServerClass(ServerType.MANAGER, FlakyAmpleManager.class);
-      cfg.setServerClass(ServerType.TABLET_SERVER, FlakyAmpleTserver.class);
+      cfg.setServerClass(ServerType.MANAGER, rg -> FlakyAmpleManager.class);
+      cfg.setServerClass(ServerType.TABLET_SERVER, rg -> FlakyAmpleTserver.class);
     }
   }
 

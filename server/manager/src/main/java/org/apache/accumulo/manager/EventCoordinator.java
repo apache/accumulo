@@ -152,7 +152,7 @@ public class EventCoordinator {
 
   public synchronized void addListener(Ample.DataLevel level, Listener listener) {
     // Currently only expecting one listener for each level, so keeping the code simple and
-    // detecting deviations. Can adept if needed.
+    // detecting deviations. Can adapt if needed.
     Preconditions.checkState(listeners.put(level, listener) == null);
   }
 

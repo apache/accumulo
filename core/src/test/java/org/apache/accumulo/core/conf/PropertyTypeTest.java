@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.conf;
 
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -84,17 +85,21 @@ public class PropertyTypeTest extends WithTestNames {
   }
 
   private void valid(final String... args) {
-    for (String s : args) {
-      assertTrue(type.isValidFormat(s),
-          s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
-    }
+    assertAll(() -> {
+      for (String s : args) {
+        assertTrue(type.isValidFormat(s),
+            s + " should be valid for " + PropertyType.class.getSimpleName() + "." + type.name());
+      }
+    });
   }
 
   private void invalid(final String... args) {
-    for (String s : args) {
-      assertFalse(type.isValidFormat(s),
-          s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
-    }
+    assertAll(() -> {
+      for (String s : args) {
+        assertFalse(type.isValidFormat(s),
+            s + " should be invalid for " + PropertyType.class.getSimpleName() + "." + type.name());
+      }
+    });
   }
 
   @Test
@@ -317,4 +322,21 @@ public class PropertyTypeTest extends WithTestNames {
     invalid(null, "", "AL L", " ALL", "non import", "     ");
   }
 
+  @Test
+  public void testTypeCOMPRESSION_TYPE() {
+    valid("none", "gz", "lz4", "snappy");
+    // The following are valid at runtime with the correct configuration
+    //
+    // bzip2 java implementation does not implement Compressor/Decompressor, requires native
+    // lzo not included in implementation due to license issues, but can be added by user
+    // zstd requires hadoop native libraries built with zstd support
+    //
+    invalid(null, "", "bzip2", "lzo", "zstd");
+  }
+
+  @Test
+  public void testTypeEC() {
+    valid("enable", "ENABLE", "inherit", "INHERIT", "disable", "DISABLE");
+    invalid(null, "policy", "XOR-2-1-1024k");
+  }
 }

@@ -34,7 +34,7 @@ public class ComprehensiveFlakyFateIT extends ComprehensiveITBase {
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig(
-        (cfg, coreSite) -> cfg.setServerClass(ServerType.MANAGER, FlakyFateManager.class));
+        (cfg, coreSite) -> cfg.setServerClass(ServerType.MANAGER, r -> FlakyFateManager.class));
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);

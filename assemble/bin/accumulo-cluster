@@ -248,9 +248,9 @@ function quote() {
   exit 1
 }
 
-# call debug to print, or execute if debug is off
-function debugOrRun() {
-  debug "$(quote "$@")" || "$@"
+# call debug to print the command only, or execute asynchronously if debug is off
+function debugOrRunAsync() {
+  debug "$(quote "$@")" || ("$@") &
 }
 
 function canRunOnHost() {
@@ -369,17 +369,6 @@ function parse_config() {
 
 }
 
-function ssh_wait() {
-  #shellcheck disable=SC2009
-  count=$(ps -ef | grep ssh | grep -c "accumulo-service")
-  while ((count > 0)); do
-    echo "waiting on $count ssh commands to complete"
-    sleep 2
-    #shellcheck disable=SC2009
-    count=$(ps -ef | grep ssh | grep -c "accumulo-service")
-  done
-}
-
 function execute_command() {
   control_cmd=$1
   host=$2
@@ -395,9 +384,9 @@ function execute_command() {
   servers_per_host="${!S:-1}"
 
   if [[ $ARG_LOCAL == 1 ]]; then
-    debugOrRun bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*"
+    debugOrRunAsync bash -c "ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*"
   else
-    debugOrRun "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*'"
+    debugOrRunAsync "${SSH[@]}" "$host" "bash -c 'ACCUMULO_CLUSTER_ARG=$servers_per_host \"$bin/accumulo-service\" $service $control_cmd -o general.process.bind.addr=$host $*'"
   fi
 }
 
@@ -473,7 +462,7 @@ function control_services() {
         for tserver in ${!G}; do
           debug "Stopping tservers on $addr via admin command"
           if echo "$tserver" | grep -q "$addr"; then
-            debugOrRun "$accumulo_cmd" admin stop "$addr"
+            debugOrRunAsync "$accumulo_cmd" admin stop "$addr"
           fi
         done
       done
@@ -509,11 +498,11 @@ function control_services() {
         fi
       done
       if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
-        # If the prior commands were executed via ssh, then we need to wait for them
-        # to complete before zapping the nodes in ZooKeeper
-        ssh_wait
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
         echo "Cleaning tablet server entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers -group "$group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -tservers --include-groups "$group"
       fi
       echo "done"
     done
@@ -563,11 +552,11 @@ function control_services() {
         fi
       done
       if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
-        # If the prior commands were executed via ssh, then we need to wait for them
-        # to complete before zapping the nodes in ZooKeeper
-        ssh_wait
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
         echo "Cleaning scan server entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers -group "$group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -sservers --include-groups "$group"
       fi
     done
   fi
@@ -588,19 +577,21 @@ function control_services() {
         fi
       done
       if [[ $ARG_LOCAL == 0 && ($operation == "stop" || $operation == "kill") ]]; then
-        # If the prior commands were executed via ssh, then we need to wait for them
-        # to complete before zapping the nodes in ZooKeeper
-        ssh_wait
+        # We need to wait for the prior commands (which were executed asynchronously) to complete
+        # before zapping the nodes in ZooKeeper
+        wait
         echo "Cleaning compactor entries from zookeeper for resource group $group"
-        debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors -group "$group"
+        debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -compactors --include-groups "$group"
       fi
     done
   fi
 
   if [[ $ARG_LOCAL == 0 && $ARG_ALL == 1 && ($operation == "stop" || $operation == "kill") ]]; then
     debug "Cleaning all server entries in ZooKeeper"
-    debugOrRun "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
+    debugOrRunAsync "$accumulo_cmd" org.apache.accumulo.server.util.ZooZap -verbose -manager -tservers -compactors -sservers --gc --monitor
   fi
+
+  wait
 
 }
 
@@ -796,7 +787,7 @@ function main() {
   conf="${ACCUMULO_CONF_DIR:-$basedir/conf}"
 
   accumulo_cmd="$bin/accumulo"
-  SSH=('ssh' '-qnf' '-o' 'ConnectTimeout=2')
+  SSH=('ssh' '-qn' '-o' 'ConnectTimeout=2' '-o' 'BatchMode=yes')
 
   mapfile -t LOCAL_HOST_ADDRESSES < <(get_localhost_addresses)
   debug "LOCAL_HOST_ADDRESSES=${LOCAL_HOST_ADDRESSES[*]}"

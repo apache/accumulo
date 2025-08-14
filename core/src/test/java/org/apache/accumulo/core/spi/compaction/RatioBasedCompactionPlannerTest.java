@@ -42,7 +42,9 @@ import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -51,6 +53,7 @@ import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment.Configuration;
 import org.apache.accumulo.core.spi.compaction.CompactionPlan.Builder;
 import org.apache.accumulo.core.spi.compaction.CompactionPlanner.InitParameters;
+import org.apache.accumulo.core.util.ConfigurationImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobImpl;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
 import org.apache.accumulo.core.util.compaction.CompactionPlanImpl;
@@ -59,6 +62,7 @@ import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 import com.google.gson.JsonParseException;
 
 public class RatioBasedCompactionPlannerTest {
@@ -178,7 +182,137 @@ public class RatioBasedCompactionPlannerTest {
     // planner should compact.
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactorGroupId.of("medium"), job.getGroup());
+    assertEquals(ResourceGroupId.of("medium"), job.getGroup());
+  }
+
+  @Test
+  public void testRunningCompactionLookAhead() {
+    String executors = "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'},{'group':'huge'}]";
+
+    var planner = createPlanner(defaultConf, executors);
+
+    int count = 0;
+
+    // create 4 files of size 10 as compacting
+    List<String> compactingString = new ArrayList<>();
+    for (int i = 0; i < 4; i++) {
+      compactingString.add("F" + count++);
+      compactingString.add(10 + "");
+    }
+
+    // create 4 files of size 100,1000,10_000, and 100_000 as the tablets files
+    List<String> candidateStrings = new ArrayList<>();
+    for (int size = 100; size < 1_000_000; size *= 10) {
+      for (int i = 0; i < 4; i++) {
+        candidateStrings.add("F" + count++);
+        candidateStrings.add(size + "");
+      }
+    }
+
+    var compacting = createCFs(compactingString.toArray(new String[0]));
+    var candidates = createCFs(candidateStrings.toArray(new String[0]));
+    var all = Sets.union(compacting, candidates);
+    var jobs = Set.of(createJob(CompactionKind.SYSTEM, all, compacting));
+    var params = createPlanningParams(all, candidates, jobs, 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+
+    // The compaction running over the size 10 files would produce a file that would be used by a
+    // compaction over the size 100 files. A compaction over the size 100 files would produce a file
+    // that would be used by a compaction over the size 1000 files. This should continue up the
+    // chain disqualifying all sets of files for compaction.
+    assertEquals(List.of(), plan.getJobs());
+  }
+
+  @Test
+  public void testRunningCompactionLookAhead2() {
+
+    var config = ServiceEnvironment.Configuration
+        .from(Map.of(prefix + "cs1.planner.opts.maxOpen", "10"), true);
+
+    String executors = "[{'group':'small','maxSize':'32M'},{'group':'medium','maxSize':'128M'},"
+        + "{'group':'large','maxSize':'512M'},{'group':'huge'}]";
+
+    var planner = createPlanner(config, executors);
+
+    int count = 0;
+
+    // create 10 files of size 11 as compacting
+    List<String> compactingString = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      compactingString.add("F" + count++);
+      compactingString.add(11 + "");
+    }
+
+    // create 10 files of size 11 as the tablets files
+    List<String> candidateStrings = new ArrayList<>();
+    for (int i = 0; i < 10; i++) {
+      candidateStrings.add("F" + count++);
+      candidateStrings.add(11 + "");
+    }
+
+    // create 17 files of size 100,1000, and 10_000 as the tablets files
+    for (int size = 100; size < 100_000; size *= 10) {
+      for (int i = 0; i < 17; i++) {
+        candidateStrings.add("F" + count++);
+        candidateStrings.add(size + "");
+      }
+    }
+
+    // create 5 files of 100_000 as the tablets files
+    for (int i = 0; i < 5; i++) {
+      candidateStrings.add("F" + count++);
+      candidateStrings.add(100_000 + "");
+    }
+
+    var compacting = createCFs(compactingString.toArray(new String[0]));
+    var candidates = createCFs(candidateStrings.toArray(new String[0]));
+    var all = Sets.union(compacting, candidates);
+    var jobs = Set.of(createJob(CompactionKind.SYSTEM, all, compacting));
+    var params = createPlanningParams(all, candidates, jobs, 2, CompactionKind.SYSTEM);
+    var plan = planner.makePlan(params);
+
+    // There are currently 20 files of size 11 of which 10 are compacting. The 10 files that are
+    // compacting would produce a file with a projected size of 110. The file with a projected size
+    // of 110 would not be included in a compaction of the other 10 files of size 11, therefore its
+    // ok to compact the 10 files of size 11 and they should be found. Additionally, there are 10
+    // files of size 100 that can be compacted w/o including any of the files produced by compacting
+    // the files of size 11. So these file 10 files of size 100 should also be found.
+    assertEquals(2, plan.getJobs().size());
+    boolean saw11 = false;
+    boolean saw100 = false;
+    for (var job : plan.getJobs()) {
+      assertEquals(10, job.getFiles().size());
+      saw11 |= job.getFiles().stream().allMatch(f -> f.getEstimatedSize() == 11);
+      saw100 |= job.getFiles().stream().allMatch(f -> f.getEstimatedSize() == 100);
+    }
+    assertTrue(saw11 && saw100);
+
+    // try planning again incorporating the jobs returned from previous plan
+    var jobs2 = Sets.union(jobs, Set.copyOf(plan.getJobs()));
+    var candidates2 = new HashSet<>(candidates);
+    for (var job : plan.getJobs()) {
+      candidates2.removeAll(job.getFiles());
+    }
+    params = createPlanningParams(all, candidates2, jobs2, 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    // Simulating multiple compactions forward, the next set of files that would not include files
+    // from any other projected or running compactions are 9 files of size 10_000.
+    var job = getOnlyElement(plan.getJobs());
+    assertEquals(9, job.getFiles().size());
+    assertTrue(job.getFiles().stream().allMatch(f -> f.getEstimatedSize() == 10_000));
+
+    // try planning again incorporating the job returned from previous plan
+    var jobs3 = Sets.union(jobs2, Set.copyOf(plan.getJobs()));
+    var candidates3 = new HashSet<>(candidates2);
+    candidates3.removeAll(job.getFiles());
+    params = createPlanningParams(all, candidates3, jobs3, 2, CompactionKind.SYSTEM);
+    plan = planner.makePlan(params);
+
+    // The 5 files of size 100_000 should not be found because it would be most optimal to compact
+    // those 5 files with the output of the compactions over the files of size 10_000.
+    assertEquals(0, plan.getJobs().size());
   }
 
   @Test
@@ -200,7 +334,7 @@ public class RatioBasedCompactionPlannerTest {
     // a running non-user compaction should not prevent a user compaction
     var job = getOnlyElement(plan.getJobs());
     assertEquals(candidates, job.getFiles());
-    assertEquals(CompactorGroupId.of("medium"), job.getGroup());
+    assertEquals(ResourceGroupId.of("medium"), job.getGroup());
     assertEquals(CompactionJobPrioritizer.createPriority(Namespace.ACCUMULO.id(), TableId.of("42"),
         CompactionKind.USER, all.size(), job.getFiles().size(), 1000), job.getPriority());
 
@@ -220,7 +354,7 @@ public class RatioBasedCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "1M", "F2", "2M", "F3", "4M"), job.getFiles());
-    assertEquals(CompactorGroupId.of("small"), job.getGroup());
+    assertEquals(ResourceGroupId.of("small"), job.getGroup());
 
     // should compact all 15
     all = createCFs("FI", "7M", "F4", "8M", "F5", "16M", "F6", "32M", "F7", "64M", "F8", "128M",
@@ -230,7 +364,7 @@ public class RatioBasedCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupId.of("huge"), job.getGroup());
+    assertEquals(ResourceGroupId.of("huge"), job.getGroup());
 
     // For user compaction, can compact a subset that meets the compaction ratio if there is also a
     // larger set of files that meets the compaction ratio
@@ -240,7 +374,7 @@ public class RatioBasedCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "3M", "F2", "4M", "F3", "5M", "F4", "6M"), job.getFiles());
-    assertEquals(CompactorGroupId.of("small"), job.getGroup());
+    assertEquals(ResourceGroupId.of("small"), job.getGroup());
 
     // There is a subset of small files that meets the compaction ratio, but the larger set does not
     // so compact everything to avoid doing more than logarithmic work
@@ -249,7 +383,7 @@ public class RatioBasedCompactionPlannerTest {
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupId.of("medium"), job.getGroup());
+    assertEquals(ResourceGroupId.of("medium"), job.getGroup());
 
   }
 
@@ -266,14 +400,14 @@ public class RatioBasedCompactionPlannerTest {
     // should only compact files less than max size
     var job = getOnlyElement(plan.getJobs());
     assertEquals(createCFs("F1", "128M", "F2", "129M", "F3", "130M"), job.getFiles());
-    assertEquals(CompactorGroupId.of("large"), job.getGroup());
+    assertEquals(ResourceGroupId.of("large"), job.getGroup());
 
     // user compaction can exceed the max size
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.USER);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupId.of("large"), job.getGroup());
+    assertEquals(ResourceGroupId.of("large"), job.getGroup());
   }
 
   @Test
@@ -299,7 +433,7 @@ public class RatioBasedCompactionPlannerTest {
       plan.getJobs().forEach(job -> {
         assertEquals(15, job.getFiles().size());
         assertEquals(kind, job.getKind());
-        assertEquals(CompactorGroupId.of("small"), job.getGroup());
+        assertEquals(ResourceGroupId.of("small"), job.getGroup());
         // ensure the files across all of the jobs are disjoint
         job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
       });
@@ -374,7 +508,7 @@ public class RatioBasedCompactionPlannerTest {
       plan.getJobs().forEach(job -> {
         assertEquals(15, job.getFiles().size());
         assertEquals(kind, job.getKind());
-        assertEquals(CompactorGroupId.of("small"), job.getGroup());
+        assertEquals(ResourceGroupId.of("small"), job.getGroup());
         // ensure the files across all of the jobs are disjoint
         job.getFiles().forEach(cf -> assertTrue(filesSeen.add(cf)));
       });
@@ -443,7 +577,7 @@ public class RatioBasedCompactionPlannerTest {
 
     var job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupId.of("small"), job.getGroup());
+    assertEquals(ResourceGroupId.of("small"), job.getGroup());
 
     all = createCFs("F1", "100M", "F2", "100M", "F3", "100M", "F4", "100M");
     params = createPlanningParams(all, all, Set.of(), 2, CompactionKind.SYSTEM);
@@ -451,7 +585,7 @@ public class RatioBasedCompactionPlannerTest {
 
     job = getOnlyElement(plan.getJobs());
     assertEquals(all, job.getFiles());
-    assertEquals(CompactorGroupId.of("midsize"), job.getGroup());
+    assertEquals(ResourceGroupId.of("midsize"), job.getGroup());
   }
 
   /**
@@ -546,13 +680,14 @@ public class RatioBasedCompactionPlannerTest {
     overrides.put(Property.TABLE_FILE_MAX.getKey(), "7");
     var conf = ServiceEnvironment.Configuration.from(overrides, false);
 
-    // For this case need to compact three files and the highest ratio that achieves that is 1.8
+    // The highest ratio is 1.9 so should compact this. Will need a subsequent compaction to bring
+    // it below the limit.
     var planner = createPlanner(conf, groups);
     var all = createCFs(1000, 1.1, 1.9, 1.8, 1.6, 1.3, 1.4, 1.3, 1.2, 1.1);
     var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(1000, 1.1, 1.9, 1.8), job.getFiles());
+    assertEquals(createCFs(1000, 1.1, 1.9), job.getFiles());
 
     // For this case need to compact two files and the highest ratio that achieves that is 2.9
     all = createCFs(1000, 2, 2.9, 2.8, 2.7, 2.6, 2.5, 2.4, 2.3);
@@ -585,21 +720,26 @@ public class RatioBasedCompactionPlannerTest {
       assertEquals(createCFs(1000, 1.9), job.getFiles());
     }
 
-    // In this case the tablet can be brought below the max limit in single compaction, so it should
-    // find this
+    // The max compaction ratio is the first two files, so should compact these. Will require
+    // multiple compactions to bring the tablet below the limit.
     all =
         createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
     job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4, 1.5, 1.2, 1.1), job.getFiles());
+    assertEquals(createCFs(1000, 1.9), job.getFiles());
+
+    all = createCFs(10, 1.3, 2.2, 2.51, 1.02, 1.7, 2.54, 2.3, 1.7, 1.5, 1.4);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner.makePlan(params);
+    job = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(10, 1.3, 2.2, 2.51, 1.02, 1.7, 2.54), job.getFiles());
 
     // each file is 10x the size of the file smaller than it
     all = createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
-    job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(10, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1, 1.1), job.getFiles());
+    assertTrue(plan.getJobs().isEmpty());
 
     // test with some files growing 20x, ensure those are not included
     for (var ratio : List.of(1.9, 2.0, 3.0, 4.0)) {
@@ -609,7 +749,6 @@ public class RatioBasedCompactionPlannerTest {
       job = getOnlyElement(plan.getJobs());
       assertEquals(createCFs(10, 1.05, 1.05, 1.25, 1.75), job.getFiles());
     }
-
   }
 
   @Test
@@ -633,19 +772,31 @@ public class RatioBasedCompactionPlannerTest {
     // ensure when a compaction is running and we are over files max but below the compaction ratio
     // that a compaction is not planned
     all = createCFs(1_000, 2, 2, 2, 2, 2, 2, 2);
-    var job = new CompactionJobImpl((short) 1, CompactorGroupId.of("ee1"), createCFs("F1", "1000"),
+    var job = new CompactionJobImpl((short) 1, ResourceGroupId.of("ee1"), createCFs("F1", "1000"),
         CompactionKind.SYSTEM);
     params = createPlanningParams(all, all, Set.of(job), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
 
     assertTrue(plan.getJobs().isEmpty());
 
-    // a really bad situation, each file is 20 times the size of its smaller file. The algorithm
-    // does not search that for ratios that low.
-    all = createCFs(10, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
+    // a really bad situation, each file is 20 times the size of its smaller file. By default, the
+    // algorithm does not search that for ratios that low.
+    all = createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05);
     params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     plan = planner.makePlan(params);
     assertTrue(plan.getJobs().isEmpty());
+
+    // adjust the config for the lowest search ratio and recreate the planner, this should allow a
+    // compaction to happen
+    var overrides2 = new HashMap<>(overrides);
+    overrides2.put(Property.COMPACTION_SERVICE_PREFIX.getKey() + "cs1.planner.opts.lowestRatio",
+        "1.04");
+    var conf2 = new ConfigurationImpl(SiteConfiguration.empty().withOverrides(overrides2).build());
+    var planner2 = createPlanner(conf2, groups);
+    params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
+    plan = planner2.makePlan(params);
+    var job2 = getOnlyElement(plan.getJobs());
+    assertEquals(createCFs(3, 1.05, 1.05, 1.05, 1.05, 1.05, 1.05), job2.getFiles());
   }
 
   // Test to ensure that plugin falls back from TABLE_FILE_MAX to TSERV_SCAN_MAX_OPENFILES
@@ -665,14 +816,14 @@ public class RatioBasedCompactionPlannerTest {
     var params = createPlanningParams(all, all, Set.of(), 3, CompactionKind.SYSTEM, conf);
     var plan = planner.makePlan(params);
     var job = getOnlyElement(plan.getJobs());
-    assertEquals(createCFs(1000, 1.9, 1.8, 1.7, 1.6, 1.5, 1.4), job.getFiles());
+    assertEquals(createCFs(1000, 1.9), job.getFiles());
   }
 
   private CompactionJob createJob(CompactionKind kind, Set<CompactableFile> all,
       Set<CompactableFile> files) {
     return new CompactionPlanImpl.BuilderImpl(kind, all)
-        .addJob((short) all.size(), CompactorGroupId.of("small"), files).build().getJobs()
-        .iterator().next();
+        .addJob((short) all.size(), ResourceGroupId.of("small"), files).build().getJobs().iterator()
+        .next();
   }
 
   // Create a set of files whose sizes would require certain compaction ratios to compact
@@ -831,13 +982,19 @@ public class RatioBasedCompactionPlannerTest {
   }
 
   private static CompactionPlanner.InitParameters getInitParams(Configuration conf, String groups) {
-    String maxOpen = conf.get(prefix + "cs1.planner.opts.maxOpen");
+
     Map<String,String> options = new HashMap<>();
+
+    var optsPrefix = prefix + "cs1.planner.opts.";
+
+    conf.forEach(e -> {
+      if (e.getKey().startsWith(optsPrefix)) {
+        options.put(e.getKey().substring(optsPrefix.length()), e.getValue());
+      }
+    });
     options.put("groups", groups.replaceAll("'", "\""));
 
-    if (maxOpen != null) {
-      options.put("maxOpen", maxOpen);
-    } else {
+    if (!options.containsKey("maxOpen")) {
       options.put("maxOpen", "15");
     }
 

@@ -25,8 +25,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.iterators.user.SummingCombiner;
@@ -238,8 +241,26 @@ public class ConditionalMutationTest {
 
   @Test
   public void testHashcode() {
+    // Testing consistency
+    int hashCode1 = cm.hashCode();
+    int hashCode2 = cm.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
     ConditionalMutation cm2 = new ConditionalMutation(ROW, c1, c2);
     assertTrue(cm.equals(cm2));
     assertEquals(cm2.hashCode(), cm.hashCode());
+
+    // Testing even distribution
+    List<ConditionalMutation> cmList = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      cmList.add(new ConditionalMutation(("row" + i).getBytes(UTF_8),
+          new Condition("family" + i, "qualifier" + i)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (ConditionalMutation c : cmList) {
+      hashCodes.add(c.hashCode());
+    }
+    assertEquals(cmList.size(), hashCodes.size(), 10);
   }
 }

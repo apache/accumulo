@@ -41,7 +41,6 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -52,6 +51,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -121,9 +121,9 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
     tabletServerProcesses = mac.getProcesses().get(ServerType.TABLET_SERVER).stream()
         .filter(p -> !p.equals(defaultTabletServer)).collect(Collectors.toList());
 
-    Map<String,String> hostAndGroup = TabletResourceGroupBalanceIT.getTServerGroups(mac);
+    Map<String,ResourceGroupId> hostAndGroup = TabletResourceGroupBalanceIT.getTServerGroups(mac);
     hostAndGroup.forEach((k, v) -> {
-      if (v.equals(Constants.DEFAULT_RESOURCE_GROUP_NAME)) {
+      if (v.equals(ResourceGroupId.DEFAULT)) {
         defaultGroup = k;
       } else {
         testGroup.add(k);

@@ -22,6 +22,7 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
@@ -155,7 +156,7 @@ public class TabletManagementTest {
     final SortedMap<Key,Value> entries = createMetadataEntryKV(extent);
 
     TabletManagement.addError(entries::put, entries.firstKey().getRow(),
-        new UnsupportedOperationException("Not supported."));
+        new UnsupportedOperationException("Not supported.").getMessage());
     Key key = entries.firstKey();
     Value val = WholeRowIterator.encodeRow(new ArrayList<>(entries.keySet()),
         new ArrayList<>(entries.values()));
@@ -166,8 +167,7 @@ public class TabletManagementTest {
 
     TabletManagement tmi = new TabletManagement(key, val, true);
     TabletMetadata tabletMetadata = tmi.getTabletMetadata();
-    assertEquals(entries, tabletMetadata.getKeyValues().stream().collect(
-        Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (a, b) -> b, TreeMap::new)));
+    assertNull(tabletMetadata);
     assertEquals("Not supported.", tmi.getErrorMessage());
   }
 

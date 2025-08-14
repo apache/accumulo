@@ -52,6 +52,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftNotActiveServiceExceptio
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -281,7 +282,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying table properties: tableId: " + tableId.canonical());
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException();
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
 
   }
@@ -338,14 +339,26 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
   }
 
   @Override
-  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer)
+  public void tabletServerStopping(TInfo tinfo, TCredentials credentials, String tabletServer,
+      String resourceGroup)
       throws ThriftSecurityException, ThriftNotActiveServiceException, TException {
     if (!security.canPerformSystemActions(credentials)) {
       throw new ThriftSecurityException(credentials.getPrincipal(),
           SecurityErrorCode.PERMISSION_DENIED);
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
-    manager.tserverSet.tabletServerShuttingDown(tabletServer);
+    var tserver = new TServerInstance(tabletServer);
+    if (manager.shutdownTServer(tserver)) {
+      // If there is an exception seeding the fate tx this should cause the RPC to fail which should
+      // cause the tserver to halt. Because of that not making an attempt to handle failure here.
+      Fate<Manager> fate = manager.fate(FateInstanceType.META);
+      var tid = fate.startTransaction();
+      String msg = "Shutdown tserver " + tabletServer;
+
+      fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
+          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.of(resourceGroup), false)),
+          true, msg);
+    }
   }
 
   @Override
@@ -416,7 +429,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       SystemPropUtil.setSystemProperty(context, property, value);
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
-      throw new ThriftPropertyException(property, value, "Property is invalid");
+      throw new ThriftPropertyException(property, value,
+          "Property is invalid. message: " + iae.getMessage());
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());
@@ -476,7 +490,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           TableOperation.SET_PROPERTY, TableOperationExceptionType.OTHER,
           "Error modifying namespace properties");
     } catch (IllegalArgumentException iae) {
-      throw new ThriftPropertyException("All properties", "failed", iae.getMessage());
+      throw new ThriftPropertyException("Modify properties", "failed", iae.getMessage());
     }
   }
 
@@ -549,7 +563,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
 
   @Override
   public void waitForBalance(TInfo tinfo) {
-    manager.waitForBalance();
+    manager.getBalanceManager().waitForBalance();
   }
 
   @Override

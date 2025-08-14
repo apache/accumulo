@@ -34,6 +34,7 @@ import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.TestRandomDeletes;
 import org.apache.accumulo.test.VerifyIngest;
+import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
 
 public class ShutdownIT extends ConfigurableMacBase {
@@ -86,6 +87,7 @@ public class ShutdownIT extends ConfigurableMacBase {
       Thread async = new Thread(() -> {
         try {
           for (int i = 0; i < 10; i++) {
+            Thread.sleep(100);
             c.tableOperations().delete("table" + i);
           }
         } catch (Exception ex) {
@@ -95,6 +97,9 @@ public class ShutdownIT extends ConfigurableMacBase {
       async.start();
       Thread.sleep(100);
       assertEquals(0, cluster.exec(Admin.class, "stopAll").getProcess().waitFor());
+      // give the backfound delete operations a bit to run
+      Thread.sleep(3000);
+      // The delete operations should get stuck or run, but should not throw an exception
       if (ref.get() != null) {
         throw ref.get();
       }
@@ -124,6 +129,7 @@ public class ShutdownIT extends ConfigurableMacBase {
     log.info("Stopping " + doomed);
     assertEquals(0,
         cluster.exec(Admin.class, "stop", doomed.toHostPortString()).getProcess().waitFor());
+    Wait.waitFor(() -> c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER).size() == 1);
     tabletServers = c.instanceOperations().getServers(ServerId.Type.TABLET_SERVER);
     assertEquals(1, tabletServers.size());
     assertNotEquals(tabletServers.iterator().next(), doomed);

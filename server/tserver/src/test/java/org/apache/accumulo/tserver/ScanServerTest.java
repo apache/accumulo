@@ -57,8 +57,6 @@ import org.apache.accumulo.tserver.tablet.TabletBase;
 import org.apache.thrift.TException;
 import org.junit.jupiter.api.Test;
 
-import com.google.common.net.HostAndPort;
-
 public class ScanServerTest {
 
   public class TestScanServer extends ScanServer {
@@ -164,7 +162,6 @@ public class ScanServerTest {
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
     ss.systemUser = false;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
@@ -264,7 +261,6 @@ public class ScanServerTest {
     ss.extent = extent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
     ss.systemUser = false;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
@@ -326,7 +322,6 @@ public class ScanServerTest {
     ss.extent = extent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
     ss.systemUser = false;
 
     Map<TKeyExtent,List<TRange>> extents = new HashMap<>();
@@ -370,7 +365,6 @@ public class ScanServerTest {
     TestScanServer ss = partialMockBuilder(TestScanServer.class).createMock();
     ss.delegate = handler;
     ss.resolver = resolver;
-    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
     ss.systemUser = false;
 
     assertThrows(TException.class, () -> {
@@ -417,7 +411,6 @@ public class ScanServerTest {
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
     ss.systemUser = true;
 
     TKeyExtent textent = createMock(TKeyExtent.class);
@@ -458,7 +451,6 @@ public class ScanServerTest {
     ss.extent = sextent;
     ss.resolver = resolver;
     ss.reservation = reservation;
-    ss.clientAddress = HostAndPort.fromParts("127.0.0.1", 1234);
     ss.systemUser = false;
 
     TKeyExtent textent = createMock(TKeyExtent.class);

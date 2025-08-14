@@ -44,6 +44,7 @@ import org.apache.accumulo.core.clientImpl.ClientTabletCache;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.LocationNeed;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
@@ -78,6 +79,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MIN_COUNT, "2");
       cfg.setProperty(Property.MANAGER_STARTUP_TSERVER_AVAIL_MAX_WAIT, "10s");
       cfg.setProperty(Property.TSERV_MIGRATE_MAXCONCURRENT, "50");
+      cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "10s");
       cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
       cfg.getClusterServerConfiguration().addTabletServerResourceGroup("GROUP1", 1);
     }
@@ -94,10 +96,10 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     SharedMiniClusterBase.stopMiniCluster();
   }
 
-  public static Map<String,String> getTServerGroups(MiniAccumuloClusterImpl cluster)
+  public static Map<String,ResourceGroupId> getTServerGroups(MiniAccumuloClusterImpl cluster)
       throws Exception {
 
-    Map<String,String> tservers = new HashMap<>();
+    Map<String,ResourceGroupId> tservers = new HashMap<>();
     for (ServiceLockPath tserver : cluster.getServerContext().getServerPaths()
         .getTabletServer(rg -> true, AddressSelector.all(), true)) {
       tservers.put(tserver.getServer(), tserver.getResourceGroup());
@@ -138,7 +140,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       client.tableOperations().create(names[1], ntc2);
       client.instanceOperations().waitForBalance();
 
-      Map<String,String> tserverGroups = getTServerGroups(getCluster());
+      Map<String,ResourceGroupId> tserverGroups = getTServerGroups(getCluster());
       assertEquals(2, tserverGroups.size());
 
       Ample ample = ((ClientContext) client).getAmple();
@@ -149,7 +151,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       assertEquals(26, locations.size());
       Location l1 = locations.get(0).getLocation();
-      assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
+      assertEquals(ResourceGroupId.DEFAULT, tserverGroups.get(l1.getHostAndPort().toString()));
       locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
 
       // Check table names[1]
@@ -158,7 +160,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
       assertEquals(26, locations.size());
       Location l2 = locations.get(0).getLocation();
-      assertEquals("GROUP1", tserverGroups.get(l2.getHostAndPort().toString()));
+      assertEquals(ResourceGroupId.of("GROUP1"), tserverGroups.get(l2.getHostAndPort().toString()));
       locations.forEach(loc -> assertEquals(l2, loc.getLocation()));
 
       client.tableOperations().delete(names[0]);
@@ -216,6 +218,8 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
       } finally {
         client.tableOperations().delete(tableName);
         getCluster().getClusterControl().stopTabletServerGroup("GROUP2");
+        Wait.waitFor(() -> getTServerGroups(getCluster()).values().stream()
+            .noneMatch(s -> s.equals(ResourceGroupId.of("GROUP2"))));
       }
     }
   }
@@ -275,7 +279,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     assertEquals(numExpectedSplits, getCountOfHostedTablets(client, tableName));
 
-    Map<String,String> tserverGroups = getTServerGroups(getCluster());
+    Map<String,ResourceGroupId> tserverGroups = getTServerGroups(getCluster());
     LOG.info("Tablet Server groups: {}", tserverGroups);
 
     assertEquals(2, tserverGroups.size());
@@ -288,7 +292,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     List<TabletMetadata> locations = getLocations(ample, tableId);
     assertEquals(numExpectedSplits, locations.size());
     Location l1 = locations.get(0).getLocation();
-    assertEquals("default", tserverGroups.get(l1.getHostAndPort().toString()));
+    assertEquals(ResourceGroupId.DEFAULT, tserverGroups.get(l1.getHostAndPort().toString()));
     locations.forEach(loc -> assertEquals(l1, loc.getLocation()));
 
     // change the resource group property for the table
@@ -299,12 +303,14 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
     while ((locations == null || locations.isEmpty() || locations.size() != numExpectedSplits
         || locations.get(0).getLocation() == null
         || locations.get(0).getLocation().getType() == LocationType.FUTURE)
-        || (locations.get(0).getLocation().getType() == LocationType.CURRENT && !tserverGroups
-            .get(locations.get(0).getLocation().getHostAndPort().toString()).equals("GROUP1"))) {
+        || (locations.get(0).getLocation().getType() == LocationType.CURRENT
+            && !tserverGroups.get(locations.get(0).getLocation().getHostAndPort().toString())
+                .equals(ResourceGroupId.of("GROUP1")))) {
       locations = getLocations(ample, tableId);
     }
     Location group1Location = locations.get(0).getLocation();
-    assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString()).equals("GROUP1"));
+    assertTrue(tserverGroups.get(group1Location.getHostAndPort().toString())
+        .equals(ResourceGroupId.of("GROUP1")));
 
     client.instanceOperations().waitForBalance();
 

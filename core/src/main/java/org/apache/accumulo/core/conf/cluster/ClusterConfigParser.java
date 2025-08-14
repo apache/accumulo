@@ -34,6 +34,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
@@ -43,8 +44,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClusterConfigParser {
 
-  private static final Pattern GROUP_NAME_PATTERN =
-      Pattern.compile("^[a-zA-Z_]{1,}[a-zA-Z0-9_]{0,}$");
+  private static final Pattern GROUP_NAME_PATTERN = Pattern.compile("^[a-zA-Z]+(_?[a-zA-Z0-9])*$");
+
+  public static void validateGroupName(ResourceGroupId rgid) {
+    if (!GROUP_NAME_PATTERN.matcher(rgid.canonical()).matches()) {
+      throw new IllegalArgumentException(
+          "Group name: " + rgid.canonical() + " contains invalid characters");
+    }
+  }
 
   public static void validateGroupNames(List<String> names) {
     for (String name : names) {

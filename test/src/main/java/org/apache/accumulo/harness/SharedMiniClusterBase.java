@@ -19,7 +19,6 @@
 package org.apache.accumulo.harness;
 
 import static java.lang.StackWalker.Option.RETAIN_CLASS_REFERENCE;
-import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 
 import java.io.File;
@@ -141,14 +140,14 @@ public abstract class SharedMiniClusterBase extends AccumuloITBase implements Cl
   }
 
   private static String getTestClassName() {
-    Predicate<Class<?>> findITClass = c -> c.getSimpleName().endsWith("IT");
+    Predicate<Class<?>> findITClass =
+        c -> c.getSimpleName().endsWith("IT") || c.getSimpleName().endsWith("SimpleSuite");
     Function<Stream<StackFrame>,Optional<? extends Class<?>>> findCallerITClass =
         frames -> frames.map(StackFrame::getDeclaringClass).filter(findITClass).findFirst();
     Optional<String> callerClassName =
         StackWalker.getInstance(RETAIN_CLASS_REFERENCE).walk(findCallerITClass).map(Class::getName);
     // use the calling class name, or default to a unique name if IT class can't be found
-    return callerClassName.orElse(String.format("UnknownITClass-%d-%d", System.currentTimeMillis(),
-        RANDOM.get().nextInt(Short.MAX_VALUE)));
+    return callerClassName.orElse("UnknownITClass");
   }
 
   /**
