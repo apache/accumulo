@@ -39,6 +39,10 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -195,6 +199,47 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void testDefendAgainstThreadsCreateSameTableNameConcurrently()
+      throws ExecutionException, InterruptedException {
+    ExecutorService pool = Executors.newFixedThreadPool(64);
+    List<Future<String>> futureList;
+    int taskSucceeded;
+    int taskFailed;
+
+    for (int i = 0; i < 30; i++) {
+      String tablename = "t" + i;
+      futureList = new ArrayList<>();
+      taskSucceeded = 0;
+      taskFailed = 0;
+
+      for (int j = 0; j < 10; j++) {
+        Future<String> future = pool.submit(() -> {
+          try {
+            accumuloClient.tableOperations().create(tablename);
+          } catch (TableExistsException e) {
+            return "fail";
+          }
+          return "success";
+        });
+        futureList.add(future);
+      }
+
+      for (Future<String> result : futureList) {
+        if (result.get().equals("success")) {
+          taskSucceeded++;
+        } else {
+          taskFailed++;
+        }
+      }
+
+      assertEquals(1, taskSucceeded);
+      assertEquals(9, taskFailed);
+    }
+
+    pool.shutdown();
   }
 
   @Test
