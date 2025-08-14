@@ -325,8 +325,8 @@ public class CreateTableCommand extends Command {
         "prevent users from writing data they cannot read. When enabling this,"
             + " consider disabling bulk import and alter table.");
     createTableOptFormatter = new Option("f", "formatter", true, "default formatter to set");
-    createTableOptInitProp =
-        new Option("prop", "init-properties", true, "user defined initial properties");
+    createTableOptInitProp = new Option("prop", "init-properties", true,
+        "comma-separated user-defined initial key=value pairs");
     createTableOptCopyConfig.setArgName("table");
     createTableOptCopySplits.setArgName("table");
     createTableOptSplit.setArgName("filename");
