@@ -61,9 +61,13 @@ import org.apache.hadoop.io.DataInputBuffer;
 import org.apache.hadoop.io.DataOutputBuffer;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * keeps track of information needed to identify a tablet
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class KeyExtent implements Comparable<KeyExtent> {
 
   private static final String OBSCURING_HASH_ALGORITHM = "SHA-256";
@@ -584,12 +588,6 @@ public class KeyExtent implements Comparable<KeyExtent> {
     } catch (IOException e) {
       throw new UncheckedIOException(e);
     }
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

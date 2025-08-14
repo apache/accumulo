@@ -72,8 +72,12 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 //TODO use zoocache? - ACCUMULO-1297
 //TODO handle zookeeper being down gracefully - ACCUMULO-1297
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class MetaFateStore<T> extends AbstractFateStore<T> {
 
   private static final Logger log = LoggerFactory.getLogger(MetaFateStore.class);
@@ -654,12 +658,6 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
   }
 
   @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
-  }
-
-  @Override
   public void close() {
     // no-op
   }
@@ -806,12 +804,6 @@ public class MetaFateStore<T> extends AbstractFateStore<T> {
 
     public boolean isReservedBy(FateReservation reservation) {
       return isReserved() && this.reservation.orElseThrow().equals(reservation);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 }

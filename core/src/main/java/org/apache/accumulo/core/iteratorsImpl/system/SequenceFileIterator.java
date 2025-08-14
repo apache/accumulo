@@ -38,7 +38,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.Text;
 
-public class SequenceFileIterator implements FileSKVIterator {
+public final class SequenceFileIterator implements FileSKVIterator {
 
   private final Reader reader;
   private Value top_value;
@@ -149,10 +149,4 @@ public class SequenceFileIterator implements FileSKVIterator {
 
   @Override
   public void setCacheProvider(CacheProvider cacheProvider) {}
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
-  }
 }

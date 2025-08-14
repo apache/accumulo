@@ -24,6 +24,10 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class DataFileValue {
   private final long size;
   private final long numEntries;
@@ -134,11 +138,5 @@ public class DataFileValue {
     } else {
       return iter;
     }
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

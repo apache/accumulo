@@ -30,9 +30,13 @@ import java.util.Set;
 import org.apache.accumulo.core.conf.HadoopCredentialProvider;
 import org.apache.hadoop.conf.Configuration;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * An {@link AuthenticationToken} backed by a Hadoop CredentialProvider.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class CredentialProviderToken extends PasswordToken {
   public static final String NAME_PROPERTY = "name";
   public static final String CREDENTIAL_PROVIDERS_PROPERTY = "credentialProviders";
@@ -138,12 +142,6 @@ public class CredentialProviderToken extends PasswordToken {
     clone.name = name;
     clone.credentialProviders = credentialProviders;
     return clone;
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

@@ -70,7 +70,7 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
     private InterruptibleIterator iterator;
   }
 
-  public static class LocalityGroupContext {
+  public static final class LocalityGroupContext {
     final List<LocalityGroup> groups;
     final LocalityGroup defaultGroup;
     final Map<ByteSequence,LocalityGroup> groupByCf;
@@ -98,12 +98,6 @@ public class LocalityGroupIterator extends HeapIterator implements Interruptible
         }
       }
       defaultGroup = foundDefault;
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 

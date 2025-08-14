@@ -32,11 +32,15 @@ import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * This class is used to specify a range of Accumulo keys.
  *
  * @see Key
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Range implements WritableComparable<Range> {
 
   private Key start;
@@ -922,11 +926,5 @@ public class Range implements WritableComparable<Range> {
       CharSequence cvPrefix) {
     return Range.prefix(new Text(row.toString()), new Text(cf.toString()), new Text(cq.toString()),
         new Text(cvPrefix.toString()));
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

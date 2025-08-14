@@ -82,7 +82,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * bytes to free). It then uses the priority chunk sizes to evict fairly according to the relative
  * sizes and usage.
  */
-public class LruBlockCache extends SynchronousLoadingBlockCache implements BlockCache, HeapSize {
+public final class LruBlockCache extends SynchronousLoadingBlockCache
+    implements BlockCache, HeapSize {
 
   private static final Logger log = LoggerFactory.getLogger(LruBlockCache.class);
 
@@ -715,11 +716,5 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
 
   public void shutdown() {
     this.scheduleThreadPool.shutdown();
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

@@ -30,6 +30,10 @@ import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnSet {
   private final Set<ColFamHashKey> objectsCF;
   private final Set<ColHashKey> objectsCol;
@@ -166,11 +170,5 @@ public class ColumnSet {
     }
 
     return t;
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

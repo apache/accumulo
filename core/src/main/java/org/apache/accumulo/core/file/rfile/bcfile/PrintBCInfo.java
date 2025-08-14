@@ -37,8 +37,8 @@ import com.beust.jcommander.Parameter;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@SuppressFBWarnings(value = "DM_EXIT",
-    justification = "System.exit is fine here because it's a utility class executed by a main()")
+@SuppressFBWarnings(value = {"DM_EXIT", "CT_CONSTRUCTOR_THROW"},
+    justification = "System.exit is acceptable here as it's a utility class, and constructor validation ensures proper initialization")
 public class PrintBCInfo {
   SiteConfiguration siteConfig;
   Configuration conf;
@@ -107,11 +107,5 @@ public class PrintBCInfo {
 
   public void setCryptoService(CryptoService cryptoService) {
     this.cryptoService = cryptoService;
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

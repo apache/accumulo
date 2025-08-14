@@ -72,6 +72,10 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
   private SortedKeyValueIterator<Key,Value> iter;
@@ -273,12 +277,6 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   @Override
   public void remove() {
     throw new UnsupportedOperationException();
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

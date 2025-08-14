@@ -37,7 +37,7 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DelegationTokenImpl extends PasswordToken implements DelegationToken {
+public final class DelegationTokenImpl extends PasswordToken implements DelegationToken {
   private static final Logger log = LoggerFactory.getLogger(DelegationTokenImpl.class);
 
   public static final String SERVICE_NAME = "AccumuloDelegationToken";
@@ -146,12 +146,6 @@ public class DelegationTokenImpl extends PasswordToken implements DelegationToke
     // We assume we can cast obj to DelegationToken because the super.equals(obj) check ensures obj
     // is of the same type as this
     return super.equals(obj) && identifier.equals(((DelegationTokenImpl) obj).identifier);
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

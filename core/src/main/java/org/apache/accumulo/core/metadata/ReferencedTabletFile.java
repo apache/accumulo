@@ -33,6 +33,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Object representing a tablet file that may exist in the metadata table. This class is used for
  * reading and opening tablet files. It is also used when inserting new tablet files. When a new
@@ -43,6 +45,8 @@ import com.google.common.base.Preconditions;
  * As of 2.1, Tablet file paths should now be only absolute URIs with the removal of relative paths
  * in Upgrader9to10.upgradeRelativePaths()
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFile> {
 
   public static class FileParts {
@@ -235,12 +239,6 @@ public class ReferencedTabletFile extends AbstractTabletFile<ReferencedTabletFil
 
   public static ReferencedTabletFile of(final Path path, Range range) {
     return new ReferencedTabletFile(path, range);
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

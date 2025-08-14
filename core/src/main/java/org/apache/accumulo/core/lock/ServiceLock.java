@@ -47,7 +47,7 @@ import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ServiceLock implements Watcher {
+public final class ServiceLock implements Watcher {
   private static final Logger LOG = LoggerFactory.getLogger(ServiceLock.class);
 
   public static final String ZLOCK_PREFIX = "zlock#";
@@ -773,12 +773,6 @@ public class ServiceLock implements Watcher {
       LOG.error("Error verfiying lock at {}", lockPath, e);
       return false;
     }
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

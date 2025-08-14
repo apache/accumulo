@@ -88,7 +88,7 @@ public class BloomFilterLayer {
     return loadThreadPool;
   }
 
-  public static class Writer implements FileSKVWriter {
+  public static final class Writer implements FileSKVWriter {
     private DynamicBloomFilter bloomFilter;
     private int numKeys;
     private int vectorSize;
@@ -197,12 +197,6 @@ public class BloomFilterLayer {
         return length;
       }
       return writer.getLength();
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 

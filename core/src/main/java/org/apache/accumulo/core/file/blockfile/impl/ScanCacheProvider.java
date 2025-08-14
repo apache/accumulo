@@ -25,7 +25,7 @@ import org.apache.accumulo.core.spi.cache.BlockCache;
 import org.apache.accumulo.core.spi.cache.CacheType;
 import org.apache.accumulo.core.spi.scan.ScanDispatch;
 
-public class ScanCacheProvider implements CacheProvider {
+public final class ScanCacheProvider implements CacheProvider {
 
   private final BlockCache indexCache;
   private final BlockCache dataCache;
@@ -81,11 +81,5 @@ public class ScanCacheProvider implements CacheProvider {
   @Override
   public BlockCache getIndexCache() {
     return indexCache;
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

@@ -42,7 +42,7 @@ import org.apache.accumulo.core.security.Authorizations;
  *
  * @since 1.6.0
  */
-public class ActiveScanImpl extends ActiveScan {
+public final class ActiveScanImpl extends ActiveScan {
 
   private final long scanId;
   private final String client;
@@ -160,11 +160,5 @@ public class ActiveScanImpl extends ActiveScan {
   @Override
   public ServerId getServerId() {
     return server;
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

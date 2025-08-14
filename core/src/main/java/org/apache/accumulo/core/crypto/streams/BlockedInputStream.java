@@ -23,10 +23,14 @@ import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Reader corresponding to BlockedOutputStream. Expects all data to be in the form of size (int)
  * data (size bytes) junk (however many bytes it takes to complete a block)
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class BlockedInputStream extends InputStream {
   byte[] array;
   // ReadPos is where to start reading
@@ -188,11 +192,5 @@ public class BlockedInputStream extends InputStream {
   @Override
   public boolean markSupported() {
     return false;
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

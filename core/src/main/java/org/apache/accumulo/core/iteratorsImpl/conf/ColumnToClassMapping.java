@@ -29,6 +29,10 @@ import org.apache.accumulo.core.iteratorsImpl.conf.ColumnUtil.ColHashKey;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class ColumnToClassMapping<K> {
 
   private final HashMap<ColFamHashKey,K> objectsCF;
@@ -99,11 +103,5 @@ public class ColumnToClassMapping<K> {
 
   public boolean isEmpty() {
     return objectsCol.isEmpty() && objectsCF.isEmpty();
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

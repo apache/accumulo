@@ -101,7 +101,7 @@ public final class BCFile {
   /**
    * BCFile writer, the entry point for creating a new BCFile.
    */
-  public static class Writer implements Closeable {
+  public static final class Writer implements Closeable {
     private final FSDataOutputStream out;
     private final Configuration conf;
     private FileEncrypter encrypter;
@@ -427,12 +427,6 @@ public final class BCFile {
       return ba;
     }
 
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
-    }
-
     /**
      * Callback to make sure a meta block is added to the internal list when its stream is closed.
      */
@@ -455,7 +449,7 @@ public final class BCFile {
   /**
    * BCFile Reader, interface to read the file's data and meta blocks.
    */
-  public static class Reader implements Closeable {
+  public static final class Reader implements Closeable {
     private final SeekableDataInputStream in;
     private final Configuration conf;
     final DataIndex dataIndex;
@@ -747,12 +741,6 @@ public final class BCFile {
         throws IOException {
       RBlockState rbs = new RBlockState(compressAlgo, in, region, conf, decrypter);
       return new BlockReader(rbs);
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 

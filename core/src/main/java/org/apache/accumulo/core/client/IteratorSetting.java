@@ -395,10 +395,4 @@ public final class IteratorSetting implements Writable {
       WritableUtils.writeString(dout, e.getValue());
     }
   }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
-  }
 }

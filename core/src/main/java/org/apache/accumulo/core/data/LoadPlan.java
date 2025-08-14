@@ -105,7 +105,7 @@ public class LoadPlan {
    *
    * @since 2.0.0
    */
-  public static class Destination {
+  public static final class Destination {
 
     private final String fileName;
     private final byte[] startRow;
@@ -161,12 +161,6 @@ public class LoadPlan {
 
     public RangeType getRangeType() {
       return rangeType;
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 

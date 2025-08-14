@@ -32,6 +32,10 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.DataInputBuffer;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class FateKey {
 
   private final FateKeyType type;
@@ -184,11 +188,5 @@ public class FateKey {
     keyExtent.ifPresentOrElse(keyExtent -> buf.append("KeyExtent", keyExtent),
         () -> buf.append("ExternalCompactionID", compactionId.orElseThrow()));
     return buf.toString();
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 }

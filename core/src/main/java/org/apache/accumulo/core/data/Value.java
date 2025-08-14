@@ -32,12 +32,16 @@ import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.WritableComparable;
 import org.apache.hadoop.io.WritableComparator;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * A byte sequence that is usable as a key or value. Based on
  * {@link org.apache.hadoop.io.BytesWritable} only this class is NOT resizable and DOES NOT
  * distinguish between the size of the sequence and the current capacity as
  * {@link org.apache.hadoop.io.BytesWritable} does. Hence it is comparatively 'immutable'.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class Value implements WritableComparable<Object> {
   private static final byte[] EMPTY = new byte[0];
   protected byte[] value;
@@ -260,12 +264,6 @@ public class Value implements WritableComparable<Object> {
 
   static { // register this comparator
     WritableComparator.define(Value.class, new Comparator());
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }

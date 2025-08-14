@@ -139,7 +139,7 @@ public class FateLock implements QueueLock {
     this.path = requireNonNull(path);
   }
 
-  public static class NodeName implements Comparable<NodeName> {
+  public static final class NodeName implements Comparable<NodeName> {
     public final long sequence;
     public final Supplier<FateLockEntry> fateLockEntry;
 
@@ -174,12 +174,6 @@ public class FateLock implements QueueLock {
     @Override
     public int hashCode() {
       return Objects.hash(sequence, fateLockEntry.get());
-    }
-
-    @Override
-    @SuppressWarnings("deprecation")
-    public final void finalize() {
-      // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
   }
 

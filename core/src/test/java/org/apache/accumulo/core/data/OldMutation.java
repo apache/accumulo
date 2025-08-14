@@ -33,9 +33,13 @@ import org.apache.accumulo.core.util.TextUtil;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Will read/write old mutations.
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class OldMutation implements Writable {
 
   static final int VALUE_SIZE_COPY_CUTOFF = 1 << 15;
@@ -535,12 +539,6 @@ public class OldMutation implements Writable {
     serialize();
     return new TMutation(java.nio.ByteBuffer.wrap(row), java.nio.ByteBuffer.wrap(data),
         ByteBufferUtil.toByteBuffers(values), entries);
-  }
-
-  @Override
-  @SuppressWarnings("deprecation")
-  public final void finalize() {
-    // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
   }
 
 }
