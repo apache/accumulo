@@ -21,19 +21,26 @@ package org.apache.accumulo.shell;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
+import org.apache.commons.configuration2.PropertiesConfiguration;
+import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.apache.hadoop.io.Text;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -74,6 +81,38 @@ public class ShellUtil {
     } else {
       return Collections.emptyMap();
     }
+  }
 
+  public static Map<String,String> readPropertiesFromFile(String filename)
+      throws IOException, AccumuloException {
+    PropertiesConfiguration config = new PropertiesConfiguration();
+    try (FileReader out = new FileReader(filename, UTF_8)) {
+      config.read(out);
+    } catch (ConfigurationException e) {
+      Shell.log.error("Property file {} contains invalid configuration. Please verify file format",
+          filename, e);
+    }
+    Iterator<String> keysIterator = config.getKeys();
+    Map<String,String> propertiesMap = new HashMap<>();
+
+    boolean foundErrors = false;
+    while (keysIterator.hasNext()) {
+      String key = keysIterator.next();
+      String value = config.getString(key);
+      if (!Property.isValidPropertyKey(key)) {
+        Shell.log.error("Property: \"{}\" is invalid", key);
+        foundErrors = true;
+      } else if (!Property.isValidProperty(key, value)) {
+        Shell.log.error("Property: \"{}\" has an invalid value: \"{}\"", key, value);
+        foundErrors = true;
+      } else {
+        propertiesMap.put(key, value);
+      }
+    }
+    if (foundErrors) {
+      Shell.log.error("Property file {} contains invalid properties", filename);
+      throw new AccumuloException("InvalidPropertyFile: " + filename);
+    }
+    return propertiesMap;
   }
 }

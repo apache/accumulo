@@ -19,6 +19,7 @@
 package org.apache.accumulo.shell.commands;
 
 import static org.apache.accumulo.core.client.security.SecurityErrorCode.PERMISSION_DENIED;
+import static org.apache.accumulo.shell.ShellUtil.readPropertiesFromFile;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -28,6 +29,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.function.Consumer;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -63,6 +65,7 @@ public class ConfigCommand extends Command {
   private Option outputFileOpt;
   private Option namespaceOpt;
   private Option showExpOpt;
+  private Option propFileOpt;
 
   private int COL1 = 10;
   private int COL2 = 7;
@@ -99,6 +102,10 @@ public class ConfigCommand extends Command {
     if (namespace != null
         && !shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
       throw new NamespaceNotFoundException(null, namespace, null);
+    }
+    String filename = cl.getOptionValue(propFileOpt.getOpt());
+    if (filename != null) {
+      modifyPropertiesFromFile(cl, shellState, filename);
     }
     if (cl.hasOption(deleteOpt.getOpt())) {
       // delete property from table, namespace, or system
@@ -379,6 +386,25 @@ public class ConfigCommand extends Command {
     return 0;
   }
 
+  private void modifyPropertiesFromFile(CommandLine cl, Shell shellState, String filename)
+      throws AccumuloException, AccumuloSecurityException, IOException, NamespaceNotFoundException {
+    Map<String,String> propertiesMap = readPropertiesFromFile(filename);
+
+    Consumer<Map<String,String>> propertyModifier = currProps -> {
+      currProps.putAll(propertiesMap);
+    };
+
+    if (cl.hasOption(tableOpt.getOpt())) {
+      shellState.getAccumuloClient().tableOperations()
+          .modifyProperties(cl.getOptionValue(tableOpt.getOpt()), propertyModifier);
+    } else if (cl.hasOption(namespaceOpt.getOpt())) {
+      shellState.getAccumuloClient().namespaceOperations()
+          .modifyProperties(cl.getOptionValue(namespaceOpt.getOpt()), propertyModifier);
+    } else {
+      shellState.getAccumuloClient().instanceOperations().modifyProperties(propertyModifier);
+    }
+  }
+
   private boolean matchTheFilterText(CommandLine cl, String key, String value) {
     if (cl.hasOption(filterOpt.getOpt()) && !key.contains(cl.getOptionValue(filterOpt.getOpt()))) {
       return true;
@@ -437,7 +463,7 @@ public class ConfigCommand extends Command {
     outputFileOpt = new Option("o", "output", true, "local file to write the scan output to");
     namespaceOpt = new Option(ShellOptions.namespaceOption, "namespace", true,
         "namespace to display/set/delete properties for");
-
+    propFileOpt = new Option("pf", "propFile", true, "file containing properties to set");
     tableOpt.setArgName("table");
     deleteOpt.setArgName("property");
     setOpt.setArgName("property=value");
@@ -445,11 +471,13 @@ public class ConfigCommand extends Command {
     filterWithValuesOpt.setArgName("string");
     outputFileOpt.setArgName("file");
     namespaceOpt.setArgName("namespace");
+    propFileOpt.setArgName("filename");
 
     og.addOption(deleteOpt);
     og.addOption(setOpt);
     og.addOption(filterOpt);
     og.addOption(filterWithValuesOpt);
+    og.addOption(propFileOpt);
 
     tgroup.addOption(tableOpt);
     tgroup.addOption(namespaceOpt);
