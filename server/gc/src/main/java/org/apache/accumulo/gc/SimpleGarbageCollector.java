@@ -110,9 +110,15 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    SimpleGarbageCollector gc = new SimpleGarbageCollector(new ConfigOpts(), args);
-    gc.runServer();
-    gc.close();
+    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ConfigOpts(), args)) {
+      try {
+        gc.runServer();
+      } catch (Exception e) {
+        System.err.println("SimpleGarbageCollector died, exception thrown from runServer.");
+        e.printStackTrace();
+        log.error("SimpleGarbageCollector died, exception thrown from runServer.", e);
+      }
+    }
   }
 
   /**

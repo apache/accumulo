@@ -481,9 +481,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   }
 
   public static void main(String[] args) throws Exception {
-    Manager manager = new Manager(new ConfigOpts(), ServerContext::new, args);
-    manager.runServer();
-    manager.close();
+    try (Manager manager = new Manager(new ConfigOpts(), ServerContext::new, args)) {
+      try {
+        manager.runServer();
+      } catch (Exception e) {
+        System.err.println("Manager died, exception thrown from runServer.");
+        e.printStackTrace();
+        log.error("Manager died, exception thrown from runServer.", e);
+      }
+    }
   }
 
   protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
