@@ -39,6 +39,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -204,29 +205,42 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @Test
   public void testDefendAgainstThreadsCreateSameTableNameConcurrently()
       throws ExecutionException, InterruptedException {
+
     ExecutorService pool = Executors.newFixedThreadPool(64);
-    List<Future<String>> futureList;
-    int taskSucceeded;
-    int taskFailed;
 
     for (int i = 0; i < 30; i++) {
       String tablename = "t" + i;
-      futureList = new ArrayList<>();
-      taskSucceeded = 0;
-      taskFailed = 0;
+      List<Future<String>> futureList = new ArrayList<>();
+
+      CountDownLatch startSignal = new CountDownLatch(1);
+      CountDownLatch doneSignal = new CountDownLatch(10);
 
       for (int j = 0; j < 10; j++) {
         Future<String> future = pool.submit(() -> {
+          String result;
           try {
+            startSignal.await();
             accumuloClient.tableOperations().create(tablename);
+            result = "success";
           } catch (TableExistsException e) {
-            return "fail";
+            result = "fail";
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            result = "fail";
+          } finally {
+            doneSignal.countDown();
           }
-          return "success";
+          return result;
         });
         futureList.add(future);
       }
 
+      startSignal.countDown();
+
+      doneSignal.await();
+
+      int taskSucceeded = 0;
+      int taskFailed = 0;
       for (Future<String> result : futureList) {
         if (result.get().equals("success")) {
           taskSucceeded++;
