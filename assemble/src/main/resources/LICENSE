@@ -211,10 +211,8 @@ to the terms and conditions of the following licenses.
 
 ## Software from the European Commission project OneLab
 
-Files:
-* BloomFilter.java
-* DynamicBloomFilter.java
-* Filter.java
+Files (in lib/accumulo-core-*.jar):
+* org/apache/accumulo/core/bloomfilter/*
 
     Copyright (c) 2005, European Commission project OneLab under contract 034819
     (http://www.one-lab.org)
@@ -246,12 +244,12 @@ Files:
     ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 
-## JQuery (https://jquery.com/)
+## JQuery 3.7.1 (https://jquery.com/)
 
-Files:
-* jquery-*.js
+Files (in lib/accumulo-monitor-*.jar):
+* org/apache/accumulo/monitor/resources/external/jquery/*
 
-    jQuery JavaScript Library v3.6.1
+    jQuery JavaScript Library v3.7.1
     https://jquery.com/
 
     Includes Sizzle.js
@@ -261,7 +259,7 @@ Files:
     Released under the MIT license
     https://jquery.org/license
 
-    Date: 2022-08-26T17:52Z
+    Date: 2023-08-28T13:37Z
 
     Text of the MIT License:
 
@@ -286,7 +284,10 @@ Files:
     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
     OTHER DEALINGS IN THE SOFTWARE.
 
-## Flot (https://github.com/flot/flot)
+## Flot 4.2.6 (https://github.com/flot/flot)
+
+Files (in lib/accumulo-monitor-*.jar):
+* org/apache/accumulo/monitor/resources/external/flot/*
 
     Copyright (c) 2007-2014 IOLA and Ole Laursen
 
@@ -316,25 +317,25 @@ Files:
 
 ## Bootstrap v5.3.2 (https://getbootstrap.com/)
 
-Files:
-* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/bootstrap/**/*
+Files (in lib/accumulo-monitor-*.jar):
+* org/apache/accumulo/monitor/resources/external/bootstrap/**/*
 
     Copyright 2011-2023 The Bootstrap Authors (https://github.com/twbs/bootstrap/graphs/contributors)
     Licensed under the MIT license (see above and https://github.com/twbs/bootstrap/blob/main/LICENSE)
 
 ## Bootstrap Icons v1.11.1 (https://icons.getbootstrap.com/)
 
-Files:
-* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/bootstrap/css/bootstrap-icons.css
-* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/bootstrap/fonts/*
+Files (in lib/accumulo-monitor-*.jar):
+* org/apache/accumulo/monitor/resources/external/bootstrap/css/bootstrap-icons.css
+* org/apache/accumulo/monitor/resources/external/bootstrap/fonts/*
 
     Copyright 2019-2023 The Bootstrap Authors
     Licensed under MIT (https://github.com/twbs/icons/blob/main/LICENSE)
 
 ## DataTables 1.13.6 (https://datatables.net)
 
-Files:
-* server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/external/datatables/**/*
+Files (in lib/accumulo-monitor-*.jar):
+* org/apache/accumulo/monitor/resources/external/datatables/**/*
 
     Copyright (c) 2008-2023 SpryMedia Ltd
     Licensed under the MIT license (see above)
