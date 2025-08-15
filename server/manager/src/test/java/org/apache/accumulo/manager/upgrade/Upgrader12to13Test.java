@@ -38,6 +38,7 @@ import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -117,6 +118,7 @@ public class Upgrader12to13Test {
           .put(tableId, entry.getValue());
     }
 
+    expectedNamespaceMaps.put(Namespace.DEFAULT.id().canonical(), new HashMap<>());
     for (Map.Entry<String,Map<String,String>> entry : expectedNamespaceMaps.entrySet()) {
       expect(zrw.putPersistentData(
           eq(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES),
