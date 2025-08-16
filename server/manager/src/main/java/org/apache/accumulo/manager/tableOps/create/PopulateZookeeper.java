@@ -51,29 +51,23 @@ class PopulateZookeeper extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     // reserve the table name in zookeeper or fail
 
-    Utils.getTableNameLock().lock();
+    var context = manager.getContext();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(tableInfo.getNamespaceId()).put(tableInfo.getTableId(),
+        tableInfo.getTableName(), TableOperation.CREATE);
+    manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
+        tableInfo.getTableName());
+
     try {
-      var context = manager.getContext();
-      // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      context.getTableMapping(tableInfo.getNamespaceId()).put(tableInfo.getTableId(),
-          tableInfo.getTableName(), TableOperation.CREATE);
-      manager.getTableManager().addTable(tableInfo.getTableId(), tableInfo.getNamespaceId(),
-          tableInfo.getTableName());
-
-      try {
-        PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId()), tableInfo.props);
-      } catch (IllegalStateException ex) {
-        throw new ThriftTableOperationException(null, tableInfo.getTableName(),
-            TableOperation.CREATE, TableOperationExceptionType.OTHER,
-            "Property or value not valid for create " + tableInfo.getTableName() + " in "
-                + tableInfo.props);
-      }
-
-      context.clearTableListCache();
-      return new ChooseDir(tableInfo);
-    } finally {
-      Utils.getTableNameLock().unlock();
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId()), tableInfo.props);
+    } catch (IllegalStateException ex) {
+      throw new ThriftTableOperationException(null, tableInfo.getTableName(), TableOperation.CREATE,
+          TableOperationExceptionType.OTHER, "Property or value not valid for create "
+              + tableInfo.getTableName() + " in " + tableInfo.props);
     }
+
+    context.clearTableListCache();
+    return new ChooseDir(tableInfo);
 
   }
 
