@@ -48,6 +48,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.TKeyExtent;
@@ -677,7 +678,8 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           extentsToBringOnline.size(), tableId);
       ThriftClientTypes.MANAGER.executeVoid(context,
           client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
-              tableId.canonical(), extentsToBringOnline));
+              tableId.canonical(), extentsToBringOnline),
+          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
     }
   }

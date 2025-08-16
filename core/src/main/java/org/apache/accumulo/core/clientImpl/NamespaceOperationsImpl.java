@@ -206,9 +206,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
 
-    final TVersionedProperties vProperties =
-        ThriftClientTypes.CLIENT.execute(context, client -> client
-            .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
+        client -> client.getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+            namespace),
+        rgid -> true);
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -293,7 +294,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace),
+          rgid -> true);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
@@ -319,7 +321,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+          .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace),
+          rgid -> true);
     } catch (AccumuloException e) {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
@@ -355,7 +358,8 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     try {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
-              className, asTypeName));
+              className, asTypeName),
+          rgid -> true);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
