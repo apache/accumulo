@@ -1137,8 +1137,14 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
-      tserver.runServer();
+    try (ScanServer sserver = new ScanServer(new ConfigOpts(), args)) {
+      try {
+        sserver.runServer();
+      } catch (Exception e) {
+        System.err.println("ScanServer died, exception thrown from runServer.");
+        e.printStackTrace();
+        LOG.error("ScanServer died, exception thrown from runServer.", e);
+      }
     }
   }
 

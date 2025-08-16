@@ -215,7 +215,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   public static void main(String[] args) throws Exception {
     try (TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args)) {
-      tserver.runServer();
+      try {
+        tserver.runServer();
+      } catch (Exception e) {
+        System.err.println("TabletServer died, exception thrown from runServer.");
+        e.printStackTrace();
+        log.error("TabletServer died, exception thrown from runServer.", e);
+      }
     }
   }
 
