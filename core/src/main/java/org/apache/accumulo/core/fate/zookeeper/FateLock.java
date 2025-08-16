@@ -139,7 +139,7 @@ public class FateLock implements QueueLock {
     this.path = requireNonNull(path);
   }
 
-  public static class NodeName implements Comparable<NodeName> {
+  public static final class NodeName implements Comparable<NodeName> {
     public final long sequence;
     public final Supplier<FateLockEntry> fateLockEntry;
 

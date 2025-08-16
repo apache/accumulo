@@ -345,7 +345,7 @@ public class AESCryptoService implements CryptoService {
       return new AESGCMFileDecrypter(fek);
     }
 
-    public class AESGCMFileEncrypter implements FileEncrypter {
+    private final class AESGCMFileEncrypter implements FileEncrypter {
 
       private final byte[] firstInitVector;
       private final Key fek;
@@ -494,7 +494,7 @@ public class AESCryptoService implements CryptoService {
     }
 
     @SuppressFBWarnings(value = "CIPHER_INTEGRITY", justification = "CBC is provided for WALs")
-    public class AESCBCFileEncrypter implements FileEncrypter {
+    public final class AESCBCFileEncrypter implements FileEncrypter {
       private final Cipher cipher;
       private final Key fek;
       private final byte[] initVector = new byte[IV_LENGTH_IN_BYTES];

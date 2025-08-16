@@ -37,7 +37,7 @@ import org.apache.hadoop.security.token.TokenIdentifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class DelegationTokenImpl extends PasswordToken implements DelegationToken {
+public final class DelegationTokenImpl extends PasswordToken implements DelegationToken {
   private static final Logger log = LoggerFactory.getLogger(DelegationTokenImpl.class);
 
   public static final String SERVICE_NAME = "AccumuloDelegationToken";
