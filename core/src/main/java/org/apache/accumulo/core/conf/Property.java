@@ -458,13 +458,6 @@ public enum Property {
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
-  @Deprecated(since = "4.0.0")
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
-      PropertyType.FATE_THREADPOOL_SIZE,
-      "Previously, the number of threads used to run fault-tolerant executions (FATE)."
-          + " This is no longer used in 4.0+. MANAGER_FATE_USER_CONFIG and"
-          + " MANAGER_FATE_META_CONFIG are the replacement and must be set instead.",
-      "1.4.3"),
   MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
       "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
@@ -491,6 +484,15 @@ public enum Property {
           + "more FATE operations and each value is the number of threads that will be assigned "
           + "to the pool.",
       "4.0.0"),
+  @Deprecated(since = "4.0.0")
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+      PropertyType.FATE_THREADPOOL_SIZE,
+      String.format(
+          "Previously, the number of threads used to run fault-tolerant executions (FATE)."
+              + " This is no longer used in 4.0+. %s and %s are the replacement and must be"
+              + " set instead.",
+          MANAGER_FATE_USER_CONFIG.getKey(), MANAGER_FATE_META_CONFIG.getKey()),
+      "1.4.3"),
   MANAGER_FATE_IDLE_CHECK_INTERVAL("manager.fate.idle.check.interval", "60m",
       PropertyType.TIMEDURATION,
       "The interval at which to check if the number of idle Fate threads has consistently been zero."
