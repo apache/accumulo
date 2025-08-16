@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.manager.upgrade.Upgrader12to13.ZTABLE_NAME;
+import static org.apache.accumulo.manager.upgrade.Upgrader12to13.ZTABLE_NAMESPACE;
 import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.createStrictMock;
@@ -107,7 +108,7 @@ public class Upgrader12to13Test {
     for (String tableId : mockTableIds) {
       expect(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME))
           .andReturn(mockTables.get(tableId).getBytes(UTF_8)).once();
-      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE))
+      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAMESPACE))
           .andReturn(mockTableToNamespace.get(tableId).getBytes(UTF_8)).once();
     }
 
@@ -133,6 +134,70 @@ public class Upgrader12to13Test {
 
     replay(context, zk, zrw);
     upgrader.addTableMappingsToZooKeeper(context);
+    verify(context, zk, zrw);
+  }
+
+  @Test
+  public void testMovingZkTables() throws InterruptedException, KeeperException {
+    Upgrader12to13 upgrader = new Upgrader12to13();
+
+    ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createStrictMock(ZooSession.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+
+    List<String> mockTableIds = List.of("t1", "t2");
+    Map<String,String> tableToNamespace = Map.of("t1", "ns1", "t2", "ns2");
+    // Using state and flush-id as example children nodes under a given table
+    Map<String,byte[]> dataMap = Map.of("/tables/t1", "data_t1".getBytes(UTF_8), "/tables/t1/state",
+        "data_t1_state".getBytes(UTF_8), "/tables/t1/flush-id", "data_t1_flush-id".getBytes(UTF_8),
+        "/tables/t1/tableNamespace", "ns1".getBytes(UTF_8), "/tables/t2", "data_t2".getBytes(UTF_8),
+        "/tables/t2/state", "data_t2_state".getBytes(UTF_8), "/tables/t2/flush-id",
+        "data_t2_flush-id".getBytes(UTF_8), "/tables/t2/tableNamespace", "ns2".getBytes(UTF_8));
+
+    Map<String,List<String>> childrenMap =
+        Map.of("/tables/t1", List.of("flush-id", "state", "tableNamespace"), "/tables/t2",
+            List.of("flush-id", "state", "tableNamespace"));
+
+    expect(zrw.getChildren(eq(Constants.ZTABLES))).andReturn(mockTableIds).once();
+
+    for (String tableId : mockTableIds) {
+      String oldPath = Constants.ZTABLES + "/" + tableId;
+      String tableNamespaceNode = oldPath + ZTABLE_NAMESPACE;
+      String newPath = Constants.ZNAMESPACES + "/" + tableToNamespace.get(tableId)
+          + Constants.ZTABLES + "/" + tableId;
+
+      expect(zrw.exists(eq(oldPath))).andReturn(true).once();
+      expect(zrw.exists(eq(tableNamespaceNode))).andReturn(true).once();
+      expect(zrw.getData(eq(tableNamespaceNode)))
+          .andReturn(tableToNamespace.get(tableId).getBytes(UTF_8)).once();
+
+      expect(zrw.getData(eq(oldPath))).andReturn(dataMap.get(oldPath)).once();
+      expect(zrw.putPersistentData(eq(newPath), eq(dataMap.get(oldPath)),
+          eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+
+      List<String> children = childrenMap.get(oldPath);
+      expect(zrw.getChildren(eq(oldPath))).andReturn(children).once();
+
+      for (String child : children) {
+        if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
+          continue;
+        }
+        String fromChild = oldPath + "/" + child;
+        String toChild = newPath + "/" + child;
+        expect(zrw.getData(eq(fromChild))).andReturn(dataMap.get(fromChild)).once();
+        expect(zrw.putPersistentData(eq(toChild), eq(dataMap.get(fromChild)),
+            eq(ZooUtil.NodeExistsPolicy.OVERWRITE))).andReturn(true).once();
+      }
+
+      zrw.recursiveDelete(eq(oldPath), eq(NodeMissingPolicy.SKIP));
+      expectLastCall().once();
+    }
+
+    replay(context, zk, zrw);
+    upgrader.moveZkTables(context);
     verify(context, zk, zrw);
   }
 }

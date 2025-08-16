@@ -47,8 +47,8 @@ public class CloneTable extends ManagerRepo {
   public long isReady(FateId fateId, Manager environment) throws Exception {
     long val = Utils.reserveNamespace(environment, cloneInfo.getNamespaceId(), fateId,
         LockType.READ, true, TableOperation.CLONE);
-    val += Utils.reserveTable(environment, cloneInfo.getSrcTableId(), fateId, LockType.READ, true,
-        TableOperation.CLONE);
+    val += Utils.reserveTable(environment, cloneInfo.getSrcTableId(), cloneInfo.getSrcNamespaceId(),
+        fateId, LockType.READ, true, TableOperation.CLONE);
     return val;
   }
 
