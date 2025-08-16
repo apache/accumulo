@@ -20,7 +20,9 @@ package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Base64;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.SortedMap;
@@ -35,6 +37,8 @@ import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.QueueLock;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.util.TextUtil;
+import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.apache.zookeeper.KeeperException.NotEmptyException;
@@ -68,19 +72,22 @@ public class FateLock implements QueueLock {
     }
   }
 
-  public static class FateLockEntry implements Comparable<FateLockEntry> {
+  public static class FateLockEntry {
     final LockType lockType;
     final FateId fateId;
+    final LockRange range;
 
-    private FateLockEntry(LockType lockType, FateId fateId) {
+    private FateLockEntry(LockType lockType, FateId fateId, LockRange range) {
       this.lockType = Objects.requireNonNull(lockType);
       this.fateId = Objects.requireNonNull(fateId);
+      this.range = range;
     }
 
     private FateLockEntry(String entry) {
-      var fields = entry.split(":", 2);
+      var fields = entry.split("_", 4);
       this.lockType = LockType.valueOf(fields[0]);
       this.fateId = FateId.from(fields[1]);
+      this.range = LockRange.of(decode(fields[2]), decode(fields[3]));
     }
 
     public LockType getLockType() {
@@ -91,29 +98,35 @@ public class FateLock implements QueueLock {
       return fateId;
     }
 
-    public String serialize() {
-      return lockType.name() + ":" + fateId.canonical();
+    public LockRange getRange() {
+      return range;
     }
 
-    @Override
-    public boolean equals(Object o) {
-      if (o == null || getClass() != o.getClass()) {
-        return false;
+    private String encode(Text row) {
+      if (row == null) {
+        return "N";
+      } else {
+        return "P" + Base64.getEncoder().encodeToString(TextUtil.getBytes(row));
       }
-
-      FateLockEntry lockEntry = (FateLockEntry) o;
-      return lockType == lockEntry.lockType && fateId.equals(lockEntry.fateId);
     }
 
-    @Override
-    public int hashCode() {
-      int result = lockType.hashCode();
-      result = 31 * result + fateId.hashCode();
-      return result;
+    private Text decode(String enc) {
+      if (enc.charAt(0) == 'P') {
+        return new Text(Base64.getDecoder().decode(enc.substring(1)));
+      } else if (enc.charAt(0) == 'N') {
+        return null;
+      } else {
+        throw new IllegalArgumentException("Unexpected prefix " + enc);
+      }
     }
 
-    public static FateLockEntry from(LockType lockType, FateId fateId) {
-      return new FateLockEntry(lockType, fateId);
+    public String serialize() {
+      return lockType.name() + "_" + fateId.canonical() + "_" + encode(range.getStartRow()) + "_"
+          + encode(range.getEndRow());
+    }
+
+    public static FateLockEntry from(LockType lockType, FateId fateId, LockRange range) {
+      return new FateLockEntry(lockType, fateId, range);
     }
 
     public static FateLockEntry deserialize(String serialized) {
@@ -121,12 +134,21 @@ public class FateLock implements QueueLock {
     }
 
     @Override
-    public int compareTo(FateLockEntry o) {
-      int cmp = lockType.compareTo(o.lockType);
-      if (cmp == 0) {
-        cmp = fateId.compareTo(o.fateId);
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
       }
-      return cmp;
+      if (!(o instanceof FateLockEntry)) {
+        return false;
+      }
+      FateLockEntry that = (FateLockEntry) o;
+      return lockType == that.lockType && Objects.equals(fateId, that.fateId)
+          && Objects.equals(range, that.range);
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(lockType, fateId, range);
     }
   }
 
@@ -139,7 +161,7 @@ public class FateLock implements QueueLock {
     this.path = requireNonNull(path);
   }
 
-  public static class NodeName implements Comparable<NodeName> {
+  public static class NodeName {
     public final long sequence;
     public final Supplier<FateLockEntry> fateLockEntry;
 
@@ -155,25 +177,13 @@ public class FateLock implements QueueLock {
     }
 
     @Override
-    public int compareTo(NodeName o) {
-      int cmp = Long.compare(sequence, o.sequence);
-      if (cmp == 0) {
-        cmp = fateLockEntry.get().compareTo(o.fateLockEntry.get());
-      }
-      return cmp;
-    }
-
-    @Override
     public boolean equals(Object o) {
-      if (o instanceof NodeName) {
-        return this.compareTo((NodeName) o) == 0;
-      }
-      return false;
+      throw new UnsupportedOperationException();
     }
 
     @Override
     public int hashCode() {
-      return Objects.hash(sequence, fateLockEntry.get());
+      throw new UnsupportedOperationException();
     }
   }
 
@@ -251,7 +261,7 @@ public class FateLock implements QueueLock {
   public static SortedSet<NodeName> validateAndWarn(FateLockPath path, List<String> children) {
     log.trace("validating and sorting children at path {}", path);
 
-    SortedSet<NodeName> validChildren = new TreeSet<>();
+    SortedSet<NodeName> validChildren = new TreeSet<>(Comparator.comparingLong(nn -> nn.sequence));
 
     if (children == null || children.isEmpty()) {
       return validChildren;
@@ -261,7 +271,9 @@ public class FateLock implements QueueLock {
       log.trace("Validating {}", c);
       try {
         var fateLockNode = new NodeName(c);
-        validChildren.add(fateLockNode);
+        if (!validChildren.add(fateLockNode)) {
+          log.warn("Duplicate sequence {}", c);
+        }
       } catch (RuntimeException e) {
         log.warn("Illegal fate lock node {}", c, e);
       }

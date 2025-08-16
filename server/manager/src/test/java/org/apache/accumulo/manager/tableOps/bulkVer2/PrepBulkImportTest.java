@@ -18,7 +18,6 @@
  */
 package org.apache.accumulo.manager.tableOps.bulkVer2;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -34,7 +33,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -126,16 +124,9 @@ public class PrepBulkImportTest {
       }
     };
 
-    var sortedExtents = loadRanges.keySet().stream().sorted().collect(Collectors.toList());
-    String minPrevEndRow =
-        Optional.ofNullable(sortedExtents.get(0).prevEndRow()).map(Text::toString).orElse(null);
-    String maxPrevEndRow = Optional.ofNullable(sortedExtents.get(sortedExtents.size() - 1).endRow())
-        .map(Text::toString).orElse(null);
-
     try (LoadMappingIterator lmi = createLoadMappingIter(loadRanges)) {
-      var extent = PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 0,
+      PrepBulkImport.validateLoadMapping("1", lmi, tabletIterFactory, maxTablets, 0,
           FateId.from(FateInstanceType.USER, UUID.randomUUID().toString()), skipDistance);
-      assertEquals(nke(minPrevEndRow, maxPrevEndRow), extent, loadRanges + " " + tabletRanges);
     }
   }
 
