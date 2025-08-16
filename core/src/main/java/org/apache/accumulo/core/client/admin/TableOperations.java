@@ -192,10 +192,6 @@ public interface TableOperations {
    *
    * Ensures that tablets are split along a set of keys.
    *
-   * TODO: This method currently only adds new splits (existing are stripped). The intent in a
-   * future PR is so support updating existing splits and the TabletMergeabilty setting. See
-   * https://github.com/apache/accumulo/issues/5014
-   *
    * <p>
    * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
    * encoding is not enforced by operations that work with byte arrays.
