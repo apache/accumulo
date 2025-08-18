@@ -39,6 +39,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
@@ -384,12 +385,23 @@ public class UpgradeUtil implements KeywordExecutable {
             };
         final CompactionServiceId expectedCompactionService =
             dispatcher.dispatch(dispatchParams).getService();
-        LOG.info("Table {} is configured to use service {} for compaction kind {}", tableName,
+        LOG.info("Table {} is configured to use service \"{}\" for compaction kind {}", tableName,
             expectedCompactionService, kind);
         if (!servicesConfig.getPlanners().containsKey(expectedCompactionService.canonical())) {
-          LOG.error("Table {} returned non-existent compaction service {} for compaction type {}.",
-              tid, expectedCompactionService, kind);
-          configurationError = true;
+          if (tid.equals(SystemTables.ROOT.tableId())
+              || tid.equals(SystemTables.METADATA.tableId())) {
+            LOG.warn(
+                "Table {} is using a default compaction service configuration from a prior version."
+                    + " The \"{}\" compaction service configuration is no longer defined. You can either define"
+                    + " it now in the accumulo.properties file, or the compaction service configuration will"
+                    + " be removed to adopt the new default in this version during the upgrade.",
+                tableName, expectedCompactionService);
+          } else {
+            LOG.error(
+                "Table {} returned non-existent compaction service \"{}\"  for compaction type {}.",
+                tid, expectedCompactionService, kind);
+            configurationError = true;
+          }
         }
       }
     }
