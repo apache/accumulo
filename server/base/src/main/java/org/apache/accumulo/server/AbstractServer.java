@@ -75,6 +75,27 @@ public abstract class AbstractServer
     ServerAddress get() throws UnknownHostException;
   }
 
+  public static void startServer(AbstractServer server, Logger LOG) throws Exception {
+    try {
+      server.runServer();
+    } catch (Exception e) {
+      System.err
+          .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
+      e.printStackTrace();
+      LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
+      throw e;
+    } finally {
+      try {
+        server.close();
+      } catch (Exception e) {
+        System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
+        e.printStackTrace();
+        LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
+        throw e;
+      }
+    }
+  }
+
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;

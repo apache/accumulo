@@ -1063,15 +1063,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    try (Compactor compactor = new Compactor(new ConfigOpts(), args)) {
-      try {
-        compactor.runServer();
-      } catch (Exception e) {
-        System.err.println("Compactor died, exception thrown from runServer.");
-        e.printStackTrace();
-        LOG.error("Compactor died, exception thrown from runServer.", e);
-      }
-    }
+    AbstractServer.startServer(new Compactor(new ConfigOpts(), args), LOG);
   }
 
   @Override

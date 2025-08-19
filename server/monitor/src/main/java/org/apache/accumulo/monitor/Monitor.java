@@ -117,15 +117,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
-      try {
-        monitor.runServer();
-      } catch (Exception e) {
-        System.err.println("Monitor died, exception thrown from runServer.");
-        e.printStackTrace();
-        log.error("Monitor died, exception thrown from runServer.", e);
-      }
-    }
+    AbstractServer.startServer(new Monitor(new ConfigOpts(), args), log);
   }
 
   Monitor(ConfigOpts opts, String[] args) {
