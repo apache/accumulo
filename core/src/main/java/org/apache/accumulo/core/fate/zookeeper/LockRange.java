@@ -23,7 +23,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.hadoop.io.Text;
 
 public class LockRange {
-  final KeyExtent range;
+  private final KeyExtent range;
 
   private static final LockRange INF = new LockRange(null, null);
 
