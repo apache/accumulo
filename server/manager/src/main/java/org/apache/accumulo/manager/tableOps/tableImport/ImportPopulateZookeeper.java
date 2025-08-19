@@ -49,8 +49,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.tableId, fateId, LockType.WRITE, false,
-        TableOperation.IMPORT);
+    return Utils.reserveTable(environment, tableInfo.tableId, tableInfo.namespaceId, fateId,
+        LockType.WRITE, false, TableOperation.IMPORT);
   }
 
   private Map<String,String> getExportedProps(VolumeManager fs) throws Exception {
@@ -89,7 +89,8 @@ class ImportPopulateZookeeper extends ManagerRepo {
     VolumeManager volMan = env.getVolumeManager();
 
     try {
-      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId), getExportedProps(volMan));
+      PropUtil.setProperties(context, TablePropKey.of(tableInfo.tableId, tableInfo.namespaceId),
+          getExportedProps(volMan));
     } catch (IllegalStateException ex) {
       throw new AcceptableThriftTableOperationException(tableInfo.tableId.canonical(),
           tableInfo.tableName, TableOperation.IMPORT, TableOperationExceptionType.OTHER,

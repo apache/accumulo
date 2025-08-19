@@ -37,16 +37,14 @@ public class Constants {
   public static final String ZINSTANCES = "/instances";
   public static final String ZUSERS = "/users";
 
-  public static final String ZTABLES = "/tables";
+  public static final String ZTABLE_ID_COUNTER = "/tables";
   public static final byte[] ZTABLES_INITIAL_ID = {'0'};
   public static final String ZTABLE_DELETE_MARKER = "/deleting";
   public static final String ZTABLE_STATE = "/state";
   public static final String ZTABLE_FLUSH_ID = "/flush-id";
 
-  public static final String ZTABLE_NAMESPACE = "/namespace";
-
   public static final String ZNAMESPACES = "/namespaces";
-
+  public static final String ZTABLES = "/tables";
   public static final String ZMANAGERS = "/managers";
   public static final String ZMANAGER_LOCK = ZMANAGERS + "/lock";
   public static final String ZMANAGER_GOAL_STATE = ZMANAGERS + "/goal_state";

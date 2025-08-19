@@ -19,6 +19,9 @@
 package org.apache.accumulo.manager.upgrade;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.Constants.ZCONFIG;
+import static org.apache.accumulo.core.Constants.ZNAMESPACES;
+import static org.apache.accumulo.core.Constants.ZTABLES;
 import static org.apache.accumulo.core.Constants.ZTABLE_STATE;
 import static org.apache.accumulo.manager.upgrade.Upgrader10to11.buildRepTablePath;
 import static org.easymock.EasyMock.createMock;
@@ -44,7 +47,6 @@ import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.PropStore;
-import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.AfterEach;
@@ -88,7 +90,9 @@ class Upgrader10to11Test {
     zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
 
-    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
+    expect(propStore.get(
+        new Upgrader10to11.upgradePropKey(ZNAMESPACES + "/" + SystemTables.namespaceId().canonical()
+            + ZTABLES + "/" + SystemTables.METADATA.tableId().canonical() + ZCONFIG)))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zk, propStore);
@@ -116,7 +120,9 @@ class Upgrader10to11Test {
     expect(zk.getChildren(buildRepTablePath(instanceId), null)).andReturn(List.of());
     zk.delete(buildRepTablePath(instanceId), -1);
     expectLastCall().once();
-    expect(propStore.get(TablePropKey.of(SystemTables.METADATA.tableId())))
+    expect(propStore.get(
+        new Upgrader10to11.upgradePropKey(ZNAMESPACES + "/" + SystemTables.namespaceId().canonical()
+            + ZTABLES + "/" + SystemTables.METADATA.tableId().canonical() + ZCONFIG)))
         .andReturn(new VersionedProperties()).once();
 
     replay(context, zk, propStore);

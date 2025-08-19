@@ -43,8 +43,8 @@ class PopulateZookeeper extends ManagerRepo {
 
   @Override
   public long isReady(FateId fateId, Manager environment) throws Exception {
-    return Utils.reserveTable(environment, tableInfo.getTableId(), fateId, LockType.WRITE, false,
-        TableOperation.CREATE);
+    return Utils.reserveTable(environment, tableInfo.getTableId(), tableInfo.getNamespaceId(),
+        fateId, LockType.WRITE, false, TableOperation.CREATE);
   }
 
   @Override
@@ -61,7 +61,8 @@ class PopulateZookeeper extends ManagerRepo {
           tableInfo.getTableName());
 
       try {
-        PropUtil.setProperties(context, TablePropKey.of(tableInfo.getTableId()), tableInfo.props);
+        PropUtil.setProperties(context,
+            TablePropKey.of(tableInfo.getTableId(), tableInfo.getNamespaceId()), tableInfo.props);
       } catch (IllegalStateException ex) {
         throw new ThriftTableOperationException(null, tableInfo.getTableName(),
             TableOperation.CREATE, TableOperationExceptionType.OTHER,

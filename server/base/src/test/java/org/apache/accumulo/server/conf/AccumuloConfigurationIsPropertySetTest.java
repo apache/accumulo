@@ -259,7 +259,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var nsPropKey = NamespacePropKey.of(namespaceId);
 
     var tableId = TableId.of("3");
-    var tablePropKey = TablePropKey.of(tableId);
+    var tablePropKey = TablePropKey.of(tableId, namespaceId);
 
     var setOnNamespace = Set.of(TABLE_FILE_MAX);
     var nsProps = new VersionedProperties(2, Instant.now(), setToMap(setOnNamespace));
@@ -275,7 +275,7 @@ public class AccumuloConfigurationIsPropertySetTest extends WithTestNames {
     var sysConfig = new ConfigurationCopy(setToMap(setOnSystem));
 
     var namespaceConfig = new NamespaceConfiguration(context, namespaceId, sysConfig);
-    var tableConfig = new TableConfiguration(context, tableId, namespaceConfig);
+    var tableConfig = new TableConfiguration(context, tableId, namespaceId, namespaceConfig);
 
     var shouldBeSet = new HashSet<Property>();
     shouldBeSet.addAll(setOnSystem);

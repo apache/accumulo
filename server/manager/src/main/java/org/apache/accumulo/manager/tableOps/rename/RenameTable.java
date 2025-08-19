@@ -44,7 +44,8 @@ public class RenameTable extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
         TableOperation.RENAME)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, TableOperation.RENAME);
+        + Utils.reserveTable(env, tableId, namespaceId, fateId, LockType.WRITE, true,
+            TableOperation.RENAME);
   }
 
   public RenameTable(NamespaceId namespaceId, TableId tableId, String oldTableName,

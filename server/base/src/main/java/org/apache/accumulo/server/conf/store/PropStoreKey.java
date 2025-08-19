@@ -19,8 +19,6 @@
 package org.apache.accumulo.server.conf.store;
 
 import static org.apache.accumulo.core.Constants.ZCONFIG;
-import static org.apache.accumulo.core.Constants.ZNAMESPACES;
-import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import java.util.Comparator;
 import java.util.Objects;
@@ -45,18 +43,6 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
 
   private static final Logger log = LoggerFactory.getLogger(PropStoreKey.class);
 
-  // indices for path.split() on config node paths;
-  public static final int TYPE_TOKEN_POSITION = 1;
-  public static final int ID_TOKEN_POSITION = 2;
-
-  // remove starting slash from constant.
-  public static final String TABLES_NODE_NAME = ZTABLES.substring(1);
-  public static final String NAMESPACE_NODE_NAME = ZNAMESPACES.substring(1);
-  // expected token length for table and namespace config
-  public static final int EXPECTED_CONFIG_LEN = 4;
-  // expected token length for sys config
-  public static final int EXPECTED_SYS_CONFIG_LEN = 2;
-
   private final String path;
 
   protected PropStoreKey(final String path) {
@@ -74,26 +60,26 @@ public abstract class PropStoreKey implements Comparable<PropStoreKey> {
    * @return the prop cache id
    */
   public static @Nullable PropStoreKey fromPath(final String path) {
-    String[] tokens = path.split("/");
 
-    if (tokens.length != EXPECTED_CONFIG_LEN && tokens.length != EXPECTED_SYS_CONFIG_LEN) {
-      log.warn("Path '{}' is an invalid path for a property cache key - bad length", path);
-      return null;
-    }
-
-    String nodeName = "/" + tokens[tokens.length - 1];
-    if (tokens.length == EXPECTED_CONFIG_LEN && tokens[TYPE_TOKEN_POSITION].equals(TABLES_NODE_NAME)
-        && nodeName.equals(ZCONFIG)) {
-      return TablePropKey.of(TableId.of(tokens[ID_TOKEN_POSITION]));
-    }
-
-    if (tokens.length == EXPECTED_CONFIG_LEN
-        && tokens[TYPE_TOKEN_POSITION].equals(NAMESPACE_NODE_NAME) && nodeName.equals(ZCONFIG)) {
-      return NamespacePropKey.of(NamespaceId.of(tokens[ID_TOKEN_POSITION]));
-    }
-
-    if (tokens.length == EXPECTED_SYS_CONFIG_LEN && nodeName.equals(ZCONFIG)) {
+    if (path.equals(ZCONFIG)) {
       return SystemPropKey.of();
+    }
+
+    String[] parts = path.split("/");
+
+    // Expected Path: /namespaces/<namespaceId>/config
+    if (parts.length == 4 && parts[0].isEmpty() && "namespaces".equals(parts[1])
+        && "config".equals(parts[3])) {
+      String namespaceId = parts[2];
+      return NamespacePropKey.of(NamespaceId.of(namespaceId));
+    }
+
+    // Expected Path: /namespaces/<namespaceId>/tables/<tableId>/config
+    if (parts.length == 6 && parts[0].isEmpty() && "namespaces".equals(parts[1])
+        && "tables".equals(parts[3]) && "config".equals(parts[5])) {
+      String namespaceId = parts[2];
+      String tableId = parts[4];
+      return TablePropKey.of(TableId.of(tableId), NamespaceId.of(namespaceId));
     }
     // without tokens or it does not end with PROP_NAME_NAME
     log.warn("Path '{}' is an invalid path for a property cache key", path);

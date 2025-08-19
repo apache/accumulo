@@ -165,7 +165,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
       // check zk nodes exist
       assertTrue(context.getPropStore().exists(NamespacePropKey.of(nid)));
-      assertTrue(context.getPropStore().exists(TablePropKey.of(tid)));
+      assertTrue(context.getPropStore().exists(TablePropKey.of(tid, nid)));
       // check ServerConfigurationFactory
       assertNotNull(context.getNamespaceConfiguration(nid));
       assertNotNull(context.getTableConfiguration(tid));
@@ -176,7 +176,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
       // check zk nodes deleted
       assertFalse(context.getPropStore().exists(NamespacePropKey.of(nid)));
-      assertFalse(context.getPropStore().exists(TablePropKey.of(tid)));
+      assertFalse(context.getPropStore().exists(TablePropKey.of(tid, nid)));
       // check ServerConfigurationFactory deleted - should return null
       assertNull(context.getTableConfiguration(tid));
     }
@@ -266,7 +266,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
       for (Map.Entry<String,String> tEntry : client.tableOperations().tableIdMap().entrySet()) {
         log.debug("Check acl on table name: {}, id: {}", tEntry.getKey(), tEntry.getValue());
-        var tableAcl = zrw.getACL(TablePropKey.of(TableId.of(tEntry.getValue())).getPath());
+        var tid = TableId.of(tEntry.getValue());
+        var tableAcl =
+            zrw.getACL(TablePropKey.of(tid, serverContext.getNamespaceId(tid)).getPath());
         log.debug("Received ACLs of: {}", tableAcl);
         assertEquals(1, tableAcl.size());
         assertFalse(tableAcl.get(0).toString().contains("world"));

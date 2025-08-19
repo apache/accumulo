@@ -41,6 +41,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -73,7 +74,7 @@ public class ZooPropLoaderTest {
   public void initCommonMocks() {
     ticker = new PropCacheCaffeineImplTest.TestTicker();
 
-    propStoreKey = TablePropKey.of(TableId.of("1abc"));
+    propStoreKey = TablePropKey.of(TableId.of("1abc"), NamespaceId.of("ns1"));
     propCodec = VersionedPropCodec.getDefault();
 
     // mocks
@@ -283,7 +284,7 @@ public class ZooPropLoaderTest {
   @Test
   public void removeTest() throws Exception {
     final var sysPropKey = SystemPropKey.of();
-    final var tablePropKey = TablePropKey.of(TableId.of("t1"));
+    final var tablePropKey = TablePropKey.of(TableId.of("t1"), NamespaceId.of("ns1"));
 
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);
@@ -331,7 +332,7 @@ public class ZooPropLoaderTest {
   @Test
   public void removeAllTest() throws Exception {
     final var sysPropKey = SystemPropKey.of();
-    final var tablePropKey = TablePropKey.of(TableId.of("t1"));
+    final var tablePropKey = TablePropKey.of(TableId.of("t1"), NamespaceId.of("ns1"));
 
     final VersionedProperties defaultProps = new VersionedProperties();
     final byte[] bytes = propCodec.toBytes(defaultProps);

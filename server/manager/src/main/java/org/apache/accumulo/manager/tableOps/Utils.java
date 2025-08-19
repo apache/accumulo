@@ -65,7 +65,7 @@ public class Utils {
       Function<String,T> newIdFunction) throws AcceptableThriftTableOperationException {
     try {
       ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
-      byte[] nid = zoo.mutateOrCreate(Constants.ZTABLES, ZERO_BYTE, currentValue -> {
+      byte[] nid = zoo.mutateOrCreate(Constants.ZTABLE_ID_COUNTER, ZERO_BYTE, currentValue -> {
         BigInteger nextId = new BigInteger(new String(currentValue, UTF_8), Character.MAX_RADIX);
         nextId = nextId.add(BigInteger.ONE);
         return nextId.toString(Character.MAX_RADIX).getBytes(UTF_8);
@@ -80,12 +80,15 @@ public class Utils {
 
   static final Lock tableNameLock = new ReentrantLock();
 
-  public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
-      boolean tableMustExist, TableOperation op) throws Exception {
-    if (getLock(env.getContext(), tableId, fateId, lockType).tryLock()) {
+  public static long reserveTable(Manager env, TableId tableId, NamespaceId namespaceId,
+      FateId fateId, LockType lockType, boolean tableMustExist, TableOperation op)
+      throws Exception {
+    var context = env.getContext();
+    if (getLock(context, tableId, fateId, lockType).tryLock()) {
       if (tableMustExist) {
-        ZooReaderWriter zk = env.getContext().getZooSession().asReaderWriter();
-        if (!zk.exists(Constants.ZTABLES + "/" + tableId)) {
+        ZooReaderWriter zk = context.getZooSession().asReaderWriter();
+        if (!zk.exists(
+            Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId)) {
           throw new AcceptableThriftTableOperationException(tableId.canonical(), "", op,
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }

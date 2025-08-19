@@ -39,6 +39,7 @@ import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
@@ -77,6 +78,7 @@ public class Upgrader12to13 implements Upgrader {
 
   @VisibleForTesting
   static final String ZTABLE_NAME = "/name";
+  static final String ZTABLE_NAMESPACE = "/namespace";
 
   @Override
   public void upgradeZookeeper(ServerContext context) {
@@ -94,6 +96,8 @@ public class Upgrader12to13 implements Upgrader {
     initializeFateTable(context);
     LOG.info("Adding table mappings to zookeeper");
     addTableMappingsToZooKeeper(context);
+    LOG.info("Moving tables from flat storage to under respective namespaces");
+    moveZkTables(context);
   }
 
   @Override
@@ -103,7 +107,7 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("setting metadata table hosting availability");
     addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.METADATA);
     LOG.info("Removing MetadataBulkLoadFilter iterator from root table");
-    removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.ROOT.tableId(), SystemTables.namespaceId());
     LOG.info("Removing compact columns from metadata tablets");
     removeCompactColumnsFromTable(context, SystemTables.ROOT.tableName());
   }
@@ -121,7 +125,8 @@ public class Upgrader12to13 implements Upgrader {
     LOG.info("Deleting external compaction from user tables");
     deleteExternalCompactions(context);
     LOG.info("Removing MetadataBulkLoadFilter iterator from metadata table");
-    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId());
+    removeMetaDataBulkLoadFilter(context, SystemTables.METADATA.tableId(),
+        SystemTables.namespaceId());
     LOG.info("Removing compact columns from user tables");
     removeCompactColumnsFromTable(context, SystemTables.METADATA.tableName());
     LOG.info("Removing bulk file columns from metadata table");
@@ -275,9 +280,10 @@ public class Upgrader12to13 implements Upgrader {
     }
   }
 
-  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId) {
+  private void removeMetaDataBulkLoadFilter(ServerContext context, TableId tableId,
+      NamespaceId namespaceId) {
     final String propName = Property.TABLE_ITERATOR_PREFIX.getKey() + "majc.bulkLoadFilter";
-    PropUtil.removeProperties(context, TablePropKey.of(tableId), List.of(propName));
+    PropUtil.removeProperties(context, TablePropKey.of(tableId, namespaceId), List.of(propName));
   }
 
   private void deleteExternalCompactionFinalStates(ServerContext context) {
@@ -410,8 +416,8 @@ public class Upgrader12to13 implements Upgrader {
       for (String tableId : tableIds) {
         var tableName =
             new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
-        var namespaceId = new String(
-            zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+        var namespaceId =
+            new String(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAMESPACE), UTF_8);
         mapOfTableMaps.computeIfAbsent(namespaceId, k -> new HashMap<>()).compute(tableId,
             (tid, existingName) -> {
               if (existingName != null) {
@@ -432,6 +438,51 @@ public class Upgrader12to13 implements Upgrader {
         String tableNamePath = Constants.ZTABLES + "/" + tableId + ZTABLE_NAME;
         zrw.delete(tableNamePath);
       }
+    } catch (InterruptedException ex) {
+      Thread.currentThread().interrupt();
+      throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",
+          ex);
+    } catch (KeeperException ex) {
+      throw new IllegalStateException(
+          "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
+    }
+  }
+
+  void moveZkTables(ServerContext context) {
+    final var zrw = context.getZooSession().asReaderWriter();
+    try {
+      List<String> tableIds = zrw.getChildren(Constants.ZTABLES);
+      for (String tableId : tableIds) {
+        String oldPath = Constants.ZTABLES + "/" + tableId;
+        String tableNamespaceNode = oldPath + ZTABLE_NAMESPACE;
+        if (!zrw.exists(oldPath)) {
+          throw new IllegalStateException("Source table path does not exist: " + oldPath);
+        } else if (!zrw.exists(tableNamespaceNode)) {
+          throw new IllegalStateException(
+              "Source table namespace node does not exist: " + tableNamespaceNode);
+        }
+        String namespaceId = new String(zrw.getData(tableNamespaceNode), UTF_8);
+        String newPath =
+            Constants.ZNAMESPACES + "/" + namespaceId + Constants.ZTABLES + "/" + tableId;
+
+        byte[] data = zrw.getData(oldPath);
+        zrw.putPersistentData(newPath, data, ZooUtil.NodeExistsPolicy.OVERWRITE);
+
+        // This assumes that /tables/<tableid> nodes have no grandchildren
+        List<String> children = zrw.getChildren(oldPath);
+        for (String child : children) {
+          if (child.equals(ZTABLE_NAMESPACE.substring(1))) {
+            continue;
+          }
+          String fromChild = oldPath + "/" + child;
+          String toChild = newPath + "/" + child;
+          byte[] childData = zrw.getData(fromChild);
+          zrw.putPersistentData(toChild, childData, ZooUtil.NodeExistsPolicy.OVERWRITE);
+        }
+
+        zrw.recursiveDelete(oldPath, NodeMissingPolicy.SKIP);
+      }
+
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
       throw new IllegalStateException("Could not read metadata from ZooKeeper due to interrupt",

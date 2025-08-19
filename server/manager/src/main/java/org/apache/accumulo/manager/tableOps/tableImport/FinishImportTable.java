@@ -58,7 +58,8 @@ class FinishImportTable extends ManagerRepo {
 
     final EnumSet<TableState> expectedCurrStates = EnumSet.of(TableState.NEW);
     final TableState newState = tableInfo.keepOffline ? TableState.OFFLINE : TableState.ONLINE;
-    env.getTableManager().transitionTableState(tableInfo.tableId, newState, expectedCurrStates);
+    env.getTableManager().transitionTableState(tableInfo.tableId, tableInfo.namespaceId, newState,
+        expectedCurrStates);
 
     Utils.unreserveNamespace(env, tableInfo.namespaceId, fateId, LockType.READ);
     Utils.unreserveTable(env, tableInfo.tableId, fateId, LockType.WRITE);

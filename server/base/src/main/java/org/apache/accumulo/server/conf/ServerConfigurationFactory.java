@@ -117,9 +117,16 @@ public class ServerConfigurationFactory extends ServerConfiguration {
   public TableConfiguration getTableConfiguration(TableId tableId) {
     return tableConfigs.get(tableId, key -> {
       if (context.tableNodeExists(tableId)) {
-        context.getPropStore().registerAsListener(TablePropKey.of(tableId), changeWatcher);
-        var conf =
-            new TableConfiguration(context, tableId, getNamespaceConfigurationForTable(tableId));
+        NamespaceId namespaceId = null;
+        try {
+          namespaceId = context.getNamespaceId(tableId);
+        } catch (TableNotFoundException e) {
+          throw new IllegalStateException("Table not found in ZooKeeper: " + tableId);
+        }
+        context.getPropStore().registerAsListener(TablePropKey.of(tableId, namespaceId),
+            changeWatcher);
+        var conf = new TableConfiguration(context, tableId, namespaceId,
+            getNamespaceConfigurationForTable(tableId));
         ConfigCheckUtil.validate(conf, "table id: " + tableId.toString());
 
         return conf;
@@ -245,7 +252,13 @@ public class ServerConfigurationFactory extends ServerConfiguration {
       for (Map.Entry<TableId,TableConfiguration> entry : tableConfigs.asMap().entrySet()) {
         keyCount++;
         TableId tid = entry.getKey();
-        PropStoreKey propKey = TablePropKey.of(tid);
+        NamespaceId namespaceId = null;
+        try {
+          namespaceId = context.getNamespaceId(tid);
+        } catch (TableNotFoundException e) {
+          throw new IllegalStateException("Table not found in ZooKeeper: " + tid);
+        }
+        PropStoreKey propKey = TablePropKey.of(tid, namespaceId);
         if (!propStore.validateDataVersion(propKey, entry.getValue().getDataVersion())) {
           keyChangedCount++;
           tableConfigs.invalidate(tid);
