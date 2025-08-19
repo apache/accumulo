@@ -78,7 +78,7 @@ public abstract class AbstractServer
   public static void startServer(AbstractServer server, Logger LOG) throws Exception {
     try {
       server.runServer();
-    } catch (Exception e) {
+    } catch (Throwable e) {
       System.err
           .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
       e.printStackTrace();
@@ -87,7 +87,7 @@ public abstract class AbstractServer
     } finally {
       try {
         server.close();
-      } catch (Exception e) {
+      } catch (Throwable e) {
         System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
         e.printStackTrace();
         LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
