@@ -87,7 +87,7 @@ public class FateLock implements QueueLock {
       var fields = entry.split("_", 4);
       this.lockType = LockType.valueOf(fields[0]);
       this.fateId = FateId.from(fields[1]);
-      this.range = LockRange.of(decode(fields[2]), decode(fields[3]));
+      this.range = LockRange.of(decodeRow(fields[2]), decodeRow(fields[3]));
     }
 
     public LockType getLockType() {
@@ -121,8 +121,8 @@ public class FateLock implements QueueLock {
     }
 
     public String serialize() {
-      return lockType.name() + "_" + fateId.canonical() + "_" + encode(range.getStartRow()) + "_"
-          + encode(range.getEndRow());
+      return lockType.name() + "_" + fateId.canonical() + "_" + encodeRow(range.getStartRow()) + "_"
+          + encodeRow(range.getEndRow());
     }
 
     public static FateLockEntry from(LockType lockType, FateId fateId, LockRange range) {
