@@ -102,7 +102,7 @@ public class FateLock implements QueueLock {
       return range;
     }
 
-    private String encode(Text row) {
+    private String encodeRow(Text row) {
       if (row == null) {
         return "N";
       } else {
