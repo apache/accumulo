@@ -18,13 +18,16 @@
  */
 package org.apache.accumulo.test.shell;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -36,7 +39,9 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -49,6 +54,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -115,10 +121,10 @@ public class ShellIT extends SharedMiniClusterBase {
   private LineReader reader;
   private Terminal terminal;
 
-  void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
+  void execExpectList(String cmd, boolean expectGoodExit, List<String> expectedStrings)
       throws IOException {
     exec(cmd);
-    if (expecteGoodExit) {
+    if (expectGoodExit) {
       assertGoodExit("", true);
     } else {
       assertBadExit("", true);
@@ -495,7 +501,7 @@ public class ShellIT extends SharedMiniClusterBase {
   void configTest() throws IOException {
     Shell.log.debug("Starting config property type test -------------------------");
 
-    String testTable = "test";
+    String testTable = "testConfig";
     exec("createtable " + testTable, true);
 
     for (Property property : Property.values()) {
@@ -612,6 +618,58 @@ public class ShellIT extends SharedMiniClusterBase {
         "src/main/resources/org/apache/accumulo/test/shellit.shellit");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
+  }
+
+  @TempDir
+  private static File tempDir;
+
+  @Test
+  public void propFileNotFoundTest() throws IOException {
+
+    Path fileName = Path.of(tempDir.getPath(), "propFile.shellit");
+
+    Shell.log.debug("Starting prop file not found test --------------------------");
+    exec("config --propFile " + fileName, false, "NoSuchFileException: " + fileName);
+  }
+
+  @Test
+  public void setpropsViaFile() throws Exception {
+    File file = File.createTempFile("propFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), true);
+  }
+
+  @Test
+  public void createTableWithPropsFile() throws Exception {
+    String tableName = "testProps";
+    File file = File.createTempFile("propFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("table.custom.test1=true");
+    writer.println("table.custom.test2=false");
+    writer.close();
+    exec("createtable " + tableName + " --propFile " + file.getAbsolutePath()
+        + " -prop table.custom.test3=optional", true);
+
+    assertTrue(shell.getAccumuloClient().tableOperations().exists(tableName));
+    Map<String,String> tableIds = shell.getAccumuloClient().tableOperations().tableIdMap();
+
+    TableConfiguration tableConf =
+        getCluster().getServerContext().getTableConfiguration(TableId.of(tableIds.get(tableName)));
+    assertEquals("true", tableConf.get("table.custom.test1"));
+    assertEquals("false", tableConf.get("table.custom.test2"));
+    assertEquals("optional", tableConf.get("table.custom.test3"));
+  }
+
+  @Test
+  public void invalidPropFileTest() throws Exception {
+    File file = File.createTempFile("invalidPropFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("this is not a valid property file");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), false,
+        "InvalidPropertyFile: " + file.getAbsolutePath());
   }
 
   @Test
