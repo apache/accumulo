@@ -21,7 +21,6 @@ package org.apache.accumulo.server;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import java.net.UnknownHostException;
-import java.util.List;
 import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -39,6 +38,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.process.thrift.MetricResponse;
@@ -75,6 +75,27 @@ public abstract class AbstractServer
     ServerAddress get() throws UnknownHostException;
   }
 
+  public static void startServer(AbstractServer server, Logger LOG) throws Exception {
+    try {
+      server.runServer();
+    } catch (Throwable e) {
+      System.err
+          .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
+      e.printStackTrace();
+      LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
+      throw e;
+    } finally {
+      try {
+        server.close();
+      } catch (Throwable e) {
+        System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
+        e.printStackTrace();
+        LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
+        throw e;
+      }
+    }
+  }
+
   private final MetricSource metricSource;
   private final ServerContext context;
   protected final String applicationName;
@@ -82,7 +103,7 @@ public abstract class AbstractServer
   private final AtomicReference<HostAndPort> advertiseAddress; // used for everything but the Thrift
                                                                // server (e.g. ZK, metadata, etc).
   private final String bindAddress; // used for the Thrift server
-  private final String resourceGroup;
+  private final ResourceGroupId resourceGroup;
   private final Logger log;
   private final ProcessMetrics processMetrics;
   protected final long idleReportingPeriodMillis;
@@ -117,8 +138,8 @@ public abstract class AbstractServer
       advertiseAddress = new AtomicReference<>();
     }
     log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
-    this.resourceGroup = getResourceGroupPropertyValue(siteConfig);
-    ClusterConfigParser.validateGroupNames(List.of(resourceGroup));
+    this.resourceGroup = ResourceGroupId.of(getResourceGroupPropertyValue(siteConfig));
+    ClusterConfigParser.validateGroupName(resourceGroup);
     SecurityUtil.serverLogin(siteConfig);
     context = serverContextFactory.apply(siteConfig);
     try {
@@ -137,7 +158,8 @@ public abstract class AbstractServer
     log.info("Instance " + context.getInstanceID());
     context.init(applicationName);
     ClassLoaderUtil.initContextFactory(context.getConfiguration());
-    TraceUtil.initializeTracer(context.getConfiguration());
+    TraceUtil.setProcessTracing(
+        context.getConfiguration().getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED));
     if (context.getSaslParams() != null) {
       // Server-side "client" check to make sure we're logged in as a user we expect to be
       context.enforceKerberosLogin();
@@ -205,7 +227,7 @@ public abstract class AbstractServer
     return Constants.DEFAULT_RESOURCE_GROUP_NAME;
   }
 
-  public String getResourceGroup() {
+  public ResourceGroupId getResourceGroup() {
     return resourceGroup;
   }
 
@@ -387,7 +409,7 @@ public abstract class AbstractServer
 
     response.setServerType(metricSource);
     response.setServer(getAdvertiseAddress().toString());
-    response.setResourceGroup(getResourceGroup());
+    response.setResourceGroup(getResourceGroup().canonical());
     response.setTimestamp(System.currentTimeMillis());
 
     if (context.getMetricsInfo().isMetricsEnabled()) {
@@ -453,7 +475,11 @@ public abstract class AbstractServer
   }
 
   @Override
-  public void close() {}
+  public void close() {
+    if (context != null) {
+      context.close();
+    }
+  }
 
   protected void waitForUpgrade() throws InterruptedException {
     while (AccumuloDataVersion.getCurrentVersion(getContext()) < AccumuloDataVersion.get()) {

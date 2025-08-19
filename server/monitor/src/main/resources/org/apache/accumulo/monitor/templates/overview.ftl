@@ -28,21 +28,21 @@
           <table class="table table-bordered table-striped table-condensed">
             <thead>
               <tr>
-                <th colspan="2"><a href="/manager">Accumulo Manager</a></th>
+                <th colspan="2"><a href="manager">Accumulo Manager</a></th>
               </tr>
               <tr>
                 <td colspan="2" class="center" style="display:none;"><span class="label label-danger nowrap">Manager is Down</span></td>
               </tr>
               <tr>
-                <td class="left"><a href="/tables">Tables</a></td>
+                <td class="left"><a href="tables">Tables</a></td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left"><a href="/tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="left"><a href="tservers">Total&nbsp;Known&nbsp;Tablet&nbsp;Servers</a></td>
                 <td class="right"></td>
               </tr>
               <tr>
-                <td class="left"><a href="/tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
+                <td class="left"><a href="tservers">Dead&nbsp;Tablet&nbsp;Servers</a></td>
                 <td class="right"></td>
               </tr>
               <tr>

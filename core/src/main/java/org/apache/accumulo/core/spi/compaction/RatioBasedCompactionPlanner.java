@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 import org.apache.accumulo.core.util.NumUtil;
 import org.apache.accumulo.core.util.compaction.CompactionJobPrioritizer;
@@ -136,10 +137,10 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
   }
 
   private static class CompactionGroup {
-    final CompactorGroupId cgid;
+    final ResourceGroupId cgid;
     final Long maxSize;
 
-    public CompactionGroup(CompactorGroupId cgid, Long maxSize) {
+    public CompactionGroup(ResourceGroupId cgid, Long maxSize) {
       Preconditions.checkArgument(maxSize == null || maxSize > 0, "Invalid value for maxSize");
       this.cgid = Objects.requireNonNull(cgid, "Compaction ID is null");
       this.maxSize = maxSize;
@@ -196,7 +197,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
         Long maxSize = groupConfig.maxSize == null ? null
             : ConfigurationTypeHelper.getFixedMemoryAsBytes(groupConfig.maxSize);
 
-        CompactorGroupId cgid;
+        ResourceGroupId cgid;
         String group = Objects.requireNonNull(groupConfig.group, "'group' must be specified");
         cgid = params.getGroupManager().getGroup(group);
         tmpGroups.add(new CompactionGroup(cgid, maxSize));
@@ -271,8 +272,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
 
     // This set represents future files that will be produced by running compactions. If the optimal
     // set of files to compact is computed and contains one of these files, then it's optimal to
-    // wait
-    // for this compaction to finish.
+    // wait for this compaction to finish.
     Set<CompactableFile> expectedFiles = new HashSet<>();
     params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
         .map(job -> getExpected(job.getFiles(), fakeFileGenerator))
@@ -285,14 +285,12 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     while (true) {
       var filesToCompact =
           findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact, maxSizeToCompact);
-      if (!Collections.disjoint(filesToCompact, expectedFiles)) {
-        // the optimal set of files to compact includes the output of a running compaction, so lets
-        // wait for that running compaction to finish.
+      if (filesToCompact.isEmpty()) {
         break;
       }
 
-      if (filesToCompact.isEmpty()) {
-        break;
+      if (Collections.disjoint(filesToCompact, expectedFiles)) {
+        compactionJobs.add(filesToCompact);
       }
 
       filesCopy.removeAll(filesToCompact);
@@ -304,9 +302,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
       Preconditions.checkState(expectedFiles.add(expectedFile));
       Preconditions.checkState(filesCopy.add(expectedFile));
 
-      compactionJobs.add(filesToCompact);
-
-      if (filesToCompact.size() < maxFilesToCompact) {
+      if (filesToCompact.size() < maxFilesToCompact && !compactionJobs.isEmpty()) {
         // Only continue looking for more compaction jobs when a set of files is found equals
         // maxFilesToCompact in size. When the files found is less than the max size its an
         // indication that the compaction ratio was no longer met and therefore it would be
@@ -650,7 +646,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     return sortedFiles.subList(0, larsmaIndex + 1);
   }
 
-  CompactorGroupId getGroup(Collection<CompactableFile> files) {
+  ResourceGroupId getGroup(Collection<CompactableFile> files) {
 
     long size = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
 

@@ -42,6 +42,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.user.WholeRowIterator;
@@ -56,6 +57,7 @@ import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.server.compaction.CompactionJobGenerator;
 import org.apache.accumulo.server.fs.VolumeUtil;
+import org.apache.accumulo.server.iterators.ServerIteratorOptions;
 import org.apache.accumulo.server.iterators.SystemIteratorEnvironment;
 import org.apache.accumulo.server.manager.balancer.BalancerEnvironmentImpl;
 import org.apache.accumulo.server.split.SplitUtils;
@@ -155,13 +157,14 @@ public class TabletManagementIterator extends WholeRowIterator {
     }
   }
 
-  public static void configureScanner(final ScannerBase scanner,
+  public static void configureScanner(AccumuloConfiguration conf, final ScannerBase scanner,
       final TabletManagementParameters tabletMgmtParams) {
     // Note : if the scanner is ever made to fetch columns, then TabletManagement.CONFIGURED_COLUMNS
     // must be updated
     IteratorSetting tabletChange =
         new IteratorSetting(1001, "ManagerTabletInfoIterator", TabletManagementIterator.class);
-    tabletChange.addOption(TABLET_GOAL_STATE_PARAMS_OPTION, tabletMgmtParams.serialize());
+    ServerIteratorOptions.compressOption(conf, tabletChange, TABLET_GOAL_STATE_PARAMS_OPTION,
+        tabletMgmtParams.serialize());
     scanner.addScanIterator(tabletChange);
   }
 
@@ -178,8 +181,9 @@ public class TabletManagementIterator extends WholeRowIterator {
       IteratorEnvironment env) throws IOException {
     super.init(source, options, env);
     this.env = env;
-    tabletMgmtParams =
-        TabletManagementParameters.deserialize(options.get(TABLET_GOAL_STATE_PARAMS_OPTION));
+    String rawParams =
+        ServerIteratorOptions.decompressOption(options, TABLET_GOAL_STATE_PARAMS_OPTION);
+    tabletMgmtParams = TabletManagementParameters.deserialize(rawParams);
     compactionGenerator = new CompactionJobGenerator(env.getPluginEnv(),
         tabletMgmtParams.getCompactionHints(), tabletMgmtParams.getSteadyTime());
     final AccumuloConfiguration conf = new ConfigurationCopy(env.getPluginEnv().getConfiguration());
@@ -232,26 +236,45 @@ public class TabletManagementIterator extends WholeRowIterator {
     };
 
     final Set<ManagementAction> actions = new HashSet<>();
-    final TabletMetadata tm =
-        TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
-
-    Exception error = null;
+    String errorMsg = null;
+    TabletMetadata tm = null;
+    KeyExtent extent = null;
+    final String row = keys.get(0) == null ? "no key" : keys.get(0).getRow().toString();
     try {
-      LOG.trace("Evaluating extent: {}", tm);
-      computeTabletManagementActions(tm, actions);
-    } catch (Exception e) {
-      LOG.error("Error computing tablet management actions for extent: {}", tm.getExtent(), e);
-      error = e;
+      tm = TabletMetadata.convertRow(kvIter, TabletManagement.CONFIGURED_COLUMNS, false, true);
+    } catch (RuntimeException e) {
+      LOG.error("Failed to convert tablet metadata at row: {}", row, e);
+      errorMsg = "Failed to convert tablet metadata at row:" + row + ", error: " + e.getMessage();
+    }
+    if (errorMsg == null) {
+      try {
+        // Validate that a minimum set of keys were seen to create a valid tablet
+        extent = tm.getExtent();
+      } catch (IllegalStateException e) {
+        LOG.error("Irregular tablet metadata encountered: {}", tm, e);
+        errorMsg =
+            "Irregular tablet metadata encountered at row: " + row + ", error: " + e.getMessage();
+      }
+    }
+    if (errorMsg == null) {
+      try {
+        LOG.trace("Evaluating extent: {}", tm);
+        computeTabletManagementActions(tm, actions);
+      } catch (Exception e) {
+        LOG.error("Error computing tablet management actions for extent: {}", extent, e);
+        errorMsg = "Error computing tablet management actions for extent: " + extent.toString()
+            + ", error: " + e.getMessage();
+      }
     }
 
-    if (!actions.isEmpty() || error != null) {
-      if (error != null) {
+    if (!actions.isEmpty() || errorMsg != null) {
+      if (errorMsg != null) {
         // Insert the error into K,V pair representing
         // the tablet metadata.
         TabletManagement.addError((k, v) -> {
           keys.add(k);
           values.add(v);
-        }, currentRow, error);
+        }, currentRow, errorMsg);
       } else if (!actions.isEmpty()) {
         // If we simply returned here, then the client would get the encoded K,V
         // from the WholeRowIterator. However, it would not know the reason(s) why
@@ -266,11 +289,11 @@ public class TabletManagementIterator extends WholeRowIterator {
       // This key is being created exactly the same way as the whole row iterator creates keys.
       // This is important for ensuring that seek works as expected in the continue case. See
       // WholeRowIterator seek function for details, it looks for keys w/o columns.
-      LOG.trace("Returning extent {} with reasons: {}", tm.getExtent(), actions);
+      LOG.trace("Returning extent {} with reasons: {}, error: {}", extent, actions, errorMsg);
       return true;
     }
 
-    LOG.trace("No reason to return extent {}, continuing", tm.getExtent());
+    LOG.trace("No reason to return extent {}, continuing", extent);
     return false;
   }
 

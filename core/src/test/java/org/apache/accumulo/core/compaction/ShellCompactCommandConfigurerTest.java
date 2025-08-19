@@ -79,17 +79,22 @@ public class ShellCompactCommandConfigurerTest {
       }
 
       @Override
-      public TabletId getTabletId() {
-        return null;
-      }
-
-      @Override
       public Collection<CompactableFile> getInputFiles() {
         return files;
       }
 
       @Override
       public Set<CompactableFile> getSelectedFiles() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public TabletId getTabletId() {
+        throw new UnsupportedOperationException();
+      }
+
+      @Override
+      public URI getOutputFile() {
         throw new UnsupportedOperationException();
       }
 

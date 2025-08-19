@@ -24,12 +24,12 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import java.util.HashMap;
 import java.util.UUID;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -133,8 +133,8 @@ public class ZombieTServer {
 
     String addressString = serverPort.address.toString();
 
-    var zLockPath = context.getServerPaths()
-        .createTabletServerPath(Constants.DEFAULT_RESOURCE_GROUP_NAME, serverPort.address);
+    var zLockPath = context.getServerPaths().createTabletServerPath(ResourceGroupId.DEFAULT,
+        serverPort.address);
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
     zoo.putPersistentData(zLockPath.toString(), new byte[] {}, NodeExistsPolicy.SKIP);
 
@@ -142,7 +142,7 @@ public class ZombieTServer {
 
     MetricsInfo metricsInfo = context.getMetricsInfo();
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
-        serverPort.address, Constants.DEFAULT_RESOURCE_GROUP_NAME));
+        serverPort.address, ResourceGroupId.DEFAULT));
 
     LockWatcher lw = new LockWatcher() {
 
@@ -172,7 +172,7 @@ public class ZombieTServer {
     };
 
     if (zlock.tryLock(lw, new ServiceLockData(UUID.randomUUID(), addressString, ThriftService.TSERV,
-        Constants.DEFAULT_RESOURCE_GROUP_NAME))) {
+        ResourceGroupId.DEFAULT))) {
       log.debug("Obtained tablet server lock {}", zlock.getLockPath());
     }
     // modify metadata

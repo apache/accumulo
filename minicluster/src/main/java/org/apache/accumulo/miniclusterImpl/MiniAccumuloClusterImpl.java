@@ -61,7 +61,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.cluster.AccumuloCluster;
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -77,6 +76,7 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
@@ -206,7 +206,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     java.nio.file.Path confDir = config.getConfDir().toPath();
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       java.nio.file.Path configPath = config.getAccumuloDir().toPath();
       java.nio.file.Path nn = configPath.resolve("nn");
       mkdirs(nn);
@@ -225,7 +225,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       config.getHadoopConfOverrides().forEach((k, v) -> conf.set(k, v));
       String oldTestBuildData =
           System.setProperty("test.build.data", dfs.toAbsolutePath().toString());
-      miniDFS.set(new MiniDFSCluster.Builder(conf).build());
+      miniDFS.set(new MiniDFSCluster.Builder(conf).numDataNodes(config.getNumDataNodes()).build());
       if (oldTestBuildData == null) {
         System.clearProperty("test.build.data");
       } else {
@@ -517,7 +517,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     Preconditions.checkState(clusterState != State.TERMINATED,
         "Cannot start a cluster that is terminated.");
 
-    if (config.useMiniDFS() && miniDFS.get() == null) {
+    if (config.getUseMiniDFS() && miniDFS.get() == null) {
       throw new IllegalStateException("Cannot restart mini when using miniDFS");
     }
 
@@ -720,8 +720,8 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       } catch (KeeperException | InterruptedException e) {
         throw new IllegalStateException("Error creating path in ZooKeeper", e);
       }
-      ServiceLockData sld = new ServiceLockData(miniUUID, "localhost", ThriftService.NONE,
-          Constants.DEFAULT_RESOURCE_GROUP_NAME);
+      ServiceLockData sld =
+          new ServiceLockData(miniUUID, "localhost", ThriftService.NONE, ResourceGroupId.DEFAULT);
       miniLock = new ServiceLock(miniLockZk, slp, miniUUID);
       miniLock.lock(miniLockWatcher, sld);
 
@@ -1032,7 +1032,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
     }
 
     var miniDFSActual = miniDFS.get();
-    if (config.useMiniDFS() && miniDFSActual != null) {
+    if (config.getUseMiniDFS() && miniDFSActual != null) {
       miniDFSActual.shutdown();
     }
     for (Process p : cleanup) {
@@ -1170,7 +1170,7 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
   @Override
   public Path getTemporaryPath() {
     String p;
-    if (config.useMiniDFS()) {
+    if (config.getUseMiniDFS()) {
       p = "/tmp/";
     } else {
       java.nio.file.Path tmp = config.getDir().toPath().resolve("tmp");

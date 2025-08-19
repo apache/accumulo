@@ -450,6 +450,7 @@ public class ScanServer extends AbstractServer
       }
 
       context.getLowMemoryDetector().logGCInfo(getConfiguration());
+      super.close();
       getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
       try {
@@ -1136,9 +1137,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
-      tserver.runServer();
-    }
+    AbstractServer.startServer(new ScanServer(new ConfigOpts(), args), LOG);
   }
 
 }

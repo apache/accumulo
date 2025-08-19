@@ -174,7 +174,8 @@ public class IteratorConfigUtil {
    */
   public static SortedKeyValueIterator<Key,Value> convertItersAndLoad(IteratorScope scope,
       SortedKeyValueIterator<Key,Value> source, AccumuloConfiguration conf,
-      List<IteratorSetting> iterators, IteratorEnvironment env) throws IOException {
+      List<IteratorSetting> iterators, IteratorEnvironment env)
+      throws IOException, ReflectiveOperationException {
 
     List<IterInfo> ssiList = new ArrayList<>();
     Map<String,Map<String,String>> ssio = new HashMap<>();
@@ -194,7 +195,7 @@ public class IteratorConfigUtil {
    */
   public static SortedKeyValueIterator<Key,Value>
       loadIterators(SortedKeyValueIterator<Key,Value> source, IteratorBuilder iteratorBuilder)
-          throws IOException {
+          throws IOException, ReflectiveOperationException {
     SortedKeyValueIterator<Key,Value> prev = source;
     final boolean useClassLoader = iteratorBuilder.useAccumuloClassLoader;
     Map<String,Class<SortedKeyValueIterator<Key,Value>>> classCache = new HashMap<>();
@@ -227,7 +228,9 @@ public class IteratorConfigUtil {
         prev = skvi;
       }
     } catch (ReflectiveOperationException e) {
-      log.error(e.toString());
+      log.error("Failed to load iterators for table {}, from context {}. Msg: {}",
+          iteratorBuilder.iteratorEnvironment.getTableId(), iteratorBuilder.context, e.toString());
+      // This has to be a RuntimeException to be handled properly to fail the scan
       throw new IllegalStateException(e);
     }
     return prev;

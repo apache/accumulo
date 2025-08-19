@@ -1160,6 +1160,7 @@ public class NamespacesIT_SimpleSuite extends SharedMiniClusterBase {
     assertNoNamespace(() -> ops.setProperty(namespace, "k", "v"));
     assertNoNamespace(() -> ops.testClassLoad(namespace, VersioningIterator.class.getName(),
         SortedKeyValueIterator.class.getName()));
+    assertNoNamespace(() -> ops.getNamespaceProperties(namespace));
 
     // namespace operations that should throw a NamespaceExistsException
     assertNamespaceExists(() -> ops.create(Namespace.DEFAULT.name()));

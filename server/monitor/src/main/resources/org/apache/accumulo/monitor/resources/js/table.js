@@ -39,7 +39,7 @@ function refresh() {
  * Makes the REST call to fetch tablet details and render them.
  */
 function initTabletsTable(tableId) {
-  var tabletsUrl = '/rest-v2/tables/' + tableId + '/tablets';
+  var tabletsUrl = contextPath + 'rest-v2/tables/' + tableId + '/tablets';
   console.debug('Fetching tablets info from: ' + tabletsUrl);
 
   tabletsTable = $('#tabletsList').DataTable({
@@ -101,11 +101,11 @@ function initTabletsTable(tableId) {
 
 /**
  * Initialize the table
- * 
+ *
  * @param {String} tableId the accumulo table ID
  */
 function initTableServerTable(tableId) {
-  const url = '/rest-v2/tables/' + tableId;
+  const url = contextPath + 'rest-v2/tables/' + tableId;
   console.debug('REST url used to fetch summary data: ' + url);
 
   tableServersTable = $('#participatingTServers').DataTable({

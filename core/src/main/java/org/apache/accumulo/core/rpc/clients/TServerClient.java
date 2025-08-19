@@ -33,9 +33,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
@@ -175,6 +178,19 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
+      } catch (ThriftTableOperationException ttoe) {
+        TableNotFoundException tnfe;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe);
+            throw new AccumuloException(tnfe);
+          case NAMESPACE_NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe.getTableName(),
+                new NamespaceNotFoundException(ttoe));
+            throw new AccumuloException(tnfe);
+          default:
+            throw new AccumuloException(ttoe);
+        }
       } catch (TException e) {
         throw new AccumuloException(e);
       } finally {
@@ -203,6 +219,19 @@ public interface TServerClient<C extends TServiceClient> {
       } catch (TTransportException tte) {
         LOG.debug("ClientService request failed " + server + ", retrying ... ", tte);
         sleepUninterruptibly(100, MILLISECONDS);
+      } catch (ThriftTableOperationException ttoe) {
+        TableNotFoundException tnfe;
+        switch (ttoe.getType()) {
+          case NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe);
+            throw new AccumuloException(tnfe);
+          case NAMESPACE_NOTFOUND:
+            tnfe = new TableNotFoundException(ttoe.getTableName(),
+                new NamespaceNotFoundException(ttoe));
+            throw new AccumuloException(tnfe);
+          default:
+            throw new AccumuloException(ttoe);
+        }
       } catch (TException e) {
         throw new AccumuloException(e);
       } finally {

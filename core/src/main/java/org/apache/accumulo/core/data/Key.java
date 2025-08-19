@@ -562,7 +562,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * instead.
    *
    * @see #builder()
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public Key(ByteSequence row, ByteSequence cf, ByteSequence cq, ByteSequence cv, long ts) {
     byte[] rowBytes;
@@ -733,7 +733,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    * @param r <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ArrayByteSequence getRowData(ArrayByteSequence r) {
     r.reset(row, 0, row.length);
@@ -777,7 +777,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    * @param cf <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ArrayByteSequence getColumnFamilyData(ArrayByteSequence cf) {
     cf.reset(colFamily, 0, colFamily.length);
@@ -836,7 +836,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    * @param cq <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ArrayByteSequence getColumnQualifierData(ArrayByteSequence cq) {
     cq.reset(colQualifier, 0, colQualifier.length);
@@ -930,7 +930,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    *
    * @param cv <code>ArrayByteSequence</code> object to copy into
    * @return the <code>ArrayByteSequence</code> that was passed in
-   * @since 3.1.0
+   * @since 4.0.0
    */
   public ArrayByteSequence getColumnVisibilityData(ArrayByteSequence cv) {
     cv.reset(colVisibility, 0, colVisibility.length);
@@ -1292,17 +1292,10 @@ public class Key implements WritableComparable<Key>, Cloneable {
     last--;
 
     if (a1[last] == a2[last]) {
-      for (int i = 0; i < last; i++) {
-        if (a1[i] != a2[i]) {
-          return false;
-        }
-      }
+      return Arrays.equals(a1, a2);
     } else {
       return false;
     }
-
-    return true;
-
   }
 
   /**

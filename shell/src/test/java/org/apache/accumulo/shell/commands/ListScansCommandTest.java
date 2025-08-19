@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.function.BiPredicate;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -97,13 +98,13 @@ public class ListScansCommandTest {
     List<String> matching = List.of(".*", "test.*", ".*group", "testgroup");
     for (String rgRegex : matching) {
       var predicate = buildResourceGroupPredicate(opts, parser, rgRegex);
-      assertTrue(predicate.test("testgroup"));
+      assertTrue(predicate.test(ResourceGroupId.of("testgroup")));
     }
 
     List<String> nonMatching = List.of(".*gro", "test.*gr", "testgroup1", "tg.*");
     for (String rgRegex : nonMatching) {
       var predicate = buildResourceGroupPredicate(opts, parser, rgRegex);
-      assertFalse(predicate.test("testgroup"));
+      assertFalse(predicate.test(ResourceGroupId.of("testgroup")));
     }
   }
 
@@ -117,8 +118,8 @@ public class ListScansCommandTest {
     return ListScansCommand.serverRegexPredicate(cli.getOptionValue(serverOpt));
   }
 
-  static Predicate<String> buildResourceGroupPredicate(Options opts, CommandLineParser parser,
-      String rgRegex) throws ParseException {
+  static Predicate<ResourceGroupId> buildResourceGroupPredicate(Options opts,
+      CommandLineParser parser, String rgRegex) throws ParseException {
 
     // Test flag works for resource group regex
     String[] args = {"-rg", rgRegex};

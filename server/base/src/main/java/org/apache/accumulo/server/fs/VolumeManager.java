@@ -25,6 +25,7 @@ import java.net.UnknownHostException;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.InstanceId;
@@ -168,7 +169,7 @@ public interface VolumeManager extends AutoCloseable {
    * This operation should be idempotent to allow calling multiple times in the case of a partial
    * completion.
    */
-  void bulkRename(Map<Path,Path> oldToNewPathMap, int poolSize, String poolName, FateId fateId)
+  void bulkRename(Map<Path,Path> oldToNewPathMap, ExecutorService workerPool, FateId fateId)
       throws IOException;
 
   // forward to the appropriate FileSystem object

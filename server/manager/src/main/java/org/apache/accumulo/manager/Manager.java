@@ -26,6 +26,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.IMPORT_TABLE_RENAME_POOL;
 
 import java.io.IOException;
 import java.net.UnknownHostException;
@@ -86,6 +87,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
+import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
@@ -101,6 +103,7 @@ import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.core.util.time.SteadyTime;
@@ -159,6 +162,13 @@ import io.opentelemetry.context.Scope;
 public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
   static final Logger log = LoggerFactory.getLogger(Manager.class);
+
+  // When in safe mode totalAssignedOrHosted() is called every 10s
+  // which logs 3 messages about assigned tablets, 1 message
+  // per TabletGroupWatcher. This DeduplicatingLogger slows
+  // down the log messages to once per minute.
+  private static final DeduplicatingLogger DEDUPE_LOG =
+      new DeduplicatingLogger(log, Duration.ofMinutes(1), 6);
 
   static final int ONE_SECOND = 1000;
   static final long CLEANUP_INTERVAL_MINUTES = 5;
@@ -256,6 +266,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private final TabletStateStore rootTabletStore;
   private final TabletStateStore metadataTabletStore;
   private final TabletStateStore userTabletStore;
+  private final ExecutorService renamePool;
 
   public synchronized ManagerState getManagerState() {
     return state;
@@ -388,7 +399,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       for (Entry<TableId,TableCounts> entry : watcher.getStats().entrySet()) {
         var tableId = entry.getKey();
         var counts = entry.getValue();
-        log.debug(
+        DEDUPE_LOG.debug(
             "Watcher: {}: TableId: {}, Assigned Tablets: {}, Hosted Tablets:{}, "
                 + " Unassigned Tablets: {}, Dead tserver assignments: {}, Suspended Tablets: {}",
             watcher.getName(), tableId, counts.assigned(), counts.hosted(), counts.unassigned(),
@@ -470,14 +481,15 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   }
 
   public static void main(String[] args) throws Exception {
-    try (Manager manager = new Manager(new ConfigOpts(), ServerContext::new, args)) {
-      manager.runServer();
-    }
+    AbstractServer.startServer(new Manager(new ConfigOpts(), ServerContext::new, args), log);
   }
 
   protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
+    int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
+    renamePool = ThreadPools.getServerThreadPools()
+        .getPoolBuilder(IMPORT_TABLE_RENAME_POOL.poolName).numCoreThreads(poolSize).build();
     ServerContext context = super.getContext();
     upgradeCoordinator = new UpgradeCoordinator(context);
     balanceManager = new BalanceManager();
@@ -486,8 +498,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     log.info("Version {}", Constants.VERSION);
     log.info("Instance {}", context.getInstanceID());
-    timeKeeper = new ManagerTime(this, aconf);
-    tserverSet = new LiveTServerSet(context, this);
+    timeKeeper = new ManagerTime();
+    tserverSet = new LiveTServerSet(context);
 
     final long tokenLifetime = aconf.getTimeInMillis(Property.GENERAL_DELEGATION_TOKEN_LIFETIME);
 
@@ -896,6 +908,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     final ServerContext context = getContext();
 
     balanceManager.setManager(this);
+    try {
+      timeKeeper.setManager(this);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
 
     // ACCUMULO-4424 Put up the Thrift servers before getting the lock as a sign of process health
     // when a hot-standby
@@ -952,7 +969,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     Thread statusThread = Threads.createCriticalThread("Status Thread", new StatusThread());
     statusThread.start();
 
-    tserverSet.startListeningForTabletServerChanges();
+    tserverSet.startListeningForTabletServerChanges(this);
     try {
       blockForTservers();
     } catch (InterruptedException ex) {
@@ -1196,13 +1213,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       }
     }
 
-    log.debug("Shutting down fate.");
-    getFateRefs().keySet().forEach(type -> fate(type).shutdown(0, MINUTES));
-
-    splitter.stop();
-
     log.debug("Stopping Thrift Servers");
     getThriftServer().stop();
+    while (getThriftServer().isServing()) {
+      UtilWaitThread.sleep(100);
+    }
+
+    log.debug("Shutting down fate.");
+    getFateRefs().keySet().forEach(type -> fate(type).close());
+
+    splitter.stop();
 
     final long deadline = System.currentTimeMillis() + MAX_CLEANUP_WAIT_TIME;
     try {
@@ -1237,6 +1257,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
+    super.close();
     getShutdownComplete().set(true);
     log.info("stop requested. exiting ... ");
     try {
@@ -1496,9 +1517,12 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   }
 
   // recovers state from the persistent transaction to shutdown a server
-  public void shutdownTServer(TServerInstance server) {
-    nextEvent.event("Tablet Server shutdown requested for %s", server);
-    serversToShutdown.add(server);
+  public boolean shutdownTServer(TServerInstance server) {
+    if (serversToShutdown.add(server)) {
+      nextEvent.event("Tablet Server shutdown requested for %s", server);
+      return true;
+    }
+    return false;
   }
 
   public EventCoordinator getEventCoordinator() {
@@ -1603,5 +1627,14 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   @Override
   public ServiceLock getLock() {
     return managerLock;
+  }
+
+  /**
+   * Get Threads Pool instance which is used by blocked I/O
+   *
+   * @return {@link ExecutorService}
+   */
+  public ExecutorService getRenamePool() {
+    return this.renamePool;
   }
 }
