@@ -89,7 +89,7 @@ public abstract class AbstractServer
 
     try (var unused = ac) {
       server.runServer();
-    } catch (Exception e) {
+    } catch (Throwable e) {
       System.err
           .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
       e.printStackTrace();
