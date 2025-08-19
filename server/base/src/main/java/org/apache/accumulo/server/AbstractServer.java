@@ -79,7 +79,7 @@ public abstract class AbstractServer
     AutoCloseable ac = () -> {
       try {
         server.close();
-      } catch (Exception e) {
+      } catch (Throwable e) {
         System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
         e.printStackTrace();
         LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
