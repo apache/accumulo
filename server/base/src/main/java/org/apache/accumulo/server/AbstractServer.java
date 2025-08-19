@@ -76,7 +76,15 @@ public abstract class AbstractServer
   }
 
   public static void startServer(AbstractServer server, Logger LOG) throws Exception {
-    AutoCloseable ac = () -> {
+    try {
+      server.runServer();
+    } catch (Throwable e) {
+      System.err
+          .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
+      e.printStackTrace();
+      LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
+      throw e;
+    } finally {
       try {
         server.close();
       } catch (Throwable e) {
@@ -85,16 +93,6 @@ public abstract class AbstractServer
         LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
         throw e;
       }
-    };
-
-    try (var unused = ac) {
-      server.runServer();
-    } catch (Throwable e) {
-      System.err
-          .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
-      e.printStackTrace();
-      LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
-      throw e;
     }
   }
 
