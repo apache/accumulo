@@ -208,13 +208,12 @@ public class TableOperationsIT extends AccumuloClusterHarness {
   @Test
   public void testDefendAgainstThreadsCreateSameTableNameConcurrently()
       throws ExecutionException, InterruptedException {
-
+    final int initialTableSize = accumuloClient.tableOperations().list().size();
     final int numTasks = 10;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
     for (String tablename : getUniqueNames(30)) {
       CountDownLatch startSignal = new CountDownLatch(1);
-      CountDownLatch doneSignal = new CountDownLatch(numTasks);
       AtomicInteger numTasksRunning = new AtomicInteger(0);
 
       List<Future<Boolean>> futureList = new ArrayList<>();
@@ -229,11 +228,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
             result = true;
           } catch (TableExistsException e) {
             result = false;
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            result = false;
-          } finally {
-            doneSignal.countDown();
           }
           return result;
         });
@@ -243,8 +237,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       Wait.waitFor(() -> numTasksRunning.get() == numTasks);
 
       startSignal.countDown();
-
-      doneSignal.await();
 
       int taskSucceeded = 0;
       int taskFailed = 0;
@@ -259,6 +251,8 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       assertEquals(1, taskSucceeded);
       assertEquals(9, taskFailed);
     }
+
+    assertEquals(30, accumuloClient.tableOperations().list().size() - initialTableSize);
 
     pool.shutdown();
   }
