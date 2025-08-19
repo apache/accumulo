@@ -208,6 +208,31 @@ public class DistributedReadWriteLockTest {
   }
 
   @Test
+  public void testRangeBounds() {
+
+    QueueLock qlock = new MockQueueLock();
+
+    FateId fateIdInfToE = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rInfToE = LockRange.of(null, "E");
+
+    FateId fateIdEtoM = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rEtoM = LockRange.of("E", "M");
+
+    FateId fateIdMtoInf = FateId.from(FateInstanceType.USER, UUID.randomUUID());
+    var rMtoInf = LockRange.of("M", null);
+
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdInfToE, rInfToE).writeLock().tryLock());
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdEtoM, rEtoM).writeLock().tryLock());
+    assertTrue(new DistributedReadWriteLock(qlock, fateIdMtoInf, rMtoInf).writeLock().tryLock());
+
+    recover(qlock, fateIdInfToE, rInfToE, LockType.WRITE).unlock();
+    recover(qlock, fateIdEtoM, rEtoM, LockType.WRITE).unlock();
+    recover(qlock, fateIdMtoInf, rMtoInf, LockType.WRITE).unlock();
+
+    assertTrue(qlock.getEntries((id, data) -> true).isEmpty());
+  }
+
+  @Test
   public void testFateLockEntrySerDes() {
     var uuid = UUID.randomUUID();
     var entry = FateLockEntry.from(LockType.READ, FateId.from(FateInstanceType.USER, uuid),
