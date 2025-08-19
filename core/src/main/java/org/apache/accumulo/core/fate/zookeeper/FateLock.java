@@ -110,7 +110,7 @@ public class FateLock implements QueueLock {
       }
     }
 
-    private Text decode(String enc) {
+    private Text decodeRow(String enc) {
       if (enc.charAt(0) == 'P') {
         return new Text(Base64.getDecoder().decode(enc.substring(1)));
       } else if (enc.charAt(0) == 'N') {
