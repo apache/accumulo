@@ -101,8 +101,9 @@ public class ExitCodesIT_SimpleSuite extends SharedMiniClusterBase {
       final TerminalBehavior behavior = TerminalBehavior.valueOf(methodBehavior);
 
       // Determine the constructor arguments and parameters for each server class.
-      // Find a method with no-args called during the servers run method that
-      // we can intercept to signal shutdown, exception, or error.
+      // Find a method with no-args that does not return anything that is
+      // called during the servers run method that we can intercept to signal
+      // shutdown, exception, or error.
       final Class<? extends AbstractServer> serverClass;
       final String methodName;
       final Class<?>[] ctorParams;
@@ -125,7 +126,7 @@ public class ExitCodesIT_SimpleSuite extends SharedMiniClusterBase {
           break;
         case MANAGER:
           serverClass = Manager.class;
-          methodName = "getThriftServer";
+          methodName = "mainWait";
           ctorParams = new Class<?>[] {ConfigOpts.class, Function.class, String[].class};
           ctorArgs = new Object[] {new ConfigOpts(), new ServerContextFunction(), new String[] {}};
           break;
@@ -166,8 +167,7 @@ public class ExitCodesIT_SimpleSuite extends SharedMiniClusterBase {
           break;
         case SHUTDOWN:
           implementation =
-              MethodCall.invoke(AbstractServer.class.getMethod("requestShutdownForTests"))
-                  .andThen(MethodCall.invoke(serverClass.getMethod(methodName)));
+              MethodCall.invoke(AbstractServer.class.getMethod("requestShutdownForTests"));
           break;
         default:
           throw new UnsupportedOperationException(behavior + " is not currently supported");

@@ -1206,7 +1206,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       }
       try {
-        Thread.sleep(500);
+        mainWait();
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
@@ -1263,6 +1263,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // all of the ephemeral nodes and forces the watches to fire.
     getShutdownComplete().set(true);
     super.close();
+  }
+
+  // method exists for ExitCodesIT
+  public void mainWait() throws InterruptedException {
+    Thread.sleep(500);
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {
