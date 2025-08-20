@@ -708,14 +708,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     context.getLowMemoryDetector().logGCInfo(getConfiguration());
-    super.close();
+    // Must set shutdown as completed before calling super.close().
+    // super.close() calls ServerContext.close() ->
+    // ClientContext.close() -> ZooSession.close() which removes
+    // all of the ephemeral nodes and forces the watches to fire.
     getShutdownComplete().set(true);
-    log.info("TServerInfo: stop requested. exiting ... ");
-    try {
-      tabletServerLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release tablet server lock", e);
-    }
+    super.close();
   }
 
   private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client iface,

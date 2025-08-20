@@ -93,7 +93,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
 
   private final Timer lastCompactorCheck = Timer.startNew();
 
-  SimpleGarbageCollector(ConfigOpts opts, String[] args) {
+  protected SimpleGarbageCollector(ConfigOpts opts, String[] args) {
     super(ServerId.Type.GARBAGE_COLLECTOR, opts, ServerContext::new, args);
 
     final AccumuloConfiguration conf = getConfiguration();
@@ -352,15 +352,12 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         gracefulShutdown(getContext().rpcCreds());
       }
     }
-    super.close();
+    // Must set shutdown as completed before calling super.close().
+    // super.close() calls ServerContext.close() ->
+    // ClientContext.close() -> ZooSession.close() which removes
+    // all of the ephemeral nodes and forces the watches to fire.
     getShutdownComplete().set(true);
-    log.info("stop requested. exiting ... ");
-    try {
-      gcLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release GarbageCollector lock", e);
-    }
-
+    super.close();
   }
 
   private void incrementStatsForRun(GCRun gcRun) {
@@ -370,7 +367,8 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
     status.current.errors += gcRun.getErrorsStat();
   }
 
-  private void logStats() {
+  // public for ExitCodesIT
+  public void logStats() {
     log.info("Number of data file candidates for deletion: {}", status.current.candidates);
     log.info("Number of data file candidates still in use: {}", status.current.inUse);
     log.info("Number of successfully deleted data files: {}", status.current.deleted);

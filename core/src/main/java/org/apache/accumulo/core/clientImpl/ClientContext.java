@@ -918,20 +918,25 @@ public class ClientContext implements AccumuloClient {
   @Override
   public synchronized void close() {
     if (closed.compareAndSet(false, true)) {
-      if (zooCacheCreated.get()) {
-        zooCache.get().close();
-      }
-      if (zooKeeperOpened.get()) {
-        zooSession.get().close();
-      }
       if (thriftTransportPool != null) {
+        log.info("Closing Thrift Transport Pool");
         thriftTransportPool.shutdown();
       }
       if (scannerReadaheadPool != null) {
+        log.info("Closing Scanner ReadAhead Pool");
         scannerReadaheadPool.shutdownNow(); // abort all tasks, client is shutting down
       }
       if (cleanupThreadPool != null) {
+        log.info("Closing Cleanup ThreadPool");
         cleanupThreadPool.shutdown(); // wait for shutdown tasks to execute
+      }
+      if (zooCacheCreated.get()) {
+        log.info("Closing ZooCache");
+        zooCache.get().close();
+      }
+      if (zooKeeperOpened.get()) {
+        log.info("Closing ZooSession");
+        zooSession.get().close();
       }
     }
   }

@@ -450,17 +450,12 @@ public class ScanServer extends AbstractServer
       }
 
       context.getLowMemoryDetector().logGCInfo(getConfiguration());
-      super.close();
+      // Must set shutdown as completed before calling super.close().
+      // super.close() calls ServerContext.close() ->
+      // ClientContext.close() -> ZooSession.close() which removes
+      // all of the ephemeral nodes and forces the watches to fire.
       getShutdownComplete().set(true);
-      LOG.info("stop requested. exiting ... ");
-      try {
-        if (null != lock) {
-          lock.unlock();
-        }
-      } catch (Exception e) {
-        LOG.warn("Failed to release scan server lock", e);
-      }
-
+      super.close();
     }
   }
 

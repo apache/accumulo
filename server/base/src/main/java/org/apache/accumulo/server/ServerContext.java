@@ -522,9 +522,11 @@ public class ServerContext extends ClientContext {
       getMetricsInfo().close();
     }
     if (sharedSchedExecutorCreated.get()) {
+      log.info("Shutting down shared executor pool");
       getScheduledExecutor().shutdownNow();
     }
     if (sharedMetadataWriterCreated.get()) {
+      log.info("Shutting down shared metadata conditional writer");
       try {
         ConditionalWriter writer = sharedMetadataWriter.get();
         if (writer != null) {
@@ -535,6 +537,7 @@ public class ServerContext extends ClientContext {
       }
     }
     if (sharedUserWriterCreated.get()) {
+      log.info("Shutting down shared user conditional writer");
       try {
         ConditionalWriter writer = sharedUserWriter.get();
         if (writer != null) {
