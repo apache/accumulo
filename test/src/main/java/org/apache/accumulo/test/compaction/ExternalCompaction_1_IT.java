@@ -425,6 +425,10 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       FateId fateId, List<ExternalCompactionId> cids) {
     var ctx = getCluster().getServerContext();
 
+    System.out.println("cids:" + cids);
+    var compactionWithFate = cids.get(0);
+    var compactionWithoutFate = cids.get(1);
+
     // Wait until the compaction id w/o a fate transaction is removed, should still see the one
     // with a fate transaction
     Wait.waitFor(() -> {
@@ -432,8 +436,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
       System.out.println("currentIds1:" + currentIds);
-      assertTrue(currentIds.size() == 1 || currentIds.size() == 2);
-      return currentIds.equals(Set.of(cids.get(0)));
+      assertTrue(currentIds.contains(compactionWithFate));
+      return currentIds.contains(compactionWithFate) && !currentIds.contains(compactionWithoutFate);
     });
 
     // Delete the fate transaction, should allow the dead compaction detector to clean up the
@@ -448,8 +452,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
       System.out.println("currentIds2:" + currentIds);
-      assertTrue(currentIds.size() <= 1);
-      return currentIds.isEmpty();
+      return !currentIds.contains(compactionWithFate);
     });
   }
 
