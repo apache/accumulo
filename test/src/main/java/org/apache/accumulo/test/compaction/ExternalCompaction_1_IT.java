@@ -122,11 +122,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   private static ServiceLock testLock;
+
+  private static final Logger log = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
@@ -425,7 +429,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       FateId fateId, List<ExternalCompactionId> cids) {
     var ctx = getCluster().getServerContext();
 
-    System.out.println("cids:" + cids);
+    log.info("cids:{}", cids);
     var compactionWithFate = cids.get(0);
     var compactionWithoutFate = cids.get(1);
 
@@ -435,7 +439,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds1:" + currentIds);
+      log.info("currentIds1:{}", currentIds);
       assertTrue(currentIds.contains(compactionWithFate));
       return currentIds.contains(compactionWithFate) && !currentIds.contains(compactionWithoutFate);
     });
@@ -451,7 +455,7 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds2:" + currentIds);
+      log.info("currentIds2:{}", currentIds);
       return !currentIds.contains(compactionWithFate);
     });
   }
