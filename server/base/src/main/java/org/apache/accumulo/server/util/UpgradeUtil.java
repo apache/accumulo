@@ -388,8 +388,10 @@ public class UpgradeUtil implements KeywordExecutable {
         LOG.info("Table {} is configured to use service \"{}\" for compaction kind {}", tableName,
             expectedCompactionService, kind);
         if (!servicesConfig.getPlanners().containsKey(expectedCompactionService.canonical())) {
-          if (tid.equals(SystemTables.ROOT.tableId())
-              || tid.equals(SystemTables.METADATA.tableId())) {
+          if ((tid.equals(SystemTables.ROOT.tableId())
+              && expectedCompactionService.canonical().equals("root"))
+              || (tid.equals(SystemTables.METADATA.tableId())
+                  && expectedCompactionService.canonical().equals("meta"))) {
             LOG.warn(
                 "Table {} is using a default compaction service configuration from a prior version."
                     + " The \"{}\" compaction service configuration is no longer defined. You can either define"
