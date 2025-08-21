@@ -41,8 +41,8 @@ public class IdleRatioScanPrioritizerTest {
     // Two following have never run, so oldest should go first
     scans.add(new TestScanInfo("a", Type.SINGLE, now - 3));
     scans.add(new TestScanInfo("b", Type.SINGLE, now - 8));
-    // Two following have different idle ratio and same last run times. Give these large run times
-    // than e and f so they always come after e and f.
+    // Two following have different idle ratio and same last run times. Give these larger run times
+    // than e and f so they always come after e and f as the idle time varies.
     scans.add(new TestScanInfo("c", Type.SINGLE, now - 16, 2, 20));
     scans.add(new TestScanInfo("d", Type.SINGLE, now - 16, 5, 20));
     // Two following have same idle ratio and different last run times
