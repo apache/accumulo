@@ -64,10 +64,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <ul>
  * <li>Note that the CompactionCoordinator and at least one running Compactor must be assigned to
  * the "large" compactor group.
- * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
- * that will be included in a single compaction.
- * <li>{@code compaction.service.<service>.opts.groups} This is a json array of compactor group
- * objects which have the following fields:
+ * <li>{@code compaction.service.<service>.planner.opts.maxOpen} This determines the maximum number
+ * of files that will be included in a single compaction.
+ * <li>{@code compaction.service.<service>.planner.opts.groups} This is a json array of compactor
+ * group objects which have the following fields:
  * <table>
  * <caption>Default Compaction Planner Group options</caption>
  * <tr>
