@@ -45,7 +45,6 @@ import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 
-import com.google.common.annotations.VisibleForTesting;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
@@ -57,6 +56,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -120,7 +120,7 @@ public class FateExecutor<T> {
             if (pool.isShutdown()) {
               // The exception is expected in this case, no need to spam the logs.
               log.trace("Expected error adding transaction runner to FaTE executor pool. "
-                      + "The pool is shutdown.", e);
+                  + "The pool is shutdown.", e);
             } else {
               // This is bad, FaTE may no longer work!
               log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
@@ -135,7 +135,7 @@ public class FateExecutor<T> {
         // Flag the necessary number of TransactionRunners to safely stop when they are done
         // work on a transaction.
         int numFlagged = (int) runningTxRunners.stream()
-                .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
+            .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
         int numToStop = -1 * (numFlagged + needed);
         for (var runner : runningTxRunners) {
           if (numToStop <= 0) {
@@ -151,7 +151,8 @@ public class FateExecutor<T> {
         // count of the last X minutes of idle Fate threads. If zero 95% of the time, then
         // suggest that the pool size be increased or the fate ops assigned to that pool be
         // split into separate pools.
-        final long interval = Math.min(60, TimeUnit.MILLISECONDS.toMinutes(idleCheckIntervalMillis));
+        final long interval =
+            Math.min(60, TimeUnit.MILLISECONDS.toMinutes(idleCheckIntervalMillis));
         var fateConfigProp = fate.getFateConfigProp();
 
         if (interval == 0) {
@@ -165,15 +166,15 @@ public class FateExecutor<T> {
               }
             }
             boolean needMoreThreads =
-                    (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
+                (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
             if (needMoreThreads) {
               fate.getNeedMoreThreadsWarnCount().incrementAndGet();
               log.warn(
-                      "All {} Fate threads working on the fate ops {} appear to be busy for "
-                              + "the last {} minutes. Consider increasing the value for the "
-                              + "entry in the property {} or splitting the fate ops across "
-                              + "multiple entries/pools.",
-                      fate.getStore().type(), fateOps, interval, fateConfigProp.getKey());
+                  "All {} Fate threads working on the fate ops {} appear to be busy for "
+                      + "the last {} minutes. Consider increasing the value for the "
+                      + "entry in the property {} or splitting the fate ops across "
+                      + "multiple entries/pools.",
+                  fate.getStore().type(), fateOps, interval, fateConfigProp.getKey());
               // Clear the history so that we don't log for interval minutes.
               idleCountHistory.clear();
             } else {
@@ -311,10 +312,12 @@ public class FateExecutor<T> {
       }
 
       if (!fate.getKeepRunning().get() || isShutdown()) {
-        log.debug("FATE work finder for ops {} is gracefully exiting: either FATE is "
+        log.debug(
+            "FATE work finder for ops {} is gracefully exiting: either FATE is "
                 + "being shutdown ({}) and therefore all FATE threads are being shutdown or the "
                 + "FATE threads assigned to work on the ops were invalidated by config changes "
-                + "and are being shutdown ({})", fateOps, !fate.getKeepRunning().get(), isShutdown());
+                + "and are being shutdown ({})",
+            fateOps, !fate.getKeepRunning().get(), isShutdown());
       }
     }
 
