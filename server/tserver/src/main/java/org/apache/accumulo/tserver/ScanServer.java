@@ -400,63 +400,60 @@ public class ScanServer extends AbstractServer
           "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
 
-    try {
-      while (!isShutdownRequested()) {
-        if (Thread.currentThread().isInterrupted()) {
-          LOG.info("Server process thread has been interrupted, shutting down");
-          break;
-        }
-        try {
-          Thread.sleep(1000);
-          updateIdleStatus(sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0);
-        } catch (InterruptedException e) {
-          LOG.info("Interrupt Exception received, shutting down");
-          gracefulShutdown(getContext().rpcCreds());
-        }
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
       }
-    } finally {
-      // Wait for scans to got to zero
-      while (!sessionManager.getActiveScans().isEmpty()) {
-        LOG.debug("Waiting on {} active scans to complete.",
-            sessionManager.getActiveScans().size());
-        UtilWaitThread.sleep(1000);
-      }
-
-      LOG.debug("Stopping Thrift Servers");
-      getThriftServer().stop();
-
       try {
-        LOG.info("Removing server scan references");
-        this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
-            serverLockUUID);
-      } catch (Exception e) {
-        LOG.warn("Failed to remove scan server refs from metadata location", e);
+        Thread.sleep(1000);
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(getContext().rpcCreds());
       }
-
-      try {
-        LOG.debug("Closing filesystems");
-        VolumeManager mgr = getContext().getVolumeManager();
-        if (null != mgr) {
-          mgr.close();
-        }
-      } catch (IOException e) {
-        LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
-      }
-
-      if (tmCacheExecutor != null) {
-        LOG.debug("Shutting down TabletMetadataCache executor");
-        tmCacheExecutor.shutdownNow();
-      }
-
-      context.getLowMemoryDetector().logGCInfo(getConfiguration());
-      // Must set shutdown as completed before calling super.close().
-      // super.close() calls ServerContext.close() ->
-      // ClientContext.close() -> ZooSession.close() which removes
-      // all of the ephemeral nodes and forces the watches to fire.
-      getShutdownComplete().set(true);
-      super.close();
     }
+
+    // Wait for scans to get to zero
+    while (!sessionManager.getActiveScans().isEmpty()) {
+      LOG.debug("Waiting on {} active scans to complete.", sessionManager.getActiveScans().size());
+      UtilWaitThread.sleep(1000);
+    }
+
+    LOG.debug("Stopping Thrift Servers");
+    getThriftServer().stop();
+
+    try {
+      LOG.info("Removing server scan references");
+      this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
+          serverLockUUID);
+    } catch (Exception e) {
+      LOG.warn("Failed to remove scan server refs from metadata location", e);
+    }
+
+    try {
+      LOG.debug("Closing filesystems");
+      VolumeManager mgr = getContext().getVolumeManager();
+      if (null != mgr) {
+        mgr.close();
+      }
+    } catch (IOException e) {
+      LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+    }
+
+    if (tmCacheExecutor != null) {
+      LOG.debug("Shutting down TabletMetadataCache executor");
+      tmCacheExecutor.shutdownNow();
+    }
+
+    context.getLowMemoryDetector().logGCInfo(getConfiguration());
+    // Must set shutdown as completed before calling super.close().
+    // super.close() calls ServerContext.close() ->
+    // ClientContext.close() -> ZooSession.close() which removes
+    // all of the ephemeral nodes and forces the watches to fire.
+    getShutdownComplete().set(true);
+    super.close();
   }
 
   @SuppressWarnings("unchecked")

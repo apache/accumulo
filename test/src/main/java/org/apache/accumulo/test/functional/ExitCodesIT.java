@@ -239,14 +239,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     ProcessInfo pi = getCluster()._exec(ProcessProxy.class, server, Map.of(), new String[] {});
     Wait.waitFor(() -> !pi.getProcess().isAlive(), 120_000);
     int exitValue = pi.getProcess().exitValue();
-    if (server == ServerType.SCAN_SERVER) {
-      // TODO:
-      // Run method closes normally in a finally block
-      // Finally runs regardless of Exception or Error
-      assertEquals(0, exitValue);
-    } else {
-      assertEquals(behavior == TerminalBehavior.SHUTDOWN ? 0 : 1, exitValue);
-    }
+    assertEquals(behavior == TerminalBehavior.SHUTDOWN ? 0 : 1, exitValue);
   }
 
   static Stream<Arguments> generateGarbageCollectorArguments() {
@@ -312,11 +305,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
       ProcessInfo pi = getCluster()._exec(ProcessProxy.class, server, Map.of(), new String[] {});
       Wait.waitFor(() -> !pi.getProcess().isAlive(), 120_000);
       int exitValue = pi.getProcess().exitValue();
-      if (behavior == TerminalBehavior.SHUTDOWN) {
-        assertEquals(0, exitValue);
-      } else {
-        assertEquals(1, exitValue);
-      }
+      assertEquals(behavior == TerminalBehavior.SHUTDOWN ? 0 : 1, exitValue);
     } finally {
       getCluster().getClusterControl().stop(ServerType.MANAGER);
     }
