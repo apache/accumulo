@@ -133,7 +133,7 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(
-      commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  When no port is specified uses ports from tserver.port.client property.")
+      commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  Hostnames only are no longer supported; you must use <host:port>. To Stop all services on a host, use 'accumulo admin serviceStatus' to list all hosts and then pass them to this command.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
         description = "force the given server to stop immediately by removing its lock.  Does not wait for any task the server is currently working.")
@@ -673,6 +673,9 @@ public class Admin implements KeywordExecutable {
 
     if (!hostOnly.isEmpty()) {
       // The old impl of this command with the old behavior
+      log.warn("Stopping by hostname is no longer supported\n\n"
+          + "please use <host:port> instead.\n"
+          + "Top stop all services on host, run 'accumulo admin serviceStatus' to list all host:port values for that host and pass those to 'accumulo admin stop'");
       stopTabletServer(context, hostOnly, force);
     }
 
@@ -732,6 +735,16 @@ public class Admin implements KeywordExecutable {
     }
   }
 
+  /**
+   * Stops tablet servers by hostname
+   *
+   * @param context The server context
+   * @param servers LIst of hostnames (without ports)
+   * @param force Whether to force stop
+   * @deprecated Use servers with host:port format instead. To stop all services on a host use
+   *             service status command to liat all services, then stop them with host:port format.
+   */
+  @Deprecated(since = "4.0.0")
   private static void stopTabletServer(final ClientContext context, List<String> servers,
       final boolean force) throws AccumuloException, AccumuloSecurityException {
     if (context.instanceOperations().getServers(ServerId.Type.MANAGER).isEmpty()) {
