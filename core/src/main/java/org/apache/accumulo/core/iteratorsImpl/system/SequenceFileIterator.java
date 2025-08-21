@@ -38,7 +38,7 @@ import org.apache.hadoop.io.SequenceFile;
 import org.apache.hadoop.io.SequenceFile.Reader;
 import org.apache.hadoop.io.Text;
 
-public class SequenceFileIterator implements FileSKVIterator {
+public final class SequenceFileIterator implements FileSKVIterator {
 
   private final Reader reader;
   private Value top_value;

@@ -88,7 +88,7 @@ public class BloomFilterLayer {
     return loadThreadPool;
   }
 
-  public static class Writer implements FileSKVWriter {
+  public static final class Writer implements FileSKVWriter {
     private DynamicBloomFilter bloomFilter;
     private int numKeys;
     private int vectorSize;
