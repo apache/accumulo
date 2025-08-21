@@ -43,7 +43,7 @@ import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.test.functional.ExitCodesIT_SimpleSuite.ProcessProxy.TerminalBehavior;
+import org.apache.accumulo.test.functional.ExitCodesIT.ProcessProxy.TerminalBehavior;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.accumulo.tserver.ScanServer;
 import org.apache.accumulo.tserver.TabletServer;
@@ -64,7 +64,7 @@ import net.bytebuddy.implementation.MethodCall;
 import net.bytebuddy.matcher.ElementMatchers;
 
 @Tag(MINI_CLUSTER_ONLY)
-public class ExitCodesIT_SimpleSuite extends SharedMiniClusterBase {
+public class ExitCodesIT extends SharedMiniClusterBase {
 
   public static class ServerContextFunction implements Function<SiteConfiguration,ServerContext> {
 
@@ -239,17 +239,13 @@ public class ExitCodesIT_SimpleSuite extends SharedMiniClusterBase {
     ProcessInfo pi = getCluster()._exec(ProcessProxy.class, server, Map.of(), new String[] {});
     Wait.waitFor(() -> !pi.getProcess().isAlive(), 120_000);
     int exitValue = pi.getProcess().exitValue();
-    if (server != ServerType.SCAN_SERVER) {
-      if (behavior == TerminalBehavior.SHUTDOWN) {
-        assertEquals(0, exitValue);
-      } else {
-        assertEquals(1, exitValue);
-      }
-    } else {
+    if (server == ServerType.SCAN_SERVER) {
       // TODO:
       // Run method closes normally in a finally block
       // Finally runs regardless of Exception or Error
       assertEquals(0, exitValue);
+    } else {
+      assertEquals(behavior == TerminalBehavior.SHUTDOWN ? 0 : 1, exitValue);
     }
   }
 
