@@ -105,15 +105,22 @@ public class FateExecutor<T> {
   protected void resizeFateExecutor(Map<Set<Fate.FateOperation>,Integer> poolConfigs,
       long idleCheckIntervalMillis) {
     final var pool = transactionExecutor;
-    final var runningTxRunners = getRunningTxRunners();
+    final var runningTxRunnersCopy = getRunningTxRunners();
     final int configured = poolConfigs.get(fateOps);
     ThreadPools.resizePool(pool, () -> configured, poolName);
-    final int needed = configured - runningTxRunners.size();
+    final int needed = configured - runningTxRunnersCopy.size();
     if (needed > 0) {
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
       for (int i = 0; i < needed; i++) {
         try {
-          pool.execute(new TransactionRunner());
+          final TransactionRunner tr = new TransactionRunner();
+          synchronized (runningTxRunners) {
+            if (pool.isShutdown() || pool.isTerminating()) {
+              return;
+            }
+            runningTxRunners.add(tr);
+            pool.execute(tr);
+          }
         } catch (RejectedExecutionException e) {
           // RejectedExecutionException could be shutting down
           if (pool.isShutdown()) {
@@ -133,10 +140,10 @@ public class FateExecutor<T> {
       // stopped.
       // Flag the necessary number of TransactionRunners to safely stop when they are done
       // work on a transaction.
-      int numFlagged = (int) runningTxRunners.stream()
+      int numFlagged = (int) runningTxRunnersCopy.stream()
           .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
       int numToStop = -1 * (numFlagged + needed);
-      for (var runner : runningTxRunners) {
+      for (var runner : runningTxRunnersCopy) {
         if (numToStop <= 0) {
           break;
         }
@@ -358,7 +365,6 @@ public class FateExecutor<T> {
 
     @Override
     public void run() {
-      runningTxRunners.add(this);
       try {
         while (fate.getKeepRunning().get() && !stop.get()) {
           FateTxStore<T> txStore = null;
@@ -412,7 +418,9 @@ public class FateExecutor<T> {
         }
       } finally {
         log.trace("A TransactionRunner is exiting...");
-        Preconditions.checkState(runningTxRunners.remove(this));
+        synchronized (runningTxRunners) {
+          Preconditions.checkState(runningTxRunners.remove(this));
+        }
       }
     }
 
