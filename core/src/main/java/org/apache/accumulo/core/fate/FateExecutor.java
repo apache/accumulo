@@ -109,30 +109,30 @@ public class FateExecutor<T> {
     final int needed = configured - runningTxRunners.size();
     if (needed > 0) {
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
-      for (int i = 0; i < needed; i++) {
-        log.debug("FateExecutor {} needs {} more TransactionRunners", fateOps, needed);
-        try {
-          final TransactionRunner tr = new TransactionRunner();
-          synchronized (runningTxRunners) {
+      synchronized (runningTxRunners) {
+        for (int i = 0; i < needed; i++) {
+          log.debug("FateExecutor {} needs {} more TransactionRunners", fateOps, needed);
+          try {
+            final TransactionRunner tr = new TransactionRunner();
+              if (transactionExecutor.isShutdown()) {
+                log.debug("Not adding TransactionRunner, FateExecutor is shutdown.");
+                return;
+              }
+              log.debug("Adding a new TransactionRunner for {}", fateOps);
+              runningTxRunners.add(tr);
+              transactionExecutor.execute(tr);
+          } catch (RejectedExecutionException e) {
+            // RejectedExecutionException could be shutting down
             if (transactionExecutor.isShutdown()) {
-              log.debug("Not adding TransactionRunner, FateExecutor is shutdown.");
-              return;
+              // The exception is expected in this case, no need to spam the logs.
+              log.debug("Expected error adding transaction runner to FaTE executor pool. "
+                  + "The pool is shutdown.", e);
+            } else {
+              // This is bad, FaTE may no longer work!
+              log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
             }
-            log.debug("Adding a new TransactionRunner for {}", fateOps);
-            runningTxRunners.add(tr);
-            transactionExecutor.execute(tr);
+            break;
           }
-        } catch (RejectedExecutionException e) {
-          // RejectedExecutionException could be shutting down
-          if (transactionExecutor.isShutdown()) {
-            // The exception is expected in this case, no need to spam the logs.
-            log.debug("Expected error adding transaction runner to FaTE executor pool. "
-                + "The pool is shutdown.", e);
-          } else {
-            // This is bad, FaTE may no longer work!
-            log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
-          }
-          break;
         }
       }
       idleCountHistory.clear();
