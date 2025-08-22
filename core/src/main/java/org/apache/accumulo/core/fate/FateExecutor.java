@@ -56,6 +56,7 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -109,18 +110,18 @@ public class FateExecutor<T> {
     final int needed = configured - runningTxRunners.size();
     if (needed > 0) {
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
+      log.trace("FateExecutor {} needs {} more TransactionRunners", fateOps, needed);
       synchronized (runningTxRunners) {
         for (int i = 0; i < needed; i++) {
-          log.debug("FateExecutor {} needs {} more TransactionRunners", fateOps, needed);
+          if (transactionExecutor.isShutdown()) {
+            log.trace("Not adding TransactionRunner, FateExecutor is shutdown.");
+            return;
+          }
           try {
+            log.trace("Adding a new TransactionRunner for {}", fateOps);
             final TransactionRunner tr = new TransactionRunner();
-              if (transactionExecutor.isShutdown()) {
-                log.debug("Not adding TransactionRunner, FateExecutor is shutdown.");
-                return;
-              }
-              log.debug("Adding a new TransactionRunner for {}", fateOps);
-              runningTxRunners.add(tr);
-              transactionExecutor.execute(tr);
+            runningTxRunners.add(tr);
+            transactionExecutor.execute(tr);
           } catch (RejectedExecutionException e) {
             // RejectedExecutionException could be shutting down
             if (transactionExecutor.isShutdown()) {
@@ -197,14 +198,11 @@ public class FateExecutor<T> {
   }
 
   /**
-   * @return an unmodifiable, shallow copy of the currently running transaction runners
+   * @return the number of currently running transaction runners
    */
-  protected Set<TransactionRunner> getRunningTxRunners() {
-    Set<TransactionRunner> copy;
-    synchronized (runningTxRunners) {
-      copy = new HashSet<>(runningTxRunners);
-    }
-    return Collections.unmodifiableSet(copy);
+  @VisibleForTesting
+  protected int getNumRunningTxRunners() {
+    return runningTxRunners.size();
   }
 
   protected Set<Fate.FateOperation> getFateOps() {
@@ -215,14 +213,14 @@ public class FateExecutor<T> {
    * Initiates the shutdown of this FateExecutor. This means the pool executing TransactionRunners
    * will no longer accept new TransactionRunners, the currently running TransactionRunners will
    * terminate after they are done with their current transaction, if applicable, and the work
-   * finder is interrupted. {@link #isShutdown()} returns true after this is called.
+   * finder is shutdown. {@link #isShutdown()} returns true after this is called.
    */
   protected void initiateShutdown() {
     transactionExecutor.shutdown();
     synchronized (runningTxRunners) {
       runningTxRunners.forEach(TransactionRunner::flagStop);
     }
-    workFinder.interrupt();
+    // work finder will terminate since this.isShutdown() is true
   }
 
   /**
@@ -243,8 +241,8 @@ public class FateExecutor<T> {
     if (timeout > 0) {
       while (((System.nanoTime() - start) < timeUnit.toNanos(timeout)) && isAlive()) {
         if (!transactionExecutor.awaitTermination(1, SECONDS)) {
-          log.debug("Fate {} is waiting for worker threads for fate ops {} to terminate",
-              fate.getStore().type(), fateOps);
+          log.debug("Fate {} is waiting for {} worker threads for fate ops {} to terminate",
+              fate.getStore().type(), runningTxRunners.size(), fateOps);
           continue;
         }
 
@@ -316,18 +314,17 @@ public class FateExecutor<T> {
             }
           });
         } catch (Exception e) {
-          if (!fate.getKeepRunning().get() || isShutdown()) {
-            log.debug("Expected failure while attempting to find work for fate: either fate is "
-                + "being shutdown and therefore all fate threads are being shutdown or the "
-                + "fate threads assigned to work on {} were invalidated by config changes "
-                + "and are being shutdown", fateOps, e);
-          } else {
-            log.warn("Unexpected failure while attempting to find work for fate", e);
-          }
-
+          log.warn("Unexpected failure while attempting to find work for fate", e);
           workQueue.clear();
         }
       }
+
+      log.debug(
+          "FATE work finder for ops {} is gracefully exiting: either FATE is "
+              + "being shutdown ({}) and therefore all FATE threads are being shutdown or the "
+              + "FATE threads for the specific ops are being shutdown (due to FATE shutdown, "
+              + "or due to FATE config changes) ({})",
+          fateOps, !fate.getKeepRunning().get(), isShutdown());
     }
 
     private boolean txCancelledWhileNew(TStatus status, Fate.FateOperation fateOp) {
@@ -428,7 +425,7 @@ public class FateExecutor<T> {
           }
         }
       } finally {
-        log.trace("A TransactionRunner is exiting...");
+        log.debug("A TransactionRunner is exiting...");
         Preconditions.checkState(runningTxRunners.remove(this));
       }
     }

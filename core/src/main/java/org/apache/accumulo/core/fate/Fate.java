@@ -335,7 +335,7 @@ public class Fate<T> {
     synchronized (fateExecutors) {
       for (var fateExecutor : fateExecutors) {
         if (fateExecutor.getFateOps().equals(fateOps)) {
-          return fateExecutor.getRunningTxRunners().size();
+          return fateExecutor.getNumRunningTxRunners();
         }
       }
     }
@@ -349,7 +349,7 @@ public class Fate<T> {
   @VisibleForTesting
   public int getTotalTxRunnersActive() {
     synchronized (fateExecutors) {
-      return fateExecutors.stream().mapToInt(fe -> fe.getRunningTxRunners().size()).sum();
+      return fateExecutors.stream().mapToInt(FateExecutor::getNumRunningTxRunners).sum();
     }
   }
 
