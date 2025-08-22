@@ -117,6 +117,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
       // wait for the FateExecutors to work on the transactions
       Wait.waitFor(() -> env.numWorkers.get() == 2);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        final int goal = 2;
+        log.debug("Waiting for test workers {} to reach goal {}", count, goal);
+        return count == goal;
+      });
       // sum has been verified, verify each term
       Map<Fate.FateOperation,
           Long> seenCounts = store.list()
@@ -128,7 +134,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(expectedCounts, seenCounts);
 
       // wait for all transaction runners to be active
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive() == numWorkersSet1 + numWorkersSet2);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = numWorkersSet1 + numWorkersSet2;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
@@ -137,8 +148,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
       // After changing the config, the fate pool watcher should detect the change and increase the
       // pool size for the pool assigned to work on SET1
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-          == newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor assigned to SET2 is no longer valid after the config change, so a
@@ -163,11 +178,19 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // finish work
       env.isReadyLatch.countDown();
 
-      Wait.waitFor(() -> env.numWorkers.get() == 0);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        log.debug("Waiting for test workers {} to reach goal 0", count);
+        return count == 0;
+      });
 
       // workers should still be running: we haven't shutdown FATE, just not working on anything
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-          == newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor for SET2 should have finished work and be shutdown now since it was
