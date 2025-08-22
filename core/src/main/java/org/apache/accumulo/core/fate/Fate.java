@@ -83,7 +83,8 @@ public class Fate<T> {
   private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
-  private final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  // Visible for FlakyFate test object
+  protected final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
 
   public enum TxInfo {
     FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -170,8 +171,9 @@ public class Fate<T> {
     public void run() {
       // Read from the config here and here only. Must avoid reading the same property from the
       // config more than once since it can change at any point in this execution
-      var poolConfigs = getPoolConfigurations(conf);
-      var idleCheckIntervalMillis = conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
+      final var poolConfigs = getPoolConfigurations(conf);
+      final var idleCheckIntervalMillis =
+          conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
 
       // shutdown task: shutdown fate executors whose set of fate operations are no longer present
       // in the config
@@ -187,8 +189,9 @@ public class Fate<T> {
                   + "the FateExecutor.", getFateConfigProp(), fateExecutor);
               fateExecutor.initiateShutdown();
             } else if (fateExecutor.isShutdown() && fateExecutor.isAlive()) {
-              log.debug("{} has been shutdown, but is still actively working on transactions.",
-                  fateExecutor);
+              log.debug("{} has been shutdown, but is still actively working on {} transactions.",
+                  fateExecutor, fateExecutor.getNumRunningTxRunners());
+              fateExecutor.printInfo();
             } else if (fateExecutor.isShutdown() && !fateExecutor.isAlive()) {
               log.debug("{} has been shutdown and all threads have safely terminated.",
                   fateExecutor);
@@ -269,16 +272,6 @@ public class Fate<T> {
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
 
-    startFateExecutors(environment, conf, fateExecutors);
-  }
-
-  protected void startFateExecutors(T environment, AccumuloConfiguration conf,
-      Set<FateExecutor<T>> fateExecutors) {
-    for (var poolConf : getPoolConfigurations(conf).entrySet()) {
-      // no fate threads are running at this point; fine not to synchronize
-      fateExecutors
-          .add(new FateExecutor<>(this, environment, poolConf.getKey(), poolConf.getValue()));
-    }
   }
 
   /**

@@ -115,7 +115,7 @@ public class FateExecutor<T> {
         for (int i = 0; i < needed; i++) {
           if (transactionExecutor.isShutdown()) {
             log.trace("Not adding TransactionRunner, FateExecutor is shutdown.");
-            return;
+            break;
           }
           try {
             log.trace("Adding a new TransactionRunner for {}", fateOps);
@@ -126,7 +126,7 @@ public class FateExecutor<T> {
             // RejectedExecutionException could be shutting down
             if (transactionExecutor.isShutdown()) {
               // The exception is expected in this case, no need to spam the logs.
-              log.debug("Expected error adding transaction runner to FaTE executor pool. "
+              log.trace("Expected error adding transaction runner to FaTE executor pool. "
                   + "The pool is shutdown.", e);
             } else {
               // This is bad, FaTE may no longer work!
@@ -209,6 +209,12 @@ public class FateExecutor<T> {
     return fateOps;
   }
 
+  public void printInfo() {
+    synchronized (runningTxRunners) {
+      runningTxRunners.forEach(r -> r.printInfo());
+    }
+  }
+
   /**
    * Initiates the shutdown of this FateExecutor. This means the pool executing TransactionRunners
    * will no longer accept new TransactionRunners, the currently running TransactionRunners will
@@ -243,6 +249,7 @@ public class FateExecutor<T> {
         if (!transactionExecutor.awaitTermination(1, SECONDS)) {
           log.debug("Fate {} is waiting for {} worker threads for fate ops {} to terminate",
               fate.getStore().type(), runningTxRunners.size(), fateOps);
+          printInfo();
           continue;
         }
 
@@ -348,8 +355,13 @@ public class FateExecutor<T> {
     // FateExecutor
     private final AtomicBoolean stop = new AtomicBoolean(false);
 
+    void printInfo() {
+      runnerLog.debug("fate stopped: {}, FateExecutor stopped: {}, TransactionRunner stopped: {}",
+          fate.getKeepRunning().get(), isShutdown(), stop.get());
+    }
+
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
-      while (fate.getKeepRunning().get() && !stop.get()) {
+      while (fate.getKeepRunning().get() && !isShutdown() && !stop.get()) {
         FateId unreservedFateId = workQueue.poll(100, MILLISECONDS);
 
         if (unreservedFateId == null) {
@@ -367,7 +379,7 @@ public class FateExecutor<T> {
     @Override
     public void run() {
       try {
-        while (fate.getKeepRunning().get() && !stop.get()) {
+        while (fate.getKeepRunning().get() && !isShutdown() && !stop.get()) {
           FateTxStore<T> txStore = null;
           ExecutionState state = new ExecutionState();
           try {
@@ -379,7 +391,7 @@ public class FateExecutor<T> {
             }
             state.status = txStore.getStatus();
             state.op = txStore.top();
-            runnerLog.debug("Processing FATE transaction {} id: {} status: {}", state.op.getName(),
+            runnerLog.trace("Processing FATE transaction {} id: {} status: {}", state.op.getName(),
                 txStore.getID(), state.status);
             if (state.status == FAILED_IN_PROGRESS) {
               processFailed(txStore, state.op);
@@ -420,12 +432,18 @@ public class FateExecutor<T> {
                 txid, status, e);
           } finally {
             if (txStore != null) {
+              if (runnerLog.isTraceEnabled()) {
+                String name = state == null || state.op == null ? null : state.op.getName();
+                TStatus status = state == null ? null : state.status;
+                runnerLog.trace("Completed FATE transaction {} id: {} status: {}", name,
+                    txStore.getID(), status);
+              }
               txStore.unreserve(Duration.ofMillis(state.deferTime));
             }
           }
         }
       } finally {
-        log.debug("A TransactionRunner is exiting...");
+        log.trace("A TransactionRunner is exiting...");
         Preconditions.checkState(runningTxRunners.remove(this));
       }
     }
