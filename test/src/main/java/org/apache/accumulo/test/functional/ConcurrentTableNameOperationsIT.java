@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.functional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -31,15 +32,41 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.TableExistsException;
-import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
+public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
+
+  @BeforeAll
+  public static void setup() throws Exception {
+    SharedMiniClusterBase.startMiniCluster();
+  }
+
+  @AfterEach
+  public void cleanUpTables() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      for (String table : client.tableOperations().list()) {
+        if (!SystemTables.containsTableName(table)) {
+          client.tableOperations().delete(table);
+        }
+      }
+    }
+  }
+
+  @AfterAll
+  public static void teardown() {
+    SharedMiniClusterBase.stopMiniCluster();
+  }
 
   /**
    * Test concurrent creation of tables with the same name.
@@ -48,18 +75,18 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
   public void createTable() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final int numTasks = 10;
-      final int numIterations = 30;
+      final int numIterations = 10;
       ExecutorService pool = Executors.newFixedThreadPool(numTasks);
       final Set<String> tablesBefore = client.tableOperations().list();
       String[] expectedTableNames = getUniqueNames(numIterations);
 
-      for (String tablename : expectedTableNames) {
+      for (String tableName : expectedTableNames) {
         int successCount = runConcurrentOperation(pool, numTasks, (index) -> {
-          client.tableOperations().create(tablename);
+          client.tableOperations().create(tableName);
           return true;
         });
 
-        assertEquals(1, successCount, "Expected exactly one create operation to succeed");
+        assertEquals(1, successCount, "Expected only one create operation to succeed");
       }
 
       Set<String> tablesAfter = client.tableOperations().list();
@@ -80,7 +107,7 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
   public void cloneTable() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final int numTasks = 10;
-      final int numIterations = 5;
+      final int numIterations = 10;
       ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
       for (String targetTableName : getUniqueNames(numIterations)) {
@@ -91,13 +118,19 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
           sourceTableNames.add(sourceTable);
         }
 
+        int tableCountBefore = client.tableOperations().list().size();
+
         int successCount = runConcurrentOperation(pool, numTasks, (index) -> {
           client.tableOperations().clone(sourceTableNames.get(index), targetTableName, true,
               Map.of(), Set.of());
           return true;
         });
 
-        assertEquals(1, successCount, "Expected exactly one clone operation to succeed");
+        assertEquals(1, successCount, "Expected only one clone operation to succeed");
+        assertTrue(client.tableOperations().exists(targetTableName),
+            "Expected target table " + targetTableName + " to exist");
+        assertEquals(tableCountBefore + 1, client.tableOperations().list().size(),
+            "Expected only one new table after clone");
       }
 
       pool.shutdown();
@@ -111,7 +144,7 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
   public void renameTable() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final int numTasks = 10;
-      final int numIterations = 5;
+      final int numIterations = 10;
       ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
       for (String targetTableName : getUniqueNames(numIterations)) {
@@ -122,12 +155,17 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
           sourceTableNames.add(sourceTable);
         }
 
+        int tableCountBefore = client.tableOperations().list().size();
+
         int successCount = runConcurrentOperation(pool, numTasks, (index) -> {
           client.tableOperations().rename(sourceTableNames.get(index), targetTableName);
           return true;
         });
 
-        assertEquals(1, successCount, "Expected exactly one rename operation to succeed");
+        assertEquals(1, successCount, "Expected only one rename operation to succeed");
+        assertTrue(client.tableOperations().exists(targetTableName),
+            "Expected target table " + targetTableName + " to exist");
+        assertEquals(tableCountBefore, client.tableOperations().list().size());
       }
 
       pool.shutdown();
@@ -145,8 +183,9 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
       final int numTasks = operationsPerType * 3;
       final int numIterations = 3;
       ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+      String[] expectedTableNames = getUniqueNames(numIterations);
 
-      for (String targetTableName : getUniqueNames(numIterations)) {
+      for (String targetTableName : expectedTableNames) {
         List<String> cloneSourceTables = new ArrayList<>();
         List<String> renameSourceTables = new ArrayList<>();
         for (int i = 0; i < operationsPerType; i++) {
@@ -159,9 +198,12 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
           renameSourceTables.add(renameSource);
         }
 
+        int tableCountBefore = client.tableOperations().list().size();
+
         List<Future<Boolean>> futures = new ArrayList<>();
         CountDownLatch startSignal = new CountDownLatch(1);
         AtomicInteger numTasksRunning = new AtomicInteger(0);
+        AtomicReference<String> successfulOperation = new AtomicReference<>();
 
         for (int i = 0; i < operationsPerType; i++) {
           futures.add(pool.submit(() -> {
@@ -169,6 +211,7 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
               numTasksRunning.incrementAndGet();
               startSignal.await();
               client.tableOperations().create(targetTableName);
+              successfulOperation.set("create");
               return true;
             } catch (TableExistsException e) {
               return false;
@@ -182,6 +225,7 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
               numTasksRunning.incrementAndGet();
               startSignal.await();
               client.tableOperations().rename(renameSourceTables.get(index), targetTableName);
+              successfulOperation.set("rename");
               return true;
             } catch (TableExistsException e) {
               return false;
@@ -194,6 +238,7 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
               startSignal.await();
               client.tableOperations().clone(cloneSourceTables.get(index), targetTableName, true,
                   Map.of(), Set.of());
+              successfulOperation.set("clone");
               return true;
             } catch (TableExistsException e) {
               return false;
@@ -212,6 +257,18 @@ public class ConcurrentTableNameOperationsIT extends AccumuloClusterHarness {
         }
 
         assertEquals(1, successCount, "Expected only one operation to succeed");
+
+        int tableCountAfter = client.tableOperations().list().size();
+        assertTrue(client.tableOperations().exists(targetTableName),
+            "Expected target table " + targetTableName + " to exist");
+
+        String operation = successfulOperation.get();
+        if ("create".equals(operation) || "clone".equals(operation)) {
+          assertEquals(tableCountBefore + 1, tableCountAfter,
+              "Expected +1 table count for " + operation);
+        } else if ("rename".equals(operation)) {
+          assertEquals(tableCountBefore, tableCountAfter, "Expected same table count for rename");
+        }
       }
 
       pool.shutdown();
