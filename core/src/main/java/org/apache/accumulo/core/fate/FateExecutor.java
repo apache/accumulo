@@ -311,10 +311,12 @@ public class FateExecutor<T> {
         }
       }
 
-      log.debug("FATE work finder for ops {} is gracefully exiting: either FATE is "
-          + "being shutdown ({}) and therefore all FATE threads are being shutdown or the "
-          + "FATE threads assigned to work on the ops were invalidated by config changes "
-          + "and are being shutdown ({})", fateOps, !fate.getKeepRunning().get(), isShutdown());
+      log.debug(
+          "FATE work finder for ops {} is gracefully exiting: either FATE is "
+              + "being shutdown ({}) and therefore all FATE threads are being shutdown or the "
+              + "FATE threads for the specific ops are being shutdown (due to FATE shutdown, "
+              + "or due to FATE config changes) ({})",
+          fateOps, !fate.getKeepRunning().get(), isShutdown());
     }
 
     private boolean txCancelledWhileNew(TStatus status, Fate.FateOperation fateOp) {
