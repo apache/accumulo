@@ -910,27 +910,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
   private class RefreshThreads implements Runnable {
     @Override
     public void run() {
-      try {
-        int newMinThreads = getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MINTHREADS);
-        int newMaxThreads = getConfiguration().getCount(Property.MANAGER_TABLET_REFRESH_MAXTHREADS);
+      ThreadPools.resizeCorePool(tabletRefreshThreadPool, getConfiguration(),
+          Property.MANAGER_TABLET_REFRESH_MINTHREADS);
+      ThreadPools.resizePool(tabletRefreshThreadPool, getConfiguration(),
+          Property.MANAGER_TABLET_REFRESH_MAXTHREADS);
 
-        int currentMinThreads = tabletRefreshThreadPool.getPoolSize();
-        int currentMaxThreads = tabletRefreshThreadPool.getMaximumPoolSize();
-
-        if (newMinThreads != currentMinThreads) {
-          System.out.println("Updating MANAGER_TABLET_REFRESH_MINTHREADS from " + currentMinThreads
-              + " to " + newMinThreads);
-          tabletRefreshThreadPool.setCorePoolSize(newMinThreads);
-        }
-        if (newMaxThreads != currentMaxThreads) {
-          System.out.println("Updating MANAGER_TABLET_REFRESH_MAXTHREADS from " + currentMaxThreads
-              + " to " + newMaxThreads);
-          tabletRefreshThreadPool.setMaximumPoolSize(newMaxThreads);
-        }
-      } catch (Exception e) {
-        System.err
-            .println("Error checking or updating thread pool configuration: " + e.getMessage());
-      }
     }
   }
 

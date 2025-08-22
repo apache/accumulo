@@ -220,6 +220,43 @@ public class ThreadPools {
   }
 
   /**
+   * Resize ThreadPoolExecutor based on current value of minThreads
+   *
+   * @param pool the ThreadPoolExecutor to modify
+   * @param minThreads supplier of minThreads value
+   * @param poolName name of the thread pool
+   */
+  public static void resizeCorePool(final ThreadPoolExecutor pool, final IntSupplier minThreads,
+      String poolName) {
+    int count = pool.getPoolSize();
+    int newCount = minThreads.getAsInt();
+    if (count == newCount) {
+      return;
+    }
+    LOG.info("Changing min threads for {} from {} to {}", poolName, count, newCount);
+    if (newCount < count) {
+      pool.setCorePoolSize(newCount);
+    } else {
+      if (newCount > pool.getMaximumPoolSize()) {
+        pool.setMaximumPoolSize(newCount);
+      }
+      pool.setCorePoolSize(newCount);
+    }
+  }
+
+  /**
+   * Resize ThreadPoolExecutor based on current value of Property p
+   *
+   * @param pool the ThreadPoolExecutor to modify
+   * @param conf the AccumuloConfiguration
+   * @param p the property to base the size from
+   */
+  public static void resizeCorePool(final ThreadPoolExecutor pool, final AccumuloConfiguration conf,
+      final Property p) {
+    resizeCorePool(pool, () -> conf.getCount(p), p.getKey());
+  }
+
+  /**
    * Resize ThreadPoolExecutor based on current value of maxThreads
    *
    * @param pool the ThreadPoolExecutor to modify
