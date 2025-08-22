@@ -207,6 +207,7 @@ public class Fate<T> {
         synchronized (fateExecutors) {
           if (fateExecutors.stream().map(FateExecutor::getFateOps)
               .noneMatch(fo -> fo.equals(configFateOps))) {
+            log.debug("Adding FateExecutor for {}", configFateOps);
             fateExecutors
                 .add(new FateExecutor<>(Fate.this, environment, configFateOps, configPoolSize));
           }
@@ -382,7 +383,7 @@ public class Fate<T> {
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp, String goalMessage) {
-    log.info("Seeding {} {}", fateId, goalMessage);
+    log.info("Seeding {} {} {}", fateOp, fateId, goalMessage);
     store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
   }
 

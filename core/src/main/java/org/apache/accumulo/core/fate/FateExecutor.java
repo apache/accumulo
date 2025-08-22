@@ -104,28 +104,29 @@ public class FateExecutor<T> {
    */
   protected void resizeFateExecutor(Map<Set<Fate.FateOperation>,Integer> poolConfigs,
       long idleCheckIntervalMillis) {
-    final var pool = transactionExecutor;
-    final var runningTxRunnersCopy = getRunningTxRunners();
     final int configured = poolConfigs.get(fateOps);
-    ThreadPools.resizePool(pool, () -> configured, poolName);
-    final int needed = configured - runningTxRunnersCopy.size();
+    ThreadPools.resizePool(transactionExecutor, () -> configured, poolName);
+    final int needed = configured - runningTxRunners.size();
     if (needed > 0) {
       // If the pool grew, then ensure that there is a TransactionRunner for each thread
       for (int i = 0; i < needed; i++) {
+        log.debug("FateExecutor {} needs {} more TransactionRunners", fateOps, needed);
         try {
           final TransactionRunner tr = new TransactionRunner();
           synchronized (runningTxRunners) {
-            if (pool.isShutdown() || pool.isTerminating()) {
+            if (transactionExecutor.isShutdown()) {
+              log.debug("Not adding TransactionRunner, FateExecutor is shutdown.");
               return;
             }
+            log.debug("Adding a new TransactionRunner for {}", fateOps);
             runningTxRunners.add(tr);
-            pool.execute(tr);
+            transactionExecutor.execute(tr);
           }
         } catch (RejectedExecutionException e) {
           // RejectedExecutionException could be shutting down
-          if (pool.isShutdown()) {
+          if (transactionExecutor.isShutdown()) {
             // The exception is expected in this case, no need to spam the logs.
-            log.trace("Expected error adding transaction runner to FaTE executor pool. "
+            log.debug("Expected error adding transaction runner to FaTE executor pool. "
                 + "The pool is shutdown.", e);
           } else {
             // This is bad, FaTE may no longer work!
@@ -140,16 +141,18 @@ public class FateExecutor<T> {
       // stopped.
       // Flag the necessary number of TransactionRunners to safely stop when they are done
       // work on a transaction.
-      int numFlagged = (int) runningTxRunnersCopy.stream()
-          .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
-      int numToStop = -1 * (numFlagged + needed);
-      for (var runner : runningTxRunnersCopy) {
-        if (numToStop <= 0) {
-          break;
-        }
-        if (runner.flagStop()) {
-          log.trace("Flagging a TransactionRunner to stop...");
-          numToStop--;
+      synchronized (runningTxRunners) {
+        int numFlagged = (int) runningTxRunners.stream()
+            .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
+        int numToStop = -1 * (numFlagged + needed);
+        for (var runner : runningTxRunners) {
+          if (numToStop <= 0) {
+            break;
+          }
+          if (runner.flagStop()) {
+            log.trace("Flagging a TransactionRunner to stop...");
+            numToStop--;
+          }
         }
       }
     } else {
@@ -339,6 +342,7 @@ public class FateExecutor<T> {
   }
 
   protected class TransactionRunner implements Runnable {
+
     // used to signal a TransactionRunner to stop in the case where there are too many running
     // i.e.,
     // 1. the property for the pool size decreased so we have to stop excess TransactionRunners
@@ -378,6 +382,8 @@ public class FateExecutor<T> {
             }
             state.status = txStore.getStatus();
             state.op = txStore.top();
+            runnerLog.debug("Processing FATE transaction {} id: {} status: {}", state.op.getName(),
+                txStore.getID(), state.status);
             if (state.status == FAILED_IN_PROGRESS) {
               processFailed(txStore, state.op);
             } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
@@ -409,7 +415,12 @@ public class FateExecutor<T> {
               }
             }
           } catch (Exception e) {
-            runnerLog.error("Uncaught exception in FATE runner thread.", e);
+            String name = state == null || state.op == null ? null : state.op.getName();
+            FateId txid = txStore == null ? null : txStore.getID();
+            TStatus status = state == null ? null : state.status;
+            runnerLog.error(
+                "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
+                txid, status, e);
           } finally {
             if (txStore != null) {
               txStore.unreserve(Duration.ofMillis(state.deferTime));
@@ -418,9 +429,7 @@ public class FateExecutor<T> {
         }
       } finally {
         log.trace("A TransactionRunner is exiting...");
-        synchronized (runningTxRunners) {
-          Preconditions.checkState(runningTxRunners.remove(this));
-        }
+        Preconditions.checkState(runningTxRunners.remove(this));
       }
     }
 
