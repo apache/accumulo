@@ -89,7 +89,7 @@ import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.tableOps.ChangeTableState;
 import org.apache.accumulo.manager.tableOps.TraceRepo;
 import org.apache.accumulo.manager.tableOps.availability.LockTable;
-import org.apache.accumulo.manager.tableOps.bulkVer2.PrepBulkImport;
+import org.apache.accumulo.manager.tableOps.bulkVer2.ComputeBulkRange;
 import org.apache.accumulo.manager.tableOps.clone.CloneTable;
 import org.apache.accumulo.manager.tableOps.compact.CompactRange;
 import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
@@ -664,7 +664,7 @@ class FateServiceHandler implements FateService.Iface {
 
         goalMessage += "Bulk import (v2)  " + dir + " to " + tableName + "(" + tableId + ")";
         manager.fate(type).seedTransaction(op, fateId,
-            new TraceRepo<>(new PrepBulkImport(tableId, dir, setTime)), autoCleanup, goalMessage);
+            new TraceRepo<>(new ComputeBulkRange(tableId, dir, setTime)), autoCleanup, goalMessage);
         break;
       }
       case TABLE_TABLET_AVAILABILITY: {

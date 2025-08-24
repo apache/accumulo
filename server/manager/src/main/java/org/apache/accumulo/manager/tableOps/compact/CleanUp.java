@@ -30,6 +30,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.Ample.ConditionalResult.Status;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
@@ -120,8 +121,8 @@ public class CleanUp extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     CompactionConfigStorage.deleteConfig(manager.getContext(), fateId);
-    Utils.getReadLock(manager, tableId, fateId).unlock();
-    Utils.getReadLock(manager, namespaceId, fateId).unlock();
+    Utils.getReadLock(manager, tableId, fateId, LockRange.infinite()).unlock();
+    Utils.getReadLock(manager, namespaceId, fateId, LockRange.infinite()).unlock();
     return null;
   }
 }
