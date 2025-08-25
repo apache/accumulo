@@ -1206,7 +1206,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       }
       try {
-        Thread.sleep(500);
+        mainWait();
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
@@ -1257,14 +1257,17 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    super.close();
+    // Must set shutdown as completed before calling super.close().
+    // super.close() calls ServerContext.close() ->
+    // ClientContext.close() -> ZooSession.close() which removes
+    // all of the ephemeral nodes and forces the watches to fire.
     getShutdownComplete().set(true);
-    log.info("stop requested. exiting ... ");
-    try {
-      managerLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release Manager lock", e);
-    }
+    super.close();
+  }
+
+  // method exists for ExitCodesIT
+  public void mainWait() throws InterruptedException {
+    Thread.sleep(500);
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {

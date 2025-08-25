@@ -84,15 +84,6 @@ public abstract class AbstractServer
       e.printStackTrace();
       LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
       throw e;
-    } finally {
-      try {
-        server.close();
-      } catch (Throwable e) {
-        System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
-        e.printStackTrace();
-        LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
-        throw e;
-      }
     }
   }
 
@@ -112,6 +103,7 @@ public abstract class AbstractServer
   private volatile Thread verificationThread;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
@@ -203,7 +195,8 @@ public abstract class AbstractServer
    *
    * @param isIdle whether the server is idle
    */
-  protected void updateIdleStatus(boolean isIdle) {
+  // public for ExitCodesIT
+  public void updateIdleStatus(boolean isIdle) {
     boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodMillis == 0;
     boolean hasIdlePeriodStarted = idlePeriodTimer != null;
     boolean hasExceededIdlePeriod =
@@ -331,7 +324,8 @@ public abstract class AbstractServer
     return bindAddress;
   }
 
-  protected TServer getThriftServer() {
+  // public for ExitCodesIT
+  public TServer getThriftServer() {
     if (thriftServer == null) {
       return null;
     }
@@ -476,8 +470,15 @@ public abstract class AbstractServer
 
   @Override
   public void close() {
-    if (context != null) {
-      context.close();
+    // close is called from the subclasses run method
+    // when shutting down. Close is also called after
+    // the runServer method completes in the startServer
+    // method in this class. Calling twice could raise
+    // an exception when in reality everything was fine
+    if (closed.compareAndSet(false, true)) {
+      if (context != null) {
+        context.close();
+      }
     }
   }
 
@@ -488,4 +489,7 @@ public abstract class AbstractServer
     }
   }
 
+  public void requestShutdownForTests() {
+    shutdownRequested.set(true);
+  }
 }
