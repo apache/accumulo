@@ -22,7 +22,6 @@ import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterrup
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
-import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.FAILED_IN_PROGRESS;
 import static org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus.IN_PROGRESS;
@@ -49,6 +48,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.fate.Fate.TxInfo;
 import org.apache.accumulo.core.fate.FateStore.FateTxStore;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
 import org.apache.accumulo.core.util.ShutdownUtil;
 import org.apache.accumulo.core.util.Timer;
 import org.apache.accumulo.core.util.threads.ThreadPoolNames;
@@ -57,7 +57,6 @@ import org.apache.accumulo.core.util.threads.Threads;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
 /**
@@ -107,30 +106,23 @@ public class FateExecutor<T> {
    */
   protected void resizeFateExecutor(Map<Set<Fate.FateOperation>,Integer> poolConfigs,
       long idleCheckIntervalMillis) {
-    final var pool = transactionExecutor;
     final int configured = poolConfigs.get(fateOps);
-    ThreadPools.resizePool(pool, () -> configured, poolName);
+    ThreadPools.resizePool(transactionExecutor, () -> configured, poolName);
     synchronized (runningTxRunners) {
       final int running = runningTxRunners.size();
       final int needed = configured - running;
       log.trace("resizing pools configured:{} running:{} needed:{} fateOps:{}", configured, running,
           needed, fateOps);
-
       if (needed > 0) {
         // If the pool grew, then ensure that there is a TransactionRunner for each thread
         for (int i = 0; i < needed; i++) {
+          final TransactionRunner tr = new TransactionRunner();
           try {
-            pool.execute(new TransactionRunner());
+            runningTxRunners.add(tr);
+            transactionExecutor.execute(tr);
           } catch (RejectedExecutionException e) {
-            // RejectedExecutionException could be shutting down
-            if (pool.isShutdown()) {
-              // The exception is expected in this case, no need to spam the logs.
-              log.trace("Expected error adding transaction runner to FaTE executor pool. "
-                  + "The pool is shutdown.", e);
-            } else {
-              // This is bad, FaTE may no longer work!
-              log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
-            }
+            runningTxRunners.remove(tr);
+            log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
             break;
           }
         }
@@ -203,7 +195,6 @@ public class FateExecutor<T> {
   /**
    * @return the number of currently running transaction runners
    */
-  @VisibleForTesting
   protected int getNumRunningTxRunners() {
     return runningTxRunners.size();
   }
@@ -343,6 +334,7 @@ public class FateExecutor<T> {
   }
 
   protected class TransactionRunner implements Runnable {
+
     // used to signal a TransactionRunner to stop in the case where there are too many running
     // i.e.,
     // 1. the property for the pool size decreased so we have to stop excess TransactionRunners
@@ -350,7 +342,6 @@ public class FateExecutor<T> {
     // 2. this FateExecutor is no longer valid from config changes so we need to shutdown this
     // FateExecutor
     private final AtomicBoolean stop = new AtomicBoolean(false);
-
     private volatile Long threadId = null;
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
@@ -378,12 +369,11 @@ public class FateExecutor<T> {
 
     @Override
     public void run() {
-      runningTxRunners.add(this);
       runnerLog.trace("A TransactionRunner is starting for {} {} ", fate.getStore().type(),
           fateOps);
       threadId = Thread.currentThread().getId();
       try {
-        while (fate.getKeepRunning().get() && !stop.get()) {
+        while (fate.getKeepRunning().get() && !isShutdown() && !stop.get()) {
           FateTxStore<T> txStore = null;
           ExecutionState state = new ExecutionState();
           try {
@@ -395,6 +385,8 @@ public class FateExecutor<T> {
             }
             state.status = txStore.getStatus();
             state.op = txStore.top();
+            runnerLog.trace("Processing FATE transaction {} id: {} status: {}", state.op.getName(),
+                txStore.getID(), state.status);
             if (state.status == FAILED_IN_PROGRESS) {
               processFailed(txStore, state.op);
             } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
@@ -426,9 +418,18 @@ public class FateExecutor<T> {
               }
             }
           } catch (Exception e) {
-            runnerLog.error("Uncaught exception in FATE runner thread.", e);
+            String name = state.op == null ? null : state.op.getName();
+            FateId txid = txStore == null ? null : txStore.getID();
+            runnerLog.error(
+                "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
+                txid, state.status, e);
           } finally {
             if (txStore != null) {
+              if (runnerLog.isTraceEnabled()) {
+                String name = state.op == null ? null : state.op.getName();
+                runnerLog.trace("Completed FATE transaction {} id: {} status: {}", name,
+                    txStore.getID(), state.status);
+              }
               txStore.unreserve(Duration.ofMillis(state.deferTime));
             }
           }
