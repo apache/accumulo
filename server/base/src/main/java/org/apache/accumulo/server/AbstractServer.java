@@ -84,15 +84,6 @@ public abstract class AbstractServer
       e.printStackTrace();
       LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
       throw e;
-    } finally {
-      try {
-        server.close();
-      } catch (Throwable e) {
-        System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
-        e.printStackTrace();
-        LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
-        throw e;
-      }
     }
   }
 
