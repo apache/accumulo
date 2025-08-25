@@ -116,10 +116,6 @@ public class FateExecutor<T> {
       if (needed > 0) {
         // If the pool grew, then ensure that there is a TransactionRunner for each thread
         for (int i = 0; i < needed; i++) {
-          if (transactionExecutor.isShutdown()) {
-            log.trace("Not adding TransactionRunner, FateExecutor is shutdown.");
-            break;
-          }
           final TransactionRunner tr = new TransactionRunner();
           try {
             runningTxRunners.add(tr);
