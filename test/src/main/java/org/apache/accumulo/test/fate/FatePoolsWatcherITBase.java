@@ -19,6 +19,7 @@
 package org.apache.accumulo.test.fate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Set;
@@ -112,17 +113,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     fate.seedTransaction(fateOpFromSet2, fate.startTransaction(), new PoolResizeTestRepo(), true,
         "testing");
 
-    // wait for the FateExecutors to work on the transactions
-    Wait.waitFor(() -> env.numWorkers.get() == 2);
-    // sum has been verified, verify each term
-    Map<Fate.FateOperation,
-        Long> seenCounts = store.list()
-            .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
-                && fateIdStatus.getFateReservation().isPresent())
-            .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
-                Collectors.counting()));
-    Map<Fate.FateOperation,Long> expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
-    assertEquals(expectedCounts, seenCounts);
+    try {
 
       // wait for the FateExecutors to work on the transactions
       Wait.waitFor(() -> env.numWorkers.get() == 2);
@@ -153,19 +144,7 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
 
-    // After changing the config, the fate pool watcher should detect the change and increase the
-    // pool size for the pool assigned to work on SET1
-    Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-        == newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4);
-    // sum has been verified, verify each term
-    assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
-    // The FateExecutor assigned to SET2 is no longer valid after the config change, so a
-    // shutdown should be initiated and all the runners but the one working on a transaction
-    // should be stopped.
-    assertEquals(1, fate.getTxRunnersActive(set2));
-    // New FateExecutors should be created for SET3 and SET4
-    assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
-    assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
+      changeConfigIncTest1(config);
 
       // After changing the config, the fate pool watcher should detect the change and increase the
       // pool size for the pool assigned to work on SET1
@@ -185,10 +164,19 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
       assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
 
-    // finish work
-    env.isReadyLatch.countDown();
+      // num actively executing tasks should not be affected
+      assertEquals(2, env.numWorkers.get());
+      // sum has been verified, verify each term
+      seenCounts = store.list()
+          .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+              && fateIdStatus.getFateReservation().isPresent())
+          .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+              Collectors.counting()));
+      expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
+      assertEquals(expectedCounts, seenCounts);
 
-    Wait.waitFor(() -> env.numWorkers.get() == 0);
+      // finish work
+      env.isReadyLatch.countDown();
 
       Wait.waitFor(() -> {
         final int count = env.numWorkers.get();
