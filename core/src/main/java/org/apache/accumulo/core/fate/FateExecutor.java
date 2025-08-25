@@ -43,6 +43,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
@@ -71,6 +72,7 @@ public class FateExecutor<T> {
   private final Fate<T> fate;
   private final Thread workFinder;
   private final TransferQueue<FateId> workQueue;
+  private final AtomicInteger idleWorkerCount = new AtomicInteger(0);
   private final String poolName;
   private final ThreadPoolExecutor transactionExecutor;
   private final Set<TransactionRunner> runningTxRunners;
@@ -187,10 +189,15 @@ public class FateExecutor<T> {
               }
             }
           }
-          idleCountHistory.add(workQueue.getWaitingConsumerCount());
+          idleCountHistory.add(getIdleWorkerCount());
         }
       }
     }
+  }
+
+  private int getIdleWorkerCount() {
+    // This could call workQueue.getWaitingConsumerCount() if other code use poll with timeout
+    return idleWorkerCount.get();
   }
 
   /**
@@ -347,16 +354,23 @@ public class FateExecutor<T> {
     private volatile Long threadId = null;
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
-      while (fate.getKeepRunning().get() && !stop.get()) {
-        FateId unreservedFateId = workQueue.poll(100, MILLISECONDS);
+      idleWorkerCount.getAndIncrement();
+      try {
+        while (fate.getKeepRunning().get() && !stop.get()) {
+          // Because of JDK-8301341 can not use poll w/ timeout until JDK 21+
+          FateId unreservedFateId = workQueue.poll();
 
-        if (unreservedFateId == null) {
-          continue;
+          if (unreservedFateId == null) {
+            Thread.sleep(1);
+            continue;
+          }
+          var optionalopStore = fate.getStore().tryReserve(unreservedFateId);
+          if (optionalopStore.isPresent()) {
+            return optionalopStore;
+          }
         }
-        var optionalopStore = fate.getStore().tryReserve(unreservedFateId);
-        if (optionalopStore.isPresent()) {
-          return optionalopStore;
-        }
+      } finally {
+        idleWorkerCount.decrementAndGet();
       }
 
       return Optional.empty();
