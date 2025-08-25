@@ -120,21 +120,13 @@ public class FateExecutor<T> {
             log.trace("Not adding TransactionRunner, FateExecutor is shutdown.");
             break;
           }
+          final TransactionRunner tr = new TransactionRunner();
           try {
-            final TransactionRunner tr = new TransactionRunner();
             runningTxRunners.add(tr);
             transactionExecutor.execute(tr);
           } catch (RejectedExecutionException e) {
-            // RejectedExecutionException could be shutting down
             runningTxRunners.remove(tr);
-            if (transactionExecutor.isShutdown()) {
-              // The exception is expected in this case, no need to spam the logs.
-              log.trace("Expected error adding transaction runner to FaTE executor pool. "
-                  + "The pool is shutdown.", e);
-            } else {
-              // This is bad, FaTE may no longer work!
-              log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
-            }
+            log.error("Unexpected error adding transaction runner to FaTE executor pool.", e);
             break;
           }
         }
