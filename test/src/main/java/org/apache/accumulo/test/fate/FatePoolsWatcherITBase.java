@@ -19,7 +19,6 @@
 package org.apache.accumulo.test.fate;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Map;
 import java.util.Set;
@@ -716,8 +715,9 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     @Override
     public long isReady(FateId fateId, PoolResizeTestEnv environment) throws Exception {
       environment.numWorkers.incrementAndGet();
-      assertTrue(environment.isReadyLatch.await(2, TimeUnit.MINUTES),
-          "Timed out waiting for isReady latch");
+      if (!environment.isReadyLatch.await(2, TimeUnit.MINUTES)) {
+        throw new IllegalStateException("Timed out waiting for env latch to be ready.");
+      }
       return 0;
     }
 
