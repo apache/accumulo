@@ -447,12 +447,6 @@ public class ScanServer extends AbstractServer
       tmCacheExecutor.shutdownNow();
     }
 
-    context.getLowMemoryDetector().logGCInfo(getConfiguration());
-    // Must set shutdown as completed before calling super.close().
-    // super.close() calls ServerContext.close() ->
-    // ClientContext.close() -> ZooSession.close() which removes
-    // all of the ephemeral nodes and forces the watches to fire.
-    getShutdownComplete().set(true);
     super.close();
   }
 

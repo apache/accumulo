@@ -671,7 +671,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       // Ask the manager to unload our tablets and stop loading new tablets
       if (iface == null) {
-        Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!");
+        Halt.halt(1, "Error informing Manager that we are shutting down, exiting!");
       } else {
         iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
             getTabletSession().getHostPortSession(), getResourceGroup().canonical());
@@ -690,7 +690,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       sendManagerMessages(managerDown, iface, advertiseAddressString);
 
     } catch (TException | RuntimeException e) {
-      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
+      Halt.halt(1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
     }
@@ -707,12 +707,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
 
-    context.getLowMemoryDetector().logGCInfo(getConfiguration());
-    // Must set shutdown as completed before calling super.close().
-    // super.close() calls ServerContext.close() ->
-    // ClientContext.close() -> ZooSession.close() which removes
-    // all of the ephemeral nodes and forces the watches to fire.
-    getShutdownComplete().set(true);
     super.close();
   }
 

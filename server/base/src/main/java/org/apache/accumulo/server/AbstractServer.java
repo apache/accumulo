@@ -445,7 +445,7 @@ public abstract class AbstractServer
                 log.trace(
                     "ServiceLockVerificationThread - checking ServiceLock existence in ZooKeeper");
                 if (lock != null && !lock.verifyLockAtSource()) {
-                  Halt.halt(-1, "Lock verification thread could not find lock");
+                  Halt.halt(1, "Lock verification thread could not find lock");
                 }
                 // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
                 // so that this thread does not get immediately rescheduled.
@@ -470,11 +470,18 @@ public abstract class AbstractServer
 
   @Override
   public void close() {
-    // close is called from the subclasses run method
-    // when shutting down. Close is also called after
-    // the runServer method completes in the startServer
-    // method in this class. Calling twice could raise
-    // an exception when in reality everything was fine
+
+    context.getLowMemoryDetector().logGCInfo(getConfiguration());
+
+    // Must set shutdown as completed before calling super.close().
+    // super.close() calls ServerContext.close() ->
+    // ClientContext.close() -> ZooSession.close() which removes
+    // all of the ephemeral nodes and forces the watches to fire.
+    // The ServiceLockWatcher has a reference to shutdownComplete
+    // and will terminate the JVM with a 0 exit code if true.
+    // Otherwise it will exit with a non-zero exit code.
+    getShutdownComplete().set(true);
+
     if (closed.compareAndSet(false, true)) {
       if (context != null) {
         context.close();
