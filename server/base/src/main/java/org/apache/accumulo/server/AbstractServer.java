@@ -471,19 +471,19 @@ public abstract class AbstractServer
   @Override
   public void close() {
 
-    context.getLowMemoryDetector().logGCInfo(getConfiguration());
-
-    // Must set shutdown as completed before calling super.close().
-    // super.close() calls ServerContext.close() ->
-    // ClientContext.close() -> ZooSession.close() which removes
-    // all of the ephemeral nodes and forces the watches to fire.
-    // The ServiceLockWatcher has a reference to shutdownComplete
-    // and will terminate the JVM with a 0 exit code if true.
-    // Otherwise it will exit with a non-zero exit code.
-    getShutdownComplete().set(true);
-
     if (closed.compareAndSet(false, true)) {
+
+      // Must set shutdown as completed before calling super.close().
+      // super.close() calls ServerContext.close() ->
+      // ClientContext.close() -> ZooSession.close() which removes
+      // all of the ephemeral nodes and forces the watches to fire.
+      // The ServiceLockWatcher has a reference to shutdownComplete
+      // and will terminate the JVM with a 0 exit code if true.
+      // Otherwise it will exit with a non-zero exit code.
+      getShutdownComplete().set(true);
+
       if (context != null) {
+        context.getLowMemoryDetector().logGCInfo(getConfiguration());
         context.close();
       }
     }
