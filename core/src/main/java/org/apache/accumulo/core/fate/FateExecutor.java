@@ -382,7 +382,6 @@ public class FateExecutor<T> {
 
     @Override
     public void run() {
-      runningTxRunners.add(this);
       runnerLog.trace("A TransactionRunner is starting for {} {} ", fate.getStore().type(),
           fateOps);
       threadId = Thread.currentThread().getId();
