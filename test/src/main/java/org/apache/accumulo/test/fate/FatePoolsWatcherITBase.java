@@ -40,6 +40,8 @@ import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Tests the functionality of the FATE pools watcher task
@@ -47,26 +49,28 @@ import org.junit.jupiter.api.Test;
 public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     implements FateTestRunner<FatePoolsWatcherITBase.PoolResizeTestEnv> {
 
+  private static final Logger log = LoggerFactory.getLogger(FatePoolsWatcherITBase.class);
+
   private static final Set<Fate.FateOperation> ALL_USER_FATE_OPS =
       Fate.FateOperation.getAllUserFateOps();
   private static final Set<Fate.FateOperation> ALL_META_FATE_OPS =
       Fate.FateOperation.getAllMetaFateOps();
-  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET1 =
-      ALL_USER_FATE_OPS.stream().limit(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET2 =
-      ALL_USER_FATE_OPS.stream().skip(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET3 =
-      ALL_USER_FATE_OPS.stream().skip(ALL_USER_FATE_OPS.size() / 2 + 1).collect(Collectors.toSet());
+  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET1 = ALL_USER_FATE_OPS.stream()
+      .limit(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET2 = ALL_USER_FATE_OPS.stream()
+      .skip(ALL_USER_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> USER_FATE_OPS_SET3 = ALL_USER_FATE_OPS.stream()
+      .skip(ALL_USER_FATE_OPS.size() / 2 + 1).collect(Collectors.toUnmodifiableSet());
   private static final Set<Fate.FateOperation> USER_FATE_OPS_SET4 = ALL_USER_FATE_OPS.stream()
-      .skip(ALL_USER_FATE_OPS.size() / 2).limit(1).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> META_FATE_OPS_SET1 =
-      ALL_META_FATE_OPS.stream().limit(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> META_FATE_OPS_SET2 =
-      ALL_META_FATE_OPS.stream().skip(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toSet());
-  private static final Set<Fate.FateOperation> META_FATE_OPS_SET3 =
-      ALL_META_FATE_OPS.stream().skip(ALL_META_FATE_OPS.size() / 2 + 1).collect(Collectors.toSet());
+      .skip(ALL_USER_FATE_OPS.size() / 2).limit(1).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> META_FATE_OPS_SET1 = ALL_META_FATE_OPS.stream()
+      .limit(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> META_FATE_OPS_SET2 = ALL_META_FATE_OPS.stream()
+      .skip(ALL_META_FATE_OPS.size() / 2).collect(Collectors.toUnmodifiableSet());
+  private static final Set<Fate.FateOperation> META_FATE_OPS_SET3 = ALL_META_FATE_OPS.stream()
+      .skip(ALL_META_FATE_OPS.size() / 2 + 1).collect(Collectors.toUnmodifiableSet());
   private static final Set<Fate.FateOperation> META_FATE_OPS_SET4 = ALL_META_FATE_OPS.stream()
-      .skip(ALL_META_FATE_OPS.size() / 2).limit(1).collect(Collectors.toSet());
+      .skip(ALL_META_FATE_OPS.size() / 2).limit(1).collect(Collectors.toUnmodifiableSet());
 
   @Test
   public void testIncrease1() throws Exception {
@@ -113,6 +117,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
       // wait for the FateExecutors to work on the transactions
       Wait.waitFor(() -> env.numWorkers.get() == 2);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        final int goal = 2;
+        log.debug("Waiting for test workers {} to reach goal {}", count, goal);
+        return count == goal;
+      });
       // sum has been verified, verify each term
       Map<Fate.FateOperation,
           Long> seenCounts = store.list()
@@ -124,7 +134,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(expectedCounts, seenCounts);
 
       // wait for all transaction runners to be active
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive() == numWorkersSet1 + numWorkersSet2);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = numWorkersSet1 + numWorkersSet2;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
@@ -133,8 +148,12 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
 
       // After changing the config, the fate pool watcher should detect the change and increase the
       // pool size for the pool assigned to work on SET1
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-          == newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor assigned to SET2 is no longer valid after the config change, so a
@@ -159,11 +178,19 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // finish work
       env.isReadyLatch.countDown();
 
-      Wait.waitFor(() -> env.numWorkers.get() == 0);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        log.debug("Waiting for test workers {} to reach goal 0", count);
+        return count == 0;
+      });
 
       // workers should still be running: we haven't shutdown FATE, just not working on anything
-      Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-          == newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4);
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
       // sum has been verified, verify each term
       assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
       // The FateExecutor for SET2 should have finished work and be shutdown now since it was
@@ -171,6 +198,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(0, fate.getTxRunnersActive(set2));
       assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
       assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
       assertEquals(0, fate.getTotalTxRunnersActive());
@@ -241,6 +273,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // workers should still be running: we haven't shutdown FATE, just not working on anything
       Wait.waitFor(() -> fate.getTotalTxRunnersActive() == newNumWorkers);
       assertEquals(newNumWorkers, fate.getTxRunnersActive(allFateOps));
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
       assertEquals(0, fate.getTotalTxRunnersActive());
@@ -374,6 +411,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
       assertEquals(0, fate.getTxRunnersActive(set3));
       assertEquals(0, fate.getTxRunnersActive(set4));
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
       assertEquals(0, fate.getTotalTxRunnersActive());
@@ -402,6 +444,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // can finish work now
       env.isReadyLatch.countDown();
       Wait.waitFor(() -> env.numWorkers.get() == 0);
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
       assertEquals(0, fate.getTotalTxRunnersActive());
@@ -572,6 +619,11 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
       // can finish work now
       env.isReadyLatch.countDown();
       Wait.waitFor(() -> env.numWorkers.get() == 0);
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
     } finally {
       fate.shutdown(30, TimeUnit.SECONDS);
       assertEquals(0, fate.getTotalTxRunnersActive());
