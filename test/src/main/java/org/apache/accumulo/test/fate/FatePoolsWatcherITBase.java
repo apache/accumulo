@@ -124,13 +124,34 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     Map<Fate.FateOperation,Long> expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
     assertEquals(expectedCounts, seenCounts);
 
-    // wait for all transaction runners to be active
-    Wait.waitFor(() -> fate.getTotalTxRunnersActive() == numWorkersSet1 + numWorkersSet2);
-    // sum has been verified, verify each term
-    assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
-    assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
+      // wait for the FateExecutors to work on the transactions
+      Wait.waitFor(() -> env.numWorkers.get() == 2);
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        final int goal = 2;
+        log.debug("Waiting for test workers {} to reach goal {}", count, goal);
+        return count == goal;
+      });
+      // sum has been verified, verify each term
+      Map<Fate.FateOperation,
+          Long> seenCounts = store.list()
+              .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
+                  && fateIdStatus.getFateReservation().isPresent())
+              .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
+                  Collectors.counting()));
+      Map<Fate.FateOperation,Long> expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
+      assertEquals(expectedCounts, seenCounts);
 
-    changeConfigIncTest1(config);
+      // wait for all transaction runners to be active
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = numWorkersSet1 + numWorkersSet2;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
+      // sum has been verified, verify each term
+      assertEquals(numWorkersSet1, fate.getTxRunnersActive(set1));
+      assertEquals(numWorkersSet2, fate.getTxRunnersActive(set2));
 
     // After changing the config, the fate pool watcher should detect the change and increase the
     // pool size for the pool assigned to work on SET1
@@ -146,34 +167,58 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
     assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
 
-    // num actively executing tasks should not be affected
-    assertEquals(2, env.numWorkers.get());
-    // sum has been verified, verify each term
-    seenCounts = store.list()
-        .filter(fateIdStatus -> fateIdStatus.getFateOperation().isPresent()
-            && fateIdStatus.getFateReservation().isPresent())
-        .collect(Collectors.groupingBy(fis -> fis.getFateOperation().orElseThrow(),
-            Collectors.counting()));
-    expectedCounts = Map.of(fateOpFromSet1, 1L, fateOpFromSet2, 1L);
-    assertEquals(expectedCounts, seenCounts);
+      // After changing the config, the fate pool watcher should detect the change and increase the
+      // pool size for the pool assigned to work on SET1
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + 1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
+      // sum has been verified, verify each term
+      assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
+      // The FateExecutor assigned to SET2 is no longer valid after the config change, so a
+      // shutdown should be initiated and all the runners but the one working on a transaction
+      // should be stopped.
+      assertEquals(1, fate.getTxRunnersActive(set2));
+      // New FateExecutors should be created for SET3 and SET4
+      assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
+      assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
 
     // finish work
     env.isReadyLatch.countDown();
 
     Wait.waitFor(() -> env.numWorkers.get() == 0);
 
-    // workers should still be running: we haven't shutdown FATE, just not working on anything
-    Wait.waitFor(() -> fate.getTotalTxRunnersActive()
-        == newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4);
-    // sum has been verified, verify each term
-    assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
-    // The FateExecutor for SET2 should have finished work and be shutdown now since it was
-    // previously invalidated by the config change and has since finished its assigned txn
-    assertEquals(0, fate.getTxRunnersActive(set2));
-    assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
-    assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
-    fate.shutdown(30, TimeUnit.SECONDS);
-    assertEquals(0, fate.getTotalTxRunnersActive());
+      Wait.waitFor(() -> {
+        final int count = env.numWorkers.get();
+        log.debug("Waiting for test workers {} to reach goal 0", count);
+        return count == 0;
+      });
+
+      // workers should still be running: we haven't shutdown FATE, just not working on anything
+      Wait.waitFor(() -> {
+        final int sum = fate.getTotalTxRunnersActive();
+        final int goal = newNumWorkersSet1 + numWorkersSet3 + numWorkersSet4;
+        log.debug("Waiting for fate workers {} to reach goal {}", sum, goal);
+        return sum == goal;
+      });
+      // sum has been verified, verify each term
+      assertEquals(newNumWorkersSet1, fate.getTxRunnersActive(set1));
+      // The FateExecutor for SET2 should have finished work and be shutdown now since it was
+      // previously invalidated by the config change and has since finished its assigned txn
+      assertEquals(0, fate.getTxRunnersActive(set2));
+      assertEquals(numWorkersSet3, fate.getTxRunnersActive(set3));
+      assertEquals(numWorkersSet4, fate.getTxRunnersActive(set4));
+    } catch (Throwable e) {
+      // If the finally block throws an exception then this exception will never be seen so log it
+      // just in case.
+      log.error("Failure in test", e);
+      throw e;
+    } finally {
+      fate.shutdown(30, TimeUnit.SECONDS);
+      assertEquals(0, fate.getTotalTxRunnersActive());
+    }
   }
 
   @Test
