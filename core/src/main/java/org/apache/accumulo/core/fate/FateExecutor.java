@@ -109,13 +109,13 @@ public class FateExecutor<T> {
       long idleCheckIntervalMillis) {
     final int configured = poolConfigs.get(fateOps);
     ThreadPools.resizePool(transactionExecutor, () -> configured, poolName);
-    final int running = runningTxRunners.size();
-    final int needed = configured - running;
-    log.trace("resizing pools configured:{} running:{} needed:{} fateOps:{}", configured, running,
-        needed, fateOps);
-    if (needed > 0) {
-      // If the pool grew, then ensure that there is a TransactionRunner for each thread
-      synchronized (runningTxRunners) {
+    synchronized (runningTxRunners) {
+      final int running = runningTxRunners.size();
+      final int needed = configured - running;
+      log.trace("resizing pools configured:{} running:{} needed:{} fateOps:{}", configured, running,
+          needed, fateOps);
+      if (needed > 0) {
+        // If the pool grew, then ensure that there is a TransactionRunner for each thread
         for (int i = 0; i < needed; i++) {
           if (transactionExecutor.isShutdown()) {
             log.trace("Not adding TransactionRunner, FateExecutor is shutdown.");
@@ -138,14 +138,12 @@ public class FateExecutor<T> {
             break;
           }
         }
-      }
-      idleCountHistory.clear();
-    } else if (needed < 0) {
-      // If we need the pool to shrink, then ensure excess TransactionRunners are safely
-      // stopped.
-      // Flag the necessary number of TransactionRunners to safely stop when they are done
-      // work on a transaction.
-      synchronized (runningTxRunners) {
+        idleCountHistory.clear();
+      } else if (needed < 0) {
+        // If we need the pool to shrink, then ensure excess TransactionRunners are safely
+        // stopped.
+        // Flag the necessary number of TransactionRunners to safely stop when they are done
+        // work on a transaction.
         int numFlagged = (int) runningTxRunners.stream()
             .filter(FateExecutor.TransactionRunner::isFlaggedToStop).count();
         int numToStop = -1 * (numFlagged + needed);
@@ -158,45 +156,45 @@ public class FateExecutor<T> {
             numToStop--;
           }
         }
-      }
-    } else {
-      // The pool size did not change, but should it based on idle Fate threads? Maintain
-      // count of the last X minutes of idle Fate threads. If zero 95% of the time, then
-      // suggest that the pool size be increased or the fate ops assigned to that pool be
-      // split into separate pools.
-      final long interval = Math.min(60, TimeUnit.MILLISECONDS.toMinutes(idleCheckIntervalMillis));
-      var fateConfigProp = fate.getFateConfigProp();
-
-      if (interval == 0) {
-        idleCountHistory.clear();
       } else {
-        if (idleCountHistory.size() >= interval * 2) { // this task runs every 30s
-          int zeroFateThreadsIdleCount = 0;
-          for (Integer idleConsumerCount : idleCountHistory) {
-            if (idleConsumerCount == 0) {
-              zeroFateThreadsIdleCount++;
+        // The pool size did not change, but should it based on idle Fate threads? Maintain
+        // count of the last X minutes of idle Fate threads. If zero 95% of the time, then
+        // suggest that the pool size be increased or the fate ops assigned to that pool be
+        // split into separate pools.
+        final long interval =
+            Math.min(60, TimeUnit.MILLISECONDS.toMinutes(idleCheckIntervalMillis));
+        var fateConfigProp = fate.getFateConfigProp();
+
+        if (interval == 0) {
+          idleCountHistory.clear();
+        } else {
+          if (idleCountHistory.size() >= interval * 2) { // this task runs every 30s
+            int zeroFateThreadsIdleCount = 0;
+            for (Integer idleConsumerCount : idleCountHistory) {
+              if (idleConsumerCount == 0) {
+                zeroFateThreadsIdleCount++;
+              }
             }
-          }
-          boolean needMoreThreads =
-              (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
-          if (needMoreThreads) {
-            fate.getNeedMoreThreadsWarnCount().incrementAndGet();
-            log.warn(
-                "All {} Fate threads working on the fate ops {} appear to be busy for "
-                    + "the last {} minutes. Consider increasing the value for the "
-                    + "entry in the property {} or splitting the fate ops across "
-                    + "multiple entries/pools.",
-                fate.getStore().type(), fateOps, interval, fateConfigProp.getKey());
-            // Clear the history so that we don't log for interval minutes.
-            idleCountHistory.clear();
-          } else {
-            while (idleCountHistory.size() >= interval * 2) {
-              idleCountHistory.remove();
+            boolean needMoreThreads =
+                (zeroFateThreadsIdleCount / (double) idleCountHistory.size()) >= 0.95;
+            if (needMoreThreads) {
+              fate.getNeedMoreThreadsWarnCount().incrementAndGet();
+              log.warn(
+                  "All {} Fate threads working on the fate ops {} appear to be busy for "
+                      + "the last {} minutes. Consider increasing the value for the "
+                      + "entry in the property {} or splitting the fate ops across "
+                      + "multiple entries/pools.",
+                  fate.getStore().type(), fateOps, interval, fateConfigProp.getKey());
+              // Clear the history so that we don't log for interval minutes.
+              idleCountHistory.clear();
+            } else {
+              while (idleCountHistory.size() >= interval * 2) {
+                idleCountHistory.remove();
+              }
             }
           }
           idleCountHistory.add(getIdleWorkerCount());
         }
-        idleCountHistory.add(workQueue.getWaitingConsumerCount());
       }
     }
   }
@@ -216,12 +214,6 @@ public class FateExecutor<T> {
 
   protected Set<Fate.FateOperation> getFateOps() {
     return fateOps;
-  }
-
-  public void printInfo() {
-    synchronized (runningTxRunners) {
-      runningTxRunners.forEach(r -> r.printInfo());
-    }
   }
 
   /**
@@ -259,7 +251,6 @@ public class FateExecutor<T> {
         if (!transactionExecutor.awaitTermination(1, SECONDS)) {
           log.debug("Fate {} is waiting for {} worker threads for fate ops {} to terminate",
               fate.getStore().type(), runningTxRunners.size(), fateOps);
-          printInfo();
           continue;
         }
 
@@ -365,11 +356,6 @@ public class FateExecutor<T> {
     // FateExecutor
     private final AtomicBoolean stop = new AtomicBoolean(false);
     private volatile Long threadId = null;
-
-    void printInfo() {
-      runnerLog.debug("fate stopped: {}, FateExecutor stopped: {}, TransactionRunner stopped: {}",
-          fate.getKeepRunning().get(), isShutdown(), stop.get());
-    }
 
     private Optional<FateTxStore<T>> reserveFateTx() throws InterruptedException {
       idleWorkerCount.getAndIncrement();

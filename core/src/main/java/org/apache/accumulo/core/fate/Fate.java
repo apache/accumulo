@@ -191,7 +191,6 @@ public class Fate<T> {
             } else if (fateExecutor.isShutdown() && fateExecutor.isAlive()) {
               log.debug("{} has been shutdown, but is still actively working on {} transactions.",
                   fateExecutor, fateExecutor.getNumRunningTxRunners());
-              fateExecutor.printInfo();
             } else if (fateExecutor.isShutdown() && !fateExecutor.isAlive()) {
               log.debug("{} has been shutdown and all threads have safely terminated.",
                   fateExecutor);

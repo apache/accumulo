@@ -113,7 +113,7 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
     this.context = Objects.requireNonNull(context);
     this.tableName = Objects.requireNonNull(tableName);
     Preconditions.checkArgument(this.context.tableOperations().exists(tableName),
-        "user fate store table does not exist.");
+        "user fate store table " + tableName + " does not exist.");
     this.writer = Suppliers.memoize(() -> {
       try {
         return createConditionalWriterForFateTable(this.tableName);
