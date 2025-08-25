@@ -22,7 +22,7 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
 import static org.apache.accumulo.core.metadata.RootTable.ZROOT_TABLET;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.RESERVED_PREFIX;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13.COMPACT_COL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12.COMPACT_COL;
 
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
@@ -99,7 +99,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 
-//TODO when removing this class, also remove MetadataSchema.Upgrader12to13
+//TODO when removing this class, also remove MetadataSchema.Upgrader11to12
 public class Upgrader11to12 implements Upgrader {
 
   interface MutationWriter {
@@ -531,7 +531,7 @@ public class Upgrader11to12 implements Upgrader {
   private void handlePartialSplits(ServerContext context, String table) {
     try (var scanner = context.createScanner(table, Authorizations.EMPTY)) {
       scanner.setRange(TabletsSection.getRange());
-      TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN.fetch(scanner);
+      TabletsSection.Upgrade11to12.SPLIT_RATIO_COLUMN.fetch(scanner);
 
       for (var entry : scanner) {
         SplitRecovery11to12.fixSplit(context, entry.getKey().getRow());
