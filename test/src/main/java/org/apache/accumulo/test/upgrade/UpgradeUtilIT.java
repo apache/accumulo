@@ -24,9 +24,12 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.SortedSet;
 import java.util.UUID;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
@@ -48,9 +51,24 @@ import org.junit.jupiter.api.Test;
 
 public class UpgradeUtilIT extends AccumuloClusterHarness {
 
+  private static final String ZTABLE_NAME = "/name";
+
   @BeforeEach
   public void beforeTest() throws Exception {
-    var zrw = getCluster().getServerContext().getZooSession().asReaderWriter();
+    ServerContext ctx = getCluster().getServerContext();
+    var zrw = ctx.getZooSession().asReaderWriter();
+
+    // Mini starts as a 4.0 instance, need to make it look like a prior
+    // version for UpgradeUtil.
+
+    // Create table name nodes in ZooKeeper that existed prior to 4.0
+    SortedSet<String> tables = getCluster().getServerContext().tableOperations().list();
+    for (String table : tables) {
+      TableId tid = TableId.of(ctx.tableOperations().tableIdMap().get(table));
+      zrw.putPersistentData(Constants.ZTABLES + "/" + tid + ZTABLE_NAME,
+          table.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.SKIP);
+    }
+
     zrw.delete(Constants.ZPREPARE_FOR_UPGRADE);
     zrw.delete(Constants.ZUPGRADE_PROGRESS);
 
