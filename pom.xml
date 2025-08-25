@@ -122,9 +122,9 @@
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
-    <maven.compiler.release>11</maven.compiler.release>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
     <maven.site.deploy.skip>true</maven.site.deploy.skip>
     <maven.site.skip>true</maven.site.skip>
