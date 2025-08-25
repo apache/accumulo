@@ -126,6 +126,7 @@ public class FateExecutor<T> {
             transactionExecutor.execute(tr);
           } catch (RejectedExecutionException e) {
             // RejectedExecutionException could be shutting down
+            runningTxRunners.remove(tr);
             if (transactionExecutor.isShutdown()) {
               // The exception is expected in this case, no need to spam the logs.
               log.trace("Expected error adding transaction runner to FaTE executor pool. "
