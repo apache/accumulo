@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -925,4 +926,42 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(1000, hash.size());
   }
 
+  @Test
+  public void testGetTabletInformation() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      SortedSet<Text> splits = new TreeSet<>();
+      for(int i=1; i<9; i++){
+        splits.add(new Text(i+""));
+      }
+      accumuloClient.tableOperations().create(tableName, new NewTableConfiguration().withSplits(splits));
+      try(var writer = accumuloClient.createBatchWriter(tableName)){
+        for(int i = 1; i<9; i+=2){
+          var m = new Mutation(""+i);
+          m.at().family("f").qualifier("q").put(""+i);
+          writer.addMutation(m);
+        }
+      }
+
+      try(var tablets = accumuloClient.tableOperations().getTabletInformation(tableName, new Range(), TabletInformation.Field.LOCATION)){
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti->{
+          assertNotNull(ti.getLocation()); // TODO check more about location
+          assertNotNull(ti.getTabletId());
+          assertNotNull(ti.getTabletState()); // TODO check more about state
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+        });
+      }
+
+    }finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
 }

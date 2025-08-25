@@ -77,7 +77,7 @@ public interface TabletInformation {
   long getEstimatedSize();
 
   /**
-   * Requires {@link Field#AVAILABILITY} to be specified at acquisition otherwise an exception will
+   * Requires {@link Field#LOCATION} to be specified at acquisition otherwise an exception will
    * be thrown.
    *
    * @return the tablet hosting state.
