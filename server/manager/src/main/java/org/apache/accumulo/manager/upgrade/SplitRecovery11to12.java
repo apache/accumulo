@@ -60,9 +60,9 @@ import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SplitRecovery12to13 {
+public class SplitRecovery11to12 {
 
-  private static final Logger log = LoggerFactory.getLogger(SplitRecovery12to13.class);
+  private static final Logger log = LoggerFactory.getLogger(SplitRecovery11to12.class);
 
   public static KeyExtent fixSplit(ServerContext context, Text metadataEntry)
       throws AccumuloException {

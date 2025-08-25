@@ -534,7 +534,7 @@ public class Upgrader11to12 implements Upgrader {
       TabletsSection.Upgrade12to13.SPLIT_RATIO_COLUMN.fetch(scanner);
 
       for (var entry : scanner) {
-        SplitRecovery12to13.fixSplit(context, entry.getKey().getRow());
+        SplitRecovery11to12.fixSplit(context, entry.getKey().getRow());
       }
     } catch (Exception e) {
       throw new IllegalStateException(e);
