@@ -715,7 +715,9 @@ public abstract class FatePoolsWatcherITBase extends SharedMiniClusterBase
     @Override
     public long isReady(FateId fateId, PoolResizeTestEnv environment) throws Exception {
       environment.numWorkers.incrementAndGet();
-      environment.isReadyLatch.await(2, TimeUnit.MINUTES);
+      if (!environment.isReadyLatch.await(2, TimeUnit.MINUTES)) {
+        throw new IllegalStateException("Timed out waiting for env latch to be ready.");
+      }
       return 0;
     }
 

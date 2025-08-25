@@ -424,19 +424,17 @@ public class FateExecutor<T> {
               }
             }
           } catch (Exception e) {
-            String name = state == null || state.op == null ? null : state.op.getName();
+            String name = state.op == null ? null : state.op.getName();
             FateId txid = txStore == null ? null : txStore.getID();
-            TStatus status = state == null ? null : state.status;
             runnerLog.error(
                 "Uncaught exception in FATE runner thread processing {} id: {} status: {}", name,
-                txid, status, e);
+                txid, state.status, e);
           } finally {
             if (txStore != null) {
               if (runnerLog.isTraceEnabled()) {
-                String name = state == null || state.op == null ? null : state.op.getName();
-                TStatus status = state == null ? null : state.status;
+                String name = state.op == null ? null : state.op.getName();
                 runnerLog.trace("Completed FATE transaction {} id: {} status: {}", name,
-                    txStore.getID(), status);
+                    txStore.getID(), state.status);
               }
               txStore.unreserve(Duration.ofMillis(state.deferTime));
             }
