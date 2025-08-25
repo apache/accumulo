@@ -18,13 +18,13 @@
  */
 package org.apache.accumulo.test.upgrade;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.SortedSet;
 import java.util.UUID;
 
@@ -65,8 +65,8 @@ public class UpgradeUtilIT extends AccumuloClusterHarness {
     SortedSet<String> tables = getCluster().getServerContext().tableOperations().list();
     for (String table : tables) {
       TableId tid = TableId.of(ctx.tableOperations().tableIdMap().get(table));
-      zrw.putPersistentData(Constants.ZTABLES + "/" + tid + ZTABLE_NAME,
-          table.getBytes(StandardCharsets.UTF_8), NodeExistsPolicy.SKIP);
+      zrw.putPersistentData(Constants.ZTABLES + "/" + tid + ZTABLE_NAME, table.getBytes(UTF_8),
+          NodeExistsPolicy.SKIP);
     }
 
     zrw.delete(Constants.ZPREPARE_FOR_UPGRADE);
