@@ -79,7 +79,6 @@ public class Utils {
   }
 
   static final Lock tableNameLock = new ReentrantLock();
-  static final Lock idLock = new ReentrantLock();
 
   public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
       boolean tableMustExist, TableOperation op) throws Exception {
@@ -175,10 +174,6 @@ public class Utils {
       }
     }
     return lock;
-  }
-
-  public static Lock getIdLock() {
-    return idLock;
   }
 
   public static Lock getTableNameLock() {

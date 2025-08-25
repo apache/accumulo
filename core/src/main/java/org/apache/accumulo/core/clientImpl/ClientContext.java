@@ -86,6 +86,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.KeyValue;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
@@ -184,6 +185,10 @@ public class ClientContext implements AccumuloClient {
     }
   }
 
+  protected boolean isClosed() {
+    return closed.get();
+  }
+
   private ScanServerSelector createScanServerSelector() {
     String clazz = ClientProperty.SCAN_SERVER_SELECTOR.getValue(getClientProperties());
     try {
@@ -221,7 +226,7 @@ public class ClientContext implements AccumuloClient {
                 }
 
                 @Override
-                public String getGroup() {
+                public ResourceGroupId getGroup() {
                   return entry.getResourceGroup();
                 }
               }).collect(Collectors.toSet());
@@ -446,9 +451,9 @@ public class ClientContext implements AccumuloClient {
   /**
    * @return map of live scan server addresses to lock uuids.
    */
-  public Map<String,Pair<UUID,String>> getScanServers() {
+  public Map<String,Pair<UUID,ResourceGroupId>> getScanServers() {
     ensureOpen();
-    Map<String,Pair<UUID,String>> liveScanServers = new HashMap<>();
+    Map<String,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
         getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
     for (ServiceLockPath path : scanServerPaths) {
@@ -459,7 +464,7 @@ public class ClientContext implements AccumuloClient {
           final ServiceLockData data = sld.orElseThrow();
           final String addr = data.getAddressString(ThriftService.TABLET_SCAN);
           final UUID uuid = data.getServerUUID(ThriftService.TABLET_SCAN);
-          final String group = data.getGroup(ThriftService.TABLET_SCAN);
+          final ResourceGroupId group = data.getGroup(ThriftService.TABLET_SCAN);
           liveScanServers.put(addr, new Pair<>(uuid, group));
         }
       } catch (IllegalArgumentException e) {

@@ -35,8 +35,8 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.accumulo.compactor.Compactor;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -59,6 +59,8 @@ import org.apache.zookeeper.server.ZooKeeperServerMain;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 /**
  * Holds configuration for {@link MiniAccumuloClusterImpl}. Required configurations must be passed
  * to constructor(s) and all other configurations are optional.
@@ -70,6 +72,11 @@ public class MiniAccumuloConfigImpl {
   private static final Logger log = LoggerFactory.getLogger(MiniAccumuloConfigImpl.class);
   private static final String DEFAULT_INSTANCE_SECRET = "DONTTELL";
   static final String DEFAULT_ZOOKEEPER_HOST = "127.0.0.1";
+  private static final EnumMap<ServerType,Function<String,Class<?>>> DEFAULT_SERVER_CLASSES =
+      new EnumMap<>(Map.of(MANAGER, rg -> Manager.class, GARBAGE_COLLECTOR,
+          rg -> SimpleGarbageCollector.class, MONITOR, rg -> Monitor.class, ZOOKEEPER,
+          rg -> ZooKeeperServerMain.class, TABLET_SERVER, rg -> TabletServer.class, SCAN_SERVER,
+          rg -> ScanServer.class, COMPACTOR, rg -> Compactor.class));
 
   private Path dir = null;
   private String rootPassword = null;
@@ -78,10 +85,7 @@ public class MiniAccumuloConfigImpl {
   private Map<String,String> configuredSiteConfig = new HashMap<>();
   private Map<String,String> clientProps = new HashMap<>();
   private Map<ServerType,Long> memoryConfig = new HashMap<>();
-  private final EnumMap<ServerType,Class<?>> serverTypeClasses =
-      new EnumMap<>(Map.of(MANAGER, Manager.class, GARBAGE_COLLECTOR, SimpleGarbageCollector.class,
-          MONITOR, Monitor.class, ZOOKEEPER, ZooKeeperServerMain.class, TABLET_SERVER,
-          TabletServer.class, SCAN_SERVER, ScanServer.class, COMPACTOR, Compactor.class));
+  private final Map<ServerType,Function<String,Class<?>>> rgServerClassOverrides = new HashMap<>();
   private boolean jdwpEnabled = false;
   private Map<String,String> systemProperties = new HashMap<>();
 
@@ -109,6 +113,7 @@ public class MiniAccumuloConfigImpl {
   private Boolean existingInstance = null;
 
   private boolean useMiniDFS = false;
+  private int numMiniDFSDataNodes = 1;
 
   private boolean useCredentialProvider = false;
 
@@ -407,22 +412,23 @@ public class MiniAccumuloConfigImpl {
   }
 
   /**
-   * Sets the class that will be used to instantiate this server type.
+   * Sets a function that returns the class that will be used to instantiate this server type given
+   * a resource group.
    */
-  public MiniAccumuloConfigImpl setServerClass(ServerType type, Class<?> serverClass) {
-    serverTypeClasses.put(type, Objects.requireNonNull(serverClass));
+  public MiniAccumuloConfigImpl setServerClass(ServerType type, Function<String,Class<?>> func) {
+    rgServerClassOverrides.put(type, func);
     return this;
   }
 
   /**
    * @return the class to use to instantiate this server type.
    */
-  public Class<?> getServerClass(ServerType type) {
-    var clazz = serverTypeClasses.get(type);
-    if (clazz == null) {
-      throw new IllegalStateException("Server type " + type + " has no class");
+  public Class<?> getServerClass(ServerType type, String rg) {
+    Class<?> clazz = rgServerClassOverrides.getOrDefault(type, r -> null).apply(rg);
+    if (clazz != null) {
+      return clazz;
     }
-    return clazz;
+    return DEFAULT_SERVER_CLASSES.get(type).apply(rg);
   }
 
   /**
@@ -571,7 +577,7 @@ public class MiniAccumuloConfigImpl {
     return this;
   }
 
-  public boolean useMiniDFS() {
+  public boolean getUseMiniDFS() {
     return useMiniDFS;
   }
 
@@ -582,7 +588,17 @@ public class MiniAccumuloConfigImpl {
    * underlying miniDFS cannot be restarted.
    */
   public void useMiniDFS(boolean useMiniDFS) {
+    useMiniDFS(useMiniDFS, 1);
+  }
+
+  public void useMiniDFS(boolean useMiniDFS, int numDataNodes) {
+    Preconditions.checkArgument(numDataNodes > 0);
     this.useMiniDFS = useMiniDFS;
+    this.numMiniDFSDataNodes = numDataNodes;
+  }
+
+  public int getNumDataNodes() {
+    return numMiniDFSDataNodes;
   }
 
   public File getAccumuloPropsFile() {

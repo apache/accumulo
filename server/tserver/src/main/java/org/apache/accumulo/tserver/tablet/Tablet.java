@@ -355,7 +355,7 @@ public class Tablet extends TabletBase {
   }
 
   public void checkConditions(ConditionChecker checker, Authorizations authorizations,
-      AtomicBoolean iFlag) throws IOException {
+      AtomicBoolean iFlag) throws IOException, ReflectiveOperationException {
 
     ScanParameters scanParams = new ScanParameters(-1, authorizations, Collections.emptySet(), null,
         null, false, null, -1, null);
@@ -367,7 +367,7 @@ public class Tablet extends TabletBase {
     try {
       SortedKeyValueIterator<Key,Value> iter = new SourceSwitchingIterator(dataSource);
       checker.check(iter);
-    } catch (IOException | RuntimeException e) {
+    } catch (IOException | RuntimeException | ReflectiveOperationException e) {
       sawException = true;
       throw e;
     } finally {
@@ -1496,8 +1496,22 @@ public class Tablet extends TabletBase {
     getScanfileManager().returnFilesForScan(scanId);
   }
 
-  public void removeOrphanedScanRefs() {
-    getScanfileManager().removeOrphanedScanRefs();
+  public void removeBatchedScanRefs() {
+    synchronized (this) {
+      if (isClosed() || isClosing()) {
+        return;
+      }
+      // return early if there are no scan files to remove
+      if (!getScanfileManager().canScanRefsBeRemoved()) {
+        return;
+      }
+      incrementWritesInProgress();
+    }
+    try {
+      getScanfileManager().removeBatchedScanRefs();
+    } finally {
+      decrementWritesInProgress();
+    }
   }
 
   TabletMemory getTabletMemory() {

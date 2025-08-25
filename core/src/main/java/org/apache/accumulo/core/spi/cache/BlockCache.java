@@ -115,7 +115,7 @@ public interface BlockCache {
     /**
      * @return The number of entries evicted from the cache.
      *
-     * @since 3.1.0
+     * @since 4.0.0
      */
     long evictionCount();
   }

@@ -41,7 +41,6 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
@@ -60,6 +59,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
@@ -522,7 +522,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       HostAndPort address = HostAndPort.fromString(location);
       String addressWithSession = address.toString();
       var zLockPath = getCluster().getServerContext().getServerPaths()
-          .createTabletServerPath(Constants.DEFAULT_RESOURCE_GROUP_NAME, address);
+          .createTabletServerPath(ResourceGroupId.DEFAULT, address);
       long sessionId =
           ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
       if (sessionId != 0) {
@@ -573,7 +573,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       HostAndPort address = HostAndPort.fromString(location);
       String addressWithSession = address.toString();
       var zLockPath = getCluster().getServerContext().getServerPaths()
-          .createTabletServerPath(Constants.DEFAULT_RESOURCE_GROUP_NAME, address);
+          .createTabletServerPath(ResourceGroupId.DEFAULT, address);
       long sessionId =
           ServiceLock.getSessionId(getCluster().getServerContext().getZooCache(), zLockPath);
       if (sessionId != 0) {

@@ -18,6 +18,10 @@
  */
 package org.apache.accumulo.test.metrics;
 
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_CANCELLED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
+import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TERMINATION;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
@@ -120,7 +124,11 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     // meter names sorted and formatting disabled to make it easier to diff changes
     // @formatter:off
     Set<Metric> unexpectedMetrics = Set.of(
-            SCAN_YIELDS
+            SCAN_YIELDS,
+            COMPACTOR_MAJC_CANCELLED,
+            COMPACTOR_MAJC_FAILED,
+            COMPACTOR_MAJC_FAILURES_CONSECUTIVE,
+            COMPACTOR_MAJC_FAILURES_TERMINATION
     );
 
     // add sserver as flaky until scan server included in mini tests.

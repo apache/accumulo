@@ -51,10 +51,8 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Future;
 import java.util.concurrent.LinkedBlockingDeque;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -96,7 +94,6 @@ import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
-import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -104,7 +101,6 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.spi.fs.VolumeChooserEnvironment;
 import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader;
 import org.apache.accumulo.core.spi.ondemand.OnDemandTabletUnloader.UnloaderParams;
-import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tabletserver.UnloaderParamsImpl;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -115,9 +111,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
 import org.apache.accumulo.core.util.UtilWaitThread;
-import org.apache.accumulo.core.util.threads.ThreadPoolNames;
 import org.apache.accumulo.core.util.threads.Threads;
-import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.AbstractServer;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.ServiceEnvironmentImpl;
@@ -130,7 +124,6 @@ import org.apache.accumulo.server.fs.VolumeChooserEnvironmentImpl;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.server.log.WalStateManager;
 import org.apache.accumulo.server.log.WalStateManager.WalMarkerException;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -155,7 +148,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.TServiceClient;
-import org.apache.thrift.server.TServer;
 import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -207,11 +199,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
 
   private final BlockingDeque<ManagerMessage> managerMessages = new LinkedBlockingDeque<>();
 
-  volatile HostAndPort clientAddress;
-
   private ServiceLock tabletServerLock;
-
-  private TServer server;
 
   private volatile ZooUtil.LockID lockID;
   private volatile long lockSessionId = -1;
@@ -226,9 +214,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    try (TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args)) {
-      tserver.runServer();
-    }
+    AbstractServer.startServer(new TabletServer(new ConfigOpts(), ServerContext::new, args), log);
   }
 
   protected TabletServer(ConfigOpts opts,
@@ -297,7 +283,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         context.getScheduledExecutor().scheduleWithFixedDelay(Threads.createNamedRunnable(
             "ScanRefCleanupTask", () -> getOnlineTablets().values().forEach(tablet -> {
               try {
-                tablet.removeOrphanedScanRefs();
+                tablet.removeBatchedScanRefs();
               } catch (Exception e) {
                 log.error("Error cleaning up stale scan references for tablet {}",
                     tablet.getExtent(), e);
@@ -421,15 +407,12 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  private ServerAddress startServer(String address, TProcessor processor)
-      throws UnknownHostException {
-    ServerAddress sp =
-        TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT, processor,
-            this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH, Property.TSERV_MINTHREADS,
-            Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
-    sp.startThriftServer("Thrift Client Server");
-    this.server = sp.server;
-    return sp;
+  private void startServer(String address, TProcessor processor) throws UnknownHostException {
+    updateThriftServer(() -> {
+      return TServerUtils.createThriftServer(getContext(), address, Property.TSERV_CLIENTPORT,
+          processor, this.getClass().getSimpleName(), Property.TSERV_PORTSEARCH,
+          Property.TSERV_MINTHREADS, Property.TSERV_MINTHREADS_TIMEOUT, Property.TSERV_THREADCHECK);
+    }, true);
   }
 
   private HostAndPort getManagerAddress() {
@@ -477,7 +460,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     ThriftUtil.returnClient(client, context);
   }
 
-  private ServerAddress startTabletClientService() throws UnknownHostException {
+  private void startTabletClientService() throws UnknownHostException {
     // start listening for client connection last
     WriteTracker writeTracker = new WriteTracker();
     clientHandler = newClientHandler();
@@ -487,10 +470,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     TProcessor processor =
         ThriftProcessorTypes.getTabletServerTProcessor(this, clientHandler, thriftClientHandler,
             scanClientHandler, thriftClientHandler, thriftClientHandler, getContext());
-    ServerAddress address = startServer(getBindAddress().toString(), processor);
-    updateAdvertiseAddress(address.address);
-    log.info("address = {}", address);
-    return address;
+    startServer(getBindAddress(), processor);
   }
 
   @Override
@@ -502,8 +482,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
-      final ServiceLockPath zLockPath =
-          context.getServerPaths().createTabletServerPath(getResourceGroup(), clientAddress);
+      final ServiceLockPath zLockPath = context.getServerPaths()
+          .createTabletServerPath(getResourceGroup(), getAdvertiseAddress());
       ServiceLockSupport.createNonHaServiceLockPath(Type.TABLET_SERVER, zoo, zLockPath);
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
@@ -519,7 +499,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
             ThriftService.TSERV}) {
           descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
-              getClientAddressString(), this.getResourceGroup()));
+              getAdvertiseAddress().toString(), this.getResourceGroup()));
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -560,11 +540,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
             + " ZooKeeper. Delegation token authentication will be unavailable.", e);
       }
     }
-    ServerAddress address = null;
     try {
-      address = startTabletClientService();
-      updateAdvertiseAddress(address.getAddress());
-      clientAddress = getAdvertiseAddress();
+      startTabletClientService();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the tablet client service", e1);
     }
@@ -583,7 +560,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         pausedMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
-        clientAddress, getResourceGroup()));
+        getAdvertiseAddress(), getResourceGroup()));
 
     announceExistence();
     getContext().setServiceLock(tabletServerLock);
@@ -620,6 +597,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     });
 
     HostAndPort managerHost;
+    final String advertiseAddressString = getAdvertiseAddress().toString();
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {
         log.info("Server process thread has been interrupted, shutting down");
@@ -654,7 +632,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
               && client.getOutputProtocol().getTransport() != null
               && client.getOutputProtocol().getTransport().isOpen()) {
             try {
-              mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
+              mm.send(getContext().rpcCreds(), advertiseAddressString, iface);
               mm = null;
             } catch (TException ex) {
               log.warn("Error sending message: queuing message again");
@@ -685,85 +663,41 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         // may have lost connection with manager
         // loop back to the beginning and wait for a new one
         // this way we survive manager failures
-        log.error(getClientAddressString() + ": TServerInfo: Exception. Manager down?", e);
+        log.error("{}: TServerInfo: Exception. Manager down?", advertiseAddressString, e);
       }
     }
 
-    // Tell the Manager we are shutting down so that it doesn't try
-    // to assign tablets.
     ManagerClientService.Client iface = managerConnection(getManagerAddress());
     try {
-      iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-          getClientAddressString());
-    } catch (TException e) {
+      // Ask the manager to unload our tablets and stop loading new tablets
+      if (iface == null) {
+        Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!");
+      } else {
+        iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
+            getTabletSession().getHostPortSession(), getResourceGroup().canonical());
+      }
+
+      boolean managerDown = false;
+      while (!getOnlineTablets().isEmpty()) {
+        log.info("Shutdown requested, waiting for manager to unload {} tablets",
+            getOnlineTablets().size());
+
+        managerDown = sendManagerMessages(managerDown, iface, advertiseAddressString);
+
+        UtilWaitThread.sleep(1000);
+      }
+
+      sendManagerMessages(managerDown, iface, advertiseAddressString);
+
+    } catch (TException | RuntimeException e) {
       Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
     }
 
-    // Best-effort attempt at unloading tablets.
-    log.debug("Unloading tablets");
-    final List<Future<?>> futures = new ArrayList<>();
-    final ThreadPoolExecutor tpe = getContext().threadPools()
-        .getPoolBuilder(ThreadPoolNames.TSERVER_SHUTDOWN_UNLOAD_TABLET_POOL).numCoreThreads(8)
-        .numMaxThreads(16).build();
-
-    iface = managerConnection(getManagerAddress());
-    boolean managerDown = false;
-
-    try {
-      for (DataLevel level : new DataLevel[] {DataLevel.USER, DataLevel.METADATA, DataLevel.ROOT}) {
-        getOnlineTablets().keySet().forEach(ke -> {
-          if (DataLevel.of(ke.tableId()) == level) {
-            futures.add(tpe.submit(new UnloadTabletHandler(this, ke, TUnloadTabletGoal.UNASSIGNED,
-                SteadyTime.from(System.currentTimeMillis(), TimeUnit.MILLISECONDS))));
-          }
-        });
-        while (!futures.isEmpty()) {
-          Iterator<Future<?>> unloads = futures.iterator();
-          while (unloads.hasNext()) {
-            Future<?> f = unloads.next();
-            if (f.isDone()) {
-              if (!managerDown) {
-                ManagerMessage mm = managerMessages.poll();
-                try {
-                  mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
-                } catch (TException e) {
-                  managerDown = true;
-                  log.debug("Error sending message to Manager during tablet unloading, msg: {}",
-                      e.getMessage());
-                }
-              }
-              unloads.remove();
-            }
-          }
-          log.debug("Waiting on {} {} tablets to close.", futures.size(), level);
-          UtilWaitThread.sleep(1000);
-        }
-        log.debug("All {} tablets unloaded", level);
-      }
-    } finally {
-      if (!managerDown) {
-        try {
-          ManagerMessage mm = managerMessages.poll();
-          do {
-            if (mm != null) {
-              mm.send(getContext().rpcCreds(), getClientAddressString(), iface);
-            }
-            mm = managerMessages.poll();
-          } while (mm != null);
-        } catch (TException e) {
-          log.debug("Error sending message to Manager during tablet unloading, msg: {}",
-              e.getMessage());
-        }
-      }
-      returnManagerConnection(iface);
-      tpe.shutdown();
-    }
-
     log.debug("Stopping Thrift Servers");
-    if (server != null) {
-      server.stop();
+    if (getThriftServer() != null) {
+      getThriftServer().stop();
     }
 
     try {
@@ -774,7 +708,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     context.getLowMemoryDetector().logGCInfo(getConfiguration());
-
+    super.close();
     getShutdownComplete().set(true);
     log.info("TServerInfo: stop requested. exiting ... ");
     try {
@@ -784,16 +718,24 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
   }
 
-  public String getClientAddressString() {
-    if (clientAddress == null) {
-      return null;
+  private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client iface,
+      String advertiseAddressString) {
+    ManagerMessage mm = managerMessages.poll();
+    while (mm != null && !managerDown) {
+      try {
+        mm.send(getContext().rpcCreds(), advertiseAddressString, iface);
+        mm = managerMessages.poll();
+      } catch (TException e) {
+        managerDown = true;
+        log.debug("Error sending message to Manager during tablet unloading, msg: {}",
+            e.getMessage());
+      }
     }
-    return clientAddress.getHost() + ":" + clientAddress.getPort();
+    return managerDown;
   }
 
   public TServerInstance getTabletSession() {
-    String address = getClientAddressString();
-    if (address == null) {
+    if (getAdvertiseAddress() == null) {
       return null;
     }
     if (lockSessionId == -1) {
@@ -801,7 +743,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      return new TServerInstance(address, lockSessionId);
+      return new TServerInstance(getAdvertiseAddress().toString(), lockSessionId);
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;
@@ -840,8 +782,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private void config() {
     log.info("Tablet server starting on {}", getBindAddress());
     CompactionWatcher.startWatching(context);
-
-    clientAddress = HostAndPort.fromParts(getBindAddress(), 0);
   }
 
   public TabletServerStatus getStats(Map<TableId,MapCounter<ScanRunState>> scanCounts) {
@@ -913,7 +853,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.lastContact = RelativeTime.currentTimeMillis();
     result.tableMap = tables;
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-    result.name = getClientAddressString();
+    result.name = String.valueOf(getAdvertiseAddress());
     result.holdTime = resourceManager.holdTime();
     result.lookups = seekCount.get();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();

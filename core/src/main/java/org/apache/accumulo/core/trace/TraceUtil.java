@@ -26,8 +26,6 @@ import java.util.concurrent.Callable;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
-import org.apache.accumulo.core.conf.AccumuloConfiguration;
-import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.util.ClassUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +36,7 @@ import io.opentelemetry.api.common.AttributeKey;
 import io.opentelemetry.api.common.Attributes;
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.SpanBuilder;
+import io.opentelemetry.api.trace.SpanContext;
 import io.opentelemetry.api.trace.SpanKind;
 import io.opentelemetry.api.trace.StatusCode;
 import io.opentelemetry.api.trace.Tracer;
@@ -52,23 +51,23 @@ public class TraceUtil {
 
   private static final String SPAN_FORMAT = "%s::%s";
 
-  private static volatile boolean enabled = true;
+  private static volatile boolean enabled = false;
 
-  public static void initializeTracer(AccumuloConfiguration conf) {
-    enabled = conf.getBoolean(Property.GENERAL_OPENTELEMETRY_ENABLED);
+  public static boolean getProcessTracing() {
+    return enabled;
+  }
+
+  public static void setProcessTracing(boolean shouldEnable) {
+    enabled = shouldEnable;
     logTracingState();
   }
 
   private static void logTracingState() {
     var msg = "Trace enabled in Accumulo: {}, OpenTelemetry instance: {}, Tracer instance: {}";
     var enabledInAccumulo = enabled ? "yes" : "no";
-    var openTelemetry = getOpenTelemetry();
+    var openTelemetry = enabled ? GlobalOpenTelemetry.get() : OpenTelemetry.noop();
     var tracer = getTracer(openTelemetry);
     LOG.info(msg, enabledInAccumulo, openTelemetry.getClass(), tracer.getClass());
-  }
-
-  private static OpenTelemetry getOpenTelemetry() {
-    return enabled ? GlobalOpenTelemetry.get() : OpenTelemetry.noop();
   }
 
   private static Tracer getTracer(OpenTelemetry ot) {
@@ -97,19 +96,22 @@ public class TraceUtil {
 
   private static Span startSpan(Class<?> caller, String spanName, SpanKind kind,
       Map<String,String> attributes, TInfo tinfo) {
-    if (!enabled && !Span.current().getSpanContext().isValid()) {
+    Context context = tinfo == null ? null : getContext(tinfo);
+    SpanContext spanContext =
+        context == null ? SpanContext.getInvalid() : Span.fromContext(context).getSpanContext();
+    if (!enabled && !spanContext.isValid() && !Span.current().getSpanContext().isValid()) {
       return Span.getInvalid();
     }
     final String name = String.format(SPAN_FORMAT, caller.getSimpleName(), spanName);
-    final SpanBuilder builder = getTracer(getOpenTelemetry()).spanBuilder(name);
+    final SpanBuilder builder = getTracer(GlobalOpenTelemetry.get()).spanBuilder(name);
     if (kind != null) {
       builder.setSpanKind(kind);
     }
     if (attributes != null) {
       attributes.forEach(builder::setAttribute);
     }
-    if (tinfo != null) {
-      builder.setParent(getContext(tinfo));
+    if (spanContext.isValid()) {
+      builder.setParent(context);
     }
     return builder.startSpan();
   }

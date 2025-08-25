@@ -83,7 +83,8 @@ public class Fate<T> {
   private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
-  private final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
+  // Visible for FlakyFate test object
+  protected final Set<FateExecutor<T>> fateExecutors = new HashSet<>();
 
   public enum TxInfo {
     FATE_OP, AUTO_CLEAN, EXCEPTION, TX_AGEOFF, RETURN_VALUE
@@ -170,8 +171,9 @@ public class Fate<T> {
     public void run() {
       // Read from the config here and here only. Must avoid reading the same property from the
       // config more than once since it can change at any point in this execution
-      var poolConfigs = getPoolConfigurations(conf);
-      var idleCheckIntervalMillis = conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
+      final var poolConfigs = getPoolConfigurations(conf);
+      final var idleCheckIntervalMillis =
+          conf.getTimeInMillis(Property.MANAGER_FATE_IDLE_CHECK_INTERVAL);
 
       // shutdown task: shutdown fate executors whose set of fate operations are no longer present
       // in the config
@@ -183,15 +185,17 @@ public class Fate<T> {
           // if this fate executors set of fate ops is no longer present in the config...
           if (!poolConfigs.containsKey(fateExecutor.getFateOps())) {
             if (!fateExecutor.isShutdown()) {
-              log.debug("The config for {} has changed invalidating {}. Gracefully shutting down "
-                  + "the FateExecutor.", getFateConfigProp(), fateExecutor);
+              log.debug(
+                  "[{}] The config for {} has changed invalidating {}. Gracefully shutting down "
+                      + "the FateExecutor.",
+                  store.type(), getFateConfigProp(), fateExecutor);
               fateExecutor.initiateShutdown();
             } else if (fateExecutor.isShutdown() && fateExecutor.isAlive()) {
-              log.debug("{} has been shutdown, but is still actively working on transactions.",
-                  fateExecutor);
+              log.debug("[{}] {} has been shutdown, but is still actively working on transactions.",
+                  store.type(), fateExecutor);
             } else if (fateExecutor.isShutdown() && !fateExecutor.isAlive()) {
-              log.debug("{} has been shutdown and all threads have safely terminated.",
-                  fateExecutor);
+              log.debug("[{}] {} has been shutdown and all threads have safely terminated.",
+                  store.type(), fateExecutor);
               fateExecutorsIter.remove();
             }
           }
@@ -207,6 +211,7 @@ public class Fate<T> {
         synchronized (fateExecutors) {
           if (fateExecutors.stream().map(FateExecutor::getFateOps)
               .noneMatch(fo -> fo.equals(configFateOps))) {
+            log.debug("[{}] Adding FateExecutor for {}", store.type(), configFateOps);
             fateExecutors
                 .add(new FateExecutor<>(Fate.this, environment, configFateOps, configPoolSize));
           }
@@ -268,16 +273,6 @@ public class Fate<T> {
     }
     this.deadResCleanerExecutor = deadResCleanerExecutor;
 
-    startFateExecutors(environment, conf, fateExecutors);
-  }
-
-  protected void startFateExecutors(T environment, AccumuloConfiguration conf,
-      Set<FateExecutor<T>> fateExecutors) {
-    for (var poolConf : getPoolConfigurations(conf).entrySet()) {
-      // no fate threads are running at this point; fine not to synchronize
-      fateExecutors
-          .add(new FateExecutor<>(this, environment, poolConf.getKey(), poolConf.getValue()));
-    }
   }
 
   /**
@@ -334,7 +329,7 @@ public class Fate<T> {
     synchronized (fateExecutors) {
       for (var fateExecutor : fateExecutors) {
         if (fateExecutor.getFateOps().equals(fateOps)) {
-          return fateExecutor.getRunningTxRunners().size();
+          return fateExecutor.getNumRunningTxRunners();
         }
       }
     }
@@ -348,7 +343,7 @@ public class Fate<T> {
   @VisibleForTesting
   public int getTotalTxRunnersActive() {
     synchronized (fateExecutors) {
-      return fateExecutors.stream().mapToInt(fe -> fe.getRunningTxRunners().size()).sum();
+      return fateExecutors.stream().mapToInt(FateExecutor::getNumRunningTxRunners).sum();
     }
   }
 
@@ -382,7 +377,7 @@ public class Fate<T> {
   // multiple times for a transaction... but it will only seed once
   public void seedTransaction(FateOperation fateOp, FateId fateId, Repo<T> repo,
       boolean autoCleanUp, String goalMessage) {
-    log.info("Seeding {} {}", fateId, goalMessage);
+    log.info("[{}] Seeding {} {} {}", store.type(), fateOp, fateId, goalMessage);
     store.seedTransaction(fateOp, fateId, repo, autoCleanUp);
   }
 
@@ -405,16 +400,18 @@ public class Fate<T> {
         var txStore = optionalTxStore.orElseThrow();
         try {
           TStatus status = txStore.getStatus();
-          log.info("status is: {}", status);
+          log.info("[{}] status is: {}", store.type(), status);
           if (status == NEW || status == SUBMITTED) {
             txStore.setTransactionInfo(TxInfo.EXCEPTION, new TApplicationException(
                 TApplicationException.INTERNAL_ERROR, "Fate transaction cancelled by user"));
             txStore.setStatus(FAILED_IN_PROGRESS);
-            log.info("Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
-                fateId);
+            log.info(
+                "[{}] Updated status for {} to FAILED_IN_PROGRESS because it was cancelled by user",
+                store.type(), fateId);
             return true;
           } else {
-            log.info("{} cancelled by user but already in progress or finished state", fateId);
+            log.info("[{}] {} cancelled by user but already in progress or finished state",
+                store.type(), fateId);
             return false;
           }
         } finally {
@@ -425,7 +422,7 @@ public class Fate<T> {
         UtilWaitThread.sleep(500);
       }
     }
-    log.info("Unable to reserve transaction {} to cancel it", fateId);
+    log.info("[{}] Unable to reserve transaction {} to cancel it", store.type(), fateId);
     return false;
   }
 
@@ -487,7 +484,9 @@ public class Fate<T> {
   }
 
   /**
-   * Initiates shutdown of background threads and optionally waits on them.
+   * Initiates shutdown of background threads that run fate operations and cleanup fate data and
+   * optionally waits on them. Leaves the fate object in a state where it can still update and read
+   * fate data, like add a new fate operation or get the status of an existing fate operation.
    */
   public void shutdown(long timeout, TimeUnit timeUnit) {
     log.info("Shutting down {} FATE", store.type());
@@ -532,8 +531,13 @@ public class Fate<T> {
     if (deadResCleanerExecutor != null) {
       deadResCleanerExecutor.shutdownNow();
     }
+  }
 
-    // ensure store resources are cleaned up
+  /**
+   * Initiates shutdown of all fate threads and prevents reads and updates of fates persisted data.
+   */
+  public void close() {
+    shutdown(0, SECONDS);
     store.close();
   }
 

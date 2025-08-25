@@ -50,7 +50,6 @@ import java.util.function.Supplier;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
@@ -62,6 +61,7 @@ import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.AdminUtil;
@@ -133,18 +133,12 @@ public class Admin implements KeywordExecutable {
   }
 
   @Parameters(
-      commandDescription = "signal the server process to shutdown normally, finishing anything it might be working on, but not starting any new tasks")
-  static class GracefulShutdownCommand extends SubCommandOpts {
-    @Parameter(required = true, names = {"-a", "--address"}, description = "<host:port>")
-    String address = null;
-  }
-
-  @Parameters(commandDescription = "stop the tablet server on the given hosts")
+      commandDescription = "Stop the servers at the given addresses allowing them to complete current task but not start new task.  When no port is specified uses ports from tserver.port.client property.")
   static class StopCommand extends SubCommandOpts {
     @Parameter(names = {"-f", "--force"},
-        description = "force the given server to stop by removing its lock")
+        description = "force the given server to stop immediately by removing its lock.  Does not wait for any task the server is currently working.")
     boolean force = false;
-    @Parameter(description = "<host> {<host> ... }")
+    @Parameter(description = "<host[:port]> {<host[:port]> ... }")
     List<String> args = new ArrayList<>();
   }
 
@@ -402,11 +396,11 @@ public class Admin implements KeywordExecutable {
 
   @Parameters(commandDescription = "show service status")
   public static class ServiceStatusCmdOpts extends SubCommandOpts {
-    @Parameter(names = "--json", description = "provide output in json format (--noHosts ignored)")
+    @Parameter(names = "--json", description = "provide output in json format")
     boolean json = false;
-    @Parameter(names = "--noHosts",
-        description = "provide a summary of service counts without host details")
-    boolean noHosts = false;
+    @Parameter(names = "--showHosts",
+        description = "provide a summary of service counts with host details")
+    boolean showHosts = false;
   }
 
   public static void main(String[] args) {
@@ -453,9 +447,6 @@ public class Admin implements KeywordExecutable {
 
     FateOpsCommand fateOpsCommand = new FateOpsCommand();
     cl.addCommand("fate", fateOpsCommand);
-
-    GracefulShutdownCommand gracefulShutdownCommand = new GracefulShutdownCommand();
-    cl.addCommand("signalShutdown", gracefulShutdownCommand);
 
     ListInstancesCommand listInstancesOpts = new ListInstancesCommand();
     cl.addCommand("listInstances", listInstancesOpts);
@@ -520,9 +511,7 @@ public class Admin implements KeywordExecutable {
           rc = 4;
         }
       } else if (cl.getParsedCommand().equals("stop")) {
-        stopTabletServer(context, stopOpts.args, stopOpts.force);
-      } else if (cl.getParsedCommand().equals("signalShutdown")) {
-        signalGracefulShutdown(context, gracefulShutdownCommand.address);
+        stopServers(context, stopOpts.args, stopOpts.force);
       } else if (cl.getParsedCommand().equals("dumpConfig")) {
         printConfig(context, dumpConfigCommand);
       } else if (cl.getParsedCommand().equals("volumes")) {
@@ -543,7 +532,7 @@ public class Admin implements KeywordExecutable {
         executeFateOpsCommand(context, fateOpsCommand);
       } else if (cl.getParsedCommand().equals("serviceStatus")) {
         ServiceStatusCmd ssc = new ServiceStatusCmd();
-        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.noHosts);
+        ssc.execute(context, serviceStatusCommandOpts.json, serviceStatusCommandOpts.showHosts);
       } else if (cl.getParsedCommand().equals("check")) {
         executeCheckCommand(context, checkCommand, opts);
       } else if (cl.getParsedCommand().equals("stopManager")
@@ -668,18 +657,74 @@ public class Admin implements KeywordExecutable {
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
   }
 
-  // Visible for tests
-  public static void signalGracefulShutdown(final ClientContext context, String address) {
+  private static void stopServers(final ServerContext context, List<String> servers,
+      final boolean force)
+      throws AccumuloException, AccumuloSecurityException, InterruptedException, KeeperException {
+    List<String> hostOnly = new ArrayList<>();
+    Set<String> hostAndPort = new TreeSet<>();
 
-    Objects.requireNonNull(address, "address not set");
-    final HostAndPort hp = HostAndPort.fromString(address);
+    for (var server : servers) {
+      if (server.contains(":")) {
+        hostAndPort.add(server);
+      } else {
+        hostOnly.add(server);
+      }
+    }
+
+    if (!hostOnly.isEmpty()) {
+      // The old impl of this command with the old behavior
+      stopTabletServer(context, hostOnly, force);
+    }
+
+    if (!hostAndPort.isEmpty()) {
+      // New behavior for this command when ports are present, supports more than just tservers. Is
+      // also async.
+      if (force) {
+        var zoo = context.getZooSession().asReaderWriter();
+
+        AddressSelector addresses = AddressSelector.matching(hostAndPort::contains);
+        List<ServiceLockPath> pathsToRemove = new ArrayList<>();
+        pathsToRemove.addAll(context.getServerPaths().getCompactor(rg -> true, addresses, false));
+        pathsToRemove.addAll(context.getServerPaths().getScanServer(rg -> true, addresses, false));
+        pathsToRemove
+            .addAll(context.getServerPaths().getTabletServer(rg -> true, addresses, false));
+        ZooZap.filterSingleton(context, context.getServerPaths().getManager(false), addresses)
+            .ifPresent(pathsToRemove::add);
+        ZooZap.filterSingleton(context, context.getServerPaths().getGarbageCollector(false),
+            addresses).ifPresent(pathsToRemove::add);
+        ZooZap.filterSingleton(context, context.getServerPaths().getMonitor(false), addresses)
+            .ifPresent(pathsToRemove::add);
+
+        for (var path : pathsToRemove) {
+          List<String> children = zoo.getChildren(path.toString());
+          for (String child : children) {
+            log.trace("removing lock {}", path + "/" + child);
+            zoo.recursiveDelete(path + "/" + child, ZooUtil.NodeMissingPolicy.SKIP);
+          }
+        }
+      } else {
+        for (var server : hostAndPort) {
+          signalGracefulShutdown(context, HostAndPort.fromString(server));
+        }
+      }
+    }
+  }
+
+  // Visible for tests
+  public static void signalGracefulShutdown(final ClientContext context, HostAndPort hp) {
+    Objects.requireNonNull(hp, "address not set");
     ServerProcessService.Client client = null;
     try {
       client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
           hp.getHost(), hp.getPort());
+      if (client == null) {
+        log.warn("Failed to initiate shutdown for {}", hp);
+        return;
+      }
       client.gracefulShutdown(context.rpcCreds());
+      log.info("Initiated shutdown for {}", hp);
     } catch (TException e) {
-      throw new RuntimeException("Error invoking graceful shutdown for server: " + hp, e);
+      log.warn("Failed to initiate shutdown for {}", hp, e);
     } finally {
       if (client != null) {
         ThriftUtil.returnClient(client, context);
@@ -1036,9 +1081,8 @@ public class Admin implements KeywordExecutable {
     ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors
-        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
-            "fake_admin_util_host", Constants.DEFAULT_RESOURCE_GROUP_NAME));
+    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
+        ServiceLockData.ThriftService.NONE, "fake_admin_util_host", ResourceGroupId.DEFAULT));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));

@@ -103,7 +103,6 @@ import org.apache.accumulo.server.client.ClientServiceHandler;
 import org.apache.accumulo.server.compaction.PausedCompactionMetrics;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
-import org.apache.accumulo.server.rpc.ServerAddress;
 import org.apache.accumulo.server.rpc.TServerUtils;
 import org.apache.accumulo.server.rpc.ThriftProcessorTypes;
 import org.apache.accumulo.server.security.SecurityUtil;
@@ -131,7 +130,6 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Sets;
-import com.google.common.net.HostAndPort;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -198,7 +196,6 @@ public class ScanServer extends AbstractServer
   private final ServerContext context;
   private final SessionManager sessionManager;
   private final TabletServerResourceManager resourceManager;
-  HostAndPort clientAddress;
 
   private ServiceLock scanServerLock;
   protected TabletServerScanMetrics scanMetrics;
@@ -293,10 +290,9 @@ public class ScanServer extends AbstractServer
   /**
    * Start the thrift service to handle incoming client requests
    *
-   * @return address of this client service
    * @throws UnknownHostException host unknown
    */
-  protected ServerAddress startScanServerClientService() throws UnknownHostException {
+  protected void startScanServerClientService() throws UnknownHostException {
 
     // This class implements TabletClientService.Iface and then delegates calls. Be sure
     // to set up the ThriftProcessor using this class, not the delegate.
@@ -304,21 +300,12 @@ public class ScanServer extends AbstractServer
     TProcessor processor =
         ThriftProcessorTypes.getScanServerTProcessor(this, clientHandler, this, getContext());
 
-    ServerAddress sp = TServerUtils.createThriftServer(getContext(), getBindAddress(),
-        Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
-        Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
-        Property.SSERV_THREADCHECK);
-    sp.startThriftServer("Thrift Client Server");
-    updateAdvertiseAddress(sp.address);
-    LOG.info("address = {}", sp.address);
-    return sp;
-  }
-
-  public String getClientAddressString() {
-    if (clientAddress == null) {
-      return null;
-    }
-    return clientAddress.getHost() + ":" + clientAddress.getPort();
+    updateThriftServer(() -> {
+      return TServerUtils.createThriftServer(getContext(), getBindAddress(),
+          Property.SSERV_CLIENTPORT, processor, this.getClass().getSimpleName(),
+          Property.SSERV_PORTSEARCH, Property.SSERV_MINTHREADS, Property.SSERV_MINTHREADS_TIMEOUT,
+          Property.SSERV_THREADCHECK);
+    }, true);
   }
 
   /**
@@ -329,7 +316,7 @@ public class ScanServer extends AbstractServer
     try {
 
       final ServiceLockPath zLockPath =
-          context.getServerPaths().createScanServerPath(getResourceGroup(), clientAddress);
+          context.getServerPaths().createScanServerPath(getResourceGroup(), getAdvertiseAddress());
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
@@ -343,7 +330,7 @@ public class ScanServer extends AbstractServer
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_SCAN}) {
           descriptors.addService(new ServiceDescriptor(serverLockUUID, svc,
-              getClientAddressString(), this.getResourceGroup()));
+              getAdvertiseAddress().toString(), this.getResourceGroup()));
         }
 
         if (scanServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -375,11 +362,8 @@ public class ScanServer extends AbstractServer
 
     SecurityUtil.serverLogin(getConfiguration());
 
-    ServerAddress address = null;
     try {
-      address = startScanServerClientService();
-      updateAdvertiseAddress(address.getAddress());
-      clientAddress = getAdvertiseAddress();
+      startScanServerClientService();
     } catch (UnknownHostException e1) {
       throw new RuntimeException("Failed to start the scan server client service", e1);
     }
@@ -394,7 +378,7 @@ public class ScanServer extends AbstractServer
 
     metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        clientAddress, getResourceGroup()));
+        getAdvertiseAddress(), getResourceGroup()));
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();
@@ -440,11 +424,11 @@ public class ScanServer extends AbstractServer
       }
 
       LOG.debug("Stopping Thrift Servers");
-      address.server.stop();
+      getThriftServer().stop();
 
       try {
         LOG.info("Removing server scan references");
-        this.getContext().getAmple().scanServerRefs().delete(clientAddress.toString(),
+        this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
             serverLockUUID);
       } catch (Exception e) {
         LOG.warn("Failed to remove scan server refs from metadata location", e);
@@ -466,6 +450,7 @@ public class ScanServer extends AbstractServer
       }
 
       context.getLowMemoryDetector().logGCInfo(getConfiguration());
+      super.close();
       getShutdownComplete().set(true);
       LOG.info("stop requested. exiting ... ");
       try {
@@ -643,7 +628,7 @@ public class ScanServer extends AbstractServer
       List<ScanServerRefTabletFile> refs = new ArrayList<>();
       Set<KeyExtent> tabletsToCheck = new HashSet<>();
 
-      String serverAddress = clientAddress.toString();
+      String serverAddress = getAdvertiseAddress().toString();
 
       for (StoredTabletFile file : allFiles.keySet()) {
         if (!reservedFiles.containsKey(file)) {
@@ -837,7 +822,7 @@ public class ScanServer extends AbstractServer
 
       List<ScanServerRefTabletFile> refsToDelete = new ArrayList<>();
       List<StoredTabletFile> confirmed = new ArrayList<>();
-      String serverAddress = clientAddress.toString();
+      String serverAddress = getAdvertiseAddress().toString();
 
       reservationsWriteLock.lock();
       try {
@@ -1152,9 +1137,7 @@ public class ScanServer extends AbstractServer
   }
 
   public static void main(String[] args) throws Exception {
-    try (ScanServer tserver = new ScanServer(new ConfigOpts(), args)) {
-      tserver.runServer();
-    }
+    AbstractServer.startServer(new ScanServer(new ConfigOpts(), args), LOG);
   }
 
 }

@@ -60,7 +60,9 @@ public class ListOnlineOnDemandTablets {
 
     final AtomicBoolean scanning = new AtomicBoolean(false);
 
-    LiveTServerSet tservers = new LiveTServerSet(context, new Listener() {
+    LiveTServerSet tservers = new LiveTServerSet(context);
+
+    tservers.startListeningForTabletServerChanges(new Listener() {
       @Override
       public void update(LiveTServerSet current, Set<TServerInstance> deleted,
           Set<TServerInstance> added) {
@@ -72,7 +74,6 @@ public class ListOnlineOnDemandTablets {
         }
       }
     });
-    tservers.startListeningForTabletServerChanges();
     scanning.set(true);
 
     System.out.println("Scanning " + SystemTables.METADATA.tableName());

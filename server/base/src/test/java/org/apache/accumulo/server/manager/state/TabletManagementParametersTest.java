@@ -24,7 +24,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
@@ -48,7 +48,7 @@ public class TabletManagementParametersTest {
         new TServerInstance("127.0.0.1:10001", 1));
     final LiveTServerSet.LiveTServersSnapshot serverSnapshot =
         new LiveTServerSet.LiveTServersSnapshot(tservers,
-            Map.of(Constants.DEFAULT_RESOURCE_GROUP_NAME, tservers));
+            Map.of(ResourceGroupId.DEFAULT, tservers));
     final Set<TServerInstance> serversToShutdown = Set.of();
     final Ample.DataLevel dataLevel = Ample.DataLevel.USER;
     final Map<FateId,Map<String,String>> compactionHints = Map.of();

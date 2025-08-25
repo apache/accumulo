@@ -26,11 +26,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
-import org.apache.accumulo.core.spi.compaction.CompactorGroupId;
 
 public class CompactionMetadata {
 
@@ -39,12 +39,12 @@ public class CompactionMetadata {
   private final String compactorId;
   private final CompactionKind kind;
   private final short priority;
-  private final CompactorGroupId cgid;
+  private final ResourceGroupId cgid;
   private final boolean propagateDeletes;
   private final FateId fateId;
 
   public CompactionMetadata(Set<StoredTabletFile> jobFiles, ReferencedTabletFile compactTmpName,
-      String compactorId, CompactionKind kind, short priority, CompactorGroupId ceid,
+      String compactorId, CompactionKind kind, short priority, ResourceGroupId ceid,
       boolean propagateDeletes, FateId fateId) {
     this.jobFiles = Objects.requireNonNull(jobFiles);
     this.compactTmpName = Objects.requireNonNull(compactTmpName);
@@ -81,7 +81,7 @@ public class CompactionMetadata {
     return priority;
   }
 
-  public CompactorGroupId getCompactionGroupId() {
+  public ResourceGroupId getCompactionGroupId() {
     return cgid;
   }
 
@@ -125,7 +125,7 @@ public class CompactionMetadata {
 
     return new CompactionMetadata(jData.inputs.stream().map(StoredTabletFile::new).collect(toSet()),
         StoredTabletFile.of(jData.tmp).getTabletFile(), jData.compactor,
-        CompactionKind.valueOf(jData.kind), jData.priority, CompactorGroupId.of(jData.groupId),
+        CompactionKind.valueOf(jData.kind), jData.priority, ResourceGroupId.of(jData.groupId),
         jData.propDels, jData.fateId == null ? null : FateId.from(jData.fateId));
   }
 

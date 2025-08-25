@@ -305,7 +305,8 @@ public class ClusterConfigParserTest extends WithTestNames {
     ClusterConfigParser.validateGroupNames(List.of("a"));
     ClusterConfigParser.validateGroupNames(List.of("a", "b"));
     ClusterConfigParser.validateGroupNames(List.of("default", "reg_ular"));
-    ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__"));
+    assertThrows(RuntimeException.class,
+        () -> ClusterConfigParser.validateGroupNames(List.of("a1b2c3d4__")));
     assertThrows(RuntimeException.class,
         () -> ClusterConfigParser.validateGroupNames(List.of("0abcde")));
     assertThrows(RuntimeException.class,

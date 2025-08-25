@@ -114,7 +114,7 @@
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
     <exec.cleanupDaemonThreads>false</exec.cleanupDaemonThreads>
-    <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</extraTestArgs>
+    <extraTestArgs>--add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.management/java.lang.management=ALL-UNNAMED --add-opens java.management/sun.management=ALL-UNNAMED --add-opens java.base/java.security=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.stream=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/java.time=ALL-UNNAMED</extraTestArgs>
     <failsafe.excludedGroups />
     <failsafe.failIfNoSpecifiedTests>false</failsafe.failIfNoSpecifiedTests>
     <failsafe.forkCount>1</failsafe.forkCount>
@@ -133,8 +133,9 @@
     <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
     <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
+    <minimalMavenBuildVersion>3.9</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2024-07-29T06:03:16Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-08-13T01:30:03Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -156,7 +157,7 @@
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.17</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
-    <version.zookeeper>3.9.2</version.zookeeper>
+    <version.zookeeper>3.9.3</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -323,6 +324,11 @@
         <version>1.3.5</version>
       </dependency>
       <dependency>
+        <groupId>commons-validator</groupId>
+        <artifactId>commons-validator</artifactId>
+        <version>1.10.0</version>
+      </dependency>
+      <dependency>
         <groupId>org.apache.accumulo</groupId>
         <artifactId>accumulo-access</artifactId>
         <version>${version.accumulo-access}</version>
@@ -426,7 +432,7 @@
       <dependency>
         <groupId>org.apache.commons</groupId>
         <artifactId>commons-lang3</artifactId>
-        <version>3.17.0</version>
+        <version>3.18.0</version>
       </dependency>
       <dependency>
         <groupId>org.apache.commons</groupId>
@@ -544,6 +550,11 @@
       <dependency>
         <groupId>org.bouncycastle</groupId>
         <artifactId>bcprov-jdk18on</artifactId>
+        <version>${version.bouncycastle}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.bouncycastle</groupId>
+        <artifactId>bcutil-jdk18on</artifactId>
         <version>${version.bouncycastle}</version>
       </dependency>
       <dependency>
@@ -947,6 +958,7 @@
                 <unused>biz.aQute.bnd:biz.aQute.bnd.annotation:jar:*</unused>
                 <unused>org.junit.jupiter:junit-jupiter-engine:jar:*</unused>
                 <unused>org.junit.platform:junit-platform-suite-engine:jar:*</unused>
+                <unused>org.lz4:lz4-java:jar:*</unused>
               </ignoredUnusedDeclaredDependencies>
             </configuration>
           </execution>
@@ -992,6 +1004,14 @@
                 <reactorModuleConvergence />
                 <banDuplicatePomDependencyVersions />
                 <dependencyConvergence />
+                <banDynamicVersions>
+                  <ignores>
+                    <!-- ignore our own SNAPSHOT versions during development -->
+                    <ignore>org.apache.accumulo:*:${project.version}</ignore>
+                    <!-- ignore apache-access, because we haven't had another beta release yet -->
+                    <ignore>org.apache.accumulo:accumulo-access:1.0.0-SNAPSHOT</ignore>
+                  </ignores>
+                </banDynamicVersions>
                 <bannedDependencies>
                   <excludes>
                     <!-- we redirect logging to log4j2, so we should have those bridges instead -->

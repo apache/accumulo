@@ -36,8 +36,8 @@ public class ComprehensiveFlakyAmpleIT extends ComprehensiveITBase {
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniClusterWithConfig((cfg, coreSite) -> {
-      cfg.setServerClass(ServerType.MANAGER, FlakyAmpleManager.class);
-      cfg.setServerClass(ServerType.TABLET_SERVER, FlakyAmpleTserver.class);
+      cfg.setServerClass(ServerType.MANAGER, r -> FlakyAmpleManager.class);
+      cfg.setServerClass(ServerType.TABLET_SERVER, r -> FlakyAmpleTserver.class);
     });
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {

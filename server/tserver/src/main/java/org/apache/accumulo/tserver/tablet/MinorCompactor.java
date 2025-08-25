@@ -106,7 +106,7 @@ public class MinorCompactor extends FileCompactor {
           }
 
           return ret;
-        } catch (IOException | UnsatisfiedLinkError e) {
+        } catch (IOException | ReflectiveOperationException | UnsatisfiedLinkError e) {
           log.warn("MinC failed ({}) to create {} retrying ...", e.getMessage(), outputFileName);
         } catch (RuntimeException | NoClassDefFoundError e) {
           // if this is coming from a user iterator, it is possible that the user could change the

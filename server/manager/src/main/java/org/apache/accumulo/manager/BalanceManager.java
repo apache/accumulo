@@ -19,10 +19,14 @@
 package org.apache.accumulo.manager;
 
 import static com.google.common.util.concurrent.Uninterruptibles.sleepUninterruptibly;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
+import static org.apache.accumulo.manager.Manager.ONE_SECOND;
+import static org.apache.accumulo.manager.Manager.WAIT_BETWEEN_ERRORS;
 
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -32,10 +36,12 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.manager.balancer.AssignmentParamsImpl;
@@ -57,6 +63,9 @@ import org.apache.accumulo.core.spi.balancer.TabletBalancer;
 import org.apache.accumulo.core.spi.balancer.data.TServerStatus;
 import org.apache.accumulo.core.spi.balancer.data.TabletMigration;
 import org.apache.accumulo.core.spi.balancer.data.TabletServerId;
+import org.apache.accumulo.core.trace.TraceUtil;
+import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.threads.Threads;
 import org.apache.accumulo.manager.metrics.BalancerMetrics;
 import org.apache.accumulo.server.ServerContext;
@@ -67,7 +76,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.context.Scope;
 
 class BalanceManager {
 
@@ -81,8 +91,14 @@ class BalanceManager {
   private final Object balancedNotifier = new Object();
   private static final long CLEANUP_INTERVAL_MINUTES = Manager.CLEANUP_INTERVAL_MINUTES;
 
+  private AtomicLong runCounter = new AtomicLong(0);
+  private Map<Ample.DataLevel,LastRunInfo> lastRunInfo = new EnumMap<>(Ample.DataLevel.class);
+
   BalanceManager() {
     this.manager = new AtomicReference<>(null);
+    for (var dl : Ample.DataLevel.values()) {
+      lastRunInfo.put(dl, new LastRunInfo(0, 0));
+    }
   }
 
   void setManager(Manager manager) {
@@ -138,23 +154,19 @@ class BalanceManager {
    * balanceTablets() balances tables by DataLevel. Return the current set of migrations partitioned
    * by DataLevel
    */
-  private Map<Ample.DataLevel,Set<KeyExtent>> partitionMigrations() {
-    final Map<Ample.DataLevel,Set<KeyExtent>> partitionedMigrations =
-        new EnumMap<>(Ample.DataLevel.class);
-    for (Ample.DataLevel dl : Ample.DataLevel.values()) {
-      Set<KeyExtent> extents = new HashSet<>();
-      // prev row needed for the extent
-      try (var tabletsMetadata = getContext()
-          .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
-              TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
-          .filter(new HasMigrationFilter()).build()) {
-        // filter out migrations that are awaiting cleanup
-        tabletsMetadata.stream().filter(tm -> !shouldCleanupMigration(tm))
-            .forEach(tm -> extents.add(tm.getExtent()));
-      }
-      partitionedMigrations.put(dl, extents);
+  private Set<KeyExtent> getMigrations(Ample.DataLevel dl) {
+    Set<KeyExtent> extents = new HashSet<>();
+    // prev row needed for the extent
+    try (var tabletsMetadata = getContext()
+        .getAmple().readTablets().forLevel(dl).fetch(TabletMetadata.ColumnType.PREV_ROW,
+            TabletMetadata.ColumnType.MIGRATION, TabletMetadata.ColumnType.LOCATION)
+        .filter(new HasMigrationFilter()).build()) {
+      // filter out migrations that are awaiting cleanup
+      tabletsMetadata.stream().filter(tm -> !shouldCleanupMigration(tm))
+          .forEach(tm -> extents.add(tm.getExtent()));
     }
-    return partitionedMigrations;
+
+    return extents;
   }
 
   /**
@@ -254,121 +266,95 @@ class BalanceManager {
     }).collect(Collectors.toList());
   }
 
-  long balanceTablets() {
-    final int tabletsNotHosted = getManager().notHosted();
-    BalanceParamsImpl params = null;
-    long wait = 0;
-    long totalMigrationsOut = 0;
-    final Map<Ample.DataLevel,Set<KeyExtent>> partitionedMigrations = partitionMigrations();
-    int levelsCompleted = 0;
+  private boolean canBalance(Ample.DataLevel dl, Manager.TServerStatus tservers) {
+    if (dl == Ample.DataLevel.USER) {
 
-    for (Ample.DataLevel dl : Ample.DataLevel.values()) {
-      if (dl == Ample.DataLevel.USER && tabletsNotHosted > 0) {
+      if (!canAssignAndBalance()) {
+        log.debug("Not balancing user tablets because not enough tablet servers");
+        return false;
+      }
+
+      final int tabletsNotHosted = getManager().notHosted();
+      if (tabletsNotHosted > 0) {
         log.debug("not balancing user tablets because there are {} unhosted tablets",
             tabletsNotHosted);
-        continue;
+        return false;
       }
-
-      if (dl == Ample.DataLevel.USER && !canAssignAndBalance()) {
-        log.debug("not balancing user tablets because not enough tablet servers");
-        continue;
-      }
-
-      if ((dl == Ample.DataLevel.METADATA || dl == Ample.DataLevel.USER)
-          && !partitionedMigrations.get(Ample.DataLevel.ROOT).isEmpty()) {
-        log.debug("Not balancing {} because {} has migrations", dl, Ample.DataLevel.ROOT);
-        continue;
-      }
-
-      if (dl == Ample.DataLevel.USER
-          && !partitionedMigrations.get(Ample.DataLevel.METADATA).isEmpty()) {
-        log.debug("Not balancing {} because {} has migrations", dl, Ample.DataLevel.METADATA);
-        continue;
-      }
-
-      // Create a view of the tserver status such that it only contains the tables
-      // for this level in the tableMap.
-      SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
-          createTServerStatusView(dl, getManager().tserverStatus);
-      // Construct the Thrift variant of the map above for the BalancerParams
-      final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel = new TreeMap<>();
-      tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
-          .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
-
-      log.debug("Balancing for tables at level {}", dl);
-
-      SortedMap<TabletServerId,TServerStatus> statusForBalancerLevel =
-          tserverStatusForBalancerLevel;
-      params = BalanceParamsImpl.fromThrift(statusForBalancerLevel,
-          getManager().tServerGroupingForBalancer, tserverStatusForLevel,
-          partitionedMigrations.get(dl), dl, getTablesForLevel(dl));
-      wait = Math.max(getBalancer().balance(params), wait);
-      long migrationsOutForLevel = 0;
-      try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets(result -> {})) {
-        for (TabletMigration m : checkMigrationSanity(statusForBalancerLevel.keySet(),
-            params.migrationsOut(), dl)) {
-          final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
-          if (partitionedMigrations.get(dl).contains(ke)) {
-            log.warn("balancer requested migration more than once, skipping {}", m);
-            continue;
-          }
-          migrationsOutForLevel++;
-          var migration = TabletServerIdImpl.toThrift(m.getNewTabletServer());
-          tabletsMutator.mutateTablet(ke).requireAbsentOperation()
-              .requireCurrentLocationNotEqualTo(migration).putMigration(migration)
-              .submit(tm -> false);
-          log.debug("migration {}", m);
-        }
-      }
-      totalMigrationsOut += migrationsOutForLevel;
-
-      // increment this at end of loop to signal complete run w/o any continue
-      levelsCompleted++;
     }
-    final long totalMigrations =
-        totalMigrationsOut + partitionedMigrations.values().stream().mapToLong(Set::size).sum();
-    balancerMetrics.assignMigratingCount(() -> totalMigrations);
 
-    if (totalMigrationsOut == 0 && levelsCompleted == Ample.DataLevel.values().length) {
-      synchronized (balancedNotifier) {
-        balancedNotifier.notifyAll();
-      }
-    } else if (totalMigrationsOut > 0) {
-      getManager().nextEvent.event("Migrating %d more tablets, %d total", totalMigrationsOut,
-          totalMigrations);
-    }
-    return wait;
+    return getManager().canBalance(dl, tservers);
   }
 
-  @SuppressFBWarnings(value = "UW_UNCOND_WAIT", justification = "TODO needs triage")
-  void waitForBalance() {
+  private static class LastRunInfo {
+    private final long runCount;
+    private final long migrations;
+
+    LastRunInfo(long runCount, long migrations) {
+      this.runCount = runCount;
+      this.migrations = migrations;
+    }
+
+    @Override
+    public String toString() {
+      return "runCount:" + runCount + " migrations:" + migrations;
+    }
+  }
+
+  private void balanceCompleted(Ample.DataLevel level, long migrations) {
+    log.trace("Balance completed {} migrations {}", level, migrations);
+
     synchronized (balancedNotifier) {
-      long eventCounter;
-      do {
-        eventCounter = getManager().nextEvent.waitForEvents(0, 0);
+      lastRunInfo.put(level, new LastRunInfo(runCounter.getAndIncrement(), migrations));
+      balancedNotifier.notifyAll();
+    }
+  }
+
+  /**
+   * Waits for the given data levels to complete a run of balancing with zero migrations.
+   */
+  private void waitForBalance(Set<Ample.DataLevel> levels) {
+    synchronized (balancedNotifier) {
+      var snapshot = new EnumMap<Ample.DataLevel,Long>(Ample.DataLevel.class);
+      for (var dl : levels) {
+        snapshot.put(dl, lastRunInfo.get(dl).runCount);
+      }
+
+      log.trace("waitForBalance levels:{} snapshot:{}", levels, snapshot);
+
+      while (!snapshot.isEmpty()) {
         try {
           balancedNotifier.wait();
         } catch (InterruptedException e) {
           log.debug(e.toString(), e);
         }
-      } while (getManager().displayUnassigned() > 0 || numMigrations() > 0
-          || eventCounter != getManager().nextEvent.waitForEvents(0, 0));
+
+        log.trace("waitForBalance levels:{} snapshot:{}  lastRunInfo:{}", levels, snapshot,
+            lastRunInfo);
+
+        snapshot.entrySet().removeIf(entry -> {
+          var dataLevel = entry.getKey();
+          var snapRunCount = entry.getValue();
+          var lastRunInfo = this.lastRunInfo.get(dataLevel);
+          // check if balancing has run for this level since entering this method and if it had zero
+          // migrations
+          return snapRunCount < lastRunInfo.runCount && lastRunInfo.migrations == 0;
+        });
+      }
     }
   }
 
-  long numMigrations() {
-    long count = 0;
-    for (Ample.DataLevel dl : Ample.DataLevel.values()) {
-      try (var tabletsMetadata = getContext().getAmple().readTablets().forLevel(dl)
-          .fetch(TabletMetadata.ColumnType.MIGRATION).filter(new HasMigrationFilter()).build()) {
-        count += tabletsMetadata.stream().count();
-      }
+  void waitForBalance() {
+    waitForBalance(EnumSet.allOf(Ample.DataLevel.class));
+    int unassigned = getManager().displayUnassigned();
+    while (unassigned > 0) {
+      log.debug("displayUnassigned():{}", unassigned);
+      UtilWaitThread.sleep(50);
+      unassigned = getManager().displayUnassigned();
     }
-    return count;
   }
 
   void getAssignments(SortedMap<TServerInstance,TabletServerStatus> currentStatus,
-      Map<String,Set<TServerInstance>> currentTServerGroups,
+      Map<ResourceGroupId,Set<TServerInstance>> currentTServerGroups,
       Map<KeyExtent,UnassignedTablet> unassigned, Map<KeyExtent,TServerInstance> assignedOut) {
     AssignmentParamsImpl params =
         AssignmentParamsImpl.fromThrift(currentStatus, currentTServerGroups,
@@ -418,8 +404,11 @@ class BalanceManager {
             && tabletMetadata.getLocation().getServerInstance().equals(migration));
   }
 
-  void startMigrationCleanupThread() {
+  void startBackGroundTask() {
     Threads.createCriticalThread("Migration Cleanup Thread", new MigrationCleanupThread()).start();
+    for (var dataLevel : Ample.DataLevel.values()) {
+      Threads.createCriticalThread(dataLevel + " balancer", new BalancerThread(dataLevel)).start();
+    }
   }
 
   private class MigrationCleanupThread implements Runnable {
@@ -455,6 +444,103 @@ class BalanceManager {
         }
         sleepUninterruptibly(CLEANUP_INTERVAL_MINUTES, MINUTES);
       }
+    }
+  }
+
+  private class BalancerThread implements Runnable {
+    private final Ample.DataLevel dataLevel;
+    private Manager.TServerStatus lastStatus = null;
+
+    public BalancerThread(Ample.DataLevel dataLevel) {
+      this.dataLevel = dataLevel;
+    }
+
+    @Override
+    public void run() {
+      EventCoordinator.Tracker eventTracker = getManager().nextEvent.getTracker();
+      while (getManager().stillManager()) {
+        Span span = TraceUtil.startSpan(this.getClass(), "run::balanceTablets");
+        try (Scope scope = span.makeCurrent()) {
+          Timer timer = Timer.startNew();
+          if (dataLevel == Ample.DataLevel.USER) {
+            waitForBalance(EnumSet.of(Ample.DataLevel.METADATA, Ample.DataLevel.ROOT));
+            log.trace("{} waiting for balance of {} and {} took {}ms", dataLevel,
+                Ample.DataLevel.METADATA, Ample.DataLevel.ROOT, timer.elapsed(MILLISECONDS));
+          } else if (dataLevel == Ample.DataLevel.METADATA) {
+            waitForBalance(EnumSet.of(Ample.DataLevel.ROOT));
+            log.trace("{} waiting for balance of {} took {}ms", dataLevel, Ample.DataLevel.ROOT,
+                timer.elapsed(MILLISECONDS));
+          }
+
+          timer.restart();
+          var tservers = getManager().getTserverStatus(lastStatus);
+          log.trace("{} getting tserver status took {}ms and returned {} {}", dataLevel,
+              timer.elapsed(MILLISECONDS), tservers.snapshot.getTservers().size(),
+              tservers.status.size());
+          lastStatus = tservers;
+
+          if (!canBalance(dataLevel, tservers)) {
+            continue;
+          }
+
+          var wait = balance(tservers);
+          eventTracker.waitForEvents(wait);
+        } catch (Exception e) {
+          TraceUtil.setException(span, e, false);
+          log.error("Error balancing tablets for {} will wait for {} (seconds) and then retry ",
+              dataLevel, WAIT_BETWEEN_ERRORS / ONE_SECOND, e);
+          sleepUninterruptibly(WAIT_BETWEEN_ERRORS, MILLISECONDS);
+        } finally {
+          span.end();
+        }
+      }
+    }
+
+    private long balance(Manager.TServerStatus tservers) {
+
+      var existingMigrations = getMigrations(dataLevel);
+
+      // Create a view of the tserver status such that it only contains the tables
+      // for this level in the tableMap.
+      SortedMap<TServerInstance,TabletServerStatus> tserverStatusForLevel =
+          createTServerStatusView(dataLevel, tservers.status);
+      // Construct the Thrift variant of the map above for the BalancerParams
+      final SortedMap<TabletServerId,TServerStatus> tserverStatusForBalancerLevel = new TreeMap<>();
+      tserverStatusForLevel.forEach((tsi, status) -> tserverStatusForBalancerLevel
+          .put(new TabletServerIdImpl(tsi), TServerStatusImpl.fromThrift(status)));
+
+      log.debug("Balancing for tables at level {}", dataLevel);
+
+      var params = BalanceParamsImpl.fromThrift(tserverStatusForBalancerLevel,
+          tservers.snapshot.getTserverGroups(), tserverStatusForLevel, existingMigrations,
+          dataLevel, getTablesForLevel(dataLevel));
+      var wait = getBalancer().balance(params);
+      long migrationsOutForLevel = 0;
+      try (var tabletsMutator = getContext().getAmple().conditionallyMutateTablets(result -> {})) {
+        for (TabletMigration m : checkMigrationSanity(tserverStatusForBalancerLevel.keySet(),
+            params.migrationsOut(), dataLevel)) {
+          final KeyExtent ke = KeyExtent.fromTabletId(m.getTablet());
+          if (existingMigrations.contains(ke)) {
+            log.warn("balancer requested migration more than once, skipping {}", m);
+            continue;
+          }
+          migrationsOutForLevel++;
+          var migration = TabletServerIdImpl.toThrift(m.getNewTabletServer());
+          tabletsMutator.mutateTablet(ke).requireAbsentOperation()
+              .requireCurrentLocationNotEqualTo(migration).putMigration(migration)
+              .submit(tm -> false);
+          log.debug("migration {}", m);
+        }
+
+        balanceCompleted(dataLevel, migrationsOutForLevel + existingMigrations.size());
+        if (migrationsOutForLevel > 0) {
+          // signal the tablet group watcher for this data level that it needs to start working on
+          // migrations
+          getManager().nextEvent.event(dataLevel, "%s migrating %d more tablets, %d total",
+              dataLevel, migrationsOutForLevel, migrationsOutForLevel + existingMigrations.size());
+        }
+      }
+      return wait;
     }
   }
 }
