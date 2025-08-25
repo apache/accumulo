@@ -461,8 +461,8 @@ public class MetadataSchema {
           new ColumnFQ(NAME, new Text(UNSPLITTABLE_QUAL));
     }
 
-    // TODO when removing the Upgrader12to13 class in the upgrade package, also remove this class.
-    public static class Upgrade12to13 {
+    // TODO when removing the Upgrader11to12 class in the upgrade package, also remove this class.
+    public static class Upgrade11to12 {
 
       /**
        * A temporary field in case a split fails and we need to roll back
