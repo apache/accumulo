@@ -39,8 +39,14 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.hadoop.io.Text;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 public class CompactRange extends ManagerRepo {
+
+  private static final Logger log = LoggerFactory.getLogger(CompactRange.class);
 
   private static final long serialVersionUID = 1L;
   private final TableId tableId;
@@ -84,11 +90,19 @@ public class CompactRange extends ManagerRepo {
   @Override
   public Repo<Manager> call(final FateId fateId, Manager env) throws Exception {
     CompactionConfigStorage.setConfig(env.getContext(), fateId, config);
-    var widenedExtent = Utils.widen(env.getContext().getAmple(), new KeyExtent(tableId,
-        endRow == null ? null : new Text(endRow), startRow == null ? null : new Text(startRow)));
+    var extent = new KeyExtent(tableId, endRow == null ? null : new Text(endRow),
+        startRow == null ? null : new Text(startRow));
+    var widenedRange = LockRange.of(Utils.widen(env.getContext().getAmple(), extent));
+    log.debug("{} Widened compact range from {} to {}", fateId, LockRange.of(extent), widenedRange);
+
+    // expecting the lock code should widen the range of the lock, make sure this happened
+    var myLock = Utils.getReadLock(env, tableId, fateId, LockRange.infinite());
+    Preconditions.checkState(myLock.getRange().contains(widenedRange), "%s does not contain %s",
+        myLock.getRange(), widenedRange);
+
     return new CompactionDriver(namespaceId, tableId,
-        widenedExtent.prevEndRow() == null ? null : TextUtil.getBytes(widenedExtent.prevEndRow()),
-        widenedExtent.endRow() == null ? null : TextUtil.getBytes(widenedExtent.endRow()));
+        widenedRange.getStartRow() == null ? null : TextUtil.getBytes(widenedRange.getStartRow()),
+        widenedRange.getEndRow() == null ? null : TextUtil.getBytes(widenedRange.getEndRow()));
   }
 
   @Override

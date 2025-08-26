@@ -152,7 +152,7 @@ public class Utils {
   public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
       boolean tableMustExist, TableOperation op, final LockRange range) throws Exception {
     final LockRange widenedRange;
-    if (lockType == LockType.WRITE) {
+    if (lockType == LockType.WRITE || op == TableOperation.COMPACT) {
       /*
        * Write locks are widened to table split points to avoid non-overlapping ranges operating on
        * the same tablet. For example assume a table has splits at c,e and two fate operations need
@@ -161,20 +161,22 @@ public class Utils {
        * and (d1,d9] turns into (c,e]. The widened ranges for the fate operations overlap which
        * prevents both from operating on the same tablet.
        *
-       * Widening is only done for write locks because those need to work on mutually exclusive sets
-       * of tablets w/ other write or read locks. Read locks do not need to be mutually exclusive w/
+       * Widening is done for write locks because those need to work on mutually exclusive sets of
+       * tablets w/ other write or read locks. Read locks do not need to be mutually exclusive w/
        * each other and it does not matter if they operate on the same tablet so widening is not
        * needed for that case. Widening write locks is sufficient for detecting overlap w/ any
        * tablets that read locks need to use. For example if a write locks is obtained on (a1,c2]
        * and it widens to (null,e] then a read lock on (d1,d9] would overlap with the widened range.
        *
-       * Only widening for write locks is nice because fate operations that get read locks are
+       * Mostly widening for write locks is nice because fate operations that get read locks are
        * probably more frequent. So the work of widening is not done on most fate operations. Also
        * widening an infinite range is a quick operation, so create/delete table will not be slowed
        * down by widening.
+       *
+       * Widening is done for compactions because those operations widen their range.
        */
       widenedRange = widen(env.getContext().getAmple(), tableId, range, op, tableMustExist);
-      log.trace("{} widened write lock range from {} to {}", fateId, range, widenedRange);
+      log.debug("{} widened write lock range from {} to {}", fateId, range, widenedRange);
     } else {
       widenedRange = range;
     }
@@ -217,8 +219,14 @@ public class Utils {
               TableOperationExceptionType.NOTFOUND, "Table does not exist");
         }
       }
-      log.info("table {} {} locked for {} operation: {} range:{}", tableId, fateId, lockType, op,
-          range);
+
+      if (widenedRange.equals(range)) {
+        log.info("table {} {} locked for {} operation: {} range:{}", tableId, fateId, lockType, op,
+            range);
+      } else {
+        log.info("table {} {} locked for {} operation: {} range:{} widenedRange:{}", tableId,
+            fateId, lockType, op, range, widenedRange);
+      }
       return 0;
     } else {
       return 100;
@@ -308,7 +316,8 @@ public class Utils {
     return tableNameLock;
   }
 
-  public static Lock getReadLock(Manager env, AbstractId<?> id, FateId fateId, LockRange range) {
+  public static DistributedLock getReadLock(Manager env, AbstractId<?> id, FateId fateId,
+      LockRange range) {
     return Utils.getLock(env.getContext(), id, fateId, LockType.READ, range);
   }
 
