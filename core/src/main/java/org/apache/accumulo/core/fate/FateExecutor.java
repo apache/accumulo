@@ -393,8 +393,8 @@ public class FateExecutor<T> {
             }
             state.status = txStore.getStatus();
             state.op = txStore.top();
-            runnerLog.trace("Processing FATE transaction {} id: {} status: {}", state.op.getName(),
-                txStore.getID(), state.status);
+            runnerLog.trace("Processing FATE transaction {} id: {} status: {}",
+                state.op == null ? null : state.op.getName(), txStore.getID(), state.status);
             if (state.status == FAILED_IN_PROGRESS) {
               processFailed(txStore, state.op);
             } else if (state.status == SUBMITTED || state.status == IN_PROGRESS) {
