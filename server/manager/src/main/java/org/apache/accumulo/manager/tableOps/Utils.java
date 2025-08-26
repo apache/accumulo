@@ -28,7 +28,6 @@ import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -77,8 +76,6 @@ public class Utils {
           TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
-
-  static final Lock tableNameLock = new ReentrantLock();
 
   public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
       boolean tableMustExist, TableOperation op) throws Exception {
@@ -174,10 +171,6 @@ public class Utils {
       }
     }
     return lock;
-  }
-
-  public static Lock getTableNameLock() {
-    return tableNameLock;
   }
 
   public static Lock getReadLock(Manager env, AbstractId<?> id, FateId fateId) {

@@ -50,12 +50,10 @@ public class RenameNamespace extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    Utils.getTableNameLock().lock();
     try {
       manager.getContext().getNamespaceMapping().rename(namespaceId, oldName, newName);
       manager.getContext().clearTableListCache();
     } finally {
-      Utils.getTableNameLock().unlock();
       Utils.unreserveNamespace(manager, namespaceId, fateId, LockType.WRITE);
     }
 
