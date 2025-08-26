@@ -133,8 +133,9 @@
     <!-- versions-maven-plugin ignore patterns for snapshots, alpha, beta, milestones, and release candidates -->
     <maven.version.ignore>.+-SNAPSHOT,(?i).*(alpha|beta)[0-9.-]*,(?i).*[.-](m|rc)[0-9]+</maven.version.ignore>
     <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
+    <minimalMavenBuildVersion>3.9</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2024-07-29T06:03:16Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-08-13T01:30:03Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -156,7 +157,7 @@
     <version.powermock>2.0.9</version.powermock>
     <version.slf4j>2.0.17</version.slf4j>
     <version.thrift>0.17.0</version.thrift>
-    <version.zookeeper>3.9.2</version.zookeeper>
+    <version.zookeeper>3.9.3</version.zookeeper>
   </properties>
   <dependencyManagement>
     <dependencies>

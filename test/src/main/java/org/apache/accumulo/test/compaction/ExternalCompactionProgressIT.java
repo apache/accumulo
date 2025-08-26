@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompaction;
 import org.apache.accumulo.core.compaction.thrift.TExternalCompactionMap;
@@ -132,8 +133,8 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
 
     final AtomicLong totalEntriesRead = new AtomicLong(0);
     final AtomicLong totalEntriesWritten = new AtomicLong(0);
-    final long expectedEntriesRead = 18432;
-    final long expectedEntriesWritten = 13312;
+    final long expectedEntriesRead = 9216;
+    final long expectedEntriesWritten = 4096;
 
     Thread checkerThread = getMetricsCheckerThread(totalEntriesRead, totalEntriesWritten);
 
@@ -194,11 +195,15 @@ public class ExternalCompactionProgressIT extends AccumuloClusterHarness {
           }
           TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(s);
           final String metricName = metric.getName();
-          if (!metricName.startsWith("accumulo.compaction.entries")) {
+          // When the tablet server flushes memory to disk that can cause metrics that may throw the
+          // test off, so only look for metrics from the compactor.
+          String process = metric.getTags().getOrDefault("process.name", "none");
+          if (!metricName.startsWith("accumulo.compaction.entries")
+              || !process.equals(ServerId.Type.COMPACTOR.name())) {
             continue;
           }
           int value = Integer.parseInt(metric.getValue());
-          log.debug("Found metric: {} with value: {}", metricName, value);
+          log.debug("Found metric: {} {} with value: {}", metricName, metric.getTags(), value);
           if (metricName.equals(COMPACTOR_ENTRIES_READ.getName())) {
             totalEntriesRead.addAndGet(value);
           } else if (metricName.equals(COMPACTOR_ENTRIES_WRITTEN.getName())) {

@@ -16,18 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-namespace java org.apache.accumulo.test.rpc.thrift
+package org.apache.accumulo.core.file.rfile;
 
-service SimpleThriftService {
-
-  string echoPass(1:string value)
-  oneway void onewayPass(1:string value)
-
-  string echoFail(1:string value)
-  oneway void onewayFail(1:string value)
-
-  string echoRuntimeFail(1:string value)
-  oneway void onewayRuntimeFail(1:string value)
-
-  void echoPassVoid(1:string value)
+public enum EcEnabled {
+  ENABLE, DISABLE, INHERIT
 }

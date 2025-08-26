@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.SortedSet;
+import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -68,8 +69,10 @@ import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
 import org.apache.accumulo.core.client.admin.compaction.CompressionConfigurer;
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
@@ -86,6 +89,8 @@ import org.apache.accumulo.core.fate.FateStore;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.user.UserFateStore;
 import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
+import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.file.rfile.RFile;
 import org.apache.accumulo.core.iterators.DevNull;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
@@ -95,7 +100,9 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
+import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.spi.compaction.SimpleCompactionDispatcher;
@@ -115,11 +122,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   private static ServiceLock testLock;
+
+  private static final Logger log = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
@@ -418,15 +429,19 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       FateId fateId, List<ExternalCompactionId> cids) {
     var ctx = getCluster().getServerContext();
 
+    log.info("cids:{}", cids);
+    var compactionWithFate = cids.get(0);
+    var compactionWithoutFate = cids.get(1);
+
     // Wait until the compaction id w/o a fate transaction is removed, should still see the one
     // with a fate transaction
     Wait.waitFor(() -> {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds1:" + currentIds);
-      assertTrue(currentIds.size() == 1 || currentIds.size() == 2);
-      return currentIds.equals(Set.of(cids.get(0)));
+      log.info("currentIds1:{}", currentIds);
+      assertTrue(currentIds.contains(compactionWithFate));
+      return currentIds.contains(compactionWithFate) && !currentIds.contains(compactionWithoutFate);
     });
 
     // Delete the fate transaction, should allow the dead compaction detector to clean up the
@@ -440,9 +455,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds2:" + currentIds);
-      assertTrue(currentIds.size() <= 1);
-      return currentIds.isEmpty();
+      log.info("currentIds2:{}", currentIds);
+      return !currentIds.contains(compactionWithFate);
     });
   }
 
@@ -583,6 +597,45 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
     }
   }
 
+  public static class FourConfigurer implements CompactionConfigurer {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Overrides override(InputParameters params) {
+      if (new Text("4").equals(params.getTabletId().getEndRow())) {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
+      } else {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none"));
+      }
+    }
+  }
+
+  public static class UriConfigurer implements CompactionConfigurer {
+
+    @Override
+    public void init(InitParameters iparams) {}
+
+    @Override
+    public Overrides override(InputParameters params) {
+      // This will validate the paths looks like a tablet file path and throw an exception if it
+      // does not
+      var parts = ReferencedTabletFile.of(new Path(params.getOutputFile()));
+      // For this test should be producing A files
+      Preconditions.checkArgument(
+          parts.getFileName().startsWith(FilePrefix.FULL_COMPACTION.getPrefix() + ""));
+      Preconditions.checkArgument(parts.getFileName().endsWith(RFile.EXTENSION));
+
+      if (parts.getTabletDir()
+          .equals(MetadataSchema.TabletsSection.ServerColumnFamily.DEFAULT_TABLET_DIR_NAME)) {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "gz"));
+      } else {
+        return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none"));
+      }
+    }
+  }
+
   @Test
   public void testConfigurer() throws Exception {
     String tableName = this.getUniqueNames(1)[0];
@@ -636,6 +689,44 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       // compaction above in the test. Even though the external compaction was cancelled
       // because we split the table, FaTE will continue to queue up a compaction
       client.tableOperations().cancelCompaction(tableName);
+
+      // compact using a custom configurer that considers tablet end row
+      client.tableOperations().addSplits(tableName, new TreeSet<>(List.of(new Text("4"))));
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setConfigurer(new PluginConfig(FourConfigurer.class.getName())));
+      var tabletSizes = getFilesSizesPerTablet(client, tableName);
+      assertTrue(tabletSizes.get("4") > 0 && tabletSizes.get("4") < 1000, tabletSizes.toString());
+      assertTrue(tabletSizes.get("null") > 500_000 && tabletSizes.get("4") < 510_000,
+          tabletSizes.toString());
+
+      // compact using a custom configurer that considers the output path, should invert which file
+      // is compressed
+      client.tableOperations().addSplits(tableName, new TreeSet<>(List.of(new Text("4"))));
+      client.tableOperations().compact(tableName, new CompactionConfig().setWait(true)
+          .setConfigurer(new PluginConfig(UriConfigurer.class.getName())));
+      tabletSizes = getFilesSizesPerTablet(client, tableName);
+      assertTrue(tabletSizes.get("4") > 500_000 && tabletSizes.get("4") < 510_000,
+          tabletSizes.toString());
+      assertTrue(tabletSizes.get("null") > 0 && tabletSizes.get("null") < 1000,
+          tabletSizes.toString());
+
+    }
+  }
+
+  private Map<String,Long> getFilesSizesPerTablet(AccumuloClient client, String table)
+      throws Exception {
+    var ctx = (ClientContext) client;
+    var ample = ctx.getAmple();
+    var id = ctx.getTableId(table);
+
+    try (var tablets = ample.readTablets().forTable(id).build()) {
+      Map<String,Long> sizes = new TreeMap<>();
+      for (var tablet : tablets) {
+        var tsize = tablet.getFilesMap().values().stream().mapToLong(DataFileValue::getSize).sum();
+        var endRow = tablet.getEndRow();
+        sizes.put(endRow == null ? "null" : endRow.toString(), tsize);
+      }
+      return sizes;
     }
   }
 

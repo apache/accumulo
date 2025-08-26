@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -57,7 +58,9 @@ import org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.schema.Section;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
@@ -82,7 +85,9 @@ public class Upgrader12to13 implements Upgrader {
   public void upgradeZookeeper(ServerContext context) {
     LOG.info("Ensuring all worker server processes are down.");
     validateEmptyZKWorkerServerPaths(context);
-    LOG.info("setting root table stored hosting availability");
+    LOG.info("Validating root and metadata compaction services");
+    validateCompactionServiceConfiguration(context);
+    LOG.info("Setting root table stored hosting availability");
     addHostingGoals(context, TabletAvailability.HOSTED, DataLevel.ROOT);
     LOG.info("Removing nodes no longer used from ZooKeeper");
     removeUnusedZKNodes(context);
@@ -421,6 +426,9 @@ public class Upgrader12to13 implements Upgrader {
               return tableName;
             });
       }
+      // Ensure the default namespace table mapping node gets created
+      // in case there are not tables in the default namespace
+      mapOfTableMaps.putIfAbsent(Namespace.DEFAULT.id().canonical(), new HashMap<>());
       for (Map.Entry<String,Map<String,String>> entry : mapOfTableMaps.entrySet()) {
         zrw.putPersistentData(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES,
             NamespaceMapping.serializeMap(entry.getValue()), ZooUtil.NodeExistsPolicy.FAIL);
@@ -438,4 +446,37 @@ public class Upgrader12to13 implements Upgrader {
           "Could not read or write metadata in ZooKeeper because of ZooKeeper exception", ex);
     }
   }
+
+  private void validateCompactionServiceConfiguration(ServerContext ctx) {
+
+    final String compactionSvcKey = Property.TABLE_COMPACTION_DISPATCHER_OPTS.getKey() + "service";
+    final Map<String,String> compactionPlanners =
+        new CompactionServicesConfig(ctx.getConfiguration()).getPlanners();
+
+    for (TableId tid : new TableId[] {SystemTables.ROOT.tableId(),
+        SystemTables.METADATA.tableId()}) {
+
+      final TablePropKey tpk = TablePropKey.of(tid);
+      final VersionedProperties tableProps = ctx.getPropStore().get(tpk);
+      final String value = tableProps.asMap().get(compactionSvcKey);
+
+      if (value != null) {
+        if (tid.equals(SystemTables.ROOT.tableId()) && value.equals("root")
+            && !compactionPlanners.containsKey(value)) {
+          LOG.warn(
+              "Compaction service \"root\" in configuration for root table, but is not defined. "
+                  + "Modifying root table configuration to use the default compaction service configuration");
+          ctx.getPropStore().removeProperties(tpk, Set.of(compactionSvcKey));
+        } else if (tid.equals(SystemTables.METADATA.tableId()) && value.equals("meta")
+            && !compactionPlanners.containsKey(value)) {
+          LOG.warn(
+              "Compaction service \"meta\" in configuration for metadata table, but is not defined. "
+                  + "Modifying metadata table configuration to use the default compaction service configuration");
+          ctx.getPropStore().removeProperties(tpk, Set.of(compactionSvcKey));
+        }
+      }
+
+    }
+  }
+
 }

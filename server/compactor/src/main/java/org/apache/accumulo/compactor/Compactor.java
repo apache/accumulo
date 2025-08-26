@@ -1063,9 +1063,7 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
   }
 
   public static void main(String[] args) throws Exception {
-    try (Compactor compactor = new Compactor(new ConfigOpts(), args)) {
-      compactor.runServer();
-    }
+    AbstractServer.startServer(new Compactor(new ConfigOpts(), args), LOG);
   }
 
   @Override
