@@ -986,7 +986,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       }
 
       try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
-              new Range(), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
+          new Range(), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
         var tabletList = tablets.collect(Collectors.toList());
         assertEquals(9, tabletList.size());
         tabletList.forEach(ti -> {
@@ -1042,8 +1042,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
           assertThrows(IllegalStateException.class, ti::getTabletAvailability);
         });
       }
-
-
 
     } finally {
       accumuloClient.tableOperations().delete(tableName);
