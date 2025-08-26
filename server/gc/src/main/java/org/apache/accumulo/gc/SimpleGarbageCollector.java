@@ -110,9 +110,7 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
   }
 
   public static void main(String[] args) throws Exception {
-    try (SimpleGarbageCollector gc = new SimpleGarbageCollector(new ConfigOpts(), args)) {
-      gc.runServer();
-    }
+    AbstractServer.startServer(new SimpleGarbageCollector(new ConfigOpts(), args), log);
   }
 
   /**
