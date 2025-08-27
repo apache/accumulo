@@ -24,11 +24,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class FateExecutorMetrics<T> implements MetricsProducer {
+  private static final Logger log = LoggerFactory.getLogger(FateExecutorMetrics.class);
   private final FateInstanceType type;
   private final String operatesOn;
   private final Set<FateExecutor<T>.TransactionRunner> runningTxRunners;
@@ -75,12 +78,11 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
           .meter();
       // meter will be null if it could not be found, ignore IDE warning if one is seen
       if (threadsTotalMeter == null) {
-        // throwing ISE directly instead of using Preconditions due to spotbugs flagging as
-        // potential NPE otherwise
-        throw new IllegalStateException(String.format(
-            "Did not find expected meter{name: %s tags: %s=%s, %s=%s} in the registry",
+        log.error(
+            "Tried removing meter{name: {} tags: {}={}, {}={}} from the registry, but did "
+                + "not find it.",
             Metric.FATE_OPS_THREADS_TOTAL.getName(), INSTANCE_TYPE_TAG_KEY,
-            type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn));
+            type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn);
       } else {
         registry.remove(threadsTotalMeter);
       }
@@ -90,17 +92,16 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
           .meter();
       // meter will be null if it could not be found, ignore IDE warning if one is seen
       if (threadsInactiveMeter == null) {
-        // throwing ISE directly instead of using Preconditions due to spotbugs flagging as
-        // potential NPE otherwise
-        throw new IllegalStateException(String.format(
-            "Did not find expected meter{name: %s tags: %s=%s, %s=%s} in the registry",
+        log.error(
+            "Tried removing meter{name: {} tags: {}={}, {}={}} from the registry, but did "
+                + "not find it.",
             Metric.FATE_OPS_THREADS_TOTAL.getName(), INSTANCE_TYPE_TAG_KEY,
-            type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn));
+            type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn);
       } else {
         registry.remove(threadsInactiveMeter);
       }
 
-      closed();
+      cleared();
     }
   }
 
@@ -109,7 +110,7 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
     this.state = State.REGISTERED;
   }
 
-  private void closed() {
+  private void cleared() {
     registry = null;
     state = State.CLEARED;
   }
