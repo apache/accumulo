@@ -226,11 +226,9 @@ public class FateExecutor<T> {
   /**
    * Initiates the shutdown of this FateExecutor. This means the pool executing TransactionRunners
    * will no longer accept new TransactionRunners, the currently running TransactionRunners will
-   * <<<<<<< HEAD terminate after they are done with their current transaction, if applicable, the
-   * work finder is interrupted, and the metrics created for this FateExecutor are removed from the
-   * registry (if metrics were enabled). {@link #isShutdown()} returns true after this is called.
-   * ======= terminate after they are done with their current transaction, if applicable, and the
-   * work finder is shutdown. {@link #isShutdown()} returns true after this is called. >>>>>>> main
+   * terminate after they are done with their current transaction, if applicable, the work finder is
+   * shutdown, and the metrics created for this FateExecutor are removed from the registry (if
+   * metrics were enabled). {@link #isShutdown()} returns true after this is called.
    */
   protected void initiateShutdown() {
     log.debug("Initiated shutdown {}", fateOps);
