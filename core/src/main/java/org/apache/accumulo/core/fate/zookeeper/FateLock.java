@@ -178,16 +178,6 @@ public class FateLock implements QueueLock {
       fateLockEntry = Suppliers
           .memoize(() -> FateLockEntry.deserialize(nodeName.substring(PREFIX.length(), len - 11)));
     }
-
-    @Override
-    public boolean equals(Object o) {
-      throw new UnsupportedOperationException();
-    }
-
-    @Override
-    public int hashCode() {
-      throw new UnsupportedOperationException();
-    }
   }
 
   @Override
