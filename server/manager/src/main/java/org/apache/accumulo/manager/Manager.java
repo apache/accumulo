@@ -1206,7 +1206,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       }
       try {
-        Thread.sleep(500);
+        mainWait();
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
@@ -1257,14 +1257,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    super.close();
-    getShutdownComplete().set(true);
-    log.info("stop requested. exiting ... ");
-    try {
-      managerLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release Manager lock", e);
-    }
+  }
+
+  // method exists for ExitCodesIT
+  public void mainWait() throws InterruptedException {
+    Thread.sleep(500);
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {

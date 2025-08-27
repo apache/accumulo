@@ -519,7 +519,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       try {
         context.getZooSession().asReaderWriter().recursiveDelete(slp.toString(), SKIP);
       } catch (Exception e) {
-        Halt.halt(-1, "error removing tablet server lock", e);
+        Halt.halt(1, "error removing tablet server lock", e);
       }
       context.getZooCache().clear(slp.toString());
     }
