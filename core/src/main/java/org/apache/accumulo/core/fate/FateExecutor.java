@@ -74,7 +74,7 @@ public class FateExecutor<T> {
   private final Fate<T> fate;
   private final Thread workFinder;
   private final TransferQueue<FateId> workQueue;
-  private final AtomicInteger idleWorkerCount = new AtomicInteger(0);
+  private final AtomicInteger idleWorkerCount;
   private final String poolName;
   private final ThreadPoolExecutor transactionExecutor;
   private final Set<TransactionRunner> runningTxRunners;
@@ -85,8 +85,8 @@ public class FateExecutor<T> {
   public FateExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps, int poolSize) {
     final FateInstanceType type = fate.getStore().type();
     final String typeStr = type.name().toLowerCase();
-    final String operatesOn =
-        fateOps.stream().map(fo -> fo.name().toLowerCase()).collect(Collectors.joining("."));
+    final String operatesOn = fateOps.stream().map(fo -> fo.name().toLowerCase()).sorted()
+        .collect(Collectors.joining("."));
     final String transactionRunnerPoolName =
         ThreadPoolNames.MANAGER_FATE_POOL_PREFIX.poolName + typeStr + "." + operatesOn;
     final String workFinderThreadName = "fate.work.finder." + typeStr + "." + operatesOn;
@@ -99,8 +99,9 @@ public class FateExecutor<T> {
     this.poolName = transactionRunnerPoolName;
     this.transactionExecutor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(transactionRunnerPoolName).numCoreThreads(poolSize).build();
+    this.idleWorkerCount = new AtomicInteger(0);
     this.fateExecutorMetrics =
-        new FateExecutorMetrics<>(type, operatesOn, runningTxRunners, workQueue);
+        new FateExecutorMetrics<>(type, operatesOn, runningTxRunners, workQueue, idleWorkerCount);
 
     this.workFinder = Threads.createCriticalThread(workFinderThreadName, new WorkFinder());
     this.workFinder.start();

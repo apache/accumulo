@@ -20,49 +20,56 @@ package org.apache.accumulo.core.fate;
 
 import java.util.Set;
 import java.util.concurrent.TransferQueue;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsProducer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class FateExecutorMetrics<T> implements MetricsProducer {
-  private static final Logger log = LoggerFactory.getLogger(FateExecutorMetrics.class.getName());
   private final FateInstanceType type;
   private final String operatesOn;
   private final Set<FateExecutor<T>.TransactionRunner> runningTxRunners;
+  private final AtomicInteger idleWorkerCount;
   private final TransferQueue<FateId> workQueue;
   private MeterRegistry registry;
+  private State state;
   public static final String INSTANCE_TYPE_TAG_KEY = "instanceType";
   public static final String OPS_ASSIGNED_TAG_KEY = "ops.assigned";
 
   protected FateExecutorMetrics(FateInstanceType type, String operatesOn,
-      Set<FateExecutor<T>.TransactionRunner> runningTxRunners, TransferQueue<FateId> workQueue) {
+      Set<FateExecutor<T>.TransactionRunner> runningTxRunners, TransferQueue<FateId> workQueue,
+      AtomicInteger idleWorkerCount) {
     this.type = type;
     this.operatesOn = operatesOn;
     this.runningTxRunners = runningTxRunners;
     this.workQueue = workQueue;
+    this.state = State.UNREGISTERED;
+    this.idleWorkerCount = idleWorkerCount;
   }
 
   @Override
   public void registerMetrics(MeterRegistry registry) {
-    Gauge.builder(Metric.FATE_OPS_THREADS_TOTAL.getName(), runningTxRunners::size)
-        .description(Metric.FATE_OPS_THREADS_TOTAL.getDescription())
-        .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase()).tag(OPS_ASSIGNED_TAG_KEY, operatesOn)
-        .register(registry);
-    Gauge.builder(Metric.FATE_OPS_THREADS_INACTIVE.getName(), workQueue::getWaitingConsumerCount)
-        .description(Metric.FATE_OPS_THREADS_INACTIVE.getDescription())
-        .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase()).tag(OPS_ASSIGNED_TAG_KEY, operatesOn)
-        .register(registry);
-    this.registry = registry;
+    // noop if already registered or cleared
+    if (state == State.UNREGISTERED) {
+      Gauge.builder(Metric.FATE_OPS_THREADS_TOTAL.getName(), runningTxRunners::size)
+          .description(Metric.FATE_OPS_THREADS_TOTAL.getDescription())
+          .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase())
+          .tag(OPS_ASSIGNED_TAG_KEY, operatesOn).register(registry);
+      Gauge.builder(Metric.FATE_OPS_THREADS_INACTIVE.getName(), idleWorkerCount::get)
+          .description(Metric.FATE_OPS_THREADS_INACTIVE.getDescription())
+          .tag(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase())
+          .tag(OPS_ASSIGNED_TAG_KEY, operatesOn).register(registry);
+
+      registered(registry);
+    }
   }
 
   public void clearMetrics() {
-    // noop if metrics were never configured
-    if (isRegistered()) {
+    // noop if metrics were never registered or have already been cleared
+    if (state == State.REGISTERED) {
       var threadsTotalMeter = registry.find(Metric.FATE_OPS_THREADS_TOTAL.getName())
           .tags(INSTANCE_TYPE_TAG_KEY, type.name().toLowerCase(), OPS_ASSIGNED_TAG_KEY, operatesOn)
           .meter();
@@ -92,10 +99,26 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
       } else {
         registry.remove(threadsInactiveMeter);
       }
+
+      closed();
     }
   }
 
-  public boolean isRegistered() {
-    return registry != null;
+  private void registered(MeterRegistry registry) {
+    this.registry = registry;
+    this.state = State.REGISTERED;
   }
+
+  private void closed() {
+    registry = null;
+    state = State.CLEARED;
+  }
+
+  public boolean isRegistered() {
+    return state == State.REGISTERED;
+  }
+
+  private enum State {
+    UNREGISTERED, REGISTERED, CLEARED
+  };
 }

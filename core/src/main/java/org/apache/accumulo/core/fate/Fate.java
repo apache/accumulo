@@ -82,7 +82,7 @@ public class Fate<T> {
   private static final EnumSet<TStatus> FINISHED_STATES = EnumSet.of(FAILED, SUCCESSFUL, UNKNOWN);
   public static final Duration INITIAL_DELAY = Duration.ofSeconds(3);
   private static final Duration DEAD_RES_CLEANUP_DELAY = Duration.ofMinutes(3);
-  private static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
+  public static final Duration POOL_WATCHER_DELAY = Duration.ofSeconds(30);
 
   private final AtomicBoolean keepRunning = new AtomicBoolean(true);
   // Visible for FlakyFate test object
@@ -313,10 +313,18 @@ public class Fate<T> {
         : Property.MANAGER_FATE_META_CONFIG;
   }
 
+  /**
+   * Exists for overrides in test code. Internal access to this field needs to be through this
+   * getter
+   */
   public Duration getDeadResCleanupDelay() {
     return DEAD_RES_CLEANUP_DELAY;
   }
 
+  /**
+   * Exists for overrides in test code. Internal access to this field needs to be through this
+   * getter
+   */
   public Duration getPoolWatcherDelay() {
     return POOL_WATCHER_DELAY;
   }
