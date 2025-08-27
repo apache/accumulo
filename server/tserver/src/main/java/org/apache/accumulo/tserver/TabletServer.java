@@ -706,8 +706,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     } catch (IOException e) {
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
-
-    super.close();
   }
 
   private boolean sendManagerMessages(boolean managerDown, ManagerClientService.Client iface,

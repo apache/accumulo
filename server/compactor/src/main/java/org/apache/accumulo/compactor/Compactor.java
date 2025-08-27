@@ -910,8 +910,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
               LOG.error("Error cancelling compaction.", e1);
             }
             continue;
-          } finally {
-            currentCompactionId.set(null);
           }
 
           compactionThread.start(); // start the compactionThread
@@ -1061,9 +1059,6 @@ public class Compactor extends AbstractServer implements MetricsProducer, Compac
     } catch (IOException e) {
       LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
     }
-
-    super.close();
-
   }
 
   public static void main(String[] args) throws Exception {

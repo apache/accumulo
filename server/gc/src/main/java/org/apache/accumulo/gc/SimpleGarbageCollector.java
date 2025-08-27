@@ -352,7 +352,6 @@ public class SimpleGarbageCollector extends AbstractServer implements Iface {
         gracefulShutdown(getContext().rpcCreds());
       }
     }
-    super.close();
   }
 
   private void incrementStatsForRun(GCRun gcRun) {

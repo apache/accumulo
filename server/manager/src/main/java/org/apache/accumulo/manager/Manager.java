@@ -1257,7 +1257,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    super.close();
   }
 
   // method exists for ExitCodesIT

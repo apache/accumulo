@@ -446,8 +446,6 @@ public class ScanServer extends AbstractServer
       LOG.debug("Shutting down TabletMetadataCache executor");
       tmCacheExecutor.shutdownNow();
     }
-
-    super.close();
   }
 
   @SuppressWarnings("unchecked")

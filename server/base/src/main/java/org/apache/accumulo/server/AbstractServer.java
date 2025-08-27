@@ -76,15 +76,7 @@ public abstract class AbstractServer
   }
 
   public static void startServer(AbstractServer server, Logger LOG) throws Exception {
-    try {
-      server.runServer();
-    } catch (Throwable e) {
-      System.err
-          .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
-      e.printStackTrace();
-      LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
-      throw e;
-    }
+    server.runServer();
   }
 
   private final MetricSource metricSource;
@@ -283,7 +275,10 @@ public abstract class AbstractServer
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    serverThread = new Thread(TraceUtil.wrap(this), applicationName);
+    serverThread = new Thread(TraceUtil.wrap(() -> {
+      this.run();
+      close();
+    }), applicationName);
     serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
     serverThread.start();
     serverThread.join();
@@ -473,13 +468,12 @@ public abstract class AbstractServer
 
     if (closed.compareAndSet(false, true)) {
 
-      // Must set shutdown as completed before calling super.close().
-      // super.close() calls ServerContext.close() ->
-      // ClientContext.close() -> ZooSession.close() which removes
-      // all of the ephemeral nodes and forces the watches to fire.
-      // The ServiceLockWatcher has a reference to shutdownComplete
-      // and will terminate the JVM with a 0 exit code if true.
-      // Otherwise it will exit with a non-zero exit code.
+      // Must set shutdown as completed before calling ServerContext.close().
+      // ServerContext.close() calls ClientContext.close() ->
+      // ZooSession.close() which removes all of the ephemeral nodes and
+      // forces the watches to fire. The ServiceLockWatcher has a reference
+      // to shutdownComplete and will terminate the JVM with a 0 exit code
+      // if true. Otherwise it will exit with a non-zero exit code.
       getShutdownComplete().set(true);
 
       if (context != null) {
