@@ -199,9 +199,7 @@ public class Utils {
     if (lock.tryLock()) {
       if (lockType == LockType.WRITE) {
         // Now that table lock is acquired see if the range still widens to the same thing. If not
-        // it means the table splits changed so release the lock and try again later. Once the lock
-        // is acquired assuming the table splits in this range can not change, so this recheck is
-        // done after getting the lock.
+        // it means the table splits changed so release the lock and try again later. The table splits in this range can not change once the lock is acquired, so this recheck is done after getting the lock.
         var widenedRange2 = widen(env.getContext().getAmple(), tableId, range, op, tableMustExist);
         if (!widenedRange.equals(widenedRange2)) {
           lock.unlock();
