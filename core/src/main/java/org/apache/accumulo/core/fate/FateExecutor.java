@@ -101,7 +101,7 @@ public class FateExecutor<T> {
         .getPoolBuilder(transactionRunnerPoolName).numCoreThreads(poolSize).build();
     this.idleWorkerCount = new AtomicInteger(0);
     this.fateExecutorMetrics =
-        new FateExecutorMetrics<>(type, operatesOn, runningTxRunners, workQueue, idleWorkerCount);
+        new FateExecutorMetrics<>(type, operatesOn, runningTxRunners, idleWorkerCount);
 
     this.workFinder = Threads.createCriticalThread(workFinderThreadName, new WorkFinder());
     this.workFinder.start();

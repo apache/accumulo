@@ -19,7 +19,6 @@
 package org.apache.accumulo.core.fate;
 
 import java.util.Set;
-import java.util.concurrent.TransferQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.accumulo.core.metrics.Metric;
@@ -36,19 +35,16 @@ public class FateExecutorMetrics<T> implements MetricsProducer {
   private final String operatesOn;
   private final Set<FateExecutor<T>.TransactionRunner> runningTxRunners;
   private final AtomicInteger idleWorkerCount;
-  private final TransferQueue<FateId> workQueue;
   private MeterRegistry registry;
   private State state;
   public static final String INSTANCE_TYPE_TAG_KEY = "instanceType";
   public static final String OPS_ASSIGNED_TAG_KEY = "ops.assigned";
 
   protected FateExecutorMetrics(FateInstanceType type, String operatesOn,
-      Set<FateExecutor<T>.TransactionRunner> runningTxRunners, TransferQueue<FateId> workQueue,
-      AtomicInteger idleWorkerCount) {
+      Set<FateExecutor<T>.TransactionRunner> runningTxRunners, AtomicInteger idleWorkerCount) {
     this.type = type;
     this.operatesOn = operatesOn;
     this.runningTxRunners = runningTxRunners;
-    this.workQueue = workQueue;
     this.state = State.UNREGISTERED;
     this.idleWorkerCount = idleWorkerCount;
   }
