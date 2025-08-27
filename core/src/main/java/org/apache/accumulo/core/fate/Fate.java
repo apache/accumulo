@@ -72,8 +72,6 @@ public class Fate<T> {
 
   private static final Logger log = LoggerFactory.getLogger(Fate.class);
 
-  private boolean metricsEnabled = false;
-
   private final FateStore<T> store;
   private final ScheduledFuture<?> fatePoolsWatcherFuture;
   private final AtomicInteger needMoreThreadsWarnCount = new AtomicInteger(0);
