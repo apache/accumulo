@@ -675,7 +675,7 @@ public class Admin implements KeywordExecutable {
       // The old impl of this command with the old behavior
       log.warn("Stopping by hostname is no longer supported\n\n"
           + "please use <host:port> instead.\n"
-          + "Top stop all services on host, run 'accumulo admin serviceStatus' to list all host:port values for that host and pass those to 'accumulo admin stop'");
+          + "To stop all services on host, run 'accumulo admin serviceStatus' to list all host:port values and filter for that host and pass those to 'accumulo admin stop'");
       stopTabletServer(context, hostOnly, force);
     }
 
