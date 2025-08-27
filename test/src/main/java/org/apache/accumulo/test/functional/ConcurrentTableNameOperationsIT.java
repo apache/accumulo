@@ -38,6 +38,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.NamespaceExistsException;
 import org.apache.accumulo.core.client.TableExistsException;
+import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.test.util.Wait;
@@ -87,7 +88,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     String[] expectedTableNames = getUniqueNames(numIterations);
 
     for (String tableName : expectedTableNames) {
-      int successCount = runConcurrentOperation(pool, numTasks, (index) -> {
+      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
         client.tableOperations().create(tableName);
         return true;
       });
@@ -124,7 +125,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
       int tableCountBefore = client.tableOperations().list().size();
 
-      int successCount = runConcurrentOperation(pool, numTasks, (index) -> {
+      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
         client.tableOperations().clone(sourceTableNames.get(index), targetTableName, true, Map.of(),
             Set.of());
         return true;
@@ -159,7 +160,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
       int tableCountBefore = client.tableOperations().list().size();
 
-      int successCount = runConcurrentOperation(pool, numTasks, (index) -> {
+      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
         client.tableOperations().rename(sourceTableNames.get(index), targetTableName);
         return true;
       });
@@ -168,6 +169,47 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
       assertTrue(client.tableOperations().exists(targetTableName),
           "Expected target table " + targetTableName + " to exist");
       assertEquals(tableCountBefore, client.tableOperations().list().size());
+    }
+
+    pool.shutdown();
+  }
+
+  /**
+   * Test that when several threads attempt to import to the same table name simultaneously, only
+   * one import succeeds.
+   */
+  @Test
+  public void importTable() throws Exception {
+    final int numTasks = 10;
+    final int numIterations = 3;
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+    String[] targetTableNames = getUniqueNames(numIterations);
+    var ntc = new NewTableConfiguration().createOffline();
+
+    for (String importTableName : targetTableNames) {
+      // Create separate source tables and export directories for each thread
+      List<String> exportDirs = new ArrayList<>(numTasks);
+      for (int i = 0; i < numTasks; i++) {
+        String sourceTableName = importTableName + "_export_source_" + i;
+        client.tableOperations().create(sourceTableName, ntc);
+        String exportDir = getCluster().getTemporaryPath() + "/export_" + sourceTableName;
+        client.tableOperations().exportTable(sourceTableName, exportDir);
+        exportDirs.add(exportDir);
+      }
+
+      int tableCountBefore = client.tableOperations().list().size();
+
+      // All threads attempt to import to the same target table name
+      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
+        client.tableOperations().importTable(importTableName, exportDirs.get(index));
+        return true;
+      });
+
+      assertEquals(1, successCount, "Expected only one import operation to succeed");
+      assertTrue(client.tableOperations().exists(importTableName),
+          "Expected import table " + importTableName + " to exist");
+      assertEquals(tableCountBefore + 1, client.tableOperations().list().size(),
+          "Expected +1 table count for import operation");
     }
 
     pool.shutdown();
@@ -359,7 +401,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     pool.shutdown();
   }
 
-  private int runConcurrentOperation(ExecutorService pool, int numTasks,
+  private int runConcurrentTableOperation(ExecutorService pool, int numTasks,
       ConcurrentOperation operation) throws ExecutionException, InterruptedException {
     return runConcurrentOperation(pool, numTasks, operation, TableExistsException.class);
   }
