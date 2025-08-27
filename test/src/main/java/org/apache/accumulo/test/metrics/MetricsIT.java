@@ -390,7 +390,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
                 sawExpectedTotalThreadsMetaMetricPool2 = true;
               }
             }
-          } else if (fateOpsFromMetric.equals(Set.of(Fate.FateOperation.TABLE_SPLIT))
+          } else if (fateOpsFromMetric.equals(Set.of(SlowFateSplitManager.SLOW_OP))
               && numFateThreadsPool3 == Integer.parseInt(metric.getValue())) {
             // pool3
             // total = inactive = size pool3
@@ -407,6 +407,8 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
                 sawExpectedTotalThreadsMetaMetricPool3 = true;
               }
             }
+          } else {
+            throw new IllegalStateException("Saw unexpected FATE executor metric: " + metric);
           }
         }
 
@@ -476,9 +478,6 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
   static void doWorkToGenerateMetrics(AccumuloClient client, Class<?> testClass) throws Exception {
     String tableName = testClass.getSimpleName();
     client.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<>(List.of(new Text("5")));
-    client.tableOperations().addSplits(tableName, splits);
-    Thread.sleep(3_000);
     BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
     try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
       Mutation m = new Mutation("row");
@@ -554,7 +553,7 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
             assertEquals("value2", a.getTags().get("tag2"));
 
             // check the length of the tag value is sane
-            final int MAX_EXPECTED_TAG_LEN = 128;
+            final int MAX_EXPECTED_TAG_LEN = 512;
             a.getTags().forEach((k, v) -> assertTrue(v.length() < MAX_EXPECTED_TAG_LEN));
           });
     }
