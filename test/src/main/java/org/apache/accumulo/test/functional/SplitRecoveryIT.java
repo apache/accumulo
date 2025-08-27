@@ -204,8 +204,8 @@ public class SplitRecoveryIT extends ConfigurableMacBase {
     SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes = new TreeMap<>();
     List<StoredTabletFile> highDatafilesToRemove = new ArrayList<>();
 
-    SplitRecovery12to13.splitDatafiles(midRow, splitRatio, new HashMap<>(), dataFiles,
-        lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+    SplitRecovery12to13.splitDatafiles(midRow, splitRatio, dataFiles, lowDatafileSizes,
+        highDatafileSizes, highDatafilesToRemove);
 
     SplitRecovery12to13.splitTablet(high, extent.prevEndRow(), splitRatio, context, Set.of());
     TServerInstance instance = new TServerInstance(location, zl.getSessionId());

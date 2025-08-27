@@ -79,7 +79,6 @@ import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
 import org.apache.commons.lang3.mutable.MutableLong;
-import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -1107,16 +1106,13 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() {
-      return firstKey != null ? firstKey.getRow() : null;
-    }
-
-    @Override
-    public Text getLastRow() {
-      if (index.size() == 0) {
-        return null;
+    public FileRange getFileRange() {
+      if (firstKey == null) {
+        Preconditions.checkState(index.size() == 0);
+        return FileRange.EMPTY;
+      } else {
+        return new FileRange(firstKey.getRow(), index.getLastKey().getRow());
       }
-      return index.getLastKey().getRow();
     }
 
     @Override
@@ -1355,47 +1351,14 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Text minRow = null;
+    public FileRange getFileRange() {
+      FileRange range = FileRange.EMPTY;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        if (minRow == null) {
-          minRow = currentReader.getFirstRow();
-        } else {
-          Text firstRow = currentReader.getFirstRow();
-          if (firstRow != null && firstRow.compareTo(minRow) < 0) {
-            minRow = firstRow;
-          }
-        }
+        range = currentReader.getFileRange().expand(range);
       }
 
-      return minRow;
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Text maxRow = null;
-
-      for (LocalityGroupReader currentReader : currentReaders) {
-        if (maxRow == null) {
-          maxRow = currentReader.getLastRow();
-        } else {
-          Text lastRow = currentReader.getLastRow();
-          if (lastRow != null && lastRow.compareTo(maxRow) > 0) {
-            maxRow = lastRow;
-          }
-        }
-      }
-
-      return maxRow;
+      return range;
     }
 
     @Override
@@ -1662,23 +1625,8 @@ public class RFile {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      var row = reader.getFirstRow();
-      if (row != null && fence.beforeStartKey(new Key(row))) {
-        return fencedStartKey.getRow();
-      } else {
-        return row;
-      }
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      var row = reader.getLastRow();
-      if (row != null && fence.afterEndKey(new Key(row))) {
-        return fencedEndKey.get().getRow();
-      } else {
-        return row;
-      }
+    public FileRange getFileRange() {
+      return reader.getFileRange().narrow(fence);
     }
 
     @Override
