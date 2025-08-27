@@ -303,7 +303,7 @@ public class ExitCodesIT extends SharedMiniClusterBase {
       // We need to let this time out and then
       // terminate the process.
       IllegalStateException ise = assertThrows(IllegalStateException.class,
-          () -> Wait.waitFor(() -> !pi.getProcess().isAlive(), 120_000));
+          () -> Wait.waitFor(() -> !pi.getProcess().isAlive(), 60_000));
       assertTrue(ise.getMessage().contains("Timeout exceeded"));
       pi.getProcess().destroyForcibly();
     } else {
