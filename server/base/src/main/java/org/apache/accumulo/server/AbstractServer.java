@@ -76,24 +76,7 @@ public abstract class AbstractServer
   }
 
   public static void startServer(AbstractServer server, Logger LOG) throws Exception {
-    try {
-      server.runServer();
-    } catch (Throwable e) {
-      System.err
-          .println(server.getClass().getSimpleName() + " died, exception thrown from runServer.");
-      e.printStackTrace();
-      LOG.error("{} died, exception thrown from runServer.", server.getClass().getSimpleName(), e);
-      throw e;
-    } finally {
-      try {
-        server.close();
-      } catch (Throwable e) {
-        System.err.println("Exception thrown while closing " + server.getClass().getSimpleName());
-        e.printStackTrace();
-        LOG.error("Exception thrown while closing {}", server.getClass().getSimpleName(), e);
-        throw e;
-      }
-    }
+    server.runServer();
   }
 
   private final MetricSource metricSource;
@@ -112,6 +95,7 @@ public abstract class AbstractServer
   private volatile Thread verificationThread;
   private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
   private final AtomicBoolean shutdownComplete = new AtomicBoolean(false);
+  private final AtomicBoolean closed = new AtomicBoolean(false);
 
   protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
       Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
@@ -203,7 +187,8 @@ public abstract class AbstractServer
    *
    * @param isIdle whether the server is idle
    */
-  protected void updateIdleStatus(boolean isIdle) {
+  // public for ExitCodesIT
+  public void updateIdleStatus(boolean isIdle) {
     boolean shouldResetIdlePeriod = !isIdle || idleReportingPeriodMillis == 0;
     boolean hasIdlePeriodStarted = idlePeriodTimer != null;
     boolean hasExceededIdlePeriod =
@@ -290,7 +275,10 @@ public abstract class AbstractServer
    */
   public void runServer() throws Exception {
     final AtomicReference<Throwable> err = new AtomicReference<>();
-    serverThread = new Thread(TraceUtil.wrap(this), applicationName);
+    serverThread = new Thread(TraceUtil.wrap(() -> {
+      this.run();
+      close();
+    }), applicationName);
     serverThread.setUncaughtExceptionHandler((thread, exception) -> err.set(exception));
     serverThread.start();
     serverThread.join();
@@ -331,7 +319,8 @@ public abstract class AbstractServer
     return bindAddress;
   }
 
-  protected TServer getThriftServer() {
+  // public for ExitCodesIT
+  public TServer getThriftServer() {
     if (thriftServer == null) {
       return null;
     }
@@ -451,7 +440,7 @@ public abstract class AbstractServer
                 log.trace(
                     "ServiceLockVerificationThread - checking ServiceLock existence in ZooKeeper");
                 if (lock != null && !lock.verifyLockAtSource()) {
-                  Halt.halt(-1, "Lock verification thread could not find lock");
+                  Halt.halt(1, "Lock verification thread could not find lock");
                 }
                 // Need to sleep, not yield when the thread priority is greater than NORM_PRIORITY
                 // so that this thread does not get immediately rescheduled.
@@ -476,8 +465,21 @@ public abstract class AbstractServer
 
   @Override
   public void close() {
-    if (context != null) {
-      context.close();
+
+    if (closed.compareAndSet(false, true)) {
+
+      // Must set shutdown as completed before calling ServerContext.close().
+      // ServerContext.close() calls ClientContext.close() ->
+      // ZooSession.close() which removes all of the ephemeral nodes and
+      // forces the watches to fire. The ServiceLockWatcher has a reference
+      // to shutdownComplete and will terminate the JVM with a 0 exit code
+      // if true. Otherwise it will exit with a non-zero exit code.
+      getShutdownComplete().set(true);
+
+      if (context != null) {
+        context.getLowMemoryDetector().logGCInfo(getConfiguration());
+        context.close();
+      }
     }
   }
 
@@ -488,4 +490,7 @@ public abstract class AbstractServer
     }
   }
 
+  public void requestShutdownForTests() {
+    shutdownRequested.set(true);
+  }
 }
