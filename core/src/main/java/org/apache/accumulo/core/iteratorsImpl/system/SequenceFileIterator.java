@@ -118,7 +118,7 @@ public class SequenceFileIterator implements FileSKVIterator {
 
   @Override
   public FileRange getFileRange() {
-    throw new UnsupportedOperationException("getRowRange() not supported");
+    throw new UnsupportedOperationException("getFileRange() not supported");
   }
 
   @Override
