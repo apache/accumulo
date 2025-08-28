@@ -41,7 +41,7 @@ import org.apache.hadoop.io.Text;
  * The builder is mutable and not thread safe.
  *
  * @see org.apache.accumulo.core.data.Key
- * @since 2.0
+ * @since 2.0.0
  */
 public class KeyBuilder {
 
@@ -49,7 +49,7 @@ public class KeyBuilder {
    * Base Builder interface which can be used to set the {@link Key} timestamp and delete marker and
    * to build the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface Build {
 
@@ -80,7 +80,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the row part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface RowStep extends Build {
 
@@ -124,7 +124,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the columnFamily part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface ColumnFamilyStep extends ColumnVisibilityStep {
 
@@ -168,7 +168,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the column qualifier part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface ColumnQualifierStep extends ColumnVisibilityStep {
 
@@ -213,7 +213,7 @@ public class KeyBuilder {
   /**
    * Builder step used to set the column visibility part of the {@link Key}.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public interface ColumnVisibilityStep extends Build {
 
@@ -264,7 +264,7 @@ public class KeyBuilder {
   }
 
   /**
-   * @since 2.0
+   * @since 2.0.0
    */
   static class KeyBuilderImpl
       implements RowStep, ColumnFamilyStep, ColumnQualifierStep, ColumnVisibilityStep {

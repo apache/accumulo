@@ -112,6 +112,7 @@
     <url>https://github.com/apache/accumulo/actions</url>
   </ciManagement>
   <properties>
+    <accumulo.javadoc.since.versions>2.0.0,2.0.1,2.1.0,2.1.1,2.1.2,2.1.3,2.1.4,2.1.5</accumulo.javadoc.since.versions>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
@@ -835,7 +836,12 @@
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
+            <additionalOptions>
+              <additionalOption>--since "${accumulo.javadoc.since.versions}"</additionalOption>
+              <additionalOption>--since-label "New API since ${accumulo.javadoc.since.versions.first}"</additionalOption>
+            </additionalOptions>
             <doclint>all,-missing</doclint>
+            <legacyMode>true</legacyMode>
           </configuration>
         </plugin>
         <plugin>
@@ -1028,6 +1034,19 @@
               <regex>-</regex>
               <replacement>.</replacement>
               <value>org-apache-${project.artifactId}</value>
+            </configuration>
+          </execution>
+          <execution>
+            <id>find-first-javadoc-since-version</id>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>accumulo.javadoc.since.versions.first</name>
+              <regex>,.*</regex>
+              <replacement />
+              <value>${accumulo.javadoc.since.versions}</value>
+              <failIfNoMatch>false</failIfNoMatch>
             </configuration>
           </execution>
         </executions>

@@ -68,7 +68,7 @@ public final class BCFile {
   /**
    * Simplified encryption interface. Allows more flexible encryption.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   static final Version API_VERSION_3 = new Version((short) 3, (short) 0);
   /**
