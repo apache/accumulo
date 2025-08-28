@@ -58,7 +58,10 @@ public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
       this.empty = false;
     }
 
-    public FileRange expand(FileRange other) {
+    /**
+     * Computes the union of the two ranges. The returned range should contain both ranges.
+     */
+    public FileRange union(FileRange other) {
       if (empty) {
         return other;
       }
@@ -75,7 +78,11 @@ public interface FileSKVIterator extends InterruptibleIterator, AutoCloseable {
       return new FileRange(new Range(minKey, true, maxKey, false));
     }
 
-    public FileRange narrow(Range other) {
+    /*
+     * Computes the intersection of the two ranges. If there is no intersection returns an empty
+     * range.
+     */
+    public FileRange intersect(Range other) {
       RowRangeUtil.requireRowRange(Objects.requireNonNull(other));
       if (empty) {
         return this;

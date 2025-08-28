@@ -1355,7 +1355,7 @@ public class RFile {
       FileRange range = FileRange.EMPTY;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        range = currentReader.getFileRange().expand(range);
+        range = currentReader.getFileRange().union(range);
       }
 
       return range;
@@ -1626,7 +1626,7 @@ public class RFile {
 
     @Override
     public FileRange getFileRange() {
-      return reader.getFileRange().narrow(fence);
+      return reader.getFileRange().intersect(fence);
     }
 
     @Override
