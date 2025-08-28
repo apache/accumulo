@@ -122,11 +122,15 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
 
 public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
   private static ServiceLock testLock;
+
+  private static final Logger log = LoggerFactory.getLogger(ExternalCompaction_1_IT.class);
 
   public static class ExternalCompaction1Config implements MiniClusterConfigurationCallback {
     @Override
@@ -425,15 +429,19 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       FateId fateId, List<ExternalCompactionId> cids) {
     var ctx = getCluster().getServerContext();
 
+    log.info("cids:{}", cids);
+    var compactionWithFate = cids.get(0);
+    var compactionWithoutFate = cids.get(1);
+
     // Wait until the compaction id w/o a fate transaction is removed, should still see the one
     // with a fate transaction
     Wait.waitFor(() -> {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds1:" + currentIds);
-      assertTrue(currentIds.size() == 1 || currentIds.size() == 2);
-      return currentIds.equals(Set.of(cids.get(0)));
+      log.info("currentIds1:{}", currentIds);
+      assertTrue(currentIds.contains(compactionWithFate));
+      return currentIds.contains(compactionWithFate) && !currentIds.contains(compactionWithoutFate);
     });
 
     // Delete the fate transaction, should allow the dead compaction detector to clean up the
@@ -447,9 +455,8 @@ public class ExternalCompaction_1_IT extends SharedMiniClusterBase {
       Set<ExternalCompactionId> currentIds = ctx.getAmple().readTablets().forTable(tableId).build()
           .stream().map(TabletMetadata::getExternalCompactions)
           .flatMap(ecm -> ecm.keySet().stream()).collect(Collectors.toSet());
-      System.out.println("currentIds2:" + currentIds);
-      assertTrue(currentIds.size() <= 1);
-      return currentIds.isEmpty();
+      log.info("currentIds2:{}", currentIds);
+      return !currentIds.contains(compactionWithFate);
     });
   }
 

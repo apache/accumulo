@@ -64,10 +64,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * <ul>
  * <li>Note that the CompactionCoordinator and at least one running Compactor must be assigned to
  * the "large" compactor group.
- * <li>{@code compaction.service.<service>.opts.maxOpen} This determines the maximum number of files
- * that will be included in a single compaction.
- * <li>{@code compaction.service.<service>.opts.groups} This is a json array of compactor group
- * objects which have the following fields:
+ * <li>{@code compaction.service.<service>.planner.opts.maxOpen} This determines the maximum number
+ * of files that will be included in a single compaction.
+ * <li>{@code compaction.service.<service>.planner.opts.groups} This is a json array of compactor
+ * group objects which have the following fields:
  * <table>
  * <caption>Default Compaction Planner Group options</caption>
  * <tr>
@@ -272,8 +272,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
 
     // This set represents future files that will be produced by running compactions. If the optimal
     // set of files to compact is computed and contains one of these files, then it's optimal to
-    // wait
-    // for this compaction to finish.
+    // wait for this compaction to finish.
     Set<CompactableFile> expectedFiles = new HashSet<>();
     params.getRunningCompactions().stream().filter(job -> job.getKind() == params.getKind())
         .map(job -> getExpected(job.getFiles(), fakeFileGenerator))
@@ -286,14 +285,12 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
     while (true) {
       var filesToCompact =
           findDataFilesToCompact(filesCopy, params.getRatio(), maxFilesToCompact, maxSizeToCompact);
-      if (!Collections.disjoint(filesToCompact, expectedFiles)) {
-        // the optimal set of files to compact includes the output of a running compaction, so lets
-        // wait for that running compaction to finish.
+      if (filesToCompact.isEmpty()) {
         break;
       }
 
-      if (filesToCompact.isEmpty()) {
-        break;
+      if (Collections.disjoint(filesToCompact, expectedFiles)) {
+        compactionJobs.add(filesToCompact);
       }
 
       filesCopy.removeAll(filesToCompact);
@@ -305,9 +302,7 @@ public class RatioBasedCompactionPlanner implements CompactionPlanner {
       Preconditions.checkState(expectedFiles.add(expectedFile));
       Preconditions.checkState(filesCopy.add(expectedFile));
 
-      compactionJobs.add(filesToCompact);
-
-      if (filesToCompact.size() < maxFilesToCompact) {
+      if (filesToCompact.size() < maxFilesToCompact && !compactionJobs.isEmpty()) {
         // Only continue looking for more compaction jobs when a set of files is found equals
         // maxFilesToCompact in size. When the files found is less than the max size its an
         // indication that the compaction ratio was no longer met and therefore it would be
