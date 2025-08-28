@@ -244,6 +244,8 @@ public class AccumuloVFSClassLoader {
             }
           }
 
+        } else {
+          localLoader = loader;
         }
       }
     }
