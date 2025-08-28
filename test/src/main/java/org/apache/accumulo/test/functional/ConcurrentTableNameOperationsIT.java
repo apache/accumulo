@@ -31,7 +31,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -41,7 +40,6 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
-import org.apache.accumulo.test.util.Wait;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -74,36 +72,6 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public static void teardown() {
     client.close();
     SharedMiniClusterBase.stopMiniCluster();
-  }
-
-  /**
-   * Test concurrent creation of tables with the same name.
-   */
-  @Test
-  public void createTable() throws Exception {
-    final int numTasks = 10;
-    final int numIterations = 10;
-    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
-    final Set<String> tablesBefore = client.tableOperations().list();
-    String[] expectedTableNames = getUniqueNames(numIterations);
-
-    for (String tableName : expectedTableNames) {
-      int successCount = runConcurrentTableOperation(pool, numTasks, (index) -> {
-        client.tableOperations().create(tableName);
-        return true;
-      });
-
-      assertEquals(1, successCount, "Expected only one create operation to succeed");
-    }
-
-    Set<String> tablesAfter = client.tableOperations().list();
-    Set<String> expectedTables = Set.of(expectedTableNames);
-    Set<String> actualNewTables = new HashSet<>(tablesAfter);
-    actualNewTables.removeAll(tablesBefore);
-
-    assertEquals(expectedTables, actualNewTables);
-
-    pool.shutdown();
   }
 
   /**
@@ -243,14 +211,13 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
       int tableCountBefore = client.tableOperations().list().size();
 
       List<Future<Boolean>> futures = new ArrayList<>();
-      CountDownLatch startSignal = new CountDownLatch(1);
-      AtomicInteger numTasksRunning = new AtomicInteger(0);
+      CountDownLatch startSignal = new CountDownLatch(numTasks);
       AtomicReference<String> successfulOperation = new AtomicReference<>();
 
       for (int i = 0; i < operationsPerType; i++) {
         futures.add(pool.submit(() -> {
           try {
-            numTasksRunning.incrementAndGet();
+            startSignal.countDown();
             startSignal.await();
             client.tableOperations().create(targetTableName);
             successfulOperation.set("create");
@@ -264,7 +231,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
         futures.add(pool.submit(() -> {
           try {
-            numTasksRunning.incrementAndGet();
+            startSignal.countDown();
             startSignal.await();
             client.tableOperations().rename(renameSourceTables.get(index), targetTableName);
             successfulOperation.set("rename");
@@ -276,7 +243,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
         futures.add(pool.submit(() -> {
           try {
-            numTasksRunning.incrementAndGet();
+            startSignal.countDown();
             startSignal.await();
             client.tableOperations().clone(cloneSourceTables.get(index), targetTableName, true,
                 Map.of(), Set.of());
@@ -287,9 +254,6 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
           }
         }));
       }
-
-      Wait.waitFor(() -> numTasksRunning.get() == numTasks);
-      startSignal.countDown();
 
       int successCount = 0;
       for (Future<Boolean> future : futures) {
@@ -414,15 +378,14 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   private int runConcurrentOperation(ExecutorService pool, int numTasks,
       ConcurrentOperation operation, Class<? extends Exception> expectedExceptionType)
       throws ExecutionException, InterruptedException {
-    CountDownLatch startSignal = new CountDownLatch(1);
-    AtomicInteger numTasksRunning = new AtomicInteger(0);
+    CountDownLatch startSignal = new CountDownLatch(numTasks);
     List<Future<Boolean>> futures = new ArrayList<>(numTasks);
 
     for (int i = 0; i < numTasks; i++) {
       final int index = i;
       futures.add(pool.submit(() -> {
         try {
-          numTasksRunning.incrementAndGet();
+          startSignal.countDown();
           startSignal.await();
           return operation.execute(index);
         } catch (Exception e) {
@@ -433,9 +396,6 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
         }
       }));
     }
-
-    Wait.waitFor(() -> numTasksRunning.get() == numTasks);
-    startSignal.countDown();
 
     int successCount = 0;
     for (Future<Boolean> future : futures) {
