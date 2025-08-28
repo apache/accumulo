@@ -19,20 +19,34 @@
 package org.apache.accumulo.test;
 
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
+import static org.apache.accumulo.harness.SharedMiniClusterBase.getClientProps;
+import static org.apache.accumulo.test.ComprehensiveITBase.AUTHORIZATIONS;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Tag;
 
 @Tag(SUNNY_DAY)
-public class ComprehensiveIT_SimpleSuite extends ComprehensiveITBase {
+public class ComprehensiveIT extends ComprehensiveITBase {
+
+  private static class ComprehensiveITConfiguration implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
+        org.apache.hadoop.conf.Configuration coreSite) {
+      cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
+    }
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
-
+    ComprehensiveITConfiguration c = new ComprehensiveITConfiguration();
+    SharedMiniClusterBase.startMiniClusterWithConfig(c);
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
     }

@@ -20,8 +20,11 @@ package org.apache.accumulo.test;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.fate.FlakyFateManager;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -31,10 +34,20 @@ import org.junit.jupiter.api.BeforeAll;
  * {@link org.apache.accumulo.test.fate.FlakyFate} because it will run a lot of FATE operations.
  */
 public class ComprehensiveFlakyFateIT extends ComprehensiveITBase {
+  private static class ComprehensiveFlakyFateITConfiguration
+      implements MiniClusterConfigurationCallback {
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg,
+        org.apache.hadoop.conf.Configuration coreSite) {
+      cfg.setProperty(Property.SSERV_CACHED_TABLET_METADATA_EXPIRATION, "5s");
+      cfg.setServerClass(ServerType.MANAGER, r -> FlakyFateManager.class);
+    }
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniClusterWithConfig(
-        (cfg, coreSite) -> cfg.setServerClass(ServerType.MANAGER, r -> FlakyFateManager.class));
+    ComprehensiveFlakyFateITConfiguration c = new ComprehensiveFlakyFateITConfiguration();
+    SharedMiniClusterBase.startMiniClusterWithConfig(c);
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       client.securityOperations().changeUserAuthorizations("root", AUTHORIZATIONS);
