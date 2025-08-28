@@ -215,9 +215,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   private final ServerContext context;
 
   public static void main(String[] args) throws Exception {
-    try (TabletServer tserver = new TabletServer(new ConfigOpts(), ServerContext::new, args)) {
-      tserver.runServer();
-    }
+    AbstractServer.startServer(new TabletServer(new ConfigOpts(), ServerContext::new, args), log);
   }
 
   protected TabletServer(ConfigOpts opts,
@@ -675,7 +673,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
       // Ask the manager to unload our tablets and stop loading new tablets
       if (iface == null) {
-        Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!");
+        Halt.halt(1, "Error informing Manager that we are shutting down, exiting!");
       } else {
         iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
             getTabletSession().getHostPortSession(), getResourceGroup().canonical());
@@ -694,7 +692,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       sendManagerMessages(managerDown, iface, advertiseAddressString);
 
     } catch (TException | RuntimeException e) {
-      Halt.halt(-1, "Error informing Manager that we are shutting down, exiting!", e);
+      Halt.halt(1, "Error informing Manager that we are shutting down, exiting!", e);
     } finally {
       returnManagerConnection(iface);
     }
@@ -709,16 +707,6 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       getVolumeManager().close();
     } catch (IOException e) {
       log.warn("Failed to close filesystem : {}", e.getMessage(), e);
-    }
-
-    context.getLowMemoryDetector().logGCInfo(getConfiguration());
-    super.close();
-    getShutdownComplete().set(true);
-    log.info("TServerInfo: stop requested. exiting ... ");
-    try {
-      tabletServerLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release tablet server lock", e);
     }
   }
 

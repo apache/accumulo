@@ -447,7 +447,13 @@ public class ServiceLockPaths {
             }
             addressPredicate = s -> true;
           } else {
-            servers = zooCache.getChildren(typePath + "/" + group);
+            var children = zooCache.getChildren(typePath + "/" + group);
+            if (children == null) {
+              // resource group no longer exist
+              servers = List.of();
+            } else {
+              servers = children;
+            }
             addressPredicate = addressSelector.getPredicate();
           }
 
