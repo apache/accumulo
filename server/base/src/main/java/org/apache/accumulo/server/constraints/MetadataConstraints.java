@@ -57,7 +57,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Se
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade12to13;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.SelectedFiles;
 import org.apache.accumulo.core.metadata.schema.TabletMergeabilityMetadata;
@@ -86,10 +86,10 @@ public class MetadataConstraints implements Constraint {
   // @formatter:off
   private static final Set<ColumnFQ> validColumnQuals =
       Set.of(TabletColumnFamily.PREV_ROW_COLUMN,
-          Upgrade12to13.OLD_PREV_ROW_COLUMN,
+          Upgrade11to12.OLD_PREV_ROW_COLUMN,
           SuspendLocationColumn.SUSPEND_COLUMN,
           ServerColumnFamily.DIRECTORY_COLUMN,
-          Upgrade12to13.SPLIT_RATIO_COLUMN,
+          Upgrade11to12.SPLIT_RATIO_COLUMN,
           ServerColumnFamily.TIME_COLUMN,
           ServerColumnFamily.LOCK_COLUMN,
           ServerColumnFamily.FLUSH_COLUMN,
@@ -101,7 +101,7 @@ public class MetadataConstraints implements Constraint {
           ServerColumnFamily.SELECTED_COLUMN,
           SplitColumnFamily.UNSPLITTABLE_COLUMN,
           TabletColumnFamily.MERGEABILITY_COLUMN,
-          Upgrade12to13.COMPACT_COL);
+          Upgrade11to12.COMPACT_COL);
 
   @SuppressWarnings("deprecation")
   private static final Text CHOPPED = ChoppedColumnFamily.NAME;

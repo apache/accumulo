@@ -995,8 +995,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
-    var producers = managerMetrics.getProducers(getConfiguration(), this);
+    ManagerMetrics managerMetrics = new ManagerMetrics();
+    List<MetricsProducer> producers = new ArrayList<>();
     producers.add(balanceManager.getMetrics());
 
     final TabletGroupWatcher userTableTGW =
@@ -1109,10 +1109,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
     }
 
-    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
-
     balanceManager.startBackGroundTask();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
@@ -1135,10 +1131,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException(
             "Unexpected previous fate reference map already initialized");
       }
+      managerMetrics.configureFateMetrics(getConfiguration(), this, fateRefs.get());
       fateReadyLatch.countDown();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
+
+    producers.addAll(managerMetrics.getProducers(this));
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
@@ -1206,7 +1208,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       }
       try {
-        Thread.sleep(500);
+        mainWait();
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
@@ -1257,14 +1259,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    super.close();
-    getShutdownComplete().set(true);
-    log.info("stop requested. exiting ... ");
-    try {
-      managerLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release Manager lock", e);
-    }
+  }
+
+  // method exists for ExitCodesIT
+  public void mainWait() throws InterruptedException {
+    Thread.sleep(500);
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {

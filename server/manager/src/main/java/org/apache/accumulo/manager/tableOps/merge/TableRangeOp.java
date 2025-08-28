@@ -24,6 +24,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.manager.Manager;
@@ -44,7 +45,8 @@ public class TableRangeOp extends ManagerRepo {
   public long isReady(FateId fateId, Manager env) throws Exception {
     return Utils.reserveNamespace(env, data.namespaceId, fateId, LockType.READ, true,
         TableOperation.MERGE)
-        + Utils.reserveTable(env, data.tableId, fateId, LockType.WRITE, true, TableOperation.MERGE);
+        + Utils.reserveTable(env, data.tableId, fateId, LockType.WRITE, true, TableOperation.MERGE,
+            LockRange.of(data.getReserveExtent()));
   }
 
   public TableRangeOp(MergeInfo.Operation op, NamespaceId namespaceId, TableId tableId,

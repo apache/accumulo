@@ -455,7 +455,7 @@ public class TabletServerLogger {
         if (sawWriteFailure != null) {
           log.info("WAL write failure, validating server lock in ZooKeeper", sawWriteFailure);
           if (tabletServerLock == null || !tabletServerLock.verifyLockAtSource()) {
-            Halt.halt(-1, "Writing to WAL has failed and TabletServer lock does not exist",
+            Halt.halt(1, "Writing to WAL has failed and TabletServer lock does not exist",
                 sawWriteFailure);
           }
         }

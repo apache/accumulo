@@ -21,6 +21,7 @@ package org.apache.accumulo.manager.upgrade;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.manager.upgrade.Upgrader11to12.UPGRADE_FAMILIES;
 import static org.apache.accumulo.manager.upgrade.Upgrader11to12.ZNAMESPACE_NAME;
+import static org.apache.accumulo.manager.upgrade.Upgrader11to12.ZTABLE_NAME;
 import static org.easymock.EasyMock.aryEq;
 import static org.easymock.EasyMock.capture;
 import static org.easymock.EasyMock.createMock;
@@ -39,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -49,15 +51,19 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.MutationsRejectedException;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.NamespaceMapping;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -71,6 +77,7 @@ import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.conf.store.impl.ZooPropStore;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
+import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.data.Stat;
 import org.easymock.Capture;
 import org.junit.jupiter.api.Test;
@@ -405,7 +412,7 @@ public class Upgrader11to12Test {
       expectLastCall().once();
     }
 
-    expect(zrw.exists("/problems")).andReturn(false).once();
+    expect(zrw.exists("/problems")).andReturn(false).atLeastOnce();
 
     expect(zrw.putPersistentData(isA(String.class), isA(byte[].class), isA(NodeExistsPolicy.class)))
         .andReturn(true).times(7);
@@ -416,7 +423,11 @@ public class Upgrader11to12Test {
 
     replay(context, zk, zrw, store);
 
-    upgrader.upgradeZookeeper(context);
+    upgrader.removeZTracersNode(context);
+    upgrader.updateRootTabletFileReferences(context);
+    upgrader.createNamespaceMappings(context);
+    upgrader.removeZKProblemReports(context);
+    upgrader.initializeScanRefTable(context);
 
     assertEquals(zKRootV2, new String(byteCapture.getValue(), UTF_8));
 
@@ -477,4 +488,87 @@ public class Upgrader11to12Test {
         .of(new Path("hdfs://localhost:8020/accumulo/tables/+r/root_tablet/F000000c.rf"))));
   }
 
+  @Test
+  public void testZooKeeperUpgradeFailsServerCheck()
+      throws InterruptedException, KeeperException, NamespaceNotFoundException {
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    InstanceId iid = InstanceId.of(UUID.randomUUID());
+
+    ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createStrictMock(ZooSession.class);
+    ZooReader zr = createStrictMock(ZooReader.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+
+    expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReader()).andReturn(zr).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+
+    expect(zr.getChildren(Constants.ZCOMPACTORS)).andReturn(List.of());
+    expect(zr.getChildren(Constants.ZSSERVERS)).andReturn(List.of("localhost:9996"));
+    expect(zr.getChildren(Constants.ZSSERVERS + "/localhost:9996")).andReturn(List.of());
+    zrw.recursiveDelete(Constants.ZSSERVERS + "/localhost:9996", NodeMissingPolicy.SKIP);
+    expect(zr.getChildren(Constants.ZTSERVERS)).andReturn(List.of("localhost:9997"));
+    expect(zr.getChildren(Constants.ZTSERVERS + "/localhost:9997"))
+        .andReturn(List.of(UUID.randomUUID().toString()));
+
+    replay(context, zk, zr, zrw);
+    IllegalStateException e =
+        assertThrows(IllegalStateException.class, () -> upgrader.upgradeZookeeper(context));
+    assertTrue(e.getMessage()
+        .contains("Was expecting either a nothing, a resource group name or an empty directory"));
+    verify(context, zk, zr, zrw);
+
+  }
+
+  @Test
+  public void testAddingTableMappingToZooKeeper() throws InterruptedException, KeeperException {
+    Upgrader11to12 upgrader = new Upgrader11to12();
+    InstanceId iid = InstanceId.of(UUID.randomUUID());
+
+    ServerContext context = createMock(ServerContext.class);
+    ZooSession zk = createStrictMock(ZooSession.class);
+    ZooReaderWriter zrw = createStrictMock(ZooReaderWriter.class);
+
+    expect(context.getInstanceID()).andReturn(iid).anyTimes();
+    expect(context.getZooSession()).andReturn(zk).anyTimes();
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
+
+    Map<String,String> mockTables = Map.of("t1Id", "t1", "t2Id", "t2", "t3Id", "t3");
+    List<String> mockTableIds = List.copyOf(mockTables.keySet());
+    Map<String,String> mockTableToNamespace =
+        Map.of("t1Id", "ns1Id", "t2Id", "ns1Id", "t3Id", "ns2Id");
+
+    expect(zrw.getChildren(eq(Constants.ZTABLES))).andReturn(mockTableIds).once();
+    for (String tableId : mockTableIds) {
+      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME))
+          .andReturn(mockTables.get(tableId).getBytes(UTF_8)).once();
+      expect(zrw.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE))
+          .andReturn(mockTableToNamespace.get(tableId).getBytes(UTF_8)).once();
+    }
+
+    Map<String,Map<String,String>> expectedNamespaceMaps = new HashMap<>();
+    for (Map.Entry<String,String> entry : mockTables.entrySet()) {
+      String tableId = entry.getKey();
+      expectedNamespaceMaps.computeIfAbsent(mockTableToNamespace.get(tableId), k -> new HashMap<>())
+          .put(tableId, entry.getValue());
+    }
+
+    expectedNamespaceMaps.put(Namespace.DEFAULT.id().canonical(), new HashMap<>());
+    for (Map.Entry<String,Map<String,String>> entry : expectedNamespaceMaps.entrySet()) {
+      expect(zrw.putPersistentData(
+          eq(Constants.ZNAMESPACES + "/" + entry.getKey() + Constants.ZTABLES),
+          aryEq(NamespaceMapping.serializeMap(entry.getValue())),
+          eq(ZooUtil.NodeExistsPolicy.FAIL))).andReturn(true).once();
+    }
+
+    for (String table : mockTables.keySet()) {
+      zrw.delete(Constants.ZTABLES + "/" + table + ZTABLE_NAME);
+      expectLastCall().once();
+    }
+
+    replay(context, zk, zrw);
+    upgrader.addTableMappingsToZooKeeper(context);
+    verify(context, zk, zrw);
+  }
 }
