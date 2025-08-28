@@ -154,7 +154,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
           scanner.setConsistencyLevel(EVENTUAL);
           return scan(scanner).size() >= 100;
         }
-      }, 600000);
+      }, 300000);
 
       // should see all data that was flushed in eventual scan
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
@@ -177,7 +177,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
           scanner.setConsistencyLevel(EVENTUAL);
           return scan(scanner).size() > initialSize;
         }
-      }, 600000);
+      }, 300000);
 
       verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
           scanner -> scanner.setConsistencyLevel(EVENTUAL));
