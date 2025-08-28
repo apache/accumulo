@@ -117,9 +117,7 @@ public class Monitor extends AbstractServer implements Connection.Listener {
   private final long START_TIME;
 
   public static void main(String[] args) throws Exception {
-    try (Monitor monitor = new Monitor(new ConfigOpts(), args)) {
-      monitor.runServer();
-    }
+    AbstractServer.startServer(new Monitor(new ConfigOpts(), args), log);
   }
 
   Monitor(ConfigOpts opts, String[] args) {

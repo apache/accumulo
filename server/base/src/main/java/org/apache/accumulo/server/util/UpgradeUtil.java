@@ -18,23 +18,39 @@
  */
 package org.apache.accumulo.server.util;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.core.Constants.ZFATE;
 import static org.apache.accumulo.core.Constants.ZPREPARE_FOR_UPGRADE;
+import static org.apache.accumulo.core.Constants.ZTABLES;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeMissingPolicy;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.spi.common.ServiceEnvironment;
+import org.apache.accumulo.core.spi.compaction.CompactionDispatcher;
+import org.apache.accumulo.core.spi.compaction.CompactionKind;
+import org.apache.accumulo.core.spi.compaction.CompactionServiceId;
+import org.apache.accumulo.core.spi.compaction.CompactionServices;
+import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.server.AccumuloDataVersion;
 import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.conf.NamespaceConfiguration;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.accumulo.server.util.upgrade.PreUpgradeValidation;
 import org.apache.accumulo.server.util.upgrade.UpgradeProgress;
@@ -53,6 +69,7 @@ import com.google.auto.service.AutoService;
 public class UpgradeUtil implements KeywordExecutable {
 
   private static final Logger LOG = LoggerFactory.getLogger(UpgradeUtil.class);
+  private static final String ZTABLE_NAME = "/name";
 
   static class Opts extends ConfigOpts {
     @Parameter(names = "--prepare",
@@ -250,6 +267,14 @@ public class UpgradeUtil implements KeywordExecutable {
       }
     }
 
+    try {
+      validateCompactionServiceConfiguration(context);
+      LOG.info("Validated compaction service configuration");
+    } catch (KeeperException | InterruptedException e) {
+      LOG.error("Error validating compaction service configuration", e);
+      throw new IllegalStateException("Error validating compaction service configuration", e);
+    }
+
     // Run the PreUpgradeValidation code to validate the ZooKeeper ACLs
     try {
       new PreUpgradeValidation().validate(context);
@@ -302,6 +327,96 @@ public class UpgradeUtil implements KeywordExecutable {
       }
     }
 
+  }
+
+  private void validateCompactionServiceConfiguration(ServerContext ctx)
+      throws KeeperException, InterruptedException {
+
+    boolean configurationError = false;
+
+    final CompactionServicesConfig servicesConfig =
+        new CompactionServicesConfig(ctx.getConfiguration());
+    final Set<CompactionServiceId> definedServiceIds = servicesConfig.getPlanners().keySet()
+        .stream().map(CompactionServiceId::of).collect(Collectors.toUnmodifiableSet());
+
+    LOG.info("Defined compaction service ids: {}", definedServiceIds);
+
+    final ZooReader zr = ctx.getZooSession().asReader();
+    List<String> zooTableIds = zr.getChildren(ZTABLES);
+
+    for (String tableId : zooTableIds) {
+
+      final String tableName =
+          new String(zr.getData(Constants.ZTABLES + "/" + tableId + ZTABLE_NAME), UTF_8);
+      final String namespaceId = new String(
+          zr.getData(Constants.ZTABLES + "/" + tableId + Constants.ZTABLE_NAMESPACE), UTF_8);
+
+      final NamespaceId nsid = NamespaceId.of(namespaceId);
+      final TableId tid = TableId.of(tableId);
+
+      final NamespaceConfiguration nsConf =
+          new NamespaceConfiguration(ctx, nsid, ctx.getConfiguration());
+      final TableConfiguration tconf = new TableConfiguration(ctx, tid, nsConf);
+
+      final CompactionDispatcher dispatcher = tconf.getCompactionDispatcher();
+
+      for (CompactionKind kind : CompactionKind.values()) {
+        final CompactionDispatcher.DispatchParameters dispatchParams =
+            new CompactionDispatcher.DispatchParameters() {
+              @Override
+              public CompactionServices getCompactionServices() {
+                return () -> definedServiceIds;
+              }
+
+              @Override
+              public ServiceEnvironment getServiceEnv() {
+                return (ServiceEnvironment) ctx;
+              }
+
+              @Override
+              public CompactionKind getCompactionKind() {
+                return kind;
+              }
+
+              @Override
+              public Map<String,String> getExecutionHints() {
+                return Map.of();
+              }
+            };
+        final CompactionServiceId expectedCompactionService =
+            dispatcher.dispatch(dispatchParams).getService();
+        LOG.info("Table {} is configured to use service \"{}\" for compaction kind {}", tableName,
+            expectedCompactionService, kind);
+        if (!servicesConfig.getPlanners().containsKey(expectedCompactionService.canonical())) {
+          if ((tid.equals(SystemTables.ROOT.tableId())
+              && expectedCompactionService.canonical().equals("root"))
+              || (tid.equals(SystemTables.METADATA.tableId())
+                  && expectedCompactionService.canonical().equals("meta"))) {
+            LOG.warn(
+                "Table {} is using a default compaction service configuration from a prior version."
+                    + " The \"{}\" compaction service configuration is no longer defined. You can either define"
+                    + " it now in the accumulo.properties file, or the compaction service configuration will"
+                    + " be removed to adopt the new default in this version during the upgrade.",
+                tableName, expectedCompactionService);
+          } else {
+            LOG.error(
+                "Table {} returned non-existent compaction service \"{}\"  for compaction type {}.",
+                tid, expectedCompactionService, kind);
+            configurationError = true;
+          }
+        }
+      }
+    }
+    if (configurationError) {
+      LOG.error("Compaction configuration is incorrect. One or more tables is configured to use a"
+          + " compaction service that does not exist in the configuration. Configured compaction"
+          + " services are: {}", definedServiceIds);
+      throw new IllegalStateException(
+          "Compaction configuration is not correct. Continuing with upgrade"
+              + " will leave the instance in a state where compactions will not start for some tables. Please fix the system"
+              + " configuration by defining the expected compaction services in accumulo.properties and run"
+              + " --start again.");
+    }
   }
 
 }

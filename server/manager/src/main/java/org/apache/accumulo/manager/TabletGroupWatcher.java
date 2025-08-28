@@ -478,7 +478,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     Set<TServerInstance> filteredServersToShutdown =
         new HashSet<>(tableMgmtParams.getServersToShutdown());
 
-    while (iter.hasNext()) {
+    while (iter.hasNext() && !manager.isShutdownRequested()) {
       final TabletManagement mti = iter.next();
       if (mti == null) {
         throw new IllegalStateException("State store returned a null ManagerTabletInfo object");
@@ -728,7 +728,7 @@ abstract class TabletGroupWatcher extends AccumuloDaemonThread {
     int[] oldCounts = new int[TabletState.values().length];
     boolean lookForTabletsNeedingVolReplacement = true;
 
-    while (manager.stillManager()) {
+    while (manager.stillManager() && !manager.isShutdownRequested()) {
       if (!eventHandler.isNeedsFullScan()) {
         // If an event handled by the EventHandler.RangeProcessor indicated
         // that we need to do a full scan, then do it. Otherwise wait a bit

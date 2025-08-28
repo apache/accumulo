@@ -39,10 +39,12 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -79,6 +81,7 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -200,6 +203,58 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(DefaultKeySizeConstraint.class.getName(),
         props.get(Property.TABLE_CONSTRAINT_PREFIX + "1"));
     accumuloClient.tableOperations().delete(tableName);
+  }
+
+  @Test
+  public void testDefendAgainstThreadsCreateSameTableNameConcurrently()
+      throws ExecutionException, InterruptedException {
+    final int initialTableSize = accumuloClient.tableOperations().list().size();
+    final int numTasks = 10;
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
+
+    for (String tablename : getUniqueNames(30)) {
+      CountDownLatch startSignal = new CountDownLatch(1);
+      AtomicInteger numTasksRunning = new AtomicInteger(0);
+
+      List<Future<Boolean>> futureList = new ArrayList<>();
+
+      for (int j = 0; j < numTasks; j++) {
+        Future<Boolean> future = pool.submit(() -> {
+          boolean result;
+          try {
+            numTasksRunning.incrementAndGet();
+            startSignal.await();
+            accumuloClient.tableOperations().create(tablename);
+            result = true;
+          } catch (TableExistsException e) {
+            result = false;
+          }
+          return result;
+        });
+        futureList.add(future);
+      }
+
+      Wait.waitFor(() -> numTasksRunning.get() == numTasks);
+
+      startSignal.countDown();
+
+      int taskSucceeded = 0;
+      int taskFailed = 0;
+      for (Future<Boolean> result : futureList) {
+        if (result.get() == true) {
+          taskSucceeded++;
+        } else {
+          taskFailed++;
+        }
+      }
+
+      assertEquals(1, taskSucceeded);
+      assertEquals(9, taskFailed);
+    }
+
+    assertEquals(30, accumuloClient.tableOperations().list().size() - initialTableSize);
+
+    pool.shutdown();
   }
 
   @Test
