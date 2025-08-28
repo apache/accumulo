@@ -250,7 +250,7 @@ public class PropertyTest {
 
   @Test
   public void testAnnotations() {
-    assertFalse(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertFalse(Property.TABLE_SAMPLER.isExperimental());
 
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
