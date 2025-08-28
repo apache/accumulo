@@ -293,7 +293,7 @@ public class ZooCacheIT {
     });
   }
 
-  @SuppressWarnings("deprecation")
+  @SuppressWarnings({"deprecation", "removal"})
   @Test
   public void testDisconnect() throws Exception {
     testDisruptingZookeeper("disconnect", () -> {

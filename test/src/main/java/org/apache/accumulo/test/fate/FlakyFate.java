@@ -39,7 +39,7 @@ public class FlakyFate<T> extends Fate<T> {
   public FlakyFate(T environment, FateStore<T> store, Function<Repo<T>,String> toLogStrFunc,
       AccumuloConfiguration conf) {
     super(environment, store, false, toLogStrFunc, conf, new ScheduledThreadPoolExecutor(2));
-    for (var poolConfig : getPoolConfigurations(conf).entrySet()) {
+    for (var poolConfig : getPoolConfigurations(conf, getStore().type()).entrySet()) {
       fateExecutors.add(
           new FlakyFateExecutor<>(this, environment, poolConfig.getKey(), poolConfig.getValue()));
     }

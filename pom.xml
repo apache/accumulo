@@ -122,10 +122,11 @@
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
-    <maven.compiler.release>11</maven.compiler.release>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
+    <maven.javadoc.since.version>4.0.0</maven.javadoc.since.version>
     <maven.site.deploy.skip>true</maven.site.deploy.skip>
     <maven.site.skip>true</maven.site.skip>
     <!-- surefire/failsafe plugin option -->
@@ -794,6 +795,7 @@
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
+	    <additionalOptions>--since ${maven.javadoc.since.version} --since-label "API additions since version ${maven.javadoc.since.version}"</additionalOptions>
             <doclint>all,-missing</doclint>
             <legacyMode>true</legacyMode>
           </configuration>

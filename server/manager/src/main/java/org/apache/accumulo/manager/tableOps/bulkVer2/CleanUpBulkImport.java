@@ -29,6 +29,7 @@ import org.apache.accumulo.core.data.AbstractId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.manager.thrift.BulkImportState;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -75,7 +76,7 @@ public class CleanUpBulkImport extends ManagerRepo {
     removeBulkLoadEntries(ample, info.tableId, fateId, firstSplit, lastSplit);
 
     Utils.unreserveHdfsDirectory(manager, info.sourceDir, fateId);
-    Utils.getReadLock(manager, info.tableId, fateId).unlock();
+    Utils.getReadLock(manager, info.tableId, fateId, LockRange.infinite()).unlock();
     // delete json renames and mapping files
     Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     Path mappingFile = new Path(bulkDir, Constants.BULK_LOAD_MAPPING);
