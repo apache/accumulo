@@ -196,7 +196,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
         // ourselves by hand.
         FileSystem fs = getCluster().getFileSystem();
         Path importDir = new Path(import_);
-        Path exportPath = new Path(exportUri.substring(7));
+        Path exportPath = new Path(exportDir.toUri());
         ImportExportIT.copyExportedFilesToImportDirs(fs, exportPath, importDir);
       } else {
         String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
