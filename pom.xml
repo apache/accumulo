@@ -795,7 +795,7 @@
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
-	    <additionalOptions>--since ${maven.javadoc.since.version} --since-label "API additions since version ${maven.javadoc.since.version}"</additionalOptions>
+            <additionalOptions>--since ${maven.javadoc.since.version} --since-label "API additions since version ${maven.javadoc.since.version}"</additionalOptions>
             <doclint>all,-missing</doclint>
             <legacyMode>true</legacyMode>
           </configuration>
