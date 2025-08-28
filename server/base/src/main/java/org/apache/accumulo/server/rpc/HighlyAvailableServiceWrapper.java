@@ -28,7 +28,7 @@ import org.apache.accumulo.server.HighlyAvailableService;
  * when the Accumulo service that this Thrift service is for has not yet obtained its ZooKeeper
  * lock.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class HighlyAvailableServiceWrapper {
 

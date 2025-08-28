@@ -23,7 +23,7 @@ import java.io.InputStream;
 /**
  * Class implementation that will decrypt a file. Make sure implementation is thread safe.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public interface FileDecrypter {
   /**

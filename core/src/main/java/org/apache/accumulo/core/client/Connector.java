@@ -252,7 +252,7 @@ public abstract class Connector {
    * AccumuloClient is closed. Also anything derived from the Connector (like a Scanner for example)
    * is unlikely to work after the AccumuloClient is closed.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public static Connector from(AccumuloClient client)
       throws AccumuloSecurityException, AccumuloException {

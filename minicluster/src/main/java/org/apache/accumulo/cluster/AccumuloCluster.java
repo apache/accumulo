@@ -53,7 +53,7 @@ public interface AccumuloCluster {
 
   /**
    * @return {@link AccumuloClient} that must be closed by user
-   * @since 2.0
+   * @since 2.0.0
    */
   AccumuloClient createAccumuloClient(String user, AuthenticationToken token);
 
