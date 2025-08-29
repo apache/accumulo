@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSec
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Upgrade11to12.SPLIT_RATIO_COLUMN;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -53,7 +52,6 @@ import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.manager.split.Splitter;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.apache.hadoop.io.Text;
@@ -139,8 +137,8 @@ public class SplitRecovery11to12 {
           }
         }
 
-        splitDatafiles(metadataPrevEndRow, splitRatio, new HashMap<>(), origDatafileSizes,
-            lowDatafileSizes, highDatafileSizes, highDatafilesToRemove);
+        splitDatafiles(metadataPrevEndRow, splitRatio, origDatafileSizes, lowDatafileSizes,
+            highDatafileSizes, highDatafilesToRemove);
 
         finishSplit(metadataEntry, highDatafileSizes, highDatafilesToRemove, context);
 
@@ -154,53 +152,22 @@ public class SplitRecovery11to12 {
   }
 
   public static void splitDatafiles(Text midRow, double splitRatio,
-      Map<StoredTabletFile,Splitter.FileInfo> firstAndLastRows,
       SortedMap<StoredTabletFile,DataFileValue> datafiles,
       SortedMap<StoredTabletFile,DataFileValue> lowDatafileSizes,
       SortedMap<StoredTabletFile,DataFileValue> highDatafileSizes,
       List<StoredTabletFile> highDatafilesToRemove) {
 
     for (Entry<StoredTabletFile,DataFileValue> entry : datafiles.entrySet()) {
+      long lowSize = (long) Math.floor((entry.getValue().getSize() * splitRatio));
+      long lowEntries = (long) Math.floor((entry.getValue().getNumEntries() * splitRatio));
+      lowDatafileSizes.put(entry.getKey(),
+          new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
 
-      Text firstRow = null;
-      Text lastRow = null;
+      long highSize = (long) Math.ceil((entry.getValue().getSize() * (1.0 - splitRatio)));
+      long highEntries = (long) Math.ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
+      highDatafileSizes.put(entry.getKey(),
+          new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
 
-      boolean rowsKnown = false;
-
-      Splitter.FileInfo mfi = firstAndLastRows.get(entry.getKey());
-
-      if (mfi != null) {
-        firstRow = mfi.getFirstRow();
-        lastRow = mfi.getLastRow();
-        rowsKnown = true;
-      }
-
-      if (rowsKnown && firstRow.compareTo(midRow) > 0) {
-        // only in high
-        long highSize = entry.getValue().getSize();
-        long highEntries = entry.getValue().getNumEntries();
-        highDatafileSizes.put(entry.getKey(),
-            new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
-      } else if (rowsKnown && lastRow.compareTo(midRow) <= 0) {
-        // only in low
-        long lowSize = entry.getValue().getSize();
-        long lowEntries = entry.getValue().getNumEntries();
-        lowDatafileSizes.put(entry.getKey(),
-            new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
-
-        highDatafilesToRemove.add(entry.getKey());
-      } else {
-        long lowSize = (long) Math.floor((entry.getValue().getSize() * splitRatio));
-        long lowEntries = (long) Math.floor((entry.getValue().getNumEntries() * splitRatio));
-        lowDatafileSizes.put(entry.getKey(),
-            new DataFileValue(lowSize, lowEntries, entry.getValue().getTime()));
-
-        long highSize = (long) Math.ceil((entry.getValue().getSize() * (1.0 - splitRatio)));
-        long highEntries =
-            (long) Math.ceil((entry.getValue().getNumEntries() * (1.0 - splitRatio)));
-        highDatafileSizes.put(entry.getKey(),
-            new DataFileValue(highSize, highEntries, entry.getValue().getTime()));
-      }
     }
   }
 
