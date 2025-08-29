@@ -678,8 +678,7 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
           extentsToBringOnline.size(), tableId);
       ThriftClientTypes.MANAGER.executeVoid(context,
           client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
-              tableId.canonical(), extentsToBringOnline),
-          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+              tableId.canonical(), extentsToBringOnline), ResourceGroupId.DEFAULT::equals);
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
     }
   }
