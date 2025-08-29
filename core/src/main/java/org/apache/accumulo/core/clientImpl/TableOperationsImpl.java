@@ -2254,17 +2254,35 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
-      throws TableNotFoundException {
+  public Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
+      TabletInformation.Field... fields) throws TableNotFoundException {
     EXISTING_TABLE_NAME.validate(tableName);
 
     final Text scanRangeStart = (range.getStartKey() == null) ? null : range.getStartKey().getRow();
     TableId tableId = context.getTableId(tableName);
 
+    List<TabletMetadata.ColumnType> columns = new ArrayList<>();
+    EnumSet<TabletInformation.Field> fieldSet =
+        fields.length == 0 ? EnumSet.allOf(TabletInformation.Field.class)
+            : EnumSet.noneOf(TabletInformation.Field.class);
+    Collections.addAll(fieldSet, fields);
+    if (fieldSet.contains(TabletInformation.Field.FILES)) {
+      Collections.addAll(columns, DIR, FILES, LOGS);
+    }
+    if (fieldSet.contains(TabletInformation.Field.LOCATION)) {
+      Collections.addAll(columns, LOCATION, LAST, SUSPEND);
+    }
+    if (fieldSet.contains(TabletInformation.Field.AVAILABILITY)) {
+      Collections.addAll(columns, AVAILABILITY);
+    }
+    if (fieldSet.contains(TabletInformation.Field.MERGEABILITY)) {
+      Collections.addAll(columns, MERGEABILITY);
+    }
+    columns.add(PREV_ROW);
+
     TabletsMetadata tabletsMetadata =
         context.getAmple().readTablets().forTable(tableId).overlapping(scanRangeStart, true, null)
-            .fetch(AVAILABILITY, LOCATION, DIR, PREV_ROW, FILES, LAST, LOGS, SUSPEND, MERGEABILITY)
-            .checkConsistency().build();
+            .fetch(columns.toArray(new TabletMetadata.ColumnType[0])).checkConsistency().build();
 
     Set<TServerInstance> liveTserverSet = TabletMetadata.getLiveTServers(context);
 
@@ -2285,8 +2303,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
       }
     }).takeWhile(tm -> tm.getPrevEndRow() == null
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
-        .map(tm -> new TabletInformationImpl(tm, TabletState.compute(tm, liveTserverSet).toString(),
-            currentTime));
+        .map(tm -> new TabletInformationImpl(tm,
+            () -> TabletState.compute(tm, liveTserverSet).toString(), currentTime));
   }
 
 }

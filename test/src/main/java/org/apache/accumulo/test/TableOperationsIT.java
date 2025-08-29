@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static java.util.concurrent.TimeUnit.SECONDS;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -917,4 +918,125 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     assertEquals(1000, hash.size());
   }
 
+  @Test
+  public void testGetTabletInformation() throws Exception {
+    String tableName = getUniqueNames(1)[0];
+
+    try {
+      SortedSet<Text> splits = new TreeSet<>();
+      for (int i = 1; i < 9; i++) {
+        splits.add(new Text(i + ""));
+      }
+      accumuloClient.tableOperations().create(tableName,
+          new NewTableConfiguration().withSplits(splits));
+      try (var writer = accumuloClient.createBatchWriter(tableName)) {
+        for (int i = 1; i <= 9; i++) {
+          var m = new Mutation("" + i);
+          m.at().family("f").qualifier("q").put("" + i);
+          writer.addMutation(m);
+        }
+      }
+
+      accumuloClient.tableOperations().flush(tableName, null, null, true);
+
+      var tableId = TableId.of(accumuloClient.tableOperations().tableIdMap().get(tableName));
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.LOCATION)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertNotNull(ti.getLocation());
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals("HOSTED", ti.getTabletState());
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.FILES)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertEquals(1, ti.getNumFiles());
+          assertEquals(1, ti.getEstimatedEntries());
+          assertTrue(ti.getEstimatedSize() > 0);
+          assertEquals(0, ti.getNumWalLogs());
+          assertNotNull(ti.getTabletDir());
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.FILES, TabletInformation.Field.LOCATION)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertEquals("HOSTED", ti.getTabletState());
+          assertEquals(1, ti.getNumFiles());
+          assertEquals(1, ti.getEstimatedEntries());
+          assertTrue(ti.getEstimatedSize() > 0);
+          assertEquals(0, ti.getNumWalLogs());
+          assertNotNull(ti.getTabletDir());
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.AVAILABILITY)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          assertThrows(IllegalStateException.class, ti::getTabletMergeabilityInfo);
+          assertEquals(TabletAvailability.ONDEMAND, ti.getTabletAvailability());
+        });
+      }
+
+      try (var tablets = accumuloClient.tableOperations().getTabletInformation(tableName,
+          new Range(), TabletInformation.Field.MERGEABILITY)) {
+        var tabletList = tablets.collect(Collectors.toList());
+        assertEquals(9, tabletList.size());
+        tabletList.forEach(ti -> {
+          assertEquals(tableId, ti.getTabletId().getTable());
+          assertThrows(IllegalStateException.class, ti::getLocation);
+          assertThrows(IllegalStateException.class, ti::getTabletState);
+          assertThrows(IllegalStateException.class, ti::getNumFiles);
+          assertThrows(IllegalStateException.class, ti::getEstimatedEntries);
+          assertThrows(IllegalStateException.class, ti::getEstimatedSize);
+          assertThrows(IllegalStateException.class, ti::getNumWalLogs);
+          assertThrows(IllegalStateException.class, ti::getTabletDir);
+          if (ti.getTabletId().getEndRow() == null) {
+            assertFalse(ti.getTabletMergeabilityInfo().getTabletMergeability().isNever());
+          } else {
+            assertTrue(ti.getTabletMergeabilityInfo().getTabletMergeability().isNever());
+          }
+          assertThrows(IllegalStateException.class, ti::getTabletAvailability);
+        });
+      }
+
+    } finally {
+      accumuloClient.tableOperations().delete(tableName);
+    }
+  }
 }
