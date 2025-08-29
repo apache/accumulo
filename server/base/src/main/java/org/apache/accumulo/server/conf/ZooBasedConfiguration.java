@@ -49,11 +49,11 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   protected final Logger log;
   private final AccumuloConfiguration parent;
-  private final PropStoreKey<?> propStoreKey;
+  private final PropStoreKey propStoreKey;
 
   private final PropSnapshot propSnapshot;
 
-  public ZooBasedConfiguration(Logger log, ServerContext context, PropStoreKey<?> propStoreKey,
+  public ZooBasedConfiguration(Logger log, ServerContext context, PropStoreKey propStoreKey,
       AccumuloConfiguration parent) {
     this.log = requireNonNull(log, "a Logger must be supplied");
     requireNonNull(context, "the context cannot be null");
@@ -64,7 +64,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
   }
 
   @VisibleForTesting
-  public void zkChangeEvent(PropStoreKey<?> propStoreKey) {
+  public void zkChangeEvent(PropStoreKey propStoreKey) {
     propSnapshot.zkChangeEvent(propStoreKey);
   }
 
@@ -103,7 +103,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
     return parent;
   }
 
-  public PropStoreKey<?> getPropStoreKey() {
+  public PropStoreKey getPropStoreKey() {
     return propStoreKey;
   }
 
@@ -141,15 +141,7 @@ public class ZooBasedConfiguration extends AccumuloConfiguration {
 
   @Override
   public boolean isPropertySet(final Property property) {
-
-    Map<String,String> theseProps = getSnapshot();
-
-    if (theseProps.get(property.getKey()) != null) {
-      return true;
-    }
-
-    return getParent().isPropertySet(property);
-
+    return getSnapshot().get(property.getKey()) != null || getParent().isPropertySet(property);
   }
 
   public @NonNull Map<String,String> getSnapshot() {

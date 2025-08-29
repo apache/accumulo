@@ -18,48 +18,71 @@
  */
 package org.apache.accumulo.core.clientImpl;
 
-import java.io.FileInputStream;
+import static com.google.common.base.Suppliers.memoize;
+import static java.util.Objects.requireNonNull;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.util.Optional;
 import java.util.Properties;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
+import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.hadoop.conf.Configuration;
+
+import com.google.common.base.Suppliers;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 public class ClientInfoImpl implements ClientInfo {
 
   private final Properties properties;
-  private AuthenticationToken token;
-  private final Configuration hadoopConf;
 
-  public ClientInfoImpl(Path propertiesFile) {
-    this(ClientInfoImpl.toProperties(propertiesFile));
-  }
+  // suppliers for lazily loading
+  private final Supplier<AuthenticationToken> tokenSupplier;
+  private final Supplier<Configuration> hadoopConf;
+  private final Supplier<InstanceId> instanceId;
+  private final BiFunction<String,String,ZooSession> zooSessionForName;
 
-  public ClientInfoImpl(URL propertiesURL) {
-    this(ClientInfoImpl.toProperties(propertiesURL));
-  }
-
-  public ClientInfoImpl(Properties properties) {
-    this(properties, null);
-  }
-
-  public ClientInfoImpl(Properties properties, AuthenticationToken token) {
-    this.properties = properties;
-    this.token = token;
-    this.hadoopConf = new Configuration();
+  public ClientInfoImpl(Properties properties, Optional<AuthenticationToken> tokenOpt) {
+    this.properties = requireNonNull(properties);
+    // convert the optional to a supplier to delay retrieval from the properties unless needed
+    this.tokenSupplier = requireNonNull(tokenOpt).map(Suppliers::ofInstance)
+        .orElse(memoize(() -> ClientProperty.getAuthenticationToken(properties)));
+    this.hadoopConf = memoize(Configuration::new);
+    this.zooSessionForName = (name, rootPath) -> new ZooSession(name, getZooKeepers() + rootPath,
+        getZooKeepersSessionTimeOut(), null);
+    this.instanceId = memoize(() -> {
+      try (var zk =
+          getZooKeeperSupplier(getClass().getSimpleName() + ".getInstanceId()", "").get()) {
+        return ZooUtil.getInstanceId(zk, getInstanceName());
+      }
+    });
   }
 
   @Override
   public String getInstanceName() {
     return getString(ClientProperty.INSTANCE_NAME);
+  }
+
+  @Override
+  public InstanceId getInstanceId() {
+    return instanceId.get();
+  }
+
+  @Override
+  public Supplier<ZooSession> getZooKeeperSupplier(String clientName, String rootPath) {
+    return () -> zooSessionForName.apply(requireNonNull(clientName), requireNonNull(rootPath));
   }
 
   @Override
@@ -79,7 +102,7 @@ public class ClientInfoImpl implements ClientInfo {
   }
 
   @Override
-  public Properties getProperties() {
+  public Properties getClientProperties() {
     Properties result = new Properties();
     properties.forEach((key, value) -> result.setProperty((String) key, (String) value));
     return result;
@@ -87,10 +110,7 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public AuthenticationToken getAuthenticationToken() {
-    if (token == null) {
-      token = ClientProperty.getAuthenticationToken(properties);
-    }
-    return token;
+    return tokenSupplier.get();
   }
 
   @Override
@@ -105,14 +125,14 @@ public class ClientInfoImpl implements ClientInfo {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided propertiesFilePath")
   public static Properties toProperties(String propertiesFilePath) {
-    return toProperties(Paths.get(propertiesFilePath));
+    return toProperties(Path.of(propertiesFilePath));
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who provided propertiesFile")
   public static Properties toProperties(Path propertiesFile) {
     Properties properties = new Properties();
-    try (InputStream is = new FileInputStream(propertiesFile.toFile())) {
+    try (InputStream is = Files.newInputStream(propertiesFile, StandardOpenOption.READ)) {
       properties.load(is);
     } catch (IOException e) {
       throw new IllegalArgumentException("Failed to load properties from " + propertiesFile, e);
@@ -134,6 +154,6 @@ public class ClientInfoImpl implements ClientInfo {
 
   @Override
   public Configuration getHadoopConf() {
-    return this.hadoopConf;
+    return hadoopConf.get();
   }
 }

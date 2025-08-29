@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.test.functional;
 
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-
 import java.io.IOException;
 import java.time.Duration;
 
@@ -35,13 +33,11 @@ import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 /**
  * Tests Bulk import
  */
-@Tag(SUNNY_DAY)
 public class BulkIT extends AccumuloClusterHarness {
 
   private static final int N = 100000;

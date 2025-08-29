@@ -42,12 +42,14 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.spi.crypto.CryptoEnvironment;
 import org.apache.accumulo.core.spi.crypto.NoFileEncrypter;
+import org.apache.accumulo.core.tabletserver.log.LogEntry;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.accumulo.tserver.log.DfsLogger;
 import org.apache.accumulo.tserver.log.DfsLogger.LogHeaderIncompleteException;
 import org.apache.accumulo.tserver.log.RecoveryLogsIterator;
+import org.apache.accumulo.tserver.log.ResolvedSortedLog;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -173,7 +175,8 @@ public class LogReader implements KeywordExecutable {
         } else {
           // read the log entries in a sorted RFile. This has to be a directory that contains the
           // finished file.
-          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(path), null,
+          var rsl = ResolvedSortedLog.resolve(LogEntry.fromPath(path.toString()), fs);
+          try (var rli = new RecoveryLogsIterator(context, Collections.singletonList(rsl), null,
               null, false)) {
             while (rli.hasNext()) {
               Entry<LogFileKey,LogFileValue> entry = rli.next();
@@ -190,11 +193,6 @@ public class LogReader implements KeywordExecutable {
     byte[] magic4 = DfsLogger.LOG_FILE_HEADER_V4.getBytes(UTF_8);
     byte[] magic3 = DfsLogger.LOG_FILE_HEADER_V3.getBytes(UTF_8);
     byte[] noCryptoBytes = new NoFileEncrypter().getDecryptionParameters();
-
-    if (magic4.length != magic3.length) {
-      throw new AssertionError("Always expect log file headers to be same length : " + magic4.length
-          + " != " + magic3.length);
-    }
 
     byte[] magicBuffer = new byte[magic4.length];
     try {
@@ -217,7 +215,7 @@ public class LogReader implements KeywordExecutable {
         }
       } else {
         throw new IllegalArgumentException(
-            "Unsupported write ahead log version " + new String(magicBuffer));
+            "Unsupported write ahead log version " + new String(magicBuffer, UTF_8));
       }
     } catch (EOFException e) {
       log.warn("Could not read header for {} . Ignoring...", path);
@@ -230,21 +228,21 @@ public class LogReader implements KeywordExecutable {
       KeyExtent ke, Set<Integer> tabletIds, int maxMutations) {
 
     if (ke != null) {
-      if (key.event == LogEvents.DEFINE_TABLET) {
-        if (key.tablet.equals(ke)) {
-          tabletIds.add(key.tabletId);
+      if (key.getEvent() == LogEvents.DEFINE_TABLET) {
+        if (key.getTablet().equals(ke)) {
+          tabletIds.add(key.getTabletId());
         } else {
           return;
         }
-      } else if (!tabletIds.contains(key.tabletId)) {
+      } else if (!tabletIds.contains(key.getTabletId())) {
         return;
       }
     }
 
     if (row != null || rowMatcher != null) {
-      if (key.event == LogEvents.MUTATION || key.event == LogEvents.MANY_MUTATIONS) {
+      if (key.getEvent() == LogEvents.MUTATION || key.getEvent() == LogEvents.MANY_MUTATIONS) {
         boolean found = false;
-        for (Mutation m : value.mutations) {
+        for (Mutation m : value.getMutations()) {
           if (row != null && new Text(m.getRow()).equals(row)) {
             found = true;
             break;

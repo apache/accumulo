@@ -18,89 +18,107 @@
  */
 package org.apache.accumulo.core.tabletserver.log;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.IOException;
-import java.util.Map.Entry;
+import java.util.AbstractMap.SimpleImmutableEntry;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
+import com.google.common.net.HostAndPort;
+
 public class LogEntryTest {
 
-  private static void compareLogEntries(LogEntry one, LogEntry two) throws IOException {
+  private final String validHost = "localhost+9997";
+  private final UUID validUUID = UUID.randomUUID();
+  private final String validPath = "viewfs:/a/accumulo/wal/" + validHost + "/" + validUUID;
+
+  @Test
+  public void testColumnFamily() {
+    assertEquals(new Text("log"), LogColumnFamily.NAME);
+  }
+
+  @Test
+  public void testFromPath() {
+    var logEntry = LogEntry.fromPath(validPath);
+    verifyLogEntry(logEntry, new Text("-/" + validPath));
+  }
+
+  @Test
+  public void testFromMetadata() {
+    var columnQualifier = "prefix/" + validPath;
+    var logEntry = LogEntry.fromMetaWalEntry(
+        new SimpleImmutableEntry<>(new Key("1<", LogColumnFamily.STR_NAME, columnQualifier), null));
+    verifyLogEntry(logEntry, new Text(columnQualifier));
+  }
+
+  // helper for testing build from constructor or from metadata
+  private void verifyLogEntry(LogEntry logEntry, Text expectedColumnQualifier) {
+    assertEquals(validPath, logEntry.toString());
+    assertEquals(validPath, logEntry.getPath());
+    assertEquals(HostAndPort.fromString(validHost.replace('+', ':')), logEntry.getTServer());
+    assertEquals(expectedColumnQualifier, logEntry.getColumnQualifier());
+    assertEquals(validUUID, logEntry.getUniqueID());
+  }
+
+  @Test
+  public void testEquals() {
+    LogEntry one = LogEntry.fromPath(validPath);
+    LogEntry two = LogEntry.fromPath(validPath);
+
     assertNotSame(one, two);
     assertEquals(one.toString(), two.toString());
-    assertEquals(one.getColumnFamily(), two.getColumnFamily());
+    assertEquals(one.getPath(), two.getPath());
+    assertEquals(one.getTServer(), two.getTServer());
     assertEquals(one.getColumnQualifier(), two.getColumnQualifier());
-    assertEquals(one.getRow(), two.getRow());
     assertEquals(one.getUniqueID(), two.getUniqueID());
-    assertEquals(one.getValue(), two.getValue());
+    assertEquals(one, two);
+
+    assertEquals(one, one);
+    assertEquals(two, two);
   }
 
   @Test
-  public void testPrevRowDoesntMatter() throws IOException {
-    long ts = 12345678L;
-    String filename = "default/foo";
+  public void testValidPaths() {
+    var validPath1 = validHost + "/" + validUUID;
+    var validPath2 = "dir1/" + validPath1;
+    var validPath3 = "dir2/" + validPath2;
 
-    // with no end row, different prev rows
-    LogEntry entry1 =
-        new LogEntry(new KeyExtent(TableId.of("1"), null, new Text("A")), ts, filename);
-    LogEntry entry2 =
-        new LogEntry(new KeyExtent(TableId.of("1"), null, new Text("B")), ts, filename);
-    assertEquals("1< default/foo", entry1.toString());
-    compareLogEntries(entry1, entry2);
-
-    // with same end row, different prev rows
-    LogEntry entry3 =
-        new LogEntry(new KeyExtent(TableId.of("2"), new Text("same"), new Text("A")), ts, filename);
-    LogEntry entry4 =
-        new LogEntry(new KeyExtent(TableId.of("2"), new Text("same"), new Text("B")), ts, filename);
-    assertEquals("2;same default/foo", entry3.toString());
-    compareLogEntries(entry3, entry4);
+    Stream.of(validPath1, validPath2, validPath3)
+        .forEach(s -> assertDoesNotThrow(() -> LogEntry.fromPath(s)));
   }
 
   @Test
-  public void test() throws Exception {
-    KeyExtent extent = new KeyExtent(TableId.of("1"), null, null);
-    long ts = 12345678L;
-    String filename = "default/foo";
-    LogEntry entry = new LogEntry(extent, ts, filename);
-    assertEquals(extent.toMetaRow(), entry.getRow());
-    assertEquals(filename, entry.filename);
-    assertEquals(ts, entry.timestamp);
-    assertEquals("1< default/foo", entry.toString());
-    assertEquals(new Text("log"), entry.getColumnFamily());
-    assertEquals(new Text("-/default/foo"), entry.getColumnQualifier());
-    Key key = new Key(new Text("1<"), new Text("log"), new Text("localhost:1234/default/foo"));
-    key.setTimestamp(ts);
-    var mapEntry = new Entry<Key,Value>() {
-      @Override
-      public Key getKey() {
-        return key;
-      }
+  public void testBadPathLength() {
+    Stream.of("foo", "", validHost).forEach(badPath -> {
+      var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(badPath));
+      assertTrue(e.getMessage().contains("The path should end with tserver/UUID."));
+    });
+  }
 
-      @Override
-      public Value getValue() {
-        return entry.getValue();
-      }
+  @Test
+  public void testInvalidHostPort() {
+    Stream.of("default:9997", "default+badPort").forEach(badHostAndPort -> {
+      var badPath = badHostAndPort + "/" + validUUID;
+      var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(badPath));
+      assertTrue(e.getMessage().contains("Expected: host+port. Found '" + badHostAndPort + "'"));
+    });
+  }
 
-      @Override
-      public Value setValue(Value value) {
-        throw new UnsupportedOperationException();
-      }
-    };
-    LogEntry copy2 = LogEntry.fromMetaWalEntry(mapEntry);
-    assertEquals(entry.toString(), copy2.toString());
-    assertEquals(entry.timestamp, copy2.timestamp);
-    assertEquals("foo", entry.getUniqueID());
-    assertEquals("-/default/foo", entry.getColumnQualifier().toString());
-    assertEquals(new Value("default/foo"), entry.getValue());
+  @Test
+  public void testInvalidUUID() {
+    var badUUID = "badUUID";
+    var pathWithBadUUID = validHost + "/" + badUUID;
+    var e = assertThrows(IllegalArgumentException.class, () -> LogEntry.fromPath(pathWithBadUUID));
+    assertTrue(e.getMessage().contains("Expected valid UUID. Found '" + badUUID + "'"));
   }
 
 }

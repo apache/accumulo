@@ -20,6 +20,7 @@ package org.apache.accumulo.core.metadata.schema;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
@@ -27,21 +28,21 @@ import java.nio.charset.CharsetDecoder;
 import java.util.AbstractMap.SimpleImmutableEntry;
 import java.util.EnumSet;
 import java.util.Map.Entry;
+import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.zookeeper.ZooReader;
 import org.apache.accumulo.core.metadata.RootTable;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.hadoop.io.Text;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import com.google.gson.Gson;
+import org.apache.zookeeper.KeeperException;
 
 /**
  * This class is used to serialize and deserialize root tablet metadata using GSon. The only data
@@ -51,7 +52,6 @@ import com.google.gson.Gson;
  */
 public class RootTabletMetadata {
 
-  private static final Logger log = LoggerFactory.getLogger(RootTabletMetadata.class);
   private static final CharsetDecoder UTF8_error_detecting_decoder = UTF_8.newDecoder();
   private static final Predicate<Entry<String,TreeMap<String,String>>> isLocationCF = e -> {
     String fam = e.getKey();
@@ -59,24 +59,52 @@ public class RootTabletMetadata {
         || fam.equals(FutureLocationColumnFamily.STR_NAME);
   };
 
-  // JSON Mapping Version 1. Released with Accumulo version 2.1.0
   private static final int VERSION = 1;
+
+  /**
+   * Reads the tablet metadata for the root tablet from zookeeper
+   */
+  public static RootTabletMetadata read(ClientContext ctx) {
+    try {
+      ZooReader zooReader = ctx.getZooSession().asReader();
+      // attempt (see ZOOKEEPER-1675) to ensure the latest root table metadata is read from
+      // zookeeper
+      zooReader.sync(RootTable.ZROOT_TABLET);
+      byte[] bytes = zooReader.getData(RootTable.ZROOT_TABLET);
+      return new RootTabletMetadata(new String(bytes, UTF_8));
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException(e);
+    }
+  }
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The data is mapped using Strings as follows:
      *
      * TreeMap<column_family, TreeMap<column_qualifier, value>>
      */
-    private final TreeMap<String,TreeMap<String,String>> columnValues;
+    private TreeMap<String,TreeMap<String,String>> columnValues;
 
-    public Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    private Data() {}
+
+    private Data(int version, TreeMap<String,TreeMap<String,String>> columnValues) {
       this.version = version;
       this.columnValues = columnValues;
+    }
+
+    public int getVersion() {
+      return version;
+    }
+
+    public static boolean needsUpgrade(final String json) {
+      var rootData = GSON.get().fromJson(json, Data.class);
+      int currVersion = rootData.getVersion();
+      return currVersion < VERSION;
     }
   }
 
@@ -93,12 +121,14 @@ public class RootTabletMetadata {
     }
   }
 
-  private final Gson gson = new Gson();
   private final Data data;
 
   public RootTabletMetadata(String json) {
-    log.trace("Creating root tablet metadata from stored JSON: {}", json);
-    this.data = gson.fromJson(json, Data.class);
+    this(GSON.get().fromJson(json, Data.class));
+  }
+
+  private RootTabletMetadata(final Data data) {
+    this.data = data;
     checkArgument(data.version == VERSION, "Invalid Root Table Metadata JSON version %s",
         data.version);
     data.columnValues.forEach((fam, qualVals) -> {
@@ -108,7 +138,7 @@ public class RootTabletMetadata {
   }
 
   public RootTabletMetadata() {
-    this.data = new Data(VERSION, new TreeMap<>());
+    data = new Data(VERSION, new TreeMap<>());
   }
 
   /**
@@ -145,26 +175,39 @@ public class RootTabletMetadata {
     }
   }
 
-  /**
-   * Convert this class to a {@link TabletMetadata}
-   */
-  public TabletMetadata toTabletMetadata() {
+  public Stream<SimpleImmutableEntry<Key,Value>> getKeyValues() {
     String row = RootTable.EXTENT.toMetaRow().toString();
-    // use a stream so we don't have to re-sort in a new TreeMap<Key,Value> structure
-    Stream<SimpleImmutableEntry<Key,Value>> entries = data.columnValues.entrySet().stream()
+    return data.columnValues.entrySet().stream()
         .flatMap(famToQualVal -> famToQualVal.getValue().entrySet().stream()
             .map(qualVal -> new SimpleImmutableEntry<>(
                 new Key(row, famToQualVal.getKey(), qualVal.getKey(), 1),
                 new Value(qualVal.getValue()))));
-    return TabletMetadata.convertRow(entries.iterator(),
-        EnumSet.allOf(TabletMetadata.ColumnType.class), false);
+  }
+
+  public SortedMap<Key,Value> toKeyValues() {
+    TreeMap<Key,Value> metamap = new TreeMap<>();
+    getKeyValues().forEach(e -> metamap.put(e.getKey(), e.getValue()));
+    return metamap;
+  }
+
+  /**
+   * Convert this class to a {@link TabletMetadata}
+   */
+  public TabletMetadata toTabletMetadata() {
+    // Create a tablet metadata object from the RootTabletMetadata
+    // Keep the key/values in case they are needed
+    return TabletMetadata.convertRow(getKeyValues().iterator(),
+        EnumSet.allOf(TabletMetadata.ColumnType.class), true, false);
+  }
+
+  public static boolean needsUpgrade(final String json) {
+    return Data.needsUpgrade(json);
   }
 
   /**
    * @return a JSON representation of the root tablet's data.
    */
   public String toJson() {
-    return gson.toJson(data);
+    return GSON.get().toJson(data);
   }
-
 }

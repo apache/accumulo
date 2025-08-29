@@ -20,7 +20,7 @@ package org.apache.accumulo.server.rpc;
 
 import static java.util.concurrent.TimeUnit.NANOSECONDS;
 
-import org.apache.accumulo.core.metrics.MetricsUtil;
+import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.server.metrics.ThriftMetrics;
 import org.apache.thrift.TException;
 import org.apache.thrift.TProcessor;
@@ -35,10 +35,10 @@ public class TimedProcessor implements TProcessor {
   private final ThriftMetrics thriftMetrics;
   private long idleStart;
 
-  public TimedProcessor(TProcessor next) {
+  public TimedProcessor(final TProcessor next, final MetricsInfo metricsInfo) {
     this.other = next;
     thriftMetrics = new ThriftMetrics();
-    MetricsUtil.initializeProducers(thriftMetrics);
+    metricsInfo.addMetricsProducers(thriftMetrics);
     idleStart = System.nanoTime();
   }
 

@@ -31,11 +31,12 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.file.rfile.CreateEmpty;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.tserver.util.CreateEmpty;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
@@ -83,16 +84,18 @@ public class RecoveryWithEmptyRFileIT extends ConfigurableMacBase {
       client.tableOperations().offline(tableName, true);
 
       log.debug("Replacing rfile(s) with empty");
-      try (Scanner meta = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner meta =
+          client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         String tableId = client.tableOperations().tableIdMap().get(tableName);
         meta.setRange(new Range(new Text(tableId + ";"), new Text(tableId + "<")));
         meta.fetchColumnFamily(DataFileColumnFamily.NAME);
         boolean foundFile = false;
         for (Entry<Key,Value> entry : meta) {
           foundFile = true;
-          Path rfile = new Path(entry.getKey().getColumnQualifier().toString());
+          Path rfile = StoredTabletFile.of(entry.getKey().getColumnQualifier()).getPath();
           log.debug("Removing rfile '{}'", rfile);
           cluster.getFileSystem().delete(rfile, false);
+          // following depends on create-empty defaults to rfile.
           Process processInfo = cluster.exec(CreateEmpty.class, rfile.toString()).getProcess();
           assertEquals(0, processInfo.waitFor());
         }

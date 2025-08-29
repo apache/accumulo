@@ -47,9 +47,12 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.ValidationUtil;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
@@ -89,11 +92,12 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager manager) throws Exception {
+  public long isReady(FateId fateId, Manager manager) throws Exception {
 
-    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, tid, false, true,
-        TableOperation.EXPORT)
-        + Utils.reserveTable(manager, tableInfo.tableID, tid, false, true, TableOperation.EXPORT);
+    long reserved = Utils.reserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ,
+        true, TableOperation.EXPORT)
+        + Utils.reserveTable(manager, tableInfo.tableID, fateId, LockType.READ, true,
+            TableOperation.EXPORT);
     if (reserved > 0) {
       return reserved;
     }
@@ -102,7 +106,8 @@ class WriteExportFiles extends ManagerRepo {
 
     checkOffline(manager.getContext());
 
-    Scanner metaScanner = client.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner metaScanner =
+        client.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.setRange(new KeyExtent(tableInfo.tableID, null, null).toMetaRange());
 
     // scan for locations
@@ -130,7 +135,7 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     try {
       exportTable(manager.getVolumeManager(), manager.getContext(), tableInfo.tableName,
           tableInfo.tableID, tableInfo.exportDir);
@@ -139,16 +144,16 @@ class WriteExportFiles extends ManagerRepo {
           tableInfo.tableName, TableOperation.EXPORT, TableOperationExceptionType.OTHER,
           "Failed to create export files " + ioe.getMessage());
     }
-    Utils.unreserveNamespace(manager, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(manager, tableInfo.tableID, tid, false);
-    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), tid);
+    Utils.unreserveNamespace(manager, tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(manager, tableInfo.tableID, fateId, LockType.READ);
+    Utils.unreserveHdfsDirectory(manager, new Path(tableInfo.exportDir).toString(), fateId);
     return null;
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveNamespace(env, tableInfo.namespaceID, tid, false);
-    Utils.unreserveTable(env, tableInfo.tableID, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveNamespace(env, tableInfo.namespaceID, fateId, LockType.READ);
+    Utils.unreserveTable(env, tableInfo.tableID, fateId, LockType.READ);
   }
 
   public static void exportTable(VolumeManager fs, ServerContext context, String tableName,
@@ -166,7 +171,7 @@ class WriteExportFiles extends ManagerRepo {
     try (OutputStreamWriter osw = new OutputStreamWriter(dataOut, UTF_8)) {
 
       zipOut.putNextEntry(new ZipEntry(Constants.EXPORT_INFO_FILE));
-      osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.VERSION + "\n");
+      osw.append(ExportTable.EXPORT_VERSION_PROP + ":" + ExportTable.CURR_VERSION + "\n");
       osw.append("srcInstanceName:" + context.getInstanceName() + "\n");
       osw.append("srcInstanceID:" + context.getInstanceID() + "\n");
       osw.append("srcZookeepers:" + context.getZooKeepers() + "\n");
@@ -226,8 +231,10 @@ class WriteExportFiles extends ManagerRepo {
 
     Map<String,String> uniqueFiles = new HashMap<>();
 
-    Scanner metaScanner = context.createScanner(MetadataTable.NAME, Authorizations.EMPTY);
+    Scanner metaScanner =
+        context.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY);
     metaScanner.fetchColumnFamily(DataFileColumnFamily.NAME);
+    TabletColumnFamily.AVAILABILITY_COLUMN.fetch(metaScanner);
     TabletColumnFamily.PREV_ROW_COLUMN.fetch(metaScanner);
     ServerColumnFamily.TIME_COLUMN.fetch(metaScanner);
     metaScanner.setRange(new KeyExtent(tableID, null, null).toMetaRange());
@@ -237,7 +244,9 @@ class WriteExportFiles extends ManagerRepo {
       entry.getValue().write(dataOut);
 
       if (entry.getKey().getColumnFamily().equals(DataFileColumnFamily.NAME)) {
-        String path = ValidationUtil.validate(entry.getKey().getColumnQualifierData().toString());
+        // We need to get the actual path of the file to validate unique files
+        String path = ValidationUtil.validate(StoredTabletFile
+            .of(entry.getKey().getColumnQualifierData().toString()).getMetadataPath());
         String[] tokens = path.split("/");
         if (tokens.length < 1) {
           throw new RuntimeException("Illegal path " + path);

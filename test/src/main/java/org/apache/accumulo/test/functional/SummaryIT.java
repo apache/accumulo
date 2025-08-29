@@ -26,6 +26,7 @@ import static org.apache.accumulo.core.client.summary.CountingSummarizer.EMITTED
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.SEEN_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_LONG_STAT;
 import static org.apache.accumulo.core.client.summary.CountingSummarizer.TOO_MANY_STAT;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.test.functional.BasicSummarizer.DELETES_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MAX_TIMESTAMP_STAT;
 import static org.apache.accumulo.test.functional.BasicSummarizer.MIN_TIMESTAMP_STAT;
@@ -75,6 +76,7 @@ import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.client.summary.summarizers.FamilySummarizer;
 import org.apache.accumulo.core.client.summary.summarizers.VisibilitySummarizer;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
+import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -82,8 +84,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.Filter;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.util.UtilWaitThread;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.util.FileMetadataUtil;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -91,9 +96,17 @@ import org.junit.jupiter.api.Test;
 
 public class SummaryIT extends SharedMiniClusterBase {
 
+  public static class SummaryITConfigCallback implements MiniClusterConfigurationCallback {
+
+    @Override
+    public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration coreSite) {
+      cfg.setProperty(Property.TSERV_MAXMEM, "80M");
+    }
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
-    SharedMiniClusterBase.startMiniCluster();
+    SharedMiniClusterBase.startMiniClusterWithConfig(new SummaryITConfigCallback());
   }
 
   @AfterAll
@@ -147,7 +160,9 @@ public class SummaryIT extends SharedMiniClusterBase {
       ntc.enableSummarization(sc1);
       c.tableOperations().create(table, ntc);
 
+      assertEquals(0, FileMetadataUtil.countFiles(getCluster().getServerContext(), table));
       BatchWriter bw = writeData(table, c);
+      assertEquals(0, FileMetadataUtil.countFiles(getCluster().getServerContext(), table));
 
       Collection<Summary> summaries = c.tableOperations().summaries(table).flush(false).retrieve();
       assertEquals(0, summaries.size());
@@ -599,7 +614,7 @@ public class SummaryIT extends SharedMiniClusterBase {
             assertEquals(1L, (long) summary.getStatistics().getOrDefault("foos", 0L));
             break;
           } catch (AccumuloSecurityException ase) {
-            UtilWaitThread.sleep(500);
+            Thread.sleep(500);
             tries++;
           }
         }
@@ -831,8 +846,8 @@ public class SummaryIT extends SharedMiniClusterBase {
         // this loop should cause a varying number of files and compactions
         try (BatchWriter bw = c.createBatchWriter(table)) {
           for (int i = 0; i < 10000; i++) {
-            String row = String.format("%06d", random.nextInt(1_000_000));
-            String fam = String.format("%03d", random.nextInt(100));
+            String row = String.format("%06d", RANDOM.get().nextInt(1_000_000));
+            String fam = String.format("%03d", RANDOM.get().nextInt(100));
             String qual = String.format("%06d", q++);
             write(bw, row, fam, qual, "val");
             famCounts.merge(fam, 1L, Long::sum);

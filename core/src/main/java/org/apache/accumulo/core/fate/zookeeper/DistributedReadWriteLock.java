@@ -18,18 +18,20 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.DAYS;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.SortedMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+import java.util.function.BiPredicate;
+import java.util.function.Supplier;
 
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.zookeeper.FateLock.FateLockEntry;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -40,57 +42,8 @@ import org.slf4j.LoggerFactory;
  */
 public class DistributedReadWriteLock implements java.util.concurrent.locks.ReadWriteLock {
 
-  static enum LockType {
+  public enum LockType {
     READ, WRITE,
-  }
-
-  // serializer for lock type and user data
-  static class ParsedLock {
-    public ParsedLock(LockType type, byte[] userData) {
-      this.type = type;
-      this.userData = Arrays.copyOf(userData, userData.length);
-    }
-
-    public ParsedLock(byte[] lockData) {
-      if (lockData == null || lockData.length < 1) {
-        throw new IllegalArgumentException();
-      }
-
-      int split = -1;
-      for (int i = 0; i < lockData.length; i++) {
-        if (lockData[i] == ':') {
-          split = i;
-          break;
-        }
-      }
-
-      if (split == -1) {
-        throw new IllegalArgumentException();
-      }
-
-      this.type = LockType.valueOf(new String(lockData, 0, split, UTF_8));
-      this.userData = Arrays.copyOfRange(lockData, split + 1, lockData.length);
-    }
-
-    public LockType getType() {
-      return type;
-    }
-
-    public byte[] getUserData() {
-      return userData;
-    }
-
-    public byte[] getLockData() {
-      byte[] typeBytes = type.name().getBytes(UTF_8);
-      byte[] result = new byte[userData.length + 1 + typeBytes.length];
-      System.arraycopy(typeBytes, 0, result, 0, typeBytes.length);
-      result[typeBytes.length] = ':';
-      System.arraycopy(userData, 0, result, typeBytes.length + 1, userData.length);
-      return result;
-    }
-
-    private LockType type;
-    private byte[] userData;
   }
 
   // This kind of lock can be easily implemented by ZooKeeper
@@ -98,35 +51,51 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
   // them,
   // a writer only runs when they are at the top of the queue.
   public interface QueueLock {
-    SortedMap<Long,byte[]> getEarlierEntries(long entry);
+    SortedMap<Long,Supplier<FateLockEntry>>
+        getEntries(BiPredicate<Long,Supplier<FateLockEntry>> predicate);
 
-    void removeEntry(long entry);
+    void removeEntry(FateLockEntry data, long seq);
 
-    long addEntry(byte[] data);
+    long addEntry(FateLockEntry entry);
   }
 
   private static final Logger log = LoggerFactory.getLogger(DistributedReadWriteLock.class);
 
-  static class ReadLock implements Lock {
+  public interface DistributedLock extends Lock {
+    LockType getType();
 
-    QueueLock qlock;
-    byte[] userData;
+    LockRange getRange();
+  }
+
+  static class ReadLock implements DistributedLock {
+
+    final QueueLock qlock;
+    final FateId fateId;
     long entry = -1;
+    final LockRange range;
 
-    ReadLock(QueueLock qlock, byte[] userData) {
+    ReadLock(QueueLock qlock, FateId fateId, LockRange range) {
       this.qlock = qlock;
-      this.userData = userData;
+      this.fateId = fateId;
+      this.range = range;
     }
 
     // for recovery
-    ReadLock(QueueLock qlock, byte[] userData, long entry) {
+    ReadLock(QueueLock qlock, FateId fateId, LockRange range, long entry) {
       this.qlock = qlock;
-      this.userData = userData;
+      this.fateId = fateId;
       this.entry = entry;
+      this.range = range;
     }
 
-    protected LockType lockType() {
+    @Override
+    public LockType getType() {
       return LockType.READ;
+    }
+
+    @Override
+    public LockRange getRange() {
+      return range;
     }
 
     @Override
@@ -137,7 +106,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
             return;
           }
         } catch (InterruptedException ex) {
-          // ignored
+          Thread.currentThread().interrupt();
+          log.warn("Interrupted while waiting to acquire lock", ex);
         }
       }
     }
@@ -154,22 +124,25 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
     @Override
     public boolean tryLock() {
       if (entry == -1) {
-        entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry {} userData {} lockType {}", entry,
-            new String(this.userData, UTF_8), lockType());
+        entry = qlock.addEntry(FateLockEntry.from(this.getType(), this.fateId, range));
+        log.info("Added lock entry {} fateId {} lockType {}", entry, fateId, getType());
       }
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
-      for (Entry<Long,byte[]> entry : entries.entrySet()) {
-        ParsedLock parsed = new ParsedLock(entry.getValue());
+
+      // If there are any write locks with a lower sequence number and an overlapping range then
+      // this should not lock.
+      SortedMap<Long,Supplier<FateLockEntry>> entries = qlock
+          .getEntries((seq, lockData) -> seq <= entry && lockData.get().getRange().overlaps(range));
+      for (Entry<Long,Supplier<FateLockEntry>> entry : entries.entrySet()) {
         if (entry.getKey().equals(this.entry)) {
           return true;
         }
-        if (parsed.type == LockType.WRITE) {
+        FateLockEntry lockEntry = entry.getValue().get();
+        if (lockEntry.getLockType() == LockType.WRITE) {
           return false;
         }
       }
       throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
-          + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+          + " fateId " + this.fateId + " lockType " + getType());
     }
 
     @Override
@@ -192,9 +165,8 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       if (entry == -1) {
         return;
       }
-      log.debug("Removing lock entry {} userData {} lockType {}", entry,
-          new String(this.userData, UTF_8), lockType());
-      qlock.removeEntry(entry);
+      log.debug("Removing lock entry {} fateId {} lockType {}", entry, this.fateId, getType());
+      qlock.removeEntry(FateLockEntry.from(this.getType(), this.fateId, range), entry);
       entry = -1;
     }
 
@@ -206,67 +178,80 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
 
   static class WriteLock extends ReadLock {
 
-    WriteLock(QueueLock qlock, byte[] userData) {
-      super(qlock, userData);
+    WriteLock(QueueLock qlock, FateId fateId, LockRange range) {
+      super(qlock, fateId, range);
     }
 
-    WriteLock(QueueLock qlock, byte[] userData, long entry) {
-      super(qlock, userData, entry);
+    WriteLock(QueueLock qlock, FateId fateId, LockRange range, long entry) {
+      super(qlock, fateId, range, entry);
     }
 
     @Override
-    protected LockType lockType() {
+    public LockType getType() {
       return LockType.WRITE;
     }
 
     @Override
     public boolean tryLock() {
       if (entry == -1) {
-        entry = qlock.addEntry(new ParsedLock(this.lockType(), this.userData).getLockData());
-        log.info("Added lock entry {} userData {} lockType {}", entry,
-            new String(this.userData, UTF_8), lockType());
+        entry = qlock.addEntry(FateLockEntry.from(this.getType(), this.fateId, range));
+        log.info("Added lock entry {} fateId {} lockType {}", entry, this.fateId, getType());
       }
-      SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(entry);
-      Iterator<Entry<Long,byte[]>> iterator = entries.entrySet().iterator();
+
+      // If there are any read or write locks with a lower sequence number and an overlapping range
+      // then this should not lock.
+      SortedMap<Long,Supplier<FateLockEntry>> entries = qlock
+          .getEntries((seq, locData) -> seq <= entry && locData.get().getRange().overlaps(range));
+      Iterator<Entry<Long,Supplier<FateLockEntry>>> iterator = entries.entrySet().iterator();
       if (!iterator.hasNext()) {
         throw new IllegalStateException("Did not find our own lock in the queue: " + this.entry
-            + " userData " + new String(this.userData, UTF_8) + " lockType " + lockType());
+            + " fateId " + this.fateId + " lockType " + getType());
       }
       return iterator.next().getKey().equals(entry);
     }
   }
 
-  private QueueLock qlock;
-  private byte[] data;
+  private final QueueLock qlock;
+  private final FateId fateId;
+  private final LockRange range;
 
-  public DistributedReadWriteLock(QueueLock qlock, byte[] data) {
+  public DistributedReadWriteLock(QueueLock qlock, FateId fateId, LockRange range) {
     this.qlock = qlock;
-    this.data = Arrays.copyOf(data, data.length);
+    this.fateId = fateId;
+    this.range = range;
   }
 
-  public static Lock recoverLock(QueueLock qlock, byte[] data) {
-    SortedMap<Long,byte[]> entries = qlock.getEarlierEntries(Long.MAX_VALUE);
-    for (Entry<Long,byte[]> entry : entries.entrySet()) {
-      ParsedLock parsed = new ParsedLock(entry.getValue());
-      if (Arrays.equals(data, parsed.getUserData())) {
-        switch (parsed.getType()) {
+  public static DistributedLock recoverLock(QueueLock qlock, FateId fateId) {
+    SortedMap<Long,Supplier<FateLockEntry>> entries =
+        qlock.getEntries((seq, lockData) -> lockData.get().fateId.equals(fateId));
+
+    switch (entries.size()) {
+      case 0:
+        return null;
+      case 1:
+        var entry = entries.entrySet().iterator().next();
+        FateLockEntry lockEntry = entry.getValue().get();
+        switch (lockEntry.getLockType()) {
           case READ:
-            return new ReadLock(qlock, parsed.getUserData(), entry.getKey());
+            return new ReadLock(qlock, lockEntry.getFateId(), lockEntry.getRange(), entry.getKey());
           case WRITE:
-            return new WriteLock(qlock, parsed.getUserData(), entry.getKey());
+            return new WriteLock(qlock, lockEntry.getFateId(), lockEntry.getRange(),
+                entry.getKey());
+          default:
+            throw new IllegalStateException("Unknown lock type " + lockEntry.getLockType());
         }
-      }
+      default:
+        throw new IllegalStateException("Found more than one lock node " + entries);
     }
-    return null;
   }
 
   @Override
-  public Lock readLock() {
-    return new ReadLock(qlock, data);
+  public DistributedLock readLock() {
+    return new ReadLock(qlock, fateId, range);
   }
 
   @Override
-  public Lock writeLock() {
-    return new WriteLock(qlock, data);
+  public DistributedLock writeLock() {
+    return new WriteLock(qlock, fateId, range);
   }
 }

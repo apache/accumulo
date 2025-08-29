@@ -22,14 +22,15 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toCollection;
 
 import java.io.BufferedWriter;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
@@ -52,6 +53,8 @@ import org.apache.accumulo.core.spi.crypto.CryptoService;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.start.spi.KeywordExecutable;
 import org.apache.datasketches.quantiles.ItemsSketch;
+import org.apache.datasketches.quantilescommon.QuantileSearchCriteria;
+import org.apache.datasketches.quantilescommon.QuantilesUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -71,6 +74,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 public class GenerateSplits implements KeywordExecutable {
   private static final Logger log = LoggerFactory.getLogger(GenerateSplits.class);
 
+  private static final Set<Character> allowedChars = new HashSet<>();
+
+  private static final String encodeFlag = "-b64";
+
   static class Opts extends ConfigOpts {
     @Parameter(names = {"-n", "--num"},
         description = "The number of split points to generate. Can be used to create n+1 tablets. Cannot use with the split size option.")
@@ -80,7 +87,8 @@ public class GenerateSplits implements KeywordExecutable {
         description = "The minimum split size in uncompressed bytes. Cannot use with num splits option.")
     public long splitSize = 0;
 
-    @Parameter(names = {"-b64", "--base64encoded"}, description = "Base 64 encode the split points")
+    @Parameter(names = {encodeFlag, "--base64encoded"},
+        description = "Base 64 encode the split points")
     public boolean base64encode = false;
 
     @Parameter(names = {"-sf", "--splits-file"}, description = "Output the splits to a file")
@@ -88,6 +96,7 @@ public class GenerateSplits implements KeywordExecutable {
 
     @Parameter(description = "<file|directory>[ <file|directory>...] -n <num> | -ss <split_size>")
     public List<String> files = new ArrayList<>();
+
   }
 
   @Override
@@ -144,6 +153,20 @@ public class GenerateSplits implements KeywordExecutable {
       log.trace("Found the following files: {}", files);
     }
 
+    if (!encode) {
+      // Generate the allowed Character set
+      for (int i = 0; i < 10; i++) {
+        // 0-9
+        allowedChars.add((char) (i + 48));
+      }
+      for (int i = 0; i < 26; i++) {
+        // Uppercase A-Z
+        allowedChars.add((char) (i + 65));
+        // Lowercase a-z
+        allowedChars.add((char) (i + 97));
+      }
+    }
+
     // if no size specified look at indexed keys first
     if (opts.splitSize == 0) {
       splits =
@@ -173,8 +196,8 @@ public class GenerateSplits implements KeywordExecutable {
     log.info("Generated {} splits", desiredSplits.size());
     if (opts.outputFile != null) {
       log.info("Writing splits to file {} ", opts.outputFile);
-      try (var writer = new PrintWriter(new BufferedWriter(
-          new OutputStreamWriter(new FileOutputStream(opts.outputFile), UTF_8)))) {
+      try (var writer = new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+          Files.newOutputStream(java.nio.file.Path.of(opts.outputFile)), UTF_8)))) {
         desiredSplits.forEach(writer::println);
       }
     } else {
@@ -200,14 +223,21 @@ public class GenerateSplits implements KeywordExecutable {
 
   private Text[] getQuantiles(SortedKeyValueIterator<Key,Value> iterator, int numSplits)
       throws IOException {
-    ItemsSketch<Text> itemsSketch = ItemsSketch.getInstance(BinaryComparable::compareTo);
+    var itemsSketch = ItemsSketch.getInstance(Text.class, BinaryComparable::compareTo);
     while (iterator.hasTop()) {
       Text row = iterator.getTopKey().getRow();
       itemsSketch.update(row);
       iterator.next();
     }
-    Text[] items = itemsSketch.getQuantiles(numSplits + 2);
-    // based on the ItemsSketch javadoc, method returns min, max as well so drop first and last
+    // the number requested represents the number of regions between the resulting array elements
+    // the actual number of array elements is one more than that to account for endpoints;
+    // so, we ask for one more because we want the number of median elements in the array to
+    // represent the number of split points and we will drop the first and last array element
+    double[] ranks = QuantilesUtil.equallyWeightedRanks(numSplits + 1);
+    // the choice to use INCLUSIVE or EXCLUSIVE is arbitrary here; EXCLUSIVE matches the behavior
+    // of datasketches 3.x, so we might as well preserve that for 4.x
+    Text[] items = itemsSketch.getQuantiles(ranks, QuantileSearchCriteria.EXCLUSIVE);
+    // drop the min and max, so we only keep the median elements to use as split points
     return Arrays.copyOfRange(items, 1, items.length - 1);
   }
 
@@ -247,16 +277,15 @@ public class GenerateSplits implements KeywordExecutable {
     if (encode) {
       return Base64.getEncoder().encodeToString(bytes);
     } else {
-      // drop non printable characters
       StringBuilder sb = new StringBuilder();
       for (byte aByte : bytes) {
         int c = 0xff & aByte;
-        if (c == '\\') {
-          sb.append("\\\\");
-        } else if (c >= 32 && c <= 126) {
+        if (allowedChars.contains((char) c)) {
           sb.append((char) c);
         } else {
-          log.debug("Dropping non printable char: \\x{}", Integer.toHexString(c));
+          // Fail if non-printable characters are detected.
+          throw new UnsupportedOperationException("Non printable char: \\x" + Integer.toHexString(c)
+              + " detected. Must use Base64 encoded output.  The behavior around non printable chars changed in 2.1.3 to throw an error, the previous behavior was likely to cause bugs.");
         }
       }
       return sb.toString();

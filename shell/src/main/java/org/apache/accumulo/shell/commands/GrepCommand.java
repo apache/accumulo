@@ -49,6 +49,20 @@ public class GrepCommand extends ScanCommand {
       if (cl.getArgList().isEmpty()) {
         throw new MissingArgumentException("No terms specified");
       }
+      // Configure formatting options
+      final FormatterConfig config = new FormatterConfig();
+      config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
+      if (cl.hasOption(showFewOpt.getOpt())) {
+        final String showLength = cl.getOptionValue(showFewOpt.getOpt());
+        try {
+          final int length = Integer.parseInt(showLength);
+          config.setShownLength(length);
+        } catch (NumberFormatException nfe) {
+          Shell.log.error("Arg must be an integer.", nfe);
+        } catch (IllegalArgumentException iae) {
+          Shell.log.error("Invalid length argument", iae);
+        }
+      }
       final Class<? extends Formatter> formatter = getFormatter(cl, tableName, shellState);
 
       // handle first argument, if present, the authorizations list to
@@ -84,8 +98,6 @@ public class GrepCommand extends ScanCommand {
         fetchColumns(cl, scanner);
 
         // output the records
-        final FormatterConfig config = new FormatterConfig();
-        config.setPrintTimestamps(cl.hasOption(timestampOpt.getOpt()));
         printRecords(cl, shellState, config, scanner, formatter, printFile);
       } finally {
         scanner.close();
@@ -104,13 +116,15 @@ public class GrepCommand extends ScanCommand {
     final IteratorSetting grep = new IteratorSetting(prio, name, GrepIterator.class);
     GrepIterator.setTerm(grep, term);
     GrepIterator.setNegate(grep, negate);
+    GrepIterator.matchColumnVisibility(grep, true); // override GrepIterator default
     scanner.addScanIterator(grep);
   }
 
   @Override
   public String description() {
-    return "searches each row, column family, column qualifier and value in a"
-        + " table for a substring (not a regular expression), in parallel, on the server side";
+    return "searches each row, column family, column qualifier, visibility (since 2.1.3),"
+        + " and value in a table for a substring (not a regular expression), in parallel,"
+        + " on the server side";
   }
 
   @Override

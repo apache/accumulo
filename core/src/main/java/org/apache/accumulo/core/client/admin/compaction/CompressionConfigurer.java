@@ -79,7 +79,7 @@ public class CompressionConfigurer implements CompactionConfigurer {
     long inputsSum =
         params.getInputFiles().stream().mapToLong(CompactableFile::getEstimatedSize).sum();
 
-    if (inputsSum > largeThresh) {
+    if (largeThresh != null && inputsSum > largeThresh) {
       return new Overrides(Map.of(Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), largeCompress));
     }
 

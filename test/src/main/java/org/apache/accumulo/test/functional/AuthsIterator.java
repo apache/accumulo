@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+
 import java.io.IOException;
 import java.util.Map;
 
@@ -31,7 +33,7 @@ import org.apache.hadoop.io.Text;
 
 public class AuthsIterator extends WrappingIterator {
 
-  public static final Authorizations AUTHS = new Authorizations("A,B".getBytes());
+  public static final Authorizations AUTHS = new Authorizations("A,B".getBytes(UTF_8));
   public static final String SUCCESS = "SUCCESS";
   public static final String FAIL = "FAIL";
 

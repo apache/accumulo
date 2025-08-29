@@ -129,14 +129,14 @@ function clearDeadTServers(server) {
 /**
  * Creates initial tables
  */
-$(document).ready(function () {
+$(function () {
 
   refreshRecoveryList();
 
   // Create a table for tserver list
   tserversTable = $('#tservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "servers"
     },
     "stateSave": true,
@@ -166,14 +166,30 @@ $(document).ready(function () {
           }
           return data;
         }
-      }
+      },
+      // ensure these 3 columns are sorted by the 2 numeric values that comprise the combined string
+      // instead of sorting them lexicographically by the string itself.
+      // Specifically: 'targets' column will use the values in the 'orderData' columns
+
+      // scan column will be sorted by number of running, then by number of queued
+      {
+        "targets": [8],
+        "type": "numeric",
+        "orderData": [14, 15]
+      },
+      // minor compaction column will be sorted by number of running, then by number of queued
+      {
+        "targets": [9],
+        "type": "numeric",
+        "orderData": [16, 17]
+      },
     ],
     "columns": [{
         "data": "hostname",
         "type": "html",
         "render": function (data, type, row) {
           if (type === 'display') {
-            data = '<a href="/tservers?s=' + row.id + '">' + row.hostname + '</a>';
+            data = '<a href="tservers?s=' + row.id + '">' + row.hostname + '</a>';
           }
           return data;
         }
@@ -206,9 +222,6 @@ $(document).ready(function () {
         "data": "minorCombo"
       },
       {
-        "data": "majorCombo"
-      },
-      {
         "data": "indexCacheHitRate"
       },
       {
@@ -216,6 +229,22 @@ $(document).ready(function () {
       },
       {
         "data": "osload"
+      },
+      {
+        "data": "scansRunning",
+        "visible": false
+      },
+      {
+        "data": "scansQueued",
+        "visible": false
+      },
+      {
+        "data": "minorRunning",
+        "visible": false
+      },
+      {
+        "data": "minorQueued",
+        "visible": false
       }
     ],
     "rowCallback": function (row, data, index) {
@@ -234,7 +263,7 @@ $(document).ready(function () {
   // Create a table for deadServers list
   deadTServersTable = $('#deadtservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "deadServers"
     },
     "stateSave": true,
@@ -272,7 +301,7 @@ $(document).ready(function () {
   // Create a table for badServers list
   badTServersTable = $('#badtservers').DataTable({
     "ajax": {
-      "url": '/rest/tservers',
+      "url": contextPath + 'rest/tservers',
       "dataSrc": "badServers"
     },
     "stateSave": true,

@@ -37,18 +37,25 @@ import java.util.Set;
 public class AccumuloDataVersion {
 
   /**
+   * version (12) reflect changes to support no chop merges including json encoding of the file
+   * column family stored in root and metadata tables and On-Demand tablets starting with version
+   * 4.0.
+   */
+  public static final int FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 = 12;
+
+  /**
    * version (11) reflects removal of replication starting with 3.0
    */
   public static final int REMOVE_DEPRECATIONS_FOR_VERSION_3 = 11;
 
   /**
    * version (10) reflects changes to how root tablet metadata is serialized in zookeeper starting
-   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}.
+   * with 2.1. See {@link org.apache.accumulo.core.metadata.schema.RootTabletMetadata}
    */
   public static final int ROOT_TABLET_META_CHANGES = 10;
 
   /**
-   * Historic data versions
+   * Historic data versions.
    *
    * <ul>
    * <li>version (9) RFiles and wal crypto serialization changes. RFile summary data in 2.0.0</li>
@@ -59,7 +66,7 @@ public class AccumuloDataVersion {
    * <li>version (4) moves logging to HDFS in 1.5.0
    * </ul>
    */
-  private static final int CURRENT_VERSION = REMOVE_DEPRECATIONS_FOR_VERSION_3;
+  private static final int CURRENT_VERSION = FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4;
 
   /**
    * Get the current Accumulo Data Version. See Javadoc of static final integers for a detailed
@@ -71,7 +78,8 @@ public class AccumuloDataVersion {
     return CURRENT_VERSION;
   }
 
-  public static final Set<Integer> CAN_RUN = Set.of(ROOT_TABLET_META_CHANGES, CURRENT_VERSION);
+  public static final Set<Integer> CAN_RUN =
+      Set.of(CURRENT_VERSION, REMOVE_DEPRECATIONS_FOR_VERSION_3, ROOT_TABLET_META_CHANGES);
 
   /**
    * Get the stored, current working version.
@@ -86,8 +94,12 @@ public class AccumuloDataVersion {
     return cv;
   }
 
+  public static int oldestUpgradeableVersion() {
+    return CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow();
+  }
+
   public static String oldestUpgradeableVersionName() {
-    return dataVersionToReleaseName(CAN_RUN.stream().mapToInt(x -> x).min().orElseThrow());
+    return dataVersionToReleaseName(oldestUpgradeableVersion());
   }
 
   private static String dataVersionToReleaseName(final int version) {
@@ -96,6 +108,8 @@ public class AccumuloDataVersion {
         return "2.1.0";
       case REMOVE_DEPRECATIONS_FOR_VERSION_3:
         return "3.0.0";
+      case FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4:
+        return "4.0.0";
     }
     throw new IllegalArgumentException("Unsupported data version " + version);
   }

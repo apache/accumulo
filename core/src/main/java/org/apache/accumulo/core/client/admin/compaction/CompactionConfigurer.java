@@ -18,8 +18,10 @@
  */
 package org.apache.accumulo.core.client.admin.compaction;
 
+import java.net.URI;
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.data.TableId;
@@ -35,7 +37,7 @@ public interface CompactionConfigurer {
   /**
    * @since 2.1.0
    */
-  public interface InitParameters {
+  interface InitParameters {
     TableId getTableId();
 
     Map<String,String> getOptions();
@@ -48,16 +50,47 @@ public interface CompactionConfigurer {
   /**
    * @since 2.1.0
    */
-  public interface InputParameters {
+  interface InputParameters {
     TableId getTableId();
 
+    Collection<CompactableFile> getInputFiles();
+
     /**
-     * @return the id of the tablet being compacted
-     * @since 3.0.0
+     * Returns the tablet that is compacting.
+     *
+     * @since 2.1.4
      */
     TabletId getTabletId();
 
-    public Collection<CompactableFile> getInputFiles();
+    /**
+     * Returns the path that the compaction will write to, one use of this is to know the output
+     * volume.
+     *
+     * @since 2.1.4
+     */
+    URI getOutputFile();
+
+    /**
+     * For user and selector compactions:
+     * <ul>
+     * <li>Returns the selected set of files to be compacted.</li>
+     * <li>When getInputFiles() (inputFiles) and getSelectedFiles() (selectedFiles) are equal, then
+     * this is the final compaction.</li>
+     * <li>When they are not equal, this is an intermediate compaction.</li>
+     * <li>Intermediate compactions are compactions whose resultant RFile will be consumed by
+     * another compaction.</li>
+     * <li>inputFiles and selectedFiles can be compared using: <code>
+     * selectedFiles.equals(inputFiles instanceof Set ? inputFiles : Set.copyOf(inputFiles))
+     * </code></li>
+     * </ul>
+     * For system compactions:
+     * <ul>
+     * <li>There is no selected set of files so the empty set is returned.</li>
+     * </ul>
+     *
+     * @since 4.0.0
+     */
+    public Set<CompactableFile> getSelectedFiles();
 
     PluginEnvironment getEnvironment();
   }
@@ -67,7 +100,7 @@ public interface CompactionConfigurer {
    *
    * @since 2.1.0
    */
-  public class Overrides {
+  class Overrides {
     private final Map<String,String> tablePropertyOverrides;
 
     public Overrides(Map<String,String> tablePropertyOverrides) {

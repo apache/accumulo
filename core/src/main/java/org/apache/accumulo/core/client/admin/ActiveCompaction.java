@@ -22,6 +22,7 @@ import java.util.List;
 
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -54,8 +55,10 @@ public abstract class ActiveCompaction {
      */
     SYSTEM,
     /**
-     * Compaction initiated by merge operation
+     * @deprecated Chop compactions no longer occur and it's not expected that listing compaction
+     *             would ever return this.
      */
+    @Deprecated(since = "4.0.0")
     CHOP,
     /**
      * idle compaction
@@ -131,24 +134,9 @@ public abstract class ActiveCompaction {
   public abstract List<IteratorSetting> getIterators();
 
   /**
-   * @since 2.1.0
-   */
-  public interface CompactionHost {
-    enum Type {
-      TSERVER, COMPACTOR
-    }
-
-    Type getType();
-
-    String getAddress();
-
-    int getPort();
-  }
-
-  /**
-   * Return the host where the compaction is running.
+   * Return the server where the compaction is running.
    *
-   * @since 2.1.0
+   * @since 4.0.0
    */
-  public abstract CompactionHost getHost();
+  public abstract ServerId getServerId();
 }

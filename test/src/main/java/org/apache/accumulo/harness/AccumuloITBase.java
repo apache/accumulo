@@ -19,12 +19,13 @@
 package org.apache.accumulo.harness;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
-import java.security.SecureRandom;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.Map.Entry;
@@ -32,6 +33,7 @@ import java.util.Map.Entry;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.io.FileUtils;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.slf4j.Logger;
@@ -43,7 +45,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
  * Methods, setup and/or infrastructure which are common to any Accumulo integration test.
  */
 public class AccumuloITBase extends WithTestNames {
-  public static final SecureRandom random = new SecureRandom();
   private static final Logger log = LoggerFactory.getLogger(AccumuloITBase.class);
 
   public static final String STANDALONE_CAPABLE_CLUSTER = "StandaloneCapableCluster";
@@ -80,17 +81,19 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File getSslDir(File baseDir) {
     assertTrue(baseDir.exists() && baseDir.isDirectory());
-    return new File(baseDir.getParentFile(), baseDir.getName() + "-ssl");
+    return baseDir.getParentFile().toPath().resolve(baseDir.getName() + "-ssl").toFile();
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN", justification = "path provided by test")
   public static File createTestDir(String name) {
-    File baseDir = new File(System.getProperty("user.dir") + "/target/mini-tests");
+    File baseDir = Path.of(System.getProperty("user.dir") + "/target/mini-tests").toFile();
     assertTrue(baseDir.mkdirs() || baseDir.isDirectory());
     if (name == null) {
       return baseDir;
     }
-    File testDir = new File(baseDir, name);
+    String uniqueName = String.format("%s-%d-%d", name, System.currentTimeMillis(),
+        RANDOM.get().nextInt(Short.MAX_VALUE));
+    File testDir = baseDir.toPath().resolve(uniqueName).toFile();
     FileUtils.deleteQuietly(testDir);
     assertTrue(testDir.mkdir());
     return testDir;
@@ -118,26 +121,21 @@ public class AccumuloITBase extends WithTestNames {
   Timeout timeout = Timeout.from(() -> {
     assertFalse(defaultTimeout().isZero(), "defaultTimeout should not return 0");
 
-    int timeoutFactor = 0;
-    try {
-      String timeoutString = System.getProperty("timeout.factor");
-      if (timeoutString != null && !timeoutString.isEmpty()) {
-        timeoutFactor = Integer.parseInt(timeoutString);
-      }
-    } catch (NumberFormatException exception) {
-      log.warn("Could not parse timeout.factor, defaulting to no timeout.");
-    }
+    int timeoutFactor = Wait.getTimeoutFactor(e -> {
+      log.warn("Could not parse timeout.factor, defaulting to 24 hours.");
+      return 0;
+    });
 
-    // if the user sets a timeout factor of 0, apply a very long timeout (effectively no timeout)
+    // if the user sets a timeout factor of 0, apply a very long timeout
     if (timeoutFactor == 0) {
-      return Duration.ofDays(5);
+      return Duration.ofDays(1);
     }
 
     return defaultTimeout().multipliedBy(timeoutFactor);
   });
 
   /**
-   * Time to wait per-method before declaring a timeout, in seconds.
+   * Time to wait per-method before declaring a timeout.
    */
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(10);
@@ -146,7 +144,7 @@ public class AccumuloITBase extends WithTestNames {
   @SuppressFBWarnings(value = "UI_INHERITANCE_UNSAFE_GETRESOURCE", justification = "for testing")
   protected File initJar(String jarResourcePath, String namePrefix, String testDir)
       throws IOException {
-    var testFileDir = new File(testDir);
+    var testFileDir = Path.of(testDir).toFile();
     File jar = File.createTempFile(namePrefix, ".jar", testFileDir);
     var url = this.getClass().getResource(jarResourcePath);
     if (url == null) {

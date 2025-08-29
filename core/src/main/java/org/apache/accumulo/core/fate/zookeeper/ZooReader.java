@@ -19,10 +19,8 @@
 package org.apache.accumulo.core.fate.zookeeper;
 
 import static java.util.Objects.requireNonNull;
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.MINUTES;
-import static java.util.concurrent.TimeUnit.SECONDS;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -31,10 +29,10 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.clientImpl.AcceptableThriftTableOperationException;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,37 +41,28 @@ public class ZooReader {
   private static final Logger log = LoggerFactory.getLogger(ZooReader.class);
 
   protected static final RetryFactory RETRY_FACTORY =
-      Retry.builder().maxRetries(10).retryAfter(250, MILLISECONDS).incrementBy(250, MILLISECONDS)
-          .maxWait(5, SECONDS).backOffFactor(1.5).logInterval(3, MINUTES).createFactory();
+      Retry.builder().maxRetries(10).retryAfter(Duration.ofMillis(250))
+          .incrementBy(Duration.ofMillis(250)).maxWait(Duration.ofMinutes(2)).backOffFactor(1.5)
+          .logInterval(Duration.ofMinutes(3)).createFactory();
 
-  protected final String keepers;
-  protected final int timeout;
+  private final ZooSession zk;
 
-  public ZooReader(String keepers, int timeout) {
-    this.keepers = requireNonNull(keepers);
-    this.timeout = timeout;
+  /**
+   * Decorate a ZooKeeper with additional, more convenient functionality.
+   *
+   * @param zk the ZooKeeper instance
+   * @throws NullPointerException if zk is {@code null}
+   */
+  public ZooReader(ZooSession zk) {
+    this.zk = requireNonNull(zk);
   }
 
-  public ZooReaderWriter asWriter(String secret) {
-    return new ZooReaderWriter(keepers, timeout, secret);
-  }
-
-  protected ZooKeeper getZooKeeper() {
-    return ZooSession.getAnonymousSession(keepers, timeout);
+  protected ZooSession getZooKeeper() {
+    return zk;
   }
 
   protected RetryFactory getRetryFactory() {
     return RETRY_FACTORY;
-  }
-
-  /**
-   * Returns the requested ZooKeeper client session timeout. The client may negotiate a different
-   * value and the actual negotiated value may change after a re-connect.
-   *
-   * @return the timeout in milliseconds
-   */
-  public int getSessionTimeout() {
-    return timeout;
   }
 
   public byte[] getData(String zPath) throws KeeperException, InterruptedException {
@@ -136,11 +125,11 @@ public class ZooReader {
   }
 
   protected interface ZKFunction<R> {
-    R apply(ZooKeeper zk) throws KeeperException, InterruptedException;
+    R apply(ZooSession zk) throws KeeperException, InterruptedException;
   }
 
   protected interface ZKFunctionMutator<R> {
-    R apply(ZooKeeper zk)
+    R apply(ZooSession zk)
         throws KeeperException, InterruptedException, AcceptableThriftTableOperationException;
   }
 
@@ -184,7 +173,12 @@ public class ZooReader {
       try {
         return zkf.apply(getZooKeeper());
       } catch (KeeperException e) {
-        if (alwaysRetryCondition.test(e) || useRetryForTransient(retries, e)) {
+        if (alwaysRetryCondition.test(e)) {
+          retries.waitForNextAttempt(log,
+              "attempting to communicate with zookeeper after exception that always requires retry: "
+                  + e.getMessage());
+          continue;
+        } else if (useRetryForTransient(retries, e)) {
           continue;
         }
         throw e;
@@ -201,7 +195,8 @@ public class ZooReader {
       log.warn("Saw (possibly) transient exception communicating with ZooKeeper", e);
       if (retries.canRetry()) {
         retries.useRetry();
-        retries.waitForNextAttempt(log, "attempting to communicate with zookeeper after exception");
+        retries.waitForNextAttempt(log,
+            "attempting to communicate with zookeeper after exception: " + e.getMessage());
         return true;
       }
       log.error("Retry attempts ({}) exceeded trying to communicate with ZooKeeper",

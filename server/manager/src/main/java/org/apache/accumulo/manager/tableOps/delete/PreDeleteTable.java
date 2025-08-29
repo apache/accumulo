@@ -23,26 +23,27 @@ import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.InstanceId;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
-import org.apache.accumulo.manager.tableOps.compact.cancel.CancelCompactions;
+import org.apache.accumulo.server.compaction.CompactionConfigStorage;
 import org.apache.zookeeper.KeeperException;
 
 public class PreDeleteTable extends ManagerRepo {
 
   public static String createDeleteMarkerPath(InstanceId instanceId, TableId tableId) {
-    return Constants.ZROOT + "/" + instanceId + Constants.ZTABLES + "/" + tableId.canonical()
-        + Constants.ZTABLE_DELETE_MARKER;
+    return Constants.ZTABLES + "/" + tableId.canonical() + Constants.ZTABLE_DELETE_MARKER;
   }
 
   private static final long serialVersionUID = 1L;
 
-  private TableId tableId;
-  private NamespaceId namespaceId;
+  private final TableId tableId;
+  private final NamespaceId namespaceId;
 
   public PreDeleteTable(NamespaceId namespaceId, TableId tableId) {
     this.tableId = tableId;
@@ -50,34 +51,42 @@ public class PreDeleteTable extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager env) throws Exception {
-    return Utils.reserveNamespace(env, namespaceId, tid, false, true, TableOperation.DELETE)
-        + Utils.reserveTable(env, tableId, tid, false, true, TableOperation.DELETE);
+  public long isReady(FateId fateId, Manager env) throws Exception {
+    return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true,
+        TableOperation.DELETE)
+        + Utils.reserveTable(env, tableId, fateId, LockType.READ, true, TableOperation.DELETE);
   }
 
   private void preventFutureCompactions(Manager environment)
       throws KeeperException, InterruptedException {
-    String deleteMarkerPath = createDeleteMarkerPath(environment.getInstanceID(), tableId);
-    ZooReaderWriter zoo = environment.getContext().getZooReaderWriter();
+    String deleteMarkerPath =
+        createDeleteMarkerPath(environment.getContext().getInstanceID(), tableId);
+    ZooReaderWriter zoo = environment.getContext().getZooSession().asReaderWriter();
     zoo.putPersistentData(deleteMarkerPath, new byte[] {}, NodeExistsPolicy.SKIP);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
     try {
       preventFutureCompactions(environment);
-      CancelCompactions.mutateZooKeeper(tid, tableId, environment);
+
+      var idsToCancel =
+          CompactionConfigStorage.getAllConfig(environment.getContext(), tableId::equals).keySet();
+
+      for (var idToCancel : idsToCancel) {
+        CompactionConfigStorage.deleteConfig(environment.getContext(), idToCancel);
+      }
       return new DeleteTable(namespaceId, tableId);
     } finally {
-      Utils.unreserveTable(environment, tableId, tid, false);
-      Utils.unreserveNamespace(environment, namespaceId, tid, false);
+      Utils.unreserveTable(environment, tableId, fateId, LockType.READ);
+      Utils.unreserveNamespace(environment, namespaceId, fateId, LockType.READ);
     }
   }
 
   @Override
-  public void undo(long tid, Manager env) {
-    Utils.unreserveTable(env, tableId, tid, false);
-    Utils.unreserveNamespace(env, namespaceId, tid, false);
+  public void undo(FateId fateId, Manager env) {
+    Utils.unreserveTable(env, tableId, fateId, LockType.READ);
+    Utils.unreserveNamespace(env, namespaceId, fateId, LockType.READ);
   }
 
 }

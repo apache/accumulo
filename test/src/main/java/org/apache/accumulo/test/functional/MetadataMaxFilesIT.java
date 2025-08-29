@@ -28,13 +28,13 @@ import java.util.TreeSet;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -52,7 +52,6 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
 
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.TSERV_SCAN_MAX_OPENFILES, "10");
     cfg.setProperty(Property.TSERV_ASSIGNMENT_MAXCONCURRENT, "100");
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
@@ -65,18 +64,19 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
       for (int i = 0; i < 1000; i++) {
         splits.add(new Text(String.format("%03d", i)));
       }
-      c.tableOperations().setProperty(MetadataTable.NAME, Property.TABLE_SPLIT_THRESHOLD.getKey(),
-          "10000");
+      c.tableOperations().setProperty(SystemTables.METADATA.tableName(),
+          Property.TABLE_SPLIT_THRESHOLD.getKey(), "10000");
       // propagation time
       Thread.sleep(SECONDS.toMillis(5));
       for (int i = 0; i < 2; i++) {
         String tableName = "table" + i;
         log.info("Creating {} with splits", tableName);
-        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits);
+        NewTableConfiguration ntc = new NewTableConfiguration().withSplits(splits)
+            .withInitialTabletAvailability(TabletAvailability.HOSTED);
         c.tableOperations().create(tableName, ntc);
         log.info("flushing");
-        c.tableOperations().flush(MetadataTable.NAME, null, null, true);
-        c.tableOperations().flush(RootTable.NAME, null, null, true);
+        c.tableOperations().flush(SystemTables.METADATA.tableName(), null, null, true);
+        c.tableOperations().flush(SystemTables.ROOT.tableName(), null, null, true);
       }
 
       while (true) {

@@ -19,6 +19,7 @@
 package org.apache.accumulo.core.clientImpl.bulk;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -97,7 +98,7 @@ public class BulkSerialize {
     final Path renamingFile = new Path(bulkDir, Constants.BULK_RENAME_FILE);
     try (OutputStream fsOut = output.create(renamingFile);
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(fsOut))) {
-      new Gson().toJson(oldToNewNameMap, writer);
+      GSON.get().toJson(oldToNewNameMap, writer);
     }
   }
 

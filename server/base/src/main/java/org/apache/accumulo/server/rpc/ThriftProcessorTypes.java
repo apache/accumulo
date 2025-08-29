@@ -24,6 +24,7 @@ import org.apache.accumulo.core.compaction.thrift.CompactorService;
 import org.apache.accumulo.core.gc.thrift.GCMonitorService;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
+import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletingest.thrift.TabletIngestClientService;
@@ -95,57 +96,78 @@ public class ThriftProcessorTypes<C extends TServiceClient> extends ThriftClient
   public static final ThriftProcessorTypes<TabletManagementClientService.Client> TABLET_MGMT =
       new ThriftProcessorTypes<>(ThriftClientTypes.TABLET_MGMT);
 
-  public static TMultiplexedProcessor getCompactorTProcessor(CompactorService.Iface serviceHandler,
-      ServerContext context) {
+  public static final ThriftProcessorTypes<ServerProcessService.Client> SERVER_PROCESS =
+      new ThriftProcessorTypes<>(ThriftClientTypes.SERVER_PROCESS);
+
+  public static TMultiplexedProcessor getCompactorTProcessor(
+      ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
+      CompactorService.Iface serviceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
+        ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
+    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
+        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
+            ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(COMPACTOR.getServiceName(), COMPACTOR.getTProcessor(
         CompactorService.Processor.class, CompactorService.Iface.class, serviceHandler, context));
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getCoordinatorTProcessor(
-      CompactionCoordinatorService.Iface serviceHandler, ServerContext context) {
+  public static TMultiplexedProcessor getGcTProcessor(ServerProcessService.Iface processHandler,
+      GCMonitorService.Iface serviceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
-    muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
-        COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
-            CompactionCoordinatorService.Iface.class, serviceHandler, context));
-    return muxProcessor;
-  }
-
-  public static TMultiplexedProcessor getGcTProcessor(GCMonitorService.Iface serviceHandler,
-      ServerContext context) {
-    TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
+        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
+            ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(GC.getServiceName(), GC.getTProcessor(
         GCMonitorService.Processor.class, GCMonitorService.Iface.class, serviceHandler, context));
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getManagerTProcessor(FateService.Iface fateServiceHandler,
+  public static TMultiplexedProcessor getManagerTProcessor(
+      ServerProcessService.Iface processHandler, FateService.Iface fateServiceHandler,
+      CompactionCoordinatorService.Iface coordinatorServiceHandler,
       ManagerClientService.Iface managerServiceHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
+        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
+            ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(FATE.getServiceName(), FATE.getTProcessor(
         FateService.Processor.class, FateService.Iface.class, fateServiceHandler, context));
+    muxProcessor.registerProcessor(COORDINATOR.getServiceName(),
+        COORDINATOR.getTProcessor(CompactionCoordinatorService.Processor.class,
+            CompactionCoordinatorService.Iface.class, coordinatorServiceHandler, context));
     muxProcessor.registerProcessor(MANAGER.getServiceName(),
         MANAGER.getTProcessor(ManagerClientService.Processor.class,
             ManagerClientService.Iface.class, managerServiceHandler, context));
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor
-      getScanServerTProcessor(TabletScanClientService.Iface tserverHandler, ServerContext context) {
+  public static TMultiplexedProcessor getScanServerTProcessor(
+      ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
+      TabletScanClientService.Iface tserverHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
+        ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
+    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
+        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
+            ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(TABLET_SCAN.getServiceName(),
         TABLET_SCAN.getTProcessor(TabletScanClientService.Processor.class,
             TabletScanClientService.Iface.class, tserverHandler, context));
     return muxProcessor;
   }
 
-  public static TMultiplexedProcessor getTabletServerTProcessor(ClientServiceHandler clientHandler,
+  public static TMultiplexedProcessor getTabletServerTProcessor(
+      ServerProcessService.Iface processHandler, ClientServiceHandler clientHandler,
       TabletServerClientService.Iface tserverHandler,
       TabletScanClientService.Iface tserverScanHandler,
       TabletIngestClientService.Iface tserverIngestHandler,
       TabletManagementClientService.Iface tserverMgmtHandler, ServerContext context) {
     TMultiplexedProcessor muxProcessor = new TMultiplexedProcessor();
+    muxProcessor.registerProcessor(SERVER_PROCESS.getServiceName(),
+        SERVER_PROCESS.getTProcessor(ServerProcessService.Processor.class,
+            ServerProcessService.Iface.class, processHandler, context));
     muxProcessor.registerProcessor(CLIENT.getServiceName(), CLIENT.getTProcessor(
         ClientService.Processor.class, ClientService.Iface.class, clientHandler, context));
     muxProcessor.registerProcessor(TABLET_SERVER.getServiceName(),

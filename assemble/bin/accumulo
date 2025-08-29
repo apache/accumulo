@@ -83,7 +83,7 @@ function main() {
     exit 1
   fi
   if [[ -n $ACCUMULO_JAVA_PREFIX ]]; then
-    JAVA=("${ACCUMULO_JAVA_PREFIX[*]}" "$JAVA")
+    JAVA=("${ACCUMULO_JAVA_PREFIX[@]}" "$JAVA")
   fi
 
   exec "${JAVA[@]}" "${JAVA_OPTS[@]}" org.apache.accumulo.start.Main "$@"

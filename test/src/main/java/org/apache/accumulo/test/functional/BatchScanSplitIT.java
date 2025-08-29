@@ -18,6 +18,8 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -34,8 +36,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
-import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -47,11 +47,6 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
   @Override
   protected Duration defaultTimeout() {
     return Duration.ofMinutes(2);
-  }
-
-  @Override
-  public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "50ms");
   }
 
   @Test
@@ -85,7 +80,7 @@ public class BatchScanSplitIT extends AccumuloClusterHarness {
       HashMap<Text,Value> expected = new HashMap<>();
       ArrayList<Range> ranges = new ArrayList<>();
       for (int i = 0; i < 100; i++) {
-        int r = random.nextInt(numRows);
+        int r = RANDOM.get().nextInt(numRows);
         Text row = new Text(String.format("%09x", r));
         expected.put(row, new Value(String.format("%016x", numRows - r)));
         ranges.add(new Range(row));

@@ -31,11 +31,11 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
 public class ColumnSet {
-  private Set<ColFamHashKey> objectsCF;
-  private Set<ColHashKey> objectsCol;
+  private final Set<ColFamHashKey> objectsCF;
+  private final Set<ColHashKey> objectsCol;
 
-  private ColHashKey lookupCol = new ColHashKey();
-  private ColFamHashKey lookupCF = new ColFamHashKey();
+  private final ColHashKey lookupCol = new ColHashKey();
+  private final ColFamHashKey lookupCF = new ColFamHashKey();
 
   public ColumnSet() {
     objectsCF = new HashSet<>();

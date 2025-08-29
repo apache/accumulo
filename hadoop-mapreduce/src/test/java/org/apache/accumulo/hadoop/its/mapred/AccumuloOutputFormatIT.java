@@ -19,12 +19,12 @@
 package org.apache.accumulo.hadoop.its.mapred;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
@@ -58,13 +58,17 @@ import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class AccumuloOutputFormatIT extends ConfigurableMacBase {
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   @Override
   protected void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     cfg.setProperty(Property.TSERV_SESSION_MAXIDLE, "1");
-    cfg.setNumTservers(1);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
   }
 
   // Prevent regression of ACCUMULO-3709.
@@ -124,10 +128,10 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
         finalOutput = output;
         try {
           if (key != null) {
-            assertEquals(key.getRow().toString(), new String(v.get()));
+            assertEquals(key.getRow().toString(), new String(v.get(), UTF_8));
           }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-          assertEquals(new String(v.get()), String.format("%09x", count));
+          assertEquals(new String(v.get(), UTF_8), String.format("%09x", count));
         } catch (AssertionError e) {
           e1 = e;
         }
@@ -191,7 +195,7 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
@@ -217,8 +221,8 @@ public class AccumuloOutputFormatIT extends ConfigurableMacBase {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
-            .map(Integer::parseInt).collect(onlyElement());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get)
+            .map(e -> new String(e, UTF_8)).map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, i);
       }
     }

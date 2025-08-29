@@ -19,22 +19,22 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.time.Duration;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.clientImpl.Writer;
+import org.apache.accumulo.core.client.MutationsRejectedException;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.TablePermission;
-import org.apache.accumulo.core.tabletingest.thrift.ConstraintViolationException;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
+import org.apache.accumulo.manager.upgrade.SplitRecovery11to12;
 import org.apache.accumulo.server.ServerContext;
-import org.apache.accumulo.server.util.MetadataTableUtil;
 import org.junit.jupiter.api.Test;
 
 public class MetaConstraintRetryIT extends AccumuloClusterHarness {
@@ -48,19 +48,20 @@ public class MetaConstraintRetryIT extends AccumuloClusterHarness {
   @Test
   public void test() throws Exception {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-      client.securityOperations().grantTablePermission(getAdminPrincipal(), MetadataTable.NAME,
-          TablePermission.WRITE);
+      client.securityOperations().grantTablePermission(getAdminPrincipal(),
+          SystemTables.METADATA.tableName(), TablePermission.WRITE);
 
       ServerContext context = getServerContext();
-      Writer w = new Writer(context, MetadataTable.ID);
       KeyExtent extent = new KeyExtent(TableId.of("5"), null, null);
 
       Mutation m = new Mutation(extent.toMetaRow());
       // unknown columns should cause constraint violation
       m.put("badcolfam", "badcolqual", "3");
-      var e = assertThrows(RuntimeException.class,
-          () -> MetadataTableUtil.update(context, w, null, m, extent));
-      assertEquals(ConstraintViolationException.class, e.getCause().getClass());
+      var iae = assertThrows(IllegalArgumentException.class,
+          () -> SplitRecovery11to12.update(context, null, m, extent));
+      assertEquals(MutationsRejectedException.class, iae.getCause().getClass());
+      var mre = (MutationsRejectedException) iae.getCause();
+      assertFalse(mre.getConstraintViolationSummaries().isEmpty());
     }
   }
 }

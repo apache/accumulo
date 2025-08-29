@@ -23,8 +23,10 @@ import java.io.OutputStream;
 import java.util.Collection;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.function.Predicate;
 
+import org.apache.accumulo.core.client.PluginEnvironment;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
@@ -34,9 +36,14 @@ import org.apache.accumulo.core.client.summary.Summary;
 import org.apache.accumulo.core.client.summary.Summary.FileStatistics;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.LoadPlan;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.util.RowRangeUtil;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 
 /**
@@ -76,6 +83,38 @@ public class RFile {
      * @return this
      */
     ScannerFSOptions from(String... files);
+
+    /**
+     * Specify FencedPath files to read from. When multiple are specified the {@link Scanner}
+     * constructed will present a merged view.
+     *
+     * @param files one or more FencedPaths to read.
+     * @return this
+     *
+     * @since 4.0.0
+     */
+    ScannerFSOptions from(FencedPath... files);
+
+    /**
+     * @since 4.0.0
+     */
+    class FencedPath {
+      private final Path path;
+      private final Range fence;
+
+      public FencedPath(Path path, Range fence) {
+        this.path = Objects.requireNonNull(path);
+        this.fence = RowRangeUtil.requireKeyExtentDataRange(fence);
+      }
+
+      public Path getPath() {
+        return path;
+      }
+
+      public Range getFence() {
+        return fence;
+      }
+    }
   }
 
   /**
@@ -172,17 +211,25 @@ public class RFile {
      * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
      * properties could be passed here.
      *
+     * <p>
+     * Configured iterators will have access to these properties via the
+     * {@link PluginEnvironment#getConfiguration(TableId)} (obtained by
+     * {@link IteratorEnvironment#getPluginEnv()}). The tableId used to get the configuration should
+     * be the one returned programmatically from {@link IteratorEnvironment#getTableId()}.
+     *
      * @param props iterable over Accumulo table key value properties.
      * @return this
      */
     ScannerOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
-     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
-     *      cache and crypto properties could be passed here.
+     * Any property that impacts file behavior regardless of whether it has the
+     * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
+     * properties could be passed here.
+     *
      * @param props a map instead of an Iterable
      * @return this
+     * @see #withTableProperties(Iterable)
      */
     ScannerOptions withTableProperties(Map<String,String> props);
 
@@ -260,11 +307,13 @@ public class RFile {
     SummaryOptions withTableProperties(Iterable<Entry<String,String>> props);
 
     /**
-     * @see #withTableProperties(Iterable) Any property that impacts file behavior regardless of
-     *      whether it has the {@link Property#TABLE_PREFIX} may be accepted and used. For example,
-     *      cache and crypto properties could be passed here.
+     * Any property that impacts file behavior regardless of whether it has the
+     * {@link Property#TABLE_PREFIX} may be accepted and used. For example, cache and crypto
+     * properties could be passed here.
+     *
      * @param props a map instead of an Iterable
      * @return this
+     * @see #withTableProperties(Iterable)
      */
     SummaryOptions withTableProperties(Map<String,String> props);
 
@@ -427,6 +476,15 @@ public class RFile {
      * @return this
      */
     WriterOptions withVisibilityCacheSize(int maxSize);
+
+    /**
+     * @param splitResolver builds a {@link LoadPlan} using table split points provided by the given
+     *        splitResolver.
+     * @return this
+     * @see RFileWriter#getLoadPlan(String)
+     * @since 2.1.4
+     */
+    WriterOptions withSplitResolver(LoadPlan.SplitResolver splitResolver);
 
     /**
      * @return a new RfileWriter created with the options previously specified.

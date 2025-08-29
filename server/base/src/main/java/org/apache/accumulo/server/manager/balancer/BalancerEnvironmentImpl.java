@@ -64,7 +64,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
 
   @Override
   public Map<String,TableId> getTableIdMap() {
-    return getContext().getTableNameToIdMap();
+    return getContext().createQualifiedTableNameToIdMap();
   }
 
   @Override
@@ -75,11 +75,13 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   @Override
   public Map<TabletId,TabletServerId> listTabletLocations(TableId tableId) {
     Map<TabletId,TabletServerId> tablets = new LinkedHashMap<>();
-    for (var tm : TabletsMetadata.builder(getContext()).forTable(tableId).fetch(LOCATION, PREV_ROW)
-        .build()) {
-      tablets.put(new TabletIdImpl(tm.getExtent()),
-          TabletServerIdImpl.fromThrift(Optional.ofNullable(tm.getLocation())
-              .map(TabletMetadata.Location::getServerInstance).orElse(null)));
+    try (TabletsMetadata tabletsMetadata =
+        TabletsMetadata.builder(getContext()).forTable(tableId).fetch(LOCATION, PREV_ROW).build()) {
+      for (var tm : tabletsMetadata) {
+        tablets.put(new TabletIdImpl(tm.getExtent()),
+            TabletServerIdImpl.fromThrift(Optional.ofNullable(tm.getLocation())
+                .map(TabletMetadata.Location::getServerInstance).orElse(null)));
+      }
     }
     return tablets;
   }
@@ -87,7 +89,7 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
   @Override
   public List<TabletStatistics> listOnlineTabletsForTable(TabletServerId tabletServerId,
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
-    log.debug("Scanning tablet server {} for table {}", tabletServerId, tableId);
+    log.trace("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
       TabletServerClientService.Client client = ThriftUtil.getClient(
           ThriftClientTypes.TABLET_SERVER,

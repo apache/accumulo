@@ -37,7 +37,6 @@ import org.apache.accumulo.core.client.ScannerBase;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.io.Text;
@@ -69,7 +68,7 @@ public class ScanFlushWithTimeIT extends AccumuloClusterHarness {
       partitionKeys.add(new Text("5"));
       c.tableOperations().addSplits(tableName, partitionKeys);
       log.info("waiting for zookeeper propagation");
-      UtilWaitThread.sleep(5_000);
+      Thread.sleep(5_000);
       log.info("Adding a few entries");
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
         for (int i = 0; i < 10; i++) {

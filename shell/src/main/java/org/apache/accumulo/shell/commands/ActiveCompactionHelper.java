@@ -21,8 +21,12 @@ package org.apache.accumulo.shell.commands;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.AccumuloException;
@@ -31,13 +35,19 @@ import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.ActiveCompaction;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.util.DurationFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.net.HostAndPort;
+
 class ActiveCompactionHelper {
 
-  private static final Logger log = LoggerFactory.getLogger(ActiveCompactionHelper.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ActiveCompactionHelper.class);
+  private static final Comparator<ActiveCompaction> COMPACTION_AGE_DESCENDING =
+      Comparator.comparingLong(ActiveCompaction::getAge).reversed();
 
   private static String maxDecimal(double count) {
     if (count < 9.995) {
@@ -77,27 +87,27 @@ class ActiveCompactionHelper {
     }
 
     String hostSuffix;
-    switch (ac.getHost().getType()) {
-      case TSERVER:
+    switch (ac.getServerId().getType()) {
+      case TABLET_SERVER:
         hostSuffix = "";
         break;
       case COMPACTOR:
         hostSuffix = " (ext)";
         break;
       default:
-        hostSuffix = ac.getHost().getType().name();
+        hostSuffix = ac.getServerId().getType().name();
         break;
     }
 
-    String host = ac.getHost().getAddress() + ":" + ac.getHost().getPort() + hostSuffix;
+    String host = ac.getServerId().toHostPortString() + hostSuffix;
 
     try {
       var dur = new DurationFormat(ac.getAge(), "");
       return String.format(
-          "%21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s", host, dur,
-          ac.getType(), ac.getReason(), shortenCount(ac.getEntriesRead()),
-          shortenCount(ac.getEntriesWritten()), ac.getTable(), ac.getTablet(),
-          ac.getInputFiles().size(), output, iterList, iterOpts);
+          "%21s | %21s | %9s | %5s | %6s | %5s | %5s | %15s | %-40s | %5s | %35s | %9s | %s",
+          ac.getServerId().getResourceGroup(), host, dur, ac.getType(), ac.getReason(),
+          shortenCount(ac.getEntriesRead()), shortenCount(ac.getEntriesWritten()), ac.getTable(),
+          ac.getTablet(), ac.getInputFiles().size(), output, iterList, iterOpts);
     } catch (TableNotFoundException e) {
       return "ERROR " + e.getMessage();
     }
@@ -105,42 +115,69 @@ class ActiveCompactionHelper {
 
   public static Stream<String> appendHeader(Stream<String> stream) {
     Stream<String> header = Stream.of(String.format(
-        " %-21s| %-9s | %-5s | %-6s | %-5s | %-5s | %-15s | %-40s | %-5s | %-35s | %-9s | %s",
-        "SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT", "OUTPUT",
-        "ITERATORS", "ITERATOR OPTIONS"));
+        " %-21s| %-21s| %-9s | %-5s | %-6s | %-5s | %-5s | %-15s | %-40s | %-5s | %-35s | %-9s | %s",
+        "GROUP", "SERVER", "AGE", "TYPE", "REASON", "READ", "WROTE", "TABLE", "TABLET", "INPUT",
+        "OUTPUT", "ITERATORS", "ITERATOR OPTIONS"));
     return Stream.concat(header, stream);
   }
 
   public static Stream<String> activeCompactionsForServer(String tserver,
       InstanceOperations instanceOps) {
-    List<String> compactions = new ArrayList<>();
-    try {
-      List<ActiveCompaction> acl = new ArrayList<>(instanceOps.getActiveCompactions(tserver));
-      acl.sort((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
-      for (ActiveCompaction ac : acl) {
-        compactions.add(formatActiveCompactionLine(ac));
-      }
-    } catch (Exception e) {
-      log.debug("Failed to list active compactions for server {}", tserver, e);
-      compactions.add(tserver + " ERROR " + e.getMessage());
+    final HostAndPort hp = HostAndPort.fromString(tserver);
+    ServerId server =
+        instanceOps.getServer(ServerId.Type.COMPACTOR, null, hp.getHost(), hp.getPort());
+    if (server == null) {
+      server = instanceOps.getServer(ServerId.Type.TABLET_SERVER, null, hp.getHost(), hp.getPort());
     }
-    return compactions.stream();
+    if (server == null) {
+      return Stream.of();
+    } else {
+      try {
+        return instanceOps.getActiveCompactions(List.of(server)).stream()
+            .sorted(COMPACTION_AGE_DESCENDING)
+            .map(ActiveCompactionHelper::formatActiveCompactionLine);
+      } catch (Exception e) {
+        LOG.debug("Failed to list active compactions for server {}", tserver, e);
+        return Stream.of(tserver + " ERROR " + e.getMessage());
+      }
+    }
   }
 
-  public static Stream<String> stream(InstanceOperations instanceOps) {
-    List<ActiveCompaction> activeCompactions;
+  public static Stream<String> activeCompactions(InstanceOperations instanceOps,
+      Predicate<ResourceGroupId> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate) {
+
     try {
-      activeCompactions = instanceOps.getActiveCompactions();
+      final Set<ServerId> compactionServers = new HashSet<>();
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.COMPACTOR,
+          resourceGroupPredicate, hostPortPredicate));
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER,
+          resourceGroupPredicate, hostPortPredicate));
+
+      return sortActiveCompactions(instanceOps.getActiveCompactions(compactionServers));
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      LOG.debug("Failed to list active compactions with resource group and server predicates", e);
+      return Stream.of("ERROR " + e.getMessage());
+    }
+  }
+
+  public static Stream<String> activeCompactions(InstanceOperations instanceOps) {
+    try {
+      Set<ServerId> compactionServers = new HashSet<>();
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.COMPACTOR));
+      compactionServers.addAll(instanceOps.getServers(ServerId.Type.TABLET_SERVER));
+      return sortActiveCompactions(instanceOps.getActiveCompactions(compactionServers));
     } catch (AccumuloException | AccumuloSecurityException e) {
       return Stream.of("ERROR " + e.getMessage());
     }
-    Comparator<ActiveCompaction> comparator = Comparator.comparing(ac -> ac.getHost().getAddress());
-    comparator = comparator.thenComparing(ac -> ac.getHost().getPort())
-        .thenComparing((o1, o2) -> (int) (o2.getAge() - o1.getAge()));
+  }
 
-    activeCompactions.sort(comparator);
-
-    return activeCompactions.stream().map(ac -> formatActiveCompactionLine(ac));
+  private static Stream<String> sortActiveCompactions(List<ActiveCompaction> activeCompactions) {
+    Comparator<ActiveCompaction> comparator = Comparator
+        .comparing((ActiveCompaction ac) -> ac.getServerId().getHost())
+        .thenComparing(ac -> ac.getServerId().getPort()).thenComparing(COMPACTION_AGE_DESCENDING);
+    return activeCompactions.stream().sorted(comparator)
+        .map(ActiveCompactionHelper::formatActiveCompactionLine);
   }
 
 }

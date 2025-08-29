@@ -28,6 +28,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -39,6 +40,7 @@ import org.apache.commons.configuration2.CompositeConfiguration;
 import org.apache.commons.configuration2.MapConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.apache.commons.configuration2.io.FileHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -88,19 +90,11 @@ public class SiteConfiguration extends AccumuloConfiguration {
     }
 
     public OverridesOption fromEnv() {
-      URL siteUrl = SiteConfiguration.class.getClassLoader().getResource("accumulo-site.xml");
-      if (siteUrl != null) {
-        throw new IllegalArgumentException("Found deprecated config file 'accumulo-site.xml' on "
-            + "classpath. Since 2.0.0, this file was replaced by 'accumulo.properties'. Run the "
-            + "following command to convert an old 'accumulo-site.xml' file to the new format: "
-            + "accumulo convert-config -x /old/accumulo-site.xml -p /new/accumulo.properties");
-      }
-
       String configFile = System.getProperty("accumulo.properties", "accumulo.properties");
       if (configFile.startsWith("file://")) {
         File f;
         try {
-          f = new File(new URI(configFile));
+          f = Path.of(new URI(configFile)).toFile();
         } catch (URISyntaxException e) {
           throw new IllegalArgumentException(
               "Failed to load Accumulo configuration from " + configFile, e);
@@ -219,8 +213,9 @@ public class SiteConfiguration extends AccumuloConfiguration {
   private static AbstractConfiguration getPropsFileConfig(URL accumuloPropsLocation) {
     var config = new PropertiesConfiguration();
     if (accumuloPropsLocation != null) {
+      var fileHandler = new FileHandler(config);
       try (var reader = new InputStreamReader(accumuloPropsLocation.openStream(), UTF_8)) {
-        config.read(reader);
+        fileHandler.load(reader);
       } catch (ConfigurationException | IOException e) {
         throw new IllegalArgumentException(e);
       }

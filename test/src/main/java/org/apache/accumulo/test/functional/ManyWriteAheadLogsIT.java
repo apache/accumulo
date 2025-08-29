@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Base64;
@@ -43,7 +44,6 @@ import org.apache.accumulo.server.log.WalStateManager.WalState;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.RawLocalFileSystem;
 import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -53,8 +53,6 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
 
   private static final Logger log = LoggerFactory.getLogger(ManyWriteAheadLogsIT.class);
 
-  private String majcDelay, walSize;
-
   @Override
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // configure a smaller wal size so the wals will roll frequently in the test
@@ -62,13 +60,12 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_CYCLE_START, "1");
     cfg.setProperty(Property.MANAGER_RECOVERY_DELAY, "1s");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     cfg.setProperty(Property.INSTANCE_ZK_TIMEOUT, "15s");
     // idle compactions may addess the problem this test is creating, however they will not prevent
     // lots of closed WALs for all write patterns. This test ensures code that directly handles many
     // tablets referencing many different WALs is working.
-    cfg.setProperty(Property.TABLE_MINC_COMPACT_IDLETIME, "1h");
-    cfg.setNumTservers(1);
+    cfg.setProperty(Property.TABLE_MINC_COMPACT_MAXAGE, "1h");
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(1);
     hadoopCoreSite.set("fs.file.impl", RawLocalFileSystem.class.getName());
   }
 
@@ -79,25 +76,8 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
     }
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       InstanceOperations iops = client.instanceOperations();
-      Map<String,String> conf = iops.getSystemConfiguration();
-      majcDelay = conf.get(Property.TSERV_MAJC_DELAY.getKey());
-      walSize = conf.get(Property.TSERV_WAL_MAX_SIZE.getKey());
-      iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), "1");
       iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
 
-      getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
-      getClusterControl().startAllServers(ServerType.TABLET_SERVER);
-    }
-  }
-
-  @AfterEach
-  public void resetConfig() throws Exception {
-    if (majcDelay != null) {
-      try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        InstanceOperations iops = client.instanceOperations();
-        iops.setProperty(Property.TSERV_MAJC_DELAY.getKey(), majcDelay);
-        iops.setProperty(Property.TSERV_WAL_MAX_SIZE.getKey(), walSize);
-      }
       getClusterControl().stopAllServers(ServerType.TABLET_SERVER);
       getClusterControl().startAllServers(ServerType.TABLET_SERVER);
     }
@@ -151,7 +131,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           for (int j = 0; j < 10; j++) {
             int row = startRow + j;
             Mutation m = new Mutation(String.format("%05x", row));
-            random.nextBytes(val);
+            RANDOM.get().nextBytes(val);
             m.put("f", "q", "v");
 
             manyWALsWriter.addMutation(m);
@@ -161,7 +141,7 @@ public class ManyWriteAheadLogsIT extends AccumuloClusterHarness {
           // write a lot of data to second table to forces the logs to roll
           for (int j = 0; j < 1000; j++) {
             Mutation m = new Mutation(String.format("%03d", j));
-            random.nextBytes(val);
+            RANDOM.get().nextBytes(val);
 
             m.put("f", "q", Base64.getEncoder().encodeToString(val));
 

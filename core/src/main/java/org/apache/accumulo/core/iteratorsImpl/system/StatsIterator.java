@@ -34,9 +34,9 @@ import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 public class StatsIterator extends ServerWrappingIterator {
 
   private int numRead = 0;
-  private AtomicLong seekCounter;
-  private AtomicLong scanCounter;
-  private LongAdder serverScanCounter;
+  private final AtomicLong seekCounter;
+  private final AtomicLong scanCounter;
+  private final LongAdder serverScanCounter;
 
   public StatsIterator(SortedKeyValueIterator<Key,Value> source, AtomicLong seekCounter,
       AtomicLong tabletScanCounter, LongAdder serverScanCounter) {

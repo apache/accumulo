@@ -47,8 +47,7 @@ public class PrintBCInfo {
   CryptoService cryptoService = NoCryptoServiceFactory.NONE;
 
   public void printMetaBlockInfo() throws IOException {
-    FSDataInputStream fsin = fs.open(path);
-    try (BCFile.Reader bcfr =
+    try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
         new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
 
       Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
@@ -64,6 +63,17 @@ public class PrintBCInfo {
             "      Compression type     : " + entry.getValue().getCompressionAlgorithm().getName());
         out.println();
       }
+    }
+  }
+
+  public String getCompressionType() throws IOException {
+    try (FSDataInputStream fsin = fs.open(path); BCFile.Reader bcfr =
+        new BCFile.Reader(fsin, fs.getFileStatus(path).getLen(), conf, cryptoService)) {
+
+      Set<Entry<String,MetaIndexEntry>> es = bcfr.metaIndex.index.entrySet();
+
+      return es.stream().filter(entry -> entry.getKey().equals("RFile.index")).findFirst()
+          .map(entry -> entry.getValue().getCompressionAlgorithm().getName()).orElse(null);
     }
   }
 

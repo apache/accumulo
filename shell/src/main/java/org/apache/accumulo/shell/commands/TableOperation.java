@@ -20,15 +20,14 @@ package org.apache.accumulo.shell.commands;
 
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
-import org.apache.accumulo.core.clientImpl.Namespaces;
 import org.apache.accumulo.core.data.NamespaceId;
-import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.accumulo.shell.ShellOptions;
@@ -40,7 +39,9 @@ import org.apache.commons.cli.Options;
 
 public abstract class TableOperation extends Command {
 
-  protected Option optTablePattern, optTableName, optNamespace;
+  protected Option optTablePattern;
+  protected Option optTableName;
+  protected Option optNamespace;
   private boolean force = true;
   private boolean useCommandLine = true;
 
@@ -57,11 +58,10 @@ public abstract class TableOperation extends Command {
     } else if (cl.hasOption(optTableName.getOpt())) {
       tableSet.add(cl.getOptionValue(optTableName.getOpt()));
     } else if (cl.hasOption(optNamespace.getOpt())) {
-      NamespaceId namespaceId = Namespaces.getNamespaceId(shellState.getContext(),
-          cl.getOptionValue(optNamespace.getOpt()));
-      for (TableId tableId : Namespaces.getTableIds(shellState.getContext(), namespaceId)) {
-        tableSet.add(shellState.getContext().getTableName(tableId));
-      }
+      String namespaceName = cl.getOptionValue(optNamespace.getOpt());
+      NamespaceId namespaceId = shellState.getContext().getNamespaceId(namespaceName);
+      tableSet.addAll(shellState.getContext().getTableMapping(namespaceId)
+          .createQualifiedNameToIdMap(namespaceName).keySet());
     } else if (useCommandLine && cl.getArgs().length > 0) {
       Collections.addAll(tableSet, cl.getArgs());
     } else {
@@ -73,26 +73,21 @@ public abstract class TableOperation extends Command {
       Shell.log.warn("No tables found that match your criteria");
     }
 
-    boolean more = true;
-    // flush the tables
+    // do op if forced or user answers prompt with yes
     for (String tableName : tableSet) {
-      if (!more) {
-        break;
-      }
       if (!shellState.getAccumuloClient().tableOperations().exists(tableName)) {
         throw new TableNotFoundException(null, tableName, null);
       }
-      boolean operate = true;
       if (!force) {
-        shellState.getWriter().flush();
-        String line =
-            shellState.getReader().readLine(getName() + " { " + tableName + " } (yes|no)? ");
-        more = line != null;
-        operate = line != null && (line.equalsIgnoreCase("y") || line.equalsIgnoreCase("yes"));
+        Optional<Boolean> confirmed = shellState.confirm(getName() + " { " + tableName + " }");
+        if (confirmed.isEmpty()) {
+          break;
+        }
+        if (!confirmed.orElseThrow()) {
+          continue;
+        }
       }
-      if (operate) {
-        doTableOp(shellState, tableName);
-      }
+      doTableOp(shellState, tableName);
     }
 
     return 0;

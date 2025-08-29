@@ -35,7 +35,7 @@ public class TabletIngestClientService {
 
     public org.apache.accumulo.core.dataImpl.thrift.UpdateErrors closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.accumulo.core.tabletserver.thrift.NoSuchScanIDException, org.apache.thrift.TException;
 
-    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException;
+    public boolean cancelUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.thrift.TException;
 
     public org.apache.accumulo.core.dataImpl.thrift.TConditionalSession startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.thrift.TException;
 
@@ -44,8 +44,6 @@ public class TabletIngestClientService {
     public void invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
 
     public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID) throws org.apache.thrift.TException;
-
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime) throws org.apache.thrift.TException;
 
   }
 
@@ -57,7 +55,7 @@ public class TabletIngestClientService {
 
     public void closeUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.UpdateErrors> resultHandler) throws org.apache.thrift.TException;
 
-    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
+    public void cancelUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException;
 
     public void startConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, java.util.List<java.nio.ByteBuffer> authorizations, java.lang.String tableID, TDurability durability, java.lang.String classLoaderContext, org.apache.thrift.async.AsyncMethodCallback<org.apache.accumulo.core.dataImpl.thrift.TConditionalSession> resultHandler) throws org.apache.thrift.TException;
 
@@ -66,8 +64,6 @@ public class TabletIngestClientService {
     public void invalidateConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
     public void closeConditionalUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long sessID, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
-
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException;
 
   }
 
@@ -167,37 +163,28 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException
+    public boolean cancelUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.thrift.TException
     {
-      send_update(tinfo, credentials, keyExtent, mutation, durability);
-      recv_update();
+      send_cancelUpdate(tinfo, updateID);
+      return recv_cancelUpdate();
     }
 
-    public void send_update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability) throws org.apache.thrift.TException
+    public void send_cancelUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID) throws org.apache.thrift.TException
     {
-      update_args args = new update_args();
+      cancelUpdate_args args = new cancelUpdate_args();
       args.setTinfo(tinfo);
-      args.setCredentials(credentials);
-      args.setKeyExtent(keyExtent);
-      args.setMutation(mutation);
-      args.setDurability(durability);
-      sendBase("update", args);
+      args.setUpdateID(updateID);
+      sendBase("cancelUpdate", args);
     }
 
-    public void recv_update() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException
+    public boolean recv_cancelUpdate() throws org.apache.thrift.TException
     {
-      update_result result = new update_result();
-      receiveBase(result, "update");
-      if (result.sec != null) {
-        throw result.sec;
+      cancelUpdate_result result = new cancelUpdate_result();
+      receiveBase(result, "cancelUpdate");
+      if (result.isSetSuccess()) {
+        return result.success;
       }
-      if (result.nste != null) {
-        throw result.nste;
-      }
-      if (result.cve != null) {
-        throw result.cve;
-      }
-      return;
+      throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "cancelUpdate failed: unknown result");
     }
 
     @Override
@@ -296,24 +283,6 @@ public class TabletIngestClientService {
       args.setTinfo(tinfo);
       args.setSessID(sessID);
       sendBaseOneway("closeConditionalUpdate", args);
-    }
-
-    @Override
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
-    {
-      send_loadFiles(tinfo, credentials, tid, dir, files, setTime);
-    }
-
-    public void send_loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime) throws org.apache.thrift.TException
-    {
-      loadFiles_args args = new loadFiles_args();
-      args.setTinfo(tinfo);
-      args.setCredentials(credentials);
-      args.setTid(tid);
-      args.setDir(dir);
-      args.setFiles(files);
-      args.setSetTime(setTime);
-      sendBaseOneway("loadFiles", args);
     }
 
   }
@@ -459,50 +428,40 @@ public class TabletIngestClientService {
     }
 
     @Override
-    public void update(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
+    public void cancelUpdate(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
       checkReady();
-      update_call method_call = new update_call(tinfo, credentials, keyExtent, mutation, durability, resultHandler, this, ___protocolFactory, ___transport);
+      cancelUpdate_call method_call = new cancelUpdate_call(tinfo, updateID, resultHandler, this, ___protocolFactory, ___transport);
       this.___currentMethod = method_call;
       ___manager.call(method_call);
     }
 
-    public static class update_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
+    public static class cancelUpdate_call extends org.apache.thrift.async.TAsyncMethodCall<java.lang.Boolean> {
       private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent;
-      private org.apache.accumulo.core.dataImpl.thrift.TMutation mutation;
-      private TDurability durability;
-      public update_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent, org.apache.accumulo.core.dataImpl.thrift.TMutation mutation, TDurability durability, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
+      private long updateID;
+      public cancelUpdate_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, long updateID, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
         super(client, protocolFactory, transport, resultHandler, false);
         this.tinfo = tinfo;
-        this.credentials = credentials;
-        this.keyExtent = keyExtent;
-        this.mutation = mutation;
-        this.durability = durability;
+        this.updateID = updateID;
       }
 
       @Override
       public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("update", org.apache.thrift.protocol.TMessageType.CALL, 0));
-        update_args args = new update_args();
+        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("cancelUpdate", org.apache.thrift.protocol.TMessageType.CALL, 0));
+        cancelUpdate_args args = new cancelUpdate_args();
         args.setTinfo(tinfo);
-        args.setCredentials(credentials);
-        args.setKeyExtent(keyExtent);
-        args.setMutation(mutation);
-        args.setDurability(durability);
+        args.setUpdateID(updateID);
         args.write(prot);
         prot.writeMessageEnd();
       }
 
       @Override
-      public Void getResult() throws org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException, ConstraintViolationException, org.apache.thrift.TException {
+      public java.lang.Boolean getResult() throws org.apache.thrift.TException {
         if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
           throw new java.lang.IllegalStateException("Method call not finished!");
         }
         org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
         org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        (new Client(prot)).recv_update();
-        return null;
+        return (new Client(prot)).recv_cancelUpdate();
       }
     }
 
@@ -677,56 +636,6 @@ public class TabletIngestClientService {
       }
     }
 
-    @Override
-    public void loadFiles(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-      checkReady();
-      loadFiles_call method_call = new loadFiles_call(tinfo, credentials, tid, dir, files, setTime, resultHandler, this, ___protocolFactory, ___transport);
-      this.___currentMethod = method_call;
-      ___manager.call(method_call);
-    }
-
-    public static class loadFiles_call extends org.apache.thrift.async.TAsyncMethodCall<Void> {
-      private org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo;
-      private org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials;
-      private long tid;
-      private java.lang.String dir;
-      private java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files;
-      private boolean setTime;
-      public loadFiles_call(org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo, org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials, long tid, java.lang.String dir, java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files, boolean setTime, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler, org.apache.thrift.async.TAsyncClient client, org.apache.thrift.protocol.TProtocolFactory protocolFactory, org.apache.thrift.transport.TNonblockingTransport transport) throws org.apache.thrift.TException {
-        super(client, protocolFactory, transport, resultHandler, true);
-        this.tinfo = tinfo;
-        this.credentials = credentials;
-        this.tid = tid;
-        this.dir = dir;
-        this.files = files;
-        this.setTime = setTime;
-      }
-
-      @Override
-      public void write_args(org.apache.thrift.protocol.TProtocol prot) throws org.apache.thrift.TException {
-        prot.writeMessageBegin(new org.apache.thrift.protocol.TMessage("loadFiles", org.apache.thrift.protocol.TMessageType.ONEWAY, 0));
-        loadFiles_args args = new loadFiles_args();
-        args.setTinfo(tinfo);
-        args.setCredentials(credentials);
-        args.setTid(tid);
-        args.setDir(dir);
-        args.setFiles(files);
-        args.setSetTime(setTime);
-        args.write(prot);
-        prot.writeMessageEnd();
-      }
-
-      @Override
-      public Void getResult() throws org.apache.thrift.TException {
-        if (getState() != org.apache.thrift.async.TAsyncMethodCall.State.RESPONSE_READ) {
-          throw new java.lang.IllegalStateException("Method call not finished!");
-        }
-        org.apache.thrift.transport.TMemoryInputTransport memoryTransport = new org.apache.thrift.transport.TMemoryInputTransport(getFrameBuffer().array());
-        org.apache.thrift.protocol.TProtocol prot = client.getProtocolFactory().getProtocol(memoryTransport);
-        return null;
-      }
-    }
-
   }
 
   public static class Processor<I extends Iface> extends org.apache.thrift.TBaseProcessor<I> implements org.apache.thrift.TProcessor {
@@ -743,12 +652,11 @@ public class TabletIngestClientService {
       processMap.put("startUpdate", new startUpdate());
       processMap.put("applyUpdates", new applyUpdates());
       processMap.put("closeUpdate", new closeUpdate());
-      processMap.put("update", new update());
+      processMap.put("cancelUpdate", new cancelUpdate());
       processMap.put("startConditionalUpdate", new startConditionalUpdate());
       processMap.put("conditionalUpdate", new conditionalUpdate());
       processMap.put("invalidateConditionalUpdate", new invalidateConditionalUpdate());
       processMap.put("closeConditionalUpdate", new closeConditionalUpdate());
-      processMap.put("loadFiles", new loadFiles());
       return processMap;
     }
 
@@ -844,14 +752,14 @@ public class TabletIngestClientService {
       }
     }
 
-    public static class update<I extends Iface> extends org.apache.thrift.ProcessFunction<I, update_args> {
-      public update() {
-        super("update");
+    public static class cancelUpdate<I extends Iface> extends org.apache.thrift.ProcessFunction<I, cancelUpdate_args> {
+      public cancelUpdate() {
+        super("cancelUpdate");
       }
 
       @Override
-      public update_args getEmptyArgsInstance() {
-        return new update_args();
+      public cancelUpdate_args getEmptyArgsInstance() {
+        return new cancelUpdate_args();
       }
 
       @Override
@@ -865,17 +773,10 @@ public class TabletIngestClientService {
       }
 
       @Override
-      public update_result getResult(I iface, update_args args) throws org.apache.thrift.TException {
-        update_result result = new update_result();
-        try {
-          iface.update(args.tinfo, args.credentials, args.keyExtent, args.mutation, args.durability);
-        } catch (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
-          result.sec = sec;
-        } catch (org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste) {
-          result.nste = nste;
-        } catch (ConstraintViolationException cve) {
-          result.cve = cve;
-        }
+      public cancelUpdate_result getResult(I iface, cancelUpdate_args args) throws org.apache.thrift.TException {
+        cancelUpdate_result result = new cancelUpdate_result();
+        result.success = iface.cancelUpdate(args.tinfo, args.updateID);
+        result.setSuccessIsSet(true);
         return result;
       }
     }
@@ -999,33 +900,6 @@ public class TabletIngestClientService {
       }
     }
 
-    public static class loadFiles<I extends Iface> extends org.apache.thrift.ProcessFunction<I, loadFiles_args> {
-      public loadFiles() {
-        super("loadFiles");
-      }
-
-      @Override
-      public loadFiles_args getEmptyArgsInstance() {
-        return new loadFiles_args();
-      }
-
-      @Override
-      protected boolean isOneway() {
-        return true;
-      }
-
-      @Override
-      protected boolean rethrowUnhandledExceptions() {
-        return false;
-      }
-
-      @Override
-      public org.apache.thrift.TBase getResult(I iface, loadFiles_args args) throws org.apache.thrift.TException {
-        iface.loadFiles(args.tinfo, args.credentials, args.tid, args.dir, args.files, args.setTime);
-        return null;
-      }
-    }
-
   }
 
   public static class AsyncProcessor<I extends AsyncIface> extends org.apache.thrift.TBaseAsyncProcessor<I> {
@@ -1042,12 +916,11 @@ public class TabletIngestClientService {
       processMap.put("startUpdate", new startUpdate());
       processMap.put("applyUpdates", new applyUpdates());
       processMap.put("closeUpdate", new closeUpdate());
-      processMap.put("update", new update());
+      processMap.put("cancelUpdate", new cancelUpdate());
       processMap.put("startConditionalUpdate", new startConditionalUpdate());
       processMap.put("conditionalUpdate", new conditionalUpdate());
       processMap.put("invalidateConditionalUpdate", new invalidateConditionalUpdate());
       processMap.put("closeConditionalUpdate", new closeConditionalUpdate());
-      processMap.put("loadFiles", new loadFiles());
       return processMap;
     }
 
@@ -1234,23 +1107,25 @@ public class TabletIngestClientService {
       }
     }
 
-    public static class update<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, update_args, Void> {
-      public update() {
-        super("update");
+    public static class cancelUpdate<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, cancelUpdate_args, java.lang.Boolean> {
+      public cancelUpdate() {
+        super("cancelUpdate");
       }
 
       @Override
-      public update_args getEmptyArgsInstance() {
-        return new update_args();
+      public cancelUpdate_args getEmptyArgsInstance() {
+        return new cancelUpdate_args();
       }
 
       @Override
-      public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
+      public org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
         final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
+        return new org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean>() { 
           @Override
-          public void onComplete(Void o) {
-            update_result result = new update_result();
+          public void onComplete(java.lang.Boolean o) {
+            cancelUpdate_result result = new cancelUpdate_result();
+            result.success = o;
+            result.setSuccessIsSet(true);
             try {
               fcall.sendResponse(fb, result, org.apache.thrift.protocol.TMessageType.REPLY,seqid);
             } catch (org.apache.thrift.transport.TTransportException e) {
@@ -1265,20 +1140,8 @@ public class TabletIngestClientService {
           public void onError(java.lang.Exception e) {
             byte msgType = org.apache.thrift.protocol.TMessageType.REPLY;
             org.apache.thrift.TSerializable msg;
-            update_result result = new update_result();
-            if (e instanceof org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) {
-              result.sec = (org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException) e;
-              result.setSecIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException) {
-              result.nste = (org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException) e;
-              result.setNsteIsSet(true);
-              msg = result;
-            } else if (e instanceof ConstraintViolationException) {
-              result.cve = (ConstraintViolationException) e;
-              result.setCveIsSet(true);
-              msg = result;
-            } else if (e instanceof org.apache.thrift.transport.TTransportException) {
+            cancelUpdate_result result = new cancelUpdate_result();
+            if (e instanceof org.apache.thrift.transport.TTransportException) {
               _LOGGER.error("TTransportException inside handler", e);
               fb.close();
               return;
@@ -1307,8 +1170,8 @@ public class TabletIngestClientService {
       }
 
       @Override
-      public void start(I iface, update_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.update(args.tinfo, args.credentials, args.keyExtent, args.mutation, args.durability,resultHandler);
+      public void start(I iface, cancelUpdate_args args, org.apache.thrift.async.AsyncMethodCallback<java.lang.Boolean> resultHandler) throws org.apache.thrift.TException {
+        iface.cancelUpdate(args.tinfo, args.updateID,resultHandler);
       }
     }
 
@@ -1557,46 +1420,6 @@ public class TabletIngestClientService {
       @Override
       public void start(I iface, closeConditionalUpdate_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
         iface.closeConditionalUpdate(args.tinfo, args.sessID,resultHandler);
-      }
-    }
-
-    public static class loadFiles<I extends AsyncIface> extends org.apache.thrift.AsyncProcessFunction<I, loadFiles_args, Void> {
-      public loadFiles() {
-        super("loadFiles");
-      }
-
-      @Override
-      public loadFiles_args getEmptyArgsInstance() {
-        return new loadFiles_args();
-      }
-
-      @Override
-      public org.apache.thrift.async.AsyncMethodCallback<Void> getResultHandler(final org.apache.thrift.server.AbstractNonblockingServer.AsyncFrameBuffer fb, final int seqid) {
-        final org.apache.thrift.AsyncProcessFunction fcall = this;
-        return new org.apache.thrift.async.AsyncMethodCallback<Void>() { 
-          @Override
-          public void onComplete(Void o) {
-          }
-          @Override
-          public void onError(java.lang.Exception e) {
-            if (e instanceof org.apache.thrift.transport.TTransportException) {
-              _LOGGER.error("TTransportException inside handler", e);
-              fb.close();
-            } else {
-              _LOGGER.error("Exception inside oneway handler", e);
-            }
-          }
-        };
-      }
-
-      @Override
-      protected boolean isOneway() {
-        return true;
-      }
-
-      @Override
-      public void start(I iface, loadFiles_args args, org.apache.thrift.async.AsyncMethodCallback<Void> resultHandler) throws org.apache.thrift.TException {
-        iface.loadFiles(args.tinfo, args.credentials, args.tid, args.dir, args.files, args.setTime,resultHandler);
       }
     }
 
@@ -4428,39 +4251,22 @@ public class TabletIngestClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class update_args implements org.apache.thrift.TBase<update_args, update_args._Fields>, java.io.Serializable, Cloneable, Comparable<update_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("update_args");
+  public static class cancelUpdate_args implements org.apache.thrift.TBase<cancelUpdate_args, cancelUpdate_args._Fields>, java.io.Serializable, Cloneable, Comparable<cancelUpdate_args>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancelUpdate_args");
 
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)4);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField KEY_EXTENT_FIELD_DESC = new org.apache.thrift.protocol.TField("keyExtent", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField MUTATION_FIELD_DESC = new org.apache.thrift.protocol.TField("mutation", org.apache.thrift.protocol.TType.STRUCT, (short)3);
-    private static final org.apache.thrift.protocol.TField DURABILITY_FIELD_DESC = new org.apache.thrift.protocol.TField("durability", org.apache.thrift.protocol.TType.I32, (short)5);
+    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
+    private static final org.apache.thrift.protocol.TField UPDATE_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("updateID", org.apache.thrift.protocol.TType.I64, (short)2);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new update_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new update_argsTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new cancelUpdate_argsStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new cancelUpdate_argsTupleSchemeFactory();
 
     public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TMutation mutation; // required
-    /**
-     * 
-     * @see TDurability
-     */
-    public @org.apache.thrift.annotation.Nullable TDurability durability; // required
+    public long updateID; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)4, "tinfo"),
-      CREDENTIALS((short)1, "credentials"),
-      KEY_EXTENT((short)2, "keyExtent"),
-      MUTATION((short)3, "mutation"),
-      /**
-       * 
-       * @see TDurability
-       */
-      DURABILITY((short)5, "durability");
+      TINFO((short)1, "tinfo"),
+      UPDATE_ID((short)2, "updateID");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -4476,16 +4282,10 @@ public class TabletIngestClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 4: // TINFO
+          case 1: // TINFO
             return TINFO;
-          case 1: // CREDENTIALS
-            return CREDENTIALS;
-          case 2: // KEY_EXTENT
-            return KEY_EXTENT;
-          case 3: // MUTATION
-            return MUTATION;
-          case 5: // DURABILITY
-            return DURABILITY;
+          case 2: // UPDATE_ID
+            return UPDATE_ID;
           default:
             return null;
         }
@@ -4529,74 +4329,53 @@ public class TabletIngestClientService {
     }
 
     // isset id assignments
+    private static final int __UPDATEID_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
       tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
           new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.KEY_EXTENT, new org.apache.thrift.meta_data.FieldMetaData("keyExtent", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class)));
-      tmpMap.put(_Fields.MUTATION, new org.apache.thrift.meta_data.FieldMetaData("mutation", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TMutation.class)));
-      tmpMap.put(_Fields.DURABILITY, new org.apache.thrift.meta_data.FieldMetaData("durability", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.EnumMetaData(org.apache.thrift.protocol.TType.ENUM, TDurability.class)));
+      tmpMap.put(_Fields.UPDATE_ID, new org.apache.thrift.meta_data.FieldMetaData("updateID", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64          , "UpdateID")));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(update_args.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancelUpdate_args.class, metaDataMap);
     }
 
-    public update_args() {
+    public cancelUpdate_args() {
     }
 
-    public update_args(
+    public cancelUpdate_args(
       org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
-      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent,
-      org.apache.accumulo.core.dataImpl.thrift.TMutation mutation,
-      TDurability durability)
+      long updateID)
     {
       this();
       this.tinfo = tinfo;
-      this.credentials = credentials;
-      this.keyExtent = keyExtent;
-      this.mutation = mutation;
-      this.durability = durability;
+      this.updateID = updateID;
+      setUpdateIDIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public update_args(update_args other) {
+    public cancelUpdate_args(cancelUpdate_args other) {
+      __isset_bitfield = other.__isset_bitfield;
       if (other.isSetTinfo()) {
         this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
       }
-      if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
-      }
-      if (other.isSetKeyExtent()) {
-        this.keyExtent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other.keyExtent);
-      }
-      if (other.isSetMutation()) {
-        this.mutation = new org.apache.accumulo.core.dataImpl.thrift.TMutation(other.mutation);
-      }
-      if (other.isSetDurability()) {
-        this.durability = other.durability;
-      }
+      this.updateID = other.updateID;
     }
 
     @Override
-    public update_args deepCopy() {
-      return new update_args(this);
+    public cancelUpdate_args deepCopy() {
+      return new cancelUpdate_args(this);
     }
 
     @Override
     public void clear() {
       this.tinfo = null;
-      this.credentials = null;
-      this.keyExtent = null;
-      this.mutation = null;
-      this.durability = null;
+      setUpdateIDIsSet(false);
+      this.updateID = 0;
     }
 
     @org.apache.thrift.annotation.Nullable
@@ -4604,7 +4383,7 @@ public class TabletIngestClientService {
       return this.tinfo;
     }
 
-    public update_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
+    public cancelUpdate_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
       this.tinfo = tinfo;
       return this;
     }
@@ -4624,112 +4403,27 @@ public class TabletIngestClientService {
       }
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
-      return this.credentials;
+    public long getUpdateID() {
+      return this.updateID;
     }
 
-    public update_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
-      this.credentials = credentials;
+    public cancelUpdate_args setUpdateID(long updateID) {
+      this.updateID = updateID;
+      setUpdateIDIsSet(true);
       return this;
     }
 
-    public void unsetCredentials() {
-      this.credentials = null;
+    public void unsetUpdateID() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __UPDATEID_ISSET_ID);
     }
 
-    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredentials() {
-      return this.credentials != null;
+    /** Returns true if field updateID is set (has been assigned a value) and false otherwise */
+    public boolean isSetUpdateID() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __UPDATEID_ISSET_ID);
     }
 
-    public void setCredentialsIsSet(boolean value) {
-      if (!value) {
-        this.credentials = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.dataImpl.thrift.TKeyExtent getKeyExtent() {
-      return this.keyExtent;
-    }
-
-    public update_args setKeyExtent(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent keyExtent) {
-      this.keyExtent = keyExtent;
-      return this;
-    }
-
-    public void unsetKeyExtent() {
-      this.keyExtent = null;
-    }
-
-    /** Returns true if field keyExtent is set (has been assigned a value) and false otherwise */
-    public boolean isSetKeyExtent() {
-      return this.keyExtent != null;
-    }
-
-    public void setKeyExtentIsSet(boolean value) {
-      if (!value) {
-        this.keyExtent = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.dataImpl.thrift.TMutation getMutation() {
-      return this.mutation;
-    }
-
-    public update_args setMutation(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TMutation mutation) {
-      this.mutation = mutation;
-      return this;
-    }
-
-    public void unsetMutation() {
-      this.mutation = null;
-    }
-
-    /** Returns true if field mutation is set (has been assigned a value) and false otherwise */
-    public boolean isSetMutation() {
-      return this.mutation != null;
-    }
-
-    public void setMutationIsSet(boolean value) {
-      if (!value) {
-        this.mutation = null;
-      }
-    }
-
-    /**
-     * 
-     * @see TDurability
-     */
-    @org.apache.thrift.annotation.Nullable
-    public TDurability getDurability() {
-      return this.durability;
-    }
-
-    /**
-     * 
-     * @see TDurability
-     */
-    public update_args setDurability(@org.apache.thrift.annotation.Nullable TDurability durability) {
-      this.durability = durability;
-      return this;
-    }
-
-    public void unsetDurability() {
-      this.durability = null;
-    }
-
-    /** Returns true if field durability is set (has been assigned a value) and false otherwise */
-    public boolean isSetDurability() {
-      return this.durability != null;
-    }
-
-    public void setDurabilityIsSet(boolean value) {
-      if (!value) {
-        this.durability = null;
-      }
+    public void setUpdateIDIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __UPDATEID_ISSET_ID, value);
     }
 
     @Override
@@ -4743,35 +4437,11 @@ public class TabletIngestClientService {
         }
         break;
 
-      case CREDENTIALS:
+      case UPDATE_ID:
         if (value == null) {
-          unsetCredentials();
+          unsetUpdateID();
         } else {
-          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
-        }
-        break;
-
-      case KEY_EXTENT:
-        if (value == null) {
-          unsetKeyExtent();
-        } else {
-          setKeyExtent((org.apache.accumulo.core.dataImpl.thrift.TKeyExtent)value);
-        }
-        break;
-
-      case MUTATION:
-        if (value == null) {
-          unsetMutation();
-        } else {
-          setMutation((org.apache.accumulo.core.dataImpl.thrift.TMutation)value);
-        }
-        break;
-
-      case DURABILITY:
-        if (value == null) {
-          unsetDurability();
-        } else {
-          setDurability((TDurability)value);
+          setUpdateID((java.lang.Long)value);
         }
         break;
 
@@ -4785,17 +4455,8 @@ public class TabletIngestClientService {
       case TINFO:
         return getTinfo();
 
-      case CREDENTIALS:
-        return getCredentials();
-
-      case KEY_EXTENT:
-        return getKeyExtent();
-
-      case MUTATION:
-        return getMutation();
-
-      case DURABILITY:
-        return getDurability();
+      case UPDATE_ID:
+        return getUpdateID();
 
       }
       throw new java.lang.IllegalStateException();
@@ -4811,26 +4472,20 @@ public class TabletIngestClientService {
       switch (field) {
       case TINFO:
         return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case KEY_EXTENT:
-        return isSetKeyExtent();
-      case MUTATION:
-        return isSetMutation();
-      case DURABILITY:
-        return isSetDurability();
+      case UPDATE_ID:
+        return isSetUpdateID();
       }
       throw new java.lang.IllegalStateException();
     }
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof update_args)
-        return this.equals((update_args)that);
+      if (that instanceof cancelUpdate_args)
+        return this.equals((cancelUpdate_args)that);
       return false;
     }
 
-    public boolean equals(update_args that) {
+    public boolean equals(cancelUpdate_args that) {
       if (that == null)
         return false;
       if (this == that)
@@ -4845,39 +4500,12 @@ public class TabletIngestClientService {
           return false;
       }
 
-      boolean this_present_credentials = true && this.isSetCredentials();
-      boolean that_present_credentials = true && that.isSetCredentials();
-      if (this_present_credentials || that_present_credentials) {
-        if (!(this_present_credentials && that_present_credentials))
+      boolean this_present_updateID = true;
+      boolean that_present_updateID = true;
+      if (this_present_updateID || that_present_updateID) {
+        if (!(this_present_updateID && that_present_updateID))
           return false;
-        if (!this.credentials.equals(that.credentials))
-          return false;
-      }
-
-      boolean this_present_keyExtent = true && this.isSetKeyExtent();
-      boolean that_present_keyExtent = true && that.isSetKeyExtent();
-      if (this_present_keyExtent || that_present_keyExtent) {
-        if (!(this_present_keyExtent && that_present_keyExtent))
-          return false;
-        if (!this.keyExtent.equals(that.keyExtent))
-          return false;
-      }
-
-      boolean this_present_mutation = true && this.isSetMutation();
-      boolean that_present_mutation = true && that.isSetMutation();
-      if (this_present_mutation || that_present_mutation) {
-        if (!(this_present_mutation && that_present_mutation))
-          return false;
-        if (!this.mutation.equals(that.mutation))
-          return false;
-      }
-
-      boolean this_present_durability = true && this.isSetDurability();
-      boolean that_present_durability = true && that.isSetDurability();
-      if (this_present_durability || that_present_durability) {
-        if (!(this_present_durability && that_present_durability))
-          return false;
-        if (!this.durability.equals(that.durability))
+        if (this.updateID != that.updateID)
           return false;
       }
 
@@ -4892,27 +4520,13 @@ public class TabletIngestClientService {
       if (isSetTinfo())
         hashCode = hashCode * 8191 + tinfo.hashCode();
 
-      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
-      if (isSetCredentials())
-        hashCode = hashCode * 8191 + credentials.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetKeyExtent()) ? 131071 : 524287);
-      if (isSetKeyExtent())
-        hashCode = hashCode * 8191 + keyExtent.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetMutation()) ? 131071 : 524287);
-      if (isSetMutation())
-        hashCode = hashCode * 8191 + mutation.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetDurability()) ? 131071 : 524287);
-      if (isSetDurability())
-        hashCode = hashCode * 8191 + durability.getValue();
+      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(updateID);
 
       return hashCode;
     }
 
     @Override
-    public int compareTo(update_args other) {
+    public int compareTo(cancelUpdate_args other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
@@ -4929,42 +4543,12 @@ public class TabletIngestClientService {
           return lastComparison;
         }
       }
-      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
+      lastComparison = java.lang.Boolean.compare(isSetUpdateID(), other.isSetUpdateID());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetCredentials()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetKeyExtent(), other.isSetKeyExtent());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetKeyExtent()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.keyExtent, other.keyExtent);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetMutation(), other.isSetMutation());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetMutation()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.mutation, other.mutation);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetDurability(), other.isSetDurability());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetDurability()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.durability, other.durability);
+      if (isSetUpdateID()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.updateID, other.updateID);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -4990,7 +4574,7 @@ public class TabletIngestClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("update_args(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("cancelUpdate_args(");
       boolean first = true;
 
       sb.append("tinfo:");
@@ -5001,36 +4585,8 @@ public class TabletIngestClientService {
       }
       first = false;
       if (!first) sb.append(", ");
-      sb.append("credentials:");
-      if (this.credentials == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credentials);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("keyExtent:");
-      if (this.keyExtent == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.keyExtent);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("mutation:");
-      if (this.mutation == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.mutation);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("durability:");
-      if (this.durability == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.durability);
-      }
+      sb.append("updateID:");
+      sb.append(this.updateID);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -5041,15 +4597,6 @@ public class TabletIngestClientService {
       // check for sub-struct validity
       if (tinfo != null) {
         tinfo.validate();
-      }
-      if (credentials != null) {
-        credentials.validate();
-      }
-      if (keyExtent != null) {
-        keyExtent.validate();
-      }
-      if (mutation != null) {
-        mutation.validate();
       }
     }
 
@@ -5063,23 +4610,25 @@ public class TabletIngestClientService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
-    private static class update_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class cancelUpdate_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public update_argsStandardScheme getScheme() {
-        return new update_argsStandardScheme();
+      public cancelUpdate_argsStandardScheme getScheme() {
+        return new cancelUpdate_argsStandardScheme();
       }
     }
 
-    private static class update_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<update_args> {
+    private static class cancelUpdate_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<cancelUpdate_args> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, update_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, cancelUpdate_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -5089,7 +4638,7 @@ public class TabletIngestClientService {
             break;
           }
           switch (schemeField.id) {
-            case 4: // TINFO
+            case 1: // TINFO
               if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
                 struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
                 struct.tinfo.read(iprot);
@@ -5098,37 +4647,10 @@ public class TabletIngestClientService {
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
               break;
-            case 1: // CREDENTIALS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
-                struct.credentials.read(iprot);
-                struct.setCredentialsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // KEY_EXTENT
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.keyExtent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                struct.keyExtent.read(iprot);
-                struct.setKeyExtentIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // MUTATION
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.mutation = new org.apache.accumulo.core.dataImpl.thrift.TMutation();
-                struct.mutation.read(iprot);
-                struct.setMutationIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 5: // DURABILITY
-              if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
-                struct.durability = org.apache.accumulo.core.tabletingest.thrift.TDurability.findByValue(iprot.readI32());
-                struct.setDurabilityIsSet(true);
+            case 2: // UPDATE_ID
+              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
+                struct.updateID = iprot.readI64();
+                struct.setUpdateIDIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -5145,114 +4667,64 @@ public class TabletIngestClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, update_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, cancelUpdate_args struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.credentials != null) {
-          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
-          struct.credentials.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.keyExtent != null) {
-          oprot.writeFieldBegin(KEY_EXTENT_FIELD_DESC);
-          struct.keyExtent.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.mutation != null) {
-          oprot.writeFieldBegin(MUTATION_FIELD_DESC);
-          struct.mutation.write(oprot);
-          oprot.writeFieldEnd();
-        }
         if (struct.tinfo != null) {
           oprot.writeFieldBegin(TINFO_FIELD_DESC);
           struct.tinfo.write(oprot);
           oprot.writeFieldEnd();
         }
-        if (struct.durability != null) {
-          oprot.writeFieldBegin(DURABILITY_FIELD_DESC);
-          oprot.writeI32(struct.durability.getValue());
-          oprot.writeFieldEnd();
-        }
+        oprot.writeFieldBegin(UPDATE_ID_FIELD_DESC);
+        oprot.writeI64(struct.updateID);
+        oprot.writeFieldEnd();
         oprot.writeFieldStop();
         oprot.writeStructEnd();
       }
 
     }
 
-    private static class update_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class cancelUpdate_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public update_argsTupleScheme getScheme() {
-        return new update_argsTupleScheme();
+      public cancelUpdate_argsTupleScheme getScheme() {
+        return new cancelUpdate_argsTupleScheme();
       }
     }
 
-    private static class update_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<update_args> {
+    private static class cancelUpdate_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<cancelUpdate_args> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, update_args struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, cancelUpdate_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
         if (struct.isSetTinfo()) {
           optionals.set(0);
         }
-        if (struct.isSetCredentials()) {
+        if (struct.isSetUpdateID()) {
           optionals.set(1);
         }
-        if (struct.isSetKeyExtent()) {
-          optionals.set(2);
-        }
-        if (struct.isSetMutation()) {
-          optionals.set(3);
-        }
-        if (struct.isSetDurability()) {
-          optionals.set(4);
-        }
-        oprot.writeBitSet(optionals, 5);
+        oprot.writeBitSet(optionals, 2);
         if (struct.isSetTinfo()) {
           struct.tinfo.write(oprot);
         }
-        if (struct.isSetCredentials()) {
-          struct.credentials.write(oprot);
-        }
-        if (struct.isSetKeyExtent()) {
-          struct.keyExtent.write(oprot);
-        }
-        if (struct.isSetMutation()) {
-          struct.mutation.write(oprot);
-        }
-        if (struct.isSetDurability()) {
-          oprot.writeI32(struct.durability.getValue());
+        if (struct.isSetUpdateID()) {
+          oprot.writeI64(struct.updateID);
         }
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, update_args struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, cancelUpdate_args struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(5);
+        java.util.BitSet incoming = iprot.readBitSet(2);
         if (incoming.get(0)) {
           struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
           struct.tinfo.read(iprot);
           struct.setTinfoIsSet(true);
         }
         if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
-          struct.credentials.read(iprot);
-          struct.setCredentialsIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.keyExtent = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-          struct.keyExtent.read(iprot);
-          struct.setKeyExtentIsSet(true);
-        }
-        if (incoming.get(3)) {
-          struct.mutation = new org.apache.accumulo.core.dataImpl.thrift.TMutation();
-          struct.mutation.read(iprot);
-          struct.setMutationIsSet(true);
-        }
-        if (incoming.get(4)) {
-          struct.durability = org.apache.accumulo.core.tabletingest.thrift.TDurability.findByValue(iprot.readI32());
-          struct.setDurabilityIsSet(true);
+          struct.updateID = iprot.readI64();
+          struct.setUpdateIDIsSet(true);
         }
       }
     }
@@ -5263,25 +4735,19 @@ public class TabletIngestClientService {
   }
 
   @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class update_result implements org.apache.thrift.TBase<update_result, update_result._Fields>, java.io.Serializable, Cloneable, Comparable<update_result>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("update_result");
+  public static class cancelUpdate_result implements org.apache.thrift.TBase<cancelUpdate_result, cancelUpdate_result._Fields>, java.io.Serializable, Cloneable, Comparable<cancelUpdate_result>   {
+    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("cancelUpdate_result");
 
-    private static final org.apache.thrift.protocol.TField SEC_FIELD_DESC = new org.apache.thrift.protocol.TField("sec", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField NSTE_FIELD_DESC = new org.apache.thrift.protocol.TField("nste", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField CVE_FIELD_DESC = new org.apache.thrift.protocol.TField("cve", org.apache.thrift.protocol.TType.STRUCT, (short)3);
+    private static final org.apache.thrift.protocol.TField SUCCESS_FIELD_DESC = new org.apache.thrift.protocol.TField("success", org.apache.thrift.protocol.TType.BOOL, (short)0);
 
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new update_resultStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new update_resultTupleSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new cancelUpdate_resultStandardSchemeFactory();
+    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new cancelUpdate_resultTupleSchemeFactory();
 
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste; // required
-    public @org.apache.thrift.annotation.Nullable ConstraintViolationException cve; // required
+    public boolean success; // required
 
     /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
     public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      SEC((short)1, "sec"),
-      NSTE((short)2, "nste"),
-      CVE((short)3, "cve");
+      SUCCESS((short)0, "success");
 
       private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
 
@@ -5297,12 +4763,8 @@ public class TabletIngestClientService {
       @org.apache.thrift.annotation.Nullable
       public static _Fields findByThriftId(int fieldId) {
         switch(fieldId) {
-          case 1: // SEC
-            return SEC;
-          case 2: // NSTE
-            return NSTE;
-          case 3: // CVE
-            return CVE;
+          case 0: // SUCCESS
+            return SUCCESS;
           default:
             return null;
         }
@@ -5346,159 +4808,78 @@ public class TabletIngestClientService {
     }
 
     // isset id assignments
+    private static final int __SUCCESS_ISSET_ID = 0;
+    private byte __isset_bitfield = 0;
     public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
     static {
       java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.SEC, new org.apache.thrift.meta_data.FieldMetaData("sec", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException.class)));
-      tmpMap.put(_Fields.NSTE, new org.apache.thrift.meta_data.FieldMetaData("nste", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException.class)));
-      tmpMap.put(_Fields.CVE, new org.apache.thrift.meta_data.FieldMetaData("cve", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, ConstraintViolationException.class)));
+      tmpMap.put(_Fields.SUCCESS, new org.apache.thrift.meta_data.FieldMetaData("success", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
       metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(update_result.class, metaDataMap);
+      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(cancelUpdate_result.class, metaDataMap);
     }
 
-    public update_result() {
+    public cancelUpdate_result() {
     }
 
-    public update_result(
-      org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec,
-      org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste,
-      ConstraintViolationException cve)
+    public cancelUpdate_result(
+      boolean success)
     {
       this();
-      this.sec = sec;
-      this.nste = nste;
-      this.cve = cve;
+      this.success = success;
+      setSuccessIsSet(true);
     }
 
     /**
      * Performs a deep copy on <i>other</i>.
      */
-    public update_result(update_result other) {
-      if (other.isSetSec()) {
-        this.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException(other.sec);
-      }
-      if (other.isSetNste()) {
-        this.nste = new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException(other.nste);
-      }
-      if (other.isSetCve()) {
-        this.cve = new ConstraintViolationException(other.cve);
-      }
+    public cancelUpdate_result(cancelUpdate_result other) {
+      __isset_bitfield = other.__isset_bitfield;
+      this.success = other.success;
     }
 
     @Override
-    public update_result deepCopy() {
-      return new update_result(this);
+    public cancelUpdate_result deepCopy() {
+      return new cancelUpdate_result(this);
     }
 
     @Override
     public void clear() {
-      this.sec = null;
-      this.nste = null;
-      this.cve = null;
+      setSuccessIsSet(false);
+      this.success = false;
     }
 
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException getSec() {
-      return this.sec;
+    public boolean isSuccess() {
+      return this.success;
     }
 
-    public update_result setSec(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException sec) {
-      this.sec = sec;
+    public cancelUpdate_result setSuccess(boolean success) {
+      this.success = success;
+      setSuccessIsSet(true);
       return this;
     }
 
-    public void unsetSec() {
-      this.sec = null;
+    public void unsetSuccess() {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SUCCESS_ISSET_ID);
     }
 
-    /** Returns true if field sec is set (has been assigned a value) and false otherwise */
-    public boolean isSetSec() {
-      return this.sec != null;
+    /** Returns true if field success is set (has been assigned a value) and false otherwise */
+    public boolean isSetSuccess() {
+      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SUCCESS_ISSET_ID);
     }
 
-    public void setSecIsSet(boolean value) {
-      if (!value) {
-        this.sec = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException getNste() {
-      return this.nste;
-    }
-
-    public update_result setNste(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException nste) {
-      this.nste = nste;
-      return this;
-    }
-
-    public void unsetNste() {
-      this.nste = null;
-    }
-
-    /** Returns true if field nste is set (has been assigned a value) and false otherwise */
-    public boolean isSetNste() {
-      return this.nste != null;
-    }
-
-    public void setNsteIsSet(boolean value) {
-      if (!value) {
-        this.nste = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public ConstraintViolationException getCve() {
-      return this.cve;
-    }
-
-    public update_result setCve(@org.apache.thrift.annotation.Nullable ConstraintViolationException cve) {
-      this.cve = cve;
-      return this;
-    }
-
-    public void unsetCve() {
-      this.cve = null;
-    }
-
-    /** Returns true if field cve is set (has been assigned a value) and false otherwise */
-    public boolean isSetCve() {
-      return this.cve != null;
-    }
-
-    public void setCveIsSet(boolean value) {
-      if (!value) {
-        this.cve = null;
-      }
+    public void setSuccessIsSet(boolean value) {
+      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SUCCESS_ISSET_ID, value);
     }
 
     @Override
     public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
       switch (field) {
-      case SEC:
+      case SUCCESS:
         if (value == null) {
-          unsetSec();
+          unsetSuccess();
         } else {
-          setSec((org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException)value);
-        }
-        break;
-
-      case NSTE:
-        if (value == null) {
-          unsetNste();
-        } else {
-          setNste((org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException)value);
-        }
-        break;
-
-      case CVE:
-        if (value == null) {
-          unsetCve();
-        } else {
-          setCve((ConstraintViolationException)value);
+          setSuccess((java.lang.Boolean)value);
         }
         break;
 
@@ -5509,14 +4890,8 @@ public class TabletIngestClientService {
     @Override
     public java.lang.Object getFieldValue(_Fields field) {
       switch (field) {
-      case SEC:
-        return getSec();
-
-      case NSTE:
-        return getNste();
-
-      case CVE:
-        return getCve();
+      case SUCCESS:
+        return isSuccess();
 
       }
       throw new java.lang.IllegalStateException();
@@ -5530,53 +4905,31 @@ public class TabletIngestClientService {
       }
 
       switch (field) {
-      case SEC:
-        return isSetSec();
-      case NSTE:
-        return isSetNste();
-      case CVE:
-        return isSetCve();
+      case SUCCESS:
+        return isSetSuccess();
       }
       throw new java.lang.IllegalStateException();
     }
 
     @Override
     public boolean equals(java.lang.Object that) {
-      if (that instanceof update_result)
-        return this.equals((update_result)that);
+      if (that instanceof cancelUpdate_result)
+        return this.equals((cancelUpdate_result)that);
       return false;
     }
 
-    public boolean equals(update_result that) {
+    public boolean equals(cancelUpdate_result that) {
       if (that == null)
         return false;
       if (this == that)
         return true;
 
-      boolean this_present_sec = true && this.isSetSec();
-      boolean that_present_sec = true && that.isSetSec();
-      if (this_present_sec || that_present_sec) {
-        if (!(this_present_sec && that_present_sec))
+      boolean this_present_success = true;
+      boolean that_present_success = true;
+      if (this_present_success || that_present_success) {
+        if (!(this_present_success && that_present_success))
           return false;
-        if (!this.sec.equals(that.sec))
-          return false;
-      }
-
-      boolean this_present_nste = true && this.isSetNste();
-      boolean that_present_nste = true && that.isSetNste();
-      if (this_present_nste || that_present_nste) {
-        if (!(this_present_nste && that_present_nste))
-          return false;
-        if (!this.nste.equals(that.nste))
-          return false;
-      }
-
-      boolean this_present_cve = true && this.isSetCve();
-      boolean that_present_cve = true && that.isSetCve();
-      if (this_present_cve || that_present_cve) {
-        if (!(this_present_cve && that_present_cve))
-          return false;
-        if (!this.cve.equals(that.cve))
+        if (this.success != that.success)
           return false;
       }
 
@@ -5587,55 +4940,25 @@ public class TabletIngestClientService {
     public int hashCode() {
       int hashCode = 1;
 
-      hashCode = hashCode * 8191 + ((isSetSec()) ? 131071 : 524287);
-      if (isSetSec())
-        hashCode = hashCode * 8191 + sec.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetNste()) ? 131071 : 524287);
-      if (isSetNste())
-        hashCode = hashCode * 8191 + nste.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetCve()) ? 131071 : 524287);
-      if (isSetCve())
-        hashCode = hashCode * 8191 + cve.hashCode();
+      hashCode = hashCode * 8191 + ((success) ? 131071 : 524287);
 
       return hashCode;
     }
 
     @Override
-    public int compareTo(update_result other) {
+    public int compareTo(cancelUpdate_result other) {
       if (!getClass().equals(other.getClass())) {
         return getClass().getName().compareTo(other.getClass().getName());
       }
 
       int lastComparison = 0;
 
-      lastComparison = java.lang.Boolean.compare(isSetSec(), other.isSetSec());
+      lastComparison = java.lang.Boolean.compare(isSetSuccess(), other.isSetSuccess());
       if (lastComparison != 0) {
         return lastComparison;
       }
-      if (isSetSec()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.sec, other.sec);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetNste(), other.isSetNste());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetNste()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.nste, other.nste);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetCve(), other.isSetCve());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCve()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.cve, other.cve);
+      if (isSetSuccess()) {
+        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.success, other.success);
         if (lastComparison != 0) {
           return lastComparison;
         }
@@ -5660,31 +4983,11 @@ public class TabletIngestClientService {
 
     @Override
     public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("update_result(");
+      java.lang.StringBuilder sb = new java.lang.StringBuilder("cancelUpdate_result(");
       boolean first = true;
 
-      sb.append("sec:");
-      if (this.sec == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.sec);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("nste:");
-      if (this.nste == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.nste);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("cve:");
-      if (this.cve == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.cve);
-      }
+      sb.append("success:");
+      sb.append(this.success);
       first = false;
       sb.append(")");
       return sb.toString();
@@ -5705,23 +5008,25 @@ public class TabletIngestClientService {
 
     private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
       try {
+        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
+        __isset_bitfield = 0;
         read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
       } catch (org.apache.thrift.TException te) {
         throw new java.io.IOException(te);
       }
     }
 
-    private static class update_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class cancelUpdate_resultStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public update_resultStandardScheme getScheme() {
-        return new update_resultStandardScheme();
+      public cancelUpdate_resultStandardScheme getScheme() {
+        return new cancelUpdate_resultStandardScheme();
       }
     }
 
-    private static class update_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<update_result> {
+    private static class cancelUpdate_resultStandardScheme extends org.apache.thrift.scheme.StandardScheme<cancelUpdate_result> {
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, update_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol iprot, cancelUpdate_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TField schemeField;
         iprot.readStructBegin();
         while (true)
@@ -5731,29 +5036,10 @@ public class TabletIngestClientService {
             break;
           }
           switch (schemeField.id) {
-            case 1: // SEC
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
-                struct.sec.read(iprot);
-                struct.setSecIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // NSTE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.nste = new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException();
-                struct.nste.read(iprot);
-                struct.setNsteIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // CVE
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.cve = new ConstraintViolationException();
-                struct.cve.read(iprot);
-                struct.setCveIsSet(true);
+            case 0: // SUCCESS
+              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
+                struct.success = iprot.readBool();
+                struct.setSuccessIsSet(true);
               } else { 
                 org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
               }
@@ -5770,23 +5056,13 @@ public class TabletIngestClientService {
       }
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, update_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol oprot, cancelUpdate_result struct) throws org.apache.thrift.TException {
         struct.validate();
 
         oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.sec != null) {
-          oprot.writeFieldBegin(SEC_FIELD_DESC);
-          struct.sec.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.nste != null) {
-          oprot.writeFieldBegin(NSTE_FIELD_DESC);
-          struct.nste.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.cve != null) {
-          oprot.writeFieldBegin(CVE_FIELD_DESC);
-          struct.cve.write(oprot);
+        if (struct.isSetSuccess()) {
+          oprot.writeFieldBegin(SUCCESS_FIELD_DESC);
+          oprot.writeBool(struct.success);
           oprot.writeFieldEnd();
         }
         oprot.writeFieldStop();
@@ -5795,58 +5071,35 @@ public class TabletIngestClientService {
 
     }
 
-    private static class update_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
+    private static class cancelUpdate_resultTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
       @Override
-      public update_resultTupleScheme getScheme() {
-        return new update_resultTupleScheme();
+      public cancelUpdate_resultTupleScheme getScheme() {
+        return new cancelUpdate_resultTupleScheme();
       }
     }
 
-    private static class update_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<update_result> {
+    private static class cancelUpdate_resultTupleScheme extends org.apache.thrift.scheme.TupleScheme<cancelUpdate_result> {
 
       @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, update_result struct) throws org.apache.thrift.TException {
+      public void write(org.apache.thrift.protocol.TProtocol prot, cancelUpdate_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
         java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetSec()) {
+        if (struct.isSetSuccess()) {
           optionals.set(0);
         }
-        if (struct.isSetNste()) {
-          optionals.set(1);
-        }
-        if (struct.isSetCve()) {
-          optionals.set(2);
-        }
-        oprot.writeBitSet(optionals, 3);
-        if (struct.isSetSec()) {
-          struct.sec.write(oprot);
-        }
-        if (struct.isSetNste()) {
-          struct.nste.write(oprot);
-        }
-        if (struct.isSetCve()) {
-          struct.cve.write(oprot);
+        oprot.writeBitSet(optionals, 1);
+        if (struct.isSetSuccess()) {
+          oprot.writeBool(struct.success);
         }
       }
 
       @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, update_result struct) throws org.apache.thrift.TException {
+      public void read(org.apache.thrift.protocol.TProtocol prot, cancelUpdate_result struct) throws org.apache.thrift.TException {
         org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(3);
+        java.util.BitSet incoming = iprot.readBitSet(1);
         if (incoming.get(0)) {
-          struct.sec = new org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException();
-          struct.sec.read(iprot);
-          struct.setSecIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.nste = new org.apache.accumulo.core.tabletserver.thrift.NotServingTabletException();
-          struct.nste.read(iprot);
-          struct.setNsteIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.cve = new ConstraintViolationException();
-          struct.cve.read(iprot);
-          struct.setCveIsSet(true);
+          struct.success = iprot.readBool();
+          struct.setSuccessIsSet(true);
         }
       }
     }
@@ -9934,1024 +9187,6 @@ public class TabletIngestClientService {
         if (incoming.get(1)) {
           struct.sessID = iprot.readI64();
           struct.setSessIDIsSet(true);
-        }
-      }
-    }
-
-    private static <S extends org.apache.thrift.scheme.IScheme> S scheme(org.apache.thrift.protocol.TProtocol proto) {
-      return (org.apache.thrift.scheme.StandardScheme.class.equals(proto.getScheme()) ? STANDARD_SCHEME_FACTORY : TUPLE_SCHEME_FACTORY).getScheme();
-    }
-  }
-
-  @SuppressWarnings({"cast", "rawtypes", "serial", "unchecked", "unused"})
-  public static class loadFiles_args implements org.apache.thrift.TBase<loadFiles_args, loadFiles_args._Fields>, java.io.Serializable, Cloneable, Comparable<loadFiles_args>   {
-    private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("loadFiles_args");
-
-    private static final org.apache.thrift.protocol.TField TINFO_FIELD_DESC = new org.apache.thrift.protocol.TField("tinfo", org.apache.thrift.protocol.TType.STRUCT, (short)1);
-    private static final org.apache.thrift.protocol.TField CREDENTIALS_FIELD_DESC = new org.apache.thrift.protocol.TField("credentials", org.apache.thrift.protocol.TType.STRUCT, (short)2);
-    private static final org.apache.thrift.protocol.TField TID_FIELD_DESC = new org.apache.thrift.protocol.TField("tid", org.apache.thrift.protocol.TType.I64, (short)3);
-    private static final org.apache.thrift.protocol.TField DIR_FIELD_DESC = new org.apache.thrift.protocol.TField("dir", org.apache.thrift.protocol.TType.STRING, (short)4);
-    private static final org.apache.thrift.protocol.TField FILES_FIELD_DESC = new org.apache.thrift.protocol.TField("files", org.apache.thrift.protocol.TType.MAP, (short)7);
-    private static final org.apache.thrift.protocol.TField SET_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("setTime", org.apache.thrift.protocol.TType.BOOL, (short)6);
-
-    private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new loadFiles_argsStandardSchemeFactory();
-    private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new loadFiles_argsTupleSchemeFactory();
-
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo; // required
-    public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials; // required
-    public long tid; // required
-    public @org.apache.thrift.annotation.Nullable java.lang.String dir; // required
-    public @org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files; // required
-    public boolean setTime; // required
-
-    /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
-    public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-      TINFO((short)1, "tinfo"),
-      CREDENTIALS((short)2, "credentials"),
-      TID((short)3, "tid"),
-      DIR((short)4, "dir"),
-      FILES((short)7, "files"),
-      SET_TIME((short)6, "setTime");
-
-      private static final java.util.Map<java.lang.String, _Fields> byName = new java.util.HashMap<java.lang.String, _Fields>();
-
-      static {
-        for (_Fields field : java.util.EnumSet.allOf(_Fields.class)) {
-          byName.put(field.getFieldName(), field);
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, or null if its not found.
-       */
-      @org.apache.thrift.annotation.Nullable
-      public static _Fields findByThriftId(int fieldId) {
-        switch(fieldId) {
-          case 1: // TINFO
-            return TINFO;
-          case 2: // CREDENTIALS
-            return CREDENTIALS;
-          case 3: // TID
-            return TID;
-          case 4: // DIR
-            return DIR;
-          case 7: // FILES
-            return FILES;
-          case 6: // SET_TIME
-            return SET_TIME;
-          default:
-            return null;
-        }
-      }
-
-      /**
-       * Find the _Fields constant that matches fieldId, throwing an exception
-       * if it is not found.
-       */
-      public static _Fields findByThriftIdOrThrow(int fieldId) {
-        _Fields fields = findByThriftId(fieldId);
-        if (fields == null) throw new java.lang.IllegalArgumentException("Field " + fieldId + " doesn't exist!");
-        return fields;
-      }
-
-      /**
-       * Find the _Fields constant that matches name, or null if its not found.
-       */
-      @org.apache.thrift.annotation.Nullable
-      public static _Fields findByName(java.lang.String name) {
-        return byName.get(name);
-      }
-
-      private final short _thriftId;
-      private final java.lang.String _fieldName;
-
-      _Fields(short thriftId, java.lang.String fieldName) {
-        _thriftId = thriftId;
-        _fieldName = fieldName;
-      }
-
-      @Override
-      public short getThriftFieldId() {
-        return _thriftId;
-      }
-
-      @Override
-      public java.lang.String getFieldName() {
-        return _fieldName;
-      }
-    }
-
-    // isset id assignments
-    private static final int __TID_ISSET_ID = 0;
-    private static final int __SETTIME_ISSET_ID = 1;
-    private byte __isset_bitfield = 0;
-    public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
-    static {
-      java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-      tmpMap.put(_Fields.TINFO, new org.apache.thrift.meta_data.FieldMetaData("tinfo", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.clientImpl.thrift.TInfo.class)));
-      tmpMap.put(_Fields.CREDENTIALS, new org.apache.thrift.meta_data.FieldMetaData("credentials", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.securityImpl.thrift.TCredentials.class)));
-      tmpMap.put(_Fields.TID, new org.apache.thrift.meta_data.FieldMetaData("tid", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
-      tmpMap.put(_Fields.DIR, new org.apache.thrift.meta_data.FieldMetaData("dir", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
-      tmpMap.put(_Fields.FILES, new org.apache.thrift.meta_data.FieldMetaData("files", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-              new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, org.apache.accumulo.core.dataImpl.thrift.TKeyExtent.class), 
-              new org.apache.thrift.meta_data.MapMetaData(org.apache.thrift.protocol.TType.MAP, 
-                  new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING), 
-                  new org.apache.thrift.meta_data.StructMetaData(org.apache.thrift.protocol.TType.STRUCT, DataFileInfo.class)))));
-      tmpMap.put(_Fields.SET_TIME, new org.apache.thrift.meta_data.FieldMetaData("setTime", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-          new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.BOOL)));
-      metaDataMap = java.util.Collections.unmodifiableMap(tmpMap);
-      org.apache.thrift.meta_data.FieldMetaData.addStructMetaDataMap(loadFiles_args.class, metaDataMap);
-    }
-
-    public loadFiles_args() {
-    }
-
-    public loadFiles_args(
-      org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo,
-      org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials,
-      long tid,
-      java.lang.String dir,
-      java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files,
-      boolean setTime)
-    {
-      this();
-      this.tinfo = tinfo;
-      this.credentials = credentials;
-      this.tid = tid;
-      setTidIsSet(true);
-      this.dir = dir;
-      this.files = files;
-      this.setTime = setTime;
-      setSetTimeIsSet(true);
-    }
-
-    /**
-     * Performs a deep copy on <i>other</i>.
-     */
-    public loadFiles_args(loadFiles_args other) {
-      __isset_bitfield = other.__isset_bitfield;
-      if (other.isSetTinfo()) {
-        this.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo(other.tinfo);
-      }
-      if (other.isSetCredentials()) {
-        this.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials(other.credentials);
-      }
-      this.tid = other.tid;
-      if (other.isSetDir()) {
-        this.dir = other.dir;
-      }
-      if (other.isSetFiles()) {
-        java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> __this__files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>(other.files.size());
-        for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,DataFileInfo>> other_element : other.files.entrySet()) {
-
-          org.apache.accumulo.core.dataImpl.thrift.TKeyExtent other_element_key = other_element.getKey();
-          java.util.Map<java.lang.String,DataFileInfo> other_element_value = other_element.getValue();
-
-          org.apache.accumulo.core.dataImpl.thrift.TKeyExtent __this__files_copy_key = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent(other_element_key);
-
-          java.util.Map<java.lang.String,DataFileInfo> __this__files_copy_value = new java.util.HashMap<java.lang.String,DataFileInfo>(other_element_value.size());
-          for (java.util.Map.Entry<java.lang.String, DataFileInfo> other_element_value_element : other_element_value.entrySet()) {
-
-            java.lang.String other_element_value_element_key = other_element_value_element.getKey();
-            DataFileInfo other_element_value_element_value = other_element_value_element.getValue();
-
-            java.lang.String __this__files_copy_value_copy_key = other_element_value_element_key;
-
-            DataFileInfo __this__files_copy_value_copy_value = new DataFileInfo(other_element_value_element_value);
-
-            __this__files_copy_value.put(__this__files_copy_value_copy_key, __this__files_copy_value_copy_value);
-          }
-
-          __this__files.put(__this__files_copy_key, __this__files_copy_value);
-        }
-        this.files = __this__files;
-      }
-      this.setTime = other.setTime;
-    }
-
-    @Override
-    public loadFiles_args deepCopy() {
-      return new loadFiles_args(this);
-    }
-
-    @Override
-    public void clear() {
-      this.tinfo = null;
-      this.credentials = null;
-      setTidIsSet(false);
-      this.tid = 0;
-      this.dir = null;
-      this.files = null;
-      setSetTimeIsSet(false);
-      this.setTime = false;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.clientImpl.thrift.TInfo getTinfo() {
-      return this.tinfo;
-    }
-
-    public loadFiles_args setTinfo(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.clientImpl.thrift.TInfo tinfo) {
-      this.tinfo = tinfo;
-      return this;
-    }
-
-    public void unsetTinfo() {
-      this.tinfo = null;
-    }
-
-    /** Returns true if field tinfo is set (has been assigned a value) and false otherwise */
-    public boolean isSetTinfo() {
-      return this.tinfo != null;
-    }
-
-    public void setTinfoIsSet(boolean value) {
-      if (!value) {
-        this.tinfo = null;
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public org.apache.accumulo.core.securityImpl.thrift.TCredentials getCredentials() {
-      return this.credentials;
-    }
-
-    public loadFiles_args setCredentials(@org.apache.thrift.annotation.Nullable org.apache.accumulo.core.securityImpl.thrift.TCredentials credentials) {
-      this.credentials = credentials;
-      return this;
-    }
-
-    public void unsetCredentials() {
-      this.credentials = null;
-    }
-
-    /** Returns true if field credentials is set (has been assigned a value) and false otherwise */
-    public boolean isSetCredentials() {
-      return this.credentials != null;
-    }
-
-    public void setCredentialsIsSet(boolean value) {
-      if (!value) {
-        this.credentials = null;
-      }
-    }
-
-    public long getTid() {
-      return this.tid;
-    }
-
-    public loadFiles_args setTid(long tid) {
-      this.tid = tid;
-      setTidIsSet(true);
-      return this;
-    }
-
-    public void unsetTid() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __TID_ISSET_ID);
-    }
-
-    /** Returns true if field tid is set (has been assigned a value) and false otherwise */
-    public boolean isSetTid() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __TID_ISSET_ID);
-    }
-
-    public void setTidIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __TID_ISSET_ID, value);
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.lang.String getDir() {
-      return this.dir;
-    }
-
-    public loadFiles_args setDir(@org.apache.thrift.annotation.Nullable java.lang.String dir) {
-      this.dir = dir;
-      return this;
-    }
-
-    public void unsetDir() {
-      this.dir = null;
-    }
-
-    /** Returns true if field dir is set (has been assigned a value) and false otherwise */
-    public boolean isSetDir() {
-      return this.dir != null;
-    }
-
-    public void setDirIsSet(boolean value) {
-      if (!value) {
-        this.dir = null;
-      }
-    }
-
-    public int getFilesSize() {
-      return (this.files == null) ? 0 : this.files.size();
-    }
-
-    public void putToFiles(org.apache.accumulo.core.dataImpl.thrift.TKeyExtent key, java.util.Map<java.lang.String,DataFileInfo> val) {
-      if (this.files == null) {
-        this.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>();
-      }
-      this.files.put(key, val);
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    public java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> getFiles() {
-      return this.files;
-    }
-
-    public loadFiles_args setFiles(@org.apache.thrift.annotation.Nullable java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>> files) {
-      this.files = files;
-      return this;
-    }
-
-    public void unsetFiles() {
-      this.files = null;
-    }
-
-    /** Returns true if field files is set (has been assigned a value) and false otherwise */
-    public boolean isSetFiles() {
-      return this.files != null;
-    }
-
-    public void setFilesIsSet(boolean value) {
-      if (!value) {
-        this.files = null;
-      }
-    }
-
-    public boolean isSetTime() {
-      return this.setTime;
-    }
-
-    public loadFiles_args setSetTime(boolean setTime) {
-      this.setTime = setTime;
-      setSetTimeIsSet(true);
-      return this;
-    }
-
-    public void unsetSetTime() {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.clearBit(__isset_bitfield, __SETTIME_ISSET_ID);
-    }
-
-    /** Returns true if field setTime is set (has been assigned a value) and false otherwise */
-    public boolean isSetSetTime() {
-      return org.apache.thrift.EncodingUtils.testBit(__isset_bitfield, __SETTIME_ISSET_ID);
-    }
-
-    public void setSetTimeIsSet(boolean value) {
-      __isset_bitfield = org.apache.thrift.EncodingUtils.setBit(__isset_bitfield, __SETTIME_ISSET_ID, value);
-    }
-
-    @Override
-    public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
-      switch (field) {
-      case TINFO:
-        if (value == null) {
-          unsetTinfo();
-        } else {
-          setTinfo((org.apache.accumulo.core.clientImpl.thrift.TInfo)value);
-        }
-        break;
-
-      case CREDENTIALS:
-        if (value == null) {
-          unsetCredentials();
-        } else {
-          setCredentials((org.apache.accumulo.core.securityImpl.thrift.TCredentials)value);
-        }
-        break;
-
-      case TID:
-        if (value == null) {
-          unsetTid();
-        } else {
-          setTid((java.lang.Long)value);
-        }
-        break;
-
-      case DIR:
-        if (value == null) {
-          unsetDir();
-        } else {
-          setDir((java.lang.String)value);
-        }
-        break;
-
-      case FILES:
-        if (value == null) {
-          unsetFiles();
-        } else {
-          setFiles((java.util.Map<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>)value);
-        }
-        break;
-
-      case SET_TIME:
-        if (value == null) {
-          unsetSetTime();
-        } else {
-          setSetTime((java.lang.Boolean)value);
-        }
-        break;
-
-      }
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    @Override
-    public java.lang.Object getFieldValue(_Fields field) {
-      switch (field) {
-      case TINFO:
-        return getTinfo();
-
-      case CREDENTIALS:
-        return getCredentials();
-
-      case TID:
-        return getTid();
-
-      case DIR:
-        return getDir();
-
-      case FILES:
-        return getFiles();
-
-      case SET_TIME:
-        return isSetTime();
-
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    /** Returns true if field corresponding to fieldID is set (has been assigned a value) and false otherwise */
-    @Override
-    public boolean isSet(_Fields field) {
-      if (field == null) {
-        throw new java.lang.IllegalArgumentException();
-      }
-
-      switch (field) {
-      case TINFO:
-        return isSetTinfo();
-      case CREDENTIALS:
-        return isSetCredentials();
-      case TID:
-        return isSetTid();
-      case DIR:
-        return isSetDir();
-      case FILES:
-        return isSetFiles();
-      case SET_TIME:
-        return isSetSetTime();
-      }
-      throw new java.lang.IllegalStateException();
-    }
-
-    @Override
-    public boolean equals(java.lang.Object that) {
-      if (that instanceof loadFiles_args)
-        return this.equals((loadFiles_args)that);
-      return false;
-    }
-
-    public boolean equals(loadFiles_args that) {
-      if (that == null)
-        return false;
-      if (this == that)
-        return true;
-
-      boolean this_present_tinfo = true && this.isSetTinfo();
-      boolean that_present_tinfo = true && that.isSetTinfo();
-      if (this_present_tinfo || that_present_tinfo) {
-        if (!(this_present_tinfo && that_present_tinfo))
-          return false;
-        if (!this.tinfo.equals(that.tinfo))
-          return false;
-      }
-
-      boolean this_present_credentials = true && this.isSetCredentials();
-      boolean that_present_credentials = true && that.isSetCredentials();
-      if (this_present_credentials || that_present_credentials) {
-        if (!(this_present_credentials && that_present_credentials))
-          return false;
-        if (!this.credentials.equals(that.credentials))
-          return false;
-      }
-
-      boolean this_present_tid = true;
-      boolean that_present_tid = true;
-      if (this_present_tid || that_present_tid) {
-        if (!(this_present_tid && that_present_tid))
-          return false;
-        if (this.tid != that.tid)
-          return false;
-      }
-
-      boolean this_present_dir = true && this.isSetDir();
-      boolean that_present_dir = true && that.isSetDir();
-      if (this_present_dir || that_present_dir) {
-        if (!(this_present_dir && that_present_dir))
-          return false;
-        if (!this.dir.equals(that.dir))
-          return false;
-      }
-
-      boolean this_present_files = true && this.isSetFiles();
-      boolean that_present_files = true && that.isSetFiles();
-      if (this_present_files || that_present_files) {
-        if (!(this_present_files && that_present_files))
-          return false;
-        if (!this.files.equals(that.files))
-          return false;
-      }
-
-      boolean this_present_setTime = true;
-      boolean that_present_setTime = true;
-      if (this_present_setTime || that_present_setTime) {
-        if (!(this_present_setTime && that_present_setTime))
-          return false;
-        if (this.setTime != that.setTime)
-          return false;
-      }
-
-      return true;
-    }
-
-    @Override
-    public int hashCode() {
-      int hashCode = 1;
-
-      hashCode = hashCode * 8191 + ((isSetTinfo()) ? 131071 : 524287);
-      if (isSetTinfo())
-        hashCode = hashCode * 8191 + tinfo.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetCredentials()) ? 131071 : 524287);
-      if (isSetCredentials())
-        hashCode = hashCode * 8191 + credentials.hashCode();
-
-      hashCode = hashCode * 8191 + org.apache.thrift.TBaseHelper.hashCode(tid);
-
-      hashCode = hashCode * 8191 + ((isSetDir()) ? 131071 : 524287);
-      if (isSetDir())
-        hashCode = hashCode * 8191 + dir.hashCode();
-
-      hashCode = hashCode * 8191 + ((isSetFiles()) ? 131071 : 524287);
-      if (isSetFiles())
-        hashCode = hashCode * 8191 + files.hashCode();
-
-      hashCode = hashCode * 8191 + ((setTime) ? 131071 : 524287);
-
-      return hashCode;
-    }
-
-    @Override
-    public int compareTo(loadFiles_args other) {
-      if (!getClass().equals(other.getClass())) {
-        return getClass().getName().compareTo(other.getClass().getName());
-      }
-
-      int lastComparison = 0;
-
-      lastComparison = java.lang.Boolean.compare(isSetTinfo(), other.isSetTinfo());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTinfo()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tinfo, other.tinfo);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetCredentials(), other.isSetCredentials());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetCredentials()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.credentials, other.credentials);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetTid(), other.isSetTid());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetTid()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.tid, other.tid);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetDir(), other.isSetDir());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetDir()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.dir, other.dir);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetFiles(), other.isSetFiles());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetFiles()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.files, other.files);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      lastComparison = java.lang.Boolean.compare(isSetSetTime(), other.isSetSetTime());
-      if (lastComparison != 0) {
-        return lastComparison;
-      }
-      if (isSetSetTime()) {
-        lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.setTime, other.setTime);
-        if (lastComparison != 0) {
-          return lastComparison;
-        }
-      }
-      return 0;
-    }
-
-    @org.apache.thrift.annotation.Nullable
-    @Override
-    public _Fields fieldForId(int fieldId) {
-      return _Fields.findByThriftId(fieldId);
-    }
-
-    @Override
-    public void read(org.apache.thrift.protocol.TProtocol iprot) throws org.apache.thrift.TException {
-      scheme(iprot).read(iprot, this);
-    }
-
-    @Override
-    public void write(org.apache.thrift.protocol.TProtocol oprot) throws org.apache.thrift.TException {
-      scheme(oprot).write(oprot, this);
-    }
-
-    @Override
-    public java.lang.String toString() {
-      java.lang.StringBuilder sb = new java.lang.StringBuilder("loadFiles_args(");
-      boolean first = true;
-
-      sb.append("tinfo:");
-      if (this.tinfo == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.tinfo);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("credentials:");
-      if (this.credentials == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.credentials);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("tid:");
-      sb.append(this.tid);
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("dir:");
-      if (this.dir == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.dir);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("files:");
-      if (this.files == null) {
-        sb.append("null");
-      } else {
-        sb.append(this.files);
-      }
-      first = false;
-      if (!first) sb.append(", ");
-      sb.append("setTime:");
-      sb.append(this.setTime);
-      first = false;
-      sb.append(")");
-      return sb.toString();
-    }
-
-    public void validate() throws org.apache.thrift.TException {
-      // check for required fields
-      // check for sub-struct validity
-      if (tinfo != null) {
-        tinfo.validate();
-      }
-      if (credentials != null) {
-        credentials.validate();
-      }
-    }
-
-    private void writeObject(java.io.ObjectOutputStream out) throws java.io.IOException {
-      try {
-        write(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(out)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private void readObject(java.io.ObjectInputStream in) throws java.io.IOException, java.lang.ClassNotFoundException {
-      try {
-        // it doesn't seem like you should have to do this, but java serialization is wacky, and doesn't call the default constructor.
-        __isset_bitfield = 0;
-        read(new org.apache.thrift.protocol.TCompactProtocol(new org.apache.thrift.transport.TIOStreamTransport(in)));
-      } catch (org.apache.thrift.TException te) {
-        throw new java.io.IOException(te);
-      }
-    }
-
-    private static class loadFiles_argsStandardSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      @Override
-      public loadFiles_argsStandardScheme getScheme() {
-        return new loadFiles_argsStandardScheme();
-      }
-    }
-
-    private static class loadFiles_argsStandardScheme extends org.apache.thrift.scheme.StandardScheme<loadFiles_args> {
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol iprot, loadFiles_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TField schemeField;
-        iprot.readStructBegin();
-        while (true)
-        {
-          schemeField = iprot.readFieldBegin();
-          if (schemeField.type == org.apache.thrift.protocol.TType.STOP) { 
-            break;
-          }
-          switch (schemeField.id) {
-            case 1: // TINFO
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-                struct.tinfo.read(iprot);
-                struct.setTinfoIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 2: // CREDENTIALS
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRUCT) {
-                struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
-                struct.credentials.read(iprot);
-                struct.setCredentialsIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 3: // TID
-              if (schemeField.type == org.apache.thrift.protocol.TType.I64) {
-                struct.tid = iprot.readI64();
-                struct.setTidIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 4: // DIR
-              if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-                struct.dir = iprot.readString();
-                struct.setDirIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 7: // FILES
-              if (schemeField.type == org.apache.thrift.protocol.TType.MAP) {
-                {
-                  org.apache.thrift.protocol.TMap _map58 = iprot.readMapBegin();
-                  struct.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>(2*_map58.size);
-                  @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key59;
-                  @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,DataFileInfo> _val60;
-                  for (int _i61 = 0; _i61 < _map58.size; ++_i61)
-                  {
-                    _key59 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-                    _key59.read(iprot);
-                    {
-                      org.apache.thrift.protocol.TMap _map62 = iprot.readMapBegin();
-                      _val60 = new java.util.HashMap<java.lang.String,DataFileInfo>(2*_map62.size);
-                      @org.apache.thrift.annotation.Nullable java.lang.String _key63;
-                      @org.apache.thrift.annotation.Nullable DataFileInfo _val64;
-                      for (int _i65 = 0; _i65 < _map62.size; ++_i65)
-                      {
-                        _key63 = iprot.readString();
-                        _val64 = new DataFileInfo();
-                        _val64.read(iprot);
-                        _val60.put(_key63, _val64);
-                      }
-                      iprot.readMapEnd();
-                    }
-                    struct.files.put(_key59, _val60);
-                  }
-                  iprot.readMapEnd();
-                }
-                struct.setFilesIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            case 6: // SET_TIME
-              if (schemeField.type == org.apache.thrift.protocol.TType.BOOL) {
-                struct.setTime = iprot.readBool();
-                struct.setSetTimeIsSet(true);
-              } else { 
-                org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-              }
-              break;
-            default:
-              org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
-          }
-          iprot.readFieldEnd();
-        }
-        iprot.readStructEnd();
-
-        // check for required fields of primitive type, which can't be checked in the validate method
-        struct.validate();
-      }
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol oprot, loadFiles_args struct) throws org.apache.thrift.TException {
-        struct.validate();
-
-        oprot.writeStructBegin(STRUCT_DESC);
-        if (struct.tinfo != null) {
-          oprot.writeFieldBegin(TINFO_FIELD_DESC);
-          struct.tinfo.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        if (struct.credentials != null) {
-          oprot.writeFieldBegin(CREDENTIALS_FIELD_DESC);
-          struct.credentials.write(oprot);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldBegin(TID_FIELD_DESC);
-        oprot.writeI64(struct.tid);
-        oprot.writeFieldEnd();
-        if (struct.dir != null) {
-          oprot.writeFieldBegin(DIR_FIELD_DESC);
-          oprot.writeString(struct.dir);
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldBegin(SET_TIME_FIELD_DESC);
-        oprot.writeBool(struct.setTime);
-        oprot.writeFieldEnd();
-        if (struct.files != null) {
-          oprot.writeFieldBegin(FILES_FIELD_DESC);
-          {
-            oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.MAP, struct.files.size()));
-            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,DataFileInfo>> _iter66 : struct.files.entrySet())
-            {
-              _iter66.getKey().write(oprot);
-              {
-                oprot.writeMapBegin(new org.apache.thrift.protocol.TMap(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT, _iter66.getValue().size()));
-                for (java.util.Map.Entry<java.lang.String, DataFileInfo> _iter67 : _iter66.getValue().entrySet())
-                {
-                  oprot.writeString(_iter67.getKey());
-                  _iter67.getValue().write(oprot);
-                }
-                oprot.writeMapEnd();
-              }
-            }
-            oprot.writeMapEnd();
-          }
-          oprot.writeFieldEnd();
-        }
-        oprot.writeFieldStop();
-        oprot.writeStructEnd();
-      }
-
-    }
-
-    private static class loadFiles_argsTupleSchemeFactory implements org.apache.thrift.scheme.SchemeFactory {
-      @Override
-      public loadFiles_argsTupleScheme getScheme() {
-        return new loadFiles_argsTupleScheme();
-      }
-    }
-
-    private static class loadFiles_argsTupleScheme extends org.apache.thrift.scheme.TupleScheme<loadFiles_args> {
-
-      @Override
-      public void write(org.apache.thrift.protocol.TProtocol prot, loadFiles_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet optionals = new java.util.BitSet();
-        if (struct.isSetTinfo()) {
-          optionals.set(0);
-        }
-        if (struct.isSetCredentials()) {
-          optionals.set(1);
-        }
-        if (struct.isSetTid()) {
-          optionals.set(2);
-        }
-        if (struct.isSetDir()) {
-          optionals.set(3);
-        }
-        if (struct.isSetFiles()) {
-          optionals.set(4);
-        }
-        if (struct.isSetSetTime()) {
-          optionals.set(5);
-        }
-        oprot.writeBitSet(optionals, 6);
-        if (struct.isSetTinfo()) {
-          struct.tinfo.write(oprot);
-        }
-        if (struct.isSetCredentials()) {
-          struct.credentials.write(oprot);
-        }
-        if (struct.isSetTid()) {
-          oprot.writeI64(struct.tid);
-        }
-        if (struct.isSetDir()) {
-          oprot.writeString(struct.dir);
-        }
-        if (struct.isSetFiles()) {
-          {
-            oprot.writeI32(struct.files.size());
-            for (java.util.Map.Entry<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent, java.util.Map<java.lang.String,DataFileInfo>> _iter68 : struct.files.entrySet())
-            {
-              _iter68.getKey().write(oprot);
-              {
-                oprot.writeI32(_iter68.getValue().size());
-                for (java.util.Map.Entry<java.lang.String, DataFileInfo> _iter69 : _iter68.getValue().entrySet())
-                {
-                  oprot.writeString(_iter69.getKey());
-                  _iter69.getValue().write(oprot);
-                }
-              }
-            }
-          }
-        }
-        if (struct.isSetSetTime()) {
-          oprot.writeBool(struct.setTime);
-        }
-      }
-
-      @Override
-      public void read(org.apache.thrift.protocol.TProtocol prot, loadFiles_args struct) throws org.apache.thrift.TException {
-        org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
-        java.util.BitSet incoming = iprot.readBitSet(6);
-        if (incoming.get(0)) {
-          struct.tinfo = new org.apache.accumulo.core.clientImpl.thrift.TInfo();
-          struct.tinfo.read(iprot);
-          struct.setTinfoIsSet(true);
-        }
-        if (incoming.get(1)) {
-          struct.credentials = new org.apache.accumulo.core.securityImpl.thrift.TCredentials();
-          struct.credentials.read(iprot);
-          struct.setCredentialsIsSet(true);
-        }
-        if (incoming.get(2)) {
-          struct.tid = iprot.readI64();
-          struct.setTidIsSet(true);
-        }
-        if (incoming.get(3)) {
-          struct.dir = iprot.readString();
-          struct.setDirIsSet(true);
-        }
-        if (incoming.get(4)) {
-          {
-            org.apache.thrift.protocol.TMap _map70 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRUCT, org.apache.thrift.protocol.TType.MAP); 
-            struct.files = new java.util.HashMap<org.apache.accumulo.core.dataImpl.thrift.TKeyExtent,java.util.Map<java.lang.String,DataFileInfo>>(2*_map70.size);
-            @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.dataImpl.thrift.TKeyExtent _key71;
-            @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.String,DataFileInfo> _val72;
-            for (int _i73 = 0; _i73 < _map70.size; ++_i73)
-            {
-              _key71 = new org.apache.accumulo.core.dataImpl.thrift.TKeyExtent();
-              _key71.read(iprot);
-              {
-                org.apache.thrift.protocol.TMap _map74 = iprot.readMapBegin(org.apache.thrift.protocol.TType.STRING, org.apache.thrift.protocol.TType.STRUCT); 
-                _val72 = new java.util.HashMap<java.lang.String,DataFileInfo>(2*_map74.size);
-                @org.apache.thrift.annotation.Nullable java.lang.String _key75;
-                @org.apache.thrift.annotation.Nullable DataFileInfo _val76;
-                for (int _i77 = 0; _i77 < _map74.size; ++_i77)
-                {
-                  _key75 = iprot.readString();
-                  _val76 = new DataFileInfo();
-                  _val76.read(iprot);
-                  _val72.put(_key75, _val76);
-                }
-              }
-              struct.files.put(_key71, _val72);
-            }
-          }
-          struct.setFilesIsSet(true);
-        }
-        if (incoming.get(5)) {
-          struct.setTime = iprot.readBool();
-          struct.setSetTimeIsSet(true);
         }
       }
     }

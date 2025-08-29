@@ -26,10 +26,8 @@ package org.apache.accumulo.core.tabletserver.thrift;
 
 
 public enum TCompactionKind implements org.apache.thrift.TEnum {
-  CHOP(0),
-  SELECTOR(1),
-  SYSTEM(2),
-  USER(3);
+  SYSTEM(1),
+  USER(2);
 
   private final int value;
 
@@ -52,13 +50,9 @@ public enum TCompactionKind implements org.apache.thrift.TEnum {
   @org.apache.thrift.annotation.Nullable
   public static TCompactionKind findByValue(int value) { 
     switch (value) {
-      case 0:
-        return CHOP;
       case 1:
-        return SELECTOR;
-      case 2:
         return SYSTEM;
-      case 3:
+      case 2:
         return USER;
       default:
         return null;

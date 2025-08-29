@@ -32,11 +32,11 @@ import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.Option;
-import org.apache.commons.cli.OptionGroup;
 import org.apache.commons.cli.Options;
 
 public class CreateNamespaceCommand extends Command {
   private Option createNamespaceOptCopyConfig;
+  private Option createNamesapceOptExcludeParentProps;
 
   @Override
   public int execute(final String fullCommand, final CommandLine cl, final Shell shellState)
@@ -44,30 +44,43 @@ public class CreateNamespaceCommand extends Command {
       TableNotFoundException, IOException, ClassNotFoundException, NamespaceExistsException,
       NamespaceNotFoundException {
 
-    if (createNamespaceOptCopyConfig == null) {
-      getOptions();
+    // exclude parent properties; only valid with copy config
+    if (cl.hasOption(createNamesapceOptExcludeParentProps.getLongOpt())
+        && !cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
+      throw new IllegalArgumentException(createNamesapceOptExcludeParentProps.getLongOpt()
+          + " only valid when using " + createNamespaceOptCopyConfig.getLongOpt());
     }
 
     String namespace = cl.getArgs()[0];
 
     shellState.getAccumuloClient().namespaceOperations().create(namespace);
+    if (!shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
+      throw new IllegalArgumentException("Could not create namespace `" + namespace + "`");
+    }
 
-    // Copy options if flag was set
-    Map<String,String> configuration = null;
+    // Copy configuration options if flag was set
     if (cl.hasOption(createNamespaceOptCopyConfig.getOpt())) {
-      String copy = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
-      if (shellState.getAccumuloClient().namespaceOperations().exists(namespace)) {
-        configuration = shellState.getAccumuloClient().namespaceOperations().getConfiguration(copy);
+      String srcNs = cl.getOptionValue(createNamespaceOptCopyConfig.getOpt());
+      if (!srcNs.isEmpty() && !shellState.getAccumuloClient().namespaceOperations().exists(srcNs)) {
+        throw new NamespaceNotFoundException(null, srcNs, null);
+      }
+      Map<String,String> userProps;
+      if (cl.hasOption(createNamesapceOptExcludeParentProps.getLongOpt())) {
+        // use namespace props - excludes parents in configuration
+        userProps =
+            shellState.getAccumuloClient().namespaceOperations().getNamespaceProperties(srcNs);
+      } else {
+        // use namespace config - include parents in configuration hierarchy
+        userProps = shellState.getAccumuloClient().namespaceOperations().getConfiguration(srcNs);
+      }
+      if (userProps != null) {
+        final Map<String,String> props = userProps;
+        shellState.getAccumuloClient().namespaceOperations().modifyProperties(namespace,
+            properties -> props.entrySet().stream()
+                .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
+                .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
       }
     }
-    if (configuration != null) {
-      final Map<String,String> config = configuration;
-      shellState.getAccumuloClient().namespaceOperations().modifyProperties(namespace,
-          properties -> config.entrySet().stream()
-              .filter(entry -> Property.isValidTablePropertyKey(entry.getKey()))
-              .forEach(entry -> properties.put(entry.getKey(), entry.getValue())));
-    }
-
     return 0;
   }
 
@@ -89,10 +102,11 @@ public class CreateNamespaceCommand extends Command {
         new Option("cc", "copy-config", true, "namespace to copy configuration from");
     createNamespaceOptCopyConfig.setArgName("namespace");
 
-    OptionGroup ogp = new OptionGroup();
-    ogp.addOption(createNamespaceOptCopyConfig);
+    createNamesapceOptExcludeParentProps = new Option(null, "exclude-parent-properties", false,
+        "exclude properties from its parent(s) when copying configuration");
 
-    o.addOptionGroup(ogp);
+    o.addOption(createNamespaceOptCopyConfig);
+    o.addOption(createNamesapceOptExcludeParentProps);
 
     return o;
   }

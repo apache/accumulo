@@ -19,10 +19,10 @@
 package org.apache.accumulo.hadoop.its.mapreduce;
 
 import static com.google.common.collect.MoreCollectors.onlyElement;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -45,9 +45,13 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.util.Tool;
 import org.apache.hadoop.util.ToolRunner;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
 public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
   private static AssertionError e1 = null;
+
+  @TempDir
+  private static java.nio.file.Path tempDir;
 
   private static class MRTester extends Configured implements Tool {
     private static class TestMapper extends Mapper<Key,Value,Text,Mutation> {
@@ -58,10 +62,10 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       protected void map(Key k, Value v, Context context) {
         try {
           if (key != null) {
-            assertEquals(key.getRow().toString(), new String(v.get()));
+            assertEquals(key.getRow().toString(), new String(v.get(), UTF_8));
           }
           assertEquals(k.getRow(), new Text(String.format("%09x", count + 1)));
-          assertEquals(new String(v.get()), String.format("%09x", count));
+          assertEquals(new String(v.get(), UTF_8), String.format("%09x", count));
         } catch (AssertionError e) {
           e1 = e;
         }
@@ -118,7 +122,7 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       Configuration conf = new Configuration();
       conf.set("mapreduce.framework.name", "local");
       conf.set("mapreduce.cluster.local.dir",
-          new File(System.getProperty("user.dir"), "target/mapreduce-tmp").getAbsolutePath());
+          tempDir.resolve("mapreduce-tmp").toAbsolutePath().toString());
       assertEquals(0, ToolRunner.run(conf, new MRTester(), args));
     }
   }
@@ -143,8 +147,8 @@ public class AccumuloOutputFormatIT extends AccumuloClusterHarness {
       assertNull(e1);
 
       try (Scanner scanner = c.createScanner(table2, new Authorizations())) {
-        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get).map(String::new)
-            .map(Integer::parseInt).collect(onlyElement());
+        int i = scanner.stream().map(Map.Entry::getValue).map(Value::get)
+            .map(e -> new String(e, UTF_8)).map(Integer::parseInt).collect(onlyElement());
         assertEquals(100, i);
       }
     }

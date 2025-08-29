@@ -21,9 +21,12 @@ package org.apache.accumulo.core.spi.compaction;
 import java.util.Collection;
 import java.util.Map;
 
+import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
 
 /**
@@ -45,11 +48,10 @@ public interface CompactionPlanner {
 
     /**
      * @return The configured options. For example if the system properties
-     *         {@code tserver.compaction.major.service.s1.planner.opts.p1=abc} and
-     *         {@code tserver.compaction.major.service.s1.planner.opts.p9=123} were set, then this
-     *         map would contain {@code p1=abc} and {@code p9=123}. In this example {@code s1} is
-     *         the identifier for the compaction service. Each compaction service has a single
-     *         planner.
+     *         {@code compaction.service.s1.planner.opts.p1=abc} and
+     *         {@code compaction.service.s1.planner.opts.p9=123} were set, then this map would
+     *         contain {@code p1=abc} and {@code p9=123}. In this example {@code s1} is the
+     *         identifier for the compaction service. Each compaction service has a single planner.
      */
     Map<String,String> getOptions();
 
@@ -57,16 +59,14 @@ public interface CompactionPlanner {
      * @return For a given key from the map returned by {@link #getOptions()} determines the fully
      *         qualified tablet property for that key. For example if a planner was being
      *         initialized for compaction service {@code CS9} and this method were passed
-     *         {@code prop1} then it would return
-     *         {@code tserver.compaction.major.service.CS9.planner.opts.prop1}.
+     *         {@code prop1} then it would return {@code compaction.service.CS9.planner.opts.prop1}.
      */
     String getFullyQualifiedOption(String key);
 
     /**
-     * @return an execution manager that can be used to created thread pools within a compaction
-     *         service.
+     * @return a group manager that can be used to create groups for a compaction service.
      */
-    ExecutorManager getExecutorManager();
+    GroupManager getGroupManager();
   }
 
   public void init(InitParameters params);
@@ -80,10 +80,23 @@ public interface CompactionPlanner {
   public interface PlanningParameters {
 
     /**
+     * @return The id of the namespace that the table is assigned to
+     * @throws TableNotFoundException thrown when the namespace for a table cannot be calculated
+     * @since 2.1.4
+     */
+    NamespaceId getNamespaceId() throws TableNotFoundException;
+
+    /**
      * @return The id of the table that compactions are being planned for.
      * @see ServiceEnvironment#getTableName(TableId)
      */
     TableId getTableId();
+
+    /**
+     * @return the tablet for which a compaction is being planned
+     * @since 2.1.4
+     */
+    TabletId getTabletId();
 
     ServiceEnvironment getServiceEnvironment();
 
@@ -141,25 +154,7 @@ public interface CompactionPlanner {
    * the candidates will contain the files it did not compact and the results of any previous
    * compactions it scheduled. The planner must eventually compact all of the files in the candidate
    * set down to a single file. The compaction service will keep calling the planner until it does.
-   * <li>CompactionKind.CHOP. The planner is required to eventually compact all candidates. One
-   * major difference with USER compactions is this kind is not required to compact all files to a
-   * single file. It is ok to return a compaction plan that compacts a subset of the candidates.
-   * When the planner compacts a subset, it will eventually be called later. When it is called later
-   * the candidates will contain the files it did not compact.
    * </ul>
-   *
-   * <p>
-   * For a chop compaction assume the following happens.
-   * <ol>
-   * <li>The candidate set passed to makePlan contains the files {@code [F1,F2,F3,F4]} and kind is
-   * CHOP
-   * <li>The planner returns a job to compact files {@code [F1,F2]} on executor E1
-   * <li>The compaction runs compacting {@code [F1,F2]} into file {@code [F5]}
-   * </ol>
-   *
-   * <p>
-   * For the case above, eventually the planner will called again with a candidate set of
-   * {@code [F3,F4]} and it must eventually compact those two files.
    *
    * <p>
    * For a user and selector compaction assume the same thing happens, it will result in a slightly
@@ -173,13 +168,11 @@ public interface CompactionPlanner {
    *
    * <p>
    * For the case above, eventually the planner will called again with a candidate set of
-   * {@code [F3,F4,F5]} and it must eventually compact those three files to one. The difference with
-   * CHOP compactions is that the result of intermediate compactions are included in the candidate
-   * set.
+   * {@code [F3,F4,F5]} and it must eventually compact those three files to one.
    *
    * <p>
-   * When a planner returns a compactions plan, task will be queued on executors. Previously queued
-   * task that do not match the latest plan are removed. The planner is called periodically,
+   * When a planner returns a compactions plan, task will be queued on a compactor group. Previously
+   * queued task that do not match the latest plan are removed. The planner is called periodically,
    * whenever a new file is added, and whenever a compaction finishes.
    *
    * <p>

@@ -20,22 +20,23 @@ package org.apache.accumulo.core.lock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.Objects.requireNonNull;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
 import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.util.AddressUtil;
 
 import com.google.common.net.HostAndPort;
-import com.google.gson.Gson;
 
 public class ServiceLockData implements Comparable<ServiceLockData> {
-
-  private static final Gson gson = new Gson();
 
   /**
    * Thrift Service list
@@ -60,21 +61,13 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
    */
   public static class ServiceDescriptor {
 
-    /**
-     * The group name that will be used when one is not specified.
-     */
-    public static final String DEFAULT_GROUP_NAME = "default";
-
     private final UUID uuid;
     private final ThriftService service;
     private final String address;
-    private final String group;
+    private final ResourceGroupId group;
 
-    public ServiceDescriptor(UUID uuid, ThriftService service, String address) {
-      this(uuid, service, address, DEFAULT_GROUP_NAME);
-    }
-
-    public ServiceDescriptor(UUID uuid, ThriftService service, String address, String group) {
+    public ServiceDescriptor(UUID uuid, ThriftService service, String address,
+        ResourceGroupId group) {
       this.uuid = requireNonNull(uuid);
       this.service = requireNonNull(service);
       this.address = requireNonNull(address);
@@ -93,7 +86,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       return address;
     }
 
-    public String getGroup() {
+    public ResourceGroupId getGroup() {
       return group;
     }
 
@@ -119,7 +112,12 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
     @Override
     public String toString() {
-      return gson.toJson(this);
+      return serialize();
+    }
+
+    private String serialize() {
+      return GSON.get()
+          .toJson(new ServiceDescriptorGson(uuid, service, address, group.canonical()));
     }
 
   }
@@ -134,7 +132,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       descriptors = new HashSet<>();
     }
 
-    public ServiceDescriptors(HashSet<ServiceDescriptor> descriptors) {
+    public ServiceDescriptors(Set<ServiceDescriptor> descriptors) {
       this.descriptors = descriptors;
     }
 
@@ -147,55 +145,44 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
   }
 
-  private EnumMap<ThriftService,ServiceDescriptor> services;
+  private final EnumMap<ThriftService,ServiceDescriptor> services;
 
   public ServiceLockData(ServiceDescriptors sds) {
     this.services = new EnumMap<>(ThriftService.class);
     sds.getServices().forEach(sd -> this.services.put(sd.getService(), sd));
   }
 
-  public ServiceLockData(UUID uuid, String address, ThriftService service, String group) {
+  public ServiceLockData(UUID uuid, String address, ThriftService service, ResourceGroupId group) {
     this(new ServiceDescriptors(new HashSet<>(
         Collections.singleton(new ServiceDescriptor(uuid, service, address, group)))));
   }
 
-  public ServiceLockData(UUID uuid, String address, ThriftService service) {
-    this(new ServiceDescriptors(
-        new HashSet<>(Collections.singleton(new ServiceDescriptor(uuid, service, address)))));
-  }
-
   public String getAddressString(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    if (sd == null) {
-      return null;
-    }
-    return sd.getAddress();
+    return sd == null ? null : sd.getAddress();
   }
 
   public HostAndPort getAddress(ThriftService service) {
-    return AddressUtil.parseAddress(getAddressString(service), false);
+    String s = getAddressString(service);
+    return s == null ? null : AddressUtil.parseAddress(s);
   }
 
-  public String getGroup(ThriftService service) {
+  public ResourceGroupId getGroup(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    if (sd == null) {
-      return null;
-    }
-    return sd.getGroup();
+    return sd == null ? null : sd.getGroup();
   }
 
   public UUID getServerUUID(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    if (sd == null) {
-      return null;
-    }
-    return sd.getUUID();
+    return sd == null ? null : sd.getUUID();
   }
 
   public byte[] serialize() {
-    ServiceDescriptors sd = new ServiceDescriptors();
-    services.values().forEach(s -> sd.addService(s));
-    return gson.toJson(sd).getBytes(UTF_8);
+    ServiceDescriptorsGson json = new ServiceDescriptorsGson();
+    json.descriptors = services.values().stream()
+        .map(s -> new ServiceDescriptorGson(s.uuid, s.service, s.address, s.group.canonical()))
+        .collect(Collectors.toSet());
+    return GSON.get().toJson(json).getBytes(UTF_8);
   }
 
   @Override
@@ -210,10 +197,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ServiceLockData) {
-      return toString().equals(o.toString());
-    }
-    return false;
+    return o instanceof ServiceLockData ? Objects.equals(toString(), o.toString()) : false;
   }
 
   @Override
@@ -226,10 +210,39 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       return Optional.empty();
     }
     String data = new String(lockData, UTF_8);
-    if (data.isBlank()) {
-      return Optional.empty();
-    }
-    return Optional.of(new ServiceLockData(gson.fromJson(data, ServiceDescriptors.class)));
+    return data.isBlank() ? Optional.empty()
+        : Optional.of(new ServiceLockData(parseServiceDescriptors(data)));
   }
 
+  public static ServiceDescriptors parseServiceDescriptors(String data) {
+    return deserialize(GSON.get().fromJson(data, ServiceDescriptorsGson.class));
+  }
+
+  private static ServiceDescriptors deserialize(ServiceDescriptorsGson json) {
+    return new ServiceDescriptors(json.descriptors.stream()
+        .map(s -> new ServiceDescriptor(s.uuid, s.service, s.address, ResourceGroupId.of(s.group)))
+        .collect(Collectors.toSet()));
+  }
+
+  private static class ServiceDescriptorGson {
+    private UUID uuid;
+    private ThriftService service;
+    private String address;
+    private String group;
+
+    // default constructor required for Gson
+    @SuppressWarnings("unused")
+    public ServiceDescriptorGson() {}
+
+    public ServiceDescriptorGson(UUID uuid, ThriftService service, String address, String group) {
+      this.uuid = uuid;
+      this.service = service;
+      this.address = address;
+      this.group = group;
+    }
+  }
+
+  private static class ServiceDescriptorsGson {
+    private Set<ServiceDescriptorGson> descriptors;
+  }
 }

@@ -29,8 +29,8 @@ import java.util.TreeMap;
 import com.google.common.collect.Sets;
 
 /**
- * Generates client-properties.md for documentation on Accumulo website and
- * accumulo-client.properties for Accumulo distribution tarball
+ * Generates client properties documentation on Accumulo website and accumulo-client.properties for
+ * Accumulo distribution tarball
  */
 public class ClientConfigGenerate {
 
@@ -86,7 +86,7 @@ public class ClientConfigGenerate {
     @Override
     void pageHeader() {
       doc.println("---");
-      doc.println("title: Client Properties");
+      doc.println("title: Client Properties (4.x)");
       doc.println("category: configuration");
       doc.println("order: 3");
       doc.println("---\n");

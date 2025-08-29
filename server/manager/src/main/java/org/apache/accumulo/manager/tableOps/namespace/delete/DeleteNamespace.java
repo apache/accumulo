@@ -20,7 +20,9 @@ package org.apache.accumulo.manager.tableOps.namespace.delete;
 
 import org.apache.accumulo.core.clientImpl.thrift.TableOperation;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -29,26 +31,27 @@ public class DeleteNamespace extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private NamespaceId namespaceId;
+  private final NamespaceId namespaceId;
 
   public DeleteNamespace(NamespaceId namespaceId) {
     this.namespaceId = namespaceId;
   }
 
   @Override
-  public long isReady(long id, Manager environment) throws Exception {
-    return Utils.reserveNamespace(environment, namespaceId, id, true, true, TableOperation.DELETE);
+  public long isReady(FateId fateId, Manager environment) throws Exception {
+    return Utils.reserveNamespace(environment, namespaceId, fateId, LockType.WRITE, true,
+        TableOperation.DELETE);
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager environment) {
+  public Repo<Manager> call(FateId fateId, Manager environment) {
     environment.getEventCoordinator().event("deleting namespace %s ", namespaceId);
     return new NamespaceCleanUp(namespaceId);
   }
 
   @Override
-  public void undo(long id, Manager environment) {
-    Utils.unreserveNamespace(environment, namespaceId, id, true);
+  public void undo(FateId fateId, Manager environment) {
+    Utils.unreserveNamespace(environment, namespaceId, fateId, LockType.WRITE);
   }
 
 }

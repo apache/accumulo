@@ -51,7 +51,6 @@ public class RestartStressIT extends AccumuloClusterHarness {
   public void configureMiniCluster(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     Map<String,String> opts = cfg.getSiteConfig();
     opts.put(Property.TSERV_MAXMEM.getKey(), "100K");
-    opts.put(Property.TSERV_MAJC_DELAY.getKey(), "100ms");
     opts.put(Property.TSERV_WAL_MAX_SIZE.getKey(), "1M");
     opts.put(Property.INSTANCE_ZK_TIMEOUT.getKey(), "15s");
     opts.put(Property.MANAGER_RECOVERY_DELAY.getKey(), "1s");

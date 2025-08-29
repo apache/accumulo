@@ -20,10 +20,12 @@ package org.apache.accumulo.server.util;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Base64;
-import java.util.Stack;
+import java.util.Deque;
+import java.util.LinkedList;
 
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -31,6 +33,7 @@ import javax.xml.parsers.SAXParserFactory;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.KeeperException;
 import org.xml.sax.Attributes;
 import org.xml.sax.helpers.DefaultHandler;
@@ -41,7 +44,7 @@ public class RestoreZookeeper {
 
   private static class Restore extends DefaultHandler {
     ZooReaderWriter zk = null;
-    Stack<String> cwd = new Stack<>();
+    Deque<String> cwd = new LinkedList<>();
     boolean overwrite = false;
 
     Restore(ZooReaderWriter zk, boolean overwrite) {
@@ -61,7 +64,7 @@ public class RestoreZookeeper {
         if (value == null) {
           value = "";
         }
-        String path = cwd.lastElement() + "/" + child;
+        String path = cwd.element() + "/" + child;
         create(path, value, encoding);
         cwd.push(path);
       } else if ("dump".equals(name)) {
@@ -108,20 +111,21 @@ public class RestoreZookeeper {
       justification = "code runs in same security context as user who provided input")
   public static void execute(final AccumuloConfiguration conf, final String file,
       final boolean overwrite) throws Exception {
-    var zoo = new ZooReaderWriter(conf);
+    try (var zk = new ZooSession(RestoreZookeeper.class.getSimpleName(), conf)) {
+      var zrw = zk.asReaderWriter();
 
-    InputStream in = System.in;
-    if (file != null) {
-      in = new FileInputStream(file);
+      InputStream in = System.in;
+      if (file != null) {
+        in = Files.newInputStream(Path.of(file));
+      }
+
+      SAXParserFactory factory = SAXParserFactory.newInstance();
+      // Prevent external entities by failing on any doctypes. We don't expect any doctypes, so this
+      // is a simple switch to remove any chance of external entities causing problems.
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      SAXParser parser = factory.newSAXParser();
+      parser.parse(in, new Restore(zrw, overwrite));
+      in.close();
     }
-
-    SAXParserFactory factory = SAXParserFactory.newInstance();
-    // Prevent external entities by failing on any doctypes. We don't expect any doctypes, so this
-    // is a simple switch to remove any chance of external entities causing problems.
-    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
-    SAXParser parser = factory.newSAXParser();
-    parser.parse(in, new Restore(zoo, overwrite));
-    in.close();
   }
-
 }

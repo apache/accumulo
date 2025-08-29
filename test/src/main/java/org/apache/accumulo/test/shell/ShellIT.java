@@ -18,8 +18,8 @@
  */
 package org.apache.accumulo.test.shell;
 
+import static org.apache.accumulo.core.conf.Property.COMPACTION_WARN_TIME;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
-import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,8 +27,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -36,7 +39,9 @@ import java.util.TimeZone;
 
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.PropertyType;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -49,11 +54,11 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Tag(MINI_CLUSTER_ONLY)
-@Tag(SUNNY_DAY)
 public class ShellIT extends SharedMiniClusterBase {
 
   @Override
@@ -112,14 +117,14 @@ public class ShellIT extends SharedMiniClusterBase {
   private StringInputStream input;
   private TestOutputStream output;
   private Shell shell;
-  private File config;
-  public LineReader reader;
-  public Terminal terminal;
+  private Path config;
+  private LineReader reader;
+  private Terminal terminal;
 
-  void execExpectList(String cmd, boolean expecteGoodExit, List<String> expectedStrings)
+  void execExpectList(String cmd, boolean expectGoodExit, List<String> expectedStrings)
       throws IOException {
     exec(cmd);
-    if (expecteGoodExit) {
+    if (expectGoodExit) {
       assertGoodExit("", true);
     } else {
       assertBadExit("", true);
@@ -164,7 +169,7 @@ public class ShellIT extends SharedMiniClusterBase {
     TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
     output = new TestOutputStream();
     input = new StringInputStream();
-    config = Files.createTempFile(null, null).toFile();
+    config = Files.createTempFile(null, null);
     terminal = new DumbTerminal(input, output);
     terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -176,10 +181,10 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @AfterEach
   public void teardownShell() {
-    if (config.exists()) {
-      if (!config.delete()) {
-        log.error("Unable to delete {}", config);
-      }
+    try {
+      Files.deleteIfExists(config);
+    } catch (IOException e) {
+      log.error("Unable to delete {}", config, e);
     }
     shell.shutdown();
   }
@@ -396,19 +401,21 @@ public class ShellIT extends SharedMiniClusterBase {
 
   @Test
   public void scanTimestampTest() throws IOException {
+    String name = getUniqueNames(1)[0];
     Shell.log.debug("Starting scanTimestamp test ------------------------");
-    exec("createtable test", true);
+    exec("createtable " + name, true);
     exec("insert r f q v -ts 0", true);
     exec("scan -st", true, "r f:q [] 0\tv");
     exec("scan -st -f 0", true, " : [] 0\t");
     exec("deletemany -f", true);
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + name + " -f", true, "Table: [" + name + "] has been deleted");
   }
 
   @Test
   public void scanFewTest() throws IOException {
     Shell.log.debug("Starting scanFew test ------------------------");
-    exec("createtable test", true);
+    String name = getUniqueNames(1)[0];
+    exec("createtable " + name, true);
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("insert 1 123 123456 -l '12345678' -ts 123456789 1234567890", true);
     exec("setauths -s 12345678", true);
@@ -417,7 +424,7 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("scan -st", true, expected);
     exec("scan -st -f 5", true, expectedFew);
     exec("setauths -c", true);
-    exec("deletetable test -f", true, "Table: [test] has been deleted");
+    exec("deletetable " + name + " -f", true, "Table: [" + name + "] has been deleted");
   }
 
   @Test
@@ -431,6 +438,7 @@ public class ShellIT extends SharedMiniClusterBase {
     String expected = "r f:q [vis]\tv";
     String expectedTimestamp = "r f:q [vis] 0\tv";
     exec("grep", false, "No terms specified");
+    exec("grep vis", true, expected);
     exec("grep non_matching_string", true, "");
     // historically, showing few did not pertain to ColVis or Timestamp
     exec("grep r", true, expected);
@@ -442,15 +450,64 @@ public class ShellIT extends SharedMiniClusterBase {
   }
 
   @Test
+  void configPropertyTest() throws IOException {
+    final String table = "testtable";
+    final String filterProperty = "config -t " + table + " -f ";
+    final String setProperty = "config -t " + table + " -s ";
+    List<String> expectedStrings = new ArrayList<>();
+
+    try {
+      exec("createtable " + table);
+
+      exec(filterProperty + "table.iterator.scan.vers.opt.maxVersions", true,
+          "table      | table.iterator.scan.vers.opt.maxVersions .. | 1\n");
+      // set to new value and verify results
+      exec(setProperty + "table.iterator.scan.vers.opt.maxVersions=2", true);
+      exec(filterProperty + "table.iterator.scan.vers.opt.maxVersions", true,
+          "table      | table.iterator.scan.vers.opt.maxVersions .. | 2\n");
+      // set to empty string and verify property still exists and is not deleted
+      exec(setProperty + "table.iterator.scan.vers.opt.maxVersions=", true);
+      exec(filterProperty + "table.iterator.scan.vers.opt.maxVersions", true,
+          "table      | table.iterator.scan.vers.opt.maxVersions .. | \n");
+
+      exec(filterProperty + "table.bloom.enabled", true,
+          "default    | table.bloom.enabled ....................... | false\n");
+      exec(setProperty + "table.bloom.enabled=true", true);
+      expectedStrings.add("default    | table.bloom.enabled ....................... | false\n");
+      expectedStrings.add("table      |    @override .............................. | true\n");
+      execExpectList(filterProperty + "table.bloom.enabled", true, expectedStrings);
+      // can't set prop to empty value since type is Boolean
+      exec(setProperty + "table.bloom.enabled=failsSinceNotABoolean", false);
+
+      exec(filterProperty + "table.file.compress.type", true,
+          "default    | table.file.compress.type .................. | gz\n");
+      exec(setProperty + "table.file.compress.type=zippy", true);
+      expectedStrings.clear();
+      expectedStrings.add("default    | table.file.compress.type .................. | gz\n");
+      expectedStrings.add("table      |    @override .............................. | zippy");
+      execExpectList(filterProperty + "table.file.compress.type", true, expectedStrings);
+      exec(setProperty + "table.file.compress.type=", true);
+      expectedStrings.clear();
+      expectedStrings.add("default    | table.file.compress.type .................. | gz\n");
+      expectedStrings.add("table      |    @override .............................. | \n");
+      execExpectList(filterProperty + "table.file.compress.type", true, expectedStrings);
+
+    } finally {
+      exec("deletetable " + table + " -f", true);
+    }
+  }
+
+  @Test
   void configTest() throws IOException {
     Shell.log.debug("Starting config property type test -------------------------");
 
-    String testTable = "test";
+    String testTable = "testConfig";
     exec("createtable " + testTable, true);
 
     for (Property property : Property.values()) {
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
 
       // Skip test if we can't set this property via shell
       if (!Property.isValidZooPropertyKey(property.getKey())) {
@@ -463,6 +520,13 @@ public class ShellIT extends SharedMiniClusterBase {
         case PATH:
         case PREFIX:
         case STRING:
+        case FATE_THREADPOOL_SIZE:
+          // deprecated value
+        case FATE_META_CONFIG:
+          // json based type
+        case FATE_USER_CONFIG:
+          // json based type
+        case JSON:
           Shell.log.debug("Skipping " + propertyType + " Property Types");
           continue;
         case TIMEDURATION:
@@ -512,10 +576,22 @@ public class ShellIT extends SharedMiniClusterBase {
           Shell.log.debug("Property Type: " + propertyType + " has no defined test case");
           invalidValue = "foo";
       }
-      String setCommand = "config -s ";
-      if (Property.isValidTablePropertyKey(property.getKey())) {
-        setCommand = "config -t " + testTable + " -s ";
+
+      String setCommand;
+      if (property.isDeprecated()) {
+        setCommand = "config --force -s ";
+      } else {
+        setCommand = "config -s ";
       }
+
+      if (Property.isValidTablePropertyKey(property.getKey())) {
+        if (property.isDeprecated()) {
+          setCommand = "config --force -t " + testTable + " -s ";
+        } else {
+          setCommand = "config -t " + testTable + " -s ";
+        }
+      }
+
       Shell.log.debug("Testing Property {} with Type {}", property.getKey(), propertyType);
       Shell.log.debug("Invalid property value of \"{}\"", invalidValue);
       exec(setCommand + property.getKey() + "=" + invalidValue, false,
@@ -542,6 +618,58 @@ public class ShellIT extends SharedMiniClusterBase {
         "src/main/resources/org/apache/accumulo/test/shellit.shellit");
     assertEquals(0, shell.start());
     assertGoodExit("Unknown command", false);
+  }
+
+  @TempDir
+  private static File tempDir;
+
+  @Test
+  public void propFileNotFoundTest() throws IOException {
+
+    Path fileName = Path.of(tempDir.getPath(), "propFile.shellit");
+
+    Shell.log.debug("Starting prop file not found test --------------------------");
+    exec("config --propFile " + fileName, false, "NoSuchFileException: " + fileName);
+  }
+
+  @Test
+  public void setpropsViaFile() throws Exception {
+    File file = File.createTempFile("propFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println(COMPACTION_WARN_TIME.getKey() + "=11m");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), true);
+  }
+
+  @Test
+  public void createTableWithPropsFile() throws Exception {
+    String tableName = "testProps";
+    File file = File.createTempFile("propFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("table.custom.test1=true");
+    writer.println("table.custom.test2=false");
+    writer.close();
+    exec("createtable " + tableName + " --propFile " + file.getAbsolutePath()
+        + " -prop table.custom.test3=optional", true);
+
+    assertTrue(shell.getAccumuloClient().tableOperations().exists(tableName));
+    Map<String,String> tableIds = shell.getAccumuloClient().tableOperations().tableIdMap();
+
+    TableConfiguration tableConf =
+        getCluster().getServerContext().getTableConfiguration(TableId.of(tableIds.get(tableName)));
+    assertEquals("true", tableConf.get("table.custom.test1"));
+    assertEquals("false", tableConf.get("table.custom.test2"));
+    assertEquals("optional", tableConf.get("table.custom.test3"));
+  }
+
+  @Test
+  public void invalidPropFileTest() throws Exception {
+    File file = File.createTempFile("invalidPropFile", ".conf", tempDir);
+    PrintWriter writer = new PrintWriter(file.getAbsolutePath());
+    writer.println("this is not a valid property file");
+    writer.close();
+    exec("config --propFile " + file.getAbsolutePath(), false,
+        "InvalidPropertyFile: " + file.getAbsolutePath());
   }
 
   @Test
@@ -669,5 +797,4 @@ public class ShellIT extends SharedMiniClusterBase {
     exec("getsplits -m 0", true,
         "0\n1\n2\n3\n4\n5\n6\n7\n8\n9\na\nb\nc\nd\ne\nf\ng\nh\ni\nj\nk\nl\nm\nn\no\np\nq\nr\ns\nt\n");
   }
-
 }

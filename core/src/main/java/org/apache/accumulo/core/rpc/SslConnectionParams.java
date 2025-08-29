@@ -18,9 +18,10 @@
  */
 package org.apache.accumulo.core.rpc;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Arrays;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
@@ -38,12 +39,12 @@ public class SslConnectionParams {
   private boolean clientAuth = false;
 
   private boolean keyStoreSet;
-  private String keyStorePath;
+  private Path keyStorePath;
   private String keyStorePass;
   private String keyStoreType;
 
   private boolean trustStoreSet;
-  private String trustStorePath;
+  private Path trustStorePath;
   private String trustStorePass;
   private String trustStoreType;
 
@@ -107,7 +108,7 @@ public class SslConnectionParams {
     return keystorePassword;
   }
 
-  private static String storePathFromConf(AccumuloConfiguration conf, Property pathProperty)
+  private static Path storePathFromConf(AccumuloConfiguration conf, Property pathProperty)
       throws FileNotFoundException {
     return findKeystore(conf.getPath(pathProperty));
   }
@@ -137,20 +138,20 @@ public class SslConnectionParams {
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "code runs in same security context as user who providing the keystore file")
-  private static String findKeystore(String keystorePath) throws FileNotFoundException {
+  private static Path findKeystore(String keystorePath) throws FileNotFoundException {
     try {
       // first just try the file
-      File file = new File(keystorePath);
-      if (file.exists()) {
-        return file.getAbsolutePath();
+      Path path = Path.of(keystorePath);
+      if (Files.exists(path)) {
+        return path.toAbsolutePath();
       }
-      if (!file.isAbsolute()) {
+      if (!path.isAbsolute()) {
         // try classpath
         URL url = SslConnectionParams.class.getClassLoader().getResource(keystorePath);
         if (url != null) {
-          file = new File(url.toURI());
-          if (file.exists()) {
-            return file.getAbsolutePath();
+          path = Path.of(url.toURI());
+          if (Files.exists(path)) {
+            return path.toAbsolutePath();
           }
         }
       }
@@ -188,7 +189,7 @@ public class SslConnectionParams {
     return keyStoreSet;
   }
 
-  public String getKeyStorePath() {
+  public Path getKeyStorePath() {
     return keyStorePath;
   }
 
@@ -207,7 +208,7 @@ public class SslConnectionParams {
     return trustStoreSet;
   }
 
-  public String getTrustStorePath() {
+  public Path getTrustStorePath() {
     return trustStorePath;
   }
 
@@ -222,32 +223,18 @@ public class SslConnectionParams {
     return trustStoreType;
   }
 
-  // Work around THRIFT-3450 ... fixed with b9641e094...
-  static class TSSLTransportParametersHack extends TSSLTransportParameters {
-    TSSLTransportParametersHack(String clientProtocol) {
-      super(clientProtocol, new String[] {});
-      this.cipherSuites = null;
-    }
-  }
-
-  public TSSLTransportParameters getTTransportParams() {
+  public TSSLTransportParameters getTSSLTransportParameters() {
     if (useJsse) {
-      throw new IllegalStateException("Cannot get TTransportParams for JSEE configuration.");
+      throw new IllegalStateException("Cannot get TSSLTransportParameters for JSSE configuration.");
     }
 
-    TSSLTransportParameters params;
-    if (cipherSuites != null) {
-      params = new TSSLTransportParameters(clientProtocol, cipherSuites);
-    } else {
-      params = new TSSLTransportParametersHack(clientProtocol);
-    }
-
+    TSSLTransportParameters params = new TSSLTransportParameters(clientProtocol, cipherSuites);
     params.requireClientAuth(clientAuth);
     if (keyStoreSet) {
-      params.setKeyStore(keyStorePath, keyStorePass, null, keyStoreType);
+      params.setKeyStore(keyStorePath.toString(), keyStorePass, null, keyStoreType);
     }
     if (trustStoreSet) {
-      params.setTrustStore(trustStorePath, trustStorePass, null, trustStoreType);
+      params.setTrustStore(trustStorePath.toString(), trustStorePass, null, trustStoreType);
     }
     return params;
   }

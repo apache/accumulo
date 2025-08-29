@@ -19,8 +19,8 @@
 package org.apache.accumulo.test.functional;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
-import static org.apache.accumulo.harness.AccumuloITBase.random;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -38,10 +39,12 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.util.Pair;
@@ -73,9 +76,9 @@ public class NativeMapIT {
   }
 
   public static File nativeMapLocation() {
-    File projectDir = new File(System.getProperty("user.dir")).getParentFile();
-    return new File(projectDir, "server/native/target/accumulo-native-" + Constants.VERSION
-        + "/accumulo-native-" + Constants.VERSION);
+    File projectDir = Path.of(System.getProperty("user.dir")).toFile().getParentFile();
+    return projectDir.toPath().resolve("server/native/target/accumulo-native-" + Constants.VERSION
+        + "/accumulo-native-" + Constants.VERSION).toFile();
   }
 
   @BeforeAll
@@ -411,10 +414,10 @@ public class NativeMapIT {
 
   // random length random field
   private static byte[] getRandomBytes(int maxLen) {
-    int len = random.nextInt(maxLen);
+    int len = RANDOM.get().nextInt(maxLen);
 
     byte[] f = new byte[len];
-    random.nextBytes(f);
+    RANDOM.get().nextBytes(f);
 
     return f;
   }
@@ -431,7 +434,7 @@ public class NativeMapIT {
     for (int i = 0; i < 100000; i++) {
 
       Key k = new Key(getRandomBytes(97), getRandomBytes(13), getRandomBytes(31),
-          getRandomBytes(11), (random.nextLong() & 0x7fffffffffffffffL), false, false);
+          getRandomBytes(11), (RANDOM.get().nextLong() & 0x7fffffffffffffffL), false, false);
       Value v = new Value(getRandomBytes(511));
 
       testData.add(new Pair<>(k, v));
@@ -475,7 +478,7 @@ public class NativeMapIT {
       System.out.println("test 11 nm mem " + nm.getMemoryUsed());
 
       // insert data again w/ different value
-      Collections.shuffle(testData, random);
+      Collections.shuffle(testData, RANDOM.get());
       // insert unsorted data
       for (Pair<Key,Value> pair : testData) {
         pair.getSecond().set(getRandomBytes(511));
@@ -548,6 +551,14 @@ public class NativeMapIT {
     assertEquals(0, nm.size());
     assertEquals(0, nm.getMemoryUsed());
 
+    var iter1 = nm.iterator();
+    assertFalse(iter1.hasNext());
+    assertThrows(NoSuchElementException.class, () -> iter1.next());
+
+    var iter2 = nm.iterator(new Key("abc"));
+    assertFalse(iter2.hasNext());
+    assertThrows(NoSuchElementException.class, () -> iter2.next());
+
     nm.delete();
   }
 
@@ -560,6 +571,7 @@ public class NativeMapIT {
     nm.put(newKey(3), newValue(3));
 
     SortedKeyValueIterator<Key,Value> iter = nm.skvIterator();
+    iter.seek(new Range(), Set.of(), false);
 
     // modify map after iter created
     nm.put(newKey(2), newValue(2));
@@ -585,4 +597,14 @@ public class NativeMapIT {
     nm.delete();
   }
 
+  @Test
+  public void testUnseeked() {
+    NativeMap nm = new NativeMap();
+
+    nm.put(newKey(0), newValue(0));
+
+    SortedKeyValueIterator<Key,Value> iter = nm.skvIterator();
+    // hasTop should throw an exception if seek was never called.
+    assertThrows(IllegalStateException.class, iter::hasTop);
+  }
 }

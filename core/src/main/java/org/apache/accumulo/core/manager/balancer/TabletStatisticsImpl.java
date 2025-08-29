@@ -46,11 +46,6 @@ public class TabletStatisticsImpl implements TabletStatistics {
   }
 
   @Override
-  public long getSplitCreationTime() {
-    return thriftStats.getSplitCreationTime();
-  }
-
-  @Override
   public double getIngestRate() {
     return thriftStats.getIngestRate();
   }

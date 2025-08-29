@@ -18,7 +18,7 @@
  */
 package org.apache.accumulo.core.util;
 
-public class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> extends Pair<A,B>
+public final class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> extends Pair<A,B>
     implements Comparable<ComparablePair<A,B>> {
 
   public ComparablePair(A f, B s) {
@@ -27,9 +27,9 @@ public class ComparablePair<A extends Comparable<A>,B extends Comparable<B>> ext
 
   @Override
   public int compareTo(ComparablePair<A,B> abPair) {
-    int cmp = first.compareTo(abPair.first);
+    int cmp = getFirst().compareTo(abPair.getFirst());
     if (cmp == 0) {
-      cmp = second.compareTo(abPair.second);
+      cmp = getSecond().compareTo(abPair.getSecond());
     }
 
     return cmp;

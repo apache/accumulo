@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -44,6 +45,7 @@ import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -58,6 +60,7 @@ import org.apache.accumulo.core.client.ConditionalWriter;
 import org.apache.accumulo.core.client.ConditionalWriter.Result;
 import org.apache.accumulo.core.client.ConditionalWriter.Status;
 import org.apache.accumulo.core.client.ConditionalWriterConfig;
+import org.apache.accumulo.core.client.Durability;
 import org.apache.accumulo.core.client.IsolatedScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.RowIterator;
@@ -68,6 +71,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.ConditionalWriterImpl;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Condition;
@@ -604,7 +609,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
           while (results.hasNext()) {
             Result result = results.next();
-            String k = new String(result.getMutation().getRow());
+            String k = new String(result.getMutation().getRow(), UTF_8);
             assertFalse(actual.containsKey(k),
                 "Did not expect to see multiple results for the row: " + k);
             actual.put(k, result.getStatus());
@@ -740,7 +745,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         while (results.hasNext()) {
           Result result = results.next();
-          String k = new String(result.getMutation().getRow());
+          String k = new String(result.getMutation().getRow(), UTF_8);
           assertFalse(actual.containsKey(k),
               "Did not expect to see multiple results for the row: " + k);
           actual.put(k, result.getStatus());
@@ -843,7 +848,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         int rejected = 0;
         while (results.hasNext()) {
           Result result = results.next();
-          if (new String(result.getMutation().getRow()).equals("99006")) {
+          if (new String(result.getMutation().getRow(), UTF_8).equals("99006")) {
             assertEquals(Status.ACCEPTED, result.getStatus());
             accepted++;
           } else {
@@ -892,7 +897,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       byte[] e = new byte[0];
 
       for (int i = 0; i < num; i++) {
-        rows.add(FastFormat.toZeroPaddedString(abs(random.nextLong()), 16, 16, e));
+        rows.add(FastFormat.toZeroPaddedString(abs(RANDOM.get().nextLong()), 16, 16, e));
       }
 
       for (int i = 0; i < num; i++) {
@@ -967,7 +972,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       ColumnVisibility cvaob = new ColumnVisibility("A|B");
       ColumnVisibility cvaab = new ColumnVisibility("A&B");
 
-      switch (random.nextInt(3)) {
+      switch (RANDOM.get().nextInt(3)) {
         case 1:
           client.tableOperations().addSplits(tableName, nss("6"));
           break;
@@ -1014,7 +1019,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         HashSet<String> rows = new HashSet<>();
         while (results.hasNext()) {
           Result result = results.next();
-          String row = new String(result.getMutation().getRow());
+          String row = new String(result.getMutation().getRow(), UTF_8);
           switch (row) {
             case "19059":
               assertEquals(Status.ACCEPTED, result.getStatus());
@@ -1196,19 +1201,19 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
           new IsolatedScanner(client.createScanner(tableName, Authorizations.EMPTY))) {
 
         for (int i = 0; i < 20; i++) {
-          int numRows = random.nextInt(10) + 1;
+          int numRows = RANDOM.get().nextInt(10) + 1;
 
           ArrayList<ByteSequence> changes = new ArrayList<>(numRows);
           ArrayList<ConditionalMutation> mutations = new ArrayList<>();
 
           for (int j = 0; j < numRows; j++) {
-            changes.add(rows.get(random.nextInt(rows.size())));
+            changes.add(rows.get(RANDOM.get().nextInt(rows.size())));
           }
 
           for (ByteSequence row : changes) {
             scanner.setRange(new Range(row.toString()));
             Stats stats = new Stats(scanner.iterator());
-            stats.set(random.nextInt(10), random.nextInt(Integer.MAX_VALUE));
+            stats.set(RANDOM.get().nextInt(10), RANDOM.get().nextInt(Integer.MAX_VALUE));
             mutations.add(stats.toMutation());
           }
 
@@ -1240,7 +1245,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration();
 
-      switch (random.nextInt(3)) {
+      switch (RANDOM.get().nextInt(3)) {
         case 1:
           ntc = ntc.withSplits(nss("4"));
           break;
@@ -1257,7 +1262,7 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
         for (int i = 0; i < 1000; i++) {
           rows.add(new ArrayByteSequence(
-              FastFormat.toZeroPaddedString(abs(random.nextLong()), 16, 16, new byte[0])));
+              FastFormat.toZeroPaddedString(abs(RANDOM.get().nextLong()), 16, 16, new byte[0])));
         }
 
         ArrayList<ConditionalMutation> mutations = new ArrayList<>();
@@ -1330,7 +1335,9 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
       }
 
       String[] tables = getUniqueNames(3);
-      String table1 = tables[0], table2 = tables[1], table3 = tables[2];
+      String table1 = tables[0];
+      String table2 = tables[1];
+      String table3 = tables[2];
 
       // Create three tables
       client.tableOperations().create(table1);
@@ -1532,6 +1539,36 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
         cm1.put("data", "x", "a");
 
         assertThrows(IllegalArgumentException.class, () -> cw.write(cm1));
+      }
+    }
+  }
+
+  @Test
+  public void testCreateConditionalWriterUsesClientProps() throws Exception {
+    // Tests that creating a conditional writer includes the client properties that were set
+    String tableName = getUniqueNames(1)[0];
+    var clientProps = getClientProps();
+    // Set non-default values for all conditional writer props
+    clientProps.setProperty(ClientProperty.CONDITIONAL_WRITER_TIMEOUT_MAX.getKey(), "99");
+    clientProps.setProperty(ClientProperty.CONDITIONAL_WRITER_THREADS_MAX.getKey(), "101");
+    clientProps.setProperty(ClientProperty.CONDITIONAL_WRITER_DURABILITY.getKey(),
+        Durability.NONE.name());
+    try (AccumuloClient client = Accumulo.newClient().from(clientProps).build()) {
+      client.tableOperations().create(tableName);
+
+      try (
+          ConditionalWriterImpl cw1 =
+              (ConditionalWriterImpl) client.createConditionalWriter(tableName);
+          ConditionalWriterImpl cw2 =
+              (ConditionalWriterImpl) client.createConditionalWriter(tableName,
+                  new ConditionalWriterConfig().setMaxWriteThreads(200))) {
+        // verify we see the non-default prop values
+        assertEquals(99, cw1.getConfig().getTimeout(TimeUnit.SECONDS));
+        assertEquals(101, cw1.getConfig().getMaxWriteThreads());
+        assertEquals(Durability.NONE, cw1.getConfig().getDurability());
+        assertEquals(99, cw2.getConfig().getTimeout(TimeUnit.SECONDS));
+        assertEquals(200, cw2.getConfig().getMaxWriteThreads());
+        assertEquals(Durability.NONE, cw2.getConfig().getDurability());
       }
     }
   }

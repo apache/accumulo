@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.system;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -44,11 +45,11 @@ public class ColumnFilterTest {
   }
 
   Column newColumn(String cf) {
-    return new Column(cf.getBytes(), null, null);
+    return new Column(cf.getBytes(UTF_8), null, null);
   }
 
   Column newColumn(String cf, String cq) {
-    return new Column(cf.getBytes(), cq.getBytes(), null);
+    return new Column(cf.getBytes(UTF_8), cq.getBytes(UTF_8), null);
   }
 
   @Test

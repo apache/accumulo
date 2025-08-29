@@ -18,8 +18,6 @@
  */
 package org.apache.accumulo.tserver.tablet;
 
-import java.io.IOException;
-
 import org.apache.accumulo.core.file.FilePrefix;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -37,11 +35,11 @@ class MinorCompactionTask implements Runnable {
   private static final Logger log = LoggerFactory.getLogger(MinorCompactionTask.class);
 
   private final Tablet tablet;
-  private long queued;
-  private CommitSession commitSession;
+  private final long queued;
+  private final CommitSession commitSession;
   private DataFileValue stats;
-  private long flushId;
-  private MinorCompactionReason mincReason;
+  private final long flushId;
+  private final MinorCompactionReason mincReason;
 
   MinorCompactionTask(Tablet tablet, CommitSession commitSession, long flushId,
       MinorCompactionReason mincReason) {
@@ -77,7 +75,7 @@ class MinorCompactionTask implements Runnable {
           while (true) {
             try {
               if (newFile == null) {
-                newFile = tablet.getNextDataFilename(FilePrefix.MINOR_COMPACTION);
+                newFile = tablet.getNextDataFilename(FilePrefix.FLUSH);
                 tmpFile =
                     new ReferencedTabletFile(new Path(newFile.getNormalizedPathStr() + "_tmp"));
               }
@@ -90,10 +88,13 @@ class MinorCompactionTask implements Runnable {
                * for the minor compaction
                */
               tablet.getTabletServer().minorCompactionStarted(commitSession,
-                  commitSession.getWALogSeq() + 1, newFile.getMetaInsert());
+                  commitSession.getWALogSeq() + 1, newFile.insert().getMetadataPath());
               break;
-            } catch (IOException e) {
-              // An IOException could have occurred while creating the new file
+            } catch (Exception e) {
+              // Catching Exception here rather than something more specific as we can't allow the
+              // MinorCompactionTask to exit and the thread to die. Tablet.minorCompact *must* be
+              // called and *must* complete else no future minor compactions can be performed on
+              // this Tablet.
               if (newFile == null) {
                 log.warn("Failed to create new file for minor compaction {}", e.getMessage(), e);
               } else {
@@ -127,10 +128,6 @@ class MinorCompactionTask implements Runnable {
         throw e;
       } finally {
         span.end();
-      }
-
-      if (tablet.needsSplit(tablet.getSplitComputations())) {
-        tablet.getTabletServer().executeSplit(tablet);
       }
     } catch (Exception e) {
       log.error("Unknown error during minor compaction for extent: {}", tablet.getExtent(), e);

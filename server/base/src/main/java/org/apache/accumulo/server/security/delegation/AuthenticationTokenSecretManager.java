@@ -45,6 +45,8 @@ import org.slf4j.LoggerFactory;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Maps;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Manages an internal list of secret keys used to sign new authentication tokens as they are
  * generated, and to validate existing tokens used for authentication.
@@ -82,7 +84,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
       DelegationTokenConfig cfg) {
     long now = System.currentTimeMillis();
     identifier.setIssueDate(now);
-    identifier.setExpirationDate(calculateExpirationDate());
+    identifier.setExpirationDate(calculateExpirationDate(now));
     // Limit the lifetime if the user requests it
     if (cfg != null) {
       long requestedLifetime = cfg.getTokenLifetime(TimeUnit.MILLISECONDS);
@@ -104,8 +106,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     return createPassword(identifier);
   }
 
-  private long calculateExpirationDate() {
-    long now = System.currentTimeMillis();
+  private long calculateExpirationDate(long now) {
     long expiration = now + tokenMaxLifetime;
     // Catch overflow
     if (expiration < now) {
@@ -123,11 +124,12 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     identifier.setKeyId(secretKey.getKeyId());
     identifier.setInstanceId(instanceID);
 
+    long now = System.currentTimeMillis();
     if (!identifier.isSetIssueDate()) {
-      identifier.setIssueDate(System.currentTimeMillis());
+      identifier.setIssueDate(now);
     }
     if (!identifier.isSetExpirationDate()) {
-      identifier.setExpirationDate(calculateExpirationDate());
+      identifier.setExpirationDate(calculateExpirationDate(now));
     }
     return createPassword(identifier.getBytes(), secretKey.getKey());
   }
@@ -282,6 +284,7 @@ public class AuthenticationTokenSecretManager extends SecretManager<Authenticati
     return super.generateSecret();
   }
 
+  @SuppressFBWarnings(value = "HSM_HIDING_METHOD", justification = "")
   public static SecretKey createSecretKey(byte[] raw) {
     return SecretManager.createSecretKey(raw);
   }

@@ -36,6 +36,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -46,14 +47,19 @@ public class AmpleIT extends AccumuloClusterHarness {
 
   private void runFetchTest(Ample ample, List<KeyExtent> extentsToFetch, Set<KeyExtent> expected,
       Set<KeyExtent> expectMissing) {
+    Set<KeyExtent> extentsSeen;
     // always run a test without a consumer for not seen tablets as this takes a different code path
-    var extentsSeen = ample.readTablets().forTablets(extentsToFetch, Optional.empty()).build()
-        .stream().map(TabletMetadata::getExtent).collect(toSet());
-    assertEquals(expected, extentsSeen);
+    try (TabletsMetadata tm =
+        ample.readTablets().forTablets(extentsToFetch, Optional.empty()).build()) {
+      extentsSeen = tm.stream().map(TabletMetadata::getExtent).collect(toSet());
+      assertEquals(expected, extentsSeen);
+    }
 
     HashSet<KeyExtent> extentsNotSeen = new HashSet<>();
-    extentsSeen = ample.readTablets().forTablets(extentsToFetch, Optional.of(extentsNotSeen::add))
-        .build().stream().map(TabletMetadata::getExtent).collect(toSet());
+    try (TabletsMetadata tm =
+        ample.readTablets().forTablets(extentsToFetch, Optional.of(extentsNotSeen::add)).build()) {
+      extentsSeen = tm.stream().map(TabletMetadata::getExtent).collect(toSet());
+    }
     assertEquals(expected, extentsSeen);
     assertEquals(expectMissing, extentsNotSeen);
   }

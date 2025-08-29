@@ -86,7 +86,7 @@ public class DefaultFormatter implements Formatter {
   }
 
   /* so a new date object doesn't get created for every record in the scan result */
-  private static ThreadLocal<Date> tmpDate = ThreadLocal.withInitial(Date::new);
+  private static final ThreadLocal<Date> tmpDate = ThreadLocal.withInitial(Date::new);
 
   /** Does not show timestamps if timestampFormat is null */
   public static String formatEntry(Entry<Key,Value> entry, DateFormat timestampFormat) {

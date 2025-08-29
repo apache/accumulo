@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static java.util.Collections.singletonMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
@@ -96,7 +97,7 @@ public class TabletIT extends AccumuloClusterHarness {
       int count = 0;
       for (Entry<Key,Value> elt : scanner) {
         String expected = String.format("%05d", count);
-        assert elt.getKey().getRow().toString().equals(expected);
+        assertTrue(elt.getKey().getRow().toString().equals(expected));
         count++;
       }
       assertEquals(N, count);

@@ -66,17 +66,9 @@ service TabletIngestClientService {
     1:tabletserver.NoSuchScanIDException nssi
   )
 
-  //the following call supports making a single update to a tablet
-  void update(
-    4:client.TInfo tinfo
-    1:security.TCredentials credentials
-    2:data.TKeyExtent keyExtent
-    3:data.TMutation mutation
-    5:TDurability durability
-  ) throws (
-    1:client.ThriftSecurityException sec
-    2:tabletserver.NotServingTabletException nste
-    3:ConstraintViolationException cve
+  bool cancelUpdate(
+    1:client.TInfo tinfo
+    2:data.UpdateID updateID
   )
 
   data.TConditionalSession startConditionalUpdate(
@@ -108,14 +100,4 @@ service TabletIngestClientService {
     1:client.TInfo tinfo
     2:data.UpdateID sessID
   )
-
-  oneway void loadFiles(
-    1:client.TInfo tinfo
-    2:security.TCredentials credentials
-    3:i64 tid
-    4:string dir
-    7:map<data.TKeyExtent, map<string, DataFileInfo>> files
-    6:bool setTime
-  )
-
 }

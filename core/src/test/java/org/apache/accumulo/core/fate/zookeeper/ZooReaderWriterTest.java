@@ -21,7 +21,6 @@ package org.apache.accumulo.core.fate.zookeeper;
 import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.anyString;
 import static org.easymock.EasyMock.createMock;
-import static org.easymock.EasyMock.createMockBuilder;
 import static org.easymock.EasyMock.expect;
 import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
@@ -32,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter.Mutator;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.Retry.RetryFactory;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.BadVersionException;
@@ -39,7 +39,6 @@ import org.apache.zookeeper.KeeperException.Code;
 import org.apache.zookeeper.KeeperException.ConnectionLossException;
 import org.apache.zookeeper.KeeperException.NodeExistsException;
 import org.apache.zookeeper.KeeperException.SessionExpiredException;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.Stat;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,21 +46,23 @@ import org.junit.jupiter.api.Test;
 public class ZooReaderWriterTest {
 
   private ZooReaderWriter zrw;
-  private ZooKeeper zk;
+  private ZooSession zk;
   private RetryFactory retryFactory;
   private Retry retry;
 
   @BeforeEach
   public void setup() {
-    zk = createMock(ZooKeeper.class);
-    zrw = createMockBuilder(ZooReaderWriter.class)
-        .addMockedMethods("getRetryFactory", "getZooKeeper").createMock();
+    zk = createMock(ZooSession.class);
     retryFactory = createMock(RetryFactory.class);
     retry = createMock(Retry.class);
-
-    expect(zrw.getZooKeeper()).andReturn(zk).anyTimes();
-    expect(zrw.getRetryFactory()).andReturn(retryFactory).anyTimes();
     expect(retryFactory.createRetry()).andReturn(retry).anyTimes();
+    zrw = new ZooReaderWriter(zk) {
+      @Override
+      protected RetryFactory getRetryFactory() {
+        return retryFactory;
+      }
+    };
+    expect(zk.asReaderWriter()).andReturn(zrw).anyTimes();
   }
 
   @Test
@@ -71,11 +72,11 @@ public class ZooReaderWriterTest {
     zk.delete(path, -1);
     expectLastCall().andThrow(KeeperException.create(Code.NONODE));
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     zrw.delete(path);
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -92,11 +93,11 @@ public class ZooReaderWriterTest {
     zk.delete(path, -1);
     expectLastCall().andThrow(KeeperException.create(Code.NONODE));
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     zrw.delete(path);
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -110,11 +111,11 @@ public class ZooReaderWriterTest {
     expect(retry.canRetry()).andReturn(false);
     expect(retry.retriesCompleted()).andReturn(1L).once();
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     assertThrows(SessionExpiredException.class, () -> zrw.mutateOrCreate(path, value, mutator));
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -134,11 +135,14 @@ public class ZooReaderWriterTest {
     // Let 2nd setData succeed
     expect(zk.setData(path, mutatedBytes, 0)).andReturn(null);
 
-    replay(zk, zrw, retryFactory, retry);
+    retry.waitForNextAttempt(anyObject(), anyObject());
+    expectLastCall().once();
+
+    replay(zk, retryFactory, retry);
 
     assertArrayEquals(new byte[] {1}, zrw.mutateOrCreate(path, value, mutator));
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 
   @Test
@@ -164,10 +168,10 @@ public class ZooReaderWriterTest {
     // Let 2nd setData succeed
     expect(zk.setData(path, mutatedBytes, 0)).andReturn(null);
 
-    replay(zk, zrw, retryFactory, retry);
+    replay(zk, retryFactory, retry);
 
     assertArrayEquals(new byte[] {1}, zrw.mutateOrCreate(path, value, mutator));
 
-    verify(zk, zrw, retryFactory, retry);
+    verify(zk, retryFactory, retry);
   }
 }

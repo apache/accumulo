@@ -30,6 +30,8 @@ import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.PluginConfig;
 import org.apache.accumulo.core.compaction.CompactionSettings;
+import org.apache.accumulo.core.compaction.ShellCompactCommandConfigurer;
+import org.apache.accumulo.core.compaction.ShellCompactCommandSelector;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.ShellUtil;
 import org.apache.commons.cli.CommandLine;
@@ -37,13 +39,30 @@ import org.apache.commons.cli.Option;
 import org.apache.commons.cli.Options;
 
 public class CompactCommand extends TableOperation {
-  private Option noFlushOption, waitOpt, profileOpt, cancelOpt;
+  private Option noFlushOption;
+  private Option waitOpt;
+  private Option profileOpt;
+  private Option cancelOpt;
 
   // file selection and file output options
-  private Option enameOption, epathOption, sizeLtOption, sizeGtOption, minFilesOption,
-      outBlockSizeOpt, outHdfsBlockSizeOpt, outIndexBlockSizeOpt, outCompressionOpt, outReplication,
-      enoSampleOption, extraSummaryOption, enoSummaryOption, hintsOption, configurerOpt,
-      configurerConfigOpt, selectorOpt, selectorConfigOpt;
+  private Option enameOption;
+  private Option epathOption;
+  private Option sizeLtOption;
+  private Option sizeGtOption;
+  private Option minFilesOption;
+  private Option outBlockSizeOpt;
+  private Option outHdfsBlockSizeOpt;
+  private Option outIndexBlockSizeOpt;
+  private Option outCompressionOpt;
+  private Option outReplication;
+  private Option enoSampleOption;
+  private Option extraSummaryOption;
+  private Option enoSummaryOption;
+  private Option hintsOption;
+  private Option configurerOpt;
+  private Option configurerConfigOpt;
+  private Option selectorOpt;
+  private Option selectorConfigOpt;
 
   private CompactionConfig compactionConfig = null;
 
@@ -124,16 +143,12 @@ public class CompactCommand extends TableOperation {
     }
 
     if (!sopts.isEmpty()) {
-      PluginConfig selectorCfg = new PluginConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
-          sopts);
+      var selectorCfg = new PluginConfig(ShellCompactCommandSelector.class.getName(), sopts);
       compactionConfig.setSelector(selectorCfg);
     }
 
     if (!copts.isEmpty()) {
-      PluginConfig configurerConfig = new PluginConfig(
-          "org.apache.accumulo.tserver.compaction.strategies.ConfigurableCompactionStrategy",
-          copts);
+      var configurerConfig = new PluginConfig(ShellCompactCommandConfigurer.class.getName(), copts);
       compactionConfig.setConfigurer(configurerConfig);
     }
   }

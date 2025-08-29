@@ -22,7 +22,9 @@ import static org.apache.accumulo.core.conf.Property.GENERAL_ARBITRARY_PROP_PREF
 import static org.apache.accumulo.core.conf.Property.INSTANCE_CRYPTO_PREFIX;
 import static org.apache.accumulo.core.conf.Property.TABLE_CRYPTO_PREFIX;
 
+import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.HashMap;
@@ -70,6 +72,27 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
   private final Lock prefixCacheUpdateLock = new ReentrantLock();
 
   private static final Logger log = LoggerFactory.getLogger(AccumuloConfiguration.class);
+
+  private static final List<Property> DURATION_PROPS = Arrays.stream(Property.values())
+      .filter(property -> property.getType() == PropertyType.TIMEDURATION)
+      .collect(Collectors.toUnmodifiableList());
+
+  private final Deriver<EnumMap<Property,Duration>> durationDeriver = newDeriver(conf -> {
+    EnumMap<Property,Duration> durations = new EnumMap<>(Property.class);
+    for (Property prop : DURATION_PROPS) {
+      var value = conf.get(prop);
+      if (value != null) {
+        try {
+          var durationMillis = ConfigurationTypeHelper.getTimeInMillis(value);
+          durations.put(prop, Duration.ofMillis(durationMillis));
+        } catch (RuntimeException e) {
+          log.error("Failed to parse duration for {}={}", prop, value, e);
+        }
+      }
+    }
+    log.trace("recomputed durations {}", durations);
+    return durations;
+  });
 
   /**
    * Gets a property value from this configuration.
@@ -259,13 +282,23 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the value properly.
    *
    * @param property property to get
+   * @throws IllegalArgumentException if the property is of the wrong type
+   */
+  public Duration getDuration(Property property) {
+    checkType(property, PropertyType.TIMEDURATION);
+    return Objects.requireNonNull(durationDeriver.derive().get(property), () -> "Property "
+        + property.getKey() + " is not set or its value did not parse correctly.");
+  }
+
+  /**
+   * Gets a property of type {@link PropertyType#TIMEDURATION}, interpreting the value properly.
+   *
+   * @param property property to get
    * @return property value
    * @throws IllegalArgumentException if the property is of the wrong type
    */
   public long getTimeInMillis(Property property) {
-    checkType(property, PropertyType.TIMEDURATION);
-
-    return ConfigurationTypeHelper.getTimeInMillis(get(property));
+    return getDuration(property).toMillis();
   }
 
   /**
@@ -424,11 +457,17 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
     }
   }
 
+  /**
+   * @param prop Property to check
+   * @return true if the given property has explicitly been set by a user, false otherwise; for
+   *         runtime-fixed properties, this returns true only if the property was set by the user
+   *         when the property's value was first read and entered a fixed state
+   */
   public abstract boolean isPropertySet(Property prop);
 
   private static class RefCount<T> {
-    T obj;
-    long count;
+    final T obj;
+    final long count;
 
     RefCount(long c, T r) {
       this.count = c;
@@ -464,6 +503,12 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
 
       if (rc == null || rc.count != uc) {
         T newObj = converter.apply(AccumuloConfiguration.this);
+
+        if (newObj == null) {
+          // The converter should not return a null value and the Deriver
+          // should not store and return a null value.
+          throw new IllegalStateException("Deriver returned a null value");
+        }
 
         // very important to record the update count that was obtained before recomputing.
         RefCount<T> nrc = new RefCount<>(uc, newObj);
@@ -503,6 +548,7 @@ public abstract class AccumuloConfiguration implements Iterable<Entry<String,Str
    *        this function will be kept and called by the returned deriver.
    * @return The returned supplier will automatically re-derive the object any time this
    *         configuration changes. When configuration is not changing, the same object is returned.
+   * @throws IllegalStateException When a null return value is returned by the converter.
    *
    */
   public <T> Deriver<T> newDeriver(Function<AccumuloConfiguration,T> converter) {

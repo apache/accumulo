@@ -19,12 +19,13 @@
 package org.apache.accumulo.core.file;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.apache.accumulo.core.util.threads.ThreadPoolNames.BLOOM_LOADER_POOL;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +45,7 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.keyfunctor.KeyFunctor;
 import org.apache.accumulo.core.file.rfile.RFile;
@@ -68,7 +70,6 @@ import org.slf4j.LoggerFactory;
  */
 public class BloomFilterLayer {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Logger LOG = LoggerFactory.getLogger(BloomFilterLayer.class);
   public static final String BLOOM_FILE_NAME = "acu_bloom";
   public static final int HASH_COUNT = 5;
@@ -81,10 +82,9 @@ public class BloomFilterLayer {
     }
 
     if (maxLoadThreads > 0) {
-      loadThreadPool = ThreadPools.getServerThreadPools().createThreadPool(0, maxLoadThreads, 60,
-          SECONDS, "bloom-loader", false);
+      loadThreadPool = ThreadPools.getServerThreadPools().getPoolBuilder(BLOOM_LOADER_POOL)
+          .numCoreThreads(0).numMaxThreads(maxLoadThreads).withTimeOut(60L, SECONDS).build();
     }
-
     return loadThreadPool;
   }
 
@@ -93,7 +93,7 @@ public class BloomFilterLayer {
     private int numKeys;
     private int vectorSize;
 
-    private FileSKVWriter writer;
+    private final FileSKVWriter writer;
     private KeyFunctor transformer = null;
     private boolean closed = false;
     private long length = -1;
@@ -205,7 +205,7 @@ public class BloomFilterLayer {
     private volatile DynamicBloomFilter bloomFilter;
     private int loadRequest = 0;
     private int loadThreshold = 1;
-    private int maxLoadThreads;
+    private final int maxLoadThreads;
     private Runnable loadTask;
     private volatile KeyFunctor transformer = null;
     private volatile boolean closed = false;
@@ -349,8 +349,8 @@ public class BloomFilterLayer {
 
   public static class Reader implements FileSKVIterator {
 
-    private BloomFilterLoader bfl;
-    private FileSKVIterator reader;
+    private final BloomFilterLoader bfl;
+    private final FileSKVIterator reader;
 
     public Reader(FileSKVIterator reader, AccumuloConfiguration acuconf) {
       this.reader = reader;
@@ -388,13 +388,8 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public org.apache.accumulo.core.data.Key getFirstKey() throws IOException {
-      return reader.getFirstKey();
-    }
-
-    @Override
-    public org.apache.accumulo.core.data.Key getLastKey() throws IOException {
-      return reader.getLastKey();
+    public FileRange getFileRange() {
+      return reader.getFileRange();
     }
 
     @Override
@@ -431,6 +426,11 @@ public class BloomFilterLayer {
     }
 
     @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      return reader.estimateOverlappingEntries(extent);
+    }
+
+    @Override
     public void closeDeepCopies() throws IOException {
       reader.closeDeepCopies();
     }
@@ -457,7 +457,7 @@ public class BloomFilterLayer {
     HashSet<Integer> valsSet = new HashSet<>();
 
     for (int i = 0; i < 100000; i++) {
-      valsSet.add(random.nextInt(Integer.MAX_VALUE));
+      valsSet.add(RANDOM.get().nextInt(Integer.MAX_VALUE));
     }
 
     ArrayList<Integer> vals = new ArrayList<>(valsSet);
@@ -509,7 +509,7 @@ public class BloomFilterLayer {
 
     int hits = 0;
     for (int i = 0; i < 5000; i++) {
-      int row = random.nextInt(Integer.MAX_VALUE);
+      int row = RANDOM.get().nextInt(Integer.MAX_VALUE);
       String fi = String.format("%010d", row);
       // bmfr.seek(new Range(new Text("r"+fi)));
       org.apache.accumulo.core.data.Key k1 =

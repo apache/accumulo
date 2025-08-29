@@ -90,7 +90,7 @@ public class InMemoryMap {
   private final String mapType;
   private final TableId tableId;
 
-  private Map<String,Set<ByteSequence>> lggroups;
+  private final Map<String,Set<ByteSequence>> lggroups;
 
   private static Pair<SamplerConfigurationImpl,Sampler> getSampler(AccumuloConfiguration config) {
     try {
@@ -110,10 +110,10 @@ public class InMemoryMap {
   public static final String TYPE_LOCALITY_GROUP_MAP = "LocalityGroupMap";
   public static final String TYPE_LOCALITY_GROUP_MAP_NATIVE = "LocalityGroupMap with native";
 
-  private AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
+  private final AtomicReference<Pair<SamplerConfigurationImpl,Sampler>> samplerRef =
       new AtomicReference<>(null);
 
-  private AccumuloConfiguration config;
+  private final AccumuloConfiguration config;
 
   // defer creating sampler until first write. This was done because an empty sample map configured
   // with no sampler will not flush after a user changes sample
@@ -198,8 +198,8 @@ public class InMemoryMap {
 
   private class SampleMap implements SimpleMap {
 
-    private SimpleMap map;
-    private SimpleMap sample;
+    private final SimpleMap map;
+    private final SimpleMap sample;
 
     public SampleMap(SimpleMap map, SimpleMap sampleMap) {
       this.map = map;
@@ -280,12 +280,12 @@ public class InMemoryMap {
 
   private static class LocalityGroupMap implements SimpleMap {
 
-    private PreAllocatedArray<Map<ByteSequence,MutableLong>> groupFams;
+    private final PreAllocatedArray<Map<ByteSequence,MutableLong>> groupFams;
 
     // the last map in the array is the default locality group
-    private SimpleMap[] maps;
-    private Partitioner partitioner;
-    private PreAllocatedArray<List<Mutation>> partitioned;
+    private final SimpleMap[] maps;
+    private final Partitioner partitioner;
+    private final PreAllocatedArray<List<Mutation>> partitioned;
 
     LocalityGroupMap(Map<String,Set<ByteSequence>> groups, boolean useNativeMap) {
       this.groupFams = new PreAllocatedArray<>(groups.size());
@@ -385,8 +385,8 @@ public class InMemoryMap {
   private static class DefaultMap implements SimpleMap {
     private ConcurrentSkipListMap<Key,Value> map =
         new ConcurrentSkipListMap<>(new MemKeyComparator());
-    private AtomicLong bytesInMemory = new AtomicLong();
-    private AtomicInteger size = new AtomicInteger();
+    private final AtomicLong bytesInMemory = new AtomicLong();
+    private final AtomicInteger size = new AtomicInteger();
 
     public void put(Key key, Value value) {
       // Always a MemKey, so account for the kvCount int
@@ -448,7 +448,7 @@ public class InMemoryMap {
   }
 
   private static class NativeMapWrapper implements SimpleMap {
-    private NativeMap nativeMap;
+    private final NativeMap nativeMap;
 
     NativeMapWrapper() {
       nativeMap = new NativeMap();
@@ -483,10 +483,10 @@ public class InMemoryMap {
     }
   }
 
-  private AtomicInteger nextKVCount = new AtomicInteger(1);
-  private AtomicInteger kvCount = new AtomicInteger(0);
+  private final AtomicInteger nextKVCount = new AtomicInteger(1);
+  private final AtomicInteger kvCount = new AtomicInteger(0);
 
-  private Object writeSerializer = new Object();
+  private final Object writeSerializer = new Object();
 
   /**
    * Applies changes to a row in the InMemoryMap
@@ -537,10 +537,10 @@ public class InMemoryMap {
     private boolean switched = false;
     private InterruptibleIterator iter;
     private FileSKVIterator reader;
-    private MemoryDataSource parent;
-    private IteratorEnvironment env;
+    private final MemoryDataSource parent;
+    private final IteratorEnvironment env;
     private AtomicBoolean iflag;
-    private SamplerConfigurationImpl iteratorSamplerConfig;
+    private final SamplerConfigurationImpl iteratorSamplerConfig;
 
     private SamplerConfigurationImpl getSamplerConfig() {
       if (env != null) {
@@ -659,7 +659,7 @@ public class InMemoryMap {
 
   public class MemoryIterator extends WrappingIterator implements InterruptibleIterator {
 
-    private AtomicBoolean closed;
+    private final AtomicBoolean closed;
     private SourceSwitchingIterator ssi;
     private MemoryDataSource mds;
 

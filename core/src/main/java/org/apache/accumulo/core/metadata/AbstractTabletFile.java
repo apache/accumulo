@@ -18,8 +18,12 @@
  */
 package org.apache.accumulo.core.metadata;
 
+import static org.apache.accumulo.core.util.RowRangeUtil.requireKeyExtentDataRange;
+import static org.apache.accumulo.core.util.RowRangeUtil.stripZeroTail;
+
 import java.util.Objects;
 
+import org.apache.accumulo.core.data.Range;
 import org.apache.hadoop.fs.Path;
 
 /**
@@ -31,23 +35,40 @@ import org.apache.hadoop.fs.Path;
 public abstract class AbstractTabletFile<T extends AbstractTabletFile<T>>
     implements TabletFile, Comparable<T> {
 
-  private final String fileName; // C0004.rf
   protected final Path path;
+  protected final Range range;
 
-  protected AbstractTabletFile(Path path) {
+  protected AbstractTabletFile(Path path, Range range) {
     this.path = Objects.requireNonNull(path);
-    this.fileName = path.getName();
-    ValidationUtil.validateFileName(fileName);
-  }
-
-  @Override
-  public String getFileName() {
-    return fileName;
+    this.range = requireKeyExtentDataRange(range);
   }
 
   @Override
   public Path getPath() {
     return path;
+  }
+
+  @Override
+  public Range getRange() {
+    return range;
+  }
+
+  @Override
+  public boolean hasRange() {
+    return !range.isInfiniteStartKey() || !range.isInfiniteStopKey();
+  }
+
+  @Override
+  public String toMinimalString() {
+    if (hasRange()) {
+      String startRow = range.isInfiniteStartKey() ? "-inf"
+          : stripZeroTail(range.getStartKey().getRowData()).toString();
+      String endRow = range.isInfiniteStopKey() ? "+inf"
+          : stripZeroTail(range.getEndKey().getRowData()).toString();
+      return getFileName() + " (" + startRow + "," + endRow + "]";
+    } else {
+      return getFileName();
+    }
   }
 
 }

@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
@@ -125,7 +126,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
         // do a few random lookups into the data just flushed
 
         for (int k = 0; k < 10; k++) {
-          int rowToLookup = random.nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
+          int rowToLookup = RANDOM.get().nextInt(NUM_TO_FLUSH) + i * NUM_TO_FLUSH;
 
           scanner.setRange(new Range(new Text(String.format("r_%10d", rowToLookup))));
 
@@ -214,7 +215,7 @@ public class BatchWriterFlushIT extends AccumuloClusterHarness {
       }
 
       ThreadPoolExecutor threads = ThreadPools.getServerThreadPools()
-          .createFixedThreadPool(NUM_THREADS, "ClientThreads", false);
+          .getPoolBuilder("batch.writer.client.flush").numCoreThreads(NUM_THREADS).build();
       threads.allowCoreThreadTimeOut(false);
       threads.prestartAllCoreThreads();
 

@@ -22,7 +22,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +44,7 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
@@ -80,8 +79,10 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   private static final Text EMPTY = new Text();
   private static final Value EMPTY_VALUE = new Value();
-  private File volDirBase;
-  private Path v1, v2, v3;
+  private java.nio.file.Path volDirBase;
+  private Path v1;
+  private Path v2;
+  private Path v3;
   public static String[] alpha_rows =
       "a,b,c,d,e,f,g,h,i,j,k,l,m,n,o,p,q,r,s,t,u,v,w,x,y,z".split(",");
   private String namespace1;
@@ -96,7 +97,7 @@ public class VolumeChooserIT extends ConfigurableMacBase {
   @Override
   public void configure(MiniAccumuloConfigImpl cfg, Configuration hadoopCoreSite) {
     // Get 2 tablet servers
-    cfg.setNumTservers(2);
+    cfg.getClusterServerConfiguration().setNumDefaultTabletServers(2);
     namespace1 = "ns_" + getUniqueNames(2)[0];
     namespace2 = "ns_" + getUniqueNames(2)[1];
 
@@ -108,14 +109,14 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     siteConfig.put(PERTABLE_CHOOSER_PROP, PreferredVolumeChooser.class.getName());
 
     // Set up 4 different volume paths
-    File baseDir = cfg.getDir();
-    volDirBase = new File(baseDir, "volumes");
-    File v1f = new File(volDirBase, "v1");
-    File v2f = new File(volDirBase, "v2");
-    File v3f = new File(volDirBase, "v3");
-    v1 = new Path("file://" + v1f.getAbsolutePath());
-    v2 = new Path("file://" + v2f.getAbsolutePath());
-    v3 = new Path("file://" + v3f.getAbsolutePath());
+    java.nio.file.Path baseDir = cfg.getDir().toPath();
+    volDirBase = baseDir.resolve("volumes");
+    java.nio.file.Path v1f = volDirBase.resolve("v1");
+    java.nio.file.Path v2f = volDirBase.resolve("v2");
+    java.nio.file.Path v3f = volDirBase.resolve("v3");
+    v1 = new Path("file://" + v1f.toAbsolutePath());
+    v2 = new Path("file://" + v2f.toAbsolutePath());
+    v3 = new Path("file://" + v3f.toAbsolutePath());
 
     systemPreferredVolumes = v1 + "," + v2;
     // exclude v3
@@ -184,7 +185,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
     TreeSet<String> volumesSeen = new TreeSet<>();
     int fileCount = 0;
-    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -207,7 +209,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
 
   public static void verifyNoVolumes(AccumuloClient accumuloClient, Range tableRange)
       throws Exception {
-    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(DataFileColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {
@@ -248,7 +251,8 @@ public class VolumeChooserIT extends ConfigurableMacBase {
     Collections.addAll(volumes, vol.split(","));
 
     TreeSet<String> volumesSeen = new TreeSet<>();
-    try (Scanner scanner = accumuloClient.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+    try (Scanner scanner =
+        accumuloClient.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
       scanner.setRange(tableRange);
       scanner.fetchColumnFamily(LogColumnFamily.NAME);
       for (Entry<Key,Value> entry : scanner) {

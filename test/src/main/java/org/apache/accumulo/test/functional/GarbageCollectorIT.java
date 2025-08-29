@@ -27,13 +27,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.BatchWriter;
@@ -44,13 +50,15 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.ReferenceFile;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
-import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.DeletesSection.SkewedKeyValue;
 import org.apache.accumulo.core.security.Authorizations;
@@ -72,12 +80,15 @@ import org.apache.hadoop.io.Text;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.KeeperException.NoNodeException;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Iterators;
 import com.google.common.net.HostAndPort;
 
 public class GarbageCollectorIT extends ConfigurableMacBase {
   private static final String OUR_SECRET = "itsreallysecret";
+  public static final Logger log = LoggerFactory.getLogger(GarbageCollectorIT.class);
 
   @Override
   protected Duration defaultTimeout() {
@@ -92,7 +103,6 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     cfg.setProperty(Property.GC_CYCLE_DELAY, "1");
     cfg.setProperty(Property.GC_PORT, "0");
     cfg.setProperty(Property.TSERV_MAXMEM, "5K");
-    cfg.setProperty(Property.TSERV_MAJC_DELAY, "1");
     // reduce the batch size significantly in order to cause the integration tests to have
     // to process many batches of deletion candidates.
     cfg.setProperty(Property.GC_CANDIDATE_BATCH_SIZE, "256K");
@@ -106,8 +116,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
     getCluster().killProcess(ServerType.GARBAGE_COLLECTOR,
         getCluster().getProcesses().get(ServerType.GARBAGE_COLLECTOR).iterator().next());
     // delete lock in zookeeper if there, this will allow next GC to start quickly
-    var path = ServiceLock.path(getServerContext().getZooKeeperRoot() + Constants.ZGC_LOCK);
-    ZooReaderWriter zk = getServerContext().getZooReaderWriter();
+    var path = getServerContext().getServerPaths().createGarbageCollectorPath();
+    ZooReaderWriter zk = getServerContext().getZooSession().asReaderWriter();
     try {
       ServiceLock.deleteLock(zk, path);
     } catch (IllegalStateException e) {
@@ -130,7 +140,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       TestIngest.ingest(c, cluster.getFileSystem(), params);
       log.info("Compacting the table {}", table);
       c.tableOperations().compact(table, null, null, true, true);
-      String pathString = cluster.getConfig().getDir() + "/accumulo/tables/1/*/*.rf";
+      // the following path expects mini to be configured with a single volume
+      final String pathString = cluster.getSiteConfiguration().get(Property.INSTANCE_VOLUMES) + "/"
+          + Constants.TABLE_DIR + "/1/*/*.rf";
       log.info("Counting files in path: {}", pathString);
 
       int before = countFiles(pathString);
@@ -201,7 +213,8 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       // run recovery
       cluster.start();
       // did it recover?
-      try (Scanner scanner = c.createScanner(MetadataTable.NAME, Authorizations.EMPTY)) {
+      try (Scanner scanner =
+          c.createScanner(SystemTables.METADATA.tableName(), Authorizations.EMPTY)) {
         scanner.forEach((k, v) -> {});
       }
     }
@@ -230,9 +243,9 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
       c.tableOperations().flush(table, null, null, true);
 
       // ensure an invalid delete entry does not cause GC to go berserk ACCUMULO-2520
-      c.securityOperations().grantTablePermission(c.whoami(), MetadataTable.NAME,
+      c.securityOperations().grantTablePermission(c.whoami(), SystemTables.METADATA.tableName(),
           TablePermission.WRITE);
-      try (BatchWriter bw = c.createBatchWriter(MetadataTable.NAME)) {
+      try (BatchWriter bw = c.createBatchWriter(SystemTables.METADATA.tableName())) {
         bw.addMutation(createDelMutation("", "", "", ""));
         bw.addMutation(createDelMutation("", "testDel", "test", "valueTest"));
         // path is invalid but value is expected - only way the invalid entry will come through
@@ -267,13 +280,139 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
   }
 
   @Test
+  public void testUserUniqueMutationDelete() throws Exception {
+    killMacGc();
+    try (AccumuloClient c = Accumulo.newClient().from(getClientProperties()).build()) {
+      String table = getUniqueNames(1)[0];
+      c.tableOperations().create(table);
+      log.info("User GcCandidate Deletion test of table: {}", table);
+      log.info("GcCandidates will be added/removed from table: {}", DataLevel.USER.metaTable());
+      createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.INUSE);
+      createAndDeleteUniqueMutation(TableId.of(table), Ample.GcCandidateType.VALID);
+    }
+  }
+
+  @Test
+  public void testMetadataUniqueMutationDelete() throws Exception {
+    killMacGc();
+    TableId tableId = DataLevel.USER.metaTableId();
+    log.info("Metadata GcCandidate Deletion test");
+    log.info("GcCandidates will be added/removed from table: {}", DataLevel.METADATA.metaTable());
+    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.INUSE);
+    createAndDeleteUniqueMutation(tableId, Ample.GcCandidateType.VALID);
+  }
+
+  /**
+   * Root INUSE deletions are not supported in 2.1.x. This test can be migrated to use
+   * createAndDeleteUniqueMutation in 3.x
+   *
+   * @throws Exception may occur when killing the GC process.
+   */
+  @Test
+  public void testRootUniqueMutationDelete() throws Exception {
+    killMacGc();
+    TableId tableId = DataLevel.METADATA.metaTableId();
+    log.info("Root GcCandidate Deletion test");
+    log.info("GcCandidates will be added but not removed from Zookeeper");
+
+    Ample ample = cluster.getServerContext().getAmple();
+    DataLevel datalevel = DataLevel.ROOT;
+
+    // Ensure that no other candidates exist before starting test.
+    Iterator<GcCandidate> cIter = ample.getGcCandidates(datalevel);
+
+    ArrayList<GcCandidate> tempCandidates = new ArrayList<>();
+    while (cIter.hasNext()) {
+      GcCandidate cTemp = cIter.next();
+      tempCandidates.add(cTemp);
+    }
+    if (tempCandidates.size() != 0) {
+      ample.deleteGcCandidates(datalevel, tempCandidates, Ample.GcCandidateType.VALID);
+      tempCandidates.clear();
+
+      cIter = ample.getGcCandidates(datalevel);
+      while (cIter.hasNext()) {
+        GcCandidate cTemp = cIter.next();
+        log.debug("PreExisting Candidate Found: {}", cTemp);
+        tempCandidates.add(cTemp);
+      }
+      assertEquals(0, tempCandidates.size());
+    }
+
+    // Create multiple candidate entries
+    List<GcCandidate> candidates =
+        List.of(new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F00.rf", 0L),
+            new GcCandidate("hdfs://foo.com:6000/user/foo/tables/+r/t-0/F001.rf", 1L));
+
+    List<StoredTabletFile> stfs = candidates.stream()
+        .map(temp -> StoredTabletFile.of(new Path(temp.getPath()))).collect(Collectors.toList());
+
+    log.debug("Adding root table GcCandidates");
+    ample.putGcCandidates(tableId, stfs);
+
+    // Retrieve the recently created entries.
+    cIter = ample.getGcCandidates(datalevel);
+
+    int counter = 0;
+    while (cIter.hasNext()) {
+      // Duplicate these entries back into zookeeper
+      ample.putGcCandidates(tableId,
+          List.of(StoredTabletFile.of(new Path(cIter.next().getPath()))));
+      counter++;
+    }
+    // Ensure Zookeeper collapsed the entries and did not support duplicates.
+    assertEquals(2, counter);
+
+    cIter = ample.getGcCandidates(datalevel);
+    while (cIter.hasNext()) {
+      // This should be a noop call. Root inUse candidate deletions are not supported.
+      ample.deleteGcCandidates(datalevel, List.of(cIter.next()), Ample.GcCandidateType.INUSE);
+    }
+
+    // Check that GcCandidates still exist
+    cIter = ample.getGcCandidates(datalevel);
+
+    counter = candidates.size();
+    while (cIter.hasNext()) {
+      GcCandidate gcC = cIter.next();
+      log.debug("Candidate Found: {}", gcC);
+      for (GcCandidate cand : candidates) {
+        if (gcC.getPath().equals(cand.getPath())) {
+          // Candidate uid's will never match as they are randomly generated in 2.1.x
+          assertNotEquals(gcC.getUid(), cand.getUid());
+          counter--;
+        }
+      }
+    }
+    // Ensure that we haven't seen more candidates than we expected.
+    assertEquals(0, counter);
+
+    // Delete the candidates as VALID GcCandidates
+    cIter = ample.getGcCandidates(datalevel);
+    while (cIter.hasNext()) {
+      ample.deleteGcCandidates(datalevel, List.of(cIter.next()), Ample.GcCandidateType.VALID);
+    }
+    // Ensure the GcCandidates have been removed.
+    cIter = ample.getGcCandidates(datalevel);
+
+    counter = 0;
+    while (cIter.hasNext()) {
+      GcCandidate gcC = cIter.next();
+      if (gcC != null) {
+        log.error("Candidate Found: {}", gcC);
+        counter++;
+      }
+    }
+    assertEquals(0, counter);
+  }
+
+  @Test
   public void testProperPortAdvertisement() throws Exception {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
 
-      ZooReaderWriter zk = cluster.getServerContext().getZooReaderWriter();
-      var path = ServiceLock
-          .path(ZooUtil.getRoot(client.instanceOperations().getInstanceId()) + Constants.ZGC_LOCK);
+      ZooReaderWriter zk = cluster.getServerContext().getZooSession().asReaderWriter();
+      var path = getServerContext().getServerPaths().createGarbageCollectorPath();
       for (int i = 0; i < 5; i++) {
         List<String> locks;
         try {
@@ -292,7 +431,7 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
           HostAndPort hostAndPort = sld.orElseThrow().getAddress(ThriftService.GC);
 
           // We shouldn't have the "bindall" address in zk
-          assertNotEquals("0.0.0.0", hostAndPort.getHost());
+          assertNotEquals(ConfigOpts.BIND_ALL_ADDRESSES, hostAndPort.getHost());
           // Nor should we have the "random port" in zk
           assertNotEquals(0, hostAndPort.getPort());
           return;
@@ -312,16 +451,85 @@ public class GarbageCollectorIT extends ConfigurableMacBase {
 
   private void addEntries(AccumuloClient client) throws Exception {
     Ample ample = getServerContext().getAmple();
-    client.securityOperations().grantTablePermission(client.whoami(), MetadataTable.NAME,
-        TablePermission.WRITE);
-    try (BatchWriter bw = client.createBatchWriter(MetadataTable.NAME)) {
+    client.securityOperations().grantTablePermission(client.whoami(),
+        SystemTables.METADATA.tableName(), TablePermission.WRITE);
+    try (BatchWriter bw = client.createBatchWriter(SystemTables.METADATA.tableName())) {
       for (int i = 0; i < 100000; ++i) {
         String longpath = "aaaaaaaaaabbbbbbbbbbccccccccccddddddddddeeeeeeeeee"
             + "ffffffffffgggggggggghhhhhhhhhhiiiiiiiiiijjjjjjjjjj";
-        var path = String.format("file:/%020d/%s", i, longpath);
-        Mutation delFlag = ample.createDeleteMutation(new ReferenceFile(TableId.of("1"), path));
+        var path = URI.create(String.format("file:/%020d/%s", i, longpath));
+        Mutation delFlag =
+            ample.createDeleteMutation(ReferenceFile.forFile(TableId.of("1"), new Path(path)));
         bw.addMutation(delFlag);
       }
     }
+  }
+
+  private void createAndDeleteUniqueMutation(TableId tableId, Ample.GcCandidateType type) {
+    int totalCandidates = 2;
+    boolean inUseDelete = true;
+
+    if (type == Ample.GcCandidateType.VALID) {
+      totalCandidates = 1;
+      inUseDelete = false;
+    }
+    Ample ample = cluster.getServerContext().getAmple();
+    DataLevel datalevel = Ample.DataLevel.of(tableId);
+
+    // Ensure that no other candidates exist before starting test.
+    List<GcCandidate> candidates = new ArrayList<>();
+    Iterator<GcCandidate> candidate = ample.getGcCandidates(datalevel);
+
+    while (candidate.hasNext()) {
+      GcCandidate cTemp = candidate.next();
+      log.debug("PreExisting Candidate Found: {}", cTemp);
+      candidates.add(cTemp);
+    }
+    assertEquals(0, candidates.size());
+
+    // Create multiple candidate entries
+    List<StoredTabletFile> stfs = Stream
+        .of("hdfs://foo.com:6000/user/foo/tables/a/t-0/F00.rf",
+            "hdfs://foo.com:6000/user/foo/tables/b/t-0/F00.rf")
+        .map(Path::new).map(StoredTabletFile::of).collect(Collectors.toList());
+
+    log.debug("Adding candidates to table {}", tableId);
+    ample.putGcCandidates(tableId, stfs);
+    // Retrieve new entries.
+    candidate = ample.getGcCandidates(datalevel);
+
+    while (candidate.hasNext()) {
+      GcCandidate cTemp = candidate.next();
+      log.debug("Candidate Found: {}", cTemp);
+      candidates.add(cTemp);
+    }
+    assertEquals(2, candidates.size());
+
+    GcCandidate deleteCandidate = candidates.get(0);
+    assertNotNull(deleteCandidate);
+    ample.putGcCandidates(tableId,
+        List.of(StoredTabletFile.of(new Path(deleteCandidate.getPath()))));
+
+    log.debug("Deleting Candidate {}", deleteCandidate);
+    ample.deleteGcCandidates(datalevel, List.of(deleteCandidate), type);
+
+    candidate = ample.getGcCandidates(datalevel);
+
+    int counter = 0;
+    boolean foundNewCandidate = false;
+    while (candidate.hasNext()) {
+      GcCandidate gcC = candidate.next();
+      log.debug("Candidate Found: {}", gcC);
+      if (gcC.getPath().equals(deleteCandidate.getPath())) {
+        assertNotEquals(gcC.getUid(), deleteCandidate.getUid());
+        foundNewCandidate = true;
+      }
+      counter++;
+    }
+    assertEquals(totalCandidates, counter);
+    assertEquals(inUseDelete, foundNewCandidate);
+
+    // Cleanup from test
+    ample.deleteGcCandidates(datalevel, candidates, Ample.GcCandidateType.VALID);
   }
 }

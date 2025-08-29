@@ -245,7 +245,7 @@ public class Value implements WritableComparable<Object> {
    * A Comparator optimized for Value.
    */
   public static class Comparator extends WritableComparator {
-    private BytesWritable.Comparator comparator = new BytesWritable.Comparator();
+    private final BytesWritable.Comparator comparator = new BytesWritable.Comparator();
 
     /** constructor */
     public Comparator() {

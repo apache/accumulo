@@ -24,7 +24,9 @@ import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.DFS_REPLICATION
 import static org.apache.hadoop.hdfs.client.HdfsClientConfigKeys.HedgedRead.THREADPOOL_SIZE_KEY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 
@@ -37,6 +39,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.conf.ConfigurationCopy;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.spi.common.ServiceEnvironment;
@@ -140,6 +143,42 @@ public class VolumeManagerImplTest {
     Entry<String,String> e = properties.get(0);
     assertEquals(vol2 + "." + THREADPOOL_SIZE_KEY, e.getKey());
     assertEquals("20", e.getValue());
+  }
+
+  @Test
+  public void testGetVolumeManagerConfiguration() throws Exception {
+
+    final ConfigurationCopy accumuloConf =
+        new ConfigurationCopy(DefaultConfiguration.getInstance());
+    final Configuration hadoopConf = new Configuration();
+    final String fileSystem = "file://127.0.0.1/vol1/";
+
+    final Configuration volumeConfig =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf, fileSystem);
+    assertSame(volumeConfig, hadoopConf);
+
+    accumuloConf.set(Property.INSTANCE_VOLUME_CONFIG_PREFIX.getKey() + fileSystem + "."
+        + DFS_CLIENT_CACHE_DROP_BEHIND_READS, "true");
+
+    Configuration hadoopConf2 = new Configuration(hadoopConf);
+    final Configuration volumeConfig2 =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf2, fileSystem);
+
+    assertNotSame(volumeConfig2, hadoopConf); // false because of the additional property
+    assertNotSame(volumeConfig, volumeConfig2); // false because of the additional property
+    assertEquals("true", volumeConfig2.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+
+    final Configuration volumeConfig3 =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, volumeConfig2, fileSystem);
+    assertEquals("true", volumeConfig3.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+    // false because of the different Hadoop configuration input
+    assertNotSame(volumeConfig3, volumeConfig2);
+
+    final Configuration volumeConfig4 =
+        VolumeManagerImpl.getVolumeManagerConfiguration(accumuloConf, hadoopConf2, fileSystem);
+    assertEquals("true", volumeConfig4.get(DFS_CLIENT_CACHE_DROP_BEHIND_READS));
+    // true because of the same hadoop configuration input
+    assertSame(volumeConfig4, volumeConfig2);
   }
 
   @Test

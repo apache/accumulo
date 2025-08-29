@@ -30,6 +30,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.NoSuchElementException;
 
+import org.apache.accumulo.access.AccessEvaluator;
+import org.apache.accumulo.access.AccessExpression;
+import org.apache.accumulo.access.InvalidAccessExpressionException;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.data.ByteSequence;
@@ -43,10 +46,6 @@ import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.iterators.WrappingIterator;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.security.ColumnVisibility;
-import org.apache.accumulo.core.security.VisibilityEvaluator;
-import org.apache.accumulo.core.security.VisibilityParseException;
-import org.apache.accumulo.core.util.BadArgumentException;
 import org.apache.accumulo.core.util.Pair;
 import org.apache.commons.collections4.map.LRUMap;
 import org.apache.hadoop.io.Text;
@@ -94,21 +93,22 @@ public abstract class TransformingIterator extends WrappingIterator implements O
   public static final String MAX_BUFFER_SIZE_OPT = "maxBufferSize";
   private static final long DEFAULT_MAX_BUFFER_SIZE = 10000000;
 
-  private Logger log = LoggerFactory.getLogger(getClass());
+  private final Logger log = LoggerFactory.getLogger(getClass());
 
-  protected ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
+  protected final ArrayList<Pair<Key,Value>> keys = new ArrayList<>();
   protected int keyPos = -1;
   protected boolean scanning;
   protected Range seekRange;
   protected Collection<ByteSequence> seekColumnFamilies;
   protected boolean seekColumnFamiliesInclusive;
 
-  private VisibilityEvaluator ve = null;
+  private AccessEvaluator ve = null;
   private LRUMap<ByteSequence,Boolean> visibleCache = null;
   private LRUMap<ByteSequence,Boolean> parsedVisibilitiesCache = null;
   private long maxBufferSize;
 
-  private static Comparator<Pair<Key,Value>> keyComparator = Comparator.comparing(Pair::getFirst);
+  private static final Comparator<Pair<Key,Value>> keyComparator =
+      Comparator.comparing(Pair::getFirst);
 
   @Override
   public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
@@ -118,7 +118,7 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     if (scanning) {
       String auths = options.get(AUTH_OPT);
       if (auths != null && !auths.isEmpty()) {
-        ve = new VisibilityEvaluator(new Authorizations(auths.getBytes(UTF_8)));
+        ve = AccessEvaluator.of(new Authorizations(auths.getBytes(UTF_8)).toAccessAuthorizations());
         visibleCache = new LRUMap<>(100);
       }
     }
@@ -266,9 +266,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
 
   private static class RangeIterator implements SortedKeyValueIterator<Key,Value> {
 
-    private SortedKeyValueIterator<Key,Value> source;
-    private Key prefixKey;
-    private PartialKey keyPrefix;
+    private final SortedKeyValueIterator<Key,Value> source;
+    private final Key prefixKey;
+    private final PartialKey keyPrefix;
     private boolean hasTop = false;
 
     RangeIterator(SortedKeyValueIterator<Key,Value> source, Key prefixKey, PartialKey keyPrefix) {
@@ -409,13 +409,12 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     // Ensure that the visibility (which could have been transformed) parses. Must always do this
     // check, even if visibility is not evaluated.
     ByteSequence visibility = key.getColumnVisibilityData();
-    ColumnVisibility colVis = null;
     Boolean parsed = parsedVisibilitiesCache.get(visibility);
     if (parsed == null) {
       try {
-        colVis = new ColumnVisibility(visibility.toArray());
+        AccessExpression.validate(visibility.toArray());
         parsedVisibilitiesCache.put(visibility, Boolean.TRUE);
-      } catch (BadArgumentException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse error after transformation : {}", visibility);
         parsedVisibilitiesCache.put(visibility, Boolean.FALSE);
         if (scanning) {
@@ -441,12 +440,9 @@ public abstract class TransformingIterator extends WrappingIterator implements O
     visible = visibleCache.get(visibility);
     if (visible == null) {
       try {
-        if (colVis == null) {
-          colVis = new ColumnVisibility(visibility.toArray());
-        }
-        visible = ve.evaluate(colVis);
+        visible = ve.canAccess(visibility.toArray());
         visibleCache.put(visibility, visible);
-      } catch (VisibilityParseException | BadArgumentException e) {
+      } catch (InvalidAccessExpressionException e) {
         log.error("Parse Error", e);
         visible = Boolean.FALSE;
       }

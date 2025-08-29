@@ -18,14 +18,21 @@
  */
 package org.apache.accumulo.core.client.admin;
 
+import java.time.Duration;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.BiPredicate;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 
 public interface InstanceOperations {
 
@@ -87,22 +94,22 @@ public interface InstanceOperations {
    *         {@code
    *             AccumuloClient client = getClient();
    *             Map<String,String> acceptedProps = client.instanceOperations().modifyProperties(currProps -> {
-   *               var planner = currProps.get("tserver.compaction.major.service.default.planner");
+   *               var planner = currProps.get("compaction.service.default.planner");
    *               //This code will only change the compaction planner if its currently set to default settings.
    *               //The endsWith() function was used to make the example short, would be better to use equals().
-   *               if(planner != null && planner.endsWith("DefaultCompactionPlanner") {
+   *               if(planner != null && planner.endsWith("RatioBasedCompactionPlanner") {
    *                 // tservers will eventually see these compaction planner changes and when they do they will see all of the changes at once
    *                 currProps.keySet().removeIf(
-   *                    prop -> prop.startsWith("tserver.compaction.major.service.default.planner.opts."));
-   *                 currProps.put("tserver.compaction.major.service.default.planner","MyPlannerClassName");
-   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt1","val1");
-   *                 currProps.put("tserver.compaction.major.service.default.planner.opts.myOpt2","val2");
+   *                    prop -> prop.startsWith("compaction.service.default.planner.opts."));
+   *                 currProps.put("compaction.service.default.planner","MyPlannerClassName");
+   *                 currProps.put("compaction.service.default.planner.opts.myOpt1","val1");
+   *                 currProps.put("compaction.service.default.planner.opts.myOpt2","val2");
    *                }
    *             });
    *
    *             // Since three properties were set may want to check for the values of all
    *             // three, just checking one in this example to keep it short.
-   *             if("MyPlannerClassName".equals(acceptedProps.get("tserver.compaction.major.service.default.planner"))){
+   *             if("MyPlannerClassName".equals(acceptedProps.get("compaction.service.default.planner"))){
    *                // the compaction planner change was accepted or already existed, so take action for that outcome
    *             } else {
    *                // the compaction planner change was not done, so take action for that outcome
@@ -167,26 +174,86 @@ public interface InstanceOperations {
   Map<String,String> getSiteConfiguration() throws AccumuloException, AccumuloSecurityException;
 
   /**
+   * Retrieve a map of the system properties set in Zookeeper. Note that this does not return a
+   * merged view of the properties from its parent configuration. See
+   * {@link #getSystemConfiguration} for a merged view.
+   *
+   * @return A map of the system properties set in Zookeeper only.
+   * @since 4.0.0
+   */
+  Map<String,String> getSystemProperties() throws AccumuloException, AccumuloSecurityException;
+
+  /**
    * Returns the location(s) of the accumulo manager and any redundant servers.
    *
    * @return a list of locations in <code>hostname:port</code> form.
    * @since 2.1.0
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
+  @Deprecated(since = "4.0.0")
   List<String> getManagerLocations();
+
+  /**
+   * Returns the locations of the active compactors
+   *
+   * @return A set of currently active compactors.
+   * @since 2.1.4
+   * @deprecated see {@link #getServers(ServerId.Type)}
+   */
+  @Deprecated(since = "4.0.0")
+  Set<String> getCompactors();
 
   /**
    * Returns the locations of the active scan servers
    *
    * @return A set of currently active scan servers.
+   * @deprecated see {@link #getServers(ServerId.Type)}
+   * @since 2.1.0
    */
+  @Deprecated(since = "4.0.0")
   Set<String> getScanServers();
 
   /**
    * List the currently active tablet servers participating in the accumulo instance
    *
    * @return A list of currently active tablet servers.
+   * @deprecated see {@link #getServers(ServerId.Type)}
    */
+  @Deprecated(since = "4.0.0")
   List<String> getTabletServers();
+
+  /**
+   * Resolve the server of the given type and address to a ServerId
+   *
+   * @param type type of server
+   * @param resourceGroup group of server, can be null
+   * @param host host name, cannot be null
+   * @param port host port
+   * @return ServerId if found, else null
+   * @since 4.0.0
+   */
+  ServerId getServer(ServerId.Type type, ResourceGroupId resourceGroup, String host, int port);
+
+  /**
+   * Returns all servers of the given types. For the Manager, Monitor, and Garbage Collector, the
+   * result will contain only one element for the current active process.
+   *
+   * @return set of servers of the supplied type
+   * @since 4.0.0
+   */
+  Set<ServerId> getServers(ServerId.Type type);
+
+  /**
+   * Returns the servers of a given type that match the given criteria
+   *
+   * @param resourceGroupPredicate only returns servers where the resource group matches this
+   *        predicate. For the Manager, Monitor, and Garbage Collector, this parameter is not used.
+   * @param hostPortPredicate only returns servers where its host and port match this predicate.
+   * @return set of servers of the supplied type matching the supplied test
+   * @since 4.0.0
+   */
+  Set<ServerId> getServers(ServerId.Type type, Predicate<ResourceGroupId> resourceGroupPredicate,
+      BiPredicate<String,Integer> hostPortPredicate);
 
   /**
    * List the active scans on a tablet server.
@@ -194,21 +261,36 @@ public interface InstanceOperations {
    * @param tserver The tablet server address. This should be of the form
    *        {@code <ip address>:<port>}
    * @return A list of active scans on tablet server.
+   * @deprecated see {@link #getActiveScans(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveScan> getActiveScans(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * List the active compaction running on a tablet server. Using this method with
-   * {@link #getTabletServers()} will only show compactions running on tservers, leaving out any
-   * external compactions running on compactors. Use {@link #getActiveCompactions()} to get a list
-   * of all compactions running on tservers and compactors.
+   * List the active scans on a collection of servers.
    *
-   * @param tserver The tablet server address. This should be of the form
-   *        {@code <ip address>:<port>}
+   * @param servers Collection of server types and addresses
+   * @return A list of active scans on the given servers.
+   * @throws IllegalArgumentException when the type of the server is not TABLET_SERVER or
+   *         SCAN_SERVER
+   * @since 4.0.0
+   */
+  List<ActiveScan> getActiveScans(Collection<ServerId> servers)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * List the active compaction running on a TabletServer or Compactor. The server address can be
+   * retrieved using {@link #getCompactors()} or {@link #getTabletServers()}. Use
+   * {@link #getActiveCompactions()} to get a list of all compactions running on tservers and
+   * compactors. Implementation updated in 2.1.4 to accept a compactor address.
+   *
+   * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
    * @return the list of active compactions
    * @since 1.5.0
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions(String tserver)
       throws AccumuloException, AccumuloSecurityException;
 
@@ -217,17 +299,41 @@ public interface InstanceOperations {
    *
    * @return the list of active compactions
    * @since 2.1.0
+   * @deprecated see {@link #getActiveCompactions(Collection)}
    */
+  @Deprecated(since = "4.0.0")
   List<ActiveCompaction> getActiveCompactions() throws AccumuloException, AccumuloSecurityException;
 
   /**
-   * Throws an exception if a tablet server can not be contacted.
+   * List the active compaction running on a collection of TabletServers or Compactors. The server
+   * addresses can be retrieved using {@link #getServers(Type)}. Use {@link #getActiveCompactions()}
+   * to get a list of all compactions running on tservers and compactors.
    *
-   * @param tserver The tablet server address. This should be of the form
-   *        {@code <ip address>:<port>}
+   * @param servers The collection of servers
+   * @return the list of active compactions
+   * @throws IllegalArgumentException if a type of server is not TABLET_SERVER or COMPACTOR
+   * @since 4.0.0
+   */
+  List<ActiveCompaction> getActiveCompactions(Collection<ServerId> servers)
+      throws AccumuloException, AccumuloSecurityException;
+
+  /**
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
+   *
+   * @param tserver The server address. This should be of the form {@code <ip address>:<port>}
+   * @throws AccumuloException if the server cannot be contacted
    * @since 1.5.0
    */
   void ping(String tserver) throws AccumuloException;
+
+  /**
+   * Check to see if a server process at the host and port is up and responding to RPC requests.
+   *
+   * @param server ServerId object for the server to be pinged, only the host and port is used.
+   * @throws AccumuloException if the server cannot be contacted
+   * @since 4.0.0
+   */
+  void ping(ServerId server) throws AccumuloException;
 
   /**
    * Test to see if the instance can load the given class as the given type. This check does not
@@ -253,4 +359,14 @@ public interface InstanceOperations {
    * @since 2.1.0
    */
   InstanceId getInstanceId();
+
+  /**
+   * Return the current manager time. This duration represents the amount of time an accumulo
+   * manager process has been running. The duration is persisted and should only increase over the
+   * lifetime of an Accumulo instance.
+   *
+   * @return current time
+   * @since 4.0.0
+   */
+  Duration getManagerTime() throws AccumuloException, AccumuloSecurityException;
 }

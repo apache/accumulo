@@ -19,6 +19,7 @@
 "use strict";
 
 var tableServersTable;
+var tabletsTable;
 
 /**
  * Makes the REST calls, generates the tables with the new information
@@ -34,24 +35,17 @@ function refresh() {
   refreshTable();
 }
 
-function getQueuedAndRunning(data) {
-  return `${data.running}(${data.queued})`;
-}
-
 /**
- * Initialize the table
- * 
- * @param {String} tableID the accumulo table ID
+ * Makes the REST call to fetch tablet details and render them.
  */
-function initTableServerTable(tableID) {
+function initTabletsTable(tableId) {
+  var tabletsUrl = contextPath + 'rest-v2/tables/' + tableId + '/tablets';
+  console.debug('Fetching tablets info from: ' + tabletsUrl);
 
-  const url = '/rest/tables/' + tableID;
-  console.debug('REST url used to fetch data for table.js DataTable: ' + url);
-
-  tableServersTable = $('#participatingTServers').DataTable({
+  tabletsTable = $('#tabletsList').DataTable({
     "ajax": {
-      "url": url,
-      "dataSrc": "servers"
+      "url": tabletsUrl,
+      "dataSrc": ""
     },
     "stateSave": true,
     "columnDefs": [{
@@ -64,79 +58,142 @@ function initTableServerTable(tableID) {
         }
       },
       {
-        "targets": "duration",
+        "targets": "big-size",
         "render": function (data, type) {
           if (type === 'display') {
-            data = timeDuration(data);
-          }
-          return data;
-        }
-      },
-      {
-        "targets": "percent",
-        "render": function (data, type) {
-          if (type === 'display') {
-            data = Math.round(data * 100) + '%';
+            data = bigNumberForSize(data);
           }
           return data;
         }
       }
     ],
     "columns": [{
-        "data": "hostname",
-        "type": "html",
-        "render": function (data, type, row) {
+        "data": "tabletId",
+        "title": "Tablet ID"
+      },
+      {
+        "data": "estimatedSize",
+        "title": "Estimated Size"
+      },
+      {
+        "data": "estimatedEntries",
+        "title": "Estimated Entries"
+      },
+      {
+        "data": "tabletAvailability",
+        "title": "Availability"
+      },
+      {
+        "data": "numFiles",
+        "title": "Files"
+      },
+      {
+        "data": "numWalLogs",
+        "title": "WALs"
+      },
+      {
+        "data": "location",
+        "title": "Location"
+      }
+    ]
+  });
+}
+
+/**
+ * Initialize the table
+ *
+ * @param {String} tableId the accumulo table ID
+ */
+function initTableServerTable(tableId) {
+  const url = contextPath + 'rest-v2/tables/' + tableId;
+  console.debug('REST url used to fetch summary data: ' + url);
+
+  tableServersTable = $('#participatingTServers').DataTable({
+    "ajax": {
+      "url": url,
+      "dataSrc": function (json) {
+        // Convert the JSON object into an array for DataTables consumption.
+        return [json];
+      }
+    },
+    "stateSave": true,
+    "searching": false,
+    "paging": false,
+    "info": false,
+    "columnDefs": [{
+        "targets": "big-num",
+        "render": function (data, type) {
           if (type === 'display') {
-            data = `<a href="/tservers?s=${row.id}">${data}</a>`;
+            data = bigNumberForQuantity(data);
           }
           return data;
         }
       },
       {
-        "data": "tablets"
-      },
-      {
-        "data": "lastContact"
-      },
-      {
-        "data": "entries"
-      },
-      {
-        "data": "ingest"
-      },
-      {
-        "data": "query"
-      },
-      {
-        "data": "holdtime"
-      },
-      {
-        "data": function (row) {
-          return getQueuedAndRunning(row.compactions.scans);
+        "targets": "big-size",
+        "render": function (data, type) {
+          if (type === 'display') {
+            data = bigNumberForSize(data);
+          }
+          return data;
         }
+      }
+    ],
+    "columns": [{
+        "data": "totalEntries",
+        "title": "Entry Count"
       },
       {
-        "data": function (row) {
-          return getQueuedAndRunning(row.compactions.minor);
-        }
+        "data": "totalSizeOnDisk",
+        "title": "Size on disk"
       },
       {
-        "data": function (row) {
-          return getQueuedAndRunning(row.compactions.major);
-        }
+        "data": "totalFiles",
+        "title": "File Count"
       },
       {
-        "data": "indexCacheHitRate"
+        "data": "totalWals",
+        "title": "WAL Count"
       },
       {
-        "data": "dataCacheHitRate"
+        "data": "totalTablets",
+        "title": "Total Tablet Count"
       },
       {
-        "data": "osload"
+        "data": "availableAlways",
+        "title": "Always Hosted Count"
+      },
+      {
+        "data": "availableOnDemand",
+        "title": "On Demand Count"
+      },
+      {
+        "data": "availableNever",
+        "title": "Never Hosted Count"
+      },
+      {
+        "data": "totalAssignedTablets",
+        "title": "Assigned Tablet Count"
+      },
+      {
+        "data": "totalAssignedToDeadServerTablets",
+        "title": "Tablets Assigned to Dead Servers Count"
+      },
+      {
+        "data": "totalHostedTablets",
+        "title": "Hosted Tablet Count"
+      },
+      {
+        "data": "totalSuspendedTablets",
+        "title": "Suspended Tablet Count"
+      },
+      {
+        "data": "totalUnassignedTablets",
+        "title": "Unassigned Tablet Count"
       }
     ]
   });
 
   refreshTable();
-
+  initTabletsTable(tableId);
 }

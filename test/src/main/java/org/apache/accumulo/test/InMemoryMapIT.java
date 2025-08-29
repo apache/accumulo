@@ -18,14 +18,16 @@
  */
 package org.apache.accumulo.test;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,7 +89,7 @@ public class InMemoryMapIT extends WithTestNames {
   private static final Logger log = LoggerFactory.getLogger(InMemoryMapIT.class);
 
   @TempDir
-  private static File tempDir;
+  private static Path tempDir;
 
   @BeforeAll
   public static void ensureNativeLibrary() {
@@ -213,9 +215,15 @@ public class InMemoryMapIT extends WithTestNames {
 
     String[] tempFolders = new String[4];
     for (int i = 0; i < tempFolders.length; i++) {
-      File dir = new File(tempDir, testName() + "_" + i);
-      assertTrue(dir.isDirectory() || dir.mkdir());
-      tempFolders[i] = dir.getAbsolutePath();
+      Path dir = tempDir.resolve(testName() + "_" + i);
+      if (!Files.isDirectory(dir)) {
+        try {
+          Files.createDirectories(dir);
+        } catch (IOException e) {
+          fail("Failed to create directory " + dir, e);
+        }
+      }
+      tempFolders[i] = dir.toAbsolutePath().toString();
     }
 
     Map<String,String> defaultMapConfig = new HashMap<>();
@@ -375,7 +383,7 @@ public class InMemoryMapIT extends WithTestNames {
         if (value.length() > 0) {
           value.append(",");
         }
-        value.append(new String(bytes.toArray()));
+        value.append(new String(bytes.toArray(), UTF_8));
       }
       configuration.set("table.group." + entry.getKey(), value.toString());
       enabledLGs.append(entry.getKey());

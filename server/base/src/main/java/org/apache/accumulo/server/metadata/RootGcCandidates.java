@@ -19,29 +19,29 @@
 package org.apache.accumulo.server.metadata;
 
 import static com.google.common.base.Preconditions.checkArgument;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
+import java.security.SecureRandom;
 import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.stream.Stream;
 
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.hadoop.fs.Path;
-
-import com.google.gson.Gson;
 
 public class RootGcCandidates {
   // Version 1. Released with Accumulo version 2.1.0
   private static final int VERSION = 1;
 
-  private final Gson gson = new Gson();
   private final Data data;
 
   // This class is used to serialize and deserialize root tablet metadata using GSon. Any changes to
   // this class must consider persisted data.
   private static class Data {
-    private final int version;
+    private int version;
 
     /*
      * The root tablet will only have a single dir on each volume. Therefore, root file paths will
@@ -50,7 +50,11 @@ public class RootGcCandidates {
      *
      * SortedMap<dir path, SortedSet<file name>>
      */
-    private final SortedMap<String,SortedSet<String>> candidates;
+    private SortedMap<String,SortedSet<String>> candidates;
+
+    // Gson requires a default constructor when JDK Unsafe usage is disabled
+    @SuppressWarnings("unused")
+    private Data() {}
 
     public Data(int version, SortedMap<String,SortedSet<String>> candidates) {
       this.version = version;
@@ -63,7 +67,7 @@ public class RootGcCandidates {
   }
 
   public RootGcCandidates(String jsonString) {
-    this.data = gson.fromJson(jsonString, Data.class);
+    this.data = GSON.get().fromJson(jsonString, Data.class);
     checkArgument(data.version == VERSION, "Invalid Root Table GC Candidates JSON version %s",
         data.version);
     data.candidates.forEach((parent, files) -> {
@@ -78,24 +82,27 @@ public class RootGcCandidates {
         .add(ref.getFileName()));
   }
 
-  public void remove(Stream<String> refs) {
-    refs.map(Path::new).forEach(
-        path -> data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
-          values.remove(path.getName());
-          return values.isEmpty() ? null : values;
-        }));
+  public void remove(Stream<GcCandidate> refs) {
+    refs.map(GcCandidate::getPath).map(Path::new).forEach(path -> {
+      data.candidates.computeIfPresent(path.getParent().toString(), (key, values) -> {
+        values.remove(path.getName());
+        return values.isEmpty() ? null : values;
+      });
+    });
   }
 
-  public Stream<String> sortedStream() {
+  public Stream<GcCandidate> sortedStream() {
+    var uidGen = new SecureRandom();
     return data.candidates.entrySet().stream().flatMap(entry -> {
       String parent = entry.getKey();
       SortedSet<String> names = entry.getValue();
-      return names.stream().map(name -> new Path(parent, name));
-    }).map(Path::toString).sorted();
+      return names.stream()
+          .map(name -> new GcCandidate(parent + Path.SEPARATOR + name, uidGen.nextLong()));
+    }).sorted();
   }
 
   public String toJson() {
-    return gson.toJson(data);
+    return GSON.get().toJson(data);
   }
 
 }

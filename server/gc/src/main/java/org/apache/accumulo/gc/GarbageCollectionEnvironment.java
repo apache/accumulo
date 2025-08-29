@@ -19,6 +19,7 @@
 package org.apache.accumulo.gc;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +29,11 @@ import java.util.stream.Stream;
 
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.data.TableId;
+import org.apache.accumulo.core.gc.GcCandidate;
 import org.apache.accumulo.core.gc.Reference;
 import org.apache.accumulo.core.manager.state.tables.TableState;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.schema.Ample.GcCandidateType;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 
@@ -39,11 +41,11 @@ public interface GarbageCollectionEnvironment {
 
   /**
    * Return an iterator which points to a list of paths to files and dirs which are candidates for
-   * deletion from a given table, {@link RootTable#NAME} or {@link MetadataTable#NAME}
+   * deletion from a given table, {@link SystemTables#ROOT} or {@link SystemTables#METADATA}
    *
    * @return an iterator referencing a List containing deletion candidates
    */
-  Iterator<String> getCandidates() throws TableNotFoundException;
+  Iterator<GcCandidate> getCandidates() throws TableNotFoundException;
 
   /**
    * Given an iterator to a deletion candidate list, return a sub-list of candidates which fit
@@ -52,11 +54,11 @@ public interface GarbageCollectionEnvironment {
    * @param candidatesIter iterator referencing a List of possible deletion candidates
    * @return a List of possible deletion candidates
    */
-  List<String> readCandidatesThatFitInMemory(Iterator<String> candidatesIter);
+  List<GcCandidate> readCandidatesThatFitInMemory(Iterator<GcCandidate> candidatesIter);
 
   /**
    * Fetch a list of paths for all bulk loads in progress (blip) from a given table,
-   * {@link RootTable#NAME} or {@link MetadataTable#NAME}
+   * {@link SystemTables#ROOT} or {@link SystemTables#METADATA}
    *
    * @return The list of files for each bulk load currently in progress.
    */
@@ -96,8 +98,15 @@ public interface GarbageCollectionEnvironment {
    *
    * @param candidateMap A Map from relative path to absolute path for files to be deleted.
    */
-  void deleteConfirmedCandidates(SortedMap<String,String> candidateMap)
+  void deleteConfirmedCandidates(SortedMap<String,GcCandidate> candidateMap)
       throws TableNotFoundException;
+
+  /**
+   * Delete in-use reference candidates
+   *
+   * @param GcCandidates Collection of deletion reference candidates to remove.
+   */
+  void deleteGcCandidates(Collection<GcCandidate> GcCandidates, GcCandidateType type);
 
   /**
    * Delete a table's directory if it is empty.

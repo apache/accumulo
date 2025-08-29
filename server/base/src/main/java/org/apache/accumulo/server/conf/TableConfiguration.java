@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -60,7 +61,7 @@ public class TableConfiguration extends ZooBasedConfiguration {
   private final Deriver<CryptoService> cryptoServiceDeriver;
 
   public TableConfiguration(ServerContext context, TableId tableId, NamespaceConfiguration parent) {
-    super(log, context, TablePropKey.of(context, tableId), parent);
+    super(log, context, TablePropKey.of(tableId), parent);
     this.tableId = tableId;
 
     iteratorConfig = new EnumMap<>(IteratorScope.class);
@@ -78,20 +79,6 @@ public class TableConfiguration extends ZooBasedConfiguration {
         newDeriver(conf -> createCompactionDispatcher(conf, context, tableId));
     cryptoServiceDeriver =
         newDeriver(conf -> createCryptoService(conf, tableId, context.getCryptoFactory()));
-  }
-
-  @Override
-  public boolean isPropertySet(Property prop) {
-    if (_isPropertySet(prop)) {
-      return true;
-    }
-
-    return getParent().isPropertySet(prop);
-  }
-
-  private boolean _isPropertySet(Property property) {
-    Map<String,String> propMap = getSnapshot();
-    return propMap.get(property.getKey()) != null;
   }
 
   @Override
@@ -159,6 +146,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
       ServerContext context, TableId tableId) {
     ScanDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_SCAN_DISPATCHER, ScanDispatcher.class, null);
+    Objects.requireNonNull(newDispatcher, "Class specified in property "
+        + Property.TABLE_SCAN_DISPATCHER.getKey() + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_SCAN_DISPATCHER_OPTS);
@@ -191,6 +180,8 @@ public class TableConfiguration extends ZooBasedConfiguration {
 
     CompactionDispatcher newDispatcher = Property.createTableInstanceFromPropertyName(conf,
         Property.TABLE_COMPACTION_DISPATCHER, CompactionDispatcher.class, null);
+    Objects.requireNonNull(newDispatcher, "Class specified in property "
+        + Property.TABLE_COMPACTION_DISPATCHER.getKey() + " was not returned.");
 
     Map<String,String> opts =
         conf.getAllPropertiesWithPrefixStripped(Property.TABLE_COMPACTION_DISPATCHER_OPTS);

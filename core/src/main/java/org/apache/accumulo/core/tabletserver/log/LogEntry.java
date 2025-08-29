@@ -19,67 +19,169 @@
 package org.apache.accumulo.core.tabletserver.log;
 
 import java.util.Map.Entry;
+import java.util.Objects;
+import java.util.UUID;
 
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
 import org.apache.hadoop.io.Text;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
-public class LogEntry {
-  private final KeyExtent extent;
-  public final long timestamp;
-  public final String filename;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.base.Preconditions;
+import com.google.common.net.HostAndPort;
 
-  public LogEntry(KeyExtent extent, long timestamp, String filename) {
-    // note the prevEndRow in the extent does not matter, and is not used by LogEntry
-    this.extent = extent;
-    this.timestamp = timestamp;
-    this.filename = filename;
+public final class LogEntry {
+
+  private final String path;
+  private final HostAndPort tserver;
+  private final UUID uniqueId;
+  private final Text columnQualifier;
+
+  private LogEntry(String path, HostAndPort tserver, UUID uniqueId, Text columnQualifier) {
+    this.path = path;
+    this.tserver = tserver;
+    this.uniqueId = uniqueId;
+    this.columnQualifier = columnQualifier;
   }
 
-  // make copy, but with a different filename
-  public LogEntry switchFile(String filename) {
-    return new LogEntry(extent, timestamp, filename);
+  /**
+   * Creates a new LogEntry object after validating the expected format of the path. We expect the
+   * path to contain a tserver (host+port) followed by a UUID as the file name as the last two
+   * components.<br>
+   * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
+   * valid path.
+   *
+   * @param path path to validate
+   * @return an object representation of this log entry
+   * @throws IllegalArgumentException if the path is invalid
+   */
+  public static LogEntry fromPath(String path) {
+    return validatedLogEntry(path, null);
+  }
+
+  private static LogEntry validatedLogEntry(String path, Text columnQualifier) {
+    String[] parts = path.split("/");
+
+    if (parts.length < 2) {
+      throw new IllegalArgumentException(
+          "Invalid path format. The path should end with tserver/UUID.");
+    }
+
+    String tserverPart = parts[parts.length - 2];
+    String uuidPart = parts[parts.length - 1];
+
+    String badTServerMsg =
+        "Invalid tserver in path. Expected: host+port. Found '" + tserverPart + "'";
+    if (tserverPart.contains(":") || !tserverPart.contains("+")) {
+      throw new IllegalArgumentException(badTServerMsg);
+    }
+    HostAndPort tserver;
+    try {
+      tserver = HostAndPort.fromString(tserverPart.replace("+", ":"));
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(badTServerMsg);
+    }
+
+    String badUuidMsg = "Expected valid UUID. Found '" + uuidPart + "'";
+    UUID uuid;
+    try {
+      uuid = UUID.fromString(uuidPart);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(badUuidMsg);
+    }
+    if (!uuid.toString().equals(uuidPart)) {
+      throw new IllegalArgumentException(badUuidMsg);
+    }
+
+    return new LogEntry(path, tserver, uuid, columnQualifier);
+  }
+
+  /**
+   * Construct a new LogEntry object after deserializing it from a metadata entry.
+   *
+   * @param entry the metadata entry
+   * @return a new LogEntry object constructed from the path stored in the column qualifier
+   * @throws IllegalArgumentException if the path stored in the metadata entry is invalid or if the
+   *         serialized format of the entry is unrecognized
+   */
+  public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
+    Text fam = entry.getKey().getColumnFamily();
+    Preconditions.checkArgument(LogColumnFamily.NAME.equals(fam),
+        "The provided metadata entry's column family is %s instead of %s", fam,
+        LogColumnFamily.NAME);
+    Text qualifier = entry.getKey().getColumnQualifier();
+    String[] parts = qualifier.toString().split("/", 2);
+    Preconditions.checkArgument(parts.length == 2, "Malformed write-ahead log %s", qualifier);
+    return validatedLogEntry(parts[1], qualifier);
+  }
+
+  @NonNull
+  @VisibleForTesting
+  HostAndPort getTServer() {
+    return tserver;
+  }
+
+  @NonNull
+  public String getPath() {
+    return path;
+  }
+
+  @NonNull
+  public UUID getUniqueID() {
+    return uniqueId;
   }
 
   @Override
   public String toString() {
-    return extent.toMetaRow() + " " + filename;
+    return path;
   }
 
-  public static LogEntry fromMetaWalEntry(Entry<Key,Value> entry) {
-    final Key key = entry.getKey();
-    final Value value = entry.getValue();
-    KeyExtent extent = KeyExtent.fromMetaRow(key.getRow());
-    // qualifier.split("/")[0] used to store the server, but this is no longer used, and the
-    // qualifier can be ignored
-    // the following line handles old-style log entry values that specify log sets
-    String[] parts = value.toString().split("\\|")[0].split(";");
-    String filename = parts[parts.length - 1];
-    long timestamp = key.getTimestamp();
-    return new LogEntry(extent, timestamp, filename);
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (other instanceof LogEntry) {
+      return path.equals(((LogEntry) other).path);
+    }
+    return false;
   }
 
-  public Text getRow() {
-    return extent.toMetaRow();
+  @Override
+  public int hashCode() {
+    return Objects.hash(path);
   }
 
-  public Text getColumnFamily() {
-    return LogColumnFamily.NAME;
-  }
-
-  public String getUniqueID() {
-    String[] parts = filename.split("/");
-    return parts[parts.length - 1];
-  }
-
+  /**
+   * Get the Text that should be used as the column qualifier to store this as a metadata entry.
+   */
   public Text getColumnQualifier() {
-    return new Text("-/" + filename);
+    return columnQualifier == null ? newCQ() : new Text(columnQualifier);
   }
 
-  public Value getValue() {
-    return new Value(filename);
+  private Text newCQ() {
+    return new Text("-/" + getPath());
+  }
+
+  /**
+   * Put a delete marker in the provided mutation for this LogEntry.
+   *
+   * @param mutation the mutation to update
+   */
+  public void deleteFromMutation(Mutation mutation) {
+    mutation.putDelete(LogColumnFamily.NAME, getColumnQualifier());
+  }
+
+  /**
+   * Put this LogEntry into the provided mutation.
+   *
+   * @param mutation the mutation to update
+   */
+  public void addToMutation(Mutation mutation) {
+    mutation.put(LogColumnFamily.NAME, newCQ(), new Value());
   }
 
 }

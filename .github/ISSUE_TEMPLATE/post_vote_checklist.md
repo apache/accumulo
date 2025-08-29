@@ -7,7 +7,10 @@ assignees: ''
 
 ---
 
-- [ ] Label this issue with the [project](https://github.com/apache/accumulo/projects) that corresponds to this release version
+- [Milestone](https://github.com/apache/accumulo/milestones) tasks
+  - [ ] Label this issue with the corresponding release milestone
+  - [ ] Create a milestone for the next version (if necessary) and move any open issues not completed in this release (except this issue) to the new milestone
+  - [ ] Close the milestone for this issue (the only issue remaining open should be this one)
 - [Git](https://github.com/apache/accumulo) tasks
   - [ ] Create a signed `rel/<version>` tag (and push it)
   - [ ] Merge `<version>-rc<N>-next` branch into a maintenance branch (if maintenance is expected),
@@ -33,7 +36,7 @@ assignees: ''
   - [ ] If LTM release, update previous LTM release entry on downloads page and release notes with an EOL date 1 year from the current release date
   - [ ] DOAP file
   - [ ] Add manual/examples/javadoc (build javadoc from tag with `mvn clean package -DskipTests javadoc:aggregate -Paggregate-javadocs`)
-  - [ ] If javadoc is built with Java 11, [patch it](https://github.com/apache/accumulo/blob/main/contrib/javadoc11.patch)
+  - [ ] Add updated properties documentation (see [the website README](https://github.com/apache/accumulo-website#updating-property-documentation-for-releases))
   - [ ] Jekyll config
   - [ ] Grep for, and update any links to previous version to now point to the new version
   - [ ] Update any older release notes front-matter to indicate they are either `archived: true` or `archived_critical: true`
@@ -42,9 +45,6 @@ assignees: ''
   - [ ] Send to announce@apache.org and user@accumulo.apache.org (use plain text mode only; html email will be rejected)
 - GitHub wrap-up
   - [ ] Close this issue
-  - [ ] Create a new "Automated Kanban" [project](https://github.com/apache/accumulo/projects) for the next version (if necessary) and move any open issues not completed in this release to that project
-  - [ ] Close the project that corresponds to this release
-- Twitter
-  - [ ] [Tweet it](https://tweetdeck.twitter.com)
-  - [ ] [Confirm the tweet](https://twitter.com/ApacheAccumulo)
+- Code
+  - [ ] Update the javadoc since versions list in the `pom.xml` file for the next development branch
 

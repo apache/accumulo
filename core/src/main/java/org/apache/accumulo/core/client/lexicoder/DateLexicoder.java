@@ -27,7 +27,7 @@ import java.util.Date;
  */
 public class DateLexicoder extends AbstractLexicoder<Date> {
 
-  private LongLexicoder longEncoder = new LongLexicoder();
+  private final LongLexicoder longEncoder = new LongLexicoder();
 
   @Override
   public byte[] encode(Date data) {

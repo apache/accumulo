@@ -26,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.TreeMap;
 import java.util.function.Predicate;
@@ -69,6 +70,10 @@ public class PropertyTest {
       assertFalse(prop.getDescription() == null || prop.getDescription().isEmpty(),
           "Description not set for " + prop);
 
+      // make sure property description ends with a period
+      assertTrue(prop.getDescription().endsWith("."),
+          "Property: " + prop.getKey() + " description does not end with period.");
+
       // make sure property starts with valid prefix
       boolean containsValidPrefix = false;
       for (String pre : validPrefixes) {
@@ -102,11 +107,45 @@ public class PropertyTest {
   }
 
   @Test
+  public void testJson() {
+    // using "real" example
+    String json1 =
+        "[{'name':'small','type':'internal','maxSize':'32M','numThreads':2},{'name':'huge','type':'internal','numThreads':2}]"
+            .replaceAll("'", "\"");
+    // use synthetic, but valid json
+    String json2 =
+        "[{'foo':'bar','type':'test','fooBar':'32'},{'foo':'bar','type':'test','fooBar':32}]"
+            .replaceAll("'", "\"");
+    String json3 = "{'foo':'bar','type':'test','fooBar':'32'}".replaceAll("'", "\"");
+
+    List<String> valids = List.of(json1, json2, json3);
+
+    List<String> invalids = List.of("notJson", "also not json", "{\"x}", "{\"y\"", "{name:value}",
+        "{ \"foo\" : \"bar\", \"foo\" : \"baz\" }", "{\"y\":123}extra");
+
+    for (Property prop : Property.values()) {
+      if (prop.getType().equals(PropertyType.JSON)) {
+        valids.forEach(j -> assertTrue(Property.isValidProperty(prop.getKey(), j)));
+        valids.forEach(j -> assertTrue(prop.getType().isValidFormat(j)));
+
+        invalids.forEach(j -> assertFalse(Property.isValidProperty(prop.getKey(), j)));
+        invalids.forEach(j -> assertFalse(prop.getType().isValidFormat(j)));
+      }
+    }
+  }
+
+  @Test
+  @SuppressWarnings("deprecation")
   public void testPropertyValidation() {
 
     for (Property property : Property.values()) {
+      if (property == Property.MANAGER_FATE_THREADPOOL_SIZE) {
+        // deprecated and unused property, no need to test
+        continue;
+      }
       PropertyType propertyType = property.getType();
-      String invalidValue, validValue = property.getDefaultValue();
+      String invalidValue;
+      String validValue = property.getDefaultValue();
       LOG.debug("Testing property: {} with type: {}", property.getKey(), propertyType);
 
       switch (propertyType) {
@@ -158,6 +197,9 @@ public class PropertyTest {
         case BOOLEAN:
           invalidValue = "fooFalse";
           break;
+        case JSON:
+          invalidValue = "not json";
+          break;
         default:
           LOG.debug("Property type: {} has no defined test case", propertyType);
           invalidValue = "foo";
@@ -208,7 +250,7 @@ public class PropertyTest {
 
   @Test
   public void testAnnotations() {
-    assertTrue(Property.GENERAL_VOLUME_CHOOSER.isExperimental());
+    assertTrue(Property.INSTANCE_CRYPTO_FACTORY.isExperimental());
     assertFalse(Property.TABLE_SAMPLER.isExperimental());
 
     assertTrue(Property.INSTANCE_SECRET.isSensitive());
@@ -258,7 +300,7 @@ public class PropertyTest {
 
   @Test
   public void testFixedPropertiesNonNull() {
-    Property.fixedProperties.forEach(p -> {
+    Property.FIXED_PROPERTIES.forEach(p -> {
       assertNotNull(p.getDefaultValue());
       assertFalse(p.getDefaultValue().isBlank());
     });

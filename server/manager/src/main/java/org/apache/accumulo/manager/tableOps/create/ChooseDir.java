@@ -21,10 +21,14 @@ package org.apache.accumulo.manager.tableOps.create;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import java.io.IOException;
+import java.util.Iterator;
+import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -49,12 +53,12 @@ class ChooseDir extends ManagerRepo {
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager manager) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
     if (tableInfo.getInitialSplitSize() > 0) {
       createTableDirectoriesInfo(manager);
     }
@@ -62,7 +66,7 @@ class ChooseDir extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager manager) throws Exception {
+  public void undo(FateId fateId, Manager manager) throws Exception {
     // Clean up split files if ChooseDir operation fails
     Path p = null;
     try {
@@ -82,7 +86,8 @@ class ChooseDir extends ManagerRepo {
    * to the file system for later use during this FATE operation.
    */
   private void createTableDirectoriesInfo(Manager manager) throws IOException {
-    SortedSet<Text> splits = Utils.getSortedSetFromFile(manager, tableInfo.getSplitPath(), true);
+    SortedMap<Text,TabletMergeability> splits =
+        Utils.getSortedSplitsFromFile(manager, tableInfo.getSplitPath());
     SortedSet<Text> tabletDirectoryInfo = createTabletDirectoriesSet(manager, splits.size());
     writeTabletDirectoriesToFileSystem(manager, tabletDirectoryInfo);
   }
@@ -95,8 +100,9 @@ class ChooseDir extends ManagerRepo {
     String tabletDir;
     UniqueNameAllocator namer = manager.getContext().getUniqueNameAllocator();
     SortedSet<Text> splitDirs = new TreeSet<>();
+    Iterator<String> names = namer.getNextNames(num);
     for (int i = 0; i < num; i++) {
-      tabletDir = Constants.GENERATED_TABLET_DIRECTORY_PREFIX + namer.getNextName();
+      tabletDir = Constants.GENERATED_TABLET_DIRECTORY_PREFIX + names.next();
       splitDirs.add(new Text(tabletDir));
     }
     return splitDirs;

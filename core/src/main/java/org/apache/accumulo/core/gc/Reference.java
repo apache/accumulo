@@ -32,16 +32,24 @@ public interface Reference {
   boolean isDirectory();
 
   /**
+   * Only return true if the reference is a scan.
+   */
+  boolean isScan();
+
+  /**
    * Get the {@link TableId} of the reference.
    */
   TableId getTableId();
 
   /**
-   * Get the exact string stored in the metadata table for this file or directory. A file will be
-   * read from the Tablet "file" column family:
+   * Get the path stored in the metadata table for this file or directory. The path will be read
+   * from the Tablet "file" column family:
    * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily}
    * A directory will be read from the "srv:dir" column family:
    * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily}
+   * A scan will be read from the Tablet "scan" column family:
+   * {@link org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily}
    */
-  String getMetadataEntry();
+  String getMetadataPath();
+
 }

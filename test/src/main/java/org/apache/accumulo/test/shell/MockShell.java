@@ -30,7 +30,6 @@ import org.apache.accumulo.core.clientImpl.ClientInfo;
 import org.apache.accumulo.shell.Shell;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
-import org.jline.terminal.Size;
 import org.jline.terminal.Terminal;
 import org.jline.terminal.impl.DumbTerminal;
 import org.slf4j.Logger;
@@ -40,8 +39,8 @@ public class MockShell {
   private static final Logger shellLog = LoggerFactory.getLogger(MockShell.class);
   private static final ErrorMessageCallback noop = new ErrorMessageCallback();
 
-  public TestOutputStream output;
-  public StringInputStream input;
+  final TestOutputStream output;
+  final StringInputStream input;
   public Shell shell;
   public LineReader reader;
   public Terminal terminal;
@@ -53,7 +52,6 @@ public class MockShell {
     output = new TestOutputStream();
     input = new StringInputStream();
     terminal = new DumbTerminal(input, output);
-    terminal.setSize(new Size(80, 24));
     reader = LineReaderBuilder.builder().terminal(terminal).build();
     shell = new Shell(reader);
     shell.setLogErrorsToConsole();
@@ -70,18 +68,17 @@ public class MockShell {
     shell.setExit(false);
   }
 
-  String exec(String cmd) throws IOException {
+  String exec(String cmd) {
     output.clear();
     shell.execCommand(cmd, true, true);
     return output.get();
   }
 
-  String exec(String cmd, boolean expectGoodExit) throws IOException {
+  String exec(String cmd, boolean expectGoodExit) {
     return exec(cmd, expectGoodExit, noop);
   }
 
-  String exec(String cmd, boolean expectGoodExit, ErrorMessageCallback callback)
-      throws IOException {
+  String exec(String cmd, boolean expectGoodExit, ErrorMessageCallback callback) {
     String result = exec(cmd);
     if (expectGoodExit) {
       assertGoodExit("", true, callback);
@@ -106,7 +103,7 @@ public class MockShell {
   }
 
   String exec(String cmd, boolean expectGoodExit, String expectString, boolean stringPresent,
-      ErrorMessageCallback callback) throws IOException {
+      ErrorMessageCallback callback) {
     String result = exec(cmd);
     if (expectGoodExit) {
       assertGoodExit(expectString, stringPresent, callback);
@@ -114,10 +111,6 @@ public class MockShell {
       assertBadExit(expectString, stringPresent, callback);
     }
     return result;
-  }
-
-  void assertGoodExit(String s, boolean stringPresent) {
-    assertGoodExit(s, stringPresent, noop);
   }
 
   void assertGoodExit(String s, boolean stringPresent, ErrorMessageCallback callback) {

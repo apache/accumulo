@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -107,20 +108,20 @@ public class Gatherer {
 
   private static final Logger log = LoggerFactory.getLogger(Gatherer.class);
 
-  private ClientContext ctx;
-  private TableId tableId;
-  private SummarizerFactory factory;
+  private final ClientContext ctx;
+  private final TableId tableId;
+  private final SummarizerFactory factory;
   private Text startRow = null;
   private Text endRow = null;
-  private Range clipRange;
+  private final Range clipRange;
   private Predicate<SummarizerConfiguration> summarySelector;
-  private CryptoService cryptoService;
+  private final CryptoService cryptoService;
 
-  private TSummaryRequest request;
+  private final TSummaryRequest request;
 
-  private String summarizerPattern;
+  private final String summarizerPattern;
 
-  private Set<SummarizerConfiguration> summaries;
+  private final Set<SummarizerConfiguration> summaries;
 
   public Gatherer(ClientContext context, TSummaryRequest request, AccumuloConfiguration tableConfig,
       CryptoService cryptoService) {
@@ -166,17 +167,17 @@ public class Gatherer {
   private Map<String,Map<StoredTabletFile,List<TRowRange>>>
       getFilesGroupedByLocation(Predicate<StoredTabletFile> fileSelector) {
 
-    Iterable<TabletMetadata> tmi = TabletsMetadata.builder(ctx).forTable(tableId)
-        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build();
-
     // get a subset of files
     Map<StoredTabletFile,List<TabletMetadata>> files = new HashMap<>();
 
-    for (TabletMetadata tm : tmi) {
-      for (StoredTabletFile file : tm.getFiles()) {
-        if (fileSelector.test(file)) {
-          // TODO push this filtering to server side and possibly use batch scanner
-          files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
+    try (TabletsMetadata tmi = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, LOCATION, LAST, PREV_ROW).build()) {
+      for (TabletMetadata tm : tmi) {
+        for (StoredTabletFile file : tm.getFiles()) {
+          if (fileSelector.test(file)) {
+            // TODO push this filtering to server side and possibly use batch scanner
+            files.computeIfAbsent(file, s -> new ArrayList<>()).add(tm);
+          }
         }
       }
     }
@@ -185,7 +186,7 @@ public class Gatherer {
 
     Map<String,Map<StoredTabletFile,List<TRowRange>>> locations = new HashMap<>();
 
-    List<String> tservers = null;
+    List<ServerId> tservers = null;
 
     for (Entry<StoredTabletFile,List<TabletMetadata>> entry : files.entrySet()) {
 
@@ -203,7 +204,8 @@ public class Gatherer {
 
       if (location == null) {
         if (tservers == null) {
-          tservers = ctx.instanceOperations().getTabletServers();
+          tservers =
+              new ArrayList<>(ctx.instanceOperations().getServers(ServerId.Type.TABLET_SERVER));
           Collections.sort(tservers);
         }
 
@@ -211,7 +213,7 @@ public class Gatherer {
         // same file (as long as the set of tservers is stable).
         int idx = Math.abs(Hashing.murmur3_32_fixed()
             .hashString(entry.getKey().getNormalizedPathStr(), UTF_8).asInt()) % tservers.size();
-        location = tservers.get(idx);
+        location = tservers.get(idx).toHostPortString();
       }
 
       Function<RowRange,TRowRange> toTRowRange =
@@ -285,10 +287,10 @@ public class Gatherer {
 
   private class FilesProcessor implements Supplier<ProcessedFiles> {
 
-    HostAndPort location;
-    Map<StoredTabletFile,List<TRowRange>> allFiles;
-    private TInfo tinfo;
-    private AtomicBoolean cancelFlag;
+    final HostAndPort location;
+    final Map<StoredTabletFile,List<TRowRange>> allFiles;
+    private final TInfo tinfo;
+    private final AtomicBoolean cancelFlag;
 
     public FilesProcessor(TInfo tinfo, HostAndPort location,
         Map<StoredTabletFile,List<TRowRange>> allFiles, AtomicBoolean cancelFlag) {
@@ -450,16 +452,18 @@ public class Gatherer {
 
   private int countFiles() {
     // TODO use a batch scanner + iterator to parallelize counting files
-    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(startRow, endRow)
-        .fetch(FILES, PREV_ROW).build().stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    try (TabletsMetadata tabletsMetadata = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(startRow, endRow).fetch(FILES, PREV_ROW).build()) {
+      return tabletsMetadata.stream().mapToInt(tm -> tm.getFiles().size()).sum();
+    }
   }
 
   private class GatherRequest implements Supplier<SummaryCollection> {
 
-    private int remainder;
-    private int modulus;
-    private TInfo tinfo;
-    private AtomicBoolean cancelFlag;
+    private final int remainder;
+    private final int modulus;
+    private final TInfo tinfo;
+    private final AtomicBoolean cancelFlag;
 
     GatherRequest(TInfo tinfo, int remainder, int modulus, AtomicBoolean cancelFlag) {
       this.remainder = remainder;

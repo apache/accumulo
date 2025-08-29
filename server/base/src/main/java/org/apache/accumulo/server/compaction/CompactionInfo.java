@@ -71,10 +71,10 @@ public class CompactionInfo {
   }
 
   public Thread getThread() {
-    return compactor.thread;
+    return compactor.getThread();
   }
 
-  public String getOutputFile() {
+  public StoredTabletFile getOutputFile() {
     return compactor.getOutputFile();
   }
 
@@ -104,8 +104,8 @@ public class CompactionInfo {
     }
     List<String> files = compactor.getFilesToCompact().stream()
         .map(StoredTabletFile::getNormalizedPathStr).collect(Collectors.toList());
-    return new ActiveCompaction(compactor.extent.toThrift(),
-        System.currentTimeMillis() - compactor.getStartTime(), files, compactor.getOutputFile(),
-        type, reason, localityGroup, entriesRead, entriesWritten, iiList, iterOptions, timesPaused);
+    return new ActiveCompaction(compactor.extent.toThrift(), compactor.getAge().toMillis(), files,
+        compactor.getOutputFile().getMetadataPath(), type, reason, localityGroup, entriesRead,
+        entriesWritten, iiList, iterOptions, timesPaused);
   }
 }

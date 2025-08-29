@@ -61,7 +61,7 @@ if [[ -n $CLASSPATH ]]; then
 else
   CLASSPATH="${conf}"
 fi
-ZK_JARS=$(find "$ZOOKEEPER_HOME/lib/" -maxdepth 1 -name '*.jar' -not -name '*slf4j*' -not -name '*log4j*' | paste -sd:)
+ZK_JARS=$(find "$ZOOKEEPER_HOME/lib/" -maxdepth 1 -name '*.jar' -not -name '*slf4j*' -not -name '*log4j*' | paste -sd: -)
 # lib is set by calling script that sources this env file
 #shellcheck disable=SC2154
 CLASSPATH="${CLASSPATH}:${lib}/*:${HADOOP_CONF_DIR}:${ZOOKEEPER_HOME}/*:${ZK_JARS}:${HADOOP_HOME}/share/hadoop/client/*"
@@ -89,23 +89,33 @@ JAVA_OPTS=(
 ## JVM options set for individual applications
 # cmd is set by calling script that sources this env file
 #shellcheck disable=SC2154
-case "$cmd" in
-  manager) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
-  monitor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
-  gc) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
-  tserver) JAVA_OPTS=('-Xmx768m' '-Xms768m' "${JAVA_OPTS[@]}") ;;
-  compaction-coordinator) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
-  compactor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
-  sserver) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
-  *) JAVA_OPTS=('-Xmx256m' '-Xms64m' "${JAVA_OPTS[@]}") ;;
+case "${ACCUMULO_RESOURCE_GROUP:-default}" in
+  default)
+    # shellcheck disable=SC2154
+    # $cmd is exported in the accumulo script, but not the accumulo-service script
+    case "$cmd" in
+      manager) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+      monitor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
+      gc) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
+      tserver) JAVA_OPTS=('-Xmx768m' '-Xms768m' "${JAVA_OPTS[@]}") ;;
+      compactor) JAVA_OPTS=('-Xmx256m' '-Xms256m' "${JAVA_OPTS[@]}") ;;
+      sserver) JAVA_OPTS=('-Xmx512m' '-Xms512m' "${JAVA_OPTS[@]}") ;;
+      *) JAVA_OPTS=('-Xmx256m' '-Xms64m' "${JAVA_OPTS[@]}") ;;
+    esac
+    ;;
+  *)
+    echo "ACCUMULO_RESOURCE_GROUP named $ACCUMULO_RESOURCE_GROUP is not configured in accumulo-env.sh"
+    exit 1
+    ;;
 esac
 
 ## JVM options set for logging. Review log4j2.properties file to see how they are used.
 JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
-  "-Daccumulo.application=${cmd}${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
+  "-Daccumulo.application=${ACCUMULO_SERVICE_INSTANCE}_$(hostname)"
   "-Daccumulo.metrics.service.instance=${ACCUMULO_SERVICE_INSTANCE}"
+  "-Dlog4j2.statusLoggerLevel=ERROR"
   "-Dlog4j2.contextSelector=org.apache.logging.log4j.core.async.AsyncLoggerContextSelector"
-  "-Dotel.service.name=${cmd}${ACCUMULO_SERVICE_INSTANCE}"
+  "-Dotel.service.name=${ACCUMULO_SERVICE_INSTANCE}"
   "${JAVA_OPTS[@]}"
 )
 
@@ -118,7 +128,7 @@ JAVA_OPTS=("-Daccumulo.log.dir=${ACCUMULO_LOG_DIR}"
 #JAVA_OPTS=('-javaagent:path/to/opentelemetry-javaagent-all.jar' "${JAVA_OPTS[@]}")
 
 case "$cmd" in
-  monitor | gc | manager | tserver | compaction-coordinator | compactor | sserver)
+  monitor | gc | manager | tserver | compactor | sserver)
     JAVA_OPTS=('-Dlog4j.configurationFile=log4j2-service.properties' "${JAVA_OPTS[@]}")
     ;;
   *)
@@ -142,5 +152,10 @@ esac
 # Variables that are optional. Uncomment to set
 ###############################################
 
-## Specifies command that will be placed before calls to Java in accumulo script
-# export ACCUMULO_JAVA_PREFIX=""
+## ACCUMULO_JAVA_PREFIX can be used to specify commands to prepend to the "java"
+## command when it is executed. This can be declared as either a scalar or an
+## array variable. The following use of declare to check if it's already set is
+## not strictly necessary, but ensures that if you set it in the calling
+## environment, that will override what is set here, rather than some mangled
+## merged result. You can set the variable any way you like.
+#declare -p 'ACCUMULO_JAVA_PREFIX' &>/dev/null || ACCUMULO_JAVA_PREFIX=''

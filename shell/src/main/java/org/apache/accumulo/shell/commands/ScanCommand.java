@@ -56,9 +56,15 @@ import org.apache.hadoop.io.Text;
 
 public class ScanCommand extends Command {
 
-  private Option scanOptAuths, scanOptRow, scanOptColumns, disablePaginationOpt, showFewOpt,
-      outputFileOpt, scanOptCf, scanOptCq;
+  private Option scanOptAuths;
+  private Option scanOptRow;
+  private Option scanOptColumns;
+  private Option disablePaginationOpt;
+  private Option outputFileOpt;
+  private Option scanOptCf;
+  private Option scanOptCq;
 
+  protected Option showFewOpt;
   protected Option timestampOpt;
   protected Option profileOpt;
   private Option optStartRowExclusive;
@@ -106,8 +112,7 @@ public class ScanCommand extends Command {
       if (cl.hasOption(contextOpt.getOpt())) {
         classLoaderContext = cl.getOptionValue(contextOpt.getOpt());
       }
-      // handle first argument, if present, the authorizations list to
-      // scan with
+      // handle first argument, if present, the authorizations list to scan with
       final Authorizations auths = getAuths(cl, shellState);
       final Scanner scanner = shellState.getAccumuloClient().createScanner(tableName, auths);
       if (classLoaderContext != null) {
@@ -121,7 +126,6 @@ public class ScanCommand extends Command {
 
       // handle columns
       fetchColumns(cl, scanner);
-      fetchColumsWithCFAndCQ(cl, scanner);
 
       // set timeout
       scanner.setTimeout(getTimeout(cl), TimeUnit.MILLISECONDS);
@@ -148,7 +152,7 @@ public class ScanCommand extends Command {
         } catch (NumberFormatException nfe) {
           Shell.log.error("Arg must be an integer.", nfe);
         } catch (IllegalArgumentException iae) {
-          Shell.log.error("Arg must be greater than one.", iae);
+          Shell.log.error("Invalid length argument", iae);
         }
       }
       printRecords(cl, shellState, config, scanner, formatter, printFile);
@@ -236,16 +240,33 @@ public class ScanCommand extends Command {
   protected void fetchColumns(final CommandLine cl, final ScannerBase scanner)
       throws UnsupportedEncodingException {
 
-    if ((cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt()))
-        && cl.hasOption(scanOptColumns.getOpt())) {
+    if (cl.hasOption(scanOptCf.getOpt()) || cl.hasOption(scanOptCq.getOpt())) {
+      if (cl.hasOption(scanOptColumns.getOpt())) {
+        String formattedString =
+            String.format("Option -%s is mutually exclusive with options -%s and -%s.",
+                scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
+        throw new IllegalArgumentException(formattedString);
+      }
+      String cf = "";
+      String cq = "";
+      if (cl.hasOption(scanOptCf.getOpt())) {
+        cf = cl.getOptionValue(scanOptCf.getOpt());
+      }
+      if (cl.hasOption(scanOptCq.getOpt())) {
+        cq = cl.getOptionValue(scanOptCq.getOpt());
+      }
 
-      String formattedString =
-          String.format("Option -%s is mutually exclusive with options -%s and -%s.",
-              scanOptColumns.getOpt(), scanOptCf.getOpt(), scanOptCq.getOpt());
-      throw new IllegalArgumentException(formattedString);
-    }
-
-    if (cl.hasOption(scanOptColumns.getOpt())) {
+      if (cf.isEmpty() && !cq.isEmpty()) {
+        String formattedString = String.format("Option -%s is required when using -%s.",
+            scanOptCf.getOpt(), scanOptCq.getOpt());
+        throw new IllegalArgumentException(formattedString);
+      } else if (!cf.isEmpty() && cq.isEmpty()) {
+        scanner.fetchColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
+      } else if (!cf.isEmpty() && !cq.isEmpty()) {
+        scanner.fetchColumn(new Text(cf.getBytes(Shell.CHARSET)),
+            new Text(cq.getBytes(Shell.CHARSET)));
+      }
+    } else if (cl.hasOption(scanOptColumns.getOpt())) {
       for (String a : cl.getOptionValue(scanOptColumns.getOpt()).split(",")) {
         final String[] sa = a.split(":", 2);
         if (sa.length == 1) {
@@ -256,30 +277,6 @@ public class ScanCommand extends Command {
         }
       }
     }
-  }
-
-  private void fetchColumsWithCFAndCQ(CommandLine cl, Scanner scanner) {
-    String cf = "";
-    String cq = "";
-    if (cl.hasOption(scanOptCf.getOpt())) {
-      cf = cl.getOptionValue(scanOptCf.getOpt());
-    }
-    if (cl.hasOption(scanOptCq.getOpt())) {
-      cq = cl.getOptionValue(scanOptCq.getOpt());
-    }
-
-    if (cf.isEmpty() && !cq.isEmpty()) {
-      String formattedString = String.format("Option -%s is required when using -%s.",
-          scanOptCf.getOpt(), scanOptCq.getOpt());
-      throw new IllegalArgumentException(formattedString);
-    } else if (!cf.isEmpty() && cq.isEmpty()) {
-      scanner.fetchColumnFamily(new Text(cf.getBytes(Shell.CHARSET)));
-    } else if (!cf.isEmpty() && !cq.isEmpty()) {
-      scanner.fetchColumn(new Text(cf.getBytes(Shell.CHARSET)),
-          new Text(cq.getBytes(Shell.CHARSET)));
-
-    }
-
   }
 
   protected Range getRange(final CommandLine cl) throws UnsupportedEncodingException {
@@ -388,13 +385,13 @@ public class ScanCommand extends Command {
     o.addOption(timestampOpt);
     o.addOption(disablePaginationOpt);
     o.addOption(OptUtil.tableOpt("table to be scanned"));
-    o.addOption(showFewOpt);
     o.addOption(timeoutOption);
     if (Arrays.asList(ScanCommand.class.getName(), GrepCommand.class.getName(),
         EGrepCommand.class.getName()).contains(this.getClass().getName())) {
       // supported subclasses must handle the output file option properly
       // only add this option to commands which handle it correctly
       o.addOption(outputFileOpt);
+      o.addOption(showFewOpt);
     }
     o.addOption(profileOpt);
     o.addOption(sampleOpt);

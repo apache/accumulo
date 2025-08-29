@@ -26,6 +26,7 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -36,6 +37,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -50,10 +52,12 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.NoSuchMetaStoreException;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile;
+import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
 import org.apache.accumulo.core.file.blockfile.impl.CacheProvider;
 import org.apache.accumulo.core.file.rfile.BlockIndex.BlockIndexEntry;
 import org.apache.accumulo.core.file.rfile.MultiLevelIndex.IndexEntry;
@@ -71,9 +75,9 @@ import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroup;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupContext;
 import org.apache.accumulo.core.iteratorsImpl.system.LocalityGroupIterator.LocalityGroupSeekCache;
+import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.util.LocalityGroupUtil;
-import org.apache.accumulo.core.util.MutableByteSequence;
 import org.apache.commons.lang3.mutable.MutableLong;
 import org.apache.hadoop.io.Writable;
 import org.slf4j.Logger;
@@ -81,6 +85,8 @@ import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 
 public class RFile {
 
@@ -369,8 +375,8 @@ public class RFile {
   }
 
   private static class SampleEntry {
-    Key key;
-    Value val;
+    final Key key;
+    final Value val;
 
     SampleEntry(Key key, Value val) {
       this.key = new Key(key);
@@ -380,15 +386,15 @@ public class RFile {
 
   private static class SampleLocalityGroupWriter {
 
-    private Sampler sampler;
+    private final Sampler sampler;
 
-    private List<SampleEntry> entries = new ArrayList<>();
+    private final List<SampleEntry> entries = new ArrayList<>();
     private long dataSize = 0;
 
-    private LocalityGroupWriter lgr;
+    private final LocalityGroupWriter lgw;
 
-    public SampleLocalityGroupWriter(LocalityGroupWriter lgr, Sampler sampler) {
-      this.lgr = lgr;
+    public SampleLocalityGroupWriter(LocalityGroupWriter lgw, Sampler sampler) {
+      this.lgw = lgw;
       this.sampler = sampler;
     }
 
@@ -401,10 +407,10 @@ public class RFile {
 
     public void close() throws IOException {
       for (SampleEntry se : entries) {
-        lgr.append(se.key, se.val);
+        lgw.append(se.key, se.val);
       }
 
-      lgr.close();
+      lgw.close();
     }
 
     public void flushIfNeeded() throws IOException {
@@ -415,10 +421,10 @@ public class RFile {
 
         if (!subList.isEmpty()) {
           for (SampleEntry se : subList) {
-            lgr.append(se.key, se.val);
+            lgw.append(se.key, se.val);
           }
 
-          lgr.closeBlock(subList.get(subList.size() - 1).key, false);
+          lgw.closeBlock(subList.get(subList.size() - 1).key, false);
 
           subList.clear();
           dataSize = 0;
@@ -429,7 +435,7 @@ public class RFile {
 
   private static class LocalityGroupWriter {
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
     private BlockAppender blockWriter;
 
     private final long blockSize;
@@ -442,10 +448,10 @@ public class RFile {
 
     private Key prevKey = new Key();
 
-    private SampleLocalityGroupWriter sample;
+    private final SampleLocalityGroupWriter sample;
 
     // Use windowed stats to fix ACCUMULO-4669
-    private RollingStats keyLenStats = new RollingStats(2017);
+    private final RollingStats keyLenStats = new RollingStats(2017);
     private double averageKeySize = 0;
 
     LocalityGroupWriter(BCFile.Writer fileWriter, long blockSize, long maxBlockSize,
@@ -561,14 +567,14 @@ public class RFile {
     public static final int MAX_CF_IN_DLG = 1000;
     private static final double MAX_BLOCK_MULTIPLIER = 1.1;
 
-    private BCFile.Writer fileWriter;
+    private final BCFile.Writer fileWriter;
 
     private final long blockSize;
     private final long maxBlockSize;
     private final int indexBlockSize;
 
-    private ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
-    private ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> localityGroups = new ArrayList<>();
+    private final ArrayList<LocalityGroupMetadata> sampleGroups = new ArrayList<>();
     private LocalityGroupMetadata currentLocalityGroup = null;
     private LocalityGroupMetadata sampleLocalityGroup = null;
 
@@ -576,13 +582,13 @@ public class RFile {
     private boolean closed = false;
     private boolean startedDefaultLocalityGroup = false;
 
-    private HashSet<ByteSequence> previousColumnFamilies;
+    private final HashSet<ByteSequence> previousColumnFamilies;
     private long length = -1;
 
     private LocalityGroupWriter lgWriter;
 
-    private SamplerConfigurationImpl samplerConfig;
-    private Sampler sampler;
+    private final SamplerConfigurationImpl samplerConfig;
+    private final Sampler sampler;
 
     public Writer(BCFile.Writer bfw, int blockSize) throws IOException {
       this(bfw, blockSize, (int) DefaultConfiguration.getInstance()
@@ -755,13 +761,13 @@ public class RFile {
 
   private static class LocalityGroupReader extends LocalityGroup implements FileSKVIterator {
 
-    private CachableBlockFile.Reader reader;
-    private MultiLevelIndex.Reader index;
-    private int blockCount;
-    private Key firstKey;
-    private int startBlock;
+    private final CachableBlockFile.Reader reader;
+    private final MultiLevelIndex.Reader index;
+    private final int blockCount;
+    private final Key firstKey;
+    private final int startBlock;
     private boolean closed = false;
-    private int version;
+    private final int version;
     private boolean checkRange = true;
 
     private LocalityGroupReader(CachableBlockFile.Reader reader, LocalityGroupMetadata lgm,
@@ -830,8 +836,8 @@ public class RFile {
     public void next() throws IOException {
       try {
         _next();
-      } catch (IOException ioe) {
-        reset();
+      } catch (IOException | RuntimeException ioe) {
+        reset(true);
         throw ioe;
       }
     }
@@ -913,19 +919,22 @@ public class RFile {
 
       try {
         _seek(range);
-      } catch (IOException ioe) {
-        reset();
+      } catch (IOException | RuntimeException ioe) {
+        reset(true);
         throw ioe;
       }
     }
 
-    private void reset() {
+    private void reset(boolean exceptionThrown) {
       rk = null;
       hasTop = false;
       if (currBlock != null) {
         try {
           try {
             currBlock.close();
+            if (exceptionThrown) {
+              reader.close();
+            }
           } catch (IOException e) {
             log.warn("Failed to close block reader", e);
           }
@@ -955,7 +964,7 @@ public class RFile {
 
       if (range.afterEndKey(firstKey)) {
         // range is before first key in rfile, so there is nothing to do
-        reset();
+        reset(false);
         reseek = false;
       }
 
@@ -982,7 +991,7 @@ public class RFile {
           // causing the build of an index... doing this could slow down some use cases and
           // and speed up others.
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
           SkippR skippr =
               RelativeKey.fastSkip(currBlock, startKey, valbs, prevKey, getTopKey(), entriesLeft);
           if (skippr.skipped > 0) {
@@ -1017,7 +1026,7 @@ public class RFile {
       if (reseek) {
         iiter = index.lookup(startKey);
 
-        reset();
+        reset(false);
 
         if (iiter.hasNext()) {
 
@@ -1044,7 +1053,7 @@ public class RFile {
             hasTop = true;
           }
 
-          MutableByteSequence valbs = new MutableByteSequence(new byte[64], 0, 0);
+          final var valbs = new ArrayByteSequence(new byte[64], 0, 0);
 
           Key currKey = null;
 
@@ -1061,7 +1070,7 @@ public class RFile {
                 val = new Value();
 
                 val.readFields(currBlock);
-                valbs = new MutableByteSequence(val.get(), 0, val.getSize());
+                valbs.reset(val.get(), 0, val.getSize());
 
                 // just consumed one key from the input stream, so subtract one from entries left
                 entriesLeft = bie.getEntriesLeft() - 1;
@@ -1097,16 +1106,13 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() {
-      return firstKey;
-    }
-
-    @Override
-    public Key getLastKey() {
-      if (index.size() == 0) {
-        return null;
+    public FileRange getFileRange() {
+      if (firstKey == null) {
+        Preconditions.checkState(index.size() == 0);
+        return FileRange.EMPTY;
+      } else {
+        return new FileRange(firstKey.getRow(), index.getLastKey().getRow());
       }
-      return index.getLastKey();
     }
 
     @Override
@@ -1155,9 +1161,14 @@ public class RFile {
     public void setCacheProvider(CacheProvider cacheProvider) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
+    }
   }
 
-  public static class Reader extends HeapIterator implements FileSKVIterator {
+  public static class Reader extends HeapIterator implements RFileSKVIterator {
 
     private final CachableBlockFile.Reader reader;
 
@@ -1279,24 +1290,32 @@ public class RFile {
       this(new CachableBlockFile.Reader(b));
     }
 
-    private void closeLocalityGroupReaders() {
+    private void closeLocalityGroupReaders(boolean ignoreIOExceptions) throws IOException {
       for (LocalityGroupReader lgr : currentReaders) {
         try {
           lgr.close();
         } catch (IOException e) {
-          log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          if (ignoreIOExceptions) {
+            log.warn("Errored out attempting to close LocalityGroupReader.", e);
+          } else {
+            throw e;
+          }
         }
       }
     }
 
     @Override
-    public void closeDeepCopies() {
+    public void closeDeepCopies() throws IOException {
+      closeDeepCopies(false);
+    }
+
+    private void closeDeepCopies(boolean ignoreIOExceptions) throws IOException {
       if (deepCopy) {
         throw new IllegalStateException("Calling closeDeepCopies on a deep copy is not supported");
       }
 
       for (Reader deepCopy : deepCopies) {
-        deepCopy.closeLocalityGroupReaders();
+        deepCopy.closeLocalityGroupReaders(ignoreIOExceptions);
       }
 
       deepCopies.clear();
@@ -1308,8 +1327,9 @@ public class RFile {
         throw new IllegalStateException("Calling close on a deep copy is not supported");
       }
 
-      closeDeepCopies();
-      closeLocalityGroupReaders();
+      // Closes as much as possible igoring and logging exceptions along the way
+      closeDeepCopies(true);
+      closeLocalityGroupReaders(true);
 
       if (sampleReaders != null) {
         for (LocalityGroupReader lgr : sampleReaders) {
@@ -1331,47 +1351,14 @@ public class RFile {
     }
 
     @Override
-    public Key getFirstKey() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Key minKey = null;
+    public FileRange getFileRange() {
+      FileRange range = FileRange.EMPTY;
 
       for (LocalityGroupReader currentReader : currentReaders) {
-        if (minKey == null) {
-          minKey = currentReader.getFirstKey();
-        } else {
-          Key firstKey = currentReader.getFirstKey();
-          if (firstKey != null && firstKey.compareTo(minKey) < 0) {
-            minKey = firstKey;
-          }
-        }
+        range = currentReader.getFileRange().union(range);
       }
 
-      return minKey;
-    }
-
-    @Override
-    public Key getLastKey() throws IOException {
-      if (currentReaders.length == 0) {
-        return null;
-      }
-
-      Key maxKey = null;
-
-      for (LocalityGroupReader currentReader : currentReaders) {
-        if (maxKey == null) {
-          maxKey = currentReader.getLastKey();
-        } else {
-          Key lastKey = currentReader.getLastKey();
-          if (lastKey != null && lastKey.compareTo(maxKey) > 0) {
-            maxKey = lastKey;
-          }
-        }
-      }
-
-      return maxKey;
+      return range;
     }
 
     @Override
@@ -1384,7 +1371,7 @@ public class RFile {
     }
 
     @Override
-    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+    public Reader deepCopy(IteratorEnvironment env) {
       if (env != null && env.isSamplingEnabled()) {
         SamplerConfiguration sc = env.getSamplerConfiguration();
         if (sc == null) {
@@ -1473,6 +1460,7 @@ public class RFile {
       return (lgCache == null ? 0 : lgCache.getNumLGSeeked());
     }
 
+    @Override
     public FileSKVIterator getIndex() throws IOException {
 
       ArrayList<Iterator<IndexEntry>> indexes = new ArrayList<>();
@@ -1485,7 +1473,7 @@ public class RFile {
     }
 
     @Override
-    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+    public Reader getSample(SamplerConfigurationImpl sampleConfig) {
       requireNonNull(sampleConfig);
 
       if (this.samplerConfig != null && this.samplerConfig.equals(sampleConfig)) {
@@ -1553,5 +1541,259 @@ public class RFile {
     public void setCacheProvider(CacheProvider cacheProvider) {
       reader.setCacheProvider(cacheProvider);
     }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      long totalEntries = 0;
+      Key startKey = extent.toDataRange().getStartKey();
+      IndexEntry indexEntry;
+
+      for (LocalityGroupReader lgr : currentReaders) {
+        boolean prevEntryOverlapped = false;
+        var indexIter = startKey == null ? lgr.getIndex() : lgr.index.lookup(startKey);
+
+        while (indexIter.hasNext()) {
+          indexEntry = indexIter.next();
+          if (extent.contains(indexEntry.getKey().getRow())) {
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = true;
+          } else if (prevEntryOverlapped) {
+            // The last index entry included in the count is the one after the last contained by the
+            // extent. This is because it is possible for the extent to overlap this index entry
+            // but there is no way to check whether it does or not. The index entry only contains
+            // info about the last key, but the extent may overlap but not with the last key.
+            totalEntries += indexEntry.getNumEntries();
+            prevEntryOverlapped = false;
+            break;
+          }
+        }
+      }
+
+      return totalEntries;
+    }
+
+    @Override
+    public void reset() {
+      clear();
+    }
+  }
+
+  public interface RFileSKVIterator extends FileSKVIterator {
+    FileSKVIterator getIndex() throws IOException;
+
+    void reset();
+  }
+
+  static abstract class FencedFileSKVIterator implements FileSKVIterator {
+
+    private final FileSKVIterator reader;
+    protected final Range fence;
+    private final Key fencedStartKey;
+    private final Supplier<Key> fencedEndKey;
+
+    public FencedFileSKVIterator(FileSKVIterator reader, Range fence) {
+      this.reader = Objects.requireNonNull(reader);
+      this.fence = Objects.requireNonNull(fence);
+      this.fencedStartKey = fence.getStartKey();
+      this.fencedEndKey = Suppliers.memoize(() -> getEndKey(fence.getEndKey()));
+    }
+
+    @Override
+    public void init(SortedKeyValueIterator<Key,Value> source, Map<String,String> options,
+        IteratorEnvironment env) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public boolean hasTop() {
+      return reader.hasTop();
+    }
+
+    @Override
+    public void next() throws IOException {
+      reader.next();
+    }
+
+    @Override
+    public Key getTopKey() {
+      return reader.getTopKey();
+    }
+
+    @Override
+    public Value getTopValue() {
+      return reader.getTopValue();
+    }
+
+    @Override
+    public FileRange getFileRange() {
+      return reader.getFileRange().intersect(fence);
+    }
+
+    @Override
+    public boolean isRunningLowOnMemory() {
+      return reader.isRunningLowOnMemory();
+    }
+
+    @Override
+    public void setInterruptFlag(AtomicBoolean flag) {
+      reader.setInterruptFlag(flag);
+    }
+
+    @Override
+    public DataInputStream getMetaStore(String name) throws IOException {
+      return reader.getMetaStore(name);
+    }
+
+    @Override
+    public void closeDeepCopies() throws IOException {
+      reader.closeDeepCopies();
+    }
+
+    @Override
+    public void setCacheProvider(CacheProvider cacheProvider) {
+      reader.setCacheProvider(cacheProvider);
+    }
+
+    @Override
+    public void close() throws IOException {
+      reader.close();
+    }
+
+    private Key getEndKey(Key key) {
+      // If they key is infinite it will be null or if inclusive we can just use it as is
+      // as it would be the correct value for getLastKey()
+      if (fence.isInfiniteStopKey() || fence.isEndKeyInclusive()) {
+        return key;
+      }
+
+      // If exclusive we need to strip the last byte to get the last key that is part of the
+      // actual range to return
+      final byte[] ba = key.getRowData().toArray();
+      Preconditions.checkArgument(ba.length > 0 && ba[ba.length - 1] == (byte) 0x00);
+      byte[] fba = new byte[ba.length - 1];
+      System.arraycopy(ba, 0, fba, 0, ba.length - 1);
+
+      return new Key(fba);
+    }
+
+  }
+
+  static class FencedIndex extends FencedFileSKVIterator {
+    private final FileSKVIterator source;
+
+    public FencedIndex(FileSKVIterator source, Range seekFence) {
+      super(source, seekFence);
+      this.source = source;
+    }
+
+    @Override
+    public boolean hasTop() {
+      // this code filters out data because the rfile index iterators do not support seek
+
+      // If startKey is set then discard everything until we reach the start
+      // of the range
+      if (fence.getStartKey() != null) {
+
+        while (source.hasTop() && fence.beforeStartKey(source.getTopKey())) {
+          try {
+            source.next();
+          } catch (IOException e) {
+            throw new UncheckedIOException(e);
+          }
+        }
+      }
+
+      // If endKey is set then ensure that the current key is not passed the end of the range
+      return source.hasTop() && !fence.afterEndKey(source.getTopKey());
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent extent) throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
+      throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SortedKeyValueIterator<Key,Value> deepCopy(IteratorEnvironment env) {
+      throw new UnsupportedOperationException();
+    }
+  }
+
+  static class FencedReader extends FencedFileSKVIterator implements RFileSKVIterator {
+
+    private final Reader reader;
+
+    public FencedReader(Reader reader, Range seekFence) {
+      super(reader, seekFence);
+      this.reader = reader;
+    }
+
+    @Override
+    public void seek(Range range, Collection<ByteSequence> columnFamilies, boolean inclusive)
+        throws IOException {
+      reader.reset();
+
+      if (fence != null) {
+        range = fence.clip(range, true);
+        if (range == null) {
+          return;
+        }
+      }
+
+      reader.seek(range, columnFamilies, inclusive);
+    }
+
+    @Override
+    public FencedReader deepCopy(IteratorEnvironment env) {
+      return new FencedReader(reader.deepCopy(env), fence);
+    }
+
+    @Override
+    public FileSKVIterator getIndex() throws IOException {
+      return new FencedIndex(reader.getIndex(), fence);
+    }
+
+    @Override
+    public long estimateOverlappingEntries(KeyExtent c) throws IOException {
+      KeyExtent overlapping = c.clip(fence, true);
+      if (overlapping == null) {
+        return 0;
+      }
+      return reader.estimateOverlappingEntries(overlapping);
+    }
+
+    @Override
+    public FileSKVIterator getSample(SamplerConfigurationImpl sampleConfig) {
+      final Reader sample = reader.getSample(sampleConfig);
+      return sample != null ? new FencedReader(sample, fence) : null;
+    }
+
+    @Override
+    public void reset() {
+      reader.reset();
+    }
+  }
+
+  public static RFileSKVIterator getReader(final CachableBuilder cb, final TabletFile dataFile)
+      throws IOException {
+    final RFile.Reader reader = new RFile.Reader(Objects.requireNonNull(cb));
+    return dataFile.hasRange() ? new FencedReader(reader, dataFile.getRange()) : reader;
+  }
+
+  public static RFileSKVIterator getReader(final CachableBuilder cb, Range range)
+      throws IOException {
+    final RFile.Reader reader = new RFile.Reader(Objects.requireNonNull(cb));
+    return !range.isInfiniteStartKey() || !range.isInfiniteStopKey()
+        ? new FencedReader(reader, range) : reader;
   }
 }

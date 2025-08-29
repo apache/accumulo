@@ -33,6 +33,7 @@ import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.file.FileSKVWriter;
 import org.apache.accumulo.core.file.blockfile.impl.CachableBlockFile.CachableBuilder;
+import org.apache.accumulo.core.file.rfile.RFile.RFileSKVIterator;
 import org.apache.accumulo.core.file.rfile.bcfile.BCFile;
 import org.apache.accumulo.core.metadata.TabletFile;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
@@ -42,6 +43,7 @@ import org.apache.hadoop.fs.CreateFlag;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.permission.FsPermission;
+import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,13 +55,12 @@ public class RFileOperations extends FileOperations {
 
   private static final Collection<ByteSequence> EMPTY_CF_SET = Collections.emptySet();
 
-  private static RFile.Reader getReader(FileOptions options) throws IOException {
+  private static RFileSKVIterator getReader(FileOptions options) throws IOException {
     CachableBuilder cb = new CachableBuilder()
         .fsPath(options.getFileSystem(), options.getFile().getPath(), options.dropCacheBehind)
         .conf(options.getConfiguration()).fileLen(options.getFileLenCache())
-        .cacheProvider(options.cacheProvider).readLimiter(options.getRateLimiter())
-        .cryptoService(options.getCryptoService());
-    return new RFile.Reader(cb);
+        .cacheProvider(options.cacheProvider).cryptoService(options.getCryptoService());
+    return RFile.getReader(cb, options.getFile());
   }
 
   @Override
@@ -74,7 +75,7 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openReader(FileOptions options) throws IOException {
-    RFile.Reader reader = getReader(options);
+    FileSKVIterator reader = getReader(options);
 
     if (options.isSeekToBeginning()) {
       reader.seek(new Range((Key) null, null), EMPTY_CF_SET, false);
@@ -85,7 +86,7 @@ public class RFileOperations extends FileOperations {
 
   @Override
   protected FileSKVIterator openScanReader(FileOptions options) throws IOException {
-    RFile.Reader reader = getReader(options);
+    FileSKVIterator reader = getReader(options);
     reader.seek(options.getRange(), options.getColumnFamilies(), options.isRangeInclusive());
     return reader;
   }
@@ -136,10 +137,52 @@ public class RFileOperations extends FileOperations {
       TabletFile file = options.getFile();
       FileSystem fs = options.getFileSystem();
 
-      if (options.dropCacheBehind) {
+      var ecEnable = EcEnabled.valueOf(
+          options.getTableConfiguration().get(Property.TABLE_ENABLE_ERASURE_CODES).toUpperCase());
+
+      if (fs instanceof DistributedFileSystem) {
+        var builder = ((DistributedFileSystem) fs).createFile(file.getPath()).bufferSize(bufferSize)
+            .blockSize(block).overwrite(false);
+
+        if (options.dropCacheBehind) {
+          builder = builder.syncBlock();
+        }
+
+        // create parent directories if they do not exist
+        builder = builder.recursive();
+
+        switch (ecEnable) {
+          case ENABLE:
+            String ecPolicyName =
+                options.getTableConfiguration().get(Property.TABLE_ERASURE_CODE_POLICY);
+            // The default value of this property is empty string. If empty string is given to this
+            // builder it will disable erasure coding. So adding an explicit check for that.
+            Preconditions.checkArgument(!ecPolicyName.isBlank(), "Blank or empty value set for %s",
+                Property.TABLE_ERASURE_CODE_POLICY.getKey());
+            builder = builder.ecPolicyName(ecPolicyName);
+            break;
+          case DISABLE:
+            // force replication
+            builder = builder.replication((short) rep).replicate();
+            break;
+          case INHERIT:
+            // use the directory settings for replication or EC
+            builder = builder.replication((short) rep);
+            break;
+          default:
+            throw new IllegalStateException(ecEnable.name());
+        }
+
+        outputStream = builder.build();
+      } else if (options.dropCacheBehind) {
         EnumSet<CreateFlag> set = EnumSet.of(CreateFlag.SYNC_BLOCK, CreateFlag.CREATE);
         outputStream = fs.create(file.getPath(), FsPermission.getDefault(), set, bufferSize,
             (short) rep, block, null);
+      } else {
+        outputStream = fs.create(file.getPath(), false, bufferSize, (short) rep, block);
+      }
+
+      if (options.dropCacheBehind) {
         try {
           // Tell the DataNode that the file does not need to be cached in the OS page cache
           outputStream.setDropBehind(Boolean.TRUE);
@@ -150,13 +193,10 @@ public class RFileOperations extends FileOperations {
           LOG.debug("IOException setting drop behind for file: {}, msg: {}", options.file,
               e.getMessage());
         }
-      } else {
-        outputStream = fs.create(file.getPath(), false, bufferSize, (short) rep, block);
       }
     }
 
-    BCFile.Writer _cbw = new BCFile.Writer(outputStream, options.getRateLimiter(), compression,
-        conf, options.cryptoService);
+    BCFile.Writer _cbw = new BCFile.Writer(outputStream, compression, conf, options.cryptoService);
 
     return new RFile.Writer(_cbw, (int) blockSize, (int) indexBlockSize, samplerConfig, sampler);
   }

@@ -92,7 +92,7 @@ more details on bouncycastle's cryptography features.
 
 [api]: https://accumulo.apache.org/api
 [accumulo]: https://accumulo.apache.org
-[logo]: contrib/accumulo-logo.png
+[logo]: server/monitor/src/main/resources/org/apache/accumulo/monitor/resources/images/accumulo-logo.png
 [quick start]: https://accumulo.apache.org/docs/2.x/getting-started/quickstart
 [test]: TESTING.md
 [Apache Hadoop]: https://hadoop.apache.org

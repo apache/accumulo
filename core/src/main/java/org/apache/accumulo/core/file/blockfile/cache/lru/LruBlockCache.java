@@ -102,8 +102,8 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
   private final EvictionThread evictionThread;
 
   /** Statistics thread schedule pool (for heavy debugging, could remove) */
-  private final ScheduledExecutorService scheduleThreadPool = ThreadPools.getServerThreadPools()
-      .createScheduledExecutorService(1, "LRUBlockCacheStats", true);
+  private final ScheduledExecutorService scheduleThreadPool =
+      ThreadPools.getServerThreadPools().createScheduledExecutorService(1, "LRUBlockCacheStats");
 
   /** Current size of cache */
   private final AtomicLong size;
@@ -391,9 +391,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    */
   private class BlockBucket implements Comparable<BlockBucket> {
 
-    private CachedBlockQueue queue;
-    private long totalSize = 0;
-    private long bucketSize;
+    private final CachedBlockQueue queue;
+    private long totalSize;
+    private final long bucketSize;
 
     public BlockBucket(long bytesToFree, long blockSize, long bucketSize) {
       this.bucketSize = bucketSize;
@@ -512,7 +512,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * Thread is triggered into action by {@link LruBlockCache#runEviction()}
    */
   private static class EvictionThread extends AccumuloDaemonThread {
-    private WeakReference<LruBlockCache> cache;
+    private final WeakReference<LruBlockCache> cache;
     private boolean running = false;
 
     public EvictionThread(LruBlockCache cache) {
@@ -532,7 +532,9 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
           running = true;
           try {
             this.wait();
-          } catch (InterruptedException e) {}
+          } catch (InterruptedException e) {
+            // empty
+          }
         }
         LruBlockCache cache = this.cache.get();
         if (cache == null) {
@@ -554,7 +556,7 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
    * Statistics thread. Periodically prints the cache statistics to the log.
    */
   private static class StatisticsThread extends AccumuloDaemonThread {
-    LruBlockCache lru;
+    final LruBlockCache lru;
 
     public StatisticsThread(LruBlockCache lru) {
       super("LruBlockCache.StatisticsThread");
@@ -575,14 +577,14 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     float freeMB = ((float) freeSize) / ((float) (1024 * 1024));
     float maxMB = ((float) this.conf.getMaxSize()) / ((float) (1024 * 1024));
     log.debug(
-        "Cache Stats: Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB"
+        "Cache Stats: {} Sizes: Total={}MB ({}), Free={}MB ({}), Max={}MB"
             + " ({}), Counts: Blocks={}, Access={}, Hit={}, Miss={}, Evictions={},"
             + " Evicted={},Ratios: Hit Ratio={}%, Miss Ratio={}%, Evicted/Run={},"
             + " Duplicate Reads={}",
-        sizeMB, totalSize, freeMB, freeSize, maxMB, this.conf.getMaxSize(), size(),
-        stats.requestCount(), stats.hitCount(), stats.getMissCount(), stats.getEvictionCount(),
-        stats.getEvictedCount(), stats.getHitRatio() * 100, stats.getMissRatio() * 100,
-        stats.evictedPerEviction(), stats.getDuplicateReads());
+        conf.getCacheType(), sizeMB, totalSize, freeMB, freeSize, maxMB, this.conf.getMaxSize(),
+        size(), stats.requestCount(), stats.hitCount(), stats.getMissCount(),
+        stats.getEvictionCount(), stats.getEvictedCount(), stats.getHitRatio() * 100,
+        stats.getMissRatio() * 100, stats.evictedPerEviction(), stats.getDuplicateReads());
   }
 
   /**
@@ -629,6 +631,11 @@ public class LruBlockCache extends SynchronousLoadingBlockCache implements Block
     @Override
     public long requestCount() {
       return accessCount.get();
+    }
+
+    @Override
+    public long evictionCount() {
+      return getEvictedCount();
     }
 
     public long getMissCount() {

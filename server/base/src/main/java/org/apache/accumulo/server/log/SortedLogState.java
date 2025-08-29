@@ -28,7 +28,7 @@ import org.apache.hadoop.fs.Path;
 public enum SortedLogState {
   FINISHED("finished"), FAILED("failed");
 
-  private String marker;
+  private final String marker;
 
   private SortedLogState(String marker) {
     this.marker = marker;

@@ -30,10 +30,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.fate.AdminUtil;
-import org.apache.accumulo.core.fate.ReadOnlyTStore;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.fate.ReadOnlyFateStore;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,23 +49,26 @@ class TxnDetailsTest {
   void orderingByDuration() {
     Map<String,String> idMap = Map.of("1", "ns1", "2", "tbl1");
 
+    UUID uuid1 = UUID.randomUUID();
+    UUID uuid2 = UUID.randomUUID();
+
     long now = System.currentTimeMillis();
 
     AdminUtil.TransactionStatus status1 = createMock(AdminUtil.TransactionStatus.class);
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
-    expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
-    expect(status1.getTxName()).andReturn("runningTx1").anyTimes();
-    expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
+    expect(status1.getFateOp()).andReturn(Fate.FateOperation.TABLE_CREATE).anyTimes();
+    expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:" + uuid1)).anyTimes();
     expect(status1.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status1.getWaitingLocks()).andReturn(List.of()).anyTimes();
 
     AdminUtil.TransactionStatus status2 = createMock(AdminUtil.TransactionStatus.class);
     expect(status2.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(7)).anyTimes();
-    expect(status2.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status2.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status2.getTop()).andReturn("step2").anyTimes();
-    expect(status2.getTxName()).andReturn("runningTx2").anyTimes();
-    expect(status2.getTxid()).andReturn("123456789").anyTimes();
+    expect(status2.getFateOp()).andReturn(Fate.FateOperation.TABLE_DELETE).anyTimes();
+    expect(status2.getFateId()).andReturn(FateId.from("FATE:USER:" + uuid2)).anyTimes();
     expect(status2.getHeldLocks()).andReturn(List.of()).anyTimes();
     expect(status2.getWaitingLocks()).andReturn(List.of()).anyTimes();
 
@@ -79,8 +85,8 @@ class TxnDetailsTest {
 
     Iterator<FateTxnDetails> itor = sorted.iterator();
 
-    assertTrue(itor.next().toString().contains("123456789"));
-    assertTrue(itor.next().toString().contains("abcdabcd"));
+    assertTrue(itor.next().toString().contains(uuid2.toString()));
+    assertTrue(itor.next().toString().contains(uuid1.toString()));
 
     verify(status1, status2);
   }
@@ -93,10 +99,10 @@ class TxnDetailsTest {
 
     AdminUtil.TransactionStatus status1 = createMock(AdminUtil.TransactionStatus.class);
     expect(status1.getTimeCreated()).andReturn(now - TimeUnit.DAYS.toMillis(1)).anyTimes();
-    expect(status1.getStatus()).andReturn(ReadOnlyTStore.TStatus.IN_PROGRESS).anyTimes();
+    expect(status1.getStatus()).andReturn(ReadOnlyFateStore.TStatus.IN_PROGRESS).anyTimes();
     expect(status1.getTop()).andReturn("step1").anyTimes();
-    expect(status1.getTxName()).andReturn("runningTx").anyTimes();
-    expect(status1.getTxid()).andReturn("abcdabcd").anyTimes();
+    expect(status1.getFateOp()).andReturn(Fate.FateOperation.TABLE_COMPACT).anyTimes();
+    expect(status1.getFateId()).andReturn(FateId.from("FATE:USER:" + UUID.randomUUID())).anyTimes();
     // incomplete lock info (W unknown ns id, no table))
     expect(status1.getHeldLocks()).andReturn(List.of("R:1", "R:2", "W:a")).anyTimes();
     // blank names

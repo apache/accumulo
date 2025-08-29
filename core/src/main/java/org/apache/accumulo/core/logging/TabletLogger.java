@@ -23,18 +23,25 @@ import static java.util.stream.Collectors.toList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
+import java.util.SortedSet;
+import java.util.UUID;
 
-import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.compaction.CompactableFile;
+import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.fate.FateId;
+import org.apache.accumulo.core.metadata.CompactableFileImpl;
+import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.TabletFile;
+import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.spi.compaction.CompactionJob;
 import org.apache.accumulo.core.spi.compaction.CompactionKind;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,10 +79,9 @@ public class TabletLogger {
     locLog.debug("Loading {} on {}", extent, server);
   }
 
-  public static void suspended(KeyExtent extent, HostAndPort server, long time, TimeUnit timeUnit,
+  public static void suspended(KeyExtent extent, HostAndPort server, SteadyTime time,
       int numWalogs) {
-    locLog.debug("Suspended {} to {} at {} ms with {} walogs", extent, server,
-        timeUnit.toMillis(time), numWalogs);
+    locLog.debug("Suspended {} to {} at {} ms with {} walogs", extent, server, time, numWalogs);
   }
 
   public static void unsuspended(KeyExtent extent) {
@@ -90,9 +96,9 @@ public class TabletLogger {
     locLog.debug("Unassigned {} with {} walogs", extent, logCount);
   }
 
-  public static void split(KeyExtent parent, KeyExtent lowChild, KeyExtent highChild,
-      TServerInstance server) {
-    locLog.debug("Split {} into {} and {} on {}", parent, lowChild, highChild, server);
+  public static void split(KeyExtent parent, SortedSet<Text> splits) {
+    locLog.debug("Split {} into {} tablets", parent, splits.size() + 1);
+    locLog.trace("Split {} into {}", parent, splits);
   }
 
   /**
@@ -108,41 +114,60 @@ public class TabletLogger {
     }
   }
 
+  public static void tabletLoadFailed(KeyExtent extent, Exception e) {
+    locLog.warn("Failed to load tablet {}", extent, e);
+  }
+
   private static String getSize(Collection<CompactableFile> files) {
     long sum = files.stream().mapToLong(CompactableFile::getEstimatedSize).sum();
     return FileUtils.byteCountToDisplaySize(sum);
+  }
+
+  public static void fileReadFailed(String path, TableId tableId, Exception e) {
+    fileLog.error("For table {} failed to read {} ", tableId, path, e);
+  }
+
+  public static void fileReadFailed(String path, KeyExtent tablet, Exception e) {
+    fileLog.error("For tablet {} failed to read {} ", tablet, path, e);
   }
 
   /**
    * Lazily converts TableFile to file names. The lazy part is really important because when it is
    * not called with log.isDebugEnabled().
    */
-  private static Collection<String> asFileNames(Collection<CompactableFile> files) {
-    return Collections2.transform(files, CompactableFile::getFileName);
+  private static Collection<String> asMinimalString(Collection<CompactableFile> files) {
+    return Collections2.transform(files,
+        cf -> CompactableFileImpl.toStoredTabletFile(cf).toMinimalString());
   }
 
-  public static void selected(KeyExtent extent, CompactionKind kind,
+  public static void selected(FateId fateId, KeyExtent extent,
       Collection<StoredTabletFile> inputs) {
-    fileLog.trace("{} changed compaction selection set for {} new set {}", extent, kind,
-        Collections2.transform(inputs, StoredTabletFile::getFileName));
+    fileLog.trace("Selected files {} {} {}", extent, fateId,
+        Collections2.transform(inputs, StoredTabletFile::toMinimalString));
   }
 
-  public static void compacting(KeyExtent extent, CompactionJob job, CompactionConfig config) {
+  public static void compacting(KeyExtent extent, FateId selectedFateId, ExternalCompactionId cid,
+      String compactorAddress, CompactionJob job) {
     if (fileLog.isDebugEnabled()) {
-      if (config == null) {
-        fileLog.debug("Compacting {} on {} for {} from {} size {}", extent, job.getExecutor(),
-            job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()));
+      if (job.getKind() == CompactionKind.USER) {
+        fileLog.debug(
+            "Compacting {} driver:{} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
+            extent, selectedFateId, cid, job.getGroup(), compactorAddress, job.getPriority(),
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       } else {
-        fileLog.debug("Compacting {} on {} for {} from {} size {} config {}", extent,
-            job.getExecutor(), job.getKind(), asFileNames(job.getFiles()), getSize(job.getFiles()),
-            config);
+        fileLog.debug(
+            "Compacting {} id:{} group:{} compactor:{} priority:{} size:{} kind:{} files:{}",
+            extent, cid, job.getGroup(), compactorAddress, job.getPriority(),
+            getSize(job.getFiles()), job.getKind(), asMinimalString(job.getFiles()));
       }
     }
   }
 
-  public static void compacted(KeyExtent extent, CompactionJob job, StoredTabletFile output) {
-    fileLog.debug("Compacted {} for {} created {} from {}", extent, job.getKind(), output,
-        asFileNames(job.getFiles()));
+  public static void compacted(KeyExtent extent, ExternalCompactionId ecid, CompactionKind kind,
+      Collection<StoredTabletFile> inputs, Optional<ReferencedTabletFile> output) {
+    var transformed = Collections2.transform(inputs, StoredTabletFile::toMinimalString);
+    fileLog.debug("{} compacted {} for {} created {} from {}", ecid, extent, kind,
+        output.map(f -> f + "").orElse("no output"), transformed);
   }
 
   public static void flushed(KeyExtent extent, Optional<StoredTabletFile> newDatafile) {
@@ -157,14 +182,14 @@ public class TabletLogger {
     fileLog.debug("Imported {} {}  ", extent, file);
   }
 
-  public static void recovering(KeyExtent extent, List<LogEntry> logEntries) {
+  public static void recovering(KeyExtent extent, Collection<LogEntry> logEntries) {
     if (recoveryLog.isDebugEnabled()) {
-      List<String> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
+      List<UUID> logIds = logEntries.stream().map(LogEntry::getUniqueID).collect(toList());
       recoveryLog.debug("For {} recovering data from walogs: {}", extent, logIds);
     }
   }
 
-  public static void recovered(KeyExtent extent, List<LogEntry> logEntries, long numMutation,
+  public static void recovered(KeyExtent extent, Collection<LogEntry> logEntries, long numMutation,
       long numEntries) {
     recoveryLog.info("For {} recovered {} mutations creating {} entries from {} walogs", extent,
         numMutation, numEntries, logEntries.size());
@@ -180,4 +205,5 @@ public class TabletLogger {
   public static void walRefsChanged(KeyExtent extent, Collection<String> refsSupplier) {
     walsLog.trace("{} has unflushed data in wals: {} ", extent, refsSupplier);
   }
+
 }

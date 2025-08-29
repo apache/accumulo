@@ -18,13 +18,31 @@
  */
 package org.apache.accumulo.core.metadata.schema;
 
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.COMPACT_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily.MERGED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.DIRECTORY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_NONCE_QUAL;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.FLUSH_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.MIGRATION_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.OPID_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.SELECTED_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily.TIME_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.OLD_PREV_ROW_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily.UNSPLITTABLE_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn.SUSPEND_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.AVAILABILITY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.MERGEABILITY_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_COLUMN;
 import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.PREV_ROW_QUAL;
-import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.SPLIT_RATIO_QUAL;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_COLUMN;
+import static org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily.REQUESTED_QUAL;
 
 import java.util.Collection;
 import java.util.EnumSet;
@@ -37,75 +55,146 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
-import java.util.SortedMap;
+import java.util.stream.Collectors;
 
-import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.clientImpl.ClientContext;
+import org.apache.accumulo.core.clientImpl.TabletAvailabilityUtil;
+import org.apache.accumulo.core.data.ArrayByteSequence;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
-import org.apache.accumulo.core.fate.zookeeper.ZooCache;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SuspendingTServer;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
-import org.apache.accumulo.core.metadata.TabletState;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.BulkFileColumnFamily;
-import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ChoppedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ClonedColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CompactedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.DataFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ExternalCompactionColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LogColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.MergedColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ScanFileColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SplitColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.SuspendLocationColumn;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.UserCompactionRequestedColumnFamily;
 import org.apache.accumulo.core.tabletserver.log.LogEntry;
+import org.apache.accumulo.core.util.ColumnFQ;
+import org.apache.accumulo.core.zookeeper.ZcStat;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.apache.commons.lang3.builder.ToStringStyle;
 import org.apache.hadoop.io.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
+import com.google.common.base.Supplier;
+import com.google.common.base.Suppliers;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSortedMap;
+import com.google.common.collect.ImmutableSet;
 import com.google.common.net.HostAndPort;
 
 public class TabletMetadata {
+
   private static final Logger log = LoggerFactory.getLogger(TabletMetadata.class);
 
-  private TableId tableId;
-  private Text prevEndRow;
-  private boolean sawPrevEndRow = false;
-  private Text oldPrevEndRow;
-  private boolean sawOldPrevEndRow = false;
-  private Text endRow;
-  private Location location;
-  private Map<StoredTabletFile,DataFileValue> files;
-  private List<StoredTabletFile> scans;
-  private Map<StoredTabletFile,Long> loadedFiles;
-  private EnumSet<ColumnType> fetchedCols;
-  private KeyExtent extent;
-  private Location last;
-  private SuspendingTServer suspend;
-  private String dirName;
-  private MetadataTime time;
-  private String cloned;
-  private SortedMap<Key,Value> keyValues;
-  private OptionalLong flush = OptionalLong.empty();
-  private List<LogEntry> logs;
-  private OptionalLong compact = OptionalLong.empty();
-  private Double splitRatio = null;
-  private Map<ExternalCompactionId,ExternalCompactionMetadata> extCompactions;
-  private boolean chopped = false;
+  private final TableId tableId;
+  private final Text prevEndRow;
+  private final boolean sawPrevEndRow;
+  private final Text endRow;
+  private final Location location;
+  private final Map<StoredTabletFile,DataFileValue> files;
+  private final List<StoredTabletFile> scans;
+  private final Map<StoredTabletFile,FateId> loadedFiles;
+  private final SelectedFiles selectedFiles;
+  private final EnumSet<ColumnType> fetchedCols;
+  private final Supplier<KeyExtent> extent;
+  private final Location last;
+  private final SuspendingTServer suspend;
+  private final String dirName;
+  private final MetadataTime time;
+  private final String cloned;
+  private final List<Entry<Key,Value>> keyValues;
+  private final OptionalLong flush;
+  private final OptionalLong flushNonce;
+  private final List<LogEntry> logs;
+  private final Map<ExternalCompactionId,CompactionMetadata> extCompactions;
+  private final boolean merged;
+  private final TabletAvailability availability;
+  private final boolean onDemandHostingRequested;
+  private final TabletOperationId operationId;
+  private final boolean futureAndCurrentLocationSet;
+  private final Set<FateId> compacted;
+  private final Set<FateId> userCompactionsRequested;
+  private final UnSplittableMetadata unSplittableMetadata;
+  private final TabletMergeabilityMetadata mergeability;
+  private final Supplier<Long> fileSize;
+  private final TServerInstance migration;
+
+  private TabletMetadata(Builder tmBuilder) {
+    this.tableId = tmBuilder.tableId;
+    this.prevEndRow = tmBuilder.prevEndRow;
+    this.sawPrevEndRow = tmBuilder.sawPrevEndRow;
+    this.endRow = tmBuilder.endRow;
+    this.location = tmBuilder.location;
+    this.files = Objects.requireNonNull(tmBuilder.files.build());
+    this.scans = Objects.requireNonNull(tmBuilder.scans.build());
+    this.loadedFiles = tmBuilder.loadedFiles.build();
+    this.selectedFiles = tmBuilder.selectedFiles;
+    this.fetchedCols = Objects.requireNonNull(tmBuilder.fetchedCols);
+    this.last = tmBuilder.last;
+    this.suspend = tmBuilder.suspend;
+    this.dirName = tmBuilder.dirName;
+    this.time = tmBuilder.time;
+    this.cloned = tmBuilder.cloned;
+    this.keyValues =
+        Optional.ofNullable(tmBuilder.keyValues).map(ImmutableList.Builder::build).orElse(null);
+    this.flush = tmBuilder.flush;
+    this.flushNonce = tmBuilder.flushNonce;
+    this.logs = Objects.requireNonNull(tmBuilder.logs.build());
+    this.extCompactions = Objects.requireNonNull(tmBuilder.extCompactions.build());
+    this.merged = tmBuilder.merged;
+    this.availability = Objects.requireNonNull(tmBuilder.availability);
+    this.onDemandHostingRequested = tmBuilder.onDemandHostingRequested;
+    this.operationId = tmBuilder.operationId;
+    this.futureAndCurrentLocationSet = tmBuilder.futureAndCurrentLocationSet;
+    this.compacted = tmBuilder.compacted.build();
+    this.userCompactionsRequested = tmBuilder.userCompactionsRequested.build();
+    this.unSplittableMetadata = tmBuilder.unSplittableMetadata;
+    this.mergeability = Objects.requireNonNull(tmBuilder.mergeability);
+    this.fileSize = Suppliers.memoize(() -> {
+      // This code was using a java stream. While profiling SplitMillionIT, the stream was showing
+      // up as hot when scanning 1 million tablets. Converted to a for loop to improve performance.
+      long sum = 0;
+      for (var dfv : files.values()) {
+        sum += dfv.getSize();
+      }
+      return sum;
+    });
+    this.extent =
+        Suppliers.memoize(() -> new KeyExtent(getTableId(), getEndRow(), getPrevEndRow()));
+    this.migration = tmBuilder.migration;
+  }
+
+  public static TabletMetadataBuilder builder(KeyExtent extent) {
+    return new TabletMetadataBuilder(extent);
+  }
 
   public enum LocationType {
     CURRENT, FUTURE, LAST
@@ -114,7 +203,6 @@ public class TabletMetadata {
   public enum ColumnType {
     LOCATION,
     PREV_ROW,
-    OLD_PREV_ROW,
     FILES,
     LAST,
     LOADED,
@@ -123,12 +211,169 @@ public class TabletMetadata {
     TIME,
     CLONED,
     FLUSH_ID,
+    FLUSH_NONCE,
     LOGS,
-    COMPACT_ID,
-    SPLIT_RATIO,
     SUSPEND,
-    CHOPPED,
-    ECOMP
+    ECOMP,
+    MERGED,
+    AVAILABILITY,
+    HOSTING_REQUESTED,
+    OPID,
+    SELECTED,
+    COMPACTED,
+    USER_COMPACTION_REQUESTED,
+    UNSPLITTABLE,
+    MERGEABILITY,
+    MIGRATION;
+
+    public static final Map<ColumnType,Set<Text>> COLUMNS_TO_FAMILIES;
+    public static final Map<ColumnType,ColumnFQ> COLUMNS_TO_QUALIFIERS;
+
+    static {
+      ImmutableMap.Builder<ColumnType,Set<Text>> colsToFamilies = ImmutableMap.builder();
+      ImmutableMap.Builder<ColumnType,ColumnFQ> colsToQualifiers = ImmutableMap.builder();
+
+      for (ColumnType column : EnumSet.allOf(ColumnType.class)) {
+        switch (column) {
+          case CLONED:
+            colsToFamilies.put(column, Set.of(ClonedColumnFamily.NAME));
+            break;
+          case DIR:
+          case FLUSH_ID:
+          case TIME:
+          case OPID:
+          case SELECTED:
+          case FLUSH_NONCE:
+          case MIGRATION:
+            colsToFamilies.put(column, Set.of(ServerColumnFamily.NAME));
+            break;
+          case FILES:
+            colsToFamilies.put(column, Set.of(DataFileColumnFamily.NAME));
+            break;
+          case AVAILABILITY:
+          case HOSTING_REQUESTED:
+          case PREV_ROW:
+          case MERGEABILITY:
+            colsToFamilies.put(column, Set.of(TabletColumnFamily.NAME));
+            break;
+          case LAST:
+            colsToFamilies.put(column, Set.of(LastLocationColumnFamily.NAME));
+            break;
+          case LOADED:
+            colsToFamilies.put(column, Set.of(BulkFileColumnFamily.NAME));
+            break;
+          case LOCATION:
+            colsToFamilies.put(column,
+                Set.of(CurrentLocationColumnFamily.NAME, FutureLocationColumnFamily.NAME));
+            break;
+          case LOGS:
+            colsToFamilies.put(column, Set.of(LogColumnFamily.NAME));
+            break;
+          case SCANS:
+            colsToFamilies.put(column, Set.of(ScanFileColumnFamily.NAME));
+            break;
+          case SUSPEND:
+            colsToFamilies.put(column, Set.of(SuspendLocationColumn.NAME));
+            break;
+          case ECOMP:
+            colsToFamilies.put(column, Set.of(ExternalCompactionColumnFamily.NAME));
+            break;
+          case MERGED:
+            colsToFamilies.put(column, Set.of(MergedColumnFamily.NAME));
+            break;
+          case COMPACTED:
+            colsToFamilies.put(column, Set.of(CompactedColumnFamily.NAME));
+            break;
+          case USER_COMPACTION_REQUESTED:
+            colsToFamilies.put(column, Set.of(UserCompactionRequestedColumnFamily.NAME));
+            break;
+          case UNSPLITTABLE:
+            colsToFamilies.put(column, Set.of(SplitColumnFamily.NAME));
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown col type " + column);
+        }
+      }
+
+      for (ColumnType column : EnumSet.allOf(ColumnType.class)) {
+        switch (column) {
+          case CLONED:
+          case COMPACTED:
+          case ECOMP:
+          case FILES:
+          case LAST:
+          case LOADED:
+          case LOCATION:
+          case LOGS:
+          case SCANS:
+          case USER_COMPACTION_REQUESTED:
+            break;
+          case DIR:
+            colsToQualifiers.put(column, DIRECTORY_COLUMN);
+            break;
+          case FLUSH_ID:
+            colsToQualifiers.put(column, FLUSH_COLUMN);
+            break;
+          case TIME:
+            colsToQualifiers.put(column, TIME_COLUMN);
+            break;
+          case OPID:
+            colsToQualifiers.put(column, OPID_COLUMN);
+            break;
+          case SELECTED:
+            colsToQualifiers.put(column, SELECTED_COLUMN);
+            break;
+          case FLUSH_NONCE:
+            colsToQualifiers.put(column, FLUSH_NONCE_COLUMN);
+            break;
+          case AVAILABILITY:
+            colsToQualifiers.put(column, AVAILABILITY_COLUMN);
+            break;
+          case HOSTING_REQUESTED:
+            colsToQualifiers.put(column, REQUESTED_COLUMN);
+            break;
+          case PREV_ROW:
+            colsToQualifiers.put(column, PREV_ROW_COLUMN);
+            break;
+          case MERGEABILITY:
+            colsToQualifiers.put(column, MERGEABILITY_COLUMN);
+            break;
+          case SUSPEND:
+            colsToQualifiers.put(column, SUSPEND_COLUMN);
+            break;
+          case MERGED:
+            colsToQualifiers.put(column, MERGED_COLUMN);
+            break;
+          case UNSPLITTABLE:
+            colsToQualifiers.put(column, UNSPLITTABLE_COLUMN);
+            break;
+          case MIGRATION:
+            colsToQualifiers.put(column, MIGRATION_COLUMN);
+            break;
+          default:
+            throw new IllegalArgumentException("Unknown col type " + column);
+        }
+      }
+
+      COLUMNS_TO_FAMILIES = colsToFamilies.build();
+      COLUMNS_TO_QUALIFIERS = colsToQualifiers.build();
+    }
+
+    public static Set<ByteSequence> resolveFamilies(Set<ColumnType> columns) {
+      return columns.stream()
+          .flatMap(cf -> COLUMNS_TO_FAMILIES.get(cf).stream()
+              .map(family -> new ArrayByteSequence(family.copyBytes())))
+          .collect(Collectors.toUnmodifiableSet());
+    }
+
+    public static Set<Text> resolveFamiliesAsText(ColumnType column) {
+      return COLUMNS_TO_FAMILIES.get(column);
+    }
+
+    public static ColumnFQ resolveQualifier(ColumnType columnType) {
+      return COLUMNS_TO_QUALIFIERS.get(columnType);
+    }
+
   }
 
   public static class Location {
@@ -231,10 +476,7 @@ public class TabletMetadata {
   }
 
   public KeyExtent getExtent() {
-    if (extent == null) {
-      extent = new KeyExtent(getTableId(), getEndRow(), getPrevEndRow());
-    }
-    return extent;
+    return extent.get();
   }
 
   private void ensureFetched(ColumnType col) {
@@ -255,20 +497,6 @@ public class TabletMetadata {
     return sawPrevEndRow;
   }
 
-  public Text getOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    if (!sawOldPrevEndRow) {
-      throw new IllegalStateException(
-          "No old prev endrow seen.  tableId: " + tableId + " endrow: " + endRow);
-    }
-    return oldPrevEndRow;
-  }
-
-  public boolean sawOldPrevEndRow() {
-    ensureFetched(ColumnType.OLD_PREV_ROW);
-    return sawOldPrevEndRow;
-  }
-
   public Text getEndRow() {
     return endRow;
   }
@@ -283,7 +511,12 @@ public class TabletMetadata {
     return location != null && location.getType() == LocationType.CURRENT;
   }
 
-  public Map<StoredTabletFile,Long> getLoaded() {
+  public boolean hasMigration() {
+    ensureFetched(ColumnType.MIGRATION);
+    return migration != null;
+  }
+
+  public Map<StoredTabletFile,FateId> getLoaded() {
     ensureFetched(ColumnType.LOADED);
     return loadedFiles;
   }
@@ -298,7 +531,7 @@ public class TabletMetadata {
     return suspend;
   }
 
-  public Collection<StoredTabletFile> getFiles() {
+  public Set<StoredTabletFile> getFiles() {
     ensureFetched(ColumnType.FILES);
     return files.keySet();
   }
@@ -306,6 +539,19 @@ public class TabletMetadata {
   public Map<StoredTabletFile,DataFileValue> getFilesMap() {
     ensureFetched(ColumnType.FILES);
     return files;
+  }
+
+  /**
+   * @return the sum of the tablets files sizes
+   */
+  public long getFileSize() {
+    ensureFetched(ColumnType.FILES);
+    return fileSize.get();
+  }
+
+  public SelectedFiles getSelectedFiles() {
+    ensureFetched(ColumnType.SELECTED);
+    return selectedFiles;
   }
 
   public Collection<LogEntry> getLogs() {
@@ -338,66 +584,103 @@ public class TabletMetadata {
     return flush;
   }
 
-  public OptionalLong getCompactId() {
-    ensureFetched(ColumnType.COMPACT_ID);
-    return compact;
+  public OptionalLong getFlushNonce() {
+    ensureFetched(ColumnType.FLUSH_NONCE);
+    return flushNonce;
   }
 
-  public Double getSplitRatio() {
-    ensureFetched(ColumnType.SPLIT_RATIO);
-    return splitRatio;
+  public boolean hasMerged() {
+    ensureFetched(ColumnType.MERGED);
+    return merged;
   }
 
-  public boolean hasChopped() {
-    ensureFetched(ColumnType.CHOPPED);
-    return chopped;
+  public Set<FateId> getUserCompactionsRequested() {
+    ensureFetched(ColumnType.USER_COMPACTION_REQUESTED);
+    return userCompactionsRequested;
   }
 
-  public SortedMap<Key,Value> getKeyValues() {
+  public TabletAvailability getTabletAvailability() {
+    if (SystemTables.containsTableId(getTableId())) {
+      // Override the availability for the system tables
+      return TabletAvailability.HOSTED;
+    }
+    ensureFetched(ColumnType.AVAILABILITY);
+    return availability;
+  }
+
+  public boolean getHostingRequested() {
+    ensureFetched(ColumnType.HOSTING_REQUESTED);
+    return onDemandHostingRequested;
+  }
+
+  public UnSplittableMetadata getUnSplittable() {
+    ensureFetched(ColumnType.UNSPLITTABLE);
+    return unSplittableMetadata;
+  }
+
+  public TabletMergeabilityMetadata getTabletMergeability() {
+    ensureFetched(ColumnType.MERGEABILITY);
+    return mergeability;
+  }
+
+  public TServerInstance getMigration() {
+    ensureFetched(ColumnType.MIGRATION);
+    return migration;
+  }
+
+  @Override
+  public String toString() {
+    return new ToStringBuilder(this, ToStringStyle.SHORT_PREFIX_STYLE).append("tableId", tableId)
+        .append("prevEndRow", prevEndRow).append("sawPrevEndRow", sawPrevEndRow)
+        .append("endRow", endRow).append("location", location).append("files", files)
+        .append("scans", scans).append("loadedFiles", loadedFiles)
+        .append("fetchedCols", fetchedCols).append("extent", extent).append("last", last)
+        .append("suspend", suspend).append("dirName", dirName).append("time", time)
+        .append("cloned", cloned).append("flush", flush).append("logs", logs)
+        .append("extCompactions", extCompactions).append("availability", availability)
+        .append("onDemandHostingRequested", onDemandHostingRequested)
+        .append("operationId", operationId).append("selectedFiles", selectedFiles)
+        .append("futureAndCurrentLocationSet", futureAndCurrentLocationSet)
+        .append("userCompactionsRequested", userCompactionsRequested)
+        .append("unSplittableMetadata", unSplittableMetadata).append("mergeability", mergeability)
+        .append("migration", migration).toString();
+  }
+
+  public List<Entry<Key,Value>> getKeyValues() {
     Preconditions.checkState(keyValues != null, "Requested key values when it was not saved");
     return keyValues;
   }
 
-  public TabletState getTabletState(Set<TServerInstance> liveTServers) {
-    ensureFetched(ColumnType.LOCATION);
-    ensureFetched(ColumnType.LAST);
-    ensureFetched(ColumnType.SUSPEND);
-    try {
-      Location current = null;
-      Location future = null;
-      if (hasCurrent()) {
-        current = location;
-      } else {
-        future = location;
-      }
-      // only care about the state so don't need walogs and chopped params
-      var tls = new TabletLocationState(extent, future, current, last, suspend, null, false);
-      return tls.getState(liveTServers);
-    } catch (TabletLocationState.BadLocationStateException blse) {
-      throw new IllegalArgumentException("Error creating TabletLocationState", blse);
-    }
-  }
-
-  public Map<ExternalCompactionId,ExternalCompactionMetadata> getExternalCompactions() {
+  public Map<ExternalCompactionId,CompactionMetadata> getExternalCompactions() {
     ensureFetched(ColumnType.ECOMP);
     return extCompactions;
   }
 
+  public Set<FateId> getCompacted() {
+    ensureFetched(ColumnType.COMPACTED);
+    return compacted;
+  }
+
+  /**
+   * @return the operation id if it exists, null otherwise
+   * @see MetadataSchema.TabletsSection.ServerColumnFamily#OPID_COLUMN
+   */
+  public TabletOperationId getOperationId() {
+    ensureFetched(ColumnType.OPID);
+    return operationId;
+  }
+
+  public boolean isFutureAndCurrentLocationSet() {
+    return futureAndCurrentLocationSet;
+  }
+
   @VisibleForTesting
   public static <E extends Entry<Key,Value>> TabletMetadata convertRow(Iterator<E> rowIter,
-      EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap) {
+      EnumSet<ColumnType> fetchedColumns, boolean buildKeyValueMap, boolean suppressLocationError) {
     Objects.requireNonNull(rowIter);
 
-    TabletMetadata te = new TabletMetadata();
-    final ImmutableSortedMap.Builder<Key,Value> kvBuilder =
-        buildKeyValueMap ? ImmutableSortedMap.naturalOrder() : null;
+    final var tmBuilder = new Builder();
 
-    final var filesBuilder = ImmutableMap.<StoredTabletFile,DataFileValue>builder();
-    final var scansBuilder = ImmutableList.<StoredTabletFile>builder();
-    final var logsBuilder = ImmutableList.<LogEntry>builder();
-    final var extCompBuilder =
-        ImmutableMap.<ExternalCompactionId,ExternalCompactionMetadata>builder();
-    final var loadedFilesBuilder = ImmutableMap.<StoredTabletFile,Long>builder();
     ByteSequence row = null;
 
     while (rowIter.hasNext()) {
@@ -408,33 +691,37 @@ public class TabletMetadata {
       final String qual = key.getColumnQualifierData().toString();
 
       if (buildKeyValueMap) {
-        kvBuilder.put(key, kv.getValue());
+        tmBuilder.keyValue(kv);
       }
 
       if (row == null) {
         row = key.getRowData();
         KeyExtent ke = KeyExtent.fromMetaRow(key.getRow());
-        te.endRow = ke.endRow();
-        te.tableId = ke.tableId();
+        tmBuilder.endRow(ke.endRow());
+        tmBuilder.table(ke.tableId());
       } else if (!row.equals(key.getRowData())) {
         throw new IllegalArgumentException(
             "Input contains more than one row : " + row + " " + key.getRowData());
       }
 
-      switch (fam.toString()) {
+      switch (fam) {
         case TabletColumnFamily.STR_NAME:
           switch (qual) {
             case PREV_ROW_QUAL:
-              te.prevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-              te.sawPrevEndRow = true;
+              tmBuilder.prevEndRow(TabletColumnFamily.decodePrevEndRow(kv.getValue()));
+              tmBuilder.sawPrevEndRow(true);
               break;
-            case OLD_PREV_ROW_QUAL:
-              te.oldPrevEndRow = TabletColumnFamily.decodePrevEndRow(kv.getValue());
-              te.sawOldPrevEndRow = true;
+            case AVAILABILITY_QUAL:
+              tmBuilder.availability(TabletAvailabilityUtil.fromValue(kv.getValue()));
               break;
-            case SPLIT_RATIO_QUAL:
-              te.splitRatio = Double.parseDouble(val);
+            case REQUESTED_QUAL:
+              tmBuilder.onDemandHostingRequested(true);
               break;
+            case MERGEABILITY_QUAL:
+              tmBuilder.mergeability(TabletMergeabilityMetadata.fromValue(kv.getValue()));
+              break;
+            default:
+              throw new IllegalStateException("Unexpected TabletColumnFamily qualifier: " + qual);
           }
           break;
         case ServerColumnFamily.STR_NAME:
@@ -442,88 +729,97 @@ public class TabletMetadata {
             case DIRECTORY_QUAL:
               Preconditions.checkArgument(ServerColumnFamily.isValidDirCol(val),
                   "Saw invalid dir name %s %s", key, val);
-              te.dirName = val;
+              tmBuilder.dirName(val);
               break;
             case TIME_QUAL:
-              te.time = MetadataTime.parse(val);
+              tmBuilder.time(MetadataTime.parse(val));
               break;
             case FLUSH_QUAL:
-              te.flush = OptionalLong.of(Long.parseLong(val));
+              tmBuilder.flush(Long.parseLong(val));
               break;
-            case COMPACT_QUAL:
-              te.compact = OptionalLong.of(Long.parseLong(val));
+            case FLUSH_NONCE_QUAL:
+              tmBuilder.flushNonce(Long.parseUnsignedLong(val, 16));
               break;
+            case OPID_QUAL:
+              tmBuilder.operationId(val);
+              break;
+            case SELECTED_QUAL:
+              tmBuilder.selectedFiles(SelectedFiles.from(val));
+              break;
+            case MIGRATION_QUAL:
+              tmBuilder.migration(new TServerInstance(val));
           }
           break;
         case DataFileColumnFamily.STR_NAME:
-          filesBuilder.put(new StoredTabletFile(qual), new DataFileValue(val));
+          tmBuilder.file(new StoredTabletFile(qual), new DataFileValue(val));
           break;
         case BulkFileColumnFamily.STR_NAME:
-          loadedFilesBuilder.put(new StoredTabletFile(qual),
+          tmBuilder.loadedFile(new StoredTabletFile(qual),
               BulkFileColumnFamily.getBulkLoadTid(val));
           break;
         case CurrentLocationColumnFamily.STR_NAME:
-          te.setLocationOnce(val, qual, LocationType.CURRENT);
+          tmBuilder.location(val, qual, LocationType.CURRENT, suppressLocationError);
           break;
         case FutureLocationColumnFamily.STR_NAME:
-          te.setLocationOnce(val, qual, LocationType.FUTURE);
+          tmBuilder.location(val, qual, LocationType.FUTURE, suppressLocationError);
           break;
         case LastLocationColumnFamily.STR_NAME:
-          te.last = Location.last(val, qual);
+          tmBuilder.last(Location.last(val, qual));
           break;
         case SuspendLocationColumn.STR_NAME:
-          te.suspend = SuspendingTServer.fromValue(kv.getValue());
+          tmBuilder.suspend(SuspendingTServer.fromValue(kv.getValue()));
           break;
         case ScanFileColumnFamily.STR_NAME:
-          scansBuilder.add(new StoredTabletFile(qual));
+          tmBuilder.scan(new StoredTabletFile(qual));
           break;
         case ClonedColumnFamily.STR_NAME:
-          te.cloned = val;
+          tmBuilder.cloned(val);
           break;
         case LogColumnFamily.STR_NAME:
-          logsBuilder.add(LogEntry.fromMetaWalEntry(kv));
+          tmBuilder.log(LogEntry.fromMetaWalEntry(kv));
           break;
         case ExternalCompactionColumnFamily.STR_NAME:
-          extCompBuilder.put(ExternalCompactionId.of(qual),
-              ExternalCompactionMetadata.fromJson(val));
+          tmBuilder.extCompaction(ExternalCompactionId.of(qual), CompactionMetadata.fromJson(val));
           break;
-        case ChoppedColumnFamily.STR_NAME:
-          te.chopped = true;
+        case MergedColumnFamily.STR_NAME:
+          tmBuilder.merged(true);
+          break;
+        case CompactedColumnFamily.STR_NAME:
+          tmBuilder.compacted(FateId.from(qual));
+          break;
+        case UserCompactionRequestedColumnFamily.STR_NAME:
+          tmBuilder.userCompactionsRequested(FateId.from(qual));
+          break;
+        case SplitColumnFamily.STR_NAME:
+          if (qual.equals(SplitColumnFamily.UNSPLITTABLE_QUAL)) {
+            tmBuilder.unSplittableMetadata(UnSplittableMetadata.toUnSplittable(val));
+          } else {
+            throw new IllegalStateException("Unexpected SplitColumnFamily qualifier: " + qual);
+          }
           break;
         default:
           throw new IllegalStateException("Unexpected family " + fam);
+
       }
     }
 
-    te.files = filesBuilder.build();
-    te.loadedFiles = loadedFilesBuilder.build();
-    te.fetchedCols = fetchedColumns;
-    te.scans = scansBuilder.build();
-    te.logs = logsBuilder.build();
-    te.extCompactions = extCompBuilder.build();
-    if (buildKeyValueMap) {
-      te.keyValues = kvBuilder.build();
+    if (SystemTables.ROOT.tableId().equals(tmBuilder.tableId)
+        || SystemTables.METADATA.tableId().equals(tmBuilder.tableId)) {
+      // Override the availability for the system tables
+      tmBuilder.availability(TabletAvailability.HOSTED);
     }
-    return te;
-  }
 
-  private void setLocationOnce(String val, String qual, LocationType lt) {
-    if (location != null) {
-      throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
-          + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
-    }
-    location = new Location(val, qual, lt);
+    return tmBuilder.build(fetchedColumns);
   }
 
   @VisibleForTesting
-  static TabletMetadata create(String id, String prevEndRow, String endRow) {
-    TabletMetadata te = new TabletMetadata();
-    te.tableId = TableId.of(id);
-    te.sawPrevEndRow = true;
-    te.prevEndRow = prevEndRow == null ? null : new Text(prevEndRow);
-    te.endRow = endRow == null ? null : new Text(endRow);
-    te.fetchedCols = EnumSet.of(ColumnType.PREV_ROW);
-    return te;
+  public static TabletMetadata create(String id, String prevEndRow, String endRow) {
+    final var tmBuilder = new Builder();
+    tmBuilder.table(TableId.of(id));
+    tmBuilder.sawPrevEndRow(true);
+    tmBuilder.prevEndRow(prevEndRow == null ? null : new Text(prevEndRow));
+    tmBuilder.endRow(endRow == null ? null : new Text(endRow));
+    return tmBuilder.build(EnumSet.of(ColumnType.PREV_ROW));
   }
 
   /**
@@ -533,12 +829,12 @@ public class TabletMetadata {
   public static synchronized Set<TServerInstance> getLiveTServers(ClientContext context) {
     final Set<TServerInstance> liveServers = new HashSet<>();
 
-    final String path = context.getZooKeeperRoot() + Constants.ZTSERVERS;
+    for (ServiceLockPath slp : context.getServerPaths().getTabletServer(rg -> true,
+        AddressSelector.all(), true)) {
 
-    for (String child : context.getZooCache().getChildren(path)) {
-      checkServer(context, path, child).ifPresent(liveServers::add);
+      checkTabletServer(context, slp).ifPresent(liveServers::add);
     }
-    log.trace("Found {} live tservers at ZK path: {}", liveServers.size(), path);
+    log.trace("Found {} live tservers in ZooKeeper", liveServers.size());
 
     return liveServers;
   }
@@ -547,20 +843,198 @@ public class TabletMetadata {
    * Check for tserver ZooLock at the ZK location. Return Optional containing TServerInstance if a
    * valid Zoolock exists.
    */
-  private static Optional<TServerInstance> checkServer(ClientContext context, String path,
-      String zPath) {
-    Optional<TServerInstance> server = Optional.empty();
-    final var lockPath = ServiceLock.path(path + "/" + zPath);
-    ZooCache.ZcStat stat = new ZooCache.ZcStat();
-    Optional<ServiceLockData> sld = ServiceLock.getLockData(context.getZooCache(), lockPath, stat);
+  private static Optional<TServerInstance> checkTabletServer(ClientContext context,
+      ServiceLockPath slp) {
+    ZcStat stat = new ZcStat();
+    log.trace("Checking server at ZK path: {}", slp);
+    return ServiceLock.getLockData(context.getZooCache(), slp, stat)
+        .map(sld -> sld.getAddress(ServiceLockData.ThriftService.TSERV))
+        .map(address -> new TServerInstance(address, stat.getEphemeralOwner()));
+  }
 
-    if (sld.isPresent()) {
-      log.trace("Checking server at ZK path = " + lockPath);
-      HostAndPort client = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
-      if (client != null) {
-        server = Optional.of(new TServerInstance(client, stat.getEphemeralOwner()));
+  public static void validate(TabletMetadata tm) {
+    if (tm.files.isEmpty() || !tm.fetchedCols.contains(ColumnType.PREV_ROW)) {
+      return;
+    }
+
+    Collection<StoredTabletFile> files = tm.getFiles();
+    Range tabletRange = tm.getExtent().toDataRange();
+
+    for (StoredTabletFile file : files) {
+      if (!isFileRangeValid(file, tabletRange)) {
+        throw new IllegalStateException(
+            "File range " + file.getRange() + " does not overlap with tablet range " + tabletRange);
       }
     }
-    return server;
+  }
+
+  private static boolean isFileRangeValid(StoredTabletFile file, Range tabletRange) {
+    return !file.hasRange() || tabletRange.clip(file.getRange(), true) != null;
+  }
+
+  static class Builder {
+    private TableId tableId;
+    private Text prevEndRow;
+    private boolean sawPrevEndRow;
+    private Text endRow;
+    private Location location;
+    private final ImmutableMap.Builder<StoredTabletFile,DataFileValue> files =
+        ImmutableMap.builder();
+    private final ImmutableList.Builder<StoredTabletFile> scans = ImmutableList.builder();
+    private final ImmutableMap.Builder<StoredTabletFile,FateId> loadedFiles =
+        ImmutableMap.builder();
+    private SelectedFiles selectedFiles;
+    private EnumSet<ColumnType> fetchedCols;
+    private Location last;
+    private SuspendingTServer suspend;
+    private String dirName;
+    private MetadataTime time;
+    private String cloned;
+    private ImmutableList.Builder<Entry<Key,Value>> keyValues;
+    private OptionalLong flush = OptionalLong.empty();
+    private OptionalLong flushNonce = OptionalLong.empty();
+    private final ImmutableList.Builder<LogEntry> logs = ImmutableList.builder();
+    private final ImmutableMap.Builder<ExternalCompactionId,CompactionMetadata> extCompactions =
+        ImmutableMap.builder();
+    private boolean merged;
+    private TabletAvailability availability = TabletAvailability.ONDEMAND;
+    private boolean onDemandHostingRequested;
+    private TabletOperationId operationId;
+    private boolean futureAndCurrentLocationSet;
+    private final ImmutableSet.Builder<FateId> compacted = ImmutableSet.builder();
+    private final ImmutableSet.Builder<FateId> userCompactionsRequested = ImmutableSet.builder();
+    private UnSplittableMetadata unSplittableMetadata;
+    private TabletMergeabilityMetadata mergeability = TabletMergeabilityMetadata.never();
+    private TServerInstance migration;
+
+    void table(TableId tableId) {
+      this.tableId = tableId;
+    }
+
+    void endRow(Text endRow) {
+      this.endRow = endRow;
+    }
+
+    void prevEndRow(Text prevEndRow) {
+      this.prevEndRow = prevEndRow;
+    }
+
+    void sawPrevEndRow(boolean sawPrevEndRow) {
+      this.sawPrevEndRow = sawPrevEndRow;
+    }
+
+    void dirName(String dirName) {
+      this.dirName = dirName;
+    }
+
+    void time(MetadataTime time) {
+      this.time = time;
+    }
+
+    void flush(long flush) {
+      this.flush = OptionalLong.of(flush);
+    }
+
+    void flushNonce(long flushNonce) {
+      this.flushNonce = OptionalLong.of(flushNonce);
+    }
+
+    void file(StoredTabletFile stf, DataFileValue dfv) {
+      this.files.put(stf, dfv);
+    }
+
+    void loadedFile(StoredTabletFile stf, FateId fateId) {
+      this.loadedFiles.put(stf, fateId);
+    }
+
+    void selectedFiles(SelectedFiles selectedFiles) {
+      this.selectedFiles = selectedFiles;
+    }
+
+    void migration(TServerInstance tserver) {
+      this.migration = tserver;
+    }
+
+    void location(String val, String qual, LocationType lt, boolean suppressError) {
+      if (location != null) {
+        if (!suppressError) {
+          throw new IllegalStateException("Attempted to set second location for tableId: " + tableId
+              + " endrow: " + endRow + " -- " + location + " " + qual + " " + val);
+        }
+        futureAndCurrentLocationSet = true;
+      }
+      location = new Location(val, qual, lt);
+    }
+
+    void last(Location last) {
+      this.last = last;
+    }
+
+    void suspend(SuspendingTServer suspend) {
+      this.suspend = suspend;
+    }
+
+    void scan(StoredTabletFile stf) {
+      this.scans.add(stf);
+    }
+
+    void cloned(String cloned) {
+      this.cloned = cloned;
+    }
+
+    void log(LogEntry log) {
+      this.logs.add(log);
+    }
+
+    void extCompaction(ExternalCompactionId id, CompactionMetadata metadata) {
+      this.extCompactions.put(id, metadata);
+    }
+
+    void merged(boolean merged) {
+      this.merged = merged;
+    }
+
+    void availability(TabletAvailability availability) {
+      this.availability = availability;
+    }
+
+    void onDemandHostingRequested(boolean onDemandHostingRequested) {
+      this.onDemandHostingRequested = onDemandHostingRequested;
+    }
+
+    void operationId(String val) {
+      Preconditions.checkState(operationId == null);
+      operationId = TabletOperationId.from(val);
+    }
+
+    void compacted(FateId compacted) {
+      this.compacted.add(compacted);
+    }
+
+    void userCompactionsRequested(FateId userCompactionRequested) {
+      this.userCompactionsRequested.add(userCompactionRequested);
+    }
+
+    void unSplittableMetadata(UnSplittableMetadata unSplittableMetadata) {
+      this.unSplittableMetadata = unSplittableMetadata;
+    }
+
+    void mergeability(TabletMergeabilityMetadata mergeability) {
+      this.mergeability = mergeability;
+    }
+
+    void keyValue(Entry<Key,Value> kv) {
+      if (this.keyValues == null) {
+        this.keyValues = ImmutableList.builder();
+      }
+      this.keyValues.add(kv);
+    }
+
+    TabletMetadata build(EnumSet<ColumnType> fetchedCols) {
+      this.fetchedCols = fetchedCols;
+      TabletMetadata tm = new TabletMetadata(this);
+      validate(tm);
+      return tm;
+    }
   }
 }

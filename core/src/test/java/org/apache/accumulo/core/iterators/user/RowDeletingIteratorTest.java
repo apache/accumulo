@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,35 +32,14 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.ColumnFamilySkippingIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SortedMapIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class RowDeletingIteratorTest {
-
-  public static class TestIE implements IteratorEnvironment {
-
-    private IteratorScope scope;
-    private boolean fmc;
-
-    public TestIE(IteratorScope scope, boolean fmc) {
-      this.scope = scope;
-      this.fmc = fmc;
-    }
-
-    @Override
-    public IteratorScope getIteratorScope() {
-      return scope;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return fmc;
-    }
-  }
 
   Key newKey(String row, String cf, String cq, long time) {
     return new Key(new Text(row), new Text(cf), new Text(cq), time);
@@ -90,7 +70,8 @@ public class RowDeletingIteratorTest {
     put(tm1, "r2", "cf1", "cq1", 5, "v1");
 
     RowDeletingIterator rdi = new RowDeletingIterator();
-    rdi.init(new SortedMapIterator(tm1), null, new TestIE(IteratorScope.scan, false));
+    rdi.init(new SortedMapIterator(tm1), null,
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build());
 
     rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
@@ -132,7 +113,8 @@ public class RowDeletingIteratorTest {
     put(tm1, "r2", "cf1", "cq1", 5, "v1");
 
     RowDeletingIterator rdi = new RowDeletingIterator();
-    rdi.init(new SortedMapIterator(tm1), null, new TestIE(IteratorScope.scan, false));
+    rdi.init(new SortedMapIterator(tm1), null,
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build());
 
     rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "cf1", "cq3", 15, "v1");
@@ -174,16 +156,16 @@ public class RowDeletingIteratorTest {
 
     RowDeletingIterator rdi = new RowDeletingIterator();
     rdi.init(new ColumnFamilySkippingIterator(new SortedMapIterator(tm1)), null,
-        new TestIE(IteratorScope.scan, false));
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.scan).build());
 
     HashSet<ByteSequence> cols = new HashSet<>();
-    cols.add(new ArrayByteSequence("cf1".getBytes()));
+    cols.add(new ArrayByteSequence("cf1".getBytes(UTF_8)));
 
     rdi.seek(new Range(), cols, true);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
     cols.clear();
-    cols.add(new ArrayByteSequence("".getBytes()));
+    cols.add(new ArrayByteSequence("".getBytes(UTF_8)));
     rdi.seek(new Range(), cols, false);
     testAssertions(rdi, "r2", "cf1", "cq1", 5, "v1");
 
@@ -205,7 +187,8 @@ public class RowDeletingIteratorTest {
     put(tm1, "r2", "cf1", "cq1", 5, "v1");
 
     RowDeletingIterator rdi = new RowDeletingIterator();
-    rdi.init(new SortedMapIterator(tm1), null, new TestIE(IteratorScope.minc, false));
+    rdi.init(new SortedMapIterator(tm1), null,
+        new ClientIteratorEnvironment.Builder().withScope(IteratorScope.minc).build());
 
     rdi.seek(new Range(), new ArrayList<>(), false);
     testAssertions(rdi, "r1", "", "", 10, RowDeletingIterator.DELETE_ROW_VALUE.toString());

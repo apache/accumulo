@@ -218,15 +218,15 @@ public abstract class CountingSummarizer<K> implements Summarizer {
       // efficient than converting String for each Key. The
       // conversion to String is deferred until the summary is requested.
 
-      private Map<K,MutableLong> counters = new HashMap<>();
+      private final Map<K,MutableLong> counters = new HashMap<>();
       private long tooMany = 0;
       private long tooLong = 0;
       private long seen = 0;
       private long emitted = 0;
       private long deleted = 0;
-      private Converter<K> converter = converter();
-      private Function<K,String> encoder = encoder();
-      private UnaryOperator<K> copier = copier();
+      private final Converter<K> converter = converter();
+      private final Function<K,String> encoder = encoder();
+      private final UnaryOperator<K> copier = copier();
 
       private void incrementCounter(K counter) {
         emitted++;

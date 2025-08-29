@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.data;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -29,11 +30,14 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InvalidObjectException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.dataImpl.RangeImpl;
 import org.apache.accumulo.core.dataImpl.thrift.TRange;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -617,11 +621,10 @@ public class RangeTest {
     runClipTest(fence, range);
 
     // scanner was not handling edge case properly...
-    Range scanRange =
-        new Range(
-            new Key("10;007cdc5b0".getBytes(), "~tab".getBytes(), "~pr".getBytes(), "".getBytes(),
-                130962, false),
-            false, new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
+    Range scanRange = new Range(
+        new Key("10;007cdc5b0".getBytes(UTF_8), "~tab".getBytes(UTF_8), "~pr".getBytes(UTF_8),
+            "".getBytes(UTF_8), 130962, false),
+        false, new Key(new Text("10<")).followingKey(PartialKey.ROW), false);
     // below is the proper check the scanner now does instead of just comparing the row bytes
     scanRange.afterEndKey(new Key(new Text("10<")).followingKey(PartialKey.ROW));
   }
@@ -644,7 +647,7 @@ public class RangeTest {
   }
 
   private static Column newColumn(String cf, String cq) {
-    return new Column(cf.getBytes(), cq == null ? null : cq.getBytes(), null);
+    return new Column(cf.getBytes(UTF_8), cq == null ? null : cq.getBytes(UTF_8), null);
   }
 
   private static Column newColumn(String cf) {
@@ -728,6 +731,44 @@ public class RangeTest {
     assertTrue(range7.contains(newKey("row1", "b", "x")));
     assertTrue(range7.contains(newKey("row1", "f", "x")));
     assertFalse(range7.contains(newKey("row1", "f", "z")));
+
+    // These columns fall completely after the columns in range1, should fail
+    assertThrows(IllegalArgumentException.class,
+        () -> range1.bound(newColumn("g"), newColumn("x")));
+    // run the same test as above but produce empty range instead
+    Range range8 = RangeImpl.bound(range1, newColumn("g"), newColumn("x"), true);
+    assertFalse(range8.contains(range8.getStartKey()));
+    var expectedKey = newKey("row1", "g", "");
+    expectedKey.setDeleted(true);
+    assertEquals(new Range(expectedKey, true, expectedKey, false), range8);
+
+    // These columns fall completely before the columns in range1, should fail
+    assertThrows(IllegalArgumentException.class,
+        () -> range1.bound(newColumn("!"), newColumn("+")));
+    // run the same test as above but produce empty range instead
+    Range range9 = RangeImpl.bound(range1, newColumn("!"), newColumn("+"), true);
+    assertFalse(range9.contains(range9.getStartKey()));
+    assertEquals(range1.getStartKey(), range9.getStartKey());
+    assertTrue(range9.isStartKeyInclusive());
+    assertEquals(range1.getStartKey(), range9.getEndKey());
+    assertFalse(range9.isEndKeyInclusive());
+  }
+
+  @Test
+  public void testBoundEmpty() {
+    Text row = new Text(new byte[] {'!', '0', 0});
+    // BigRootTabletIT produced this exact range and it caused Range.bound to throw an exception
+    Range range = new Range(new Key(row), true, new Key(row), false);
+    assertThrows(IllegalArgumentException.class,
+        () -> range.bound(newColumn("loc"), newColumn("~tab")));
+
+    // this should produce an empty range
+    Range bounded = RangeImpl.bound(range, newColumn("loc"), newColumn("~tab"), true);
+    assertFalse(bounded.contains(bounded.getStartKey()));
+    var expectedKey = new Key(row, new Text("loc"));
+    expectedKey.setDeleted(true);
+    assertEquals(expectedKey, bounded.getStartKey());
+    assertTrue(bounded.isStartKeyInclusive());
   }
 
   @Test
@@ -904,5 +945,30 @@ public class RangeTest {
     TRange tr = r.toThrift();
     assertThrows(IllegalArgumentException.class, () -> new Range(tr),
         "Thrift constructor allowed invalid range");
+  }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    Range range = new Range("a", "b");
+    int hashCode1 = range.hashCode();
+    int hashCode2 = range.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    Range r1 = new Range("a", "b");
+    Range r2 = new Range("a", "b");
+    assertEquals(r1.hashCode(), r2.hashCode());
+
+    // Testing even distribution
+    List<Range> ranges = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      ranges.add(new Range("a" + i, "b" + i));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (Range r : ranges) {
+      hashCodes.add(r.hashCode());
+    }
+    assertEquals(ranges.size(), hashCodes.size(), 10);
   }
 }

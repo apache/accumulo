@@ -28,7 +28,7 @@ package org.apache.accumulo.core.compaction.thrift;
 public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCompaction, TExternalCompaction._Fields>, java.io.Serializable, Cloneable, Comparable<TExternalCompaction> {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("TExternalCompaction");
 
-  private static final org.apache.thrift.protocol.TField QUEUE_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("queueName", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField GROUP_NAME_FIELD_DESC = new org.apache.thrift.protocol.TField("groupName", org.apache.thrift.protocol.TType.STRING, (short)1);
   private static final org.apache.thrift.protocol.TField COMPACTOR_FIELD_DESC = new org.apache.thrift.protocol.TField("compactor", org.apache.thrift.protocol.TType.STRING, (short)2);
   private static final org.apache.thrift.protocol.TField UPDATES_FIELD_DESC = new org.apache.thrift.protocol.TField("updates", org.apache.thrift.protocol.TType.MAP, (short)3);
   private static final org.apache.thrift.protocol.TField JOB_FIELD_DESC = new org.apache.thrift.protocol.TField("job", org.apache.thrift.protocol.TType.STRUCT, (short)4);
@@ -36,14 +36,14 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   private static final org.apache.thrift.scheme.SchemeFactory STANDARD_SCHEME_FACTORY = new TExternalCompactionStandardSchemeFactory();
   private static final org.apache.thrift.scheme.SchemeFactory TUPLE_SCHEME_FACTORY = new TExternalCompactionTupleSchemeFactory();
 
-  public @org.apache.thrift.annotation.Nullable java.lang.String queueName; // required
+  public @org.apache.thrift.annotation.Nullable java.lang.String groupName; // required
   public @org.apache.thrift.annotation.Nullable java.lang.String compactor; // required
   public @org.apache.thrift.annotation.Nullable java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates; // required
   public @org.apache.thrift.annotation.Nullable org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job; // required
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    QUEUE_NAME((short)1, "queueName"),
+    GROUP_NAME((short)1, "groupName"),
     COMPACTOR((short)2, "compactor"),
     UPDATES((short)3, "updates"),
     JOB((short)4, "job");
@@ -62,8 +62,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     @org.apache.thrift.annotation.Nullable
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // QUEUE_NAME
-          return QUEUE_NAME;
+        case 1: // GROUP_NAME
+          return GROUP_NAME;
         case 2: // COMPACTOR
           return COMPACTOR;
         case 3: // UPDATES
@@ -116,7 +116,7 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   public static final java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     java.util.Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new java.util.EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.QUEUE_NAME, new org.apache.thrift.meta_data.FieldMetaData("queueName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+    tmpMap.put(_Fields.GROUP_NAME, new org.apache.thrift.meta_data.FieldMetaData("groupName", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
     tmpMap.put(_Fields.COMPACTOR, new org.apache.thrift.meta_data.FieldMetaData("compactor", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
@@ -134,13 +134,13 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   }
 
   public TExternalCompaction(
-    java.lang.String queueName,
+    java.lang.String groupName,
     java.lang.String compactor,
     java.util.Map<java.lang.Long,TCompactionStatusUpdate> updates,
     org.apache.accumulo.core.tabletserver.thrift.TExternalCompactionJob job)
   {
     this();
-    this.queueName = queueName;
+    this.groupName = groupName;
     this.compactor = compactor;
     this.updates = updates;
     this.job = job;
@@ -150,8 +150,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
    * Performs a deep copy on <i>other</i>.
    */
   public TExternalCompaction(TExternalCompaction other) {
-    if (other.isSetQueueName()) {
-      this.queueName = other.queueName;
+    if (other.isSetGroupName()) {
+      this.groupName = other.groupName;
     }
     if (other.isSetCompactor()) {
       this.compactor = other.compactor;
@@ -183,34 +183,34 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
 
   @Override
   public void clear() {
-    this.queueName = null;
+    this.groupName = null;
     this.compactor = null;
     this.updates = null;
     this.job = null;
   }
 
   @org.apache.thrift.annotation.Nullable
-  public java.lang.String getQueueName() {
-    return this.queueName;
+  public java.lang.String getGroupName() {
+    return this.groupName;
   }
 
-  public TExternalCompaction setQueueName(@org.apache.thrift.annotation.Nullable java.lang.String queueName) {
-    this.queueName = queueName;
+  public TExternalCompaction setGroupName(@org.apache.thrift.annotation.Nullable java.lang.String groupName) {
+    this.groupName = groupName;
     return this;
   }
 
-  public void unsetQueueName() {
-    this.queueName = null;
+  public void unsetGroupName() {
+    this.groupName = null;
   }
 
-  /** Returns true if field queueName is set (has been assigned a value) and false otherwise */
-  public boolean isSetQueueName() {
-    return this.queueName != null;
+  /** Returns true if field groupName is set (has been assigned a value) and false otherwise */
+  public boolean isSetGroupName() {
+    return this.groupName != null;
   }
 
-  public void setQueueNameIsSet(boolean value) {
+  public void setGroupNameIsSet(boolean value) {
     if (!value) {
-      this.queueName = null;
+      this.groupName = null;
     }
   }
 
@@ -303,11 +303,11 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   @Override
   public void setFieldValue(_Fields field, @org.apache.thrift.annotation.Nullable java.lang.Object value) {
     switch (field) {
-    case QUEUE_NAME:
+    case GROUP_NAME:
       if (value == null) {
-        unsetQueueName();
+        unsetGroupName();
       } else {
-        setQueueName((java.lang.String)value);
+        setGroupName((java.lang.String)value);
       }
       break;
 
@@ -342,8 +342,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   @Override
   public java.lang.Object getFieldValue(_Fields field) {
     switch (field) {
-    case QUEUE_NAME:
-      return getQueueName();
+    case GROUP_NAME:
+      return getGroupName();
 
     case COMPACTOR:
       return getCompactor();
@@ -366,8 +366,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     }
 
     switch (field) {
-    case QUEUE_NAME:
-      return isSetQueueName();
+    case GROUP_NAME:
+      return isSetGroupName();
     case COMPACTOR:
       return isSetCompactor();
     case UPDATES:
@@ -391,12 +391,12 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     if (this == that)
       return true;
 
-    boolean this_present_queueName = true && this.isSetQueueName();
-    boolean that_present_queueName = true && that.isSetQueueName();
-    if (this_present_queueName || that_present_queueName) {
-      if (!(this_present_queueName && that_present_queueName))
+    boolean this_present_groupName = true && this.isSetGroupName();
+    boolean that_present_groupName = true && that.isSetGroupName();
+    if (this_present_groupName || that_present_groupName) {
+      if (!(this_present_groupName && that_present_groupName))
         return false;
-      if (!this.queueName.equals(that.queueName))
+      if (!this.groupName.equals(that.groupName))
         return false;
     }
 
@@ -434,9 +434,9 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
   public int hashCode() {
     int hashCode = 1;
 
-    hashCode = hashCode * 8191 + ((isSetQueueName()) ? 131071 : 524287);
-    if (isSetQueueName())
-      hashCode = hashCode * 8191 + queueName.hashCode();
+    hashCode = hashCode * 8191 + ((isSetGroupName()) ? 131071 : 524287);
+    if (isSetGroupName())
+      hashCode = hashCode * 8191 + groupName.hashCode();
 
     hashCode = hashCode * 8191 + ((isSetCompactor()) ? 131071 : 524287);
     if (isSetCompactor())
@@ -461,12 +461,12 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
 
     int lastComparison = 0;
 
-    lastComparison = java.lang.Boolean.compare(isSetQueueName(), other.isSetQueueName());
+    lastComparison = java.lang.Boolean.compare(isSetGroupName(), other.isSetGroupName());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetQueueName()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.queueName, other.queueName);
+    if (isSetGroupName()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.groupName, other.groupName);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -525,11 +525,11 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     java.lang.StringBuilder sb = new java.lang.StringBuilder("TExternalCompaction(");
     boolean first = true;
 
-    sb.append("queueName:");
-    if (this.queueName == null) {
+    sb.append("groupName:");
+    if (this.groupName == null) {
       sb.append("null");
     } else {
-      sb.append(this.queueName);
+      sb.append(this.groupName);
     }
     first = false;
     if (!first) sb.append(", ");
@@ -604,10 +604,10 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
           break;
         }
         switch (schemeField.id) {
-          case 1: // QUEUE_NAME
+          case 1: // GROUP_NAME
             if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.queueName = iprot.readString();
-              struct.setQueueNameIsSet(true);
+              struct.groupName = iprot.readString();
+              struct.setGroupNameIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -666,9 +666,9 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.queueName != null) {
-        oprot.writeFieldBegin(QUEUE_NAME_FIELD_DESC);
-        oprot.writeString(struct.queueName);
+      if (struct.groupName != null) {
+        oprot.writeFieldBegin(GROUP_NAME_FIELD_DESC);
+        oprot.writeString(struct.groupName);
         oprot.writeFieldEnd();
       }
       if (struct.compactor != null) {
@@ -713,7 +713,7 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
     public void write(org.apache.thrift.protocol.TProtocol prot, TExternalCompaction struct) throws org.apache.thrift.TException {
       org.apache.thrift.protocol.TTupleProtocol oprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet optionals = new java.util.BitSet();
-      if (struct.isSetQueueName()) {
+      if (struct.isSetGroupName()) {
         optionals.set(0);
       }
       if (struct.isSetCompactor()) {
@@ -726,8 +726,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
         optionals.set(3);
       }
       oprot.writeBitSet(optionals, 4);
-      if (struct.isSetQueueName()) {
-        oprot.writeString(struct.queueName);
+      if (struct.isSetGroupName()) {
+        oprot.writeString(struct.groupName);
       }
       if (struct.isSetCompactor()) {
         oprot.writeString(struct.compactor);
@@ -752,8 +752,8 @@ public class TExternalCompaction implements org.apache.thrift.TBase<TExternalCom
       org.apache.thrift.protocol.TTupleProtocol iprot = (org.apache.thrift.protocol.TTupleProtocol) prot;
       java.util.BitSet incoming = iprot.readBitSet(4);
       if (incoming.get(0)) {
-        struct.queueName = iprot.readString();
-        struct.setQueueNameIsSet(true);
+        struct.groupName = iprot.readString();
+        struct.setGroupNameIsSet(true);
       }
       if (incoming.get(1)) {
         struct.compactor = iprot.readString();

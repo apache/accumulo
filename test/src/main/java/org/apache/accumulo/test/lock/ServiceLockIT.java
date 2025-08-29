@@ -20,6 +20,7 @@ package org.apache.accumulo.test.lock;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.apache.accumulo.harness.AccumuloITBase.ZOOKEEPER_TESTING_SERVER;
+import static org.junit.jupiter.api.Assertions.assertAll;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -37,25 +38,18 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.locks.LockSupport;
 
-import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
-import org.apache.accumulo.core.fate.zookeeper.ZooSession;
-import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockData;
-import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
+import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.test.zookeeper.ZooKeeperTestingServer;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
-import org.apache.zookeeper.WatchedEvent;
-import org.apache.zookeeper.Watcher;
-import org.apache.zookeeper.Watcher.Event.KeeperState;
 import org.apache.zookeeper.ZooDefs;
-import org.apache.zookeeper.ZooKeeper;
 import org.apache.zookeeper.data.ACL;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -71,27 +65,38 @@ import com.google.common.util.concurrent.Uninterruptibles;
 @Tag(ZOOKEEPER_TESTING_SERVER)
 public class ServiceLockIT {
 
+  private static class TestServiceLockPath extends ServiceLockPath {
+    protected TestServiceLockPath(String path) {
+      super(ServiceLockIT.class.getSimpleName().hashCode(), path);
+    }
+  }
+
   @TempDir
   private static File tempDir;
 
-  private static ZooKeeperTestingServer szk = null;
+  private static ZooKeeperTestingServer testZk = null;
+  private static ZooSession zk = null;
 
   @BeforeAll
   public static void setup() throws Exception {
-    szk = new ZooKeeperTestingServer(tempDir);
-    szk.initPaths("/accumulo/" + InstanceId.of(UUID.randomUUID()));
+    testZk = new ZooKeeperTestingServer(tempDir);
+    zk = testZk.newClient();
   }
 
   @AfterAll
   public static void teardown() throws Exception {
-    szk.close();
+    try {
+      zk.close();
+    } finally {
+      testZk.close();
+    }
   }
 
-  static class ZooKeeperWrapper extends ZooKeeper {
+  static class ZooKeeperWrapper extends ZooSession {
 
-    public ZooKeeperWrapper(String connectString, int sessionTimeout, Watcher watcher)
-        throws IOException {
-      super(connectString, sessionTimeout, watcher);
+    public ZooKeeperWrapper(String clientName, String connectString, int sessionTimeout,
+        String auth) throws IOException {
+      super(clientName, connectString, sessionTimeout, auth);
     }
 
     public void createOnce(String path, byte[] data, List<ACL> acl, CreateMode createMode)
@@ -106,14 +111,6 @@ public class ServiceLockIT {
       // so the ZooKeeper client retries.
       super.create(path, data, acl, createMode);
       return super.create(path, data, acl, createMode);
-    }
-
-  }
-
-  private static class ServiceLockWrapper extends ServiceLock {
-
-    protected ServiceLockWrapper(ZooKeeper zookeeper, ServiceLockPath path, UUID uuid) {
-      super(zookeeper, path, uuid);
     }
 
   }
@@ -142,19 +139,6 @@ public class ServiceLockIT {
 
     public boolean isLockHeld() {
       return this.lockHeld;
-    }
-  }
-
-  static class ConnectedWatcher implements Watcher {
-    volatile boolean connected = false;
-
-    @Override
-    public synchronized void process(WatchedEvent event) {
-      connected = event.getState() == KeeperState.SyncConnected;
-    }
-
-    public synchronized boolean isConnected() {
-      return connected;
     }
   }
 
@@ -201,69 +185,73 @@ public class ServiceLockIT {
 
   private static final AtomicInteger pdCount = new AtomicInteger(0);
 
-  private static ServiceLock getZooLock(ServiceLockPath parent, UUID uuid) {
-    var zooKeeper = ZooSession.getAuthenticatedSession(szk.getConn(), 30000, "digest",
-        "accumulo:secret".getBytes(UTF_8));
-    return new ServiceLock(zooKeeper, parent, uuid);
+  private ServiceLock getZooLock(ServiceLockPath parent, UUID randomUUID)
+      throws IOException, InterruptedException {
+    return new ServiceLock(testZk.newClient(), parent, randomUUID);
   }
 
   private static ServiceLock getZooLock(ZooKeeperWrapper zkw, ServiceLockPath parent, UUID uuid) {
-    return new ServiceLockWrapper(zkw, parent, uuid);
+    return new ServiceLock(zkw, parent, uuid);
   }
 
   @Test
   @Timeout(10)
   public void testDeleteParent() throws Exception {
-    var parent = ServiceLock
-        .path("/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestDeleteParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
-    ZooReaderWriter zk = szk.getZooReaderWriter();
+    var zrw = zk.asReaderWriter();
 
     // intentionally created parent after lock
-    zk.mkdirs(parent.toString());
+    zrw.mkdirs(parent.toString());
 
-    zk.delete(parent.toString());
+    zrw.delete(parent.toString());
 
-    zk.mkdirs(parent.toString());
+    zrw.mkdirs(parent.toString());
 
     TestALW lw = new TestALW();
 
     zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+        ResourceGroupId.DEFAULT));
 
     lw.waitForChanges(1);
 
     assertTrue(lw.locked);
     assertTrue(zl.isLocked());
+    assertTrue(zl.verifyLockAtSource());
     assertNull(lw.exception);
     assertNull(lw.reason);
 
     zl.unlock();
+    assertFalse(zl.verifyLockAtSource());
   }
 
   @Test
   @Timeout(10)
   public void testNoParent() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestNoParent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     TestALW lw = new TestALW();
 
     zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+        ResourceGroupId.DEFAULT));
 
     lw.waitForChanges(1);
 
     assertFalse(lw.locked);
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
     assertNotNull(lw.exception);
     assertNull(lw.reason);
   }
@@ -271,59 +259,63 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testDeleteLock() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestDeleteLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooReaderWriter zk = szk.getZooReaderWriter();
-    zk.mkdirs(parent.toString());
+    var zrw = zk.asReaderWriter();
+    zrw.mkdirs(parent.toString());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     TestALW lw = new TestALW();
 
     zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+        ResourceGroupId.DEFAULT));
 
     lw.waitForChanges(1);
 
     assertTrue(lw.locked);
     assertTrue(zl.isLocked());
+    assertTrue(zl.verifyLockAtSource());
     assertNull(lw.exception);
     assertNull(lw.reason);
 
-    zk.delete(zl.getLockPath());
+    zrw.delete(zl.getLockPath());
 
     lw.waitForChanges(2);
 
     assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
     assertNull(lw.exception);
-
+    assertFalse(zl.verifyLockAtSource());
   }
 
   @Test
   @Timeout(15)
   public void testDeleteWaiting() throws Exception {
-    var parent = ServiceLock
-        .path("/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestDeleteWaiting-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ZooReaderWriter zk = szk.getZooReaderWriter();
-    zk.mkdirs(parent.toString());
+    var zrw = zk.asReaderWriter();
+    zrw.mkdirs(parent.toString());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
     assertFalse(zl.isLocked());
+    assertFalse(zl.verifyLockAtSource());
 
     TestALW lw = new TestALW();
 
     zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+        ResourceGroupId.DEFAULT));
 
     lw.waitForChanges(1);
 
     assertTrue(lw.locked);
     assertTrue(zl.isLocked());
+    assertTrue(zl.verifyLockAtSource());
     assertNull(lw.exception);
     assertNull(lw.reason);
 
@@ -332,21 +324,22 @@ public class ServiceLockIT {
     TestALW lw2 = new TestALW();
 
     zl2.lock(lw2, new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+        ResourceGroupId.DEFAULT));
 
     assertFalse(lw2.locked);
     assertFalse(zl2.isLocked());
+    assertFalse(zl2.verifyLockAtSource());
 
     ServiceLock zl3 = getZooLock(parent, UUID.randomUUID());
 
     TestALW lw3 = new TestALW();
 
     zl3.lock(lw3, new ServiceLockData(UUID.randomUUID(), "test3", ThriftService.TSERV,
-        ServiceDescriptor.DEFAULT_GROUP_NAME));
+        ResourceGroupId.DEFAULT));
 
-    List<String> children = ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString()));
+    List<String> children = ServiceLock.validateAndSort(parent, zrw.getChildren(parent.toString()));
 
-    zk.delete(parent + "/" + children.get(1));
+    zrw.delete(parent + "/" + children.get(1));
 
     lw2.waitForChanges(1);
 
@@ -354,7 +347,7 @@ public class ServiceLockIT {
     assertNotNull(lw2.exception);
     assertNull(lw2.reason);
 
-    zk.delete(parent + "/" + children.get(0));
+    zrw.delete(parent + "/" + children.get(0));
 
     lw.waitForChanges(2);
 
@@ -365,32 +358,29 @@ public class ServiceLockIT {
 
     assertTrue(lw3.locked);
     assertTrue(zl3.isLocked());
+    assertTrue(zl3.verifyLockAtSource());
     assertNull(lw3.exception);
     assertNull(lw3.reason);
 
     zl3.unlock();
+    assertFalse(zl3.verifyLockAtSource());
 
   }
 
   @Test
   @Timeout(10)
   public void testUnexpectedEvent() throws Exception {
-    var parent = ServiceLock
-        .path("/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestUnexpectedEvent-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-    ConnectedWatcher watcher = new ConnectedWatcher();
-    try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
-      ZooUtil.digestAuth(zk, "secret");
-
-      while (!watcher.isConnected()) {
-        Thread.sleep(200);
-      }
+    try (var zk = testZk.newClient()) {
 
       zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
       ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
       assertFalse(zl.isLocked());
+      assertFalse(zl.verifyLockAtSource());
 
       // would not expect data to be set on this node, but it should not cause problems.....
       zk.setData(parent.toString(), "foo".getBytes(UTF_8), -1);
@@ -398,12 +388,13 @@ public class ServiceLockIT {
       TestALW lw = new TestALW();
 
       zl.lock(lw, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-          ServiceDescriptor.DEFAULT_GROUP_NAME));
+          ResourceGroupId.DEFAULT));
 
       lw.waitForChanges(1);
 
       assertTrue(lw.locked);
       assertTrue(zl.isLocked());
+      assertTrue(zl.verifyLockAtSource());
       assertNull(lw.exception);
       assertNull(lw.reason);
 
@@ -416,6 +407,7 @@ public class ServiceLockIT {
 
       assertEquals(LockLossReason.LOCK_DELETED, lw.reason);
       assertNull(lw.exception);
+      assertFalse(zl.verifyLockAtSource());
     }
 
   }
@@ -423,23 +415,10 @@ public class ServiceLockIT {
   @Test
   @Timeout(60)
   public void testLockSerial() throws Exception {
-    var parent = ServiceLock.path("/zlretryLockSerial");
+    var parent = new TestServiceLockPath("/zlretryLockSerial");
 
-    ConnectedWatcher watcher1 = new ConnectedWatcher();
-    ConnectedWatcher watcher2 = new ConnectedWatcher();
-    try (ZooKeeperWrapper zk1 = new ZooKeeperWrapper(szk.getConn(), 30000, watcher1);
-        ZooKeeperWrapper zk2 = new ZooKeeperWrapper(szk.getConn(), 30000, watcher2)) {
-
-      ZooUtil.digestAuth(zk1, "secret");
-      ZooUtil.digestAuth(zk2, "secret");
-
-      while (!watcher1.isConnected()) {
-        Thread.sleep(200);
-      }
-
-      while (!watcher2.isConnected()) {
-        Thread.sleep(200);
-      }
+    try (ZooKeeperWrapper zk1 = testZk.newClient(ZooKeeperWrapper::new);
+        ZooKeeperWrapper zk2 = testZk.newClient(ZooKeeperWrapper::new)) {
 
       // Create the parent node
       zk1.createOnce(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -449,7 +428,7 @@ public class ServiceLockIT {
       ServiceLock zl1 =
           getZooLock(zk1, parent, UUID.fromString("00000000-0000-0000-0000-aaaaaaaaaaaa"));
       zl1.lock(zlw1, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-          ServiceDescriptor.DEFAULT_GROUP_NAME));
+          ResourceGroupId.DEFAULT));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -465,7 +444,7 @@ public class ServiceLockIT {
       ServiceLock zl2 =
           getZooLock(zk2, parent, UUID.fromString("00000000-0000-0000-0000-bbbbbbbbbbbb"));
       zl2.lock(zlw2, new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
-          ServiceDescriptor.DEFAULT_GROUP_NAME));
+          ResourceGroupId.DEFAULT));
       // The call above creates two nodes in ZK because of the overridden create method in
       // ZooKeeperWrapper.
       // The nodes created are:
@@ -483,7 +462,7 @@ public class ServiceLockIT {
       assertTrue(zlw1.isLockHeld());
       assertFalse(zlw2.isLockHeld());
 
-      List<String> children = zk1.getChildren(parent.toString(), false);
+      List<String> children = zk1.getChildren(parent.toString(), null);
       assertTrue(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000"));
       assertFalse(children.contains("zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000001"),
           "this node should have been deleted");
@@ -495,8 +474,12 @@ public class ServiceLockIT {
       assertEquals("/zlretryLockSerial/zlock#00000000-0000-0000-0000-aaaaaaaaaaaa#0000000000",
           zl2.getWatching());
 
+      assertTrue(zl1.verifyLockAtSource());
+      assertFalse(zl2.verifyLockAtSource());
+
       zl1.unlock();
       assertFalse(zlw1.isLockHeld());
+      assertFalse(zl1.verifyLockAtSource());
       zk1.close();
 
       while (!zlw2.isLockHeld()) {
@@ -504,9 +487,9 @@ public class ServiceLockIT {
       }
 
       assertTrue(zlw2.isLockHeld());
+      assertTrue(zl2.verifyLockAtSource());
       zl2.unlock();
-      zk2.close();
-
+      assertFalse(zl2.verifyLockAtSource());
     }
 
   }
@@ -541,23 +524,15 @@ public class ServiceLockIT {
 
     @Override
     public void run() {
-      try {
-        ConnectedWatcher watcher = new ConnectedWatcher();
-        try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
-          ZooUtil.digestAuth(zk, "secret");
-
-          while (!watcher.isConnected()) {
-            Thread.sleep(50);
-          }
-          ServiceLock zl = getZooLock(zk, parent, uuid);
-          getLockLatch.countDown(); // signal we are done
-          getLockLatch.await(); // wait for others to finish
-          zl.lock(lockWatcher, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-              ServiceDescriptor.DEFAULT_GROUP_NAME)); // race to the lock
-          lockCompletedLatch.countDown();
-          unlockLatch.await();
-          zl.unlock();
-        }
+      try (ZooKeeperWrapper zk = testZk.newClient(ZooKeeperWrapper::new)) {
+        ServiceLock zl = getZooLock(zk, parent, uuid);
+        getLockLatch.countDown(); // signal we are done
+        getLockLatch.await(); // wait for others to finish
+        zl.lock(lockWatcher, new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
+            ResourceGroupId.DEFAULT)); // race to the lock
+        lockCompletedLatch.countDown();
+        unlockLatch.await();
+        zl.unlock();
       } catch (Exception e) {
         LOG.error("Error in LockWorker.run() for {}", uuid, e);
         ex = e;
@@ -592,15 +567,9 @@ public class ServiceLockIT {
   @Test
   @Timeout(60)
   public void testLockParallel() throws Exception {
-    var parent = ServiceLock.path("/zlParallel");
+    var parent = new TestServiceLockPath("/zlParallel");
 
-    ConnectedWatcher watcher = new ConnectedWatcher();
-    try (ZooKeeperWrapper zk = new ZooKeeperWrapper(szk.getConn(), 30000, watcher)) {
-      ZooUtil.digestAuth(zk, "secret");
-
-      while (!watcher.isConnected()) {
-        Thread.sleep(50);
-      }
+    try (ZooKeeperWrapper zk = testZk.newClient(ZooKeeperWrapper::new)) {
       // Create the parent node
       zk.createOnce(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
           CreateMode.PERSISTENT);
@@ -631,25 +600,26 @@ public class ServiceLockIT {
             ServiceLock.validateAndSort(parent, zk.getChildren(parent.toString(), null));
         while (children.size() != i) {
           Thread.sleep(100);
-          children = zk.getChildren(parent.toString(), false);
+          children = zk.getChildren(parent.toString(), null);
         }
         assertEquals(i, children.size());
         String first = children.get(0);
         int workerWithLock = parseLockWorkerName(first);
         LockWorker worker = workers.get(workerWithLock);
-        assertTrue(worker.holdsLock());
-        workers.forEach(w -> {
-          if (w != worker) {
-            assertFalse(w.holdsLock());
-          }
-        });
+        assertAll(() -> assertTrue(worker.holdsLock(),
+            "Expected worker, " + worker + " did not hold lock"), () -> workers.forEach(w -> {
+              if (w != worker) {
+                assertFalse(w.holdsLock(),
+                    "Expected worker, " + worker + " to hold lock. Instead " + w + " holds lock");
+              }
+            }));
         worker.unlock();
         Thread.sleep(100); // need to wait here so that the watchers fire.
       }
 
       workers.forEach(w -> assertFalse(w.holdsLock()));
       workers.forEach(w -> assertNull(w.getException()));
-      assertEquals(0, zk.getChildren(parent.toString(), false).size());
+      assertEquals(0, zk.getChildren(parent.toString(), null).size());
 
       threads.forEach(Uninterruptibles::joinUninterruptibly);
     }
@@ -659,18 +629,12 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testTryLock() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
+    var parent = new TestServiceLockPath(
+        "/zltestTryLock-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
     ServiceLock zl = getZooLock(parent, UUID.randomUUID());
 
-    ConnectedWatcher watcher = new ConnectedWatcher();
-    try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
-      ZooUtil.digestAuth(zk, "secret");
-
-      while (!watcher.isConnected()) {
-        Thread.sleep(200);
-      }
+    try (var zk = testZk.newClient()) {
 
       for (int i = 0; i < 10; i++) {
         zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE,
@@ -683,7 +647,7 @@ public class ServiceLockIT {
       TestALW lw = new TestALW();
 
       boolean ret = zl.tryLock(lw, new ServiceLockData(UUID.randomUUID(), "test1",
-          ThriftService.TSERV, ServiceDescriptor.DEFAULT_GROUP_NAME));
+          ThriftService.TSERV, ResourceGroupId.DEFAULT));
 
       assertTrue(ret);
 
@@ -701,16 +665,10 @@ public class ServiceLockIT {
   @Test
   @Timeout(10)
   public void testChangeData() throws Exception {
-    var parent =
-        ServiceLock.path("/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
-    ConnectedWatcher watcher = new ConnectedWatcher();
-    try (ZooKeeper zk = new ZooKeeper(szk.getConn(), 30000, watcher)) {
-      ZooUtil.digestAuth(zk, "secret");
+    var parent = new TestServiceLockPath(
+        "/zltestChangeData-" + this.hashCode() + "-l" + pdCount.incrementAndGet());
 
-      while (!watcher.isConnected()) {
-        Thread.sleep(200);
-      }
-
+    try (var zk = testZk.newClient()) {
       zk.create(parent.toString(), new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
 
       ServiceLock zl = getZooLock(parent, UUID.randomUUID());
@@ -718,13 +676,13 @@ public class ServiceLockIT {
       TestALW lw = new TestALW();
 
       ServiceLockData sld1 = new ServiceLockData(UUID.randomUUID(), "test1", ThriftService.TSERV,
-          ServiceDescriptor.DEFAULT_GROUP_NAME);
+          ResourceGroupId.DEFAULT);
       zl.lock(lw, sld1);
       assertEquals(Optional.of(sld1),
           ServiceLockData.parse(zk.getData(zl.getLockPath(), null, null)));
 
       ServiceLockData sld2 = new ServiceLockData(UUID.randomUUID(), "test2", ThriftService.TSERV,
-          ServiceDescriptor.DEFAULT_GROUP_NAME);
+          ResourceGroupId.DEFAULT);
       zl.replaceLockData(sld2);
       assertEquals(Optional.of(sld2),
           ServiceLockData.parse(zk.getData(zl.getLockPath(), null, null)));

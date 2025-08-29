@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test.functional;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,8 +59,7 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.SystemPermission;
@@ -84,7 +84,6 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -145,7 +144,7 @@ public class KerberosIT extends AccumuloITBase {
 
         });
 
-    mac.getConfig().setNumTservers(1);
+    mac.getConfig().getClusterServerConfiguration().setNumDefaultTabletServers(1);
     mac.start();
     // Enabled kerberos auth
     Configuration conf = new Configuration(false);
@@ -176,7 +175,8 @@ public class KerberosIT extends AccumuloITBase {
       }
 
       // and the ability to modify the root and metadata tables
-      for (String table : Arrays.asList(RootTable.NAME, MetadataTable.NAME)) {
+      for (String table : Arrays.asList(SystemTables.ROOT.tableName(),
+          SystemTables.METADATA.tableName())) {
         assertTrue(client.securityOperations().hasTablePermission(client.whoami(), table,
             TablePermission.ALTER_TABLE));
       }
@@ -188,7 +188,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testNewUser() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab = kdc.getKeytabDir().resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }
@@ -243,7 +243,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesThroughGrant() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab = kdc.getKeytabDir().resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -306,7 +306,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testUserPrivilegesForTable() throws Exception {
     String user1 = testName();
-    final File user1Keytab = new File(kdc.getKeytabDir(), user1 + ".keytab");
+    final File user1Keytab = kdc.getKeytabDir().resolve(user1 + ".keytab").toFile();
     if (user1Keytab.exists() && !user1Keytab.delete()) {
       log.warn("Unable to delete {}", user1Keytab);
     }
@@ -366,7 +366,7 @@ public class KerberosIT extends AccumuloITBase {
       final long ts = 1000L;
       try (BatchWriter bw = client.createBatchWriter(table)) {
         Mutation m = new Mutation("a");
-        m.put("b", "c", new ColumnVisibility(viz.getBytes()), ts, "d");
+        m.put("b", "c", new ColumnVisibility(viz.getBytes(UTF_8)), ts, "d");
         bw.addMutation(m);
       }
 
@@ -395,7 +395,8 @@ public class KerberosIT extends AccumuloITBase {
         rootUser.getPrincipal(), rootUser.getKeytab().getAbsolutePath());
     log.info("Logged in as {}", rootUser.getPrincipal());
 
-    final int numRows = 100, numColumns = 10;
+    final int numRows = 100;
+    final int numColumns = 10;
 
     // As the "root" user, open up the connection and get a delegation token
     final AuthenticationToken delegationToken =
@@ -424,12 +425,12 @@ public class KerberosIT extends AccumuloITBase {
     // krb credentials
     UserGroupInformation userWithoutPrivs =
         UserGroupInformation.createUserForTesting("fake_user", new String[0]);
-    int recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Integer>) () -> {
+    long recordsSeen = userWithoutPrivs.doAs((PrivilegedExceptionAction<Long>) () -> {
       AccumuloClient client = mac.createAccumuloClient(rootUser.getPrincipal(), delegationToken);
 
       try (BatchScanner bs = client.createBatchScanner(tableName)) {
         bs.setRanges(Collections.singleton(new Range()));
-        return Iterables.size(bs);
+        return bs.stream().count();
       }
     });
 
@@ -480,7 +481,7 @@ public class KerberosIT extends AccumuloITBase {
   @Test
   public void testGetDelegationTokenDenied() throws Exception {
     String newUser = testName();
-    final File newUserKeytab = new File(kdc.getKeytabDir(), newUser + ".keytab");
+    final File newUserKeytab = kdc.getKeytabDir().resolve(newUser + ".keytab").toFile();
     if (newUserKeytab.exists() && !newUserKeytab.delete()) {
       log.warn("Unable to delete {}", newUserKeytab);
     }

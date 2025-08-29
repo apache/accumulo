@@ -54,6 +54,7 @@ import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.IteratorConfigUtil;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.SystemIteratorUtil;
@@ -72,72 +73,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.io.Text;
 
 class OfflineIterator implements Iterator<Entry<Key,Value>> {
-
-  static class OfflineIteratorEnvironment implements IteratorEnvironment {
-
-    private final Authorizations authorizations;
-    private final AccumuloConfiguration conf;
-    private final boolean useSample;
-    private final SamplerConfiguration sampleConf;
-
-    public OfflineIteratorEnvironment(Authorizations auths, AccumuloConfiguration acuTableConf,
-        boolean useSample, SamplerConfiguration samplerConf) {
-      this.authorizations = auths;
-      this.conf = acuTableConf;
-      this.useSample = useSample;
-      this.sampleConf = samplerConf;
-    }
-
-    @Override
-    public IteratorScope getIteratorScope() {
-      return IteratorScope.scan;
-    }
-
-    @Override
-    public boolean isFullMajorCompaction() {
-      return false;
-    }
-
-    @Override
-    public boolean isUserCompaction() {
-      return false;
-    }
-
-    private final ArrayList<SortedKeyValueIterator<Key,Value>> topLevelIterators =
-        new ArrayList<>();
-
-    @Override
-    public Authorizations getAuthorizations() {
-      return authorizations;
-    }
-
-    SortedKeyValueIterator<Key,Value> getTopLevelIterator(SortedKeyValueIterator<Key,Value> iter) {
-      if (topLevelIterators.isEmpty()) {
-        return iter;
-      }
-      ArrayList<SortedKeyValueIterator<Key,Value>> allIters = new ArrayList<>(topLevelIterators);
-      allIters.add(iter);
-      return new MultiIterator(allIters, false);
-    }
-
-    @Override
-    public boolean isSamplingEnabled() {
-      return useSample;
-    }
-
-    @Override
-    public SamplerConfiguration getSamplerConfiguration() {
-      return sampleConf;
-    }
-
-    @Override
-    public IteratorEnvironment cloneWithSamplingEnabled() {
-      if (sampleConf == null) {
-        throw new SampleNotPresentException();
-      }
-      return new OfflineIteratorEnvironment(authorizations, conf, true, sampleConf);
-    }
-  }
 
   private SortedKeyValueIterator<Key,Value> iter;
   private Range range;
@@ -172,7 +107,8 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }
   }
@@ -198,13 +134,14 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
       return ret;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
-    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException e) {
+    } catch (AccumuloException | AccumuloSecurityException | TableNotFoundException
+        | ReflectiveOperationException e) {
       throw new IllegalStateException(e);
     }
   }
 
-  private void nextTablet()
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+  private void nextTablet() throws TableNotFoundException, AccumuloException, IOException,
+      AccumuloSecurityException, ReflectiveOperationException {
 
     Range nextRange;
 
@@ -270,11 +207,11 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
   }
 
   private SortedKeyValueIterator<Key,Value> createIterator(KeyExtent extent,
-      Collection<StoredTabletFile> absFiles)
-      throws TableNotFoundException, AccumuloException, IOException, AccumuloSecurityException {
+      Collection<StoredTabletFile> absFiles) throws TableNotFoundException, AccumuloException,
+      IOException, AccumuloSecurityException, ReflectiveOperationException {
 
     // possible race condition here, if table is renamed
-    String tableName = context.getTableName(tableId);
+    String tableName = context.getQualifiedTableName(tableId);
     var tableConf = context.tableOperations().getConfiguration(tableName);
     AccumuloConfiguration tableCC = new ConfigurationCopy(tableConf);
     var systemConf = context.instanceOperations().getSystemConfiguration();
@@ -311,8 +248,13 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
 
     MultiIterator multiIter = new MultiIterator(readers, extent);
 
-    OfflineIteratorEnvironment iterEnv = new OfflineIteratorEnvironment(authorizations, tableCC,
-        false, samplerConfImpl == null ? null : samplerConfImpl.toSamplerConfiguration());
+    ClientIteratorEnvironment.Builder iterEnvBuilder =
+        new ClientIteratorEnvironment.Builder().withAuthorizations(authorizations)
+            .withScope(IteratorScope.scan).withTableId(tableId).withClient(context);
+    if (samplerConfImpl != null) {
+      iterEnvBuilder.withSamplerConfiguration(samplerConfImpl.toSamplerConfiguration());
+    }
+    IteratorEnvironment iterEnv = iterEnvBuilder.build();
 
     byte[] defaultSecurityLabel;
     ColumnVisibility cv =
@@ -325,8 +267,7 @@ class OfflineIterator implements Iterator<Entry<Key,Value>> {
     var iteratorBuilderEnv = IteratorConfigUtil.loadIterConf(IteratorScope.scan,
         options.serverSideIteratorList, options.serverSideIteratorOptions, tableCC);
     var iteratorBuilder = iteratorBuilderEnv.env(iterEnv).build();
-    return iterEnv
-        .getTopLevelIterator(IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder));
+    return IteratorConfigUtil.loadIterators(visFilter, iteratorBuilder);
   }
 
   @Override

@@ -21,6 +21,7 @@ package org.apache.accumulo.core.data;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayInputStream;
@@ -28,6 +29,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
@@ -179,6 +184,73 @@ public class KeyExtentTest {
 
     ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
     return KeyExtent.readFrom(new DataInputStream(bais));
+  }
+
+  @Test
+  public void testClip() {
+    // Test extent will null end/prevEnd and infinite range matches original
+    ke = new KeyExtent(TableId.of("1"), null, null);
+    Range range = new Range();
+    KeyExtent expected = ke;
+    KeyExtent clipped = ke.clip(range);
+    assertEquals(expected, clipped);
+
+    // Test extent with null end/prevEnd with a range, should match the range
+    expected = new KeyExtent(TableId.of("1"), new Text("r_0001"), new Text("r_0000"));
+    ke = new KeyExtent(TableId.of("1"), null, null);
+    range = new Range("r_0000", false, "r_0001", true);
+    clipped = ke.clip(range);
+    assertEquals(expected, clipped);
+
+    // Test resulting extent is narrowed, the overlapping rows are 4 - 7
+    expected = new KeyExtent(TableId.of("1"), new Text("r_0007"), new Text("r_0003"));
+    ke = new KeyExtent(TableId.of("1"), new Text("r_0007"), new Text("r_0000"));
+    range = new Range("r_0003", false, "r_0009", true);
+    clipped = ke.clip(range);
+    assertEquals(expected, clipped);
+
+    // Test disjoint
+    ke = new KeyExtent(TableId.of("1"), new Text("r_0007"), new Text("r_0005"));
+    range = new Range("r_0002", false, "r_0004", true);
+    clipped = ke.clip(range, true);
+    assertNull(clipped);
+    final Range r = range;
+    assertThrows(IllegalArgumentException.class, () -> ke.clip(r));
+
+    // Invalid row ranges
+    assertThrows(IllegalArgumentException.class,
+        () -> ke.clip(new Range("r_0002", true, "r_0004", true)));
+    assertThrows(IllegalArgumentException.class, () -> ke
+        .clip(new Range(new Key("r_0002", "cf_0002"), false, new Key("r_0003", "cf_0003"), true)));
+    // Test empty row to make sure isExclusiveKey() checks length
+    assertThrows(IllegalArgumentException.class,
+        () -> ke.clip(new Range(new Key("r_0004").followingKey(PartialKey.ROW), true,
+            new Key("").followingKey(PartialKey.ROW), false)));
+  }
+
+  @Test
+  public void testHashCode() {
+    // Testing consistency
+    KeyExtent key = new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a"));
+    int hashCode1 = key.hashCode();
+    int hashCode2 = key.hashCode();
+    assertEquals(hashCode1, hashCode2);
+
+    // Testing equality
+    KeyExtent k1 = new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a"));
+    KeyExtent k2 = new KeyExtent(TableId.of("r1"), new Text("b"), new Text("a"));
+    assertEquals(k1.hashCode(), k2.hashCode());
+
+    // Testing even distribution
+    List<KeyExtent> keys = new ArrayList<>();
+    for (int i = 0; i < 1000; i++) {
+      keys.add(new KeyExtent(TableId.of("r1" + i), new Text("b" + i), new Text("a" + i)));
+    }
+    Set<Integer> hashCodes = new HashSet<>();
+    for (KeyExtent k : keys) {
+      hashCodes.add(k.hashCode());
+    }
+    assertEquals(keys.size(), hashCodes.size(), 10);
   }
 
 }

@@ -23,7 +23,6 @@ import static org.apache.accumulo.core.metadata.schema.TabletMetadata.ColumnType
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
@@ -46,19 +45,20 @@ import com.google.common.annotations.VisibleForTesting;
 
 class ConcurrentKeyExtentCache implements KeyExtentCache {
 
-  private static Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
+  private static final Logger log = LoggerFactory.getLogger(ConcurrentKeyExtentCache.class);
 
   private static final Text MAX = new Text();
 
-  private Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
+  private final Set<Text> rowsToLookup = Collections.synchronizedSet(new HashSet<>());
 
-  List<Text> lookupRows = new ArrayList<>();
+  final List<Text> lookupRows = new ArrayList<>();
 
-  private ConcurrentSkipListMap<Text,KeyExtent> extents = new ConcurrentSkipListMap<>((t1, t2) -> {
-    return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
-  });
-  private TableId tableId;
-  private ClientContext ctx;
+  private final ConcurrentSkipListMap<Text,KeyExtent> extents =
+      new ConcurrentSkipListMap<>((t1, t2) -> {
+        return (t1 == t2) ? 0 : (t1 == MAX ? 1 : (t2 == MAX ? -1 : t1.compareTo(t2)));
+      });
+  private final TableId tableId;
+  private final ClientContext ctx;
 
   ConcurrentKeyExtentCache(TableId tableId, ClientContext ctx) {
     this.tableId = tableId;
@@ -88,9 +88,9 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
 
   @VisibleForTesting
   protected Stream<KeyExtent> lookupExtents(Text row) {
-    return TabletsMetadata.builder(ctx).forTable(tableId).overlapping(row, true, null)
-        .checkConsistency().fetch(PREV_ROW).build().stream().limit(100)
-        .map(TabletMetadata::getExtent);
+    TabletsMetadata tabletsMetadata = TabletsMetadata.builder(ctx).forTable(tableId)
+        .overlapping(row, true, null).checkConsistency().fetch(PREV_ROW).build();
+    return tabletsMetadata.stream().limit(100).map(TabletMetadata::getExtent);
   }
 
   @Override
@@ -129,15 +129,8 @@ class ConcurrentKeyExtentCache implements KeyExtentCache {
         for (Text lookupRow : lookupRows) {
           if (getFromCache(lookupRow) == null) {
             while (true) {
-              try {
-                Iterator<KeyExtent> iter = lookupExtents(lookupRow).iterator();
-                while (iter.hasNext()) {
-                  KeyExtent ke2 = iter.next();
-                  if (inCache(ke2)) {
-                    break;
-                  }
-                  updateCache(ke2);
-                }
+              try (Stream<KeyExtent> keyExtentStream = lookupExtents(lookupRow)) {
+                keyExtentStream.takeWhile(ke2 -> !inCache(ke2)).forEach(this::updateCache);
                 break;
               } catch (TabletDeletedException tde) {
                 // tablets were merged away in the table, start over and try again

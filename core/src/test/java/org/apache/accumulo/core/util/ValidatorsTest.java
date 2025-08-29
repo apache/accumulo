@@ -23,13 +23,14 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.metadata.MetadataTable;
-import org.apache.accumulo.core.metadata.RootTable;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 
@@ -56,7 +57,7 @@ public class ValidatorsTest {
     Validator<TableId> v = Validators.CAN_CLONE_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of(TableId.of("id1")));
-    assertAllThrow(v, List.of(RootTable.ID, MetadataTable.ID));
+    assertAllThrow(v, List.of(SystemTables.ROOT.tableId(), SystemTables.METADATA.tableId()));
   }
 
   @Test
@@ -73,8 +74,8 @@ public class ValidatorsTest {
     Validator<String> v = Validators.EXISTING_TABLE_NAME;
     checkNull(v::validate);
     assertAllValidate(v,
-        List.of(RootTable.NAME, MetadataTable.NAME, "normalTable", "withNumber2", "has_underscore",
-            "_underscoreStart", StringUtils.repeat("a", 1025),
+        List.of(SystemTables.ROOT.tableName(), SystemTables.METADATA.tableName(), "normalTable",
+            "withNumber2", "has_underscore", "_underscoreStart", StringUtils.repeat("a", 1025),
             StringUtils.repeat("a", 1025) + "." + StringUtils.repeat("a", 1025)));
     assertAllThrow(v, List.of("has-dash", "has-dash.inNamespace", "has.dash-inTable", " hasSpace",
         ".", "has$dollar", "two.dots.here", ".startsDot"));
@@ -95,8 +96,8 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NEW_TABLE_NAME;
     checkNull(v::validate);
     assertAllValidate(v,
-        List.of(RootTable.NAME, MetadataTable.NAME, "normalTable", "withNumber2", "has_underscore",
-            "_underscoreStart", StringUtils.repeat("a", 1024),
+        List.of(SystemTables.ROOT.tableName(), SystemTables.METADATA.tableName(), "normalTable",
+            "withNumber2", "has_underscore", "_underscoreStart", StringUtils.repeat("a", 1024),
             StringUtils.repeat("a", 1025) + "." + StringUtils.repeat("a", 1024)));
     assertAllThrow(v,
         List.of("has-dash", "has-dash.inNamespace", "has.dash-inTable", " hasSpace", ".",
@@ -117,7 +118,7 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NOT_BUILTIN_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2"));
-    assertAllThrow(v, List.of(RootTable.NAME, MetadataTable.NAME));
+    assertAllThrow(v, List.of(SystemTables.ROOT.tableName(), SystemTables.METADATA.tableName()));
   }
 
   @Test
@@ -125,23 +126,34 @@ public class ValidatorsTest {
     Validator<String> v = Validators.NOT_METADATA_TABLE;
     checkNull(v::validate);
     assertAllValidate(v, List.of("root", "metadata", "user", "ns1.table2"));
-    assertAllThrow(v, List.of(RootTable.NAME, MetadataTable.NAME));
+    assertAllThrow(v, List.of(SystemTables.ROOT.tableName(), SystemTables.METADATA.tableName()));
   }
 
   @Test
   public void test_NOT_ROOT_TABLE_ID() {
     Validator<TableId> v = Validators.NOT_ROOT_TABLE_ID;
     checkNull(v::validate);
-    assertAllValidate(v, List.of(TableId.of(""), MetadataTable.ID, TableId.of(" #0(U!$. ")));
-    assertAllThrow(v, List.of(RootTable.ID));
+    assertAllValidate(v,
+        List.of(TableId.of(""), SystemTables.METADATA.tableId(), TableId.of(" #0(U!$. ")));
+    assertAllThrow(v, List.of(SystemTables.ROOT.tableId()));
+  }
+
+  @Test
+  public void test_NOT_METADATA_TABLE_ID() {
+    Validator<TableId> v = Validators.NOT_METADATA_TABLE_ID;
+    checkNull(v::validate);
+    assertAllValidate(v,
+        List.of(TableId.of(""), SystemTables.ROOT.tableId(), TableId.of(" #0(U!$. ")));
+    assertAllThrow(v, List.of(SystemTables.METADATA.tableId()));
   }
 
   @Test
   public void test_VALID_TABLE_ID() {
     Validator<TableId> v = Validators.VALID_TABLE_ID;
     checkNull(v::validate);
-    assertAllValidate(v, List.of(RootTable.ID, MetadataTable.ID, TableId.of("111"),
-        TableId.of("aaaa"), TableId.of("r2d2")));
+    assertAllValidate(v, Arrays.stream(SystemTables.values()).map(SystemTables::tableId)
+        .collect(Collectors.toList()));
+    assertAllValidate(v, List.of(TableId.of("111"), TableId.of("aaaa"), TableId.of("r2d2")));
     assertAllThrow(v, List.of(TableId.of(""), TableId.of("#0(U!$"), TableId.of(" #0(U!$. "),
         TableId.of("."), TableId.of(" "), TableId.of("C3P0")));
   }

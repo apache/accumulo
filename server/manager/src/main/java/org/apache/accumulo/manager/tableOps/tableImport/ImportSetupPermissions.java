@@ -19,36 +19,36 @@
 package org.apache.accumulo.manager.tableOps.tableImport;
 
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
+import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
-import org.apache.accumulo.server.security.SecurityOperation;
 import org.slf4j.LoggerFactory;
 
 class ImportSetupPermissions extends ManagerRepo {
 
   private static final long serialVersionUID = 1L;
 
-  private ImportedTableInfo tableInfo;
+  private final ImportedTableInfo tableInfo;
 
   public ImportSetupPermissions(ImportedTableInfo ti) {
     this.tableInfo = ti;
   }
 
   @Override
-  public long isReady(long tid, Manager environment) {
+  public long isReady(FateId fateId, Manager environment) {
     return 0;
   }
 
   @Override
-  public Repo<Manager> call(long tid, Manager env) throws Exception {
+  public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
     // give all table permissions to the creator
-    SecurityOperation security = env.getContext().getSecurityOperation();
+    var security = env.getContext().getSecurityOperation();
     for (TablePermission permission : TablePermission.values()) {
       try {
         security.grantTablePermission(env.getContext().rpcCreds(), tableInfo.user,
-            tableInfo.tableId, permission, tableInfo.namespaceId);
+            tableInfo.tableId, tableInfo.tableName, permission, tableInfo.namespaceId);
       } catch (ThriftSecurityException e) {
         LoggerFactory.getLogger(ImportSetupPermissions.class).error("{}", e.getMessage(), e);
         throw e;
@@ -62,7 +62,7 @@ class ImportSetupPermissions extends ManagerRepo {
   }
 
   @Override
-  public void undo(long tid, Manager env) throws Exception {
+  public void undo(FateId fateId, Manager env) throws Exception {
     env.getContext().getSecurityOperation().deleteTable(env.getContext().rpcCreds(),
         tableInfo.tableId, tableInfo.namespaceId);
   }

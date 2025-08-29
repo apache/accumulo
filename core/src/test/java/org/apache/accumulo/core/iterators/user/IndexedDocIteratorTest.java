@@ -18,11 +18,12 @@
  */
 package org.apache.accumulo.core.iterators.user;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.IOException;
-import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
@@ -35,22 +36,21 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.file.rfile.AbstractRFileTest.TestRFile;
 import org.apache.accumulo.core.file.rfile.RFileTest;
-import org.apache.accumulo.core.file.rfile.RFileTest.TestRFile;
-import org.apache.accumulo.core.iterators.DefaultIteratorEnvironment;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.iteratorsImpl.ClientIteratorEnvironment;
 import org.apache.accumulo.core.iteratorsImpl.system.MultiIterator;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
 
 public class IndexedDocIteratorTest {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Collection<ByteSequence> EMPTY_COL_FAMS = new ArrayList<>();
   private static final byte[] nullByte = {0};
 
-  private static IteratorEnvironment env = new DefaultIteratorEnvironment();
+  private static IteratorEnvironment env = ClientIteratorEnvironment.DEFAULT;
 
   Text[] columnFamilies;
   Text[] otherColumnFamilies;
@@ -62,7 +62,7 @@ public class IndexedDocIteratorTest {
 
   static {
     docColf.append(nullByte, 0, 1);
-    docColf.append("type".getBytes(), 0, "type".getBytes().length);
+    docColf.append("type".getBytes(UTF_8), 0, "type".getBytes(UTF_8).length);
   }
 
   private TreeMap<Key,Value> createSortedMap(float hitRatio, int numRows, int numDocsPerRow,
@@ -91,14 +91,14 @@ public class IndexedDocIteratorTest {
         boolean docHits = true;
         Text doc = new Text("type");
         doc.append(nullByte, 0, 1);
-        doc.append(String.format("%010d", docid).getBytes(), 0, 10);
+        doc.append(String.format("%010d", docid).getBytes(UTF_8), 0, 10);
         for (int j = 0; j < columnFamilies.length; j++) {
-          if (random.nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(columnFamilies[j]);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
             colq.append(nullByte, 0, 1);
-            colq.append("stuff".getBytes(), 0, "stuff".length());
+            colq.append("stuff".getBytes(UTF_8), 0, "stuff".length());
             Key k = new Key(row, indexColf, colq);
             map.put(k, v);
             sb.append(" ");
@@ -116,12 +116,12 @@ public class IndexedDocIteratorTest {
           docs.add(doc);
         }
         for (Text cf : otherColumnFamilies) {
-          if (random.nextFloat() < hitRatio) {
+          if (RANDOM.get().nextFloat() < hitRatio) {
             Text colq = new Text(cf);
             colq.append(nullByte, 0, 1);
             colq.append(doc.getBytes(), 0, doc.getLength());
             colq.append(nullByte, 0, 1);
-            colq.append("stuff".getBytes(), 0, "stuff".length());
+            colq.append("stuff".getBytes(UTF_8), 0, "stuff".length());
             Key k = new Key(row, indexColf, colq);
             map.put(k, v);
             sb.append(" ");
@@ -129,7 +129,7 @@ public class IndexedDocIteratorTest {
           }
         }
         sb.append(" docID=").append(doc);
-        Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes()));
+        Key k = new Key(row, docColf, new Text(String.format("%010d", docid).getBytes(UTF_8)));
         map.put(k, new Value(sb.toString()));
       }
     }
@@ -213,7 +213,7 @@ public class IndexedDocIteratorTest {
 
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
 
       iter.next();
     }
@@ -250,7 +250,7 @@ public class IndexedDocIteratorTest {
       Value v = iter.getTopValue();
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -295,7 +295,7 @@ public class IndexedDocIteratorTest {
       Value v = iter.getTopValue();
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
       iter.next();
     }
     assertEquals(hitCount, docs.size());
@@ -338,7 +338,7 @@ public class IndexedDocIteratorTest {
       Value v = iter.getTopValue();
       Text d = IndexedDocIterator.parseDocID(k);
       assertTrue(docs.contains(d));
-      assertTrue(new String(v.get()).endsWith(" docID=" + d));
+      assertTrue(new String(v.get(), UTF_8).endsWith(" docID=" + d));
       iter.next();
     }
     assertEquals(hitCount, docs.size());

@@ -42,7 +42,6 @@ import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl;
 import org.apache.hadoop.fs.FileSystem;
@@ -71,7 +70,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     fs = FileSystem.get(cluster.getServerContext().getHadoopConf());
   }
 
-  private Path copyTestIteratorsJarToTmp() throws IOException {
+  private Path copyTestIteratorsJarToTmp() throws IOException, InterruptedException {
     // Copy the test iterators jar to tmp
     Path baseDir = new Path(System.getProperty("user.dir"));
     Path targetDir = new Path(baseDir, "target");
@@ -79,7 +78,7 @@ public class ScannerContextIT extends AccumuloClusterHarness {
     Path dstPath = new Path(CONTEXT_DIR + "/Test.jar");
     fs.copyFromLocalFile(jarPath, dstPath);
     // Sleep to ensure jar change gets picked up
-    UtilWaitThread.sleep(WAIT);
+    Thread.sleep(WAIT);
     return dstPath;
   }
 

@@ -26,7 +26,7 @@ package org.apache.accumulo.core.client.lexicoder;
  */
 public class IntegerLexicoder extends AbstractLexicoder<Integer> {
 
-  private UIntegerLexicoder uil = new UIntegerLexicoder();
+  private final UIntegerLexicoder uil = new UIntegerLexicoder();
 
   @Override
   public byte[] encode(Integer i) {

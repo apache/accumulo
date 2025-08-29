@@ -21,11 +21,16 @@ package org.apache.accumulo.server.manager.state;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
+import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.logging.TabletLogger;
+import org.apache.accumulo.core.manager.state.TabletManagement;
 import org.apache.accumulo.core.metadata.TServerInstance;
-import org.apache.accumulo.core.metadata.TabletLocationState;
+import org.apache.accumulo.core.metadata.schema.Ample.DataLevel;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.hadoop.fs.Path;
 
 import com.google.common.net.HostAndPort;
@@ -35,10 +40,15 @@ import com.google.common.net.HostAndPort;
  */
 class LoggingTabletStateStore implements TabletStateStore {
 
-  private TabletStateStore wrapped;
+  private final TabletStateStore wrapped;
 
   LoggingTabletStateStore(TabletStateStore tss) {
     this.wrapped = tss;
+  }
+
+  @Override
+  public DataLevel getLevel() {
+    return wrapped.getLevel();
   }
 
   @Override
@@ -47,15 +57,21 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public ClosableIterator<TabletLocationState> iterator() {
-    return wrapped.iterator();
+  public ClosableIterator<TabletManagement> iterator(List<Range> ranges,
+      TabletManagementParameters parameters) {
+    return wrapped.iterator(ranges, parameters);
   }
 
   @Override
-  public void setFutureLocations(Collection<Assignment> assignments)
+  public Set<KeyExtent> setFutureLocations(Collection<Assignment> assignments)
       throws DistributedStoreException {
-    wrapped.setFutureLocations(assignments);
-    assignments.forEach(assignment -> TabletLogger.assigned(assignment.tablet, assignment.server));
+    var failures = wrapped.setFutureLocations(assignments);
+    assignments.forEach(assignment -> {
+      if (!failures.contains(assignment.tablet)) {
+        TabletLogger.assigned(assignment.tablet, assignment.server);
+      }
+    });
+    return failures;
   }
 
   @Override
@@ -65,7 +81,7 @@ class LoggingTabletStateStore implements TabletStateStore {
   }
 
   @Override
-  public void unassign(Collection<TabletLocationState> tablets,
+  public void unassign(Collection<TabletMetadata> tablets,
       Map<TServerInstance,List<Path>> logsForDeadServers) throws DistributedStoreException {
     wrapped.unassign(tablets, logsForDeadServers);
 
@@ -73,14 +89,14 @@ class LoggingTabletStateStore implements TabletStateStore {
       logsForDeadServers = Map.of();
     }
 
-    for (TabletLocationState tls : tablets) {
-      TabletLogger.unassigned(tls.extent, logsForDeadServers.size());
+    for (TabletMetadata tm : tablets) {
+      TabletLogger.unassigned(tm.getExtent(), logsForDeadServers.size());
     }
   }
 
   @Override
-  public void suspend(Collection<TabletLocationState> tablets,
-      Map<TServerInstance,List<Path>> logsForDeadServers, long suspensionTimestamp)
+  public void suspend(Collection<TabletMetadata> tablets,
+      Map<TServerInstance,List<Path>> logsForDeadServers, SteadyTime suspensionTimestamp)
       throws DistributedStoreException {
     wrapped.suspend(tablets, logsForDeadServers, suspensionTimestamp);
 
@@ -88,22 +104,22 @@ class LoggingTabletStateStore implements TabletStateStore {
       logsForDeadServers = Map.of();
     }
 
-    for (TabletLocationState tls : tablets) {
-      var location = tls.getLocation();
+    for (TabletMetadata tm : tablets) {
+      var location = tm.getLocation();
       HostAndPort server = null;
       if (location != null) {
         server = location.getHostAndPort();
       }
-      TabletLogger.suspended(tls.extent, server, suspensionTimestamp, TimeUnit.MILLISECONDS,
+      TabletLogger.suspended(tm.getExtent(), server, suspensionTimestamp,
           logsForDeadServers.size());
     }
   }
 
   @Override
-  public void unsuspend(Collection<TabletLocationState> tablets) throws DistributedStoreException {
+  public void unsuspend(Collection<TabletMetadata> tablets) throws DistributedStoreException {
     wrapped.unsuspend(tablets);
-    for (TabletLocationState tls : tablets) {
-      TabletLogger.unsuspended(tls.extent);
+    for (TabletMetadata tm : tablets) {
+      TabletLogger.unsuspended(tm.getExtent());
     }
   }
 }

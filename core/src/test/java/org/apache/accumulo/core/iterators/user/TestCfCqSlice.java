@@ -19,10 +19,10 @@
 package org.apache.accumulo.core.iterators.user;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -45,7 +45,6 @@ import org.junit.jupiter.api.Test;
 
 public abstract class TestCfCqSlice {
 
-  private static final SecureRandom random = new SecureRandom();
   private static final Range INFINITY = new Range();
   private static final Lexicoder<Long> LONG_LEX = new ReadableLongLexicoder(4);
   private static final AtomicLong ROW_ID_GEN = new AtomicLong();
@@ -381,7 +380,7 @@ public abstract class TestCfCqSlice {
       assertFalse(foundKvs[row][cf][cq], "Duplicate " + row + " " + cf + " " + cq);
       foundKvs[row][cf][cq] = true;
 
-      if (random.nextInt(100) == 0) {
+      if (RANDOM.get().nextInt(100) == 0) {
         skvi.seek(new Range(k, false, range.getEndKey(), range.isEndKeyInclusive()), EMPTY_CF_SET,
             false);
       } else {

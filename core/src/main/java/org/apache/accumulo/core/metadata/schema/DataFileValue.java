@@ -25,8 +25,8 @@ import org.apache.accumulo.core.iteratorsImpl.system.InterruptibleIterator;
 import org.apache.accumulo.core.iteratorsImpl.system.TimeSettingIterator;
 
 public class DataFileValue {
-  private long size;
-  private long numEntries;
+  private final long size;
+  private final long numEntries;
   private long time = -1;
 
   public DataFileValue(long size, long numEntries, long time) {
@@ -94,7 +94,7 @@ public class DataFileValue {
     if (o instanceof DataFileValue) {
       DataFileValue odfv = (DataFileValue) o;
 
-      return size == odfv.size && numEntries == odfv.numEntries;
+      return size == odfv.size && numEntries == odfv.numEntries && time == odfv.time;
     }
 
     return false;

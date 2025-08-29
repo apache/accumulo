@@ -25,7 +25,7 @@ import java.util.Map;
  * through this interface. Each implementation must implement a {@link FileEncrypter} for encryption
  * and a {@link FileDecrypter} for decryption.
  *
- * @since 2.0
+ * @since 2.0.0
  * @see org.apache.accumulo.core.spi
  */
 public interface CryptoService {
@@ -37,7 +37,8 @@ public interface CryptoService {
 
   /**
    * Initialize the FileEncrypter for the environment and return. This will get called once per
-   * R-File or Write Ahead Log. FileEncrypter implementation must be thread safe.
+   * R-File or Write Ahead Log. FileEncrypter implementation is not expected be called by multiple
+   * threads.
    */
   FileEncrypter getFileEncrypter(CryptoEnvironment environment);
 

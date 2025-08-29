@@ -18,11 +18,9 @@
  */
 package org.apache.accumulo.core.util;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
-import static java.util.concurrent.TimeUnit.NANOSECONDS;
+import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
-import java.security.SecureRandom;
-import java.util.concurrent.TimeUnit;
+import java.time.Duration;
 
 import org.slf4j.Logger;
 
@@ -35,18 +33,17 @@ import com.google.common.base.Preconditions;
  */
 public class Retry {
   private long maxRetries; // not final for testing
-  private long waitIncrement; // not final for testing
-  private long maxWait; // not final for testing
-  private final long logIntervalNanoSec;
+  private Duration waitIncrement; // not final for testing
+  private Duration maxWait; // not final for testing
+  private final Duration logInterval;
   private double backOffFactor;
   private long retriesDone;
-  private long currentWait;
-  private long initialWait;
+  private Duration currentWait;
+  private Duration initialWait;
 
   private boolean hasNeverLogged;
   private boolean hasLoggedWarn = false;
   private long lastRetryLog;
-  private static final SecureRandom random = new SecureRandom();
   private double currentBackOffFactor;
   private boolean doTimeJitter = true;
 
@@ -57,15 +54,15 @@ public class Retry {
    * @param waitIncrement The amount of time (ms) to increment next wait time by
    * @param logInterval The amount of time (ms) between logging retries
    */
-  private Retry(long maxRetries, long startWait, long waitIncrement, long maxWait, long logInterval,
-      double backOffFactor) {
+  private Retry(long maxRetries, Duration startWait, Duration waitIncrement, Duration maxWait,
+      Duration logInterval, double backOffFactor) {
     this.maxRetries = maxRetries;
     this.maxWait = maxWait;
     this.waitIncrement = waitIncrement;
     this.retriesDone = 0;
     this.currentWait = startWait;
     this.initialWait = startWait;
-    this.logIntervalNanoSec = MILLISECONDS.toNanos(logInterval);
+    this.logInterval = logInterval;
     this.hasNeverLogged = true;
     this.lastRetryLog = -1;
     this.backOffFactor = backOffFactor;
@@ -94,19 +91,19 @@ public class Retry {
 
   // Visible for testing
   @VisibleForTesting
-  long getCurrentWait() {
+  Duration getCurrentWait() {
     return currentWait;
   }
 
   // Visible for testing
   @VisibleForTesting
-  long getWaitIncrement() {
+  Duration getWaitIncrement() {
     return waitIncrement;
   }
 
   // Visible for testing
   @VisibleForTesting
-  long getMaxWait() {
+  Duration getMaxWait() {
     return maxWait;
   }
 
@@ -118,20 +115,20 @@ public class Retry {
 
   // Visible for testing
   @VisibleForTesting
-  void setStartWait(long startWait) {
+  void setStartWait(Duration startWait) {
     this.currentWait = startWait;
     this.initialWait = startWait;
   }
 
   // Visible for testing
   @VisibleForTesting
-  void setWaitIncrement(long waitIncrement) {
+  void setWaitIncrement(Duration waitIncrement) {
     this.waitIncrement = waitIncrement;
   }
 
   // Visible for testing
   @VisibleForTesting
-  void setMaxWait(long maxWait) {
+  void setMaxWait(Duration maxWait) {
     this.maxWait = maxWait;
   }
 
@@ -145,8 +142,8 @@ public class Retry {
     return maxRetries < 0;
   }
 
-  public long getLogInterval() {
-    return NANOSECONDS.toMillis(logIntervalNanoSec);
+  public Duration getLogInterval() {
+    return logInterval;
   }
 
   public boolean canRetry() {
@@ -171,29 +168,35 @@ public class Retry {
   public void waitForNextAttempt(Logger log, String operationDescription)
       throws InterruptedException {
 
-    double waitFactor = (1 + (random.nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
+    double waitFactor = (1 + (RANDOM.get().nextDouble() - 0.5) / 10.0) * currentBackOffFactor;
     if (!doTimeJitter) {
       waitFactor = currentBackOffFactor;
     }
     currentBackOffFactor = currentBackOffFactor * backOffFactor;
 
-    log.debug("Sleeping for {}ms before retrying operation : {} ", currentWait,
+    log.trace("Sleeping for {}ms before retrying operation : {} ", currentWait.toMillis(),
         operationDescription);
 
     sleep(currentWait);
 
     if (backOffFactor == 1) {
-      currentWait = Math.min(maxWait, currentWait + waitIncrement);
+      currentWait = currentWait.plus(waitIncrement);
+      if (currentWait.compareTo(maxWait) > 0) {
+        currentWait = maxWait;
+      }
     } else if (backOffFactor > 1.0) {
-      if (currentWait < maxWait) {
-        waitIncrement = (long) Math.ceil(waitFactor * this.initialWait);
-        currentWait = Math.min(maxWait, initialWait + waitIncrement);
+      waitIncrement = Duration.ofMillis((long) Math.ceil(waitFactor * initialWait.toMillis()));
+      Duration tempWait = initialWait.plus(waitIncrement);
+      if (tempWait.compareTo(maxWait) > 0) {
+        currentWait = maxWait;
+      } else {
+        currentWait = tempWait;
       }
     }
   }
 
-  protected void sleep(long wait) throws InterruptedException {
-    Thread.sleep(wait);
+  protected void sleep(Duration wait) throws InterruptedException {
+    Thread.sleep(wait.toMillis());
   }
 
   public void logRetry(Logger log, String message, Throwable t) {
@@ -205,7 +208,7 @@ public class Retry {
       }
       hasNeverLogged = false;
       lastRetryLog = now;
-    } else if ((now - lastRetryLog) > logIntervalNanoSec) {
+    } else if ((now - lastRetryLog) > logInterval.toNanos()) {
       log.warn(getMessage(message), t);
       lastRetryLog = now;
       hasLoggedWarn = true;
@@ -225,7 +228,7 @@ public class Retry {
       }
       hasNeverLogged = false;
       lastRetryLog = now;
-    } else if ((now - lastRetryLog) > logIntervalNanoSec) {
+    } else if ((now - lastRetryLog) > logInterval.toNanos()) {
       log.warn(getMessage(message));
       lastRetryLog = now;
       hasLoggedWarn = true;
@@ -269,33 +272,37 @@ public class Retry {
      * @return this builder with the maximum number of retries set to the provided value
      */
     NeedsRetryDelay maxRetries(long max);
+
+    /**
+     * @return this builder with the maximum number of retries set to the number of retries that can
+     *         occur within the given duration
+     */
+    NeedsRetryDelay maxRetriesWithinDuration(Duration duration);
   }
 
   public interface NeedsRetryDelay {
     /**
-     * @param duration the amount of time to wait before the first retry; input is converted to
-     *        milliseconds, rounded down to the nearest
+     * @param duration the amount of time to wait before the first retry
      * @return this builder with the initial wait period set
      */
-    NeedsTimeIncrement retryAfter(long duration, TimeUnit unit);
+    NeedsTimeIncrement retryAfter(Duration duration);
   }
 
   public interface NeedsTimeIncrement {
     /**
-     * @param duration the amount of additional time to add before each subsequent retry; input is
-     *        converted to milliseconds, rounded down to the nearest
+     * @param duration the amount of additional time to add before each subsequent retry
      * @return this builder with the increment amount set
      */
-    NeedsMaxWait incrementBy(long duration, TimeUnit unit);
+    NeedsMaxWait incrementBy(Duration duration);
   }
 
   public interface NeedsMaxWait {
     /**
      * @param duration the maximum amount of time to which the waiting period between retries can be
-     *        incremented; input is converted to milliseconds, rounded down to the nearest
+     *        incremented
      * @return this builder with a maximum time limit set
      */
-    NeedsBackOffFactor maxWait(long duration, TimeUnit unit);
+    NeedsBackOffFactor maxWait(Duration duration);
   }
 
   public interface NeedsBackOffFactor {
@@ -309,11 +316,10 @@ public class Retry {
 
   public interface NeedsLogInterval {
     /**
-     * @param duration the minimum time interval between logging that a retry is occurring; input is
-     *        converted to milliseconds, rounded down to the nearest
+     * @param duration the minimum time interval between logging that a retry is occurring
      * @return this builder with a logging interval set
      */
-    BuilderDone logInterval(long duration, TimeUnit unit);
+    BuilderDone logInterval(Duration duration);
   }
 
   public interface BuilderDone {
@@ -353,11 +359,12 @@ public class Retry {
 
     private boolean modifiable = true;
     private long maxRetries;
-    private long initialWait;
-    private long maxWait;
-    private long waitIncrement;
-    private long logInterval;
+    private Duration initialWait;
+    private Duration maxWait;
+    private Duration waitIncrement;
+    private Duration logInterval;
     private double backOffFactor = 1.5;
+    private Duration retriesForDuration = null;
 
     RetryFactoryBuilder() {}
 
@@ -382,19 +389,62 @@ public class Retry {
     }
 
     @Override
-    public NeedsTimeIncrement retryAfter(long duration, TimeUnit unit) {
+    public NeedsRetryDelay maxRetriesWithinDuration(Duration duration) {
       checkState();
-      Preconditions.checkArgument(duration >= 0, "Initial waiting period must not be negative");
-      this.initialWait = unit.toMillis(duration);
+      Preconditions.checkArgument(!duration.isNegative(),
+          "Duration for retries must not be negative");
+      this.retriesForDuration = duration;
+      return this;
+    }
+
+    /**
+     * Calculate the maximum number of retries that can occur within {@link #retriesForDuration}
+     */
+    private void calculateRetriesWithinDuration() {
+      long numberOfRetries = 0;
+      long cumulativeWaitTimeMillis = 0;
+      long currentWaitTimeMillis = initialWait.toMillis();
+      final long retriesForDurationMillis = retriesForDuration.toMillis();
+
+      // set an upper bound for the number of retries
+      final long maxRetries = Duration.ofHours(1).toMillis();
+
+      while (cumulativeWaitTimeMillis + currentWaitTimeMillis <= retriesForDurationMillis
+          && numberOfRetries < maxRetries) {
+
+        cumulativeWaitTimeMillis += currentWaitTimeMillis;
+        numberOfRetries++;
+
+        if (backOffFactor > 1.0) {
+          currentWaitTimeMillis = (long) Math.ceil(currentWaitTimeMillis * backOffFactor);
+        } else {
+          currentWaitTimeMillis += waitIncrement.toMillis();
+        }
+
+        if (currentWaitTimeMillis > maxWait.toMillis()) {
+          currentWaitTimeMillis = maxWait.toMillis(); // Ensure wait time does not exceed maxWait
+        }
+
+      }
+
+      this.maxRetries = numberOfRetries;
+    }
+
+    @Override
+    public NeedsTimeIncrement retryAfter(Duration duration) {
+      checkState();
+      Preconditions.checkArgument(!duration.isNegative(),
+          "Initial waiting period must not be negative");
+      this.initialWait = duration;
       return this;
     }
 
     @Override
-    public NeedsMaxWait incrementBy(long duration, TimeUnit unit) {
+    public NeedsMaxWait incrementBy(Duration duration) {
       checkState();
-      Preconditions.checkArgument(duration >= 0,
+      Preconditions.checkArgument(!duration.isNegative(),
           "Amount of time to increment the wait between each retry must not be negative");
-      this.waitIncrement = unit.toMillis(duration);
+      this.waitIncrement = duration;
       return this;
     }
 
@@ -408,20 +458,20 @@ public class Retry {
     }
 
     @Override
-    public NeedsBackOffFactor maxWait(long duration, TimeUnit unit) {
+    public NeedsBackOffFactor maxWait(Duration duration) {
       checkState();
-      this.maxWait = unit.toMillis(duration);
-      Preconditions.checkArgument(maxWait >= initialWait,
+      this.maxWait = duration;
+      Preconditions.checkArgument(maxWait.compareTo(initialWait) >= 0,
           "Maximum wait between retries must not be less than the initial delay");
       return this;
     }
 
     @Override
-    public BuilderDone logInterval(long duration, TimeUnit unit) {
+    public BuilderDone logInterval(Duration duration) {
       checkState();
-      Preconditions.checkArgument(duration >= 0,
+      Preconditions.checkArgument(!duration.isNegative(),
           "The amount of time between logging retries must not be negative");
-      this.logInterval = unit.toMillis(duration);
+      this.logInterval = duration;
       return this;
     }
 
@@ -433,6 +483,10 @@ public class Retry {
 
     @Override
     public Retry createRetry() {
+      if (retriesForDuration != null) {
+        calculateRetriesWithinDuration();
+      }
+      this.modifiable = false;
       return new Retry(maxRetries, initialWait, waitIncrement, maxWait, logInterval, backOffFactor);
     }
 
