@@ -44,7 +44,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.Accumulo;
@@ -81,7 +80,6 @@ import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.tableOps.Utils;
 import org.apache.accumulo.test.functional.BadIterator;
 import org.apache.accumulo.test.functional.FunctionalTestUtils;
-import org.apache.accumulo.test.util.Wait;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterEach;
@@ -213,16 +211,14 @@ public class TableOperationsIT extends AccumuloClusterHarness {
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
     for (String tablename : getUniqueNames(30)) {
-      CountDownLatch startSignal = new CountDownLatch(1);
-      AtomicInteger numTasksRunning = new AtomicInteger(0);
-
-      List<Future<Boolean>> futureList = new ArrayList<>();
+      CountDownLatch startSignal = new CountDownLatch(numTasks);
+      List<Future<Boolean>> futureList = new ArrayList<>(numTasks);
 
       for (int j = 0; j < numTasks; j++) {
         Future<Boolean> future = pool.submit(() -> {
           boolean result;
           try {
-            numTasksRunning.incrementAndGet();
+            startSignal.countDown();
             startSignal.await();
             accumuloClient.tableOperations().create(tablename);
             result = true;
@@ -233,10 +229,6 @@ public class TableOperationsIT extends AccumuloClusterHarness {
         });
         futureList.add(future);
       }
-
-      Wait.waitFor(() -> numTasksRunning.get() == numTasks);
-
-      startSignal.countDown();
 
       int taskSucceeded = 0;
       int taskFailed = 0;

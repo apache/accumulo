@@ -29,8 +29,6 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Function;
 
 import org.apache.accumulo.core.Constants;
@@ -88,8 +86,6 @@ public class Utils {
           TableOperationExceptionType.OTHER, e1.getMessage());
     }
   }
-
-  static final Lock tableNameLock = new ReentrantLock();
 
   private static KeyExtent findContaining(Ample ample, TableId tableId, Text row) {
     Objects.requireNonNull(row);
@@ -313,10 +309,6 @@ public class Utils {
       }
     }
     return lock;
-  }
-
-  public static Lock getTableNameLock() {
-    return tableNameLock;
   }
 
   public static DistributedLock getReadLock(Manager env, AbstractId<?> id, FateId fateId,
