@@ -93,7 +93,7 @@ public interface TServerClient<C extends TServiceClient> {
           // its safe to potentially narrow the predicate
           LOG.debug("System property '{}' set to '{}' overriding predicate argument", DEBUG_RG,
               debugRG);
-          rgp = r -> r.equals(debugRGid);
+          rgp = ResourceGroupPredicate.exact(debugRGid);
         } else {
           LOG.warn("System property '{}' set to '{}' does not intersect with predicate argument."
               + " Ignoring degug system property.", DEBUG_RG, debugRG);
