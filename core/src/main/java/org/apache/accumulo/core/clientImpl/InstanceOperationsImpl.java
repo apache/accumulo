@@ -107,7 +107,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+        ResourceGroupId.DEFAULT::equals);
     checkLocalityGroups(property);
   }
 
