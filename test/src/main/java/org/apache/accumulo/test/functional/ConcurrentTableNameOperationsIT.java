@@ -21,6 +21,7 @@ package org.apache.accumulo.test.functional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -53,6 +54,11 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
 
   static AccumuloClient client;
 
+  @Override
+  protected Duration defaultTimeout() {
+    return Duration.ofMinutes(3);
+  }
+
   @BeforeAll
   public static void setup() throws Exception {
     SharedMiniClusterBase.startMiniCluster();
@@ -79,8 +85,8 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
    */
   @Test
   public void cloneTable() throws Exception {
-    final int numTasks = 10;
-    final int numIterations = 10;
+    final int numTasks = 16;
+    final int numIterations = 8;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
     for (String targetTableName : getUniqueNames(numIterations)) {
@@ -114,7 +120,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
    */
   @Test
   public void renameTable() throws Exception {
-    final int numTasks = 10;
+    final int numTasks = 16;
     final int numIterations = 10;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
@@ -148,8 +154,8 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
    */
   @Test
   public void importTable() throws Exception {
-    final int numTasks = 10;
-    final int numIterations = 3;
+    final int numTasks = 16;
+    final int numIterations = 4;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] targetTableNames = getUniqueNames(numIterations);
     var ntc = new NewTableConfiguration().createOffline();
@@ -191,7 +197,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public void mixedTableOperations() throws Exception {
     final int operationsPerType = 10;
     final int numTasks = operationsPerType * 3;
-    final int numIterations = 3;
+    final int numIterations = 4;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] expectedTableNames = getUniqueNames(numIterations);
 
@@ -255,6 +261,9 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
         }));
       }
 
+      assertEquals(numTasks, futures.size(),
+          "Actual created task count did not match expected count");
+
       int successCount = 0;
       for (Future<Boolean> future : futures) {
         if (future.get()) {
@@ -286,8 +295,8 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
    */
   @Test
   public void createNamespace() throws Exception {
-    final int numTasks = 10;
-    final int numIterations = 3;
+    final int numTasks = 16;
+    final int numIterations = 16;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] targetNamespaceNames = getUniqueNames(numIterations);
 
@@ -321,8 +330,8 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
    */
   @Test
   public void renameNamespace() throws Exception {
-    final int numTasks = 10;
-    final int numIterations = 3;
+    final int numTasks = 16;
+    final int numIterations = 8;
     ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] targetNamespaceNames = getUniqueNames(numIterations);
 
@@ -396,6 +405,9 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
         }
       }));
     }
+
+    assertEquals(numTasks, futures.size(),
+        "Actual created task count did not match expected count");
 
     int successCount = 0;
     for (Future<Boolean> future : futures) {
