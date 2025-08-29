@@ -58,7 +58,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
   /**
    * Create a {@link Key} builder.
    *
-   * @since 2.0
+   * @since 2.0.0
    * @param copyBytes if the bytes of the {@link Key} components should be copied
    * @return the builder at the {@link KeyBuilder.RowStep}
    */
@@ -70,7 +70,7 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * Create a {@link Key} builder. Using the builder makes it easy to mix types, like {@code String}
    * and {@code byte[]}, for different fields. Copy bytes defaults to true.
    *
-   * @since 2.0
+   * @since 2.0.0
    * @return the builder at the {@link KeyBuilder.RowStep}
    * @see #builder(boolean)
    */

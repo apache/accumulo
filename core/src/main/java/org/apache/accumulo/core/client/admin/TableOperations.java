@@ -192,10 +192,6 @@ public interface TableOperations {
    *
    * Ensures that tablets are split along a set of keys.
    *
-   * TODO: This method currently only adds new splits (existing are stripped). The intent in a
-   * future PR is so support updating existing splits and the TabletMergeabilty setting. See
-   * https://github.com/apache/accumulo/issues/5014
-   *
    * <p>
    * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
    * encoding is not enforced by operations that work with byte arrays.
@@ -420,7 +416,8 @@ public interface TableOperations {
    * @param srcTableName the table to clone
    * @param newTableName the name of the clone
    * @param config the clone command configuration
-   * @since 1.10 and 2.1
+   * @since 1.10.0
+   * @since 2.1.0
    */
   void clone(String srcTableName, String newTableName, CloneConfiguration config)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,

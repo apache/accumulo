@@ -283,7 +283,6 @@ public enum Property {
           + " This does not equate to how often tickets are actually renewed (which is"
           + " performed at 80% of the ticket lifetime).",
       "1.6.5"),
-  @Experimental
   GENERAL_OPENTELEMETRY_ENABLED("general.opentelemetry.enabled", "false", PropertyType.BOOLEAN,
       "Enables tracing functionality using OpenTelemetry (assuming OpenTelemetry is configured).",
       "2.1.0"),
@@ -291,7 +290,6 @@ public enum Property {
       "The number of threads to use for server-internal scheduled tasks.", "2.1.0"),
   // If you update the default type, be sure to update the default used for initialization failures
   // in VolumeManagerImpl
-  @Experimental
   GENERAL_VOLUME_CHOOSER("general.volume.chooser", RandomVolumeChooser.class.getName(),
       PropertyType.CLASSNAME,
       "The class that will be used to select which volume will be used to create new files.",
@@ -458,13 +456,6 @@ public enum Property {
   MANAGER_FATE_METRICS_MIN_UPDATE_INTERVAL("manager.fate.metrics.min.update.interval", "60s",
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
-  @Deprecated(since = "4.0.0")
-  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
-      PropertyType.FATE_THREADPOOL_SIZE,
-      "Previously, the number of threads used to run fault-tolerant executions (FATE)."
-          + " This is no longer used in 4.0+. MANAGER_FATE_USER_CONFIG and"
-          + " MANAGER_FATE_META_CONFIG are the replacement and must be set instead.",
-      "1.4.3"),
   MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
       "{\"TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
@@ -491,6 +482,15 @@ public enum Property {
           + "more FATE operations and each value is the number of threads that will be assigned "
           + "to the pool.",
       "4.0.0"),
+  @Deprecated(since = "4.0.0")
+  MANAGER_FATE_THREADPOOL_SIZE("manager.fate.threadpool.size", "64",
+      PropertyType.FATE_THREADPOOL_SIZE,
+      String.format(
+          "Previously, the number of threads used to run fault-tolerant executions (FATE)."
+              + " This is no longer used in 4.0+. %s and %s are the replacement and must be"
+              + " set instead.",
+          MANAGER_FATE_USER_CONFIG.getKey(), MANAGER_FATE_META_CONFIG.getKey()),
+      "1.4.3"),
   MANAGER_FATE_IDLE_CHECK_INTERVAL("manager.fate.idle.check.interval", "60m",
       PropertyType.TIMEDURATION,
       "The interval at which to check if the number of idle Fate threads has consistently been zero."
@@ -1262,13 +1262,11 @@ public enum Property {
       "Compactors do exponential backoff when their request for work repeatedly come back empty. "
           + "This is the maximum amount of time to wait between checks for the next compaction job.",
       "2.1.3"),
-  @Experimental
   COMPACTOR_FAILURE_BACKOFF_THRESHOLD("compactor.failure.backoff.threshold", "3",
       PropertyType.COUNT,
       "The number of consecutive failures that must occur before the Compactor starts to back off"
           + " processing compactions.",
       "2.1.4"),
-  @Experimental
   COMPACTOR_FAILURE_BACKOFF_INTERVAL("compactor.failure.backoff.interval", "0",
       PropertyType.TIMEDURATION,
       "The time basis for computing the wait time for compaction failure backoff. A value of zero disables"
@@ -1278,19 +1276,16 @@ public enum Property {
           + " three failures the Compactor will wait 30s before starting the next compaction. If the compaction fails"
           + " again, then it will wait 40s before starting the next compaction.",
       "2.1.4"),
-  @Experimental
   COMPACTOR_FAILURE_BACKOFF_RESET("compactor.failure.backoff.reset", "10m",
       PropertyType.TIMEDURATION,
       "The maximum amount of time that the compactor will wait before executing the next compaction. When this"
           + " time limit has been reached, the failures are cleared.",
       "2.1.4"),
-  @Experimental
   COMPACTOR_FAILURE_TERMINATION_THRESHOLD("compactor.failure.termination.threshold", "0",
       PropertyType.COUNT,
       "The number of consecutive failures at which the Compactor exits and the process terminates. A zero"
           + " value disables this feature.",
       "2.1.4"),
-  @Experimental
   COMPACTOR_MINTHREADS("compactor.threads.minimum", "4", PropertyType.COUNT,
       "The minimum number of threads to use to handle incoming requests.", "2.1.0"),
   COMPACTOR_MINTHREADS_TIMEOUT("compactor.threads.timeout", "0s", PropertyType.TIMEDURATION,
