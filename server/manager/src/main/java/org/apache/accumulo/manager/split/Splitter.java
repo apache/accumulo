@@ -115,28 +115,10 @@ public class Splitter {
     }
   }
 
-  public static class FileInfo {
-    final Text firstRow;
-    final Text lastRow;
-
-    public FileInfo(Text firstRow, Text lastRow) {
-      this.firstRow = firstRow;
-      this.lastRow = lastRow;
-    }
-
-    public Text getFirstRow() {
-      return firstRow;
-    }
-
-    public Text getLastRow() {
-      return lastRow;
-    }
-  }
-
-  public static <T extends TabletFile> Map<T,FileInfo> tryToGetFirstAndLastRows(
+  public static <T extends TabletFile> Map<T,FileSKVIterator.FileRange> tryToGetFirstAndLastRows(
       ServerContext context, TableConfiguration tableConf, Set<T> dataFiles) {
 
-    HashMap<T,FileInfo> dataFilesInfo = new HashMap<>();
+    HashMap<T,FileSKVIterator.FileRange> dataFilesInfo = new HashMap<>();
 
     long t1 = System.currentTimeMillis();
 
@@ -149,11 +131,7 @@ public class Splitter {
             .forFile(dataFile, ns, ns.getConf(), tableConf.getCryptoService())
             .withTableConfiguration(tableConf).build();
 
-        Text firstRow = reader.getFirstRow();
-        if (firstRow != null) {
-          dataFilesInfo.put(dataFile, new FileInfo(firstRow, reader.getLastRow()));
-        }
-
+        dataFilesInfo.put(dataFile, reader.getFileRange());
       } catch (IOException ioe) {
         LOG.warn("Failed to read data file to determine first and last key : " + dataFile, ioe);
       } finally {
@@ -211,7 +189,7 @@ public class Splitter {
 
   }
 
-  final LoadingCache<CacheKey,FileInfo> splitFileCache;
+  final LoadingCache<CacheKey,FileSKVIterator.FileRange> splitFileCache;
 
   public Splitter(Manager manager) {
     this.manager = manager;
@@ -220,12 +198,12 @@ public class Splitter {
     this.splitExecutor = context.threadPools().getPoolBuilder("split_seeder").numCoreThreads(1)
         .numMaxThreads(1).withTimeOut(0L, TimeUnit.MILLISECONDS).enableThreadPoolMetrics().build();
 
-    Weigher<CacheKey,
-        FileInfo> weigher = (key, info) -> key.tableId.canonical().length()
-            + key.tabletFile.getPath().toString().length() + info.getFirstRow().getLength()
-            + info.getLastRow().getLength();
+    Weigher<CacheKey,FileSKVIterator.FileRange> weigher = (key, frange) -> key.tableId.canonical()
+        .length() + key.tabletFile.getPath().toString().length()
+        + (frange.empty ? 0
+            : frange.rowRange.getStartKey().getLength() + frange.rowRange.getEndKey().getLength());
 
-    CacheLoader<CacheKey,FileInfo> loader = key -> {
+    CacheLoader<CacheKey,FileSKVIterator.FileRange> loader = key -> {
       TableConfiguration tableConf = context.getTableConfiguration(key.tableId);
       return tryToGetFirstAndLastRows(context, tableConf, Set.of(key.tabletFile))
           .get(key.tabletFile);
@@ -245,7 +223,7 @@ public class Splitter {
     splitExecutor.shutdownNow();
   }
 
-  public FileInfo getCachedFileInfo(TableId tableId, TabletFile tabletFile) {
+  public FileSKVIterator.FileRange getCachedFileInfo(TableId tableId, TabletFile tabletFile) {
     return splitFileCache.get(new CacheKey(tableId, tabletFile));
   }
 

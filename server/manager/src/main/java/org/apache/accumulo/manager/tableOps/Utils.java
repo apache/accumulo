@@ -148,7 +148,10 @@ public class Utils {
   public static long reserveTable(Manager env, TableId tableId, FateId fateId, LockType lockType,
       boolean tableMustExist, TableOperation op, final LockRange range) throws Exception {
     final LockRange widenedRange;
-    if (lockType == LockType.WRITE || op == TableOperation.COMPACT) {
+
+    boolean shouldWiden = lockType == LockType.WRITE || op == TableOperation.COMPACT;
+
+    if (shouldWiden) {
       /*
        * Write locks are widened to table split points to avoid non-overlapping ranges operating on
        * the same tablet. For example assume a table has splits at c,e and two fate operations need
@@ -178,7 +181,7 @@ public class Utils {
     }
 
     var lock = getLock(env.getContext(), tableId, fateId, lockType, widenedRange);
-    if (lockType == LockType.WRITE && !widenedRange.equals(lock.getRange())) {
+    if (shouldWiden && !widenedRange.equals(lock.getRange())) {
       // It is possible the range changed since the lock entry was created. Pre existing locks are
       // found using the fate id and could have a different range.
       lock.unlock();
@@ -193,7 +196,7 @@ public class Utils {
     }
 
     if (lock.tryLock()) {
-      if (lockType == LockType.WRITE) {
+      if (shouldWiden) {
         // Now that table lock is acquired see if the range still widens to the same thing. If not
         // it means the table splits changed so release the lock and try again later. The table
         // splits in this range can not change once the lock is acquired, so this recheck is done

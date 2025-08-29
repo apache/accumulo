@@ -416,7 +416,8 @@ public interface TableOperations {
    * @param srcTableName the table to clone
    * @param newTableName the name of the clone
    * @param config the clone command configuration
-   * @since 1.10 and 2.1
+   * @since 1.10.0
+   * @since 2.1.0
    */
   void clone(String srcTableName, String newTableName, CloneConfiguration config)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
