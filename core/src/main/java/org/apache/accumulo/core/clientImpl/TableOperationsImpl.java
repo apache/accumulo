@@ -131,7 +131,6 @@ import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.constraints.Constraint;
@@ -144,6 +143,7 @@ import org.apache.accumulo.core.dataImpl.thrift.TSummaryRequest;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
@@ -1057,7 +1057,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
         client -> client.getVersionedTableProperties(TraceUtil.traceInfo(), context.rpcCreds(),
             tableName),
-        rgid -> true);
+        ResourceGroupPredicate.ANY);
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -1068,11 +1068,9 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER
-          .executeVoid(
-              context, client -> client.modifyTableProperties(TraceUtil.traceInfo(),
-                  context.rpcCreds(), tableName, vProperties),
-              rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+      ThriftClientTypes.MANAGER.executeVoid(context, client -> client
+          .modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName, vProperties),
+          ResourceGroupPredicate.DEFAULT);
       for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(tableName, property);
       }
@@ -1140,7 +1138,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+        ResourceGroupPredicate.DEFAULT);
   }
 
   @Override
@@ -1162,7 +1160,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+        ResourceGroupPredicate.DEFAULT);
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
@@ -1187,7 +1185,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
           .getTableConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), tableName),
-          rgid -> true);
+          ResourceGroupPredicate.ANY);
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof TableNotFoundException) {
@@ -1209,7 +1207,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     try {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.getTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName),
-          rgid -> true);
+          ResourceGroupPredicate.ANY);
     } catch (AccumuloException e) {
       Throwable t = e.getCause();
       if (t instanceof TableNotFoundException) {
@@ -1597,7 +1595,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
         // this operation may us a lot of memory... it's likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
         // connections
-        pair = ThriftClientTypes.CLIENT.getThriftServerConnection(context, false, rgid -> true);
+        pair = ThriftClientTypes.CLIENT.getThriftServerConnection(context, false,
+            ResourceGroupPredicate.ANY);
         diskUsages = pair.getSecond().getDiskUsage(tableNames, context.rpcCreds());
       } catch (ThriftTableOperationException e) {
         switch (e.getType()) {
@@ -1796,7 +1795,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       return ThriftClientTypes.CLIENT.execute(context,
           client -> client.checkTableClass(TraceUtil.traceInfo(), context.rpcCreds(), tableName,
               className, asTypeName),
-          rgid -> true);
+          ResourceGroupPredicate.ANY);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
@@ -2089,7 +2088,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             tsr = client.contiuneGetSummaries(TraceUtil.traceInfo(), tsr.sessionId);
           }
           return tsr;
-        }, rgid -> true);
+        }, ResourceGroupPredicate.ANY);
         return new SummaryCollection(ret).getSummaries();
       }
 
@@ -2281,7 +2280,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-            rgid -> rgid.equals(ResourceGroupId.DEFAULT)));
+            ResourceGroupPredicate.DEFAULT));
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }

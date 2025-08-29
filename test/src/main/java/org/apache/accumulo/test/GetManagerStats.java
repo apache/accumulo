@@ -23,7 +23,7 @@ import java.util.Date;
 import java.util.Map.Entry;
 
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.BulkImportStatus;
 import org.apache.accumulo.core.manager.thrift.DeadServer;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
@@ -41,7 +41,7 @@ public class GetManagerStats {
     var context = new ServerContext(SiteConfiguration.auto());
     stats = ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+        ResourceGroupPredicate.DEFAULT);
     out(0, "State: " + stats.state.name());
     out(0, "Goal State: " + stats.goalState.name());
     if (stats.serversShuttingDown != null && !stats.serversShuttingDown.isEmpty()) {

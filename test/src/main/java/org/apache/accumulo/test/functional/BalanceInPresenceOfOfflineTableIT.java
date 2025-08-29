@@ -40,7 +40,7 @@ import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerMonitorInfo;
 import org.apache.accumulo.core.manager.thrift.TableInfo;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -160,7 +160,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute((ClientContext) accumuloClient,
           client -> client.getManagerStats(TraceUtil.traceInfo(),
               creds.toThrift(accumuloClient.instanceOperations().getInstanceId())),
-          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+          ResourceGroupPredicate.DEFAULT);
 
       if (stats.getTServerInfoSize() < 2) {
         log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);

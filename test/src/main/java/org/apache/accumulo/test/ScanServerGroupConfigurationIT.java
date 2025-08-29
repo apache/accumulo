@@ -31,6 +31,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -123,7 +124,7 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
     // Ensure no scan servers running
     Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getScanServer(rg -> true, AddressSelector.all(), true).isEmpty());
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty());
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       final String tableName = getUniqueNames(1)[0];
@@ -144,13 +145,12 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
 
         // Start a ScanServer. No group specified, should be in the default group.
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER, "localhost");
-        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(rg -> true, AddressSelector.all(), true).size() == 1, 30_000);
         Wait.waitFor(
-            () -> getCluster()
-                .getServerContext().getServerPaths().getScanServer(
-                    rg -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true)
-                .size() > 0);
+            () -> getCluster().getServerContext().getServerPaths()
+                .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 1,
+            30_000);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size() > 0);
 
         assertEquals(ingestedEntryCount, scanner.stream().count(),
             "The scan server scanner should have seen all ingested and flushed entries");
@@ -164,16 +164,16 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
         getCluster().getConfig().getClusterServerConfiguration()
             .addScanServerResourceGroup("GROUP1", 1);
         getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
-        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(rg -> true, AddressSelector.all(), true).size() == 2, 30_000);
         Wait.waitFor(
-            () -> getCluster()
-                .getServerContext().getServerPaths().getScanServer(
-                    rg -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true)
-                .size() == 1);
-        Wait.waitFor(() -> getCluster()
-            .getServerContext().getServerPaths().getScanServer(
-                rg -> rg.equals(ResourceGroupId.of("GROUP1")), AddressSelector.all(), true)
+            () -> getCluster().getServerContext().getServerPaths()
+                .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 2,
+            30_000);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size()
+            == 1);
+        Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+            .getScanServer(ResourceGroupPredicate.exact(ResourceGroupId.of("GROUP1")),
+                AddressSelector.all(), true)
             .size() == 1);
 
         scanner.setExecutionHints(Map.of("scan_type", "use_group1"));

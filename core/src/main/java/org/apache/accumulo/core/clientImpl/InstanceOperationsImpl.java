@@ -107,7 +107,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value),
-        ResourceGroupId.DEFAULT::equals);
+        ResourceGroupPredicate.DEFAULT);
     checkLocalityGroups(property);
   }
 
@@ -117,7 +117,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
     final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
         client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()),
-        rgid -> true);
+        ResourceGroupPredicate.ANY);
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -142,7 +142,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+        ResourceGroupPredicate.DEFAULT);
 
     return vProperties.getProperties();
   }
@@ -189,7 +189,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+        ResourceGroupPredicate.DEFAULT);
     checkLocalityGroups(property);
   }
 
@@ -213,7 +213,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.CURRENT),
-        rgid -> true);
+        ResourceGroupPredicate.ANY);
   }
 
   @Override
@@ -221,7 +221,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .getConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), ConfigurationType.SITE),
-        rgid -> true);
+        ResourceGroupPredicate.ANY);
   }
 
   @Override
@@ -229,7 +229,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context,
         client -> client.getSystemProperties(TraceUtil.traceInfo(), context.rpcCreds()),
-        rgid -> true);
+        ResourceGroupPredicate.ANY);
   }
 
   @Override
@@ -248,7 +248,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getCompactors() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true)
+    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -257,7 +257,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public Set<String> getScanServers() {
     Set<String> results = new HashSet<>();
-    context.getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
+    context.getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -266,7 +266,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   @Deprecated(since = "4.0.0")
   public List<String> getTabletServers() {
     List<String> results = new ArrayList<>();
-    context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), true)
+    context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
         .forEach(t -> results.add(t.getServer()));
     return results;
   }
@@ -331,7 +332,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.CLIENT.execute(context, client -> client
         .checkClass(TraceUtil.traceInfo(), context.rpcCreds(), className, asTypeName),
-        rgid -> true);
+        ResourceGroupPredicate.ANY);
   }
 
   @Override
@@ -465,8 +466,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void waitForBalance() throws AccumuloException {
     try {
       ThriftClientTypes.MANAGER.executeVoid(context,
-          client -> client.waitForBalance(TraceUtil.traceInfo()),
-          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+          client -> client.waitForBalance(TraceUtil.traceInfo()), ResourceGroupPredicate.DEFAULT);
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new IllegalStateException("Unexpected exception thrown", ex);
@@ -483,7 +483,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Duration getManagerTime() throws AccumuloException, AccumuloSecurityException {
     return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-        rgid -> rgid.equals(ResourceGroupId.DEFAULT)));
+        ResourceGroupPredicate.DEFAULT));
   }
 
   @Override
@@ -492,8 +492,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
     Objects.requireNonNull(type, "type parameter cannot be null");
     Objects.requireNonNull(host, "host parameter cannot be null");
 
-    final ResourceGroupPredicate rg =
-        resourceGroup == null ? rgt -> true : rgt -> rgt.equals(resourceGroup);
+    final ResourceGroupPredicate rg = resourceGroup == null ? ResourceGroupPredicate.ANY
+        : ResourceGroupPredicate.exact(resourceGroup);
     final AddressSelector hp = AddressSelector.exact(HostAndPort.fromParts(host, port));
 
     switch (type) {
@@ -540,7 +540,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
 
   @Override
   public Set<ServerId> getServers(ServerId.Type type) {
-    return getServers(type, rg -> true, AddressSelector.all());
+    return getServers(type, ResourceGroupPredicate.ANY, AddressSelector.all());
   }
 
   @Override

@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.ScanType;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.util.DurationFormat;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
@@ -150,7 +151,7 @@ public class ListScansCommand extends Command {
 
   static Predicate<ResourceGroupId> rgRegexPredicate(String rgRegex) {
     if (rgRegex == null || rgRegex.isBlank()) {
-      return rgid -> true;
+      return ResourceGroupPredicate.ANY;
     }
     final Pattern p = Pattern.compile(rgRegex);
     return rgid -> p.matcher(rgid.canonical()).matches();

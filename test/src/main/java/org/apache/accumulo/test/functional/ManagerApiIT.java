@@ -38,7 +38,7 @@ import org.apache.accumulo.core.clientImpl.Credentials;
 import org.apache.accumulo.core.clientImpl.thrift.TVersionedProperties;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.InstanceId;
-import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.ManagerClientService;
 import org.apache.accumulo.core.manager.thrift.ManagerGoalState;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
@@ -268,7 +268,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
         .as(rootUser.getPrincipal(), rootUser.getToken()).build()) {
       ClientContext context = (ClientContext) client;
       ThriftClientTypes.MANAGER.execute(context, op.apply(rootUser),
-          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+          ResourceGroupPredicate.DEFAULT);
     }
   }
 
@@ -306,14 +306,14 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(user.getPrincipal(), user.getToken()).build()) {
       ThriftClientTypes.MANAGER.execute((ClientContext) client, op.apply(user),
-          rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+          ResourceGroupPredicate.DEFAULT);
     }
   }
 
   private static void expectPermissionSuccess(
       ThriftClientTypes.Exec<Void,ManagerClientService.Client> op, ClientContext context)
       throws Exception {
-    ThriftClientTypes.MANAGER.execute(context, op, rgid -> rgid.equals(ResourceGroupId.DEFAULT));
+    ThriftClientTypes.MANAGER.execute(context, op, ResourceGroupPredicate.DEFAULT);
   }
 
   private static void expectPermissionDenied(
