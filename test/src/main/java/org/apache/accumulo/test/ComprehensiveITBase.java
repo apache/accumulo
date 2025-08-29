@@ -28,9 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -105,7 +103,6 @@ import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -1379,17 +1376,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
 
     client.tableOperations().exportTable(srcTable, exportDir);
 
-    fs.mkdirs(new Path(importDir));
-    try (var inputStream = fs.open(new Path(exportDir + "/distcp.txt"));
-        var inputStreamReader = new InputStreamReader(inputStream);
-        var reader = new BufferedReader(inputStreamReader)) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        var srcPath = new Path(line);
-        Path destPath = new Path(importDir, srcPath.getName());
-        FileUtil.copy(fs, srcPath, fs, destPath, false, fs.getConf());
-      }
-    }
+    ImportExportIT.copyExportedFilesToImportDirs(fs, new Path(exportDir), new Path(importDir));
 
     client.tableOperations().importTable(importTable, importDir);
 
