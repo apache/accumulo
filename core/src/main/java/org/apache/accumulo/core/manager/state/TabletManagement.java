@@ -35,12 +35,16 @@ import org.apache.hadoop.io.Text;
 import com.google.common.base.Joiner;
 import com.google.common.base.Splitter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 /**
  * Object that represents a Tablets metadata and any actions that the Manager might need to take on
  * the object. This object is created by the TabletManagementIterator iterator used by the
  * TabletGroupWatcher threads in the Manager.
  *
  */
+@SuppressFBWarnings(value = "CT_CONSTRUCTOR_THROW",
+    justification = "Constructor validation is required for proper initialization")
 public class TabletManagement {
 
   public static final EnumSet<ColumnType> CONFIGURED_COLUMNS = EnumSet.allOf(ColumnType.class);

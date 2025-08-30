@@ -77,7 +77,7 @@ import org.apache.hadoop.io.Text;
 
 import com.google.common.base.Preconditions;
 
-class RFileScanner extends ScannerOptions implements Scanner {
+final class RFileScanner extends ScannerOptions implements Scanner {
 
   private static class RFileScannerEnvironmentImpl extends ClientServiceEnvironmentImpl {
 

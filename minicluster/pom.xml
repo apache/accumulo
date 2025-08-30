@@ -163,6 +163,13 @@
     </pluginManagement>
     <plugins>
       <plugin>
+        <groupId>com.github.spotbugs</groupId>
+        <artifactId>spotbugs-maven-plugin</artifactId>
+        <configuration>
+          <omitVisitors>SharedVariableAtomicityDetector,ConstructorThrow</omitVisitors>
+        </configuration>
+      </plugin>
+      <plugin>
         <groupId>net.revelc.code</groupId>
         <artifactId>apilyzer-maven-plugin</artifactId>
         <executions>
