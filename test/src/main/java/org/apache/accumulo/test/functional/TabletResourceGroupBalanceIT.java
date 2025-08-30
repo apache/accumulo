@@ -47,6 +47,7 @@ import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
@@ -101,7 +102,7 @@ public class TabletResourceGroupBalanceIT extends SharedMiniClusterBase {
 
     Map<String,ResourceGroupId> tservers = new HashMap<>();
     for (ServiceLockPath tserver : cluster.getServerContext().getServerPaths()
-        .getTabletServer(rg -> true, AddressSelector.all(), true)) {
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)) {
       tservers.put(tserver.getServer(), tserver.getResourceGroup());
     }
     return tservers;

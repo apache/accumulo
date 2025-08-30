@@ -75,6 +75,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
@@ -654,7 +655,8 @@ public class Admin implements KeywordExecutable {
       throws AccumuloException, AccumuloSecurityException {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
-        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo));
+        client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo),
+        ResourceGroupPredicate.DEFAULT);
   }
 
   private static void stopServers(final ServerContext context, List<String> servers,
@@ -684,10 +686,12 @@ public class Admin implements KeywordExecutable {
 
         AddressSelector addresses = AddressSelector.matching(hostAndPort::contains);
         List<ServiceLockPath> pathsToRemove = new ArrayList<>();
-        pathsToRemove.addAll(context.getServerPaths().getCompactor(rg -> true, addresses, false));
-        pathsToRemove.addAll(context.getServerPaths().getScanServer(rg -> true, addresses, false));
-        pathsToRemove
-            .addAll(context.getServerPaths().getTabletServer(rg -> true, addresses, false));
+        pathsToRemove.addAll(
+            context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, addresses, false));
+        pathsToRemove.addAll(
+            context.getServerPaths().getScanServer(ResourceGroupPredicate.ANY, addresses, false));
+        pathsToRemove.addAll(
+            context.getServerPaths().getTabletServer(ResourceGroupPredicate.ANY, addresses, false));
         ZooZap.filterSingleton(context, context.getServerPaths().getManager(false), addresses)
             .ifPresent(pathsToRemove::add);
         ZooZap.filterSingleton(context, context.getServerPaths().getGarbageCollector(false),
@@ -757,7 +761,8 @@ public class Admin implements KeywordExecutable {
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
         ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force));
+            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force),
+            ResourceGroupPredicate.DEFAULT);
       }
     }
   }
@@ -772,8 +777,8 @@ public class Admin implements KeywordExecutable {
   static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
     var hpObj = HostAndPort.fromString(hostAndPort);
-    Set<ServiceLockPath> paths =
-        context.getServerPaths().getTabletServer(rg -> true, AddressSelector.exact(hpObj), true);
+    Set<ServiceLockPath> paths = context.getServerPaths()
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.exact(hpObj), true);
     if (paths.size() != 1) {
       return hostAndPort;
     }

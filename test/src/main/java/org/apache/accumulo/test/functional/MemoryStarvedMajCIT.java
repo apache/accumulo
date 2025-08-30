@@ -37,8 +37,8 @@ import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.util.UtilWaitThread;
 import org.apache.accumulo.core.util.compaction.ExternalCompactionUtil;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -141,8 +141,8 @@ public class MemoryStarvedMajCIT extends SharedMiniClusterBase {
       ClientContext ctx = (ClientContext) client;
 
       Wait.waitFor(() -> ctx.getServerPaths()
-          .getCompactor(rg -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true)
-          .size() == 1, 60_000);
+          .getCompactor(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size() == 1,
+          60_000);
 
       ServerId csi = ctx.instanceOperations().getServers(ServerId.Type.COMPACTOR).iterator().next();
       HostAndPort compactorAddr = HostAndPort.fromParts(csi.getHost(), csi.getPort());

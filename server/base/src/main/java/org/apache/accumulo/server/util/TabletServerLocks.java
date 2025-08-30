@@ -26,6 +26,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.server.ServerContext;
@@ -42,8 +43,8 @@ public class TabletServerLocks {
     ZooReaderWriter zoo = context.getZooSession().asReaderWriter();
 
     if (delete == null) {
-      Set<ServiceLockPath> tabletServers =
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
+      Set<ServiceLockPath> tabletServers = context.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
       if (tabletServers.isEmpty()) {
         System.err.println("No tservers found in ZK");
       }
@@ -64,8 +65,8 @@ public class TabletServerLocks {
         printUsage();
       } else {
         var hostAndPort = HostAndPort.fromString(lock);
-        Set<ServiceLockPath> paths = context.getServerPaths().getTabletServer(rg -> true,
-            AddressSelector.exact(hostAndPort), true);
+        Set<ServiceLockPath> paths = context.getServerPaths()
+            .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.exact(hostAndPort), true);
         Preconditions.checkArgument(paths.size() == 1,
             lock + " does not match a single ZooKeeper TabletServer lock. matches=" + paths);
         ServiceLockPath path = paths.iterator().next();
