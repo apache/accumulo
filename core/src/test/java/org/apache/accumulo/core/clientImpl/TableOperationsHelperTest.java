@@ -40,6 +40,7 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -52,6 +53,7 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -284,6 +286,12 @@ public class TableOperationsHelperTest {
     public List<SummarizerConfiguration> listSummarizers(String tableName) {
       throw new UnsupportedOperationException();
     }
+
+    @Override
+    public NamespaceId getNamespace(String table) throws NamespaceNotFoundException {
+      throw new UnsupportedOperationException();
+    }
+
   }
 
   protected TableOperationsHelper getHelper() {

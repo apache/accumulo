@@ -32,6 +32,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
+import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.harness.conf.StandaloneAccumuloClusterConfiguration;
@@ -57,9 +58,9 @@ public class ShellConfigIT extends AccumuloClusterHarness {
       // properties are not.
       // This lets us run this test more generically rather than forcibly needing to update some
       // property in accumulo.properties
-      origPropValue =
-          client.instanceOperations().getSystemConfiguration().get(PERTABLE_CHOOSER_PROP);
-      client.instanceOperations().setProperty(PERTABLE_CHOOSER_PROP,
+      origPropValue = client.namespaceOperations().getConfiguration(Namespace.DEFAULT.name())
+          .get(PERTABLE_CHOOSER_PROP);
+      client.namespaceOperations().setProperty(Namespace.DEFAULT.name(), PERTABLE_CHOOSER_PROP,
           FairVolumeChooser.class.getName());
     }
   }
@@ -68,7 +69,8 @@ public class ShellConfigIT extends AccumuloClusterHarness {
   public void resetProperty() throws Exception {
     if (origPropValue != null) {
       try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
-        client.instanceOperations().setProperty(PERTABLE_CHOOSER_PROP, origPropValue);
+        client.namespaceOperations().setProperty(Namespace.DEFAULT.name(), PERTABLE_CHOOSER_PROP,
+            origPropValue);
       }
     }
   }
@@ -113,7 +115,7 @@ public class ShellConfigIT extends AccumuloClusterHarness {
     assertTrue(Property.INSTANCE_CRYPTO_PREFIX.isExperimental());
     assertTrue(Property.INSTANCE_CRYPTO_SENSITIVE_PREFIX.isExperimental());
 
-    String configOutput = ts.exec("config");
+    String configOutput = ts.exec("config -ns \"\"");
 
     assertTrue(configOutput.contains(PERTABLE_CHOOSER_PROP));
   }
