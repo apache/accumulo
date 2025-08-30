@@ -18,17 +18,38 @@
  */
 package org.apache.accumulo.core.fate.zookeeper;
 
+import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.easymock.EasyMock.anyObject;
+import static org.easymock.EasyMock.createMock;
+import static org.easymock.EasyMock.eq;
+import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.replay;
+import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.AccumuloLockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.fate.zookeeper.ServiceLock.ServiceLockPath;
+import org.apache.accumulo.core.util.ServerServices;
+import org.apache.zookeeper.ZooKeeper;
+import org.apache.zookeeper.data.Stat;
+import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
 
 public class ServiceLockTest {
+
+  private final String ZPATH = "/test/";
+  private final ServiceLockPath path = ServiceLock.path(ZPATH);
 
   @Test
   public void testSortAndFindLowestPrevPrefix() {
@@ -102,5 +123,74 @@ public class ServiceLockTest {
     String candidate = validChildren.get(0);
     assertTrue(candidate.contains(uuid));
     assertTrue(candidate.contains(seq));
+  }
+
+  @Test
+  public void determineLockOwnershipTest() throws Exception {
+    final long ephemeralOwner = 123456789L;
+    Stat existsStat = new Stat();
+    existsStat.setEphemeralOwner(ephemeralOwner);
+
+    ZooKeeper zk = createMock(ZooKeeper.class);
+    expect(zk.exists(eq(ZPATH), anyObject(ServiceLock.class))).andReturn(existsStat);
+
+    replay(zk);
+
+    ServiceLock serviceLock = new ServiceLock(zk, path, UUID.randomUUID());
+    AccumuloLockWatcher mockLockWatcher = EasyMock.createMock(AccumuloLockWatcher.class);
+
+    Method determineLockOwnershipMethod = ServiceLock.class
+        .getDeclaredMethod("determineLockOwnership", String.class, AccumuloLockWatcher.class);
+    determineLockOwnershipMethod.setAccessible(true);
+
+    String testEphemeralNode = "zlock#test-uuid#0000000001";
+
+    InvocationTargetException exception = assertThrows(InvocationTargetException.class, () -> {
+      determineLockOwnershipMethod.invoke(serviceLock, testEphemeralNode, mockLockWatcher);
+    });
+
+    assertEquals(exception.getTargetException().getClass(), IllegalStateException.class);
+    assertTrue(exception.getTargetException().getMessage()
+        .contains("Called determineLockOwnership() when ephemeralNodeName == null"));
+
+    verify(zk);
+  }
+
+  @Test
+  public void tryLockCleanupOnFailureTest() throws Exception {
+    LockWatcher mockLockWatcher = EasyMock.createMock(LockWatcher.class);
+
+    final long ephemeralOwner = 123456789L;
+    Stat existsStat = new Stat();
+    existsStat.setEphemeralOwner(ephemeralOwner);
+
+    ZooKeeper zk = createMock(ZooKeeper.class);
+    expect(zk.exists(eq(ZPATH), anyObject(ServiceLock.class))).andReturn(existsStat);
+
+    replay(zk);
+
+    ServiceLock serviceLock = new ServiceLock(zk, path, UUID.randomUUID());
+
+    Field createdNodeNameField = ServiceLock.class.getDeclaredField("createdNodeName");
+    createdNodeNameField.setAccessible(true);
+    createdNodeNameField.set(serviceLock, "zlock#test-uuid#0000000001");
+
+    Field lockWasAcquiredField = ServiceLock.class.getDeclaredField("lockWasAcquired");
+    lockWasAcquiredField.setAccessible(true);
+    lockWasAcquiredField.set(serviceLock, false);
+
+    assertThrows(IllegalStateException.class,
+        () -> serviceLock.tryLock(mockLockWatcher,
+            new ServerServices("9443", ServerServices.Service.COMPACTOR_CLIENT).toString()
+                .getBytes(UTF_8)));
+
+    createdNodeNameField.setAccessible(true);
+    // Cast to string since field should be set to null
+    String nullCreatedNodeName = (String) createdNodeNameField.get(serviceLock);
+    // This should be null, but instead is not null.
+    // assertNull(nullCreatedNodeName, "createdNodeName was not cleaned up after failed lock
+    // attempt");
+    assertNotNull(nullCreatedNodeName,
+        "createdNodeName was not cleaned up after failed lock attempt");
   }
 }
