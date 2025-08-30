@@ -57,8 +57,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.Constants;
@@ -72,6 +72,7 @@ import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.InstanceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
@@ -218,7 +219,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   protected TabletServer(ConfigOpts opts,
-      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+      BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
+      String[] args) {
     super(ServerId.Type.TABLET_SERVER, opts, serverContextFactory, args);
     context = super.getContext();
     final AccumuloConfiguration aconf = getConfiguration();

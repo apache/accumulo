@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.core.conf.cluster;
+package org.apache.accumulo.server.conf.cluster;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,15 +26,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Predicate;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.conf.SiteConfiguration;
 import org.apache.accumulo.core.data.ResourceGroupId;
+import org.apache.accumulo.server.ServerContext;
+import org.apache.accumulo.server.security.SecurityUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
@@ -42,24 +48,20 @@ import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
+@SuppressFBWarnings(value = {"LI_LAZY_INIT_STATIC", "PA_PUBLIC_PRIMITIVE_ATTRIBUTE"},
+    justification = "visible for testing")
 public class ClusterConfigParser {
 
-  private static final Pattern GROUP_NAME_PATTERN = Pattern.compile("^[a-zA-Z]+(_?[a-zA-Z0-9])*$");
-
-  public static void validateGroupName(ResourceGroupId rgid) {
-    if (!GROUP_NAME_PATTERN.matcher(rgid.canonical()).matches()) {
-      throw new IllegalArgumentException(
-          "Group name: " + rgid.canonical() + " contains invalid characters");
-    }
-  }
-
-  public static void validateGroupNames(List<String> names) {
+  static void validateGroupNames(List<String> names) {
     for (String name : names) {
-      if (!GROUP_NAME_PATTERN.matcher(name).matches()) {
-        throw new RuntimeException("Group name: " + name + " contains invalid characters");
+      if (!ResourceGroupId.GROUP_NAME_PATTERN.matcher(name).matches()) {
+        throw new IllegalArgumentException("Group name: " + name + " contains invalid characters");
       }
     }
   }
+
+  // visible for testing
+  public static SiteConfiguration siteConf = null;
 
   private static final String PROPERTY_FORMAT = "%s=\"%s\"%n";
   private static final String COMPACTOR_PREFIX = "compactor.";
@@ -151,7 +153,27 @@ public class ClusterConfigParser {
     return groups;
   }
 
-  public static void outputShellVariables(Map<String,String> config, PrintStream out) {
+  private static void validateConfiguredGroups(final ServerContext ctx, final Set<String> zkGroups,
+      final List<String> configuredGroups, boolean createMissingRG) {
+    for (String cg : configuredGroups) {
+      if (!zkGroups.contains(cg)) {
+        if (createMissingRG) {
+          try {
+            ctx.resourceGroupOperations().create(ResourceGroupId.of(cg));
+          } catch (AccumuloException | AccumuloSecurityException e) {
+            throw new IllegalStateException("Error creating resource group: " + cg, e);
+          }
+        } else {
+          throw new IllegalStateException(
+              "Resource group configured that does not exist in ZooKeeper. ZK: " + zkGroups
+                  + ", configured: " + cg);
+        }
+      }
+    }
+  }
+
+  public static void outputShellVariables(ServerContext ctx, Map<String,String> config,
+      Set<String> zkGroups, boolean createMissingRG, PrintStream out) {
 
     // find invalid config sections and point the user to the first one
     config.keySet().stream().filter(VALID_CONFIG_SECTIONS.negate()).findFirst()
@@ -175,6 +197,7 @@ public class ClusterConfigParser {
       throw new IllegalArgumentException(
           "No compactor groups found, at least one compactor group is required to compact the system tables.");
     }
+    validateConfiguredGroups(ctx, zkGroups, compactorGroups, createMissingRG);
     if (!compactorGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "COMPACTOR_GROUPS",
           compactorGroups.stream().collect(Collectors.joining(" ")));
@@ -188,6 +211,7 @@ public class ClusterConfigParser {
     }
 
     List<String> sserverGroups = parseGroup(config, SSERVER_PREFIX);
+    validateConfiguredGroups(ctx, zkGroups, sserverGroups, createMissingRG);
     if (!sserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "SSERVER_GROUPS",
           sserverGroups.stream().collect(Collectors.joining(" ")));
@@ -202,6 +226,7 @@ public class ClusterConfigParser {
       throw new IllegalArgumentException(
           "No tserver groups found, at least one tserver group is required to host the system tables.");
     }
+    validateConfiguredGroups(ctx, zkGroups, tserverGroups, createMissingRG);
     AtomicBoolean foundTServer = new AtomicBoolean(false);
     if (!tserverGroups.isEmpty()) {
       out.printf(PROPERTY_FORMAT, "TSERVER_GROUPS",
@@ -225,24 +250,42 @@ public class ClusterConfigParser {
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
       justification = "Path provided for output file is intentional")
   public static void main(String[] args) throws IOException {
-    if (args == null || args.length < 1 || args.length > 2) {
-      System.err.println("Usage: ClusterConfigParser <configFile> [<outputFile>]");
+    if (args == null || args.length < 1 || args.length > 3) {
+      System.err.println(
+          "Usage: ClusterConfigParser <createMissingResourceGroups> <configFile> [<outputFile>]");
       System.exit(1);
     }
 
-    try {
-      if (args.length == 2) {
-        // Write to a file instead of System.out if provided as an argument
-        try (OutputStream os = Files.newOutputStream(Path.of(args[1]));
-            PrintStream out = new PrintStream(os)) {
-          outputShellVariables(parseConfiguration(Path.of(args[0])), out);
-        }
-      } else {
-        outputShellVariables(parseConfiguration(Path.of(args[0])), System.out);
+    if (siteConf == null) {
+      siteConf = SiteConfiguration.auto();
+    }
+    try (var context = new ServerContext(siteConf)) {
+      // Login as the server on secure HDFS
+      if (siteConf.getBoolean(Property.INSTANCE_RPC_SASL_ENABLED)) {
+        SecurityUtil.serverLogin(siteConf);
       }
-    } catch (Exception e) {
-      System.err.println("Processing error: " + e.getMessage());
-      System.exit(1);
+      final Set<String> zkGroups = new HashSet<>();
+      context.resourceGroupOperations().list().forEach(rg -> zkGroups.add(rg.canonical()));
+      if (!zkGroups.contains(ResourceGroupId.DEFAULT.canonical())) {
+        throw new IllegalStateException("Default resource group not found in ZooKeeper");
+      }
+      boolean createMissingRG = args[0].equals("true") ? true : false;
+      try {
+        if (args.length == 3) {
+          // Write to a file instead of System.out if provided as an argument
+          try (OutputStream os = Files.newOutputStream(Path.of(args[2]));
+              PrintStream out = new PrintStream(os)) {
+            outputShellVariables(context, parseConfiguration(Path.of(args[1])), zkGroups,
+                createMissingRG, out);
+          }
+        } else {
+          outputShellVariables(context, parseConfiguration(Path.of(args[1])), zkGroups,
+              createMissingRG, System.out);
+        }
+      } catch (Exception e) {
+        System.err.println("Processing error: " + e.getMessage());
+        throw e;
+      }
     }
   }
 
