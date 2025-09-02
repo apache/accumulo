@@ -27,7 +27,10 @@ import org.apache.accumulo.core.data.Mutation;
 /**
  * A constraints that limits the size of keys to 1mb.
  *
- * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
+ * <p>
+ * This was moved from the org.apache.accumulo.core.constraints package since 2.1.0
+ *
+ * @since 2.1.0
  */
 public class DefaultKeySizeConstraint implements Constraint {
 

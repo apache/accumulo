@@ -46,6 +46,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -483,10 +484,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
   private Map<String,String> getStoredConfiguration() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
-    return ThriftClientTypes.CLIENT
-        .execute(ctx,
-            client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()))
-        .getProperties();
+    return ThriftClientTypes.CLIENT.execute(ctx,
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()),
+        ResourceGroupPredicate.ANY).getProperties();
   }
 
   interface PropertyShim {

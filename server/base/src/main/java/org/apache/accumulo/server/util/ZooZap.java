@@ -137,7 +137,7 @@ public class ZooZap implements KeywordExecutable {
           .map(ResourceGroupId::of).collect(Collectors.toSet());
       rgp = groups::contains;
     } else {
-      rgp = g -> true;
+      rgp = ResourceGroupPredicate.ANY;
     }
 
     if (!opts.zapManager && !opts.zapTservers && !opts.zapCompactors && !opts.zapScanServers

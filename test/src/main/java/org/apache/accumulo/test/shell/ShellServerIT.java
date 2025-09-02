@@ -31,7 +31,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.api.Assumptions.assumeFalse;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.IOException;
@@ -93,6 +92,7 @@ import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.ImportExportIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
 import org.apache.hadoop.conf.Configuration;
@@ -191,7 +191,6 @@ public class ShellServerIT extends SharedMiniClusterBase {
       java.nio.file.Path exportDir =
           java.nio.file.Path.of(rootPath).resolve("ShellServerIT.export");
       String exportUri = "file://" + exportDir;
-      String localTmp = "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.tmp");
       ts.exec("exporttable -t " + table + " " + exportUri, true);
       DistCp cp = new DistCp(new Configuration(false), null);
       String import_ = "file://" + java.nio.file.Path.of(rootPath).resolve("ShellServerIT.import");
@@ -200,29 +199,9 @@ public class ShellServerIT extends SharedMiniClusterBase {
         // DistCp bugs out trying to get a fs delegation token to perform the cp. Just copy it
         // ourselves by hand.
         FileSystem fs = getCluster().getFileSystem();
-        FileSystem localFs = FileSystem.getLocal(new Configuration(false));
-
-        // Path on local fs to cp into
-        Path localTmpPath = new Path(localTmp);
-        localFs.mkdirs(localTmpPath);
-
-        // Path in remote fs to importtable from
         Path importDir = new Path(import_);
-        fs.mkdirs(importDir);
-
-        // Implement a poor-man's DistCp
-        try (BufferedReader reader =
-            Files.newBufferedReader(exportDir.resolve("distcp.txt"), UTF_8)) {
-          for (String line; (line = reader.readLine()) != null;) {
-            Path exportedFile = new Path(line);
-            // There isn't a cp on FileSystem??
-            log.info("Copying {} to {}", line, localTmpPath);
-            fs.copyToLocalFile(exportedFile, localTmpPath);
-            Path tmpFile = new Path(localTmpPath, exportedFile.getName());
-            log.info("Moving {} to the import directory {}", tmpFile, importDir);
-            fs.moveFromLocalFile(tmpFile, importDir);
-          }
-        }
+        Path exportPath = new Path(exportDir.toUri());
+        ImportExportIT.copyExportedFilesToImportDirs(fs, exportPath, importDir);
       } else {
         String[] distCpArgs = {"-f", exportUri + "/distcp.txt", import_};
         assertEquals(0, cp.run(distCpArgs), "Failed to run distcp: " + Arrays.toString(distCpArgs));
