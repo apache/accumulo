@@ -83,7 +83,7 @@ public class DetectDeadTabletServersIT extends ConfigurableMacBase {
     final ClientContext context = (ClientContext) c;
     return ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
   }
 
 }

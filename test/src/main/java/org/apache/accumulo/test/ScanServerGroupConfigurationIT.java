@@ -150,7 +150,8 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
                 .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 1,
             30_000);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size() > 0);
+            .getScanServer(ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), true)
+            .size() > 0);
 
         assertEquals(ingestedEntryCount, scanner.stream().count(),
             "The scan server scanner should have seen all ingested and flushed entries");
@@ -169,8 +170,8 @@ public class ScanServerGroupConfigurationIT extends SharedMiniClusterBase {
                 .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 2,
             30_000);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-            .getScanServer(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size()
-            == 1);
+            .getScanServer(ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), true)
+            .size() == 1);
         Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
             .getScanServer(ResourceGroupPredicate.exact(ResourceGroupId.of("GROUP1")),
                 AddressSelector.all(), true)

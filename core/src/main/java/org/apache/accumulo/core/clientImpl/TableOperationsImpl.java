@@ -1068,9 +1068,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     try {
       // Send to server
-      ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-          .modifyTableProperties(TraceUtil.traceInfo(), context.rpcCreds(), tableName, vProperties),
-          ResourceGroupPredicate.DEFAULT);
+      ThriftClientTypes.MANAGER
+          .executeVoid(
+              context, client -> client.modifyTableProperties(TraceUtil.traceInfo(),
+                  context.rpcCreds(), tableName, vProperties),
+              ResourceGroupPredicate.DEFAULT_RG_ONLY);
       for (String property : vProperties.getProperties().keySet()) {
         checkLocalityGroups(tableName, property);
       }
@@ -1138,7 +1140,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property, value),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
   }
 
   @Override
@@ -1160,7 +1162,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException {
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .removeTableProperty(TraceUtil.traceInfo(), context.rpcCreds(), tableName, property),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
   }
 
   void checkLocalityGroups(String tableName, String propChanged)
@@ -2280,7 +2282,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
       try {
         return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-            ResourceGroupPredicate.DEFAULT));
+            ResourceGroupPredicate.DEFAULT_RG_ONLY));
       } catch (AccumuloException | AccumuloSecurityException e) {
         throw new IllegalStateException(e);
       }

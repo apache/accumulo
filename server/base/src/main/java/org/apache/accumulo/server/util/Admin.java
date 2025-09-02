@@ -656,7 +656,7 @@ public class Admin implements KeywordExecutable {
 
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.shutdown(TraceUtil.traceInfo(), context.rpcCreds(), tabletServersToo),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
   }
 
   private static void stopServers(final ServerContext context, List<String> servers,
@@ -760,9 +760,11 @@ public class Admin implements KeywordExecutable {
         HostAndPort address = AddressUtil.parseAddress(server, port);
         final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
         log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER.executeVoid(context, client -> client
-            .shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(), finalServer, force),
-            ResourceGroupPredicate.DEFAULT);
+        ThriftClientTypes.MANAGER
+            .executeVoid(
+                context, client -> client.shutdownTabletServer(TraceUtil.traceInfo(),
+                    context.rpcCreds(), finalServer, force),
+                ResourceGroupPredicate.DEFAULT_RG_ONLY);
       }
     }
   }

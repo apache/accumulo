@@ -537,7 +537,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
                 getCluster().getServerContext().rpcCreds(), finalAddress, false),
-            ResourceGroupPredicate.DEFAULT);
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }
@@ -589,7 +589,7 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
                 getCluster().getServerContext().rpcCreds(), finalAddress, false),
-            ResourceGroupPredicate.DEFAULT);
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }

@@ -677,10 +677,10 @@ public class ClientTabletCacheImpl extends ClientTabletCache {
       log.debug("Requesting hosting for {} ondemand tablets for table id {}.",
           extentsToBringOnline.size(), tableId);
       ThriftClientTypes.MANAGER
-          .executeVoid(
-              context, client -> client.requestTabletHosting(TraceUtil.traceInfo(),
-                  context.rpcCreds(), tableId.canonical(), extentsToBringOnline),
-              ResourceGroupPredicate.DEFAULT);
+          .executeVoid(context,
+              client -> client.requestTabletHosting(TraceUtil.traceInfo(), context.rpcCreds(),
+                  tableId.canonical(), extentsToBringOnline),
+              ResourceGroupPredicate.DEFAULT_RG_ONLY);
       tabletHostingRequestCount.addAndGet(extentsToBringOnline.size());
     }
   }

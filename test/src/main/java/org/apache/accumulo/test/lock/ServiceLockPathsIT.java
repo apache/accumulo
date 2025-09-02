@@ -56,7 +56,8 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
     assertEquals(2,
         paths.getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size());
     assertEquals(1,
-        paths.getTabletServer(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size());
+        paths.getTabletServer(ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), true)
+            .size());
     assertEquals(1, paths.getTabletServer(ResourceGroupPredicate.exact(ResourceGroupId.of("TTEST")),
         AddressSelector.all(), true).size());
     assertEquals(0, paths.getTabletServer(ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE")),
@@ -81,8 +82,8 @@ public class ServiceLockPathsIT extends AccumuloClusterHarness {
 
     assertEquals(3,
         paths.getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size());
-    assertEquals(1,
-        paths.getScanServer(ResourceGroupPredicate.DEFAULT, AddressSelector.all(), true).size());
+    assertEquals(1, paths
+        .getScanServer(ResourceGroupPredicate.DEFAULT_RG_ONLY, AddressSelector.all(), true).size());
     assertEquals(2, paths.getScanServer(ResourceGroupPredicate.exact(ResourceGroupId.of("STEST")),
         AddressSelector.all(), true).size());
     assertEquals(0, paths.getScanServer(ResourceGroupPredicate.exact(ResourceGroupId.of("FAKE")),

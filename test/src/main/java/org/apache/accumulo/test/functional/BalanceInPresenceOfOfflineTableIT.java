@@ -160,7 +160,7 @@ public class BalanceInPresenceOfOfflineTableIT extends AccumuloClusterHarness {
       ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute((ClientContext) accumuloClient,
           client -> client.getManagerStats(TraceUtil.traceInfo(),
               creds.toThrift(accumuloClient.instanceOperations().getInstanceId())),
-          ResourceGroupPredicate.DEFAULT);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
 
       if (stats.getTServerInfoSize() < 2) {
         log.debug("we need >= 2 servers. sleeping for {}ms", currentWait);

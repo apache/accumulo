@@ -84,7 +84,7 @@ public class MetadataMaxFilesIT extends ConfigurableMacBase {
         ClientContext context = (ClientContext) c;
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-            ResourceGroupPredicate.DEFAULT);
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
         int tablets = 0;
         for (TabletServerStatus tserver : stats.tServerInfo) {
           for (Entry<String,TableInfo> entry : tserver.tableMap.entrySet()) {

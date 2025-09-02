@@ -89,7 +89,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(),
                 creds.toThrift(c.instanceOperations().getInstanceId())),
-            ResourceGroupPredicate.DEFAULT);
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
         int unassignedTablets = stats.getUnassignedTablets();
         if (unassignedTablets > 0) {
           log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",
@@ -105,7 +105,7 @@ public class SimpleBalancerFairnessIT extends ConfigurableMacBase {
         ManagerMonitorInfo stats = ThriftClientTypes.MANAGER.execute(context,
             client -> client.getManagerStats(TraceUtil.traceInfo(),
                 creds.toThrift(c.instanceOperations().getInstanceId())),
-            ResourceGroupPredicate.DEFAULT);
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
 
         List<Integer> counts = new ArrayList<>();
         for (TabletServerStatus server : stats.tServerInfo) {

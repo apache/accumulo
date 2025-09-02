@@ -268,7 +268,7 @@ public class ManagerApiIT extends SharedMiniClusterBase {
         .as(rootUser.getPrincipal(), rootUser.getToken()).build()) {
       ClientContext context = (ClientContext) client;
       ThriftClientTypes.MANAGER.execute(context, op.apply(rootUser),
-          ResourceGroupPredicate.DEFAULT);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
     }
   }
 
@@ -306,14 +306,14 @@ public class ManagerApiIT extends SharedMiniClusterBase {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps())
         .as(user.getPrincipal(), user.getToken()).build()) {
       ThriftClientTypes.MANAGER.execute((ClientContext) client, op.apply(user),
-          ResourceGroupPredicate.DEFAULT);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
     }
   }
 
   private static void expectPermissionSuccess(
       ThriftClientTypes.Exec<Void,ManagerClientService.Client> op, ClientContext context)
       throws Exception {
-    ThriftClientTypes.MANAGER.execute(context, op, ResourceGroupPredicate.DEFAULT);
+    ThriftClientTypes.MANAGER.execute(context, op, ResourceGroupPredicate.DEFAULT_RG_ONLY);
   }
 
   private static void expectPermissionDenied(

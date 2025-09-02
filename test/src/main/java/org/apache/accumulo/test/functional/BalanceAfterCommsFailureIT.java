@@ -107,7 +107,7 @@ public class BalanceAfterCommsFailureIT extends ConfigurableMacBase {
     for (int i = 0; unassignedTablets > 0 && i < 10; i++) {
       stats = ThriftClientTypes.MANAGER.execute(context,
           client -> client.getManagerStats(TraceUtil.traceInfo(), context.rpcCreds()),
-          ResourceGroupPredicate.DEFAULT);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
       unassignedTablets = stats.getUnassignedTablets();
       if (unassignedTablets > 0) {
         log.info("Found {} unassigned tablets, sleeping 3 seconds for tablet assignment",

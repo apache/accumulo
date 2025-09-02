@@ -107,7 +107,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .setSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property, value),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
     checkLocalityGroups(property);
   }
 
@@ -142,7 +142,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     // Send to server
     ThriftClientTypes.MANAGER.executeVoid(context, client -> client
         .modifySystemProperties(TraceUtil.traceInfo(), context.rpcCreds(), vProperties),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
 
     return vProperties.getProperties();
   }
@@ -189,7 +189,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
     });
     ThriftClientTypes.MANAGER.executeVoid(context,
         client -> client.removeSystemProperty(TraceUtil.traceInfo(), context.rpcCreds(), property),
-        ResourceGroupPredicate.DEFAULT);
+        ResourceGroupPredicate.DEFAULT_RG_ONLY);
     checkLocalityGroups(property);
   }
 
@@ -466,7 +466,8 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public void waitForBalance() throws AccumuloException {
     try {
       ThriftClientTypes.MANAGER.executeVoid(context,
-          client -> client.waitForBalance(TraceUtil.traceInfo()), ResourceGroupPredicate.DEFAULT);
+          client -> client.waitForBalance(TraceUtil.traceInfo()),
+          ResourceGroupPredicate.DEFAULT_RG_ONLY);
     } catch (AccumuloSecurityException ex) {
       // should never happen
       throw new IllegalStateException("Unexpected exception thrown", ex);
@@ -483,7 +484,7 @@ public class InstanceOperationsImpl implements InstanceOperations {
   public Duration getManagerTime() throws AccumuloException, AccumuloSecurityException {
     return Duration.ofNanos(ThriftClientTypes.MANAGER.execute(context,
         client -> client.getManagerTimeNanos(TraceUtil.traceInfo(), context.rpcCreds()),
-        ResourceGroupPredicate.DEFAULT));
+        ResourceGroupPredicate.DEFAULT_RG_ONLY));
   }
 
   @Override
