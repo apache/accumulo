@@ -107,7 +107,7 @@ public interface TServerClient<C extends TServiceClient> {
 
     if (preferCachedConnections && !debugHostSpecified && !debugRGSpecified) {
       Pair<String,TTransport> cachedTransport =
-          context.getTransportPool().getAnyCachedTransport(type);
+          context.getTransportPool().getAnyCachedTransport(type, context, service, rgp);
       if (cachedTransport != null) {
         C client = ThriftUtil.createClient(type, cachedTransport.getSecond());
         warned.set(false);
