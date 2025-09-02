@@ -23,10 +23,11 @@ import static org.easymock.EasyMock.anyObject;
 import static org.easymock.EasyMock.createMock;
 import static org.easymock.EasyMock.eq;
 import static org.easymock.EasyMock.expect;
+import static org.easymock.EasyMock.expectLastCall;
 import static org.easymock.EasyMock.replay;
 import static org.easymock.EasyMock.verify;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -48,7 +49,7 @@ import org.junit.jupiter.api.Test;
 
 public class ServiceLockTest {
 
-  private final String ZPATH = "/test/";
+  private final String ZPATH = "/test";
   private final ServiceLockPath path = ServiceLock.path(ZPATH);
 
   @Test
@@ -161,11 +162,15 @@ public class ServiceLockTest {
     LockWatcher mockLockWatcher = EasyMock.createMock(LockWatcher.class);
 
     final long ephemeralOwner = 123456789L;
+    final String zlock = "zlock#test-uuid#0000000001";
     Stat existsStat = new Stat();
     existsStat.setEphemeralOwner(ephemeralOwner);
 
     ZooKeeper zk = createMock(ZooKeeper.class);
     expect(zk.exists(eq(ZPATH), anyObject(ServiceLock.class))).andReturn(existsStat);
+    expect(zk.getChildren(eq(ZPATH + "/" + zlock), anyObject(null))).andReturn(List.of());
+    zk.delete(eq(ZPATH + "/" + zlock), eq(-1));
+    expectLastCall();
 
     replay(zk);
 
@@ -173,24 +178,20 @@ public class ServiceLockTest {
 
     Field createdNodeNameField = ServiceLock.class.getDeclaredField("createdNodeName");
     createdNodeNameField.setAccessible(true);
-    createdNodeNameField.set(serviceLock, "zlock#test-uuid#0000000001");
+    createdNodeNameField.set(serviceLock, zlock);
 
     Field lockWasAcquiredField = ServiceLock.class.getDeclaredField("lockWasAcquired");
     lockWasAcquiredField.setAccessible(true);
     lockWasAcquiredField.set(serviceLock, false);
 
-    assertThrows(IllegalStateException.class,
-        () -> serviceLock.tryLock(mockLockWatcher,
-            new ServerServices("9443", ServerServices.Service.COMPACTOR_CLIENT).toString()
-                .getBytes(UTF_8)));
+    serviceLock.tryLock(mockLockWatcher,
+        new ServerServices("9443", ServerServices.Service.COMPACTOR_CLIENT).toString()
+            .getBytes(UTF_8));
 
     createdNodeNameField.setAccessible(true);
     // Cast to string since field should be set to null
     String nullCreatedNodeName = (String) createdNodeNameField.get(serviceLock);
-    // This should be null, but instead is not null.
-    // assertNull(nullCreatedNodeName, "createdNodeName was not cleaned up after failed lock
-    // attempt");
-    assertNotNull(nullCreatedNodeName,
-        "createdNodeName was not cleaned up after failed lock attempt");
+    assertNull(nullCreatedNodeName, "createdNodeName was not cleaned up after failed lock");
+    verify(zk);
   }
 }
