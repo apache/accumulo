@@ -262,9 +262,8 @@ public class PrepBulkImport extends ManagerRepo {
           throw tde;
         }
         var lockRange = LockRange.of(bulkInfo.firstSplit, bulkInfo.lastSplit);
-        boolean outsideRange =
-            tde.getDeletedEndRow().map(row -> !lockRange.contains(row)).orElse(false);
-        if (!outsideRange) {
+        boolean insideRange = tde.getDeletedEndRow().map(lockRange::contains).orElse(true);
+        if (insideRange) {
           // The deleted split was inside the lock range or its unknown. Splits should not be
           // deleted concurrently inside the lock range.
           throw tde;
