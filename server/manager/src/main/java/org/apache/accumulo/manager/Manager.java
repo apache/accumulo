@@ -85,6 +85,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
@@ -587,8 +588,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
       while (stillManager()) {
         try {
-          Set<ServiceLockPath> scanServerPaths =
-              getContext().getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
+          Set<ServiceLockPath> scanServerPaths = getContext().getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
           for (ServiceLockPath path : scanServerPaths) {
 
             ZcStat stat = new ZcStat();

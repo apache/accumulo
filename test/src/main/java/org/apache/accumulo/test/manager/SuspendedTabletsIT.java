@@ -54,6 +54,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.LocationType;
@@ -310,7 +311,7 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           ThriftClientTypes.MANAGER.executeVoid(ctx, client -> {
             log.info("Sending shutdown command to {} via ManagerClientService", ts);
             client.shutdownTabletServer(null, ctx.rpcCreds(), ts, false);
-          });
+          }, ResourceGroupPredicate.DEFAULT_RG_ONLY);
         } catch (AccumuloSecurityException | AccumuloException e) {
           throw new RuntimeException("Error calling shutdownTabletServer for " + ts, e);
         }
