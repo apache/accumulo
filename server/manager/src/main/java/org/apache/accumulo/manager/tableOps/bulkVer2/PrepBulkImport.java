@@ -47,6 +47,7 @@ import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock;
 import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.file.FilePrefix;
+import org.apache.accumulo.core.metadata.schema.TabletDeletedException;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.util.PeekingIterator;
@@ -131,7 +132,7 @@ public class PrepBulkImport extends ManagerRepo {
     PeekingIterator<KeyExtent> pi =
         new PeekingIterator<>(tabletIterFactory.newTabletIter(startRow));
 
-    try {
+    try (tabletIterFactory) {
       KeyExtent currTablet = pi.next();
 
       var fileCounts = new HashMap<String,Integer>();
@@ -204,8 +205,6 @@ public class PrepBulkImport extends ManagerRepo {
                   + new TreeMap<>(fileCounts));
         }
       }
-    } finally {
-      tabletIterFactory.close();
     }
   }
 
@@ -254,8 +253,43 @@ public class PrepBulkImport extends ManagerRepo {
 
       int skip = manager.getContext().getTableConfiguration(bulkInfo.tableId)
           .getCount(Property.TABLE_BULK_SKIP_THRESHOLD);
-      validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
-          maxFilesPerTablet, fateId, skip);
+      try {
+        validateLoadMapping(bulkInfo.tableId.canonical(), lmi, tabletIterFactory, maxTablets,
+            maxFilesPerTablet, fateId, skip);
+      } catch (TabletDeletedException tde) {
+        boolean sameTableId = tde.getDeletedTableId().map(bulkInfo.tableId::equals).orElse(false);
+        if (!sameTableId) {
+          throw tde;
+        }
+        var lockRange = LockRange.of(bulkInfo.firstSplit, bulkInfo.lastSplit);
+        boolean outsideRange =
+            tde.getDeletedEndRow().map(row -> !lockRange.contains(row)).orElse(false);
+        if (!outsideRange) {
+          // The deleted split was inside the lock range or its unknown. Splits should not be
+          // deleted concurrently inside the lock range.
+          throw tde;
+        }
+
+        // The bulk operation locks a portion of the table that it is importing to prevent merges.
+        // However, this code may scan past the range it locked and have a concurrent merge delete
+        // tablets while its scanning. If this happens, report it as a concurrent merge.
+        //
+        // Below is an example how this can happen.
+        //
+        // 1. Client sees splits c,d,e,m,p,x in table and creates bulk load into d,e,m
+        // 2. A merge delete splits e,m from table. This runs after the load plan was created and
+        // before the bulk load fate operation starts.
+        // 3. Bulk fate operation locks range (d,m]
+        // 4. Another merge operation starts over range (o,z] and deletes splits p,x. This merge can
+        // run concurrently with the bulk operation because they are locking different parts of the
+        // table.
+        // 5. The bulk operation scans past m because it does not exist and when scanning p,x gets a
+        // TabletDeletedException because of the concurrent merge.
+        log.debug("{} discarding and translating exception ", fateId, tde);
+        throw new AcceptableThriftTableOperationException(bulkInfo.tableId.canonical(), null,
+            TableOperation.BULK_IMPORT, TableOperationExceptionType.BULK_CONCURRENT_MERGE,
+            "Concurrent merge happened");
+      }
     }
   }
 
