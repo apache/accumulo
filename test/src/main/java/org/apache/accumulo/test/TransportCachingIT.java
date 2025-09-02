@@ -77,14 +77,14 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       ThriftTransportPool pool = context.getTransportPool();
       TTransport first = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, true);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, true);
 
       assertNotNull(first);
       // Return it to unreserve it
       pool.returnTransport(first);
 
       TTransport second = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, true);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, true);
 
       // We should get the same transport
       assertSame(first, second, "Expected the first and second to be the same instance");
@@ -92,11 +92,11 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       // Ensure does not get cached connection just returned
       TTransport third = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, false);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, false);
       assertNotSame(second, third, "Expected second and third transport to be different instances");
 
       TTransport fourth = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, false);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, false);
       assertNotSame(third, fourth, "Expected third and fourth transport to be different instances");
 
       pool.returnTransport(third);
@@ -104,15 +104,15 @@ public class TransportCachingIT extends AccumuloClusterHarness {
 
       // The following three asserts ensure the per server queue is LIFO
       TTransport fifth = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, true);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, true);
       assertSame(fourth, fifth, "Expected fourth and fifth transport to be the same instance");
 
       TTransport sixth = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, true);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, true);
       assertSame(third, sixth, "Expected third and sixth transport to be the same instance");
 
       TTransport seventh = getAnyTransport(ttk, pool, context, ThriftService.CLIENT,
-          ResourceGroupPredicate.DEFAULT, true);
+          ResourceGroupPredicate.DEFAULT_RG_ONLY, true);
       assertSame(second, seventh, "Expected second and seventh transport to be the same instance");
 
       pool.returnTransport(fifth);
