@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -606,14 +607,20 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
         new KeyExtent(TableId.of(getUniqueNames(1)[0]), new Text("zzz"), new Text("aaa"));
     FateKey fateKey = FateKey.forSplit(ke);
 
-    var executor = Executors.newFixedThreadPool(10);
+    final int numTasks = 10;
+    var executor = Executors.newFixedThreadPool(numTasks);
+    List<Future<Optional<FateId>>> futures = new ArrayList<>(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
     try {
-      // have 10 threads all try to seed the same fate key, only one should succeed.
-      List<Future<Optional<FateId>>> futures = new ArrayList<>(10);
-      for (int i = 0; i < 10; i++) {
-        futures.add(executor
-            .submit(() -> seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true)));
+      // have all threads try to seed the same fate key, only one should succeed.
+      for (int i = 0; i < numTasks; i++) {
+        futures.add(executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
+          return seedTransaction(store, TEST_FATE_OP, fateKey, new TestRepo(), true);
+        }));
       }
+      assertEquals(numTasks, futures.size());
 
       int idsSeen = 0;
       for (var future : futures) {

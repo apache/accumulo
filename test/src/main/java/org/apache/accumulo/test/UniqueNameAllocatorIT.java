@@ -29,6 +29,7 @@ import java.util.NoSuchElementException;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -68,10 +69,14 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
 
     var executorService = Executors.newCachedThreadPool();
     List<Future<Integer>> futures = new ArrayList<>();
+    CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at the same
+                                                        // time
 
     // create threads that are allocating large random chunks
     for (int i = 0; i < 64; i++) {
       var future = executorService.submit(() -> {
+        startLatch.countDown();
+        startLatch.await();
         int added = 0;
         while (namesSeen.size() < 1_000_000) {
           var allocator = allocators[random.nextInt(allocators.length)];
@@ -88,6 +93,8 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
     for (int i = 1; i <= 10; i++) {
       int needed = i;
       var future = executorService.submit(() -> {
+        startLatch.countDown();
+        startLatch.await();
         int added = 0;
         while (namesSeen.size() < 1_000_000) {
           var allocator = allocators[random.nextInt(allocators.length)];

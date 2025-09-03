@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -87,20 +88,23 @@ public class ZooMutatorIT extends WithTestNames {
     try (var testZk = new ZooKeeperTestingServer(newFolder.toFile()); var zk = testZk.newClient()) {
       var zrw = zk.asReaderWriter();
 
-      var executor = Executors.newFixedThreadPool(16);
+      final int numTasks = 16;
+      var executor = Executors.newFixedThreadPool(numTasks);
 
       String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
-      List<Future<?>> futures = new ArrayList<>();
+      List<Future<?>> futures = new ArrayList<>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
 
       // This map is used to ensure multiple threads do not successfully write the same value and no
       // values are skipped. The hash in the value also verifies similar things in a different way.
       ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
 
-      for (int i = 0; i < 16; i++) {
+      for (int i = 0; i < numTasks; i++) {
         futures.add(executor.submit(() -> {
           try {
-
+            startLatch.countDown();
+            startLatch.await();
             int count = -1;
             while (count < 200) {
               byte[] val =
@@ -116,6 +120,7 @@ public class ZooMutatorIT extends WithTestNames {
           }
         }));
       }
+      assertEquals(numTasks, futures.size());
 
       // wait and check for errors in background threads
       for (Future<?> future : futures) {

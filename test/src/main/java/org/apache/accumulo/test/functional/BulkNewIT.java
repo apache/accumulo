@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -936,9 +937,13 @@ public class BulkNewIT extends SharedMiniClusterBase {
       final int N = 100;
 
       ExecutorService executor;
+      CountDownLatch startLatch;
       if (parallelBulkImports) {
-        executor = Executors.newFixedThreadPool(16);
+        final int numTasks = 16;
+        executor = Executors.newFixedThreadPool(numTasks);
+        startLatch = new CountDownLatch(numTasks); // wait for a portion of the tasks to be ready
       } else {
+        startLatch = null;
         // execute the bulk imports in the current thread which will cause them to run serially
         executor = MoreExecutors.newDirectExecutorService();
       }
@@ -950,6 +955,10 @@ public class BulkNewIT extends SharedMiniClusterBase {
           // Create 10 files for the bulk import.
           for (int f = 0; f < 10; f++) {
             writeData(fs, iterationDir + "/f" + f + ".", aconf, f * 1000, (f + 1) * 1000 - 1);
+          }
+          if (parallelBulkImports) {
+            startLatch.countDown();
+            startLatch.await();
           }
           c.tableOperations().importDirectory(iterationDir).to(tableName).tableTime(true).load();
           getCluster().getFileSystem().delete(new Path(iterationDir), true);
@@ -1102,8 +1111,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
           .collect(Collectors.toCollection(TreeSet::new));
       c.tableOperations().addSplits(tableName, splits);
 
-      var executor = Executors.newFixedThreadPool(16);
-      var futures = new ArrayList<Future<?>>();
+      final int numTasks = 16;
+      var executor = Executors.newFixedThreadPool(numTasks);
+      var futures = new ArrayList<Future<?>>(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks); // wait for a portion of the tasks
+                                                                // to be ready
 
       var loadPlanBuilder = LoadPlan.builder();
       var rowsExpected = new HashSet<>();
@@ -1115,12 +1127,15 @@ public class BulkNewIT extends SharedMiniClusterBase {
         loadPlanBuilder.loadFileTo(filename + RFile.EXTENSION, RangeType.TABLE, row(data - 1),
             row(data));
         var future = executor.submit(() -> {
+          startLatch.countDown();
+          startLatch.await();
           writeData(fs, dir + "/" + filename, aconf, data, data);
           return null;
         });
         futures.add(future);
         rowsExpected.add(row(data));
       }
+      assertEquals(imports.size(), futures.size());
 
       for (var future : futures) {
         future.get();

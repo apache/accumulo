@@ -19,10 +19,12 @@
 package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
@@ -85,18 +87,24 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
       List<Future<?>> futures = new ArrayList<>();
       var executor = Executors.newCachedThreadPool();
+      CountDownLatch startLatch = new CountDownLatch(32); // wait for a portion of the tasks to be
+                                                          // ready
 
-      for (int i = 0; i < 100; i++) {
+      int numTasks = 100;
+      for (int i = 0; i < numTasks; i++) {
         int idx1 = RANDOM.get().nextInt(splits.size() - 1);
         int idx2 = RANDOM.get().nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
 
         var future = executor.submit(() -> {
-          c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, true);
+          startLatch.countDown();
+          startLatch.await();
+          c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
           return null;
         });
 
         futures.add(future);
       }
+      assertEquals(numTasks, futures.size());
 
       log.debug("Started compactions");
 

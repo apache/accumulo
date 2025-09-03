@@ -84,7 +84,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
         final CountDownLatch cdl = new CountDownLatch(numDeleteOps);
 
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(numDeleteOps);
 
         for (int i = 0; i < numDeleteOps; i++) {
           futures.add(es.submit(() -> {
