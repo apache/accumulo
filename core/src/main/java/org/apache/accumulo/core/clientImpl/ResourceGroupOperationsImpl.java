@@ -305,8 +305,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     }
   }
 
-  private void checkResourceGroupId(String rgName)
-      throws ResourceGroupNotFoundException {
+  private void checkResourceGroupId(String rgName) throws ResourceGroupNotFoundException {
     Preconditions.checkArgument(rgName != null && !rgName.isBlank(),
         "Supplied resource group name is null or empty");
 

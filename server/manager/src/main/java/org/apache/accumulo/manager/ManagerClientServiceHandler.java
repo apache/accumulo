@@ -535,7 +535,8 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       PropUtil.setProperties(context, ResourceGroupPropKey.of(rgid), Map.of(property, value));
     } catch (IllegalArgumentException iae) {
       Manager.log.error("Problem setting invalid property", iae);
-      throw new ThriftPropertyException(property, value, "Property is invalid. message: " + iae.getMessage());
+      throw new ThriftPropertyException(property, value,
+          "Property is invalid. message: " + iae.getMessage());
     } catch (Exception e) {
       Manager.log.error("Problem setting config property in zookeeper", e);
       throw new TException(e.getMessage());
