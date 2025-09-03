@@ -81,6 +81,8 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -91,6 +93,7 @@ import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.ImportExportIT;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -2466,6 +2469,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       String badRG = "test-RG";
       String goodRG = "testRG";
+      ResourceGroupId goodRgid = ResourceGroupId.of(goodRG);
 
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
@@ -2475,14 +2479,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
       assertEquals(2, ops.list().size());
       assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
-      assertTrue(ops.list().contains(ResourceGroupId.of(goodRG)));
+      assertTrue(ops.list().contains(goodRgid));
 
       ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
           false, "contains invalid characters");
       ts.exec("config -rg " + goodRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
           true);
 
-      Map<String,String> props = ops.getProperties(ResourceGroupId.of(goodRG));
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(goodRG, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+      Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(goodRgid), AddressSelector.all(), true).size()
+          == 1);
+      Map<String,String> props = ops.getProperties(goodRgid);
       assertEquals(1, props.size());
       assertTrue(props.containsKey(Property.COMPACTION_WARN_TIME.getKey()));
       assertEquals("3m", props.get(Property.COMPACTION_WARN_TIME.getKey()));
@@ -2491,6 +2500,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
       ts.exec("resourcegroup -d " + goodRG, true);
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+      getCluster().getClusterControl().stopCompactorGroup(goodRG);
 
     }
 

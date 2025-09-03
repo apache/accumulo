@@ -81,7 +81,6 @@ import org.apache.accumulo.test.fate.MultipleStoresITBase.LatchTestRepo;
 import org.apache.accumulo.test.functional.ReadWriteIT;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.zookeeper.KeeperException;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -948,7 +947,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
         .getServers(ServerId.Type.MANAGER).isEmpty(), 60_000);
   }
 
-  protected void startManager() throws IOException, KeeperException, InterruptedException {
+  protected void startManager() throws IOException {
     getCluster().getClusterControl().startAllServers(ServerType.MANAGER);
     Wait.waitFor(() -> !getCluster().getServerContext().instanceOperations()
         .getServers(ServerId.Type.MANAGER).isEmpty(), 60_000);
