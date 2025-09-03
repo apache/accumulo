@@ -79,7 +79,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.file.blockfile.cache.impl.BlockCacheConfiguration;
 import org.apache.accumulo.core.lock.ServiceLock;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
@@ -488,8 +488,9 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
 
-      LockWatcher lw = new ServiceLockWatcher(Type.TABLET_SERVER, () -> getShutdownComplete().get(),
-          (type) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
+      AccumuloLockWatcher lw =
+          new ServiceLockWatcher(Type.TABLET_SERVER, () -> getShutdownComplete().get(),
+              (type) -> context.getLowMemoryDetector().logGCInfo(getConfiguration()));
 
       for (int i = 0; i < 120 / 5; i++) {
         zoo.putPersistentData(zLockPath.toString(), new byte[0], NodeExistsPolicy.SKIP);

@@ -41,6 +41,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -365,6 +366,8 @@ public class Admin implements KeywordExecutable {
     List<String> instanceTypes = new ArrayList<>();
   }
 
+  AtomicBoolean lockAcquired = new AtomicBoolean(false);
+
   class AdminLockWatcher implements ServiceLock.AccumuloLockWatcher {
     @Override
     public void lostLock(ServiceLock.LockLossReason reason) {
@@ -387,11 +390,18 @@ public class Admin implements KeywordExecutable {
     public void acquiredLock() {
       lockAcquiredLatch.countDown();
       log.debug("Acquired ZooKeeper lock for Admin");
+      lockAcquired.getAndSet(true);
+    }
+
+    @Override
+    public boolean isLocked() {
+      return lockAcquired.get();
     }
 
     @Override
     public void failedToAcquireLock(Exception e) {
       log.warn("Failed to acquire ZooKeeper lock for Admin, msg: " + e.getMessage());
+      lockAcquired.getAndSet(false);
     }
   }
 

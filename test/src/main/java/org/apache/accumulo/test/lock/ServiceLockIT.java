@@ -128,6 +128,11 @@ public class ServiceLockIT {
     public void unableToMonitorLockNode(final Exception e) {}
 
     @Override
+    public boolean isLocked() {
+      return lockHeld;
+    }
+
+    @Override
     public void acquiredLock() {
       this.lockHeld = true;
     }
@@ -154,6 +159,11 @@ public class ServiceLockIT {
       this.reason = reason;
       changes++;
       this.notifyAll();
+    }
+
+    @Override
+    public boolean isLocked() {
+      return locked;
     }
 
     @Override
