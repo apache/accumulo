@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -91,6 +92,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -103,6 +105,7 @@ import com.google.common.net.HostAndPort;
  * avoiding duplicating existing testing. This does not test for edge cases, but rather tests for
  * basic expected functionality of all table operations against user tables and all system tables.
  */
+@Tag(SUNNY_DAY)
 public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniClusterBase {
   private static final Logger log =
       LoggerFactory.getLogger(ComprehensiveTableOperationsIT_SimpleSuite.class);
