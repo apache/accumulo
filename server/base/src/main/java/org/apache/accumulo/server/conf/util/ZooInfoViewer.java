@@ -357,9 +357,11 @@ public class ZooInfoViewer implements KeywordExecutable {
       return results;
     } catch (InterruptedException ex) {
       Thread.currentThread().interrupt();
-      throw new IllegalStateException("Interrupted reading table properties from ZooKeeper", ex);
+      throw new IllegalStateException(
+          "Interrupted reading resource group properties from ZooKeeper", ex);
     } catch (IOException | KeeperException ex) {
-      throw new IllegalStateException("Failed to read table properties from ZooKeeper", ex);
+      throw new IllegalStateException("Failed to read resource group properties from ZooKeeper",
+          ex);
     }
 
   }

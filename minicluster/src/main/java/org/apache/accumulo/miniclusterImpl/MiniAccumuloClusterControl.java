@@ -70,7 +70,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     this.cluster = cluster;
   }
 
-  public void start(ServerType server) throws IOException, KeeperException, InterruptedException {
+  public void start(ServerType server) throws IOException {
     start(server, null);
   }
 
@@ -132,7 +132,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit)
-      throws IOException, KeeperException, InterruptedException {
+      throws IOException {
     start(server, configOverrides, limit, null, new String[] {});
   }
 

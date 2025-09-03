@@ -42,6 +42,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
@@ -114,45 +115,51 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       getCluster().start();
 
       Wait.waitFor(() -> cc.getServerPaths()
-          .getCompactor(rg -> rg.equals(rgid), AddressSelector.all(), true).size() == 1);
+          .getCompactor(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
+          == 1);
       Wait.waitFor(() -> cc.getServerPaths()
-          .getScanServer(rg -> rg.equals(rgid), AddressSelector.all(), true).size() == 1);
+          .getScanServer(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
+          == 1);
       Wait.waitFor(() -> cc.getServerPaths()
-          .getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true).size() == 1);
+          .getTabletServer(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
+          == 1);
 
       checkProperty(iops, rgOps,
-          cc.getServerPaths().getCompactor(rg -> rg.equals(ResourceGroupId.DEFAULT),
+          cc.getServerPaths().getCompactor(ResourceGroupPredicate.DEFAULT_RG_ONLY,
               AddressSelector.all(), true),
           ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
           Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
-          cc.getServerPaths().getScanServer(rg -> rg.equals(ResourceGroupId.DEFAULT),
+          cc.getServerPaths().getScanServer(ResourceGroupPredicate.DEFAULT_RG_ONLY,
               AddressSelector.all(), true),
           ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
           Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
-          cc.getServerPaths().getTabletServer(rg -> rg.equals(ResourceGroupId.DEFAULT),
+          cc.getServerPaths().getTabletServer(ResourceGroupPredicate.DEFAULT_RG_ONLY,
               AddressSelector.all(), true),
           ResourceGroupId.DEFAULT, Property.COMPACTION_WARN_TIME,
           Property.COMPACTION_WARN_TIME.getDefaultValue(),
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
-          cc.getServerPaths().getCompactor(rg -> rg.equals(rgid), AddressSelector.all(), true),
+          cc.getServerPaths().getCompactor(ResourceGroupPredicate.exact(rgid),
+              AddressSelector.all(), true),
           rgid, Property.COMPACTION_WARN_TIME, "1m",
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
-          cc.getServerPaths().getScanServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
+          cc.getServerPaths().getScanServer(ResourceGroupPredicate.exact(rgid),
+              AddressSelector.all(), true),
           rgid, Property.COMPACTION_WARN_TIME, "1m",
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 
       checkProperty(iops, rgOps,
-          cc.getServerPaths().getTabletServer(rg -> rg.equals(rgid), AddressSelector.all(), true),
+          cc.getServerPaths().getTabletServer(ResourceGroupPredicate.exact(rgid),
+              AddressSelector.all(), true),
           rgid, Property.COMPACTION_WARN_TIME, "1m",
           Property.COMPACTION_WARN_TIME.getDefaultValue());
 

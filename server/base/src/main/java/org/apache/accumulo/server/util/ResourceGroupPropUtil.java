@@ -20,7 +20,6 @@ package org.apache.accumulo.server.util;
 
 import org.apache.accumulo.core.conf.DeprecatedPropertyUtil;
 import org.apache.accumulo.core.conf.Property;
-import org.apache.accumulo.core.conf.PropertyType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,24 +41,6 @@ public class ResourceGroupPropUtil {
         IllegalArgumentException iae = new IllegalArgumentException(
             "Property " + property + " with value: " + value + " is not valid");
         LOG.trace("Encountered error setting zookeeper property", iae);
-        throw iae;
-      }
-
-      // Find the property taking prefix into account
-      Property foundProp = null;
-      for (Property prop : Property.values()) {
-        if ((prop.getType() == PropertyType.PREFIX && property.startsWith(prop.getKey()))
-            || prop.getKey().equals(property)) {
-          foundProp = prop;
-          break;
-        }
-      }
-
-      if (foundProp == null || (foundProp.getType() != PropertyType.PREFIX
-          && !foundProp.getType().isValidFormat(value))) {
-        IllegalArgumentException iae = new IllegalArgumentException(
-            "Ignoring property " + property + " it is either null or in an invalid format");
-        LOG.trace("Attempted to set zookeeper property.  Value is either null or invalid", iae);
         throw iae;
       }
 
