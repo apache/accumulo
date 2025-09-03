@@ -85,12 +85,12 @@ public class FateStarvationIT extends AccumuloClusterHarness {
 
       List<Text> splits = new ArrayList<>(TestIngest.getSplitPoints(0, 100000, 67));
 
-      List<Future<?>> futures = new ArrayList<>();
+      int numTasks = 100;
+      List<Future<?>> futures = new ArrayList<>(numTasks);
       var executor = Executors.newCachedThreadPool();
       CountDownLatch startLatch = new CountDownLatch(32); // wait for a portion of the tasks to be
                                                           // ready
 
-      int numTasks = 100;
       for (int i = 0; i < numTasks; i++) {
         int idx1 = RANDOM.get().nextInt(splits.size() - 1);
         int idx2 = RANDOM.get().nextInt(splits.size() - (idx1 + 1)) + idx1 + 1;
