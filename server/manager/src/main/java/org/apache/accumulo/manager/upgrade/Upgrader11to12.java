@@ -931,13 +931,9 @@ public class Upgrader11to12 implements Upgrader {
             nsPropAdditions.put(e.getKey(), e.getValue());
           }
         }
-        try {
-          context.getPropStore().putAll(nsk, nsPropAdditions);
-          LOG.debug("Added table properties to namespace {}:", ns);
-          nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
-        } catch (IllegalStateException e1) {
-          throw e1;
-        }
+        context.getPropStore().putAll(nsk, nsPropAdditions);
+        LOG.debug("Added table properties to namespace {}:", ns);
+        nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
         LOG.info("Namespace '{}' completed.", ns);
       }
 
