@@ -100,7 +100,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
 
       client.tableOperations().create(table);
-      NamespaceId nid = client.tableOperations().getNamespace(table);
+      String nid = client.tableOperations().getNamespace(table);
 
       log.debug("Tables: {}", client.tableOperations().list());
 
@@ -111,21 +111,19 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
               + " cannot be set at the system level."
               + " Set table properties at the namespace or table level."));
       // override default in namespace, and then over-ride that for table prop
-      client.namespaceOperations().setProperty(nid.canonical(),
-          Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      client.namespaceOperations().setProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
 
-      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid.canonical())
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
       Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
       // revert namespace prop, and then over-ride to true with table prop
-      client.namespaceOperations().removeProperty(nid.canonical(),
-          Property.TABLE_BLOOM_ENABLED.getKey());
+      client.namespaceOperations().removeProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey());
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
-      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid.canonical())
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
       Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);

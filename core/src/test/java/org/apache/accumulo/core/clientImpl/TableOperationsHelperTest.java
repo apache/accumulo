@@ -53,7 +53,6 @@ import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -288,7 +287,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public NamespaceId getNamespace(String table) throws NamespaceNotFoundException {
+    public String getNamespace(String table) throws NamespaceNotFoundException {
       throw new UnsupportedOperationException();
     }
 

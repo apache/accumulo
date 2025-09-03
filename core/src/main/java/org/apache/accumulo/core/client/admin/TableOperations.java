@@ -44,7 +44,6 @@ import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.Summarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.data.LoadPlan;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.security.Authorizations;
@@ -1074,10 +1073,10 @@ public interface TableOperations {
    * Returns the namespace for the given table name
    *
    * @param table fully qualified table name
-   * @return namespace id
+   * @return namespace name
    * @throws IllegalArgumentException if table name is null, empty, or invalid format
    * @throws NamespaceNotFoundException when namespace for table name does not exist
    * @since 4.0.0
    */
-  NamespaceId getNamespace(String table) throws NamespaceNotFoundException;
+  String getNamespace(String table) throws NamespaceNotFoundException;
 }

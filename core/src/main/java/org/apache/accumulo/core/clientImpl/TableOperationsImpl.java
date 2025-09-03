@@ -129,7 +129,6 @@ import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
@@ -2321,8 +2320,8 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public NamespaceId getNamespace(String table) throws NamespaceNotFoundException {
-    return context.getNamespaceId(TableNameUtil.qualify(table).getFirst());
+  public String getNamespace(String table) throws NamespaceNotFoundException {
+    return TableNameUtil.qualify(table).getFirst();
   }
 
 }
