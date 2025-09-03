@@ -120,7 +120,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
       Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
-      // revert sys, and then over-ride to true with table prop
+      // revert namespace prop, and then over-ride to true with table prop
       client.namespaceOperations().removeProperty(nid.canonical(),
           Property.TABLE_BLOOM_ENABLED.getKey());
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
