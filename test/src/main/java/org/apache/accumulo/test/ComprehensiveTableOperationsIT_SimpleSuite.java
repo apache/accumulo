@@ -754,8 +754,7 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
   @Test
   public void test_getNamespace() throws Exception {
     for (var sysTable : SystemTables.tableNames()) {
-        assertEquals(NamespaceId.of(Namespace.ACCUMULO.name()),
-            ops.getNamespace(sysTable);
+      assertEquals(NamespaceId.of(Namespace.ACCUMULO.name()), ops.getNamespace(sysTable));
     }
     ops.create("table1");
     assertEquals(NamespaceId.of(Namespace.DEFAULT.name()), ops.getNamespace("table1"));
