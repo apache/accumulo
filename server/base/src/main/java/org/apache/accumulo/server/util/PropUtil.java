@@ -27,6 +27,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.store.PropStoreKey;
 import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.hadoop.hdfs.DistributedFileSystem;
 import org.apache.hadoop.hdfs.protocol.ErasureCodingPolicyInfo;
 
@@ -62,7 +63,10 @@ public final class PropUtil {
       final PropStoreKey propStoreKey, final Map<String,String> properties)
       throws IllegalArgumentException {
     for (Map.Entry<String,String> prop : properties.entrySet()) {
-      if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {
+      if ((propStoreKey instanceof SystemPropKey || propStoreKey instanceof ResourceGroupPropKey)
+          && prop.getKey().startsWith(Property.TABLE_PREFIX.getKey())) {
+        throwIaeForTablePropInSysConfig(prop.getKey());
+      } else if (!Property.isValidProperty(prop.getKey(), prop.getValue())) {
         String exceptionMessage = "Invalid property for : ";
         if (!Property.isValidTablePropertyKey(prop.getKey())) {
           exceptionMessage = "Invalid Table property for : ";
@@ -103,4 +107,11 @@ public final class PropUtil {
       }
     }
   }
+
+  public static void throwIaeForTablePropInSysConfig(String prop) {
+    throw new IllegalArgumentException(
+        "Table property " + prop + " cannot be set at the system or resource group level."
+            + " Set table properties at the namespace or table level.");
+  }
+
 }

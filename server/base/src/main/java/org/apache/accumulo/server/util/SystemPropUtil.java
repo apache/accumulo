@@ -89,8 +89,8 @@ public class SystemPropUtil {
       log.trace("Encountered error setting zookeeper property", iae);
       throw iae;
     }
-    if (Property.isValidTablePropertyKey(property)) {
-      PropUtil.validateProperties(context, key, Map.of(property, value));
+    if (property.startsWith(Property.TABLE_PREFIX.getKey())) {
+      PropUtil.throwIaeForTablePropInSysConfig(property);
     }
 
     // Find the property taking prefix into account

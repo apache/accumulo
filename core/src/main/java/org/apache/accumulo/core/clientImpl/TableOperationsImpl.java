@@ -172,6 +172,7 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.accumulo.core.util.Retry;
 import org.apache.accumulo.core.util.TextUtil;
 import org.apache.accumulo.core.util.Timer;
+import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.core.volume.VolumeConfiguration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -2316,6 +2317,11 @@ public class TableOperationsImpl extends TableOperationsHelper {
         || !range.afterEndKey(new Key(tm.getPrevEndRow()).followingKey(PartialKey.ROW)))
         .map(tm -> new TabletInformationImpl(tm,
             () -> TabletState.compute(tm, liveTserverSet).toString(), currentTime));
+  }
+
+  @Override
+  public String getNamespace(String table) {
+    return TableNameUtil.qualify(table).getFirst();
   }
 
 }
