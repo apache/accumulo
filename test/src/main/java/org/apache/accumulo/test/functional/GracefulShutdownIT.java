@@ -50,6 +50,7 @@ import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
@@ -220,9 +221,9 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           .getServerContext().getServerPaths().getCompactor(
               (rg) -> rg.equals(ResourceGroupId.of(GROUP_NAME)), AddressSelector.all(), true)
           .size() == 1);
-      final Set<ServiceLockPath> compactors =
-          getCluster().getServerContext().getServerPaths().getCompactor(
-              (rg) -> rg.equals(ResourceGroupId.of(GROUP_NAME)), AddressSelector.all(), true);
+      final Set<ServiceLockPath> compactors = getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(ResourceGroupId.of(GROUP_NAME)),
+              AddressSelector.all(), true);
       final HostAndPort compactorAddress =
           HostAndPort.fromString(compactors.iterator().next().getServer());
 

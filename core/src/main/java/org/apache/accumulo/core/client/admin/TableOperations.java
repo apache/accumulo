@@ -418,7 +418,8 @@ public interface TableOperations {
    * @param srcTableName the table to clone
    * @param newTableName the name of the clone
    * @param config the clone command configuration
-   * @since 1.10 and 2.1
+   * @since 1.10.0
+   * @since 2.1.0
    */
   void clone(String srcTableName, String newTableName, CloneConfiguration config)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
@@ -1058,12 +1059,14 @@ public interface TableOperations {
   }
 
   /**
+   * @param fields can optionally narrow the data retrieved per tablet, which can speed up streaming
+   *        over tablets. If this list is empty then all fields are fetched.
    * @return a stream of tablet information for tablets that fall in the specified range. The stream
    *         may be backed by a scanner, so it's best to close the stream.
    * @since 4.0.0
    */
-  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
-      throws TableNotFoundException {
+  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
+      TabletInformation.Field... fields) throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 

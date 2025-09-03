@@ -94,6 +94,7 @@ import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.MetadataCachedTabletObtainer;
@@ -218,8 +219,9 @@ public class ClientContext implements AccumuloClient {
 
         @Override
         public Supplier<Collection<ScanServerInfo>> getScanServers() {
-          return () -> getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true)
-              .stream().map(entry -> new ScanServerInfo() {
+          return () -> getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).stream()
+              .map(entry -> new ScanServerInfo() {
                 @Override
                 public String getAddress() {
                   return entry.getServer();
@@ -455,7 +457,7 @@ public class ClientContext implements AccumuloClient {
     ensureOpen();
     Map<String,Pair<UUID,ResourceGroupId>> liveScanServers = new HashMap<>();
     Set<ServiceLockPath> scanServerPaths =
-        getServerPaths().getScanServer(rg -> true, AddressSelector.all(), true);
+        getServerPaths().getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true);
     for (ServiceLockPath path : scanServerPaths) {
       try {
         ZcStat stat = new ZcStat();

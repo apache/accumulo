@@ -45,6 +45,7 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
+import org.apache.accumulo.core.file.FileSKVIterator;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
@@ -81,8 +82,8 @@ public class UpdateTabletsTest {
         .insert();
   }
 
-  Splitter.FileInfo newFileInfo(String start, String end) {
-    return new Splitter.FileInfo(new Text(start), new Text(end));
+  FileSKVIterator.FileRange newFileInfo(String start, String end) {
+    return new FileSKVIterator.FileRange(new Text(start), new Text(end));
   }
 
   /**

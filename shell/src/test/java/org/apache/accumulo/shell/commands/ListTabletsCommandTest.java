@@ -174,9 +174,9 @@ public class ListTabletsCommandTest {
 
     TabletInformationImpl[] tabletInformation = new TabletInformationImpl[3];
     Supplier<Duration> currentTime = () -> Duration.ofHours(1);
-    tabletInformation[0] = new TabletInformationImpl(tm1, "HOSTED", currentTime);
-    tabletInformation[1] = new TabletInformationImpl(tm2, "HOSTED", currentTime);
-    tabletInformation[2] = new TabletInformationImpl(tm3, "UNASSIGNED", currentTime);
+    tabletInformation[0] = new TabletInformationImpl(tm1, () -> "HOSTED", currentTime);
+    tabletInformation[1] = new TabletInformationImpl(tm2, () -> "HOSTED", currentTime);
+    tabletInformation[2] = new TabletInformationImpl(tm3, () -> "UNASSIGNED", currentTime);
 
     AccumuloClient client = EasyMock.createMock(AccumuloClient.class);
     ClientContext context = EasyMock.createMock(ClientContext.class);

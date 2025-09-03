@@ -21,6 +21,7 @@ package org.apache.accumulo.core.file.rfile;
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -37,6 +38,7 @@ import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.crypto.CryptoFactoryLoader;
 import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.PartialKey;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -212,10 +214,7 @@ public abstract class AbstractRFileTest {
     if (indexIter.hasTop()) {
       Key lastKey = new Key(indexIter.getTopKey());
 
-      if (reader.getFirstRow().compareTo(lastKey.getRow()) > 0) {
-        throw new IllegalStateException(
-            "First key out of order " + reader.getFirstRow() + " " + lastKey);
-      }
+      assertTrue(reader.getFileRange().rowRange.contains(lastKey));
 
       indexIter.next();
 
@@ -227,13 +226,15 @@ public abstract class AbstractRFileTest {
 
         lastKey = new Key(indexIter.getTopKey());
         indexIter.next();
-
       }
 
-      if (!reader.getLastRow().equals(lastKey.getRow())) {
+      if (!reader.getFileRange().rowRange.getEndKey()
+          .equals(lastKey.followingKey(PartialKey.ROW))) {
         throw new IllegalStateException(
-            "Last key out of order " + reader.getLastRow() + " " + lastKey);
+            "Last key out of order " + reader.getFileRange().rowRange + " " + lastKey);
       }
+    } else {
+      assertTrue(reader.getFileRange().empty);
     }
   }
 

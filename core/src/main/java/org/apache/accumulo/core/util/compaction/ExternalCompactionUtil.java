@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -116,10 +117,12 @@ public class ExternalCompactionUtil {
    */
   public static Map<String,Set<HostAndPort>> getCompactorAddrs(ClientContext context) {
     final Map<String,Set<HostAndPort>> groupsAndAddresses = new HashMap<>();
-    context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true).forEach(slp -> {
-      groupsAndAddresses.computeIfAbsent(slp.getResourceGroup().canonical(), (k) -> new HashSet<>())
-          .add(HostAndPort.fromString(slp.getServer()));
-    });
+    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
+        .forEach(slp -> {
+          groupsAndAddresses
+              .computeIfAbsent(slp.getResourceGroup().canonical(), (k) -> new HashSet<>())
+              .add(HostAndPort.fromString(slp.getServer()));
+        });
     return groupsAndAddresses;
   }
 
@@ -203,11 +206,12 @@ public class ExternalCompactionUtil {
     final ExecutorService executor = ThreadPools.getServerThreadPools()
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTIONS_POOL).numCoreThreads(16).build();
 
-    context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true).forEach(slp -> {
-      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-      rcFutures.add(new RunningCompactionFuture(slp,
-          executor.submit(() -> getRunningCompaction(hp, context))));
-    });
+    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
+        .forEach(slp -> {
+          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+          rcFutures.add(new RunningCompactionFuture(slp,
+              executor.submit(() -> getRunningCompaction(hp, context))));
+        });
     executor.shutdown();
 
     final List<RunningCompaction> results = new ArrayList<>();
@@ -231,10 +235,11 @@ public class ExternalCompactionUtil {
         .getPoolBuilder(COMPACTOR_RUNNING_COMPACTION_IDS_POOL).numCoreThreads(16).build();
     List<Future<ExternalCompactionId>> futures = new ArrayList<>();
 
-    context.getServerPaths().getCompactor(rg -> true, AddressSelector.all(), true).forEach(slp -> {
-      final HostAndPort hp = HostAndPort.fromString(slp.getServer());
-      futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
-    });
+    context.getServerPaths().getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true)
+        .forEach(slp -> {
+          final HostAndPort hp = HostAndPort.fromString(slp.getServer());
+          futures.add(executor.submit(() -> getRunningCompactionId(hp, context)));
+        });
     executor.shutdown();
 
     HashSet<ExternalCompactionId> runningIds = new HashSet<>();
@@ -256,7 +261,7 @@ public class ExternalCompactionUtil {
   public static int countCompactors(ResourceGroupId group, ClientContext context) {
     var start = Timer.startNew();
     int count = context.getServerPaths()
-        .getCompactor(rg -> rg.equals(group), AddressSelector.all(), true).size();
+        .getCompactor(ResourceGroupPredicate.exact(group), AddressSelector.all(), true).size();
     long elapsed = start.elapsed(MILLISECONDS);
     if (elapsed > 100) {
       LOG.debug("Took {} ms to count {} compactors for {}", elapsed, count, group);

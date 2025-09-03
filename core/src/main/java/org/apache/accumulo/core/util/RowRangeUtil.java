@@ -82,4 +82,24 @@ public class RowRangeUtil {
     }
     return row;
   }
+
+  public static Range requireRowRange(Range range) {
+    String errorMsg = "Range is not a row range";
+
+    if (!range.isInfiniteStartKey()) {
+      Preconditions.checkArgument(range.isStartKeyInclusive(),
+          "%s, start key must be inclusive. %s", errorMsg, range);
+      Preconditions.checkArgument(isOnlyRowSet(range.getStartKey()),
+          "%s, start key must only contain a row. %s", errorMsg, range);
+    }
+
+    if (!range.isInfiniteStopKey()) {
+      Preconditions.checkArgument(!range.isEndKeyInclusive(), "%s, end key must be exclusive. %s",
+          errorMsg, range);
+      Preconditions.checkArgument(isOnlyRowSet(range.getEndKey()),
+          "%s, end key must only contain a row. %s", errorMsg, range);
+    }
+
+    return range;
+  }
 }
