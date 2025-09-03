@@ -2320,7 +2320,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
   }
 
   @Override
-  public String getNamespace(String table) throws NamespaceNotFoundException {
+  public String getNamespace(String table) {
     return TableNameUtil.qualify(table).getFirst();
   }
 

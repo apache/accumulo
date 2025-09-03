@@ -40,7 +40,6 @@ import java.util.function.Predicate;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.IteratorSetting;
-import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.CloneConfiguration;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
@@ -287,7 +286,7 @@ public class TableOperationsHelperTest {
     }
 
     @Override
-    public String getNamespace(String table) throws NamespaceNotFoundException {
+    public String getNamespace(String table) {
       throw new UnsupportedOperationException();
     }
 
