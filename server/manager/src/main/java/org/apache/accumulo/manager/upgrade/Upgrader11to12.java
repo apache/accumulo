@@ -34,10 +34,13 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchDeleter;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.IsolatedScanner;
@@ -84,6 +87,8 @@ import org.apache.accumulo.core.util.compaction.CompactionServicesConfig;
 import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
+import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
 import org.apache.accumulo.server.init.InitialConfiguration;
@@ -245,6 +250,8 @@ public class Upgrader11to12 implements Upgrader {
     initializeFateTable(context);
     LOG.info("Adding table mappings to zookeeper");
     addTableMappingsToZooKeeper(context);
+    LOG.info("Moving table properties from system to namespaces");
+    moveTableProperties(context);
   }
 
   @Override
@@ -899,4 +906,46 @@ public class Upgrader11to12 implements Upgrader {
     }
   }
 
+  void moveTableProperties(ServerContext context) {
+    try {
+      final SystemPropKey spk = SystemPropKey.of();
+      final VersionedProperties sysProps = context.getPropStore().get(spk);
+      final Map<String,String> sysTableProps = new HashMap<>();
+      sysProps.asMap().entrySet().stream()
+          .filter(e -> e.getKey().startsWith(Property.TABLE_PREFIX.getKey()))
+          .forEach(e -> sysTableProps.put(e.getKey(), e.getValue()));
+      LOG.info("Adding the following table properties to namespaces unless overridden:");
+      sysTableProps.forEach((k, v) -> LOG.info("{} -> {}", k, v));
+
+      for (String ns : context.namespaceOperations().list()) {
+        final NamespacePropKey nsk = NamespacePropKey.of(NamespaceId.of(ns));
+        final Map<String,String> nsProps = context.getPropStore().get(nsk).asMap();
+        final Map<String,String> nsPropAdditions = new HashMap<>();
+
+        for (Entry<String,String> e : sysTableProps.entrySet()) {
+          final String nsVal = nsProps.get(e.getKey());
+          // If it's not set, then add the system table property
+          // to the namespace. If it is set, then it doesnt matter
+          // what the value is, we can ignore it.
+          if (nsVal == null) {
+            nsPropAdditions.put(e.getKey(), e.getValue());
+          }
+        }
+        context.getPropStore().putAll(nsk, nsPropAdditions);
+        LOG.debug("Added table properties to namespace {}:", ns);
+        nsPropAdditions.forEach((k, v) -> LOG.debug("{} -> {}", k, v));
+        LOG.info("Namespace '{}' completed.", ns);
+      }
+
+      LOG.info("Removing table properties from system configuration.");
+      context.getPropStore().removeProperties(spk, sysTableProps.keySet());
+
+      LOG.info(
+          "Moving table properties from system configuration to namespace configurations complete.");
+
+    } catch (AccumuloException | AccumuloSecurityException e) {
+      throw new IllegalStateException(
+          "Error trying to move table properties from system to namespace", e);
+    }
+  }
 }
