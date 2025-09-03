@@ -46,6 +46,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
@@ -108,7 +109,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
           .setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
       assertTrue(ae.getMessage()
           .contains("Table property " + Property.TABLE_BLOOM_ENABLED.getKey()
-              + " cannot be set at the system level."
+              + " cannot be set at the system or resource group level."
               + " Set table properties at the namespace or table level."));
       // override default in namespace, and then over-ride that for table prop
       client.namespaceOperations().setProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
@@ -722,9 +723,28 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         AccumuloException ae = assertThrows(AccumuloException.class,
             () -> client.instanceOperations().setProperty(e.getKey(), e.getValue()));
         assertTrue(ae.getMessage()
-            .contains("Table property " + e.getKey() + " cannot be set at the system level."
+            .contains("Table property " + e.getKey()
+                + " cannot be set at the system or resource group level."
                 + " Set table properties at the namespace or table level."));
       }
     }
   }
+
+  @Test
+  public void testTablePropInResourceGroupConfigFails() {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+        AccumuloException ae =
+            assertThrows(AccumuloException.class, () -> client.resourceGroupOperations()
+                .setProperty(ResourceGroupId.DEFAULT, e.getKey(), e.getValue()));
+        assertTrue(ae.getMessage()
+            .contains("Table property " + e.getKey()
+                + " cannot be set at the system or resource group level."
+                + " Set table properties at the namespace or table level."));
+      }
+    }
+  }
+
 }

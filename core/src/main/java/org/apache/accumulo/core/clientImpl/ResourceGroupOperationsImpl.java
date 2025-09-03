@@ -47,6 +47,8 @@ import org.apache.accumulo.core.util.LocalityGroupUtil.LocalityGroupConfiguratio
 import org.apache.accumulo.core.util.Retry;
 import org.slf4j.LoggerFactory;
 
+import com.google.common.base.Preconditions;
+
 public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
   private final ClientContext context;
@@ -86,6 +88,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   public Map<String,String> getConfiguration(ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     checkArgument(group != null, "group argument must be supplied");
+    checkResourceGroupId(group.canonical());
     Map<String,String> config = new HashMap<>();
     config
         .putAll(
@@ -101,6 +104,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
   public Map<String,String> getProperties(ResourceGroupId group)
       throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
     checkArgument(group != null, "group argument must be supplied");
+    checkResourceGroupId(group.canonical());
     try {
       TVersionedProperties rgProps = ThriftClientTypes.CLIENT.execute(context,
           client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
@@ -213,6 +217,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
 
     checkArgument(group != null, "group argument must be supplied");
     checkArgument(mapMutator != null, "mapMutator is null");
+    checkResourceGroupId(group.canonical());
 
     var log = LoggerFactory.getLogger(InstanceOperationsImpl.class);
 
@@ -297,6 +302,16 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
             + "order may help. Even though this warning was displayed, the property was updated. "
             + "Please check your config to ensure consistency.", e);
       }
+    }
+  }
+
+  private void checkResourceGroupId(String rgName)
+      throws ResourceGroupNotFoundException {
+    Preconditions.checkArgument(rgName != null && !rgName.isBlank(),
+        "Supplied resource group name is null or empty");
+
+    if (!context.resourceGroupOperations().exists(rgName)) {
+      throw new ResourceGroupNotFoundException(rgName);
     }
   }
 }

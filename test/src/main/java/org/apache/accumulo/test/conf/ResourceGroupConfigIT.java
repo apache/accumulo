@@ -104,9 +104,6 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       // This will get created by mini, but doing it here manually for testing.
       rgOps.create(rgid);
       assertTrue(zrw.exists(rgpk.getPath()));
-      assertTrue(rgOps.getProperties(rgid).isEmpty());
-
-      rgOps.setProperty(rgid, Property.COMPACTION_WARN_TIME.getKey(), "1m");
 
       // Start the processes in the resource group
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(RG, 1);
@@ -123,6 +120,10 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       Wait.waitFor(() -> cc.getServerPaths()
           .getTabletServer(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
           == 1);
+
+      assertTrue(rgOps.getProperties(rgid).isEmpty());
+
+      rgOps.setProperty(rgid, Property.COMPACTION_WARN_TIME.getKey(), "1m");
 
       checkProperty(iops, rgOps,
           cc.getServerPaths().getCompactor(ResourceGroupPredicate.DEFAULT_RG_ONLY,

@@ -43,6 +43,9 @@ public class ResourceGroupPropUtil {
         LOG.trace("Encountered error setting zookeeper property", iae);
         throw iae;
       }
+      if (property.startsWith(Property.TABLE_PREFIX.getKey())) {
+        PropUtil.throwIaeForTablePropInSysConfig(property);
+      }
 
       SystemPropUtil.logIfFixed(Property.getPropertyByKey(property), value);
 
