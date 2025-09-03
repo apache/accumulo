@@ -310,7 +310,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
-      this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
+      this.reader =
+          LineReaderBuilder.builder().parser(new NonEscapeParser()).terminal(this.terminal).build();
     }
     this.writer = this.terminal.writer();
 
@@ -557,8 +558,16 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
+  public static class NonEscapeParser extends org.jline.reader.impl.DefaultParser {
+    @Override
+    public boolean isEscapeChar(char ch) {
+      // Don't treat backslash as an escape character
+      return false;
+    }
+  }
+
   public static void main(String[] args) throws IOException {
-    LineReader reader = LineReaderBuilder.builder().build();
+    LineReader reader = LineReaderBuilder.builder().parser(new NonEscapeParser()).build();
     new Shell(reader).execute(args);
   }
 
