@@ -122,14 +122,12 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   @Override
-  public synchronized void startAllServers(ServerType server)
-      throws IOException, KeeperException, InterruptedException {
+  public synchronized void startAllServers(ServerType server) throws IOException {
     start(server, null);
   }
 
   @Override
-  public synchronized void start(ServerType server, String hostname)
-      throws IOException, KeeperException, InterruptedException {
+  public synchronized void start(ServerType server, String hostname) throws IOException {
     start(server, Collections.emptyMap(), Integer.MAX_VALUE, null, new String[] {});
   }
 
@@ -139,8 +137,7 @@ public class MiniAccumuloClusterControl implements ClusterControl {
   }
 
   public synchronized void start(ServerType server, Map<String,String> configOverrides, int limit,
-      Class<?> classOverride, String... args)
-      throws IOException, KeeperException, InterruptedException {
+      Class<?> classOverride, String... args) throws IOException {
     if (limit <= 0) {
       return;
     }
@@ -152,8 +149,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               cluster.getConfig().getClusterServerConfiguration().getTabletServerConfiguration();
           for (Entry<String,Integer> e : tserverGroups.entrySet()) {
             final String rg = e.getKey();
-            ResourceGroupPropKey.of(ResourceGroupId.of(rg))
-                .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
                 tabletServerProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
@@ -204,8 +206,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               cluster.getConfig().getClusterServerConfiguration().getScanServerConfiguration();
           for (Entry<String,Integer> e : sserverGroups.entrySet()) {
             final String rg = e.getKey();
-            ResourceGroupPropKey.of(ResourceGroupId.of(rg))
-                .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
                 scanServerProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
@@ -226,8 +233,13 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
           for (Entry<String,Integer> e : compactorGroups.entrySet()) {
             final String rg = e.getKey();
-            ResourceGroupPropKey.of(ResourceGroupId.of(rg))
-                .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
                 compactorProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
