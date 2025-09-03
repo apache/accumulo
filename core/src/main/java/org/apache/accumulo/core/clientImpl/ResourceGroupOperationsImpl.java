@@ -114,7 +114,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException) {
-        ThriftResourceGroupNotExistsException te = (ThriftResourceGroupNotExistsException) t;
+        var te = (ThriftResourceGroupNotExistsException) t;
         throw new ResourceGroupNotFoundException(te.getResourceGroupName());
       }
       throw e;
