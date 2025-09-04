@@ -62,7 +62,6 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
-import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
@@ -137,6 +136,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -1525,10 +1525,18 @@ public class Tablet extends TabletBase {
         lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
         lastSplitComputation.clear();
-        TabletId tabletId =
-            TabletId.of(this.extent.tableId(), this.extent.endRow(), this.extent.prevEndRow());
-        log.error("Failed to compute split information from files {} in tablet {}.", files,
-            tabletId, e);
+        if (e.getMessage().contains("File does not exist")) {
+          Set<TabletFile> currentFiles = getDatafileManager().getFiles();
+          Sets.SetView<TabletFile> missingFiles = Sets.difference(files, currentFiles);
+          if (!currentFiles.containsAll(files)) {
+            log.warn(
+                "Failed to compute spit information. The following files have been removed: {}",
+                missingFiles);
+          }
+        } else {
+          log.error("Failed to compute split information from {} files in tablet {}.", files.size(),
+              getExtent(), e);
+        }
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
