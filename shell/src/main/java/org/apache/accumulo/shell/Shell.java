@@ -310,8 +310,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
-      this.reader =
-          LineReaderBuilder.builder().parser(new NonEscapeParser()).terminal(this.terminal).build();
+      this.reader = newLineReaderBuilder().terminal(this.terminal).build();
     }
     this.writer = this.terminal.writer();
 
@@ -558,16 +557,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
-  public static class NonEscapeParser extends org.jline.reader.impl.DefaultParser {
-    @Override
-    public boolean isEscapeChar(char ch) {
-      // Don't treat backslash as an escape character
-      return false;
+  private static LineReaderBuilder newLineReaderBuilder() {
+    var builder = LineReaderBuilder.builder();
+    // workaround for https://github.com/jline/jline3/pull/1413
+    if ("on".equals(System.getProperty("org.jline.reader.props.disable-event-expansion"))) {
+      builder.option(LineReader.Option.DISABLE_EVENT_EXPANSION, true);
     }
+    return builder;
   }
 
   public static void main(String[] args) throws IOException {
-    LineReader reader = LineReaderBuilder.builder().parser(new NonEscapeParser()).build();
+    LineReader reader = newLineReaderBuilder().build();
     new Shell(reader).execute(args);
   }
 
