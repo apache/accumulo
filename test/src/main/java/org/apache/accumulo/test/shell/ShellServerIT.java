@@ -2462,7 +2462,7 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException,
-      ResourceGroupNotFoundException {
+      ResourceGroupNotFoundException, InterruptedException {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ResourceGroupOperations ops = client.resourceGroupOperations();
@@ -2474,12 +2474,19 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
 
-      ts.exec("resourcegroup -c " + badRG, false, "contains invalid characters");
-      ts.exec("resourcegroup -c " + goodRG, true);
+      ts.exec("createresourcegroup " + badRG, false, "contains invalid characters");
+      ts.exec("createresourcegroup " + goodRG, true);
+
+      // createresourcegroup command above goes to the Manager
+      // ops.list() below uses the clients ZooCache
+      // Wait a bit so that ZooCache updates.
+      Thread.sleep(100);
 
       assertEquals(2, ops.list().size());
       assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
       assertTrue(ops.list().contains(goodRgid));
+
+      ts.exec("listresourcegroups", true, goodRG);
 
       ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
           false, "contains invalid characters");
@@ -2496,8 +2503,14 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(props.containsKey(Property.COMPACTION_WARN_TIME.getKey()));
       assertEquals("3m", props.get(Property.COMPACTION_WARN_TIME.getKey()));
 
-      ts.exec("resourcegroup -d " + badRG, false, "contains invalid characters");
-      ts.exec("resourcegroup -d " + goodRG, true);
+      ts.exec("deleteresourcegroup " + badRG, false, "contains invalid characters");
+      ts.exec("deleteresourcegroup " + goodRG, true);
+
+      // deleteresourcegroup command above goes to the Manager
+      // ops.list() below uses the clients ZooCache
+      // Wait a bit so that ZooCache updates.
+      Thread.sleep(100);
+
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
 
