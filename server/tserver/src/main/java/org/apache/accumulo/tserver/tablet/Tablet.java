@@ -1532,11 +1532,11 @@ public class Tablet extends TabletBase {
             log.warn(
                 "Failed to compute spit information. The following files have been removed: {}",
                 missingFiles);
+            return Optional.empty();
           }
-        } else {
-          log.error("Failed to compute split information from {} files in tablet {}.", files.size(),
-              getExtent(), e);
         }
+        log.error("Failed to compute split information from {} files in tablet {}.", files.size(),
+            getExtent(), e);
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
