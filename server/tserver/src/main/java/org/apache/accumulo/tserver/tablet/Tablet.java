@@ -62,6 +62,7 @@ import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.dataImpl.thrift.MapFileInfo;
@@ -1507,6 +1508,7 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
+        log.debug("Starting midpoint calculation");
         SortedMap<Double,Key> midpoint =
             FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
                 extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
@@ -1523,7 +1525,10 @@ public class Tablet extends TabletBase {
         lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
         lastSplitComputation.clear();
-        log.error("Failed to compute split information from files " + e.getMessage());
+        TabletId tabletId =
+            TabletId.of(this.extent.tableId(), this.extent.endRow(), this.extent.prevEndRow());
+        log.error("Failed to compute split information from files {} in tablet {}.", files,
+            tabletId, e);
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
