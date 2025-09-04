@@ -284,7 +284,6 @@ public class CompressionTest {
         CountDownLatch startSignal = new CountDownLatch(numTasks);
 
         // keep track of the system's identity hashcodes.
-        final ArrayList<Integer> hashCodes = new ArrayList<>();
 
         for (int i = 0; i < numTasks; i++) {
           list.add(() -> {
@@ -297,11 +296,11 @@ public class CompressionTest {
         }
         assertEquals(numTasks, list.size());
 
-        ArrayList<Future<Integer>> results = new ArrayList<>(service.invokeAll(list));
-        for (Future<Integer> result : results) {
+        final HashSet<Integer> hashCodes = new HashSet<>();
+        for (Future<Integer> result : service.invokeAll(list)) {
           hashCodes.add(result.get());
         }
-        assertEquals(1, new HashSet<>(hashCodes).size(), al + " created too many codecs");
+        assertEquals(1, hashCodes.size(), al + " created too many codecs");
 
         service.shutdown();
 
