@@ -29,6 +29,7 @@ import static org.apache.accumulo.core.util.threads.ThreadPoolNames.META_DEAD_RE
 import static org.apache.accumulo.core.util.threads.ThreadPoolNames.USER_DEAD_RESERVATION_CLEANER_POOL;
 
 import java.time.Duration;
+import java.util.AbstractMap;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -182,8 +183,10 @@ public class Fate<T> {
         while (fateExecutorsIter.hasNext()) {
           var fateExecutor = fateExecutorsIter.next();
 
-          // if this fate executors set of fate ops is no longer present in the config...
-          if (!poolConfigs.containsKey(fateExecutor.getFateOps())) {
+          // if this fate executors set of fate ops is no longer present in the config OR
+          // this fate executor was renamed in the config
+          if (!poolConfigs.containsKey(fateExecutor.getFateOps()) || !poolConfigs
+              .get(fateExecutor.getFateOps()).getKey().equals(fateExecutor.getName())) {
             if (!fateExecutor.isShutdown()) {
               log.debug(
                   "[{}] The config for {} has changed invalidating {}. Gracefully shutting down "
@@ -206,14 +209,16 @@ public class Fate<T> {
       // config changes have started shutdown or finished shutdown. Now create any new replacement
       // FateExecutors needed
       for (var poolConfig : poolConfigs.entrySet()) {
-        var configFateOps = poolConfig.getKey();
-        var configPoolSize = poolConfig.getValue();
+        Set<FateOperation> fateOps = poolConfig.getKey();
+        Map.Entry<String,Integer> fateExecNameAndPoolSize = poolConfig.getValue();
+        String fateExecutorName = fateExecNameAndPoolSize.getKey();
+        int poolSize = fateExecNameAndPoolSize.getValue();
         synchronized (fateExecutors) {
-          if (fateExecutors.stream().map(FateExecutor::getFateOps)
-              .noneMatch(fo -> fo.equals(configFateOps))) {
-            log.debug("[{}] Adding FateExecutor for {}", store.type(), configFateOps);
-            fateExecutors
-                .add(new FateExecutor<>(Fate.this, environment, configFateOps, configPoolSize));
+          if (fateExecutors.stream().noneMatch(
+              fe -> fe.getFateOps().equals(fateOps) && fe.getName().equals(fateExecutorName))) {
+            log.debug("[{}] Adding FateExecutor for {}", store.type(), fateOps);
+            fateExecutors.add(
+                new FateExecutor<>(Fate.this, environment, fateOps, poolSize, fateExecutorName));
           }
         }
       }
@@ -276,23 +281,26 @@ public class Fate<T> {
 
   /**
    * Returns a map of the current pool configurations as set in the given config. Each key is a set
-   * of fate operations and each value is an integer for the number of threads assigned to work
-   * those fate operations.
+   * of fate operations and each value is a map entry with key = fate executor name and value = pool
+   * size
    */
   @VisibleForTesting
-  public static Map<Set<FateOperation>,Integer> getPoolConfigurations(AccumuloConfiguration conf,
-      FateInstanceType type) {
-    Map<Set<FateOperation>,Integer> poolConfigs = new HashMap<>();
+  public static Map<Set<FateOperation>,Map.Entry<String,Integer>>
+      getPoolConfigurations(AccumuloConfiguration conf, FateInstanceType type) {
+    Map<Set<FateOperation>,Map.Entry<String,Integer>> poolConfigs = new HashMap<>();
     final var json = JsonParser.parseString(conf.get(getFateConfigProp(type))).getAsJsonObject();
 
     for (var entry : json.entrySet()) {
-      var key = entry.getKey();
-      var val = entry.getValue().getAsInt();
-      var fateOpsStrArr = key.split(",");
+      String fateExecutorName = entry.getKey();
+      var poolConfig = entry.getValue().getAsJsonObject().entrySet().iterator().next();
+      String fateOpsStr = poolConfig.getKey();
+      int poolSize = poolConfig.getValue().getAsInt();
+      String[] fateOpsStrArr = fateOpsStr.split(",");
       Set<FateOperation> fateOpsSet = Arrays.stream(fateOpsStrArr).map(FateOperation::valueOf)
           .collect(Collectors.toCollection(TreeSet::new));
 
-      poolConfigs.put(fateOpsSet, val);
+      poolConfigs.put(fateOpsSet,
+          new AbstractMap.SimpleImmutableEntry<>(fateExecutorName, poolSize));
     }
 
     return poolConfigs;

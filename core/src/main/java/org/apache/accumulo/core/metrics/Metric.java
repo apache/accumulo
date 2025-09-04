@@ -110,14 +110,14 @@ public enum Metric {
           + "(e.g., state=new, state=in.progress, state=failed, etc.).",
       MetricDocSection.FATE),
   FATE_OPS_THREADS_INACTIVE("accumulo.fate.ops.threads.inactive", MetricType.GAUGE,
-      "Keeps track of the number of idle threads (not working on a fate operation) in the thread pool assigned to work on the operations as shown in the "
-          + FateExecutorMetrics.OPS_ASSIGNED_TAG_KEY
+      "Keeps track of the number of idle threads (not working on a fate operation) in the thread "
+          + "pool. The pool name can be found in the " + FateExecutorMetrics.POOL_NAME_TAG_KEY
           + " tag. The fate instance type can be found in the "
           + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
       MetricDocSection.FATE),
   FATE_OPS_THREADS_TOTAL("accumulo.fate.ops.threads.total", MetricType.GAUGE,
-      "Keeps track of the total number of threads in the thread pool assigned to work on the operations as shown in the "
-          + FateExecutorMetrics.OPS_ASSIGNED_TAG_KEY
+      "Keeps track of the total number of threads in the thread pool. The pool name can be found in the "
+          + FateExecutorMetrics.POOL_NAME_TAG_KEY
           + " tag. The fate instance type can be found in the "
           + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
       MetricDocSection.FATE),

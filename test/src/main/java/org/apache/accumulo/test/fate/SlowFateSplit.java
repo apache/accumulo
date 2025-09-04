@@ -55,15 +55,15 @@ public class SlowFateSplit<T> extends Fate<T> {
       AccumuloConfiguration conf) {
     super(environment, store, false, toLogStrFunc, conf, new ScheduledThreadPoolExecutor(2));
     for (var poolConfig : getPoolConfigurations(conf, getStore().type()).entrySet()) {
-      fateExecutors.add(
-          new SlowFateSplitExecutor(this, environment, poolConfig.getKey(), poolConfig.getValue()));
+      fateExecutors.add(new SlowFateSplitExecutor(this, environment, poolConfig.getKey(),
+          poolConfig.getValue().getValue(), poolConfig.getValue().getKey()));
     }
   }
 
   private class SlowFateSplitExecutor extends FateExecutor<T> {
     private SlowFateSplitExecutor(Fate<T> fate, T environment, Set<Fate.FateOperation> fateOps,
-        int poolSize) {
-      super(fate, environment, fateOps, poolSize);
+        int poolSize, String name) {
+      super(fate, environment, fateOps, poolSize, name);
     }
 
     @Override
