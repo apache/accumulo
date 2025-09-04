@@ -18,26 +18,64 @@
  */
 package org.apache.accumulo.shell.commands;
 
+import static org.apache.accumulo.shell.ShellUtil.readPropertiesFromFile;
+
+import java.util.Map;
+import java.util.Map.Entry;
+
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.shell.Shell;
 import org.apache.accumulo.shell.Shell.Command;
 import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.Option;
+import org.apache.commons.cli.Options;
 
 public class CreateResourceGroupCommand extends Command {
 
+  private Option createTableOptInitPropFile;
+
   @Override
   public int execute(String fullCommand, CommandLine cl, Shell shellState) throws Exception {
-    String resourceGroup = cl.getArgs()[0];
+    final String resourceGroup = cl.getArgs()[0];
+    final ResourceGroupId rgid = ResourceGroupId.of(resourceGroup);
+    final ResourceGroupOperations ops = shellState.getAccumuloClient().resourceGroupOperations();
     try {
-      shellState.getAccumuloClient().resourceGroupOperations()
-          .create(ResourceGroupId.of(resourceGroup));
+      ops.create(rgid);
     } catch (AccumuloException | AccumuloSecurityException e) {
       Shell.log.error("Error creating resource group {}", resourceGroup, e);
       return 1;
     }
+
+    String filename = cl.getOptionValue(createTableOptInitPropFile.getOpt());
+    if (filename != null) {
+      final Map<String,String> initProperties = readPropertiesFromFile(filename);
+      for (Entry<String,String> e : initProperties.entrySet()) {
+        try {
+          ops.setProperty(rgid, e.getKey(), e.getValue());
+        } catch (AccumuloException | AccumuloSecurityException
+            | ResourceGroupNotFoundException e1) {
+          Shell.log.error("Error adding property {}={} to resource group {}", e.getKey(),
+              e.getValue(), resourceGroup, e);
+        }
+      }
+    }
     return 0;
+  }
+
+  @Override
+  public Options getOptions() {
+
+    createTableOptInitPropFile =
+        new Option("f", "file", true, "user-defined initial properties file");
+    createTableOptInitPropFile.setArgName("properties-file");
+
+    final Options o = new Options();
+    o.addOption(createTableOptInitPropFile);
+    return o;
   }
 
   @Override
@@ -47,12 +85,12 @@ public class CreateResourceGroupCommand extends Command {
 
   @Override
   public String usage() {
-    return getName() + " <ResourceGroup name>";
+    return getName() + "[-f <initial-properties-file>] <ResourceGroup name>";
   }
 
   @Override
   public int numArgs() {
-    return 1;
+    return Shell.NO_FIXED_ARG_LENGTH_CHECK;
   }
 
 }
