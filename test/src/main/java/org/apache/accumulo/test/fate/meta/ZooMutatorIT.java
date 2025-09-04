@@ -26,8 +26,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -93,15 +94,12 @@ public class ZooMutatorIT extends WithTestNames {
 
       String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 
-      List<Future<?>> futures = new ArrayList<>(numTasks);
+      List<Future<List<Integer>>> futures = new ArrayList<>(numTasks);
       CountDownLatch startLatch = new CountDownLatch(numTasks);
-
-      // This map is used to ensure multiple threads do not successfully write the same value and no
-      // values are skipped. The hash in the value also verifies similar things in a different way.
-      ConcurrentHashMap<Integer,Integer> countCounts = new ConcurrentHashMap<>();
 
       for (int i = 0; i < numTasks; i++) {
         futures.add(executor.submit(() -> {
+          List<Integer> observedCounts = new ArrayList<>();
           try {
             startLatch.countDown();
             startLatch.await();
@@ -112,9 +110,9 @@ public class ZooMutatorIT extends WithTestNames {
               int nextCount = getCount(val);
               assertTrue(nextCount > count, "nextCount <= count " + nextCount + " " + count);
               count = nextCount;
-              countCounts.merge(count, 1, Integer::sum);
+              observedCounts.add(count);
             }
-
+            return observedCounts;
           } catch (Exception e) {
             throw new RuntimeException(e);
           }
@@ -122,9 +120,14 @@ public class ZooMutatorIT extends WithTestNames {
       }
       assertEquals(numTasks, futures.size());
 
-      // wait and check for errors in background threads
-      for (Future<?> future : futures) {
-        future.get();
+      // collect observed counts from all threads to ensure no values are duplicated or skipped
+      Map<Integer,Integer> countCounts = new HashMap<>();
+
+      for (Future<List<Integer>> future : futures) {
+        List<Integer> observedCounts = future.get();
+        for (Integer count : observedCounts) {
+          countCounts.put(count, countCounts.getOrDefault(count, 0) + 1);
+        }
       }
       executor.shutdown();
 

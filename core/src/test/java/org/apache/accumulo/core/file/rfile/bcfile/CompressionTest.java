@@ -279,12 +279,12 @@ public class CompressionTest {
         ExecutorService service = Executors.newFixedThreadPool(20);
 
         final int numTasks = 40;
-        ArrayList<Callable<Boolean>> list = new ArrayList<>(numTasks);
+        ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);
 
         CountDownLatch startSignal = new CountDownLatch(numTasks);
 
         // keep track of the system's identity hashcodes.
-        final HashSet<Integer> testSet = new HashSet<>();
+        final ArrayList<Integer> hashCodes = new ArrayList<>();
 
         for (int i = 0; i < numTasks; i++) {
           list.add(() -> {
@@ -292,27 +292,21 @@ public class CompressionTest {
             startSignal.await();
             CompressionCodec codec = al.getCodec();
             assertNotNull(codec, al + " resulted in a non-null codec");
-            // add the identity hashcode to the set.
-            synchronized (testSet) {
-              testSet.add(System.identityHashCode(codec));
-            }
-            return true;
+            return System.identityHashCode(codec);
           });
         }
         assertEquals(numTasks, list.size());
 
-        ArrayList<Future<Boolean>> results = new ArrayList<>(service.invokeAll(list));
-        // ensure that we
-        assertEquals(1, testSet.size(), al + " created too many codecs");
+        ArrayList<Future<Integer>> results = new ArrayList<>(service.invokeAll(list));
+        for (Future<Integer> result : results) {
+          hashCodes.add(result.get());
+        }
+        assertEquals(1, new HashSet<>(hashCodes).size(), al + " created too many codecs");
+
         service.shutdown();
 
         while (!service.awaitTermination(1, SECONDS)) {
           // wait
-        }
-
-        for (Future<Boolean> result : results) {
-          assertTrue(result.get(),
-              al + " resulted in a failed call to getcodec within the thread pool");
         }
       }
     }
