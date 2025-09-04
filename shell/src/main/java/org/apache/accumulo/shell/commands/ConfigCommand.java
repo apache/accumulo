@@ -550,9 +550,9 @@ public class ConfigCommand extends Command {
   private void logPropChanged(Property prop, String scope, String setOrDeleted) {
     if (Property.isFixedZooPropertyKey(prop)) {
       Shell.log.warn("Successfully {} a fixed {} configuration option. Change will not "
-          + "take effect until related processes are restarted.", scope, setOrDeleted);
+          + "take effect until related processes are restarted.", setOrDeleted, scope);
     } else {
-      Shell.log.debug("Successfully {} {} configuration option.", scope, setOrDeleted);
+      Shell.log.debug("Successfully {} {} configuration option.", setOrDeleted, scope);
     }
   }
 
