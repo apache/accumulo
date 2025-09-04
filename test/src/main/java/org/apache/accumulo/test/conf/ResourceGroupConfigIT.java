@@ -28,15 +28,20 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 
+import org.apache.accumulo.cluster.ClusterUser;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
+import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
+import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
+import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -207,4 +212,126 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
     System.clearProperty(TServerClient.DEBUG_HOST);
   }
 
+  @Test
+  public void testDefaultResourceGroup() throws Exception {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      Set<ResourceGroupId> rgs = client.resourceGroupOperations().list();
+      assertEquals(1, rgs.size());
+      assertEquals(ResourceGroupId.DEFAULT, rgs.iterator().next());
+      client.resourceGroupOperations().create(ResourceGroupId.DEFAULT);
+      assertThrows(AccumuloException.class,
+          () -> client.resourceGroupOperations().remove(ResourceGroupId.DEFAULT));
+    }
+  }
+
+  @Test
+  public void testPermissions() throws Exception {
+
+    ClusterUser testUser = getUser(0);
+
+    String principal = testUser.getPrincipal();
+    AuthenticationToken token = testUser.getToken();
+    PasswordToken passwordToken = null;
+    if (token instanceof PasswordToken) {
+      passwordToken = (PasswordToken) token;
+    }
+
+    ResourceGroupId rgid = ResourceGroupId.of("TEST_GROUP");
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.securityOperations().createLocalUser(principal, passwordToken);
+    }
+
+    try (AccumuloClient test_user_client =
+        Accumulo.newClient().from(getClientProps()).as(principal, token).build()) {
+      assertThrows(AccumuloSecurityException.class,
+          () -> test_user_client.resourceGroupOperations().create(rgid));
+    }
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.resourceGroupOperations().create(rgid);
+    }
+
+    try (AccumuloClient test_user_client =
+        Accumulo.newClient().from(getClientProps()).as(principal, token).build()) {
+      assertThrows(AccumuloSecurityException.class,
+          () -> test_user_client.resourceGroupOperations().remove(rgid));
+    }
+  }
+
+  @Test
+  public void testMultipleConfigurations() throws Exception {
+
+    final String FIRST = "FIRST";
+    final String SECOND = "SECOND";
+    final String THIRD = "THIRD";
+
+    final ResourceGroupId first = ResourceGroupId.of(FIRST);
+    final ResourceGroupId second = ResourceGroupId.of(SECOND);
+    final ResourceGroupId third = ResourceGroupId.of(THIRD);
+
+    // @formatter:off
+    Map<String,String> firstProps = Map.of(
+        Property.COMPACTION_WARN_TIME.getKey(), "1m",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+
+    Map<String,String> secondProps = Map.of(
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
+        Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
+
+    Map<String,String> thirdProps = Map.of(
+        Property.COMPACTION_WARN_TIME.getKey(), "1m",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4");
+    // @formatter:off
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      @SuppressWarnings("resource")
+      ClientContext cc = (ClientContext) client;
+
+      final ResourceGroupOperations rgops = client.resourceGroupOperations();
+
+      rgops.create(first);
+      rgops.create(second);
+      rgops.create(third);
+
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(FIRST, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(SECOND, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(THIRD, 1);
+      getCluster().start();
+
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(first), AddressSelector.all(), true).size()
+          == 1);
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(second), AddressSelector.all(), true).size()
+          == 1);
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
+          == 1);
+
+      rgops.modifyProperties(first, (map) -> { map.putAll(firstProps);});
+      rgops.modifyProperties(second, (map) -> { map.putAll(secondProps);});
+      rgops.modifyProperties(third, (map) -> { map.putAll(thirdProps);});
+
+      System.setProperty(TServerClient.DEBUG_RG, FIRST);
+      Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
+      compareConfigurations(sysConfig, firstProps, rgops.getConfiguration(first));
+
+      System.setProperty(TServerClient.DEBUG_RG, SECOND);
+      sysConfig = client.instanceOperations().getSystemConfiguration();
+      compareConfigurations(sysConfig, secondProps, rgops.getConfiguration(second));
+
+      System.setProperty(TServerClient.DEBUG_RG, THIRD);
+      sysConfig = client.instanceOperations().getSystemConfiguration();
+      compareConfigurations(sysConfig, thirdProps, rgops.getConfiguration(third));
+    }
+  }
+
+  private void compareConfigurations(Map<String,String> sysConfig, Map<String,String> rgConfig, Map<String,String> actual) {
+    TreeMap<String,String> expected = new TreeMap<>(sysConfig);
+    expected.putAll(rgConfig);
+    assertEquals(expected, new TreeMap<>(actual));
+  }
 }
