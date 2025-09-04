@@ -2029,7 +2029,7 @@ public class ClientTabletCacheImplTest {
         futures.add(future);
       }
     }
-    assertEquals(roundCount * lookupCount, futures.size());
+    assertEquals(numTasks, futures.size());
 
     for (var future : futures) {
       assertNotNull(future.get());

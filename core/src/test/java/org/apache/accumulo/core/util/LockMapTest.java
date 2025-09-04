@@ -102,8 +102,8 @@ public class LockMapTest {
           new AtomicBoolean(), new AtomicBoolean(), new AtomicBoolean()};
 
       var futures = new ArrayList<Future<Boolean>>(numTasks);
-      CountDownLatch startLatch = new CountDownLatch(numThreads); // start a portion of threads at
-                                                                  // the same time
+      // start a portion of threads at the same time
+      CountDownLatch startLatch = new CountDownLatch(numThreads);
 
       var maxLocked = new AtomicLong(0);
 

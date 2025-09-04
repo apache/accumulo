@@ -1114,8 +1114,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       final int numTasks = 16;
       var executor = Executors.newFixedThreadPool(numTasks);
       var futures = new ArrayList<Future<?>>(numTasks);
-      CountDownLatch startLatch = new CountDownLatch(numTasks); // wait for a portion of the tasks
-                                                                // to be ready
+      // wait for a portion of the tasks to be ready
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
 
       var loadPlanBuilder = LoadPlan.builder();
       var rowsExpected = new HashSet<>();

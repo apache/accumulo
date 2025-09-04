@@ -1072,7 +1072,7 @@ public class CompactionIT extends CompactionITBase {
       CountDownLatch startLatch = new CountDownLatch(numTasks);
       // start user compactions on a subset of the tables tablets, system compactions should attempt
       // to run on all tablets. With concurrency should get a mix.
-      for (int i = 0; i < numTasks; i++) {
+      for (int i = 1; i < numTasks + 1; i++) {
         var startRow = new Text(String.format("r:%04d", i - 1));
         var endRow = new Text(String.format("r:%04d", i));
         final CompactionConfig config = new CompactionConfig();

@@ -144,8 +144,8 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
 
       int numTasks = 100;
       List<Future<?>> futures = new ArrayList<>(numTasks);
-      CountDownLatch startLatch = new CountDownLatch(32); // synchronize start of a portion of the
-                                                          // tasks
+      // synchronize start of a portion of the tasks
+      CountDownLatch startLatch = new CountDownLatch(32);
 
       for (int i = 0; i < numTasks; i++) {
         final int row = i * 1000;

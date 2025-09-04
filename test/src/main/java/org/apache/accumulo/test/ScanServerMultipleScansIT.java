@@ -194,7 +194,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             startLatch.countDown();
             startLatch.await();
           } catch (InterruptedException e1) {
-            fail("InterruptedException waiting for latch");
+            fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             switch (threadNum) {

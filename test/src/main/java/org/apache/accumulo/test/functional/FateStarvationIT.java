@@ -88,8 +88,8 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       int numTasks = 100;
       List<Future<?>> futures = new ArrayList<>(numTasks);
       var executor = Executors.newCachedThreadPool();
-      CountDownLatch startLatch = new CountDownLatch(32); // wait for a portion of the tasks to be
-                                                          // ready
+      // wait for a portion of the tasks to be ready
+      CountDownLatch startLatch = new CountDownLatch(32);
 
       for (int i = 0; i < numTasks; i++) {
         int idx1 = RANDOM.get().nextInt(splits.size() - 1);
@@ -98,7 +98,7 @@ public class FateStarvationIT extends AccumuloClusterHarness {
         var future = executor.submit(() -> {
           startLatch.countDown();
           startLatch.await();
-          c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, false);
+          c.tableOperations().compact(tableName, splits.get(idx1), splits.get(idx2), false, true);
           return null;
         });
 

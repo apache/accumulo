@@ -69,8 +69,8 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
 
     var executorService = Executors.newCachedThreadPool();
     List<Future<Integer>> futures = new ArrayList<>();
-    CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at the same
-                                                        // time
+    // start a portion of threads at the same time
+    CountDownLatch startLatch = new CountDownLatch(32);
 
     // create threads that are allocating large random chunks
     for (int i = 0; i < 64; i++) {
