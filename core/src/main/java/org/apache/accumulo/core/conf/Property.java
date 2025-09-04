@@ -1680,6 +1680,13 @@ public enum Property {
         || key.equals(Property.GENERAL_FILE_NAME_ALLOCATION_BATCH_SIZE_MAX.getKey());
   }
 
+  public static boolean isValidResourceGroupPropertyKey(String property) {
+    return property.startsWith(Property.GENERAL_PREFIX.getKey())
+        || property.startsWith(COMPACTION_PREFIX.getKey())
+        || property.startsWith(COMPACTOR_PREFIX.getKey())
+        || property.startsWith(SSERV_PREFIX.getKey()) || property.startsWith(TSERV_PREFIX.getKey());
+  }
+
   /**
    * Gets a {@link Property} instance with the given key.
    *

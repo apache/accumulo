@@ -54,6 +54,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -273,6 +274,9 @@ public class Admin implements KeywordExecutable {
     String directory = null;
     @Parameter(names = {"-s", "--system"}, description = "print the system configuration")
     boolean systemConfiguration = false;
+    @Parameter(names = {"-rg", "--resourceGroups"},
+        description = "print the resource group configuration")
+    boolean resourceGroupConfiguration = false;
     @Parameter(names = {"-n", "--namespaces"}, description = "print the namespace configuration")
     boolean namespaceConfiguration = false;
     @Parameter(names = {"-t", "--tables"}, description = "print per-table configuration")
@@ -806,12 +810,15 @@ public class Admin implements KeywordExecutable {
 
   private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
   private static final String NS_FILE_SUFFIX = "_ns.cfg";
+  private static final String RG_FILE_SUFFIX = "_rg.cfg";
   private static final String USER_FILE_SUFFIX = "_user.cfg";
   private static final MessageFormat configFormat = new MessageFormat("config -t {0} -s {1}\n");
   private static final MessageFormat createNsFormat = new MessageFormat("createnamespace {0}\n");
   private static final MessageFormat createTableFormat = new MessageFormat("createtable {0}\n");
   private static final MessageFormat createUserFormat = new MessageFormat("createuser {0}\n");
+  private static final MessageFormat createRGFormat = new MessageFormat("resourcegroup -c {0}\n");
   private static final MessageFormat nsConfigFormat = new MessageFormat("config -ns {0} -s {1}\n");
+  private static final MessageFormat rgConfigFormat = new MessageFormat("config -rg {0} -s {1}\n");
   private static final MessageFormat sysPermFormat =
       new MessageFormat("grant System.{0} -s -u {1}\n");
   private static final MessageFormat nsPermFormat =
@@ -842,6 +849,10 @@ public class Admin implements KeywordExecutable {
     if (opts.allConfiguration) {
       // print accumulo site
       printSystemConfiguration(outputDirectory);
+      // print resource groups
+      for (ResourceGroupId group : context.resourceGroupOperations().list()) {
+        printResourceGroupConfiguration(context, group, outputDirectory);
+      }
       // print namespaces
       for (String namespace : context.namespaceOperations().list()) {
         printNameSpaceConfiguration(context, namespace, outputDirectory);
@@ -858,6 +869,11 @@ public class Admin implements KeywordExecutable {
     } else {
       if (opts.systemConfiguration) {
         printSystemConfiguration(outputDirectory);
+      }
+      if (opts.resourceGroupConfiguration) {
+        for (ResourceGroupId group : context.resourceGroupOperations().list()) {
+          printResourceGroupConfiguration(context, group, outputDirectory);
+        }
       }
       if (opts.namespaceConfiguration) {
         for (String namespace : context.namespaceOperations().list()) {
@@ -909,6 +925,29 @@ public class Admin implements KeywordExecutable {
       // ignore
     }
     return defaultValue;
+  }
+
+  @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",
+      justification = "code runs in same security context as user who provided input")
+  private void printResourceGroupConfiguration(AccumuloClient accumuloClient, ResourceGroupId group,
+      File outputDirectory) throws IOException, AccumuloException, AccumuloSecurityException,
+      ResourceGroupNotFoundException {
+    Path rgScript = outputDirectory.toPath().resolve(group + RG_FILE_SUFFIX);
+    try (BufferedWriter nsWriter = Files.newBufferedWriter(rgScript)) {
+      nsWriter.write(createRGFormat.format(new String[] {group.canonical()}));
+      Map<String,String> props = ImmutableSortedMap
+          .copyOf(accumuloClient.resourceGroupOperations().getConfiguration(group));
+      for (Entry<String,String> entry : props.entrySet()) {
+        String defaultValue = getDefaultConfigValue(entry.getKey());
+        if (defaultValue == null || !defaultValue.equals(entry.getValue())) {
+          if (!entry.getValue().equals(siteConfig.get(entry.getKey()))
+              && !entry.getValue().equals(systemConfig.get(entry.getKey()))) {
+            nsWriter.write(rgConfigFormat
+                .format(new String[] {group.canonical(), entry.getKey() + "=" + entry.getValue()}));
+          }
+        }
+      }
+    }
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",

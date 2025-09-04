@@ -88,6 +88,7 @@ import org.apache.accumulo.core.util.tables.TableNameUtil;
 import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.codec.VersionedProperties;
 import org.apache.accumulo.server.conf.store.NamespacePropKey;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.conf.store.SystemPropKey;
 import org.apache.accumulo.server.conf.store.TablePropKey;
 import org.apache.accumulo.server.init.FileSystemInitializer;
@@ -250,6 +251,8 @@ public class Upgrader11to12 implements Upgrader {
     initializeFateTable(context);
     LOG.info("Adding table mappings to zookeeper");
     addTableMappingsToZooKeeper(context);
+    LOG.info("Adding default resource group node to zookeeper");
+    addDefaultResourceGroupConfigNode(context);
     LOG.info("Moving table properties from system to namespaces");
     moveTableProperties(context);
   }
@@ -903,6 +906,14 @@ public class Upgrader11to12 implements Upgrader {
       batchDeleter.delete();
     } catch (TableNotFoundException | MutationsRejectedException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  private void addDefaultResourceGroupConfigNode(ServerContext context) {
+    try {
+      ResourceGroupPropKey.DEFAULT.createZNode(context.getZooSession().asReaderWriter());
+    } catch (KeeperException | InterruptedException e) {
+      throw new IllegalStateException("Error creating default resource group config node", e);
     }
   }
 

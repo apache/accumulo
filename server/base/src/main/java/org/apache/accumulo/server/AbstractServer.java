@@ -25,7 +25,7 @@ import java.util.OptionalInt;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.classloader.ClassLoaderUtil;
@@ -37,7 +37,6 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
-import org.apache.accumulo.core.conf.cluster.ClusterConfigParser;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.metrics.MetricsProducer;
@@ -98,7 +97,8 @@ public abstract class AbstractServer
   private final AtomicBoolean closed = new AtomicBoolean(false);
 
   protected AbstractServer(ServerId.Type serverType, ConfigOpts opts,
-      Function<SiteConfiguration,ServerContext> serverContextFactory, String[] args) {
+      BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
+      String[] args) {
     log = LoggerFactory.getLogger(getClass());
     this.applicationName = serverType.name();
     opts.parseArgs(applicationName, args);
@@ -123,9 +123,8 @@ public abstract class AbstractServer
     }
     log.info("Bind address: {}, advertise address: {}", bindAddress, getAdvertiseAddress());
     this.resourceGroup = ResourceGroupId.of(getResourceGroupPropertyValue(siteConfig));
-    ClusterConfigParser.validateGroupName(resourceGroup);
     SecurityUtil.serverLogin(siteConfig);
-    context = serverContextFactory.apply(siteConfig);
+    context = serverContextFactory.apply(siteConfig, resourceGroup);
     try {
       if (context.getZooSession().asReader().exists(Constants.ZPREPARE_FOR_UPGRADE)) {
         throw new IllegalStateException(
