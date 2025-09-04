@@ -1528,7 +1528,7 @@ public class Tablet extends TabletBase {
         if (e.getMessage().contains("File does not exist")) {
           Set<TabletFile> currentFiles = getDatafileManager().getFiles();
           Sets.SetView<TabletFile> missingFiles = Sets.difference(files, currentFiles);
-          if (!currentFiles.containsAll(files)) {
+          if (!missingFiles.isEmpty()) {
             log.warn(
                 "Failed to compute spit information. The following files have been removed: {}",
                 missingFiles);
