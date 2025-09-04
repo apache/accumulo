@@ -1684,7 +1684,8 @@ public enum Property {
     return property.startsWith(Property.GENERAL_PREFIX.getKey())
         || property.startsWith(COMPACTION_PREFIX.getKey())
         || property.startsWith(COMPACTOR_PREFIX.getKey())
-        || property.startsWith(SSERV_PREFIX.getKey()) || property.startsWith(TSERV_PREFIX.getKey());
+        || property.startsWith(SSERV_PREFIX.getKey()) || property.startsWith(TSERV_PREFIX.getKey())
+        || isFixedZooPropertyKey(getPropertyByKey(property));
   }
 
   /**
