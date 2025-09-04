@@ -311,9 +311,15 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
           .getCompactor(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
           == 1);
 
-      rgops.modifyProperties(first, (map) -> { map.putAll(firstProps);});
-      rgops.modifyProperties(second, (map) -> { map.putAll(secondProps);});
-      rgops.modifyProperties(third, (map) -> { map.putAll(thirdProps);});
+      rgops.modifyProperties(first, (map) -> {
+        map.putAll(firstProps);
+      });
+      rgops.modifyProperties(second, (map) -> {
+        map.putAll(secondProps);
+      });
+      rgops.modifyProperties(third, (map) -> {
+        map.putAll(thirdProps);
+      });
 
       System.setProperty(TServerClient.DEBUG_RG, FIRST);
       Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
