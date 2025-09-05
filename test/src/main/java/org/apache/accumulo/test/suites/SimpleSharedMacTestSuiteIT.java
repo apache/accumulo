@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.suites;
+package org.apache.accumulo.test.suites;
 
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -43,7 +43,7 @@ import org.junit.platform.suite.api.Suite;
  * IMPORTANT NOTE: Only the concrete classes should be marked with "IT_SimpleSuite". For example,
  * marking an abstract class will not add its implementations to the suite.
  */
-@Suite
+@Suite(failIfNoTests = false)
 // look in this package and subpackages
 @SelectPackages("org.apache.accumulo.test")
 // need to override the default pattern ".*Test"
