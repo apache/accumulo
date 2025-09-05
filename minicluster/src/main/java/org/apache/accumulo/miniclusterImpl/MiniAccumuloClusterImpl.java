@@ -674,6 +674,11 @@ public class MiniAccumuloClusterImpl implements AccumuloCluster {
       }
 
       @Override
+      public boolean isLocked() {
+        return lockAcquired.get();
+      }
+
+      @Override
       public void acquiredLock() {
         log.debug("Acquired ZK lock for MiniAccumuloClusterImpl");
         lockAcquired.set(true);

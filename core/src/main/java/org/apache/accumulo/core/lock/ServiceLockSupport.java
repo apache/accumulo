@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.core.lock;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -26,7 +27,6 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.zookeeper.KeeperException;
@@ -104,6 +104,11 @@ public class ServiceLockSupport {
     }
 
     @Override
+    public boolean isLocked() {
+      return acquiredLock;
+    }
+
+    @Override
     public synchronized void failedToAcquireLock(Exception e) {
       LOG.warn("Failed to get {} lock", server, e);
 
@@ -147,8 +152,10 @@ public class ServiceLockSupport {
   /**
    * Lock Watcher used by non-HA services
    */
-  public static class ServiceLockWatcher implements LockWatcher {
+  public static class ServiceLockWatcher implements AccumuloLockWatcher {
 
+    private final AtomicBoolean lockAcquired = new AtomicBoolean(false);
+    private final Logger log = LoggerFactory.getLogger(ServiceLock.class);
     private final Type server;
     private final Supplier<Boolean> shutdownComplete;
     private final Consumer<Type> lostLockAction;
@@ -158,6 +165,21 @@ public class ServiceLockSupport {
       this.server = server;
       this.shutdownComplete = shutdownComplete;
       this.lostLockAction = lostLockAction;
+    }
+
+    @Override
+    public boolean isLocked() {
+      return lockAcquired.get();
+    }
+
+    @Override
+    public void acquiredLock() {
+      lockAcquired.getAndSet(true);
+    }
+
+    @Override
+    public void failedToAcquireLock(Exception e) {
+      log.debug("Failed to acquire lock", e);
     }
 
     @Override
