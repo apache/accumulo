@@ -54,10 +54,13 @@ import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.BatchScanner;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.IteratorSetting.Column;
+import org.apache.accumulo.core.client.ResourceGroupNotFoundException;
 import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.client.admin.ResourceGroupOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.RowColumnSampler;
@@ -74,9 +77,12 @@ import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.file.FileOperations;
 import org.apache.accumulo.core.file.FileSKVWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.UnreferencedTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -87,6 +93,7 @@ import org.apache.accumulo.core.util.format.Formatter;
 import org.apache.accumulo.core.util.format.FormatterConfig;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
 import org.apache.accumulo.test.ImportExportIT;
 import org.apache.accumulo.test.functional.SlowIterator;
@@ -2451,5 +2458,52 @@ public class ShellServerIT extends SharedMiniClusterBase {
     byte[] r = new byte[16];
     RANDOM.get().nextBytes(r);
     return new String(Base64.getEncoder().encode(r), UTF_8);
+  }
+
+  @Test
+  public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException,
+      ResourceGroupNotFoundException {
+
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      ResourceGroupOperations ops = client.resourceGroupOperations();
+
+      String badRG = "test-RG";
+      String goodRG = "testRG";
+      ResourceGroupId goodRgid = ResourceGroupId.of(goodRG);
+
+      assertEquals(1, ops.list().size());
+      assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+      ts.exec("resourcegroup -c " + badRG, false, "contains invalid characters");
+      ts.exec("resourcegroup -c " + goodRG, true);
+
+      assertEquals(2, ops.list().size());
+      assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
+      assertTrue(ops.list().contains(goodRgid));
+
+      ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
+          false, "contains invalid characters");
+      ts.exec("config -rg " + goodRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
+          true);
+
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(goodRG, 1);
+      getCluster().getClusterControl().start(ServerType.COMPACTOR);
+      Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(goodRgid), AddressSelector.all(), true).size()
+          == 1);
+      Map<String,String> props = ops.getProperties(goodRgid);
+      assertEquals(1, props.size());
+      assertTrue(props.containsKey(Property.COMPACTION_WARN_TIME.getKey()));
+      assertEquals("3m", props.get(Property.COMPACTION_WARN_TIME.getKey()));
+
+      ts.exec("resourcegroup -d " + badRG, false, "contains invalid characters");
+      ts.exec("resourcegroup -d " + goodRG, true);
+      assertEquals(1, ops.list().size());
+      assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
+
+      getCluster().getClusterControl().stopCompactorGroup(goodRG);
+
+    }
+
   }
 }

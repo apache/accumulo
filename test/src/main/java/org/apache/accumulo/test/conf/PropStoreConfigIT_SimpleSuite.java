@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -43,10 +44,13 @@ import java.util.regex.Pattern;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloException;
+import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.NamespaceId;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -98,23 +102,30 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
 
       client.tableOperations().create(table);
+      String nid = client.tableOperations().getNamespace(table);
 
       log.debug("Tables: {}", client.tableOperations().list());
 
-      // override default in sys, and then over-ride that for table prop
-      client.instanceOperations().setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true");
+      AccumuloException ae = assertThrows(AccumuloException.class, () -> client.instanceOperations()
+          .setProperty(Property.TABLE_BLOOM_ENABLED.getKey(), "true"));
+      assertTrue(ae.getMessage()
+          .contains("Table property " + Property.TABLE_BLOOM_ENABLED.getKey()
+              + " cannot be set at the system or resource group level."
+              + " Set table properties at the namespace or table level."));
+      // override default in namespace, and then over-ride that for table prop
+      client.namespaceOperations().setProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "false");
 
-      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
       Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
 
-      // revert sys, and then over-ride to true with table prop
-      client.instanceOperations().removeProperty(Property.TABLE_BLOOM_ENABLED.getKey());
+      // revert namespace prop, and then over-ride to true with table prop
+      client.namespaceOperations().removeProperty(nid, Property.TABLE_BLOOM_ENABLED.getKey());
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_ENABLED.getKey(), "true");
 
-      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
+      Wait.waitFor(() -> client.namespaceOperations().getConfiguration(nid)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("false"), 5000, 500);
       Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
           .get(Property.TABLE_BLOOM_ENABLED.getKey()).equals("true"), 5000, 500);
@@ -135,12 +146,6 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
       log.info("Tables: {}", client.tableOperations().list());
 
-      client.instanceOperations().setProperty(Property.TABLE_BLOOM_SIZE.getKey(), "12345");
-      Wait.waitFor(() -> client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("12345"), 5000, 500);
-      assertEquals("12345",
-          client.tableOperations().getConfiguration(table).get(Property.TABLE_BLOOM_SIZE.getKey()));
-
       client.namespaceOperations().setProperty(namespace, Property.TABLE_BLOOM_SIZE.getKey(),
           "23456");
       Wait.waitFor(() -> client.namespaceOperations().getConfiguration(namespace)
@@ -151,8 +156,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
       client.tableOperations().setProperty(table, Property.TABLE_BLOOM_SIZE.getKey(), "34567");
       Wait.waitFor(() -> client.tableOperations().getConfiguration(table)
           .get(Property.TABLE_BLOOM_SIZE.getKey()).equals("34567"), 5000, 500);
-      assertEquals("12345", client.instanceOperations().getSystemConfiguration()
-          .get(Property.TABLE_BLOOM_SIZE.getKey()));
+      assertEquals(Property.TABLE_BLOOM_SIZE.getDefaultValue(), client.instanceOperations()
+          .getSystemConfiguration().get(Property.TABLE_BLOOM_SIZE.getKey()));
       assertEquals("23456", client.namespaceOperations().getConfiguration(namespace)
           .get(Property.TABLE_BLOOM_SIZE.getKey()));
 
@@ -337,8 +342,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     // Compares this with getSystemConfiguration() which does return a merged view (system + site +
     // default).
 
-    String customPropKey1 = "table.custom.prop1";
-    String customPropKey2 = "table.custom.prop2";
+    String customPropKey1 = "general.custom.prop1";
+    String customPropKey2 = "general.custom.prop2";
     String customPropVal1 = "v1";
     String customPropVal2 = "v2";
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
@@ -484,10 +489,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
   private Map<String,String> getStoredConfiguration() throws Exception {
     ServerContext ctx = getCluster().getServerContext();
-    return ThriftClientTypes.CLIENT
-        .execute(ctx,
-            client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()))
-        .getProperties();
+    return ThriftClientTypes.CLIENT.execute(ctx,
+        client -> client.getVersionedSystemProperties(TraceUtil.traceInfo(), ctx.rpcCreds()),
+        ResourceGroupPredicate.ANY).getProperties();
   }
 
   interface PropertyShim {
@@ -588,27 +592,27 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         }
 
         Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
-          int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
-          int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
-          int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
-          int D = Integer.parseInt(tableProps.getOrDefault("table.custom.D", "0"));
+          int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
+          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+          int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+          int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
 
-          tableProps.put("table.custom.A", A + 2 + "");
-          tableProps.put("table.custom.B", B + 3 + "");
-          tableProps.put("table.custom.C", C + 5 + "");
-          tableProps.put("table.custom.D", D + 7 + "");
+          tableProps.put("general.custom.A", A + 2 + "");
+          tableProps.put("general.custom.B", B + 3 + "");
+          tableProps.put("general.custom.C", C + 5 + "");
+          tableProps.put("general.custom.D", D + 7 + "");
         });
 
         if (prevProps != null) {
-          var beforeA = Integer.parseInt(prevProps.getOrDefault("table.custom.A", "0"));
-          var beforeB = Integer.parseInt(prevProps.getOrDefault("table.custom.B", "0"));
-          var beforeC = Integer.parseInt(prevProps.getOrDefault("table.custom.C", "0"));
-          var beforeD = Integer.parseInt(prevProps.getOrDefault("table.custom.D", "0"));
+          var beforeA = Integer.parseInt(prevProps.getOrDefault("general.custom.A", "0"));
+          var beforeB = Integer.parseInt(prevProps.getOrDefault("general.custom.B", "0"));
+          var beforeC = Integer.parseInt(prevProps.getOrDefault("general.custom.C", "0"));
+          var beforeD = Integer.parseInt(prevProps.getOrDefault("general.custom.D", "0"));
 
-          var afterA = Integer.parseInt(acceptedProps.get("table.custom.A"));
-          var afterB = Integer.parseInt(acceptedProps.get("table.custom.B"));
-          var afterC = Integer.parseInt(acceptedProps.get("table.custom.C"));
-          var afterD = Integer.parseInt(acceptedProps.get("table.custom.D"));
+          var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
+          var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
+          var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
+          var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
 
           // because there are other thread possibly making changes since reading prevProps, can
           // only do >= as opposed to == check. Should at a minimum see the changes made by this
@@ -627,11 +631,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
-          int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
-          int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
+          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+          int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
 
-          tableProps.put("table.custom.B", B + 11 + "");
-          tableProps.put("table.custom.C", C + 13 + "");
+          tableProps.put("general.custom.B", B + 11 + "");
+          tableProps.put("general.custom.C", C + 13 + "");
         });
       }
       return null;
@@ -642,9 +646,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
-          int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
+          int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
 
-          tableProps.put("table.custom.B", B + 17 + "");
+          tableProps.put("general.custom.B", B + 17 + "");
         });
       }
       return null;
@@ -655,8 +659,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
-          int E = Integer.parseInt(tableProps.getOrDefault("table.custom.E", "0"));
-          tableProps.put("table.custom.E", E + 19 + "");
+          int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));
+          tableProps.put("general.custom.E", E + 19 + "");
         });
       }
       return null;
@@ -672,14 +676,14 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
     // determine the expected sum for all the additions done by the separate threads for each
     // property
-    expected.put("table.custom.A", iterations * 2 + "");
-    expected.put("table.custom.B", iterations * (3 + 11 + 17) + "");
-    expected.put("table.custom.C", iterations * (5 + 13) + "");
-    expected.put("table.custom.D", iterations * 7 + "");
-    expected.put("table.custom.E", iterations * 19 + "");
+    expected.put("general.custom.A", iterations * 2 + "");
+    expected.put("general.custom.B", iterations * (3 + 11 + 17) + "");
+    expected.put("general.custom.C", iterations * (5 + 13) + "");
+    expected.put("general.custom.D", iterations * 7 + "");
+    expected.put("general.custom.E", iterations * 19 + "");
 
     final var IS_NOT_CUSTOM_TABLE_PROP =
-        Pattern.compile("table[.]custom[.][ABCDEF]").asMatchPredicate().negate();
+        Pattern.compile("general[.]custom[.][ABCDEF]").asMatchPredicate().negate();
     Wait.waitFor(() -> {
       var tableProps = new HashMap<>(propShim.getProperties());
       tableProps.keySet().removeIf(IS_NOT_CUSTOM_TABLE_PROP);
@@ -695,22 +699,22 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     // the returned map
     // is exactly as expected.
     Map<String,String> acceptedProps = propShim.modifyProperties(tableProps -> {
-      int A = Integer.parseInt(tableProps.getOrDefault("table.custom.A", "0"));
-      int B = Integer.parseInt(tableProps.getOrDefault("table.custom.B", "0"));
-      int C = Integer.parseInt(tableProps.getOrDefault("table.custom.C", "0"));
-      int D = Integer.parseInt(tableProps.getOrDefault("table.custom.D", "0"));
+      int A = Integer.parseInt(tableProps.getOrDefault("general.custom.A", "0"));
+      int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
+      int C = Integer.parseInt(tableProps.getOrDefault("general.custom.C", "0"));
+      int D = Integer.parseInt(tableProps.getOrDefault("general.custom.D", "0"));
 
-      tableProps.put("table.custom.A", A + 2 + "");
-      tableProps.put("table.custom.B", B + 3 + "");
-      tableProps.put("table.custom.C", C + 5 + "");
-      tableProps.put("table.custom.D", D + 7 + "");
+      tableProps.put("general.custom.A", A + 2 + "");
+      tableProps.put("general.custom.B", B + 3 + "");
+      tableProps.put("general.custom.C", C + 5 + "");
+      tableProps.put("general.custom.D", D + 7 + "");
     });
 
-    var afterA = Integer.parseInt(acceptedProps.get("table.custom.A"));
-    var afterB = Integer.parseInt(acceptedProps.get("table.custom.B"));
-    var afterC = Integer.parseInt(acceptedProps.get("table.custom.C"));
-    var afterD = Integer.parseInt(acceptedProps.get("table.custom.D"));
-    var afterE = Integer.parseInt(acceptedProps.get("table.custom.E"));
+    var afterA = Integer.parseInt(acceptedProps.get("general.custom.A"));
+    var afterB = Integer.parseInt(acceptedProps.get("general.custom.B"));
+    var afterC = Integer.parseInt(acceptedProps.get("general.custom.C"));
+    var afterD = Integer.parseInt(acceptedProps.get("general.custom.D"));
+    var afterE = Integer.parseInt(acceptedProps.get("general.custom.E"));
 
     assertEquals(iterations * 2 + 2, afterA);
     assertEquals(iterations * (3 + 11 + 17) + 3, afterB);
@@ -720,4 +724,38 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
 
     executor.shutdown();
   }
+
+  @Test
+  public void testTablePropInSystemConfigFails() {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+        AccumuloException ae = assertThrows(AccumuloException.class,
+            () -> client.instanceOperations().setProperty(e.getKey(), e.getValue()));
+        assertTrue(ae.getMessage()
+            .contains("Table property " + e.getKey()
+                + " cannot be set at the system or resource group level."
+                + " Set table properties at the namespace or table level."));
+      }
+    }
+  }
+
+  @Test
+  public void testTablePropInResourceGroupConfigFails() {
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      DefaultConfiguration dc = DefaultConfiguration.getInstance();
+      Map<String,String> defaultProperties = dc.getAllPropertiesWithPrefix(Property.TABLE_PREFIX);
+      for (Entry<String,String> e : defaultProperties.entrySet()) {
+        AccumuloException ae =
+            assertThrows(AccumuloException.class, () -> client.resourceGroupOperations()
+                .setProperty(ResourceGroupId.DEFAULT, e.getKey(), e.getValue()));
+        assertTrue(ae.getMessage()
+            .contains("Table property " + e.getKey()
+                + " cannot be set at the system or resource group level."
+                + " Set table properties at the namespace or table level."));
+      }
+    }
+  }
+
 }

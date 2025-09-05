@@ -34,6 +34,7 @@ $(cyan Options):
   $(cyan General options):
     $(green --dry-run)                Prints information and commands, but does not execute them
     $(green --local)                  Operates on matching local services only (no SSH)
+    $(green --create-missing-rg)      Creates resource groups defined in cluster.yaml that don't yet exist.
 
   $(cyan 'Service type selection options (if none are used, all service types are selected)'):
     $(green --manager)                Selects the manager service (oversees cluster operations)
@@ -52,19 +53,20 @@ $(cyan Commands):
   $(green stop)                       Stops Accumulo cluster services
   $(green restart)                    Restarts Accumulo cluster services
   $(green kill)                       Kills Accumulo cluster services
-  $(green prune)                      Reomves zookeeper locks of extra processes
+  $(green prune)                      Removes zookeeper locks of extra processes
 
 $(cyan Examples):
-  $(purple 'accumulo-cluster start')                              $(blue '# start all servers')
-  $(purple 'accumulo-cluster start --dry-run')                    $(blue '# print debug information and commands to be executed')
-  $(purple 'accumulo-cluster start --local')                      $(blue '# start all local services')
-  $(purple 'accumulo-cluster start --local --manager')            $(blue '# start local manager services')
-  $(purple 'accumulo-cluster start --tservers')                   $(blue '# start all tservers')
-  $(purple 'accumulo-cluster start --sservers=group1')            $(blue '# start all group1 sservers')
-  $(purple 'accumulo-cluster start --sservers="group1 group2"')   $(blue '# start all group1 and group2 sservers')
-  $(purple 'accumulo-cluster start --local --manager --tservers') $(blue '# Start the local manager and local tservers')
-  $(purple 'accumulo-cluster prune --compactors')                 $(blue '# prune all extra compactors across all groups')
-  $(purple 'accumulo-cluster prune --compactors="group1"')        $(blue '# prune extra compactors running in group1')
+  $(purple 'accumulo-cluster start')                                             $(blue '# start all servers')
+  $(purple 'accumulo-cluster start --dry-run')                                   $(blue '# print debug information and commands to be executed')
+  $(purple 'accumulo-cluster start --local')                                     $(blue '# start all local services')
+  $(purple 'accumulo-cluster start --local --manager')                           $(blue '# start local manager services')
+  $(purple 'accumulo-cluster start --tservers')                                  $(blue '# start all tservers')
+  $(purple 'accumulo-cluster start --sservers=group1')                           $(blue '# start all group1 sservers')
+  $(purple 'accumulo-cluster start --sservers="group1 group2"')                  $(blue '# start all group1 and group2 sservers')
+  $(purple 'accumulo-cluster start --local --manager --tservers')                $(blue '# Start the local manager and local tservers')
+  $(purple 'accumulo-cluster prune --compactors')                                $(blue '# prune all extra compactors across all groups')
+  $(purple 'accumulo-cluster prune --compactors="group1"')                       $(blue '# prune extra compactors running in group1')
+  $(purple 'accumulo-cluster start --compactors="group1" --create-missing-rg')   $(blue '# start compactors running in group1, create group1 if missing')  
 
 EOF
 }
@@ -105,6 +107,7 @@ function white() { colorize 37 "$@"; }
 function parse_args() {
   local originalArgs=("$@")
 
+  ARG_CREATE_MISSING_RG="false"
   DEBUG=0
   ARG_LOCAL=0
   ARG_ALL=1
@@ -125,7 +128,7 @@ function parse_args() {
     exit 2
   fi
 
-  if ! PARSE_OUTPUT=$(getopt -o "" --long "dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
+  if ! PARSE_OUTPUT=$(getopt -o "" --long "create-missing-rg,dry-run,local,manager,gc,monitor,tservers::,sservers::,compactors::" -n 'accumulo-cluster' -- "$@"); then
     print_usage
     exit 1
   fi
@@ -134,6 +137,10 @@ function parse_args() {
 
   while true; do
     case "$1" in
+      --create-missing-rg)
+        ARG_CREATE_MISSING_RG="true"
+        shift 1
+        ;;
       --dry-run)
         DEBUG=1
         debug "original args: $(quote "${originalArgs[@]}")"
@@ -210,6 +217,7 @@ function parse_args() {
   debug "ARG_SSERVER_GROUP=$ARG_SSERVER_GROUP"
   debug "ARG_COMPACTOR=$ARG_COMPACTOR"
   debug "ARG_COMPACTOR_GROUP=$ARG_COMPACTOR_GROUP"
+  debug "ARG_CREATE_MISSING_RG=$ARG_CREATE_MISSING_RG"
 
 }
 
@@ -298,7 +306,7 @@ function parse_config() {
   fi
 
   CONFIG_FILE="$AC_TMP_DIR/ClusterConfigParser.out"
-  "$accumulo_cmd" org.apache.accumulo.core.conf.cluster.ClusterConfigParser "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
+  "$accumulo_cmd" org.apache.accumulo.server.conf.cluster.ClusterConfigParser "$ARG_CREATE_MISSING_RG" "$conf/cluster.yaml" "$CONFIG_FILE" || parse_fail
   #shellcheck source=/dev/null
   . "$CONFIG_FILE"
   debug "Parsed config from $(white "$conf/cluster.yaml")"

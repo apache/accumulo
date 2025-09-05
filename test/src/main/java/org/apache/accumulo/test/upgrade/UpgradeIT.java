@@ -35,6 +35,7 @@ import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.manager.Manager;
@@ -51,7 +52,8 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class ServerThatWontStart extends AbstractServer {
 
     protected ServerThatWontStart(String[] args) {
-      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf) -> new ServerContext(conf), args);
+      super(ServerId.Type.TABLET_SERVER, new ConfigOpts(), (conf, rgid) -> new ServerContext(conf),
+          args);
     }
 
     @Override
@@ -74,7 +76,7 @@ public class UpgradeIT extends AccumuloClusterHarness {
   private class TestManager extends Manager {
 
     protected TestManager(String[] args) throws IOException {
-      super(new ConfigOpts(), (conf) -> new ServerContext(conf), args);
+      super(new ConfigOpts(), (conf, rgid) -> new ServerContext(conf), args);
     }
 
     @Override
@@ -115,26 +117,26 @@ public class UpgradeIT extends AccumuloClusterHarness {
 
     // Confirm all servers down
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor((rg) -> true, AddressSelector.all(), true).size() == 0);
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getScanServer((rg) -> true, AddressSelector.all(), true).size() == 0);
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getTabletServer((rg) -> true, AddressSelector.all(), true).size() == 0);
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
 
     assertThrows(IllegalStateException.class,
         () -> assertTimeoutPreemptively(Duration.ofMinutes(2), () -> getCluster().start()));
 
     // Confirm no servers started
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getCompactor((rg) -> true, AddressSelector.all(), true).size() == 0);
+        .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths().getGarbageCollector(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths().getManager(true) == null);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getScanServer((rg) -> true, AddressSelector.all(), true).size() == 0);
+        .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
     Wait.waitFor(() -> getServerContext().getServerPaths()
-        .getTabletServer((rg) -> true, AddressSelector.all(), true).size() == 0);
+        .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true).size() == 0);
 
     // Validate the exception from the servers
     List<String> args = new ArrayList<>();

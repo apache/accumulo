@@ -53,7 +53,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -67,6 +67,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
@@ -85,6 +86,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
@@ -484,7 +486,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     AbstractServer.startServer(new Manager(new ConfigOpts(), ServerContext::new, args), log);
   }
 
-  protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
+  protected Manager(ConfigOpts opts,
+      BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
@@ -587,8 +590,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
       while (stillManager()) {
         try {
-          Set<ServiceLockPath> scanServerPaths =
-              getContext().getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
+          Set<ServiceLockPath> scanServerPaths = getContext().getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
           for (ServiceLockPath path : scanServerPaths) {
 
             ZcStat stat = new ZcStat();
