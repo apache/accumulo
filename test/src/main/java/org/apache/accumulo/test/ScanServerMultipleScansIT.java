@@ -117,15 +117,16 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
-      final CountDownLatch latch = new CountDownLatch(1);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
-            fail("InterruptedException waiting for latch");
+            fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             scanner.setRange(new Range());
@@ -138,7 +139,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
         futures.add(future);
       }
-      latch.countDown();
+      assertEquals(NUM_SCANS, futures.size());
       for (Future<?> future : futures) {
         future.get();
       }
@@ -181,7 +182,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
       log.debug("Splits found: {}", splitsFound);
 
-      final CountDownLatch latch = new CountDownLatch(1);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
 
       final AtomicLong counter = new AtomicLong(0);
 
@@ -191,9 +192,10 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         final int threadNum = i;
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
-            fail("InterruptedException waiting for latch");
+            fail("InterruptedException waiting for startLatch");
           }
           try (Scanner scanner = client.createScanner(tableName, Authorizations.EMPTY)) {
             switch (threadNum) {
@@ -223,7 +225,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
         futures.add(future);
       }
-      latch.countDown();
+      assertEquals(NUM_SCANS, futures.size());
       for (Future<?> future : futures) {
         future.get();
       }
@@ -239,14 +241,15 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
 
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
-      final CountDownLatch latch = new CountDownLatch(1);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
 
       for (int i = 0; i < NUM_SCANS; i++) {
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
             fail("InterruptedException waiting for latch");
           }
@@ -260,7 +263,7 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
         });
         futures.add(future);
       }
-      latch.countDown();
+      assertEquals(NUM_SCANS, futures.size());
       for (Future<?> future : futures) {
         future.get();
       }
@@ -304,16 +307,14 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       assertEquals(splitPoints, new TreeSet<>(splitsFound));
       log.debug("Splits found: {}", splitsFound);
 
-      final CountDownLatch latch = new CountDownLatch(1);
-
-      final AtomicLong counter = new AtomicLong(0);
-
-      List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
+      final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      List<Future<Long>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         final int threadNum = i;
         var future = executor.submit(() -> {
           try {
-            latch.await();
+            startLatch.countDown();
+            startLatch.await();
           } catch (InterruptedException e1) {
             fail("InterruptedException waiting for latch");
           }
@@ -339,19 +340,21 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
             }
             scanner.setConsistencyLevel(ConsistencyLevel.EVENTUAL);
 
-            counter.addAndGet(scanner.stream().count());
+            return scanner.stream().count();
           } catch (TableNotFoundException e) {
             fail("Table not found");
+            return 0L;
           }
         });
         futures.add(future);
       }
-      latch.countDown();
-      for (Future<?> future : futures) {
-        future.get();
+      assertEquals(NUM_SCANS, futures.size());
+      long total = 0;
+      for (Future<Long> future : futures) {
+        total += future.get();
       }
 
-      assertEquals(ingestedEntryCount, counter.get());
+      assertEquals(ingestedEntryCount, total);
     }
   }
 

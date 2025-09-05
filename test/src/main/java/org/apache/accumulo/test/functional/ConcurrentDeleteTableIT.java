@@ -70,7 +70,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
       int numDeleteOps = 20;
 
-      ExecutorService es = Executors.newFixedThreadPool(numDeleteOps);
+      ExecutorService es = Executors.newCachedThreadPool();
 
       int count = 0;
       for (final String table : tables) {
@@ -84,7 +84,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
         final CountDownLatch cdl = new CountDownLatch(numDeleteOps);
 
-        List<Future<?>> futures = new ArrayList<>();
+        List<Future<?>> futures = new ArrayList<>(numDeleteOps);
 
         for (int i = 0; i < numDeleteOps; i++) {
           futures.add(es.submit(() -> {
@@ -125,7 +125,7 @@ public class ConcurrentDeleteTableIT extends AccumuloClusterHarness {
 
       int numOperations = 8;
 
-      ExecutorService es = Executors.newFixedThreadPool(numOperations);
+      ExecutorService es = Executors.newCachedThreadPool();
 
       int count = 0;
       for (final String table : tables) {

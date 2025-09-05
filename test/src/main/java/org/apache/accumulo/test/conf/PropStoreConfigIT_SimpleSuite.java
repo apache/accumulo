@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -574,11 +575,15 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
    * if any single modification is lost it can be detected.
    */
   private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
-    ExecutorService executor = Executors.newFixedThreadPool(4);
+    final int numTasks = 4;
+    ExecutorService executor = Executors.newCachedThreadPool();
+    CountDownLatch startLatch = new CountDownLatch(numTasks);
 
     final int iterations = 151;
 
     Callable<Void> task1 = () -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
 
         Map<String,String> prevProps = null;
@@ -622,6 +627,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     };
 
     Callable<Void> task2 = () -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
@@ -635,6 +642,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     };
 
     Callable<Void> task3 = () -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int B = Integer.parseInt(tableProps.getOrDefault("general.custom.B", "0"));
@@ -646,6 +655,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     };
 
     Callable<Void> task4 = () -> {
+      startLatch.countDown();
+      startLatch.await();
       for (int i = 0; i < iterations; i++) {
         propShim.modifyProperties(tableProps -> {
           int E = Integer.parseInt(tableProps.getOrDefault("general.custom.E", "0"));

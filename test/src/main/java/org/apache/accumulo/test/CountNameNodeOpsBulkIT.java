@@ -124,7 +124,7 @@ public class CountNameNodeOpsBulkIT extends ConfigurableMacBase {
       fs.delete(base, true);
       fs.mkdirs(base);
 
-      ExecutorService es = Executors.newFixedThreadPool(5);
+      ExecutorService es = Executors.newCachedThreadPool();
       List<Future<String>> futures = new ArrayList<>();
       for (int i = 0; i < 10; i++) {
         final int which = i;
