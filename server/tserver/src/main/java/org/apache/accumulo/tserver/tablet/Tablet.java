@@ -136,6 +136,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -1507,6 +1508,7 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
+        log.debug("Starting midpoint calculation");
         SortedMap<Double,Key> midpoint =
             FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
                 extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
@@ -1523,7 +1525,18 @@ public class Tablet extends TabletBase {
         lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
         lastSplitComputation.clear();
-        log.error("Failed to compute split information from files " + e.getMessage());
+        if (e.getMessage().contains("File does not exist")) {
+          Set<TabletFile> currentFiles = getDatafileManager().getFiles();
+          Sets.SetView<TabletFile> missingFiles = Sets.difference(files, currentFiles);
+          if (!missingFiles.isEmpty()) {
+            log.warn(
+                "Failed to compute spit information. The following files have been removed: {}",
+                missingFiles);
+            return Optional.empty();
+          }
+        }
+        log.error("Failed to compute split information from {} files in tablet {}.", files.size(),
+            getExtent(), e);
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
