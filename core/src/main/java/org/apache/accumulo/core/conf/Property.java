@@ -100,7 +100,7 @@ public enum Property {
       """, // @formatter:on
       "2.1.4"),
   RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
-      // formatter:off
+  // @formatter:off
       """
               The local IP address to which this server should bind for sending \
               and receiving network traffic. If not set then the process binds to all addresses.
@@ -146,7 +146,7 @@ public enum Property {
       """
           The protocol used to connect to a secure server. Must be in the list of enabled protocols \
           on the server side `rpc.ssl.server.enabled.protocols`.
-      """, // formatter:on
+      """, // @formatter:on
       "1.6.2"),
   RPC_SASL_QOP("rpc.sasl.qop", "auth", PropertyType.STRING,
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
@@ -167,7 +167,7 @@ public enum Property {
       "1.3.5"),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
-      // @formatter:off
+  // @formatter:off
       """
           A secret unique to a given instance that all servers must know in order \
           to communicate with one another. It should be changed prior to the \
