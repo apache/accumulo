@@ -54,6 +54,7 @@ public enum Property {
   COMPACTION_PREFIX("compaction.", null, PropertyType.PREFIX,
       "Both major and minor compaction properties can be included under this prefix.", "4.0.0"),
   COMPACTION_SERVICE_PREFIX(COMPACTION_PREFIX + "service.", null, PropertyType.PREFIX,
+  // @formatter:off
       """
           This prefix should be used to define all properties for the compaction services.
           See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.
@@ -65,7 +66,7 @@ public enum Property {
                {"group": "large"}]`
           `compaction.service.newService.opts.maxOpen=50`
           Additional options can be defined using the `compaction.service.<service>.opts.<option>` property.
-          """,
+      """, // @formatter:on
       "4.0.0"),
   COMPACTION_SERVICE_DEFAULT_PLANNER(
       COMPACTION_SERVICE_PREFIX + DEFAULT_COMPACTION_SERVICE_NAME + ".planner",
@@ -73,9 +74,12 @@ public enum Property {
       "Planner for default compaction service.", "4.0.0"),
   COMPACTION_SERVICE_DEFAULT_MAX_OPEN(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.maxOpen", "10",
       PropertyType.COUNT, "The maximum number of files a compaction will open.", "4.0.0"),
-  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.groups", """
-      [{"group": "default"}]
-      """, PropertyType.JSON,
+  COMPACTION_SERVICE_DEFAULT_GROUPS(COMPACTION_SERVICE_DEFAULT_PLANNER + ".opts.groups",
+  // @formatter:off
+      """
+          [{"group": "default"}]
+      """, // @formatter:on
+      PropertyType.JSON,
       "See {% jlink -f org.apache.accumulo.core.spi.compaction.RatioBasedCompactionPlanner %}.",
       "4.0.0"),
   COMPACTION_WARN_TIME(COMPACTION_PREFIX + "warn.time", "10m", PropertyType.TIMEDURATION,
@@ -88,20 +92,30 @@ public enum Property {
           + " RPC. See also `instance.ssl.enabled`.",
       "1.6.0"),
   RPC_PROCESS_ADVERTISE_ADDRESS("rpc.advertise.addr", "", PropertyType.STRING,
-      "The address to use when registering this server in ZooKeeper. This could be an"
-          + " IP address or hostname and defaults to rpc.bind.addr property value. Port "
-          + "numbers, if not specified, will default to the port property for the specific server type.",
+  // @formatter:off
+      """
+          The address to use when registering this server in ZooKeeper. This could be an \
+          IP address or hostname and defaults to rpc.bind.addr property value. Port \
+          numbers, if not specified, will default to the port property for the specific server type.
+      """, // @formatter:on
       "2.1.4"),
   RPC_PROCESS_BIND_ADDRESS("rpc.bind.addr", "", PropertyType.STRING,
-      "The local IP address to which this server should bind for sending and receiving network traffic. If not set then the process binds to all addresses.",
+      // formatter:off
+      """
+              The local IP address to which this server should bind for sending \
+              and receiving network traffic. If not set then the process binds to all addresses.
+          """, // @formatter:on
       "2.1.4"),
   RPC_MAX_MESSAGE_SIZE("rpc.message.size.max", Integer.toString(Integer.MAX_VALUE),
       PropertyType.BYTES, "The maximum size of a message that can be received by a server.",
       "2.1.3"),
   RPC_BACKLOG("rpc.backlog", "50", PropertyType.COUNT,
-      "Configures the TCP backlog for the server side sockets created by Thrift."
-          + " This property is not used for SSL type server sockets. A value of zero"
-          + " will use the Thrift default value.",
+  // @formatter:off
+      """
+          Configures the TCP backlog for the server side sockets created by Thrift. \
+          This property is not used for SSL type server sockets. A value of zero \
+          will use the Thrift default value.
+      """, // @formatter:on
       "2.1.3"),
   RPC_SSL_KEYSTORE_PATH("rpc.javax.net.ssl.keyStore", "", PropertyType.PATH,
       "Path of the keystore file for the server's private SSL key.", "1.6.0"),
@@ -128,8 +142,11 @@ public enum Property {
   RPC_SSL_ENABLED_PROTOCOLS("rpc.ssl.server.enabled.protocols", "TLSv1.3", PropertyType.STRING,
       "Comma separated list of protocols that can be used to accept connections.", "1.6.2"),
   RPC_SSL_CLIENT_PROTOCOL("rpc.ssl.client.protocol", "TLSv1.3", PropertyType.STRING,
-      "The protocol used to connect to a secure server. Must be in the list of enabled protocols "
-          + "on the server side `rpc.ssl.server.enabled.protocols`.",
+  // @@formatter:off
+      """
+          The protocol used to connect to a secure server. Must be in the list of enabled protocols \
+          on the server side `rpc.ssl.server.enabled.protocols`.
+      """, // formatter:on
       "1.6.2"),
   RPC_SASL_QOP("rpc.sasl.qop", "auth", PropertyType.STRING,
       "The quality of protection to be used with SASL. Valid values are 'auth', 'auth-int',"
@@ -150,37 +167,46 @@ public enum Property {
       "1.3.5"),
   @Sensitive
   INSTANCE_SECRET("instance.secret", "DEFAULT", PropertyType.STRING,
-      "A secret unique to a given instance that all servers must know in order"
-          + " to communicate with one another. It should be changed prior to the"
-          + " initialization of Accumulo. To change it after Accumulo has been"
-          + " initialized, use the ChangeSecret tool and then update accumulo.properties"
-          + " everywhere. Before using the ChangeSecret tool, make sure Accumulo is not"
-          + " running and you are logged in as the user that controls Accumulo files in"
-          + " HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo"
-          + " admin changeSecret`.",
+      // @formatter:off
+      """
+          A secret unique to a given instance that all servers must know in order \
+          to communicate with one another. It should be changed prior to the \
+          initialization of Accumulo. To change it after Accumulo has been \
+          initialized, use the ChangeSecret tool and then update accumulo.properties \
+          everywhere. Before using the ChangeSecret tool, make sure Accumulo is not \
+          running and you are logged in as the user that controls Accumulo files in \
+          HDFS. To use the ChangeSecret tool, run the command: `./bin/accumulo \
+          admin changeSecret`.
+      """, // @formatter:on
       "1.3.5"),
   INSTANCE_VOLUMES("instance.volumes", "", PropertyType.VOLUMES,
-      "A comma separated list of dfs uris to use. Files will be stored across"
-          + " these filesystems. In some situations, the first volume in this list"
-          + " may be treated differently, such as being preferred for writing out"
-          + " temporary files (for example, when creating a pre-split table)."
-          + " After adding uris to this list, run 'accumulo init --add-volume' and then"
-          + " restart tservers. If entries are removed from this list then tservers"
-          + " will need to be restarted. After a uri is removed from the list Accumulo"
-          + " will not create new files in that location, however Accumulo can still"
-          + " reference files created at that location before the config change. To use"
-          + " a comma or other reserved characters in a URI use standard URI hex"
-          + " encoding. For example replace commas with %2C.",
+  // @formatter:off
+      """
+          A comma separated list of dfs uris to use. Files will be stored across \
+          these filesystems. In some situations, the first volume in this list \
+          may be treated differently, such as being preferred for writing out \
+          temporary files (for example, when creating a pre-split table). \
+          After adding uris to this list, run 'accumulo init --add-volume' and then \
+          restart tservers. If entries are removed from this list then tservers \
+          will need to be restarted. After a uri is removed from the list Accumulo \
+          will not create new files in that location, however Accumulo can still \
+          reference files created at that location before the config change. To use \
+          a comma or other reserved characters in a URI use standard URI hex \
+          encoding. For example replace commas with %2C.
+      """, // @formatter:on
       "1.6.0"),
   INSTANCE_VOLUME_CONFIG_PREFIX("instance.volume.config.", null, PropertyType.PREFIX,
-      "Properties in this category are used to provide volume specific overrides to "
-          + "the general filesystem client configuration. Properties using this prefix "
-          + "should be in the form "
-          + "'instance.volume.config.<volume-uri>.<property-name>=<property-value>. An "
-          + "example: "
-          + "'instance.volume.config.hdfs://namespace-a:8020/accumulo.dfs.client.hedged.read.threadpool.size=10'. "
-          + "Note that when specifying property names that contain colons in the properties "
-          + "files that the colons need to be escaped with a backslash.",
+  // @formatter:off
+      """
+          Properties in this category are used to provide volume specific overrides to \
+          the general filesystem client configuration. Properties using this prefix \
+          should be in the form \
+          'instance.volume.config.<volume-uri>.<property-name>=<property-value>. An \
+          example: \
+          'instance.volume.config.hdfs://namespace-a:8020/accumulo.dfs.client.hedged.read.threadpool.size=10'. \
+          Note that when specifying property names that contain colons in the properties \
+          files that the colons need to be escaped with a backslash.
+      """, // @formatter:on
       "2.1.1"),
   INSTANCE_VOLUMES_REPLACEMENTS("instance.volumes.replacements", "", PropertyType.STRING,
       "Since accumulo stores absolute URIs changing the location of a namenode "
