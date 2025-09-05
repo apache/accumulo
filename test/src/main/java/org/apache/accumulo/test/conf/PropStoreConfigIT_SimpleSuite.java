@@ -576,7 +576,7 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
    */
   private static void runConcurrentPropsModificationTest(PropertyShim propShim) throws Exception {
     final int numTasks = 4;
-    ExecutorService executor = Executors.newFixedThreadPool(numTasks);
+    ExecutorService executor = Executors.newCachedThreadPool();
     CountDownLatch startLatch = new CountDownLatch(numTasks);
 
     final int iterations = 151;

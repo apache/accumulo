@@ -90,7 +90,7 @@ public class ZooMutatorIT extends WithTestNames {
       var zrw = zk.asReaderWriter();
 
       final int numTasks = 16;
-      var executor = Executors.newFixedThreadPool(numTasks);
+      var executor = Executors.newCachedThreadPool();
 
       String initialData = hash("Accumulo Zookeeper Mutator test data") + " 0";
 

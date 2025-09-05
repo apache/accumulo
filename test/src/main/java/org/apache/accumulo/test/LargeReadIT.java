@@ -125,7 +125,7 @@ public class LargeReadIT extends AccumuloClusterHarness {
       }
 
       final int numTasks = 64;
-      var executor = Executors.newFixedThreadPool(numTasks);
+      var executor = Executors.newCachedThreadPool();
       CountDownLatch latch = new CountDownLatch(numTasks);
       Callable<Long> scanTask = () -> {
         latch.countDown();

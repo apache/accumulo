@@ -608,7 +608,7 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
     FateKey fateKey = FateKey.forSplit(ke);
 
     final int numTasks = 10;
-    var executor = Executors.newFixedThreadPool(numTasks);
+    var executor = Executors.newCachedThreadPool();
     List<Future<Optional<FateId>>> futures = new ArrayList<>(numTasks);
     CountDownLatch startLatch = new CountDownLatch(numTasks);
     try {

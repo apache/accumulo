@@ -91,7 +91,7 @@ public class LockMapTest {
   @Test
   public void testConcurrency() throws Exception {
     final int numThreads = 32;
-    var executor = Executors.newFixedThreadPool(numThreads);
+    var executor = Executors.newCachedThreadPool();
     final int numTasks = numThreads * 4;
 
     try {
