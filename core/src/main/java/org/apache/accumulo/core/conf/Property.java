@@ -457,11 +457,11 @@ public enum Property {
       PropertyType.TIMEDURATION, "Limit calls from metric sinks to zookeeper to update interval.",
       "1.9.3"),
   MANAGER_FATE_USER_CONFIG("manager.fate.user.config",
-      "{'pool1':{'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+      "{'general':{'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
           + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
           + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4}, "
-          + "'pool2':{'COMMIT_COMPACTION': 4}, 'pool3':{'SYSTEM_SPLIT': 4}}".replace("'", "\""),
+          + "'commit':{'COMMIT_COMPACTION': 4}, 'split':{'SYSTEM_SPLIT': 4}}".replace("'", "\""),
       PropertyType.FATE_USER_CONFIG,
       "The number of threads used to run fault-tolerant executions (FATE) on user"
           + "tables. These are primarily table operations like merge. The property value is JSON. "
@@ -470,11 +470,11 @@ public enum Property {
           + "operations and whose value is a pool size for those operations.",
       "4.0.0"),
   MANAGER_FATE_META_CONFIG("manager.fate.meta.config",
-      "{'pool1':{'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
+      "{'general':{'TABLE_CREATE,TABLE_DELETE,TABLE_RENAME,TABLE_ONLINE,TABLE_OFFLINE,NAMESPACE_CREATE,"
           + "NAMESPACE_DELETE,NAMESPACE_RENAME,TABLE_TABLET_AVAILABILITY,SHUTDOWN_TSERVER,"
           + "TABLE_BULK_IMPORT2,TABLE_COMPACT,TABLE_CANCEL_COMPACT,TABLE_MERGE,TABLE_DELETE_RANGE,"
           + "TABLE_SPLIT,TABLE_CLONE,TABLE_IMPORT,TABLE_EXPORT,SYSTEM_MERGE': 4}, "
-          + "'pool2':{'COMMIT_COMPACTION': 4}, 'pool3':{'SYSTEM_SPLIT': 4}}".replace("'", "\""),
+          + "'commit':{'COMMIT_COMPACTION': 4}, 'split':{'SYSTEM_SPLIT': 4}}".replace("'", "\""),
       PropertyType.FATE_META_CONFIG,
       "The number of threads used to run fault-tolerant executions (FATE) on Accumulo system"
           + "tables. These are primarily table operations like merge. The property value is JSON. "
