@@ -109,7 +109,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       TVersionedProperties rgProps = ThriftClientTypes.CLIENT.execute(context,
           client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
               context.rpcCreds(), group.canonical()),
-          ResourceGroupPredicate.exact(group));
+          ResourceGroupPredicate.ANY);
       if (rgProps != null && rgProps.getPropertiesSize() > 0) {
         return Map.copyOf(rgProps.getProperties());
       } else {
@@ -162,7 +162,7 @@ public class ResourceGroupOperationsImpl implements ResourceGroupOperations {
       vProperties = ThriftClientTypes.CLIENT.execute(context,
           client -> client.getVersionedResourceGroupProperties(TraceUtil.traceInfo(),
               context.rpcCreds(), group.canonical()),
-          ResourceGroupPredicate.exact(group));
+          ResourceGroupPredicate.ANY);
     } catch (AccumuloException | AccumuloSecurityException e) {
       Throwable t = e.getCause();
       if (t instanceof ThriftResourceGroupNotExistsException) {
