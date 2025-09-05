@@ -22,10 +22,12 @@ import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.harness.AccumuloITBase.SUNNY_DAY;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -50,6 +52,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.rpc.clients.TServerClient;
+import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
@@ -182,6 +185,24 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
           () -> rgOps.removeProperty(invalid, Property.COMPACTION_WARN_TIME.getKey()));
       assertThrows(ResourceGroupNotFoundException.class, () -> rgOps.remove(invalid));
 
+      getCluster().getClusterControl().stopCompactorGroup(RG);
+      getCluster().getClusterControl().stopScanServerGroup(RG);
+      getCluster().getClusterControl().stopTabletServerGroup(RG);
+
+      getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
+      getCluster().getConfig().getClusterServerConfiguration().clearSServerResourceGroups();
+      getCluster().getConfig().getClusterServerConfiguration().clearTServerResourceGroups();
+
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
+          == 0);
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getScanServer(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
+          == 0);
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.exact(rgid), AddressSelector.all(), true).size()
+          == 0);
+
       rgOps.remove(rgid);
       assertFalse(zrw.exists(rgpk.getPath()));
       assertFalse(zrw.exists(rgpk.getPath()));
@@ -225,6 +246,29 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
   }
 
   @Test
+  public void testDuplicateCreatesRemovals()
+      throws AccumuloException, AccumuloSecurityException, ResourceGroupNotFoundException {
+    final var rgid = ResourceGroupId.of("DUPES");
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      Set<ResourceGroupId> rgs = client.resourceGroupOperations().list();
+      assertEquals(1, rgs.size());
+      assertEquals(ResourceGroupId.DEFAULT, rgs.iterator().next());
+      client.resourceGroupOperations().create(rgid);
+      Set<ResourceGroupId> rgs2 = new HashSet<>(client.resourceGroupOperations().list());
+      assertEquals(2, rgs2.size());
+      assertTrue(rgs2.remove(ResourceGroupId.DEFAULT));
+      assertEquals(rgid, rgs2.iterator().next());
+      client.resourceGroupOperations().create(rgid); // creating again succeeds doing nothing
+      client.resourceGroupOperations().remove(rgid);
+      rgs = client.resourceGroupOperations().list();
+      assertEquals(1, rgs.size());
+      assertEquals(ResourceGroupId.DEFAULT, rgs.iterator().next());
+      assertThrows(ResourceGroupNotFoundException.class,
+          () -> client.resourceGroupOperations().remove(rgid));
+    }
+  }
+
+  @Test
   public void testPermissions() throws Exception {
 
     ClusterUser testUser = getUser(0);
@@ -257,6 +301,17 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       assertThrows(AccumuloSecurityException.class,
           () -> test_user_client.resourceGroupOperations().remove(rgid));
     }
+
+    try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+      client.securityOperations().grantSystemPermission(principal, SystemPermission.SYSTEM);
+    }
+
+    // Regular user with SYSTEM permission should now be able to create/remove
+    try (AccumuloClient test_user_client =
+        Accumulo.newClient().from(getClientProps()).as(principal, token).build()) {
+      test_user_client.resourceGroupOperations().remove(rgid);
+      test_user_client.resourceGroupOperations().create(rgid);
+    }
   }
 
   @Test
@@ -277,15 +332,20 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
         Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
 
     Map<String,String> secondProps = Map.of(
-        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4",
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "5",
         Property.TSERV_ASSIGNMENT_MAXCONCURRENT.getKey(), "10");
 
     Map<String,String> thirdProps = Map.of(
         Property.COMPACTION_WARN_TIME.getKey(), "1m",
-        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "4");
+        Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "6");
     // @formatter:off
 
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
+
+      // Set the SSERV_WAL_SORT_MAX_CONCURRENT property to 3. The default is 2
+      // and the resource groups will override to 4, 5, and 6. We should never
+      // see 2 or 3 when getting the running configurations from the processes.
+      client.instanceOperations().setProperty(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey(), "3");
 
       @SuppressWarnings("resource")
       ClientContext cc = (ClientContext) client;
@@ -296,6 +356,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
       rgops.create(second);
       rgops.create(third);
 
+      getCluster().getConfig().getClusterServerConfiguration().setNumDefaultCompactors(1);
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(FIRST, 1);
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(SECOND, 1);
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(THIRD, 1);
@@ -323,19 +384,42 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
 
       System.setProperty(TServerClient.DEBUG_RG, FIRST);
       Map<String,String> sysConfig = client.instanceOperations().getSystemConfiguration();
+      assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
       compareConfigurations(sysConfig, firstProps, rgops.getConfiguration(first));
 
       System.setProperty(TServerClient.DEBUG_RG, SECOND);
       sysConfig = client.instanceOperations().getSystemConfiguration();
+      assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
       compareConfigurations(sysConfig, secondProps, rgops.getConfiguration(second));
 
       System.setProperty(TServerClient.DEBUG_RG, THIRD);
       sysConfig = client.instanceOperations().getSystemConfiguration();
+      assertEquals("3", sysConfig.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
       compareConfigurations(sysConfig, thirdProps, rgops.getConfiguration(third));
+
+      getCluster().getClusterControl().stopCompactorGroup(FIRST);
+      getCluster().getClusterControl().stopCompactorGroup(SECOND);
+      getCluster().getClusterControl().stopCompactorGroup(THIRD);
+
+      getCluster().getConfig().getClusterServerConfiguration().clearCompactorResourceGroups();
+
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(first), AddressSelector.all(), true).size()
+          == 0);
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getScanServer(ResourceGroupPredicate.exact(second), AddressSelector.all(), true).size()
+          == 0);
+      Wait.waitFor(() -> cc.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.exact(third), AddressSelector.all(), true).size()
+          == 0);
     }
   }
 
   private void compareConfigurations(Map<String,String> sysConfig, Map<String,String> rgConfig, Map<String,String> actual) {
+
+    assertNotEquals("2", actual.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
+    assertNotEquals("3", actual.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
+
     TreeMap<String,String> expected = new TreeMap<>(sysConfig);
     expected.putAll(rgConfig);
     assertEquals(expected, new TreeMap<>(actual));

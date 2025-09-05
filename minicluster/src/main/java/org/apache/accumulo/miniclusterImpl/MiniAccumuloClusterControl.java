@@ -282,6 +282,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
     }
   }
 
+  public void stopScanServerGroup(String sserverResourceGroup) {
+    synchronized (scanServerProcesses) {
+      var group = scanServerProcesses.get(sserverResourceGroup);
+      if (group == null) {
+        return;
+      }
+      cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, group, 30, TimeUnit.SECONDS);
+      scanServerProcesses.remove(sserverResourceGroup);
+    }
+  }
+
   public void stopTabletServerGroup(String tserverResourceGroup) {
     synchronized (tabletServerProcesses) {
       var group = tabletServerProcesses.get(tserverResourceGroup);
