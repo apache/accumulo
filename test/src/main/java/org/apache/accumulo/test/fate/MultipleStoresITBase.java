@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.DefaultConfiguration;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -308,7 +309,8 @@ public abstract class MultipleStoresITBase extends SharedMiniClusterBase {
     final ZooUtil.LockID lock2 = new ZooUtil.LockID("/locks", "L2", 52);
     final Set<ZooUtil.LockID> liveLocks = new HashSet<>();
     final Predicate<ZooUtil.LockID> isLockHeld = liveLocks::contains;
-    final AccumuloConfiguration config = FateTestUtil.createTestFateConfig(numThreads);
+    final AccumuloConfiguration config =
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), numThreads, "AllFateOps");
     Map<FateId,FateStore.FateReservation> reservations;
 
     try (final FateStore<LatchTestEnv> store1 = testStoreFactory.create(lock1, isLockHeld)) {
