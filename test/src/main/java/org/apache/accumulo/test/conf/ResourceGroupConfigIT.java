@@ -342,6 +342,8 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
 
     try (var client = Accumulo.newClient().from(getClientProps()).build()) {
 
+      client.instanceOperations().setProperty(Property.COMPACTION_WARN_TIME.getKey(), "1m");
+
       // Set the SSERV_WAL_SORT_MAX_CONCURRENT property to 3. The default is 2
       // and the resource groups will override to 4, 5, and 6. We should never
       // see 2 or 3 when getting the running configurations from the processes.
@@ -417,6 +419,7 @@ public class ResourceGroupConfigIT extends SharedMiniClusterBase {
 
   private void compareConfigurations(Map<String,String> sysConfig, Map<String,String> rgConfig, Map<String,String> actual) {
 
+    assertEquals("1m", actual.get(Property.COMPACTION_WARN_TIME.getKey()));
     assertNotEquals("2", actual.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
     assertNotEquals("3", actual.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
 
