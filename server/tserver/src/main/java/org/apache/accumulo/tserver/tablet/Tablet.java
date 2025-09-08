@@ -1471,7 +1471,8 @@ public class Tablet extends TabletBase {
   }
 
   // The following caches keys from users files needed to compute a tablets split point. This cached
-  // data could potentially be large and is therefore stored using a soft refence so the Java GC can
+  // data could potentially be large and is therefore stored using a soft reference so the Java GC
+  // can
   // release it if needed. If the cached information is not there it can always be recomputed.
   private volatile SoftReference<SplitComputations> lastSplitComputation =
       new SoftReference<>(null);
