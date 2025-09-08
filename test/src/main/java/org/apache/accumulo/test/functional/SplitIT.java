@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
@@ -43,11 +44,15 @@ import org.apache.accumulo.core.client.rfile.RFileWriter;
 import org.apache.accumulo.core.conf.ConfigurationTypeHelper;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.metadata.MetadataTable;
+import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata;
+import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.harness.AccumuloClusterHarness;
 import org.apache.accumulo.minicluster.ServerType;
@@ -57,12 +62,15 @@ import org.apache.accumulo.test.TestIngest;
 import org.apache.accumulo.test.VerifyIngest;
 import org.apache.accumulo.test.VerifyIngest.VerifyParams;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -164,7 +172,7 @@ public class SplitIT extends AccumuloClusterHarness {
         }
 
         assertTrue(shortened > 0, "Shortened should be greater than zero: " + shortened);
-        assertTrue(count > 10, "Count should be cgreater than 10: " + count);
+        assertTrue(count > 10, "Count should be greater than 10: " + count);
       }
 
       assertEquals(0, getCluster().getClusterControl().exec(CheckForMetadataProblems.class,
@@ -279,6 +287,134 @@ public class SplitIT extends AccumuloClusterHarness {
 
       // should have 1000 entries
       assertEquals(1000, c.createScanner(tableName).stream().count());
+    }
+  }
+
+  /**
+   * The following test will pass successfully but result in an FileNotFoundException error message
+   * being throw in the TabletServer logs. Additional changes to this test should check the tablet
+   * server log file for the error message.
+   *
+   * @throws Exception throws a general exception
+   */
+  @Test
+  public void testFileNotFoundExceptionDuringSplitComputations() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      String tableName = getUniqueNames(1)[0];
+
+      // Set small split threshold and disable compression to ensure splitting
+      client.tableOperations().create(tableName,
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(),
+              "10K", Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K",
+              Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none")));
+
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 0; i < 10_000; i++) {
+          Mutation m = new Mutation(String.format("%08d", i));
+          m.put("cf", "cq", "value" + i);
+          bw.addMutation(m);
+        }
+      }
+
+      // flush and wait
+      client.tableOperations().flush(tableName, null, null, true);
+
+      TableId tableId = TableId.of(client.tableOperations().tableIdMap().get(tableName));
+
+      StoredTabletFile fileToDelete = null;
+      try (TabletsMetadata tabletsMetadata =
+          getServerContext().getAmple().readTablets().forTable(tableId).build()) {
+        for (TabletMetadata tm : tabletsMetadata) {
+          log.info("Tablet {} directory {} has {} files in it", tm.getExtent(), tm.getDirName(),
+              tm.getFiles().size());
+          if (tm.getEndRow() == null) {
+            log.info("found default {} tablet extent of {}", tm.getExtent(), tm.getPrevEndRow());
+          } else {
+            fileToDelete = tm.getFiles().iterator().next();
+            break;
+          }
+        }
+      }
+
+      Preconditions.checkNotNull(fileToDelete);
+
+      final Path deletePath = fileToDelete.getPath();
+
+      Thread deleterThread = new Thread(() -> {
+        try {
+          Thread.sleep(1_000);
+          FileSystem fs = getFileSystem();
+
+          if (fs.exists(deletePath)) {
+            log.info("Deleting file {} to trigger FileNotFound exception", deletePath);
+            fs.delete(deletePath, false);
+          }
+        } catch (Exception e) {
+          log.error("Error deleting file", e);
+        }
+      });
+      deleterThread.start();
+
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 10_000; i < 20_000; i++) {
+          Mutation m = new Mutation(String.format("%08d", i));
+          m.put("cf", "cq", "value" + i);
+          bw.addMutation(m);
+        }
+      }
+
+      deleterThread.join(5_000);
+      client.tableOperations().flush(tableName, null, null, true);
+    }
+  }
+
+  /**
+   * Attempts to trigger a compaction while a table split point calculation is on going
+   *
+   * @throws Exception throws a general exception
+   */
+
+  @Test
+  public void testCompactionDuringSplitComputations() throws Exception {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+      final String tableName = getUniqueNames(1)[0];
+
+      // Set small split threshold and disable compression to ensure splitting
+      client.tableOperations().create(tableName,
+          new NewTableConfiguration().setProperties(Map.of(Property.TABLE_SPLIT_THRESHOLD.getKey(),
+              "10K", Property.TABLE_FILE_COMPRESSED_BLOCK_SIZE.getKey(), "1K",
+              Property.TABLE_FILE_COMPRESSION_TYPE.getKey(), "none")));
+
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 0; i < 10_000; i++) {
+          Mutation m = new Mutation(String.format("%08d", i));
+          m.put("cf", "cq", "value" + i);
+          bw.addMutation(m);
+        }
+      }
+
+      // flush and wait
+      client.tableOperations().flush(tableName, null, null, true);
+      Thread compactorThread = new Thread(() -> {
+        try (AccumuloClient threadClient = Accumulo.newClient().from(getClientProps()).build()) {
+          threadClient.tableOperations().compact(tableName, new CompactionConfig().setWait(true));
+          Thread.sleep(1_000);
+        } catch (Exception e) {
+          log.error("Error compacting table {}", tableName, e);
+        }
+      });
+      compactorThread.start();
+
+      try (BatchWriter bw = client.createBatchWriter(tableName)) {
+        for (int i = 10_000; i < 40_000; i++) {
+          Mutation m = new Mutation(String.format("%08d", i));
+          m.put("cf", "cq", "value" + i);
+          bw.addMutation(m);
+        }
+      }
+
+      client.tableOperations().flush(tableName, null, null, true);
+      compactorThread.join(1_000);
     }
   }
 }
