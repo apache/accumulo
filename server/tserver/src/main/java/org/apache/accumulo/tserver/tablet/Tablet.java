@@ -1508,7 +1508,7 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
-        log.debug("Starting midpoint calculation");
+        log.debug("Starting midpoint calculation for extent {}", extent);
         SortedMap<Double,Key> midpoint =
             FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
                 extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
@@ -1525,17 +1525,17 @@ public class Tablet extends TabletBase {
         lastSplitComputation = new SoftReference<>(newComputation);
       } catch (IOException e) {
         lastSplitComputation.clear();
-        if (e.getMessage().contains("File does not exist")) {
+        if (e.getClass().equals(FileNotFoundException.class)) {
           Set<TabletFile> currentFiles = getDatafileManager().getFiles();
           Sets.SetView<TabletFile> missingFiles = Sets.difference(files, currentFiles);
           if (!missingFiles.isEmpty()) {
-            log.warn(
-                "Failed to compute spit information. The following files have been removed: {}",
+            log.debug(
+                "Failed to compute split information. The following files have been compacted: {}",
                 missingFiles);
             return Optional.empty();
           }
         }
-        log.error("Failed to compute split information from {} files in tablet {}.", files.size(),
+        log.error("Failed to compute split information from {} files in tablet {}", files.size(),
             getExtent(), e);
         return Optional.empty();
       } finally {
