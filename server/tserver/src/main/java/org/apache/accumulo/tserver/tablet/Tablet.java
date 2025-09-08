@@ -136,7 +136,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Sets;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.opentelemetry.api.trace.Span;
@@ -1472,8 +1471,7 @@ public class Tablet extends TabletBase {
 
   // The following caches keys from users files needed to compute a tablets split point. This cached
   // data could potentially be large and is therefore stored using a soft reference so the Java GC
-  // can
-  // release it if needed. If the cached information is not there it can always be recomputed.
+  // can release it if needed. If the cached information is not there it can always be recomputed.
   private volatile SoftReference<SplitComputations> lastSplitComputation =
       new SoftReference<>(null);
   private final Lock splitComputationLock = new ReentrantLock();
@@ -1528,11 +1526,11 @@ public class Tablet extends TabletBase {
         lastSplitComputation.clear();
         if (e.getClass().equals(FileNotFoundException.class)) {
           Set<TabletFile> currentFiles = getDatafileManager().getFiles();
-          Sets.SetView<TabletFile> missingFiles = Sets.difference(files, currentFiles);
-          if (!missingFiles.isEmpty()) {
+          files.removeAll(currentFiles);
+          if (!files.isEmpty()) {
             log.debug(
-                "Failed to compute split information. The following files have been compacted: {}",
-                missingFiles);
+                "Failed to compute split information. The following files have most likely been garbage collected: {}",
+                files);
             return Optional.empty();
           }
         }
