@@ -35,6 +35,7 @@ import org.apache.accumulo.core.client.AccumuloException;
 import org.apache.accumulo.core.client.AccumuloSecurityException;
 import org.apache.accumulo.core.client.NamespaceNotFoundException;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.AccumuloServerException;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
@@ -65,10 +66,10 @@ public interface TServerClient<C extends TServiceClient> {
   static final String DEBUG_HOST = "org.apache.accumulo.client.rpc.debug.host";
   static final String DEBUG_RG = "org.apache.accumulo.client.rpc.debug.group";
 
-  Pair<String,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections,
+  Pair<ServerId,C> getThriftServerConnection(ClientContext context, boolean preferCachedConnections,
       ResourceGroupPredicate rgp) throws TTransportException;
 
-  default Pair<String,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
+  default Pair<ServerId,C> getThriftServerConnection(Logger LOG, ThriftClientTypes<C> type,
       ClientContext context, boolean preferCachedConnections, AtomicBoolean warned,
       ThriftService service, ResourceGroupPredicate rgp) throws TTransportException {
     checkArgument(context != null, "context is null");
@@ -106,12 +107,12 @@ public interface TServerClient<C extends TServiceClient> {
     }
 
     if (preferCachedConnections && !debugHostSpecified && !debugRGSpecified) {
-      Pair<String,TTransport> cachedTransport =
+      Pair<ServerId,TTransport> cachedTransport =
           context.getTransportPool().getAnyCachedTransport(type, context, service, rgp);
       if (cachedTransport != null) {
         C client = ThriftUtil.createClient(type, cachedTransport.getSecond());
         warned.set(false);
-        return new Pair<String,C>(cachedTransport.getFirst(), client);
+        return new Pair<ServerId,C>(cachedTransport.getFirst(), client);
       }
     }
 
@@ -155,7 +156,7 @@ public interface TServerClient<C extends TServiceClient> {
     for (ServiceLockPath path : serverPaths) {
       Optional<ServiceLockData> data = zc.getLockData(path);
       if (data != null && data.isPresent()) {
-        HostAndPort tserverClientAddress = data.orElseThrow().getAddress(service);
+        ServerId tserverClientAddress = data.orElseThrow().getServer(service);
         if (tserverClientAddress != null) {
           try {
             TTransport transport = context.getTransportPool().getTransport(type,
@@ -165,7 +166,7 @@ public interface TServerClient<C extends TServiceClient> {
               LOG.info("Connecting to debug host: {}", debugHost);
             }
             warned.set(false);
-            return new Pair<String,C>(tserverClientAddress.toString(), client);
+            return new Pair<ServerId,C>(tserverClientAddress, client);
           } catch (TTransportException e) {
             if (type == ThriftClientTypes.CLIENT && debugHostSpecified) {
               LOG.error(
@@ -208,10 +209,10 @@ public interface TServerClient<C extends TServiceClient> {
   default <R> R execute(Logger LOG, ClientContext context, Exec<R,C> exec,
       ResourceGroupPredicate rgp) throws AccumuloException, AccumuloSecurityException {
     while (true) {
-      String server = null;
+      ServerId server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true, rgp);
+        Pair<ServerId,C> pair = getThriftServerConnection(context, true, rgp);
         server = pair.getFirst();
         client = pair.getSecond();
         return exec.execute(client);
@@ -248,10 +249,10 @@ public interface TServerClient<C extends TServiceClient> {
   default void executeVoid(Logger LOG, ClientContext context, ExecVoid<C> exec,
       ResourceGroupPredicate rgp) throws AccumuloException, AccumuloSecurityException {
     while (true) {
-      String server = null;
+      ServerId server = null;
       C client = null;
       try {
-        Pair<String,C> pair = getThriftServerConnection(context, true, rgp);
+        Pair<ServerId,C> pair = getThriftServerConnection(context, true, rgp);
         server = pair.getFirst();
         client = pair.getSecond();
         exec.execute(client);

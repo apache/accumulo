@@ -22,6 +22,7 @@ import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.UUID;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
@@ -36,7 +37,7 @@ import com.google.common.net.HostAndPort;
 public final class LogEntry {
 
   private final String path;
-  private final HostAndPort tserver;
+  private HostAndPort tserver;
   private final UUID uniqueId;
   private final Text columnQualifier;
 
@@ -51,8 +52,9 @@ public final class LogEntry {
    * Creates a new LogEntry object after validating the expected format of the path. We expect the
    * path to contain a tserver (host+port) followed by a UUID as the file name as the last two
    * components.<br>
-   * For example, file:///some/dir/path/localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a
-   * valid path.
+   * For example,
+   * file:///some/dir/path/type+group+localhost+1234/927ba659-d109-4bce-b0a5-bcbbcb9942a2 is a valid
+   * path.
    *
    * @param path path to validate
    * @return an object representation of this log entry
@@ -80,7 +82,7 @@ public final class LogEntry {
     }
     HostAndPort tserver;
     try {
-      tserver = HostAndPort.fromString(tserverPart.replace("+", ":"));
+      tserver = ServerId.fromWalFileName(tserverPart).getHostPort();
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException(badTServerMsg);
     }

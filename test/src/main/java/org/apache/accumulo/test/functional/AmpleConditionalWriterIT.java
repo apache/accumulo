@@ -67,6 +67,7 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TimeType;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
@@ -162,8 +163,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
   @Test
   public void testLocations() {
 
-    var ts1 = new TServerInstance("localhost:9997", 5000L);
-    var ts2 = new TServerInstance("localhost:9997", 6000L);
+    var ts1 = new TServerInstance(ServerId.tserver("localhost", 9997), 5000L);
+    var ts2 = new TServerInstance(ServerId.tserver("localhost", 9997), 6000L);
 
     var context = getCluster().getServerContext();
 
@@ -321,8 +322,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
   @Test
   public void testFiles() {
 
-    var ts1 = new TServerInstance("localhost:9997", 5000L);
-    var ts2 = new TServerInstance("localhost:9997", 6000L);
+    var ts1 = new TServerInstance(ServerId.tserver("localhost", 9997), 5000L);
+    var ts2 = new TServerInstance(ServerId.tserver("localhost", 9997), 6000L);
 
     var context = getCluster().getServerContext();
 
@@ -769,8 +770,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
 
   @Test
   public void testMultipleExtents() {
-    var ts1 = new TServerInstance("localhost:9997", 5000L);
-    var ts2 = new TServerInstance("localhost:9997", 6000L);
+    var ts1 = new TServerInstance(ServerId.tserver("localhost", 9997), 5000L);
+    var ts2 = new TServerInstance(ServerId.tserver("localhost", 9997), 6000L);
 
     var context = getCluster().getServerContext();
 
@@ -1254,7 +1255,7 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       testFilterApplied(context, Set.of(new TestTabletMetadataFilter(), new GcWalsFilter(Set.of())),
           tabletsWithWalCompactFlush, "Combination of filters did not return the expected tablets");
 
-      TServerInstance serverInstance = new TServerInstance(server, 1L);
+      TServerInstance serverInstance = new TServerInstance(ServerId.tserver("server1", 8555), 1L);
 
       // on a subset of the tablets, put a location
       final Set<KeyExtent> tabletsWithLocation = Set.of(e2, e3, e4);
@@ -1371,8 +1372,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
       // test that now only the tablet with a wal is returned when using filter()
       testFilterApplied(context, filter, Set.of(e2), "Only tablets with wals should be returned");
 
-      var ts1 = new TServerInstance("localhost:9997", 5000L);
-      var ts2 = new TServerInstance("localhost:9997", 6000L);
+      var ts1 = new TServerInstance(ServerId.tserver("localhost", 9997), 5000L);
+      var ts2 = new TServerInstance(ServerId.tserver("localhost", 9997), 6000L);
 
       try (var ctmi = context.getAmple().conditionallyMutateTablets()) {
         ctmi.mutateTablet(e1).requireAbsentOperation().requireAbsentLocation()
@@ -1909,8 +1910,8 @@ public class AmpleConditionalWriterIT extends SharedMiniClusterBase {
   @Test
   public void testRequireMigration() {
     var context = getCluster().getServerContext();
-    var tsi = new TServerInstance("localhost:1234", 56L);
-    var otherTsi = new TServerInstance("localhost:9876", 54L);
+    var tsi = new TServerInstance(ServerId.tserver("localhost", 1234), 56L);
+    var otherTsi = new TServerInstance(ServerId.tserver("localhost", 9876), 54L);
 
     try (var ctmi = context.getAmple().conditionallyMutateTablets()) {
       ctmi.mutateTablet(e1).requireAbsentOperation().requireMigration(tsi).deleteMigration()

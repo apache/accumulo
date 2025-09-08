@@ -51,6 +51,7 @@ import org.apache.accumulo.core.client.RowIterator;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.TableNotFoundException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache;
@@ -64,10 +65,12 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.FutureLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.LastLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
+import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 import org.apache.accumulo.core.sample.impl.SamplerConfigurationImpl;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.security.NamespacePermission;
@@ -832,9 +835,9 @@ public class InputConfigurator extends ConfiguratorBase {
     return null;
   }
 
-  public static Map<String,Map<KeyExtent,List<Range>>> binOffline(TableId tableId,
+  public static Map<ServerId,Map<KeyExtent,List<Range>>> binOffline(TableId tableId,
       List<Range> ranges, ClientContext context) throws AccumuloException, TableNotFoundException {
-    Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
 
     if (context.getTableState(tableId) != TableState.OFFLINE) {
       context.clearTableListCache();
@@ -867,21 +870,21 @@ public class InputConfigurator extends ConfiguratorBase {
       KeyExtent lastExtent = null;
       while (rowIter.hasNext()) {
         Iterator<Map.Entry<Key,Value>> row = rowIter.next();
-        String last = "";
+        Location last = null;
         KeyExtent extent = null;
-        String location = null;
+        Location location = null;
 
         while (row.hasNext()) {
           Map.Entry<Key,Value> entry = row.next();
           Key key = entry.getKey();
 
           if (key.getColumnFamily().equals(LastLocationColumnFamily.NAME)) {
-            last = entry.getValue().toString();
+            last = Location.last(TServerInstance.deserialize(entry.getValue().toString()));
           }
 
           if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)
               || key.getColumnFamily().equals(FutureLocationColumnFamily.NAME)) {
-            location = entry.getValue().toString();
+            location = Location.current(TServerInstance.deserialize(entry.getValue().toString()));
           }
 
           if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
@@ -902,7 +905,7 @@ public class InputConfigurator extends ConfiguratorBase {
           throw new AccumuloException(" " + lastExtent + " is not previous extent " + extent);
         }
 
-        binnedRanges.computeIfAbsent(last, k -> new HashMap<>())
+        binnedRanges.computeIfAbsent(last.getServerInstance().getServer(), k -> new HashMap<>())
             .computeIfAbsent(extent, k -> new ArrayList<>()).add(range);
 
         if (extent.endRow() == null

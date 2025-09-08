@@ -302,7 +302,7 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     fateGroupByTablet.forEach(tid -> {
       var tabletLoc = fateLocations.getTabletLocation(tid);
       assertNotNull(tabletLoc);
-      assertTrue(tabletLoc.contains(":"));
+      assertTrue(tabletLoc.toHostPortString().contains(":"));
     });
     var scanRefLocations =
         ops.locate(SystemTables.SCAN_REF.tableName(), Collections.singletonList(new Range()));
@@ -311,7 +311,7 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
     scanRefGroupByTablet.forEach(tid -> {
       var tabletLoc = scanRefLocations.getTabletLocation(tid);
       assertNotNull(tabletLoc);
-      assertTrue(tabletLoc.contains(":"));
+      assertTrue(tabletLoc.toHostPortString().contains(":"));
     });
   }
 

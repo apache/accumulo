@@ -23,6 +23,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.Set;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientTabletCacheImpl.TabletServerLockChecker;
 import org.apache.accumulo.core.lock.ServiceLock;
 import org.apache.accumulo.core.lock.ServiceLockPaths;
@@ -30,8 +31,6 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.zookeeper.ZooCache;
-
-import com.google.common.net.HostAndPort;
 
 public class ZookeeperLockChecker implements TabletServerLockChecker {
 
@@ -43,20 +42,20 @@ public class ZookeeperLockChecker implements TabletServerLockChecker {
     this.lockPaths = new ServiceLockPaths(this.zc);
   }
 
-  public boolean doesTabletServerLockExist(String server) {
+  public boolean doesTabletServerLockExist(ServerId server) {
     // ServiceLockPaths only returns items that have a lock
-    var hostAndPort = HostAndPort.fromString(server);
-    Set<ServiceLockPath> tservers = lockPaths.getTabletServer(ResourceGroupPredicate.ANY,
-        AddressSelector.exact(hostAndPort), true);
+    Set<ServiceLockPath> tservers =
+        lockPaths.getTabletServer(ResourceGroupPredicate.exact(server.getResourceGroup()),
+            AddressSelector.exact(server.getHostPort()), true);
     return !tservers.isEmpty();
   }
 
   @Override
-  public boolean isLockHeld(String server, String session) {
+  public boolean isLockHeld(ServerId server, String session) {
     // ServiceLockPaths only returns items that have a lock
-    var hostAndPort = HostAndPort.fromString(server);
-    Set<ServiceLockPath> tservers = lockPaths.getTabletServer(ResourceGroupPredicate.ANY,
-        AddressSelector.exact(hostAndPort), true);
+    Set<ServiceLockPath> tservers =
+        lockPaths.getTabletServer(ResourceGroupPredicate.exact(server.getResourceGroup()),
+            AddressSelector.exact(server.getHostPort()), true);
     for (ServiceLockPath slp : tservers) {
       if (ServiceLock.getSessionId(zc, slp) == Long.parseLong(session, 16)) {
         return true;

@@ -20,6 +20,7 @@ package org.apache.accumulo.core.spi.scan;
 
 import java.time.Duration;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 
 /**
@@ -34,7 +35,7 @@ public interface ScanServerSelections {
    * @return what scan server to use for a given tablet. Returning null indicates the tablet server
    *         should be used for this tablet.
    */
-  String getScanServer(TabletId tabletId);
+  ServerId getScanServer(TabletId tabletId);
 
   /**
    * @return The amount of time to wait on the client side before starting to contact servers.

@@ -58,6 +58,7 @@ import org.apache.accumulo.core.client.TableExistsException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
@@ -114,6 +115,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.collect.Sets;
+import com.google.common.net.HostAndPort;
 
 /**
  * Test to ensure that the {@link TabletManagementIterator} properly skips over tablet information
@@ -369,7 +371,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       try (TabletsMutatorImpl mut = new TabletsMutatorImpl(getServerContext(), (dl) -> metaCopy6)) {
         KeyExtent nonExistantTable = new KeyExtent(badTableId, null, null);
         TabletMutator tm = mut.mutateTablet(nonExistantTable);
-        tm.putLocation(Location.current("fakeServer", "fakeSession"));
+        tm.putLocation(Location
+            .current(new TServerInstance(ServerId.tserver("fakeServer", 0), "fakeSession")));
         tm.automaticallyPutServerLock(false);
         tm.mutate();
       }
@@ -389,7 +392,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       try (TabletsMutatorImpl mut = new TabletsMutatorImpl(getServerContext(), (dl) -> metaCopy6)) {
         KeyExtent nonExistantTable = new KeyExtent(badTableId, null, null);
         TabletMutator tm = mut.mutateTablet(nonExistantTable);
-        tm.deleteLocation(Location.current("fakeServer", "fakeSession"));
+        tm.deleteLocation(Location
+            .current(new TServerInstance(ServerId.tserver("fakeServer", 0), "fakeSession")));
         tm.automaticallyPutServerLock(false);
         tm.mutate();
       }
@@ -695,7 +699,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), true)) {
       try {
         long sessionId = ServiceLock.getSessionId(context.getZooCache(), tserver);
-        tservers.add(new TServerInstance(tserver.getServer(), sessionId));
+        tservers.add(new TServerInstance(ServerId.tserver(tserver.getResourceGroup(),
+            HostAndPort.fromString(tserver.getServer())), sessionId));
       } catch (Exception e) {
         throw new RuntimeException(e);
       }

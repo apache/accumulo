@@ -36,6 +36,7 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
@@ -48,7 +49,6 @@ import org.apache.accumulo.core.tabletserver.thrift.ActionStats;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletStats;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.monitor.Monitor;
 import org.apache.accumulo.monitor.rest.manager.ManagerResource;
 import org.apache.accumulo.server.manager.state.DeadServerList;
@@ -125,7 +125,7 @@ public class TabletServerResource {
     for (TabletServerStatus server : mmi.tServerInfo) {
       if (server.logSorts != null) {
         for (RecoveryStatus recovery : server.logSorts) {
-          String serv = AddressUtil.parseAddress(server.name).getHost();
+          String serv = HostAndPort.fromString(server.name).getHost();
           String log = recovery.name;
           int time = recovery.runtime;
           double progress = recovery.progress;
@@ -178,7 +178,7 @@ public class TabletServerResource {
     try {
       ClientContext context = monitor.getContext();
       TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, ServerId.tserver(address), context);
       try {
         for (String tableId : mmi.tableMap.keySet()) {
           tsStats.addAll(client.getTabletStats(TraceUtil.traceInfo(), context.rpcCreds(), tableId));

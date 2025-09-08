@@ -1143,7 +1143,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     producers.addAll(managerMetrics.getProducers(this));
     metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+        getAdvertiseAddress().getHostPort(), getAdvertiseAddress().getResourceGroup()));
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
@@ -1183,7 +1183,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // Now that the Manager is up, start the ThriftServer
     Objects.requireNonNull(getThriftServerAddress(), "Thrift Server Address should not be null");
     getThriftServerAddress().startThriftServer("Manager Client Service Handler");
-    log.info("Started Manager client service at {}", getAdvertiseAddress());
+    log.info("Started Manager client service at {}", getAdvertiseAddress().getHostPort());
 
     // Replace the ServiceLockData information in the Manager lock node in ZooKeeper.
     // This advertises the address that clients can use to connect to the Manager
@@ -1193,8 +1193,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     ServiceDescriptors descriptors = new ServiceDescriptors();
     for (ThriftService svc : new ThriftService[] {ThriftService.MANAGER, ThriftService.COORDINATOR,
         ThriftService.FATE}) {
-      descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress().toString(),
-          this.getResourceGroup()));
+      descriptors.addService(new ServiceDescriptor(uuid, svc, getAdvertiseAddress()));
     }
 
     sld = new ServiceLockData(descriptors);
@@ -1389,8 +1388,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     // and the address set to 0.0.0.0. When the lock is acquired (could be
     // waiting to due an HA-pair), then the Manager startup process begins
     // and the lock service descriptors are updated with the advertise address
-    descriptors.addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE,
-        ConfigOpts.BIND_ALL_ADDRESSES, this.getResourceGroup()));
+    descriptors
+        .addService(new ServiceDescriptor(zooLockUUID, ThriftService.NONE, getAdvertiseAddress()));
     ServiceLockData sld = new ServiceLockData(descriptors);
     managerLock = new ServiceLock(zooKeeper, zManagerLoc, zooLockUUID);
     HAServiceLockWatcher managerLockWatcher =
@@ -1430,7 +1429,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       if (!added.isEmpty()) {
         log.info("New servers: {}", added);
         for (TServerInstance up : added) {
-          obit.delete(up.getHostPort());
+          obit.delete(up.getServer().toHostPortString());
         }
       }
       for (TServerInstance dead : deleted) {
@@ -1439,7 +1438,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
           cause = "clean shutdown"; // maybe an incorrect assumption
         }
         if (!getManagerGoalState().equals(ManagerGoalState.CLEAN_STOP)) {
-          obit.post(dead.getHostPort(), cause);
+          obit.post(dead.getServer().toHostPortString(), cause);
         }
       }
 
@@ -1473,13 +1472,13 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     while (badIter.hasNext()) {
       TServerInstance bad = badIter.next();
       for (TServerInstance add : added) {
-        if (bad.getHostPort().equals(add.getHostPort())) {
+        if (bad.getServer().toHostPortString().equals(add.getServer().toHostPortString())) {
           badIter.remove();
           break;
         }
       }
       for (TServerInstance del : deleted) {
-        if (bad.getHostPort().equals(del.getHostPort())) {
+        if (bad.getServer().toHostPortString().equals(del.getServer().toHostPortString())) {
           badIter.remove();
           break;
         }
@@ -1562,7 +1561,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     result.badTServers = new HashMap<>();
     synchronized (badServers) {
       for (TServerInstance bad : badServers.keySet()) {
-        result.badTServers.put(bad.getHostPort(), TabletServerState.UNRESPONSIVE.getId());
+        result.badTServers.put(bad.getServer().toHostPortString(),
+            TabletServerState.UNRESPONSIVE.getId());
       }
     }
     result.state = getManagerState();
@@ -1571,7 +1571,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     result.serversShuttingDown = new HashSet<>();
     synchronized (serversToShutdown) {
       for (TServerInstance server : serversToShutdown) {
-        result.serversShuttingDown.add(server.getHostPort());
+        result.serversShuttingDown.add(server.getServer().toHostPortString());
       }
     }
     DeadServerList obit = new DeadServerList(getContext());

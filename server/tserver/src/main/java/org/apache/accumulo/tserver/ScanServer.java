@@ -315,8 +315,8 @@ public class ScanServer extends AbstractServer
     final ZooReaderWriter zoo = getContext().getZooSession().asReaderWriter();
     try {
 
-      final ServiceLockPath zLockPath =
-          context.getServerPaths().createScanServerPath(getResourceGroup(), getAdvertiseAddress());
+      final ServiceLockPath zLockPath = context.getServerPaths()
+          .createScanServerPath(getResourceGroup(), getAdvertiseAddress().getHostPort());
       ServiceLockSupport.createNonHaServiceLockPath(Type.SCAN_SERVER, zoo, zLockPath);
       serverLockUUID = UUID.randomUUID();
       scanServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, serverLockUUID);
@@ -329,8 +329,7 @@ public class ScanServer extends AbstractServer
         ServiceDescriptors descriptors = new ServiceDescriptors();
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_SCAN}) {
-          descriptors.addService(new ServiceDescriptor(serverLockUUID, svc,
-              getAdvertiseAddress().toString(), this.getResourceGroup()));
+          descriptors.addService(new ServiceDescriptor(serverLockUUID, svc, getAdvertiseAddress()));
         }
 
         if (scanServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -378,7 +377,7 @@ public class ScanServer extends AbstractServer
 
     metricsInfo.addMetricsProducers(this, scanMetrics, scanServerMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+        getAdvertiseAddress().getHostPort(), getResourceGroup()));
     // We need to set the compaction manager so that we don't get an NPE in CompactableImpl.close
 
     ServiceLock lock = announceExistence();

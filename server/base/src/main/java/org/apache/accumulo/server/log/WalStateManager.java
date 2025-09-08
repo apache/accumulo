@@ -111,9 +111,9 @@ public class WalStateManager {
   // Tablet server exists
   public void initWalMarker(TServerInstance tsi) throws WalMarkerException {
     byte[] data = new byte[0];
-
     try {
-      zoo.putPersistentData(root() + "/" + tsi, data, NodeExistsPolicy.FAIL);
+      zoo.putPersistentData(root() + "/" + tsi.toHostPortSessionString(), data,
+          NodeExistsPolicy.FAIL);
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
@@ -133,7 +133,8 @@ public class WalStateManager {
         policy = NodeExistsPolicy.FAIL;
       }
       log.debug("Setting {} to {}", path.getName(), state);
-      zoo.putPersistentData(root() + "/" + tsi + "/" + path.getName(), data, policy);
+      zoo.putPersistentData(root() + "/" + tsi.toHostPortSessionString() + "/" + path.getName(),
+          data, policy);
     } catch (KeeperException | InterruptedException e) {
       throw new WalMarkerException(e);
     }
@@ -188,7 +189,7 @@ public class WalStateManager {
     try {
       String path = root();
       for (String child : zoo.getChildren(path)) {
-        TServerInstance inst = new TServerInstance(child);
+        TServerInstance inst = TServerInstance.fromHostPortSessionString(child);
         List<UUID> logs = result.computeIfAbsent(inst, k -> new ArrayList<>());
 
         // This function is called by the Accumulo GC which deletes WAL markers. Therefore we do not

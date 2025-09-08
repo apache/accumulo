@@ -118,7 +118,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Supplier;
 import com.google.common.collect.Iterators;
-import com.google.common.net.HostAndPort;
 
 public class CompactionIT extends CompactionITBase {
 
@@ -946,7 +945,7 @@ public class CompactionIT extends CompactionITBase {
       writeRows((ClientContext) client, table2, MAX_DATA, true);
 
       var ctx = getCluster().getServerContext();
-      Optional<HostAndPort> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
+      Optional<ServerId> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
       if (coordinatorHost.isEmpty()) {
         throw new TTransportException("Unable to get CompactionCoordinator address from ZooKeeper");
       }

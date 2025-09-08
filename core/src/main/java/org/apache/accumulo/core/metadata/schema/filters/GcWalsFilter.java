@@ -52,7 +52,7 @@ public class GcWalsFilter extends TabletMetadataFilter {
   public GcWalsFilter() {}
 
   public GcWalsFilter(Set<TServerInstance> liveTservers) {
-    String lts = liveTservers.stream().map(TServerInstance::toString).peek(tsi -> {
+    String lts = liveTservers.stream().map(TServerInstance::toHostPortSessionString).peek(tsi -> {
       if (tsi.contains(",")) {
         throw new IllegalArgumentException(tsi);
       }

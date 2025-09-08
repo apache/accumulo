@@ -18,12 +18,18 @@
  */
 package org.apache.accumulo.core.metadata;
 
-import static java.nio.charset.StandardCharsets.UTF_8;
+import static org.apache.accumulo.core.util.LazySingletons.GSON;
 
-import org.apache.accumulo.core.data.Value;
-import org.apache.accumulo.core.util.AddressUtil;
-import org.apache.hadoop.io.Text;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.Serializable;
+import java.util.Objects;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.ServerIdInfo;
+import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
+
+import com.google.common.base.Preconditions;
 import com.google.common.net.HostAndPort;
 
 /**
@@ -32,41 +38,58 @@ import com.google.common.net.HostAndPort;
  * Therefore tablet assignments can be considered out-of-date if the tablet server instance
  * information has been changed.
  */
-public class TServerInstance implements Comparable<TServerInstance> {
+public class TServerInstance implements Comparable<TServerInstance>, Serializable {
 
-  private final HostAndPort hostAndPort;
-  private final String hostPort;
-  private final String session;
-  private final String hostPortSession;
+  private static final long serialVersionUID = 1L;
 
-  public TServerInstance(HostAndPort address, String session) {
-    this.hostAndPort = address;
-    this.session = session;
-    this.hostPort = hostAndPort.toString();
-    this.hostPortSession = hostPort + "[" + session + "]";
+  public static record TServerInstanceInfo(ServerIdInfo server, String session) {
+    public TServerInstance getTSI() {
+      return new TServerInstance(server.getServerId(), session);
+    }
   }
 
-  public TServerInstance(String formattedString) {
+  public static TServerInstance deserialize(String json) {
+    return GSON.get().fromJson(json, TServerInstanceInfo.class).getTSI();
+  }
+
+  public static TServerInstance fromHostPortSessionString(String formattedString) {
     int pos = formattedString.indexOf("[");
     if (pos < 0 || !formattedString.endsWith("]")) {
-      throw new IllegalArgumentException(formattedString);
+      // if no session, then use zero
+      var hostAndPort = HostAndPort.fromString(formattedString);
+      return new TServerInstance(ServerId.tserver(hostAndPort), Long.toHexString(0));
+    } else {
+      var hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
+      var session = formattedString.substring(pos + 1, formattedString.length() - 1);
+      return new TServerInstance(ServerId.tserver(hostAndPort), session);
     }
-    this.hostAndPort = HostAndPort.fromString(formattedString.substring(0, pos));
-    this.session = formattedString.substring(pos + 1, formattedString.length() - 1);
-    this.hostPort = hostAndPort.toString();
-    this.hostPortSession = hostPort + "[" + session + "]";
   }
 
-  public TServerInstance(HostAndPort address, long session) {
-    this(address, Long.toHexString(session));
+  private final ServerId server;
+  private final String session;
+  private transient String hostPortSession;
+
+  public TServerInstance(ServerId address, String session) {
+    Preconditions.checkArgument(address.getType() == Type.TABLET_SERVER,
+        "ServerId type must be TABLET_SERVER");
+    this.server = address;
+    this.session = session;
+    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
   }
 
-  public TServerInstance(String address, long session) {
-    this(AddressUtil.parseAddress(address), Long.toHexString(session));
+  public TServerInstance(ServerId address, long session) {
+    Preconditions.checkArgument(address.getType() == Type.TABLET_SERVER,
+        "ServerId type must be TABLET_SERVER");
+    this.server = address;
+    this.session = Long.toHexString(session);
+    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
   }
 
-  public TServerInstance(Value address, Text session) {
-    this(AddressUtil.parseAddress(new String(address.get(), UTF_8)), session.toString());
+  public TServerInstance(String json) {
+    var partial = GSON.get().fromJson(json, TServerInstanceInfo.class).getTSI();
+    this.server = partial.server;
+    this.session = partial.session;
+    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
   }
 
   @Override
@@ -74,12 +97,16 @@ public class TServerInstance implements Comparable<TServerInstance> {
     if (this == other) {
       return 0;
     }
-    return this.getHostPortSession().compareTo(other.getHostPortSession());
+    int result = this.getServer().compareTo(other.getServer());
+    if (result == 0) {
+      return this.getSession().compareTo(other.getSession());
+    }
+    return result;
   }
 
   @Override
   public int hashCode() {
-    return getHostPortSession().hashCode();
+    return Objects.hash(server, session);
   }
 
   @Override
@@ -90,28 +117,33 @@ public class TServerInstance implements Comparable<TServerInstance> {
     return false;
   }
 
+  public String toHostPortSessionString() {
+    return hostPortSession;
+  }
+
   @Override
   public String toString() {
-    return hostPortSession;
-  }
-
-  public String getHostPortSession() {
-    return hostPortSession;
-  }
-
-  public String getHost() {
-    return hostAndPort.getHost();
-  }
-
-  public String getHostPort() {
-    return hostPort;
-  }
-
-  public HostAndPort getHostAndPort() {
-    return hostAndPort;
+    return toHostPortSessionString();
   }
 
   public String getSession() {
     return session;
+  }
+
+  public ServerId getServer() {
+    return server;
+  }
+
+  public TServerInstanceInfo getTServerInstanceInfo() {
+    return new TServerInstanceInfo(server.toServerIdInfo(), session);
+  }
+
+  public String serialize() {
+    return GSON.get().toJson(getTServerInstanceInfo());
+  }
+
+  private void readObject(ObjectInputStream in) throws IOException, ClassNotFoundException {
+    in.defaultReadObject();
+    this.hostPortSession = server.getHostPort() + "[" + this.session + "]";
   }
 }

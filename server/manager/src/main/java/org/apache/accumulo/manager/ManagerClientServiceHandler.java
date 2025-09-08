@@ -332,9 +332,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     String msg = "Shutdown tserver " + tabletServer;
 
     fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, fateId,
-        new TraceRepo<>(
-            new ShutdownTServer(doomed, manager.tserverSet.getResourceGroup(doomed), force)),
-        false, msg);
+        new TraceRepo<>(new ShutdownTServer(doomed, force)), false, msg);
     fate.waitForCompletion(fateId);
     fate.delete(fateId);
 
@@ -359,8 +357,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
       String msg = "Shutdown tserver " + tabletServer;
 
       fate.seedTransaction(Fate.FateOperation.SHUTDOWN_TSERVER, tid,
-          new TraceRepo<>(new ShutdownTServer(tserver, ResourceGroupId.of(resourceGroup), false)),
-          true, msg);
+          new TraceRepo<>(new ShutdownTServer(tserver, false)), true, msg);
     }
   }
 
@@ -684,7 +681,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
     Set<TServerInstance> tserverInstances = manager.onlineTabletServers();
     List<String> servers = new ArrayList<>();
     for (TServerInstance tserverInstance : tserverInstances) {
-      servers.add(tserverInstance.getHostPort());
+      servers.add(tserverInstance.getServer().toHostPortString());
     }
 
     return servers;

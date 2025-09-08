@@ -77,8 +77,8 @@ public class CorruptMutationIT extends AccumuloClusterHarness {
       assertNotNull(location);
       assertEquals(TabletMetadata.LocationType.CURRENT, location.getType());
 
-      TabletIngestClientService.Iface client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location.getHostAndPort(), ctx);
+      TabletIngestClientService.Iface client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST,
+          location.getServerInstance().getServer(), ctx);
       // Make the same RPC calls made by the BatchWriter, but pass a corrupt serialized mutation in
       // this try block.
       try {

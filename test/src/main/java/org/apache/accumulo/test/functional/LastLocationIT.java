@@ -59,7 +59,8 @@ public class LastLocationIT extends ConfigurableMacBase {
         newTablet = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       } while (!newTablet.hasCurrent());
       // this would be null if the mode was not "assign"
-      assertEquals(newTablet.getLocation().getHostPort(), newTablet.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getServer().getHostPort(),
+          newTablet.getLast().getServerInstance().getServer().getHostPort());
 
       // put something in it
       try (BatchWriter bw = c.createBatchWriter(tableName)) {
@@ -70,8 +71,10 @@ public class LastLocationIT extends ConfigurableMacBase {
 
       // last location should not be set yet
       TabletMetadata unflushed = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLocation().getHostPort());
-      assertEquals(newTablet.getLocation().getHostPort(), unflushed.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getServer().getHostPort(),
+          unflushed.getLocation().getServerInstance().getServer().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getServer().getHostPort(),
+          unflushed.getLast().getServerInstance().getServer().getHostPort());
       assertTrue(newTablet.hasCurrent());
 
       // take the tablet offline
@@ -79,14 +82,16 @@ public class LastLocationIT extends ConfigurableMacBase {
       TabletMetadata offline = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertNull(offline.getLocation());
       assertFalse(offline.hasCurrent());
-      assertEquals(newTablet.getLocation().getHostPort(), offline.getLast().getHostPort());
+      assertEquals(newTablet.getLocation().getServerInstance().getServer().getHostPort(),
+          offline.getLast().getServerInstance().getServer().getHostPort());
 
       // put it back online, should have the same last location
       c.tableOperations().online(tableName, true);
       TabletMetadata online = ManagerAssignmentIT.getTabletMetadata(c, tableId, null);
       assertTrue(online.hasCurrent());
       assertNotNull(online.getLocation());
-      assertEquals(newTablet.getLast().getHostPort(), online.getLast().getHostPort());
+      assertEquals(newTablet.getLast().getServerInstance().getServer().getHostPort(),
+          online.getLast().getServerInstance().getServer().getHostPort());
     }
   }
 

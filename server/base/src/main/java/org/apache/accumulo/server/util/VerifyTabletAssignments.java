@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
 import org.apache.accumulo.core.data.Range;
@@ -50,15 +51,12 @@ import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.tabletscan.thrift.TabletScanClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.HostAndPortComparator;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.hadoop.io.Text;
 import org.apache.thrift.TException;
 import org.apache.thrift.TServiceClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -92,7 +90,7 @@ public class VerifyTabletAssignments {
 
     final HashSet<KeyExtent> failures = new HashSet<>();
 
-    Map<HostAndPort,List<KeyExtent>> extentsPerServer = new TreeMap<>(new HostAndPortComparator());
+    Map<ServerId,List<KeyExtent>> extentsPerServer = new TreeMap<>();
 
     try (var tabletsMeta = context.getAmple().readTablets().forTable(tableId)
         .fetch(TabletMetadata.ColumnType.LOCATION).checkConsistency().build()) {
@@ -106,9 +104,8 @@ public class VerifyTabletAssignments {
         }
 
         if (loc != null) {
-          final HostAndPort parsedLoc = loc.getHostAndPort();
-          List<KeyExtent> extentList =
-              extentsPerServer.computeIfAbsent(parsedLoc, k -> new ArrayList<>());
+          List<KeyExtent> extentList = extentsPerServer
+              .computeIfAbsent(loc.getServerInstance().getServer(), k -> new ArrayList<>());
 
           if (check == null || check.contains(keyExtent)) {
             extentList.add(keyExtent);
@@ -120,7 +117,7 @@ public class VerifyTabletAssignments {
     ExecutorService tp = ThreadPools.getServerThreadPools()
         .getPoolBuilder(UTILITY_VERIFY_TABLET_ASSIGNMENTS).numCoreThreads(20).build();
 
-    for (final Entry<HostAndPort,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
+    for (final Entry<ServerId,List<KeyExtent>> entry : extentsPerServer.entrySet()) {
       Runnable r = () -> {
         try {
           checkTabletServer(context, entry, failures);
@@ -142,7 +139,7 @@ public class VerifyTabletAssignments {
     }
   }
 
-  private static void checkFailures(HostAndPort server, HashSet<KeyExtent> failures,
+  private static void checkFailures(ServerId server, HashSet<KeyExtent> failures,
       MultiScanResult scanResult) {
     for (TKeyExtent tke : scanResult.failures.keySet()) {
       KeyExtent ke = KeyExtent.fromThrift(tke);
@@ -152,7 +149,7 @@ public class VerifyTabletAssignments {
   }
 
   private static void checkTabletServer(ClientContext context,
-      Entry<HostAndPort,List<KeyExtent>> entry, HashSet<KeyExtent> failures) throws TException {
+      Entry<ServerId,List<KeyExtent>> entry, HashSet<KeyExtent> failures) throws TException {
     TabletScanClientService.Iface client =
         ThriftUtil.getClient(ThriftClientTypes.TABLET_SCAN, entry.getKey(), context);
 

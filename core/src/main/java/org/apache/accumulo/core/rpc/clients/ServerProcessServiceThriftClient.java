@@ -21,13 +21,12 @@ package org.apache.accumulo.core.rpc.clients;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.process.thrift.ServerProcessService.Client;
 import org.apache.accumulo.core.rpc.ThriftUtil;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
-
-import com.google.common.net.HostAndPort;
 
 public class ServerProcessServiceThriftClient extends ThriftClientTypes<Client> {
 
@@ -35,9 +34,8 @@ public class ServerProcessServiceThriftClient extends ThriftClientTypes<Client> 
     super(serviceName, new Client.Factory());
   }
 
-  public Client getServerProcessConnection(ClientContext context, Logger log, String hostname,
-      int port) {
-    HostAndPort serverProcess = HostAndPort.fromParts(hostname, port);
+  public Client getServerProcessConnection(ClientContext context, Logger log,
+      ServerId serverProcess) {
     try {
       // Manager requests can take a long time: don't ever time out
       return ThriftUtil.getClientNoTimeout(this, serverProcess, context);

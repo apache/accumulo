@@ -31,10 +31,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+import org.apache.accumulo.core.client.admin.servers.ServerId.ServerIdInfo;
 import org.apache.accumulo.core.data.ResourceGroupId;
-import org.apache.accumulo.core.util.AddressUtil;
-
-import com.google.common.net.HostAndPort;
 
 public class ServiceLockData implements Comparable<ServiceLockData> {
 
@@ -63,15 +62,12 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
     private final UUID uuid;
     private final ThriftService service;
-    private final String address;
-    private final ResourceGroupId group;
+    private final ServerId server;
 
-    public ServiceDescriptor(UUID uuid, ThriftService service, String address,
-        ResourceGroupId group) {
+    public ServiceDescriptor(UUID uuid, ThriftService service, ServerId server) {
       this.uuid = requireNonNull(uuid);
       this.service = requireNonNull(service);
-      this.address = requireNonNull(address);
-      this.group = requireNonNull(group);
+      this.server = requireNonNull(server);
     }
 
     public UUID getUUID() {
@@ -82,12 +78,12 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
       return service;
     }
 
-    public String getAddress() {
-      return address;
+    public ServerId getServer() {
+      return server;
     }
 
     public ResourceGroupId getGroup() {
-      return group;
+      return server.getResourceGroup();
     }
 
     @Override
@@ -116,8 +112,7 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     }
 
     private String serialize() {
-      return GSON.get()
-          .toJson(new ServiceDescriptorGson(uuid, service, address, group.canonical()));
+      return GSON.get().toJson(new ServiceDescriptorGson(uuid, service, server));
     }
 
   }
@@ -152,19 +147,14 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
     sds.getServices().forEach(sd -> this.services.put(sd.getService(), sd));
   }
 
-  public ServiceLockData(UUID uuid, String address, ThriftService service, ResourceGroupId group) {
-    this(new ServiceDescriptors(new HashSet<>(
-        Collections.singleton(new ServiceDescriptor(uuid, service, address, group)))));
+  public ServiceLockData(UUID uuid, ServerId address, ThriftService service) {
+    this(new ServiceDescriptors(
+        new HashSet<>(Collections.singleton(new ServiceDescriptor(uuid, service, address)))));
   }
 
-  public String getAddressString(ThriftService service) {
+  public ServerId getServer(ThriftService service) {
     ServiceDescriptor sd = services.get(service);
-    return sd == null ? null : sd.getAddress();
-  }
-
-  public HostAndPort getAddress(ThriftService service) {
-    String s = getAddressString(service);
-    return s == null ? null : AddressUtil.parseAddress(s);
+    return sd == null ? null : sd.getServer();
   }
 
   public ResourceGroupId getGroup(ThriftService service) {
@@ -179,9 +169,9 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   public byte[] serialize() {
     ServiceDescriptorsGson json = new ServiceDescriptorsGson();
-    json.descriptors = services.values().stream()
-        .map(s -> new ServiceDescriptorGson(s.uuid, s.service, s.address, s.group.canonical()))
-        .collect(Collectors.toSet());
+    json.descriptors =
+        services.values().stream().map(s -> new ServiceDescriptorGson(s.uuid, s.service, s.server))
+            .collect(Collectors.toSet());
     return GSON.get().toJson(json).getBytes(UTF_8);
   }
 
@@ -220,25 +210,23 @@ public class ServiceLockData implements Comparable<ServiceLockData> {
 
   private static ServiceDescriptors deserialize(ServiceDescriptorsGson json) {
     return new ServiceDescriptors(json.descriptors.stream()
-        .map(s -> new ServiceDescriptor(s.uuid, s.service, s.address, ResourceGroupId.of(s.group)))
+        .map(s -> new ServiceDescriptor(s.uuid, s.service, s.address.getServerId()))
         .collect(Collectors.toSet()));
   }
 
   private static class ServiceDescriptorGson {
     private UUID uuid;
     private ThriftService service;
-    private String address;
-    private String group;
+    private ServerIdInfo address;
 
     // default constructor required for Gson
     @SuppressWarnings("unused")
     public ServiceDescriptorGson() {}
 
-    public ServiceDescriptorGson(UUID uuid, ThriftService service, String address, String group) {
+    public ServiceDescriptorGson(UUID uuid, ThriftService service, ServerId address) {
       this.uuid = uuid;
       this.service = service;
-      this.address = address;
-      this.group = group;
+      this.address = address.toServerIdInfo();
     }
   }
 

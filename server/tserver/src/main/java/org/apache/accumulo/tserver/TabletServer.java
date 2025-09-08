@@ -154,7 +154,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.net.HostAndPort;
 
 public class TabletServer extends AbstractServer implements TabletHostingServer {
 
@@ -417,13 +416,13 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }, true);
   }
 
-  private HostAndPort getManagerAddress() {
+  private ServerId getManagerAddress() {
     try {
       Set<ServerId> managers = getContext().instanceOperations().getServers(ServerId.Type.MANAGER);
       if (managers == null || managers.isEmpty()) {
         return null;
       }
-      return HostAndPort.fromString(managers.iterator().next().toHostPortString());
+      return managers.iterator().next();
     } catch (Exception e) {
       log.warn("Failed to obtain manager host " + e);
     }
@@ -432,7 +431,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
   }
 
   // Connect to the manager for posting asynchronous results
-  private ManagerClientService.Client managerConnection(HostAndPort address) {
+  private ManagerClientService.Client managerConnection(ServerId address) {
     try {
       if (address == null) {
         return null;
@@ -485,7 +484,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     try {
 
       final ServiceLockPath zLockPath = context.getServerPaths()
-          .createTabletServerPath(getResourceGroup(), getAdvertiseAddress());
+          .createTabletServerPath(getResourceGroup(), getAdvertiseAddress().getHostPort());
       ServiceLockSupport.createNonHaServiceLockPath(Type.TABLET_SERVER, zoo, zLockPath);
       UUID tabletServerUUID = UUID.randomUUID();
       tabletServerLock = new ServiceLock(getContext().getZooSession(), zLockPath, tabletServerUUID);
@@ -500,8 +499,8 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         for (ThriftService svc : new ThriftService[] {ThriftService.CLIENT,
             ThriftService.TABLET_INGEST, ThriftService.TABLET_MANAGEMENT, ThriftService.TABLET_SCAN,
             ThriftService.TSERV}) {
-          descriptors.addService(new ServiceDescriptor(tabletServerUUID, svc,
-              getAdvertiseAddress().toString(), this.getResourceGroup()));
+          descriptors
+              .addService(new ServiceDescriptor(tabletServerUUID, svc, getAdvertiseAddress()));
         }
 
         if (tabletServerLock.tryLock(lw, new ServiceLockData(descriptors))) {
@@ -562,7 +561,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     metricsInfo.addMetricsProducers(this, metrics, updateMetrics, scanMetrics, mincMetrics,
         pausedMetrics, blockCacheMetrics);
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
+        getAdvertiseAddress().getHostPort(), getResourceGroup()));
 
     announceExistence();
     getContext().setServiceLock(tabletServerLock);
@@ -598,7 +597,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
       evaluateOnDemandTabletsForUnload();
     });
 
-    HostAndPort managerHost;
+    ServerId managerHost;
     final String advertiseAddressString = getAdvertiseAddress().toString();
     while (!isShutdownRequested()) {
       if (Thread.currentThread().isInterrupted()) {
@@ -676,7 +675,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
         Halt.halt(1, "Error informing Manager that we are shutting down, exiting!");
       } else {
         iface.tabletServerStopping(TraceUtil.traceInfo(), getContext().rpcCreds(),
-            getTabletSession().getHostPortSession(), getResourceGroup().canonical());
+            getTabletSession().toHostPortSessionString(), getResourceGroup().canonical());
       }
 
       boolean managerDown = false;
@@ -735,7 +734,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     }
 
     try {
-      return new TServerInstance(getAdvertiseAddress().toString(), lockSessionId);
+      return new TServerInstance(getAdvertiseAddress(), lockSessionId);
     } catch (Exception ex) {
       log.warn("Unable to read session from tablet server lock" + ex);
       return null;
@@ -845,7 +844,7 @@ public class TabletServer extends AbstractServer implements TabletHostingServer 
     result.lastContact = RelativeTime.currentTimeMillis();
     result.tableMap = tables;
     result.osLoad = ManagementFactory.getOperatingSystemMXBean().getSystemLoadAverage();
-    result.name = String.valueOf(getAdvertiseAddress());
+    result.name = getAdvertiseAddress().toString();
     result.holdTime = resourceManager.holdTime();
     result.lookups = seekCount.get();
     result.indexCacheHits = resourceManager.getIndexCache().getStats().hitCount();

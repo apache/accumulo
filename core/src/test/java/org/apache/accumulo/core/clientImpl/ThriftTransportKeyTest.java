@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.security.PrivilegedExceptionAction;
 import java.util.Properties;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.security.tokens.AuthenticationToken;
 import org.apache.accumulo.core.client.security.tokens.KerberosToken;
 import org.apache.accumulo.core.conf.ClientProperty;
@@ -42,8 +43,6 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class ThriftTransportKeyTest {
 
@@ -79,7 +78,7 @@ public class ThriftTransportKeyTest {
 
     try {
       assertThrows(RuntimeException.class, () -> new ThriftTransportKey(ThriftClientTypes.CLIENT,
-          HostAndPort.fromParts("localhost", 9999), 120_000, clientCtx));
+          ServerId.tserver("localhost", 9999), 120_000, clientCtx));
     } finally {
       verify(clientCtx);
     }
@@ -99,9 +98,9 @@ public class ThriftTransportKeyTest {
         user1.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     ThriftTransportKey ttk1 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams1);
+        ServerId.tserver("localhost", 9997), 1L, null, saslParams1);
     ThriftTransportKey ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
+        ServerId.tserver("localhost", 9997), 1L, null, saslParams2);
 
     // Should equals() and hashCode() to make sure we don't throw away thrift cnxns
     assertEquals(ttk1, ttk2);
@@ -120,9 +119,9 @@ public class ThriftTransportKeyTest {
         user2.doAs((PrivilegedExceptionAction<SaslConnectionParams>) () -> createSaslParams(token));
 
     ThriftTransportKey ttk1 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams1);
+        ServerId.tserver("localhost", 9997), 1L, null, saslParams1);
     ThriftTransportKey ttk2 = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-        HostAndPort.fromParts("localhost", 9997), 1L, null, saslParams2);
+        ServerId.tserver("localhost", 9997), 1L, null, saslParams2);
 
     assertNotEquals(ttk1, ttk2);
     assertNotEquals(ttk1.hashCode(), ttk2.hashCode());
@@ -138,7 +137,7 @@ public class ThriftTransportKeyTest {
     replay(clientCtx);
 
     ThriftTransportKey ttk = new ThriftTransportKey(ThriftClientTypes.CLIENT,
-        HostAndPort.fromParts("localhost", 9999), 120_000, clientCtx);
+        ServerId.tserver("localhost", 9999), 120_000, clientCtx);
 
     assertEquals(ttk, ttk, "Normal ThriftTransportKey doesn't equal itself");
     assertEquals(ttk.hashCode(), ttk.hashCode());

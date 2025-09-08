@@ -407,10 +407,10 @@ public class SuspendedTabletsIT extends AccumuloClusterHarness {
           }
           locationStates.put(ke, tm);
           if (tm.getSuspend() != null) {
-            suspended.put(tm.getSuspend().server, ke);
+            suspended.put(tm.getSuspend().server.getServer().getHostPort(), ke);
             ++suspendedCount;
           } else if (tm.hasCurrent()) {
-            hosted.put(tm.getLocation().getHostAndPort(), ke);
+            hosted.put(tm.getLocation().getServerInstance().getServer().getHostPort(), ke);
             ++hostedCount;
           } else if (tm.getLocation() != null
               && tm.getLocation().getType().equals(LocationType.FUTURE)) {

@@ -34,6 +34,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.accumulo.core.Constants;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.thrift.ThriftSecurityException;
 import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
@@ -52,7 +53,6 @@ import org.apache.accumulo.core.tablet.thrift.TUnloadTabletGoal;
 import org.apache.accumulo.core.tablet.thrift.TabletManagementClientService;
 import org.apache.accumulo.core.tabletserver.thrift.TabletServerClientService;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.util.threads.ThreadPools;
 import org.apache.accumulo.core.zookeeper.ZcStat;
@@ -82,14 +82,14 @@ public class LiveTServerSet implements ZooCacheWatcher {
   private final ServerContext context;
 
   public class TServerConnection {
-    private final HostAndPort address;
+    private final ServerId server;
 
-    public TServerConnection(HostAndPort addr) {
-      address = addr;
+    public TServerConnection(ServerId addr) {
+      server = addr;
     }
 
-    public HostAndPort getAddress() {
-      return address;
+    public ServerId getAddress() {
+      return server;
     }
 
     private String lockString(ServiceLock mlock) {
@@ -105,14 +105,14 @@ public class LiveTServerSet implements ZooCacheWatcher {
     public void assignTablet(ServiceLock lock, KeyExtent extent) throws TException {
       if (extent.isMeta()) {
         // see ACCUMULO-3597
-        try (TTransport transport = ThriftUtil.createTransport(address, context)) {
+        try (TTransport transport = ThriftUtil.createTransport(server, context)) {
           TabletManagementClientService.Client client =
               ThriftUtil.createClient(ThriftClientTypes.TABLET_MGMT, transport);
           loadTablet(client, lock, extent);
         }
       } else {
         TabletManagementClientService.Client client =
-            ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
+            ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, server, context);
         try {
           loadTablet(client, lock, extent);
         } finally {
@@ -124,7 +124,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     public void unloadTablet(ServiceLock lock, KeyExtent extent, TUnloadTabletGoal goal,
         long requestTime) throws TException {
       TabletManagementClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_MGMT, server, context);
       try {
         client.unloadTablet(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             extent.toThrift(), goal, requestTime);
@@ -142,7 +142,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
       long start = System.currentTimeMillis();
 
-      try (TTransport transport = ThriftUtil.createTransport(address, context)) {
+      try (TTransport transport = ThriftUtil.createTransport(server, context)) {
         TabletServerClientService.Client client =
             ThriftUtil.createClient(ThriftClientTypes.TABLET_SERVER, transport);
         TabletServerStatus status =
@@ -156,7 +156,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
     public void halt(ServiceLock lock) throws TException, ThriftSecurityException {
       TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context);
       try {
         client.halt(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
@@ -166,7 +166,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
 
     public void fastHalt(ServiceLock lock) throws TException {
       TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context);
       try {
         client.fastHalt(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock));
       } finally {
@@ -177,7 +177,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     public void flush(ServiceLock lock, TableId tableId, byte[] startRow, byte[] endRow)
         throws TException {
       TabletServerClientService.Client client =
-          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, address, context);
+          ThriftUtil.getClient(ThriftClientTypes.TABLET_SERVER, server, context);
       try {
         client.flush(TraceUtil.traceInfo(), context.rpcCreds(), lockString(lock),
             tableId.canonical(), startRow == null ? null : ByteBuffer.wrap(startRow),
@@ -297,21 +297,21 @@ public class LiveTServerSet implements ZooCacheWatcher {
     } else {
       log.trace("Lock exists for server: {}, adding to current set", tserverPath.getServer());
       locklessServers.remove(tserverPath);
-      HostAndPort address = sld.orElseThrow().getAddress(ServiceLockData.ThriftService.TSERV);
+      ServerId server = sld.orElseThrow().getServer(ServiceLockData.ThriftService.TSERV);
       ResourceGroupId resourceGroup =
           sld.orElseThrow().getGroup(ServiceLockData.ThriftService.TSERV);
-      TServerInstance instance = new TServerInstance(address, stat.getEphemeralOwner());
+      TServerInstance instance = new TServerInstance(server, stat.getEphemeralOwner());
 
       if (info == null) {
         updates.add(instance);
         TServerInfo tServerInfo =
-            new TServerInfo(instance, new TServerConnection(address), resourceGroup);
+            new TServerInfo(instance, new TServerConnection(server), resourceGroup);
         current.put(tserverPath.getServer(), tServerInfo);
       } else if (!info.instance.equals(instance)) {
         doomed.add(info.instance);
         updates.add(instance);
         TServerInfo tServerInfo =
-            new TServerInfo(instance, new TServerConnection(address), resourceGroup);
+            new TServerInfo(instance, new TServerConnection(server), resourceGroup);
         current.put(tserverPath.getServer(), tServerInfo);
       }
     }
@@ -460,23 +460,13 @@ public class LiveTServerSet implements ZooCacheWatcher {
   }
 
   static TServerInstance find(Map<String,TServerInfo> servers, String tabletServer) {
-    HostAndPort addr;
-    String sessionId = null;
-    if (tabletServer.charAt(tabletServer.length() - 1) == ']') {
-      int index = tabletServer.indexOf('[');
-      if (index == -1) {
-        throw new IllegalArgumentException("Could not parse tabletserver '" + tabletServer + "'");
-      }
-      addr = AddressUtil.parseAddress(tabletServer.substring(0, index));
-      // Strip off the last bracket
-      sessionId = tabletServer.substring(index + 1, tabletServer.length() - 1);
-    } else {
-      addr = AddressUtil.parseAddress(tabletServer);
-    }
+    var target = TServerInstance.fromHostPortSessionString(tabletServer);
     for (Entry<String,TServerInfo> entry : servers.entrySet()) {
-      if (entry.getValue().instance.getHostAndPort().equals(addr)) {
+      if (entry.getValue().instance.getServer().getHostPort()
+          .equals(target.getServer().getHostPort())) {
         // Return the instance if we have no desired session ID, or we match the desired session ID
-        if (sessionId == null || sessionId.equals(entry.getValue().instance.getSession())) {
+        if (target.getSession() == null || target.getSession().equals(Long.toHexString(0))
+            || target.getSession().equals(entry.getValue().instance.getSession())) {
           return entry.getValue().instance;
         }
       }

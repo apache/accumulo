@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.data.TabletId;
 import org.apache.accumulo.core.spi.scan.ScanServerAttempt;
 import org.slf4j.Logger;
@@ -45,7 +46,7 @@ public class ScanServerAttemptsImpl {
 
   private final Map<TabletId,Collection<ScanServerAttemptImpl>> attempts = new HashMap<>();
 
-  ScanServerAttemptReporter createReporter(String server, TabletId tablet) {
+  ScanServerAttemptReporter createReporter(ServerId server, TabletId tablet) {
     return result -> {
       LOG.trace("Received result: {}", result);
       synchronized (attempts) {

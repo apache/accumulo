@@ -63,7 +63,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
-import com.google.common.net.HostAndPort;
 
 public class InformationFetcher implements RemovalListener<ServerId,MetricResponse>, Runnable {
 
@@ -122,8 +121,7 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     @Override
     public void run() {
       try {
-        Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS,
-            HostAndPort.fromParts(server.getHost(), server.getPort()), ctx);
+        Client metricsClient = ThriftUtil.getClient(ThriftClientTypes.SERVER_PROCESS, server, ctx);
         try {
           MetricResponse response = metricsClient.getMetrics(TraceUtil.traceInfo(), ctx.rpcCreds());
           summary.processResponse(server, response);
@@ -183,22 +181,21 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       if (managers.isEmpty()) {
         throw new IllegalStateException(coordinatorMissingMsg);
       }
-      ServerId manager = managers.iterator().next();
-      HostAndPort hp = HostAndPort.fromParts(manager.getHost(), manager.getPort());
+      final ServerId manager = managers.iterator().next();
       try {
         CompactionCoordinatorService.Client client =
-            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, hp, ctx);
+            ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, manager, ctx);
         try {
           return client.getLongRunningCompactions(TraceUtil.traceInfo(), ctx.rpcCreds());
         } catch (Exception e) {
-          throw new IllegalStateException("Unable to get running compactions from " + hp, e);
+          throw new IllegalStateException("Unable to get running compactions from " + manager, e);
         } finally {
           if (client != null) {
             ThriftUtil.returnClient(client, ctx);
           }
         }
       } catch (TTransportException e) {
-        LOG.error("Unable to get Compaction coordinator at {}", hp, e);
+        LOG.error("Unable to get Compaction coordinator at {}", manager, e);
         throw new IllegalStateException(coordinatorMissingMsg, e);
       }
     }

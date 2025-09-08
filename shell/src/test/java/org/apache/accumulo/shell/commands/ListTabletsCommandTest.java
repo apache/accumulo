@@ -37,6 +37,7 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.admin.InstanceOperations;
 import org.apache.accumulo.core.client.admin.TableOperations;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.clientImpl.TabletInformationImpl;
 import org.apache.accumulo.core.data.Range;
@@ -57,8 +58,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.easymock.EasyMock;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class ListTabletsCommandTest {
 
@@ -132,8 +131,8 @@ public class ListTabletsCommandTest {
 
     TableId tableId = TableId.of("123");
 
-    TServerInstance ser1 = new TServerInstance(HostAndPort.fromParts("server1", 8555), "s001");
-    TServerInstance ser2 = new TServerInstance(HostAndPort.fromParts("server2", 2354), "s002");
+    TServerInstance ser1 = new TServerInstance(ServerId.tserver("server1", 8555), "s001");
+    TServerInstance ser2 = new TServerInstance(ServerId.tserver("server2", 2354), "s002");
 
     StoredTabletFile sf11 =
         new ReferencedTabletFile(new Path("hdfs://nn1/acc/tables/1/t-dir1/sf11.rf")).insert();

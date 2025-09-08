@@ -81,6 +81,7 @@ import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.manager.thrift.FateService;
 import org.apache.accumulo.core.manager.thrift.TFateId;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.process.thrift.ServerProcessService;
 import org.apache.accumulo.core.rpc.ThriftUtil;
@@ -90,7 +91,6 @@ import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
 import org.apache.accumulo.core.trace.TraceUtil;
-import org.apache.accumulo.core.util.AddressUtil;
 import org.apache.accumulo.core.util.Halt;
 import org.apache.accumulo.core.zookeeper.ZooCache;
 import org.apache.accumulo.core.zookeeper.ZooSession;
@@ -715,27 +715,33 @@ public class Admin implements KeywordExecutable {
         }
       } else {
         for (var server : hostAndPort) {
-          signalGracefulShutdown(context, HostAndPort.fromString(server));
+          for (ServerId.Type t : ServerId.Type.values()) {
+            Set<ServerId> matchingServers =
+                context.instanceOperations().getServers(t, ResourceGroupPredicate.ANY, (h, p) -> {
+                  var hp = HostAndPort.fromString(server);
+                  return hp.getHost().equals(h) && hp.getPort() == p;
+                });
+            matchingServers.forEach(ms -> signalGracefulShutdown(context, ms));
+          }
         }
       }
     }
   }
 
   // Visible for tests
-  public static void signalGracefulShutdown(final ClientContext context, HostAndPort hp) {
-    Objects.requireNonNull(hp, "address not set");
+  public static void signalGracefulShutdown(final ClientContext context, ServerId server) {
+    Objects.requireNonNull(server, "address not set");
     ServerProcessService.Client client = null;
     try {
-      client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log,
-          hp.getHost(), hp.getPort());
+      client = ThriftClientTypes.SERVER_PROCESS.getServerProcessConnection(context, log, server);
       if (client == null) {
-        log.warn("Failed to initiate shutdown for {}", hp);
+        log.warn("Failed to initiate shutdown for {}", server);
         return;
       }
       client.gracefulShutdown(context.rpcCreds());
-      log.info("Initiated shutdown for {}", hp);
+      log.info("Initiated shutdown for {}", server);
     } catch (TException e) {
-      log.warn("Failed to initiate shutdown for {}", hp, e);
+      log.warn("Failed to initiate shutdown for {}", server, e);
     } finally {
       if (client != null) {
         ThriftUtil.returnClient(client, context);
@@ -773,15 +779,14 @@ public class Admin implements KeywordExecutable {
         log.info("Only 1 tablet server running. Not attempting shutdown of {}", server);
         return;
       }
-      for (int port : context.getConfiguration().getPort(Property.TSERV_CLIENTPORT)) {
-        HostAndPort address = AddressUtil.parseAddress(server, port);
-        final String finalServer = qualifyWithZooKeeperSessionId(context, zc, address.toString());
+      for (ServerId sid : runningServers) {
+        final TServerInstance finalServer =
+            qualifyWithZooKeeperSessionId(context, zc, sid.getHostPort().toString());
         log.info("Stopping server {}", finalServer);
-        ThriftClientTypes.MANAGER
-            .executeVoid(
-                context, client -> client.shutdownTabletServer(TraceUtil.traceInfo(),
-                    context.rpcCreds(), finalServer, force),
-                ResourceGroupPredicate.DEFAULT_RG_ONLY);
+        ThriftClientTypes.MANAGER.executeVoid(context,
+            client -> client.shutdownTabletServer(TraceUtil.traceInfo(), context.rpcCreds(),
+                finalServer.toHostPortSessionString(), force),
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
       }
     }
   }
@@ -793,19 +798,20 @@ public class Admin implements KeywordExecutable {
    * @return The host and port with the session ID in square-brackets appended, or the original
    *         value.
    */
-  static String qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
+  static TServerInstance qualifyWithZooKeeperSessionId(ClientContext context, ZooCache zooCache,
       String hostAndPort) {
     var hpObj = HostAndPort.fromString(hostAndPort);
     Set<ServiceLockPath> paths = context.getServerPaths()
         .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.exact(hpObj), true);
     if (paths.size() != 1) {
-      return hostAndPort;
+      return new TServerInstance(ServerId.tserver(hpObj), Long.toHexString(0));
     }
-    long sessionId = ServiceLock.getSessionId(zooCache, paths.iterator().next());
+    ServiceLockPath slp = paths.iterator().next();
+    long sessionId = ServiceLock.getSessionId(zooCache, slp);
     if (sessionId == 0) {
-      return hostAndPort;
+      return new TServerInstance(ServerId.tserver(hpObj), Long.toHexString(0));
     }
-    return hostAndPort + "[" + Long.toHexString(sessionId) + "]";
+    return new TServerInstance(ServerId.tserver(hpObj), Long.toHexString(sessionId));
   }
 
   private static final String ACCUMULO_SITE_BACKUP_FILE = "accumulo.properties.bak";
@@ -1140,8 +1146,9 @@ public class Admin implements KeywordExecutable {
     ServiceLock adminLock = new ServiceLock(zk, slp, uuid);
     AdminLockWatcher lw = new AdminLockWatcher();
     ServiceLockData.ServiceDescriptors descriptors = new ServiceLockData.ServiceDescriptors();
-    descriptors.addService(new ServiceLockData.ServiceDescriptor(uuid,
-        ServiceLockData.ThriftService.NONE, "fake_admin_util_host", ResourceGroupId.DEFAULT));
+    descriptors
+        .addService(new ServiceLockData.ServiceDescriptor(uuid, ServiceLockData.ThriftService.NONE,
+            ServerId.dynamic(ServerId.Type.MANAGER, ResourceGroupId.DEFAULT, "admin_utility", 0)));
     ServiceLockData sld = new ServiceLockData(descriptors);
     String lockPath = slp.toString();
     String parentLockPath = lockPath.substring(0, lockPath.lastIndexOf("/"));

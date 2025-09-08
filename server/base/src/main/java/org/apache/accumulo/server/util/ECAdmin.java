@@ -49,7 +49,6 @@ import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.Parameters;
 import com.google.auto.service.AutoService;
-import com.google.common.net.HostAndPort;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -63,7 +62,7 @@ public class ECAdmin implements KeywordExecutable {
 
   public static class RunningCompactionSummary {
     private final String ecid;
-    private final String addr;
+    private final ServerId addr;
     private final TCompactionKind kind;
     private final ResourceGroupId groupName;
     private final String ke;
@@ -78,9 +77,9 @@ public class ECAdmin implements KeywordExecutable {
         RunningCompactionInfo runningCompactionInfo) {
       super();
       ecid = runningCompaction.getJob().getExternalCompactionId();
-      addr = runningCompaction.getCompactorAddress();
+      addr = runningCompaction.getCompactor();
       kind = runningCompaction.getJob().kind;
-      groupName = runningCompaction.getGroup();
+      groupName = addr.getResourceGroup();
       KeyExtent extent = KeyExtent.fromThrift(runningCompaction.getJob().extent);
       ke = extent.obscured();
       tableId = extent.tableId().canonical();
@@ -138,7 +137,7 @@ public class ECAdmin implements KeywordExecutable {
       return ecid;
     }
 
-    public String getAddr() {
+    public ServerId getAddr() {
       return addr;
     }
 
@@ -325,7 +324,7 @@ public class ECAdmin implements KeywordExecutable {
     if (coordinatorHost.isEmpty()) {
       throw new IllegalStateException("Unable to find coordinator. Check that it is running.");
     }
-    HostAndPort address = coordinatorHost.orElseThrow();
+    ServerId address = coordinatorHost.orElseThrow();
     CompactionCoordinatorService.Client coordinatorClient;
     try {
       coordinatorClient = ThriftUtil.getClient(ThriftClientTypes.COORDINATOR, address, context);

@@ -42,6 +42,7 @@ import java.util.stream.Collectors;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.compaction.thrift.CompactionCoordinatorService;
 import org.apache.accumulo.core.compaction.thrift.TCompactionState;
 import org.apache.accumulo.core.compaction.thrift.TCompactionStatusUpdate;
@@ -77,8 +78,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.google.common.net.HostAndPort;
 
 public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
@@ -249,7 +248,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
       TExternalCompactionMap running = null;
       while (running == null || running.getCompactions() == null) {
         try {
-          Optional<HostAndPort> coordinatorHost =
+          Optional<ServerId> coordinatorHost =
               ExternalCompactionUtil.findCompactionCoordinator(ctx);
           if (coordinatorHost.isEmpty()) {
             throw new TTransportException(
@@ -286,8 +285,7 @@ public class ExternalCompaction_3_IT extends SharedMiniClusterBase {
 
     while (results.isEmpty()) {
       try {
-        Optional<HostAndPort> coordinatorHost =
-            ExternalCompactionUtil.findCompactionCoordinator(ctx);
+        Optional<ServerId> coordinatorHost = ExternalCompactionUtil.findCompactionCoordinator(ctx);
         if (coordinatorHost.isEmpty()) {
           throw new TTransportException(
               "Unable to get CompactionCoordinator address from ZooKeeper");

@@ -83,7 +83,7 @@ public class CommitCompaction extends ManagerRepo {
 
     String loc = null;
     if (tabletMetadata != null && tabletMetadata.getLocation() != null) {
-      loc = tabletMetadata.getLocation().getHostPortSession();
+      loc = tabletMetadata.getLocation().getServerInstance().toHostPortSessionString();
     }
 
     // This will causes the tablet to be reexamined to see if it needs any more compactions.

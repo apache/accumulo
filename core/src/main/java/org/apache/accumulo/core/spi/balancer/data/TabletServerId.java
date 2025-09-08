@@ -18,13 +18,14 @@
  */
 package org.apache.accumulo.core.spi.balancer.data;
 
+import org.apache.accumulo.core.client.admin.servers.ServerId;
+
 /**
  * @since 2.1.0
  */
 public interface TabletServerId extends Comparable<TabletServerId> {
-  String getHost();
 
-  int getPort();
+  ServerId getServer();
 
   String getSession();
 }

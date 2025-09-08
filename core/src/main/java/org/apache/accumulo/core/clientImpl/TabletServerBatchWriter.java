@@ -61,6 +61,7 @@ import org.apache.accumulo.core.client.TableDeletedException;
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.TableOfflineException;
 import org.apache.accumulo.core.client.TimedOutException;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientTabletCache.TabletServerMutations;
 import org.apache.accumulo.core.clientImpl.thrift.SecurityErrorCode;
 import org.apache.accumulo.core.clientImpl.thrift.TInfo;
@@ -90,7 +91,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.common.base.Joiner;
-import com.google.common.net.HostAndPort;
 
 import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.context.Scope;
@@ -138,7 +138,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   // latency timers
   private final ScheduledThreadPoolExecutor executor;
   private ScheduledFuture<?> latencyTimerFuture;
-  private final Map<String,TimeoutTracker> timeoutTrackers =
+  private final Map<ServerId,TimeoutTracker> timeoutTrackers =
       Collections.synchronizedMap(new HashMap<>());
 
   // stats
@@ -166,7 +166,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   // error handling
   private final Violations violations = new Violations();
   private final Map<KeyExtent,Set<SecurityErrorCode>> authorizationFailures = new HashMap<>();
-  private final HashSet<String> serverSideErrors = new HashSet<>();
+  private final HashSet<ServerId> serverSideErrors = new HashSet<>();
   private final FailedMutations failedMutations;
   private int unknownErrors = 0;
   private final AtomicBoolean somethingFailed = new AtomicBoolean(false);
@@ -174,12 +174,12 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
   private static class TimeoutTracker {
 
-    final String server;
+    final ServerId server;
     final long timeOut;
     long activityTime;
     Long firstErrorTime = null;
 
-    TimeoutTracker(String server, long timeOut) {
+    TimeoutTracker(ServerId server, long timeOut) {
       this.timeOut = timeOut;
       this.server = server;
     }
@@ -455,7 +455,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
   }
 
   public void updateBinningStats(int count, long time,
-      Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+      Map<ServerId,TabletServerMutations<Mutation>> binnedMutations) {
     if (log.isTraceEnabled()) {
       totalBinTime.addAndGet(time);
       totalBinned.addAndGet(count);
@@ -477,7 +477,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
   }
 
-  private void updateBatchStats(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+  private void updateBatchStats(Map<ServerId,TabletServerMutations<Mutation>> binnedMutations) {
     tabletServersBatchSum.addAndGet(binnedMutations.size());
 
     computeMin(minTabletServersBatch, binnedMutations.size());
@@ -485,7 +485,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     int numTablets = 0;
 
-    for (Entry<String,TabletServerMutations<Mutation>> entry : binnedMutations.entrySet()) {
+    for (Entry<ServerId,TabletServerMutations<Mutation>> entry : binnedMutations.entrySet()) {
       TabletServerMutations<Mutation> tsm = entry.getValue();
       numTablets += tsm.getMutations().size();
     }
@@ -542,7 +542,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
   }
 
-  private synchronized void updateServerErrors(String server, Exception e) {
+  private synchronized void updateServerErrors(ServerId server, Exception e) {
     somethingFailed.set(true);
     this.serverSideErrors.add(server);
     this.notifyAll();
@@ -667,8 +667,8 @@ public class TabletServerBatchWriter implements AutoCloseable {
     private static final int MUTATION_BATCH_SIZE = 1 << 17;
     private final ThreadPoolExecutor sendThreadPool;
     private final ThreadPoolExecutor binningThreadPool;
-    private final Map<String,TabletServerMutations<Mutation>> serversMutations;
-    private final Set<String> queued;
+    private final Map<ServerId,TabletServerMutations<Mutation>> serversMutations;
+    private final Set<ServerId> queued;
     private final Map<TableId,ClientTabletCache> locators;
 
     public MutationWriter(int numSendThreads) {
@@ -693,7 +693,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     private void binMutations(MutationSet mutationsToProcess,
-        Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+        Map<ServerId,TabletServerMutations<Mutation>> binnedMutations) {
       TableId tableId = null;
       try {
         Set<Entry<TableId,List<Mutation>>> es = mutationsToProcess.getMutations().entrySet();
@@ -752,7 +752,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     private void addMutations(MutationSet mutationsToSend) {
-      Map<String,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
+      Map<ServerId,TabletServerMutations<Mutation>> binnedMutations = new HashMap<>();
       Span span = TraceUtil.startSpan(this.getClass(), "binMutations");
       try (Scope scope = span.makeCurrent()) {
         long t1 = System.currentTimeMillis();
@@ -769,13 +769,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
     }
 
     private synchronized void
-        addMutations(Map<String,TabletServerMutations<Mutation>> binnedMutations) {
+        addMutations(Map<ServerId,TabletServerMutations<Mutation>> binnedMutations) {
 
       int count = 0;
 
       // merge mutations into existing mutations for a tablet server
-      for (Entry<String,TabletServerMutations<Mutation>> entry : binnedMutations.entrySet()) {
-        String server = entry.getKey();
+      for (Entry<ServerId,TabletServerMutations<Mutation>> entry : binnedMutations.entrySet()) {
+        ServerId server = entry.getKey();
 
         TabletServerMutations<Mutation> currentMutations = serversMutations.get(server);
 
@@ -805,10 +805,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
       }
 
       // randomize order of servers
-      ArrayList<String> servers = new ArrayList<>(binnedMutations.keySet());
+      ArrayList<ServerId> servers = new ArrayList<>(binnedMutations.keySet());
       Collections.shuffle(servers);
 
-      for (String server : servers) {
+      for (ServerId server : servers) {
         if (!queued.contains(server)) {
           sendThreadPool.execute(new SendTask(server));
           queued.add(server);
@@ -816,7 +816,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       }
     }
 
-    private synchronized TabletServerMutations<Mutation> getMutationsToSend(String server) {
+    private synchronized TabletServerMutations<Mutation> getMutationsToSend(ServerId server) {
       TabletServerMutations<Mutation> tsmuts = serversMutations.remove(server);
       if (tsmuts == null) {
         queued.remove(server);
@@ -827,9 +827,9 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     class SendTask implements Runnable {
 
-      private final String location;
+      private final ServerId location;
 
-      SendTask(String server) {
+      SendTask(ServerId server) {
         this.location = server;
       }
 
@@ -931,7 +931,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       }
     }
 
-    private MutationSet sendMutationsToTabletServer(String location,
+    private MutationSet sendMutationsToTabletServer(ServerId location,
         Map<KeyExtent,List<Mutation>> tabMuts, TimeoutTracker timeoutTracker,
         SessionCloser sessionCloser)
         throws IOException, AccumuloSecurityException, AccumuloServerException {
@@ -945,14 +945,13 @@ public class TabletServerBatchWriter implements AutoCloseable {
       // If there is an open session, must close it before the batchwriter closes or writes could
       // happen after the batch writer closes. See #3721
       try {
-        final HostAndPort parsedServer = HostAndPort.fromString(location);
         final TabletIngestClientService.Iface client;
 
         if (timeoutTracker.getTimeOut() < context.getClientTimeoutInMillis()) {
-          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context,
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context,
               timeoutTracker.getTimeOut());
         } else {
-          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
+          client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context);
         }
 
         try {
@@ -1048,10 +1047,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
     class SessionCloser implements AutoCloseable {
 
-      private final String location;
+      private final ServerId location;
       private OptionalLong usid;
 
-      SessionCloser(String location) {
+      SessionCloser(ServerId location) {
         this.location = location;
         usid = OptionalLong.empty();
       }
@@ -1082,7 +1081,7 @@ public class TabletServerBatchWriter implements AutoCloseable {
       /**
        * Checks if there is a lock held by a tserver at a specific host and port.
        */
-      private boolean isALockHeld(String tserver) {
+      private boolean isALockHeld(ServerId tserver) {
         return context.getTServerLockChecker().doesTabletServerLockExist(tserver);
       }
 
@@ -1091,8 +1090,6 @@ public class TabletServerBatchWriter implements AutoCloseable {
         Retry retry = Retry.builder().infiniteRetries().retryAfter(Duration.ofMillis(100))
             .incrementBy(Duration.ofMillis(100)).maxWait(Duration.ofMinutes(1)).backOffFactor(1.5)
             .logInterval(Duration.ofMinutes(3)).createRetry();
-
-        final HostAndPort parsedServer = HostAndPort.fromString(location);
 
         long startTime = System.nanoTime();
 
@@ -1116,10 +1113,10 @@ public class TabletServerBatchWriter implements AutoCloseable {
 
           try {
             if (timeout < context.getClientTimeoutInMillis()) {
-              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context,
-                  timeout);
+              client =
+                  ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context, timeout);
             } else {
-              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, parsedServer, context);
+              client = ThriftUtil.getClient(ThriftClientTypes.TABLET_INGEST, location, context);
             }
             if (client.cancelUpdate(TraceUtil.traceInfo(), usid.getAsLong())) {
               retry.logCompletion(log, "Canceled failed write session " + location + " " + usid);

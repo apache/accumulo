@@ -53,8 +53,6 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.net.HostAndPort;
-
 public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements BalancerEnvironment {
   private static final Logger log = LoggerFactory.getLogger(BalancerEnvironmentImpl.class);
 
@@ -91,9 +89,8 @@ public class BalancerEnvironmentImpl extends ServiceEnvironmentImpl implements B
       TableId tableId) throws AccumuloException, AccumuloSecurityException {
     log.trace("Scanning tablet server {} for table {}", tabletServerId, tableId);
     try {
-      TabletServerClientService.Client client = ThriftUtil.getClient(
-          ThriftClientTypes.TABLET_SERVER,
-          HostAndPort.fromParts(tabletServerId.getHost(), tabletServerId.getPort()), getContext());
+      TabletServerClientService.Client client = ThriftUtil
+          .getClient(ThriftClientTypes.TABLET_SERVER, tabletServerId.getServer(), getContext());
       try {
         return client
             .getTabletStats(TraceUtil.traceInfo(), getContext().rpcCreds(), tableId.canonical())

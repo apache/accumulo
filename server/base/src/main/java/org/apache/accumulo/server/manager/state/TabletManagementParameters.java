@@ -41,6 +41,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.manager.thrift.ManagerState;
 import org.apache.accumulo.core.metadata.TServerInstance;
+import org.apache.accumulo.core.metadata.TServerInstance.TServerInstanceInfo;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.util.time.SteadyTime;
 import org.apache.accumulo.server.manager.LiveTServerSet;
@@ -107,15 +108,15 @@ public class TabletManagementParameters {
     this.parentUpgradeMap = Map.copyOf(jdata.parentUpgradeMap);
     this.onlineTables = jdata.onlineTables.stream().map(TableId::of).collect(toUnmodifiableSet());
     this.onlineTservers =
-        jdata.onlineTservers.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
-    this.serversToShutdown =
-        jdata.serversToShutdown.stream().map(TServerInstance::new).collect(toUnmodifiableSet());
+        jdata.onlineTservers.stream().map(TServerInstanceInfo::getTSI).collect(toUnmodifiableSet());
+    this.serversToShutdown = jdata.serversToShutdown.stream().map(TServerInstanceInfo::getTSI)
+        .collect(toUnmodifiableSet());
     this.level = jdata.level;
     this.compactionHints = makeImmutable(jdata.compactionHints.entrySet().stream()
         .collect(Collectors.toMap(entry -> FateId.from(entry.getKey()), Map.Entry::getValue)));
-    this.tserverGroups = jdata.tserverGroups.entrySet().stream().collect(toUnmodifiableMap(
-        entry -> ResourceGroupId.of(entry.getKey()),
-        entry -> entry.getValue().stream().map(TServerInstance::new).collect(toUnmodifiableSet())));
+    this.tserverGroups = jdata.tserverGroups.entrySet().stream()
+        .collect(toUnmodifiableMap(entry -> ResourceGroupId.of(entry.getKey()), entry -> entry
+            .getValue().stream().map(TServerInstanceInfo::getTSI).collect(toUnmodifiableSet())));
     this.resourceGroups = Suppliers.memoize(() -> {
       Map<TServerInstance,ResourceGroupId> resourceGroups = new HashMap<>();
       TabletManagementParameters.this.tserverGroups.forEach((resourceGroup, tservers) -> tservers
@@ -196,12 +197,12 @@ public class TabletManagementParameters {
     ManagerState managerState;
     Map<Ample.DataLevel,Boolean> parentUpgradeMap;
     Collection<String> onlineTables;
-    Collection<String> onlineTservers;
-    Collection<String> serversToShutdown;
+    Collection<TServerInstanceInfo> onlineTservers;
+    Collection<TServerInstanceInfo> serversToShutdown;
 
     Ample.DataLevel level;
 
-    Map<String,Set<String>> tserverGroups;
+    Map<String,Set<TServerInstanceInfo>> tserverGroups;
 
     Map<String,Map<String,String>> compactionHints;
 
@@ -217,14 +218,14 @@ public class TabletManagementParameters {
       managerState = params.managerState;
       parentUpgradeMap = params.parentUpgradeMap;
       onlineTables = params.onlineTables.stream().map(AbstractId::canonical).collect(toList());
-      onlineTservers = params.getOnlineTsevers().stream().map(TServerInstance::getHostPortSession)
+      onlineTservers = params.getOnlineTsevers().stream().map(tsi -> tsi.getTServerInstanceInfo())
           .collect(toList());
-      serversToShutdown = params.serversToShutdown.stream().map(TServerInstance::getHostPortSession)
+      serversToShutdown = params.serversToShutdown.stream().map(tsi -> tsi.getTServerInstanceInfo())
           .collect(toList());
       level = params.level;
       tserverGroups = params.getGroupedTServers().entrySet().stream()
           .collect(toMap(entry -> entry.getKey().canonical(), entry -> entry.getValue().stream()
-              .map(TServerInstance::getHostPortSession).collect(toSet())));
+              .map(tsi -> tsi.getTServerInstanceInfo()).collect(toSet())));
       compactionHints = params.compactionHints.entrySet().stream()
           .collect(Collectors.toMap(entry -> entry.getKey().canonical(), Map.Entry::getValue));
       canSuspendTablets = params.canSuspendTablets;

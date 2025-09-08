@@ -245,7 +245,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
    * @return pool names, will return default pool if host matches more no regex
    */
   protected List<String> getPoolNamesForHost(TabletServerId tabletServerId) {
-    final String host = tabletServerId.getHost();
+    final String host = tabletServerId.getServer().getHost();
     String test = host;
     if (!hrtlbConf.get().isIpBasedRegex) {
       try {
@@ -459,7 +459,7 @@ public class HostRegexTableLoadBalancer extends TableLoadBalancer {
               }
             } catch (AccumuloException | AccumuloSecurityException e1) {
               LOG.error("Error in OOB check getting tablets for table {} from server {} {}", tid,
-                  e.getKey().getHost(), e);
+                  e.getKey().getServer().getHost(), e);
             }
           }
         }

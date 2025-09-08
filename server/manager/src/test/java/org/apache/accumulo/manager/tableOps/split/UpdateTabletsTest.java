@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
@@ -39,9 +40,9 @@ import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.client.admin.TabletAvailability;
 import org.apache.accumulo.core.client.admin.TabletMergeability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.data.TableId;
-import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
@@ -225,9 +226,12 @@ public class UpdateTabletsTest {
     var tabletTime = MetadataTime.parse("L30");
     var flushID = OptionalLong.of(40);
     var availability = TabletAvailability.HOSTED;
-    var lastLocation = TabletMetadata.Location.last("1.2.3.4:1234", "123456789");
-    var suspendingTServer = SuspendingTServer.fromValue(new Value("1.2.3.4:5|56"));
-    var migration = new TServerInstance("localhost:1234", 56L);
+    var lastLocation = TabletMetadata.Location
+        .last(new TServerInstance(ServerId.tserver("1.2.3.4", 1234), "123456789"));
+    var suspendingTServer =
+        new SuspendingTServer(new TServerInstance(ServerId.tserver("1.2.3.4", 1025), ""),
+            SteadyTime.from(Duration.ofMillis(56)));
+    var migration = new TServerInstance(ServerId.tserver("localhost", 1234), 56L);
 
     String dir1 = "dir1";
     String dir2 = "dir2";
@@ -412,7 +416,8 @@ public class UpdateTabletsTest {
     var opid = TabletOperationId.from(TabletOperationType.SPLITTING, fateId);
 
     // Test splitting a tablet with a location
-    var location = TabletMetadata.Location.future(new TServerInstance("1.2.3.4:1234", 123456789L));
+    var location = TabletMetadata.Location
+        .future(new TServerInstance(ServerId.tserver("1.2.3.4", 1234), 123456789L));
     var tablet1 =
         TabletMetadata.builder(origExtent).putOperation(opid).putLocation(location).build();
     var e = assertThrows(IllegalStateException.class, () -> testError(origExtent, tablet1, fateId));

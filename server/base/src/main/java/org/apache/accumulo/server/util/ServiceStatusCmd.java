@@ -185,7 +185,7 @@ public class ServiceStatusCmd {
       var services = sld.getServices();
       services.forEach(sd -> {
         byGroup.computeIfAbsent(sd.getGroup().canonical(), set -> new TreeSet<>())
-            .add(sd.getAddress());
+            .add(sd.getServer().toHostPortString());
       });
     });
     byGroup.forEach((group, hosts) -> resourceGroups.put(group, hosts.size()));

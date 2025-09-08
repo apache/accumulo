@@ -110,6 +110,7 @@ import org.apache.accumulo.core.client.admin.TabletMergeability;
 import org.apache.accumulo.core.client.admin.TimeType;
 import org.apache.accumulo.core.client.admin.compaction.CompactionConfigurer;
 import org.apache.accumulo.core.client.admin.compaction.CompactionSelector;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.sample.SamplerConfiguration;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
 import org.apache.accumulo.core.client.summary.Summary;
@@ -1428,7 +1429,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
             lastRow = tablet.getExtent().toMetaRow();
 
             if (loc != null) {
-              serverCounts.increment(loc.getHostPortSession(), 1);
+              serverCounts.increment(loc.getServerInstance().toHostPortSessionString(), 1);
             }
           }
 
@@ -1593,7 +1594,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     List<TDiskUsage> diskUsages = null;
     while (diskUsages == null) {
-      Pair<String,Client> pair = null;
+      Pair<ServerId,Client> pair = null;
       try {
         // this operation may us a lot of memory... it's likely that connections to tabletservers
         // hosting metadata tablets will be cached, so do not use cached
@@ -1897,15 +1898,15 @@ public class TableOperationsImpl extends TableOperationsHelper {
 
     private Map<Range,List<TabletId>> groupedByRanges;
     private Map<TabletId,List<Range>> groupedByTablets;
-    private final Map<TabletId,String> tabletLocations;
+    private final Map<TabletId,ServerId> tabletLocations;
 
-    public LocationsImpl(Map<String,Map<KeyExtent,List<Range>>> binnedRanges) {
+    public LocationsImpl(Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges) {
       groupedByTablets = new HashMap<>();
       groupedByRanges = null;
       tabletLocations = new HashMap<>();
 
-      for (Entry<String,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
-        String location = entry.getKey();
+      for (Entry<ServerId,Map<KeyExtent,List<Range>>> entry : binnedRanges.entrySet()) {
+        ServerId location = entry.getKey();
 
         for (Entry<KeyExtent,List<Range>> entry2 : entry.getValue().entrySet()) {
           TabletIdImpl tabletId = new TabletIdImpl(entry2.getKey());
@@ -1923,7 +1924,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
     }
 
     @Override
-    public String getTabletLocation(TabletId tabletId) {
+    public ServerId getTabletLocation(TabletId tabletId) {
       return tabletLocations.get(tabletId);
     }
 
@@ -1978,7 +1979,7 @@ public class TableOperationsImpl extends TableOperationsHelper {
         .logInterval(Duration.ofMinutes(3)).createRetry();
 
     final ArrayList<KeyExtent> locationLess = new ArrayList<>();
-    final Map<String,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
+    final Map<ServerId,Map<KeyExtent,List<Range>>> binnedRanges = new HashMap<>();
     final AtomicBoolean foundOnDemandTabletInRange = new AtomicBoolean(false);
 
     BiConsumer<CachedTablet,Range> rangeConsumer = (cachedTablet, range) -> {

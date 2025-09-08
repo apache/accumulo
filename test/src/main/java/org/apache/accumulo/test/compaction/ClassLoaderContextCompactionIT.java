@@ -41,6 +41,7 @@ import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.clientImpl.ClientContext;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ResourceGroupId;
@@ -69,8 +70,6 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.net.HostAndPort;
 
 public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
 
@@ -174,10 +173,10 @@ public class ClassLoaderContextCompactionIT extends AccumuloClusterHarness {
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       Wait.waitFor(() -> ExternalCompactionUtil.countCompactors(ResourceGroupId.of(GROUP1),
           (ClientContext) client) == 1);
-      Set<HostAndPort> compactors =
+      Set<ServerId> compactors =
           ExternalCompactionUtil.getCompactorAddrs((ClientContext) client).get(GROUP1);
       assertEquals(1, compactors.size());
-      final HostAndPort compactorAddr = compactors.iterator().next();
+      final ServerId compactorAddr = compactors.iterator().next();
       createTable(client, table1, "cs1");
       client.tableOperations().setProperty(table1, TABLE_FILE_MAX.getKey(), "1001");
       client.tableOperations().setProperty(table1, TABLE_MAJC_RATIO.getKey(), "1001");
