@@ -29,6 +29,7 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -69,8 +70,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import com.google.common.base.Preconditions;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -336,7 +335,7 @@ public class SplitIT extends AccumuloClusterHarness {
         }
       }
 
-      Preconditions.checkNotNull(fileToDelete);
+      Objects.requireNonNull(fileToDelete);
 
       final Path deletePath = fileToDelete.getPath();
 
