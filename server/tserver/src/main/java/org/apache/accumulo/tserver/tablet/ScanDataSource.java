@@ -235,8 +235,7 @@ class ScanDataSource implements DataSource {
       } else {
         context = pic.getServiceEnv();
         if (context != null) {
-          log.trace("Loading iterators for scan with table context: {}",
-              context);
+          log.trace("Loading iterators for scan with table context: {}", context);
         } else {
           log.trace("Loading iterators for scan");
         }
