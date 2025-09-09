@@ -44,6 +44,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.fate.AbstractFateStore;
 import org.apache.accumulo.core.fate.Fate;
 import org.apache.accumulo.core.fate.FateId;
@@ -554,7 +555,8 @@ public abstract class FateITBase extends SharedMiniClusterBase implements FateTe
 
   protected Fate<TestEnv> initializeFate(FateStore<TestEnv> store) {
     return new Fate<>(new TestEnv(), store, false, r -> r + "",
-        FateTestUtil.createTestFateConfig(1), new ScheduledThreadPoolExecutor(2));
+        FateTestUtil.updateFateConfig(new ConfigurationCopy(), 1, "AllFateOps"),
+        new ScheduledThreadPoolExecutor(2));
   }
 
   protected abstract TStatus getTxStatus(ServerContext sctx, FateId fateId);
