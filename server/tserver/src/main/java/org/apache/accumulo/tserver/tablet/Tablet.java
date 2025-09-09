@@ -1506,6 +1506,8 @@ public class Tablet extends TabletBase {
 
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
+      // Save initial count of files for logging
+      int initialFileCount = files.size();
       try {
         log.debug("Starting midpoint calculation for extent {}", extent);
         SortedMap<Double,Key> midpoint =
@@ -1522,25 +1524,28 @@ public class Tablet extends TabletBase {
         newComputation = new SplitComputations(files, midpoint, lastRow);
 
         lastSplitComputation = new SoftReference<>(newComputation);
+      } catch (FileNotFoundException e) {
+        lastSplitComputation.clear();
+        Set<TabletFile> currentFiles = getDatafileManager().getFiles();
+        files.removeAll(currentFiles);
+        if (!files.isEmpty()) {
+          log.debug(
+              "Failed to compute split information. The following files have most likely been garbage collected: {}",
+              files);
+        } else {
+          // A file is missing in HDFS and should be reported as an error
+          log.error("Failed to compute split information from {} files in tablet {}",
+              initialFileCount, getExtent(), e);
+        }
+        return Optional.empty();
       } catch (IOException e) {
         lastSplitComputation.clear();
-        if (e.getClass().equals(FileNotFoundException.class)) {
-          Set<TabletFile> currentFiles = getDatafileManager().getFiles();
-          files.removeAll(currentFiles);
-          if (!files.isEmpty()) {
-            log.debug(
-                "Failed to compute split information. The following files have most likely been garbage collected: {}",
-                files);
-            return Optional.empty();
-          }
-        }
-        log.error("Failed to compute split information from {} files in tablet {}", files.size(),
-            getExtent(), e);
+        log.error("Failed to compute split information from {} files in tablet {}",
+            initialFileCount, getExtent(), e);
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
       }
-
       return Optional.of(newComputation);
     } else {
       // some other thread seems to be working on split, let the other thread work on it
