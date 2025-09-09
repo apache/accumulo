@@ -37,8 +37,10 @@ import jakarta.ws.rs.NotFoundException;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.ServiceUnavailableException;
 import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.client.admin.TabletInformation;
@@ -77,7 +79,7 @@ public class Endpoints {
   @Inject
   private Monitor monitor;
 
-  private void validateResourceGroup(String resourceGroup) {
+  private void validateResourceGroup(String resourceGroup) throws InterruptedException {
     if (monitor.getInformationFetcher().getSummary().getResourceGroups().contains(resourceGroup)) {
       return;
     }
@@ -119,7 +121,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of the resource groups that are in use")
   public Set<String> getResourceGroups() {
-    return monitor.getInformationFetcher().getSummary().getResourceGroups();
+    try {
+      return monitor.getInformationFetcher().getSummary().getResourceGroups();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -127,7 +135,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of the servers that are potentially down")
   public Collection<ServerId> getProblemHosts() {
-    return monitor.getInformationFetcher().getSummary().getProblemHosts();
+    try {
+      return monitor.getInformationFetcher().getSummary().getProblemHosts();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -143,7 +157,14 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metric response for the Manager")
   public MetricResponse getManager() {
-    final ServerId s = monitor.getInformationFetcher().getSummary().getManager();
+    final ServerId s;
+    try {
+      s = monitor.getInformationFetcher().getSummary().getManager();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(Response.status(Response.Status.SERVICE_UNAVAILABLE)
+          .entity("Service unavailable, request was interrupted. Please try again").build(), e);
+    }
     if (s == null) {
       throw new NotFoundException("Manager not found");
     }
@@ -155,7 +176,14 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metric response for the Garbage Collector")
   public MetricResponse getGarbageCollector() {
-    final ServerId s = monitor.getInformationFetcher().getSummary().getGarbageCollector();
+    final ServerId s;
+    try {
+      s = monitor.getInformationFetcher().getSummary().getGarbageCollector();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (s == null) {
       throw new NotFoundException("Garbage Collector not found");
     }
@@ -181,9 +209,16 @@ public class Endpoints {
   @Description("Returns the metric responses for the Compactors in the supplied resource group")
   public Collection<MetricResponse>
       getCompactors(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers = monitor.getInformationFetcher().getSummary()
-        .getCompactorResourceGroupServers(resourceGroup);
+    final Set<ServerId> servers;
+    try {
+      validateResourceGroup(resourceGroup);
+      servers = monitor.getInformationFetcher().getSummary()
+          .getCompactorResourceGroupServers(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (servers == null) {
       return List.of();
     }
@@ -196,9 +231,16 @@ public class Endpoints {
   @Description("Returns an aggregate view of the metric responses for the Compactors in the supplied resource group")
   public Map<Id,CumulativeDistributionSummary>
       getCompactorResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Map<Id,CumulativeDistributionSummary> metrics = monitor.getInformationFetcher()
-        .getSummary().getCompactorResourceGroupMetricSummary(resourceGroup);
+    final Map<Id,CumulativeDistributionSummary> metrics;
+    try {
+      validateResourceGroup(resourceGroup);
+      metrics = monitor.getInformationFetcher().getSummary()
+          .getCompactorResourceGroupMetricSummary(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (metrics == null) {
       return Map.of();
     }
@@ -210,7 +252,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns an aggregate view of the metric responses for all Compactors")
   public Map<Id,CumulativeDistributionSummary> getCompactorAllMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getCompactorAllMetricSummary();
+    try {
+      return monitor.getInformationFetcher().getSummary().getCompactorAllMetricSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -219,9 +267,16 @@ public class Endpoints {
   @Description("Returns the metric responses for the ScanServers in the supplied resource group")
   public Collection<MetricResponse>
       getScanServers(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers =
-        monitor.getInformationFetcher().getSummary().getSServerResourceGroupServers(resourceGroup);
+    final Set<ServerId> servers;
+    try {
+      validateResourceGroup(resourceGroup);
+      servers = monitor.getInformationFetcher().getSummary()
+          .getSServerResourceGroupServers(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (servers == null) {
       return List.of();
     }
@@ -234,9 +289,16 @@ public class Endpoints {
   @Description("Returns an aggregate view of the metric responses for the ScanServers in the supplied resource group")
   public Map<Id,CumulativeDistributionSummary>
       getScanServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Map<Id,CumulativeDistributionSummary> metrics = monitor.getInformationFetcher()
-        .getSummary().getSServerResourceGroupMetricSummary(resourceGroup);
+    final Map<Id,CumulativeDistributionSummary> metrics;
+    try {
+      validateResourceGroup(resourceGroup);
+      metrics = monitor.getInformationFetcher().getSummary()
+          .getSServerResourceGroupMetricSummary(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (metrics == null) {
       return Map.of();
     }
@@ -248,7 +310,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns an aggregate view of the metric responses for all ScanServers")
   public Map<Id,CumulativeDistributionSummary> getScanServerAllMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getSServerAllMetricSummary();
+    try {
+      return monitor.getInformationFetcher().getSummary().getSServerAllMetricSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -257,9 +325,16 @@ public class Endpoints {
   @Description("Returns the metric responses for the TabletServers in the supplied resource group")
   public Collection<MetricResponse>
       getTabletServers(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Set<ServerId> servers =
-        monitor.getInformationFetcher().getSummary().getTServerResourceGroupServers(resourceGroup);
+    final Set<ServerId> servers;
+    try {
+      validateResourceGroup(resourceGroup);
+      servers = monitor.getInformationFetcher().getSummary()
+          .getTServerResourceGroupServers(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (servers == null) {
       return List.of();
     }
@@ -272,9 +347,16 @@ public class Endpoints {
   @Description("Returns an aggregate view of the metric responses for the TabletServers in the supplied resource group")
   public Map<Id,CumulativeDistributionSummary>
       getTabletServerResourceGroupMetricSummary(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    final Map<Id,CumulativeDistributionSummary> metrics = monitor.getInformationFetcher()
-        .getSummary().getTServerResourceGroupMetricSummary(resourceGroup);
+    final Map<Id,CumulativeDistributionSummary> metrics;
+    try {
+      validateResourceGroup(resourceGroup);
+      metrics = monitor.getInformationFetcher().getSummary()
+          .getTServerResourceGroupMetricSummary(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (metrics == null) {
       return Map.of();
     }
@@ -286,7 +368,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns an aggregate view of the metric responses for all TabletServers")
   public Map<Id,CumulativeDistributionSummary> getTabletServerAllMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getTServerAllMetricSummary();
+    try {
+      return monitor.getInformationFetcher().getSummary().getTServerAllMetricSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -294,7 +382,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the metrics for all compaction queues")
   public Map<String,List<FMetric>> getCompactionMetricSummary() {
-    return monitor.getInformationFetcher().getSummary().getCompactionMetricSummary();
+    try {
+      return monitor.getInformationFetcher().getSummary().getCompactionMetricSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -302,8 +396,14 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a map of Compactor resource group to the 50 oldest running compactions")
   public Map<String,List<TExternalCompaction>> getCompactions() {
-    Map<String,List<TExternalCompaction>> all =
-        monitor.getInformationFetcher().getSummary().getCompactions();
+    Map<String,List<TExternalCompaction>> all;
+    try {
+      all = monitor.getInformationFetcher().getSummary().getCompactions();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (all == null) {
       return Map.of();
     }
@@ -316,9 +416,15 @@ public class Endpoints {
   @Description("Returns a list of the 50 oldest running compactions in the supplied resource group")
   public List<TExternalCompaction>
       getCompactions(@PathParam(GROUP_PARAM_KEY) String resourceGroup) {
-    validateResourceGroup(resourceGroup);
-    List<TExternalCompaction> compactions =
-        monitor.getInformationFetcher().getSummary().getCompactions(resourceGroup);
+    List<TExternalCompaction> compactions;
+    try {
+      validateResourceGroup(resourceGroup);
+      compactions = monitor.getInformationFetcher().getSummary().getCompactions(resourceGroup);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (compactions == null) {
       return List.of();
     }
@@ -330,7 +436,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a map of TableId to table details")
   public Map<TableId,TableSummary> getTables() {
-    return monitor.getInformationFetcher().getSummary().getTables();
+    try {
+      return monitor.getInformationFetcher().getSummary().getTables();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -338,8 +450,14 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns table details for the supplied TableId")
   public TableSummary getTable(@PathParam(TABLEID_PARAM_KEY) String tableId) {
-    TableSummary ts =
-        monitor.getInformationFetcher().getSummary().getTables().get(TableId.of(tableId));
+    final TableSummary ts;
+    try {
+      ts = monitor.getInformationFetcher().getSummary().getTables().get(TableId.of(tableId));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (ts == null) {
       throw new NotFoundException(tableId + " not found");
     }
@@ -351,8 +469,14 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns tablet details for the supplied table name")
   public List<TabletInformation> getTablets(@PathParam(TABLEID_PARAM_KEY) String tableId) {
-    List<TabletInformation> ti =
-        monitor.getInformationFetcher().getSummary().getTablets(TableId.of(tableId));
+    final List<TabletInformation> ti;
+    try {
+      ti = monitor.getInformationFetcher().getSummary().getTablets(TableId.of(tableId));
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
     if (ti == null) {
       throw new NotFoundException(tableId + " not found");
     }
@@ -365,7 +489,13 @@ public class Endpoints {
   @Description("Returns a map of resource group to server type to process summary."
       + " The process summary contains the number of configured, responding, and not responding servers")
   public Map<ResourceGroupId,Map<String,ProcessSummary>> getDeploymentOverview() {
-    return monitor.getInformationFetcher().getSummary().getDeploymentOverview();
+    try {
+      return monitor.getInformationFetcher().getSummary().getDeploymentOverview();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -373,7 +503,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns a list of suggestions")
   public Set<String> getSuggestions() {
-    return monitor.getInformationFetcher().getSummary().getSuggestions();
+    try {
+      return monitor.getInformationFetcher().getSummary().getSuggestions();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET
@@ -381,7 +517,13 @@ public class Endpoints {
   @Produces(MediaType.APPLICATION_JSON)
   @Description("Returns the timestamp of when the monitor information was last refreshed")
   public long getTimestamp() {
-    return monitor.getInformationFetcher().getSummary().getTimestamp();
+    try {
+      return monitor.getInformationFetcher().getSummary().getTimestamp();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   @GET

@@ -547,7 +547,7 @@ public class ServiceLock implements Watcher {
     // Wait for the delete to happen on the server before exiting method
     Timer start = Timer.startNew();
     while (zooKeeper.exists(pathToDelete, null) != null) {
-      Thread.onSpinWait();
+      Thread.sleep(100);
       if (start.hasElapsed(10, SECONDS)) {
         start.restart();
         LOG.debug("[{}] Still waiting for zookeeper to delete all at {}", vmLockPrefix,

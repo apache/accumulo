@@ -236,9 +236,9 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
   }
 
   // Protect against NPE and wait for initial data gathering
-  public SystemInformation getSummary() {
+  public SystemInformation getSummary() throws InterruptedException {
     while (summaryRef.get() == null) {
-      Thread.onSpinWait();
+      Thread.sleep(100);
     }
     return summaryRef.get();
   }
@@ -253,8 +253,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
     if (server == null) {
       return;
     }
-    LOG.info("{} has been evicted", server);
-    getSummary().processError(server);
+    try {
+      getSummary().processError(server);
+      LOG.info("{} has been evicted", server);
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      LOG.warn("{} could not be evicted", server, e);
+    }
   }
 
   @Override
@@ -270,7 +275,13 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       // Only refresh every 5s (old monitor logic).
       while (!newConnectionEvent.get() && connectionCount.get() == 0
           && NanoTime.millisElapsed(refreshTime, NanoTime.now()) > 5000) {
-        Thread.onSpinWait();
+        try {
+          Thread.sleep(100);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException(
+              "Thread " + Thread.currentThread().getName() + " interrupted", e);
+        }
       }
       // reset the connection event flag
       newConnectionEvent.compareAndExchange(true, false);

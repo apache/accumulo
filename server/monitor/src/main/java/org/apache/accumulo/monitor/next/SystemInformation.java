@@ -376,6 +376,9 @@ public class SystemInformation {
   private void updateAggregates(final MetricResponse response,
       final Map<Id,CumulativeDistributionSummary> total,
       final Map<String,Map<Id,CumulativeDistributionSummary>> rg) {
+    if (response.getMetrics() == null) {
+      return;
+    }
 
     final Map<Id,CumulativeDistributionSummary> rgMetrics =
         rg.computeIfAbsent(response.getResourceGroup(), (k) -> new ConcurrentHashMap<>());
