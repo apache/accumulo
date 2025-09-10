@@ -29,8 +29,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.Callable;
@@ -578,10 +578,11 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     final int numTasks = 4;
     ExecutorService executor = Executors.newFixedThreadPool(numTasks);
     CountDownLatch startLatch = new CountDownLatch(numTasks);
+    var tasks = new ArrayList<Callable<Void>>(numTasks);
 
     final int iterations = 151;
 
-    Callable<Void> task1 = () -> {
+    tasks.add(() -> {
       startLatch.countDown();
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
@@ -624,9 +625,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         }
       }
       return null;
-    };
+    });
 
-    Callable<Void> task2 = () -> {
+    tasks.add(() -> {
       startLatch.countDown();
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
@@ -639,9 +640,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
 
-    Callable<Void> task3 = () -> {
+    tasks.add(() -> {
       startLatch.countDown();
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
@@ -652,9 +653,9 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
 
-    Callable<Void> task4 = () -> {
+    tasks.add(() -> {
       startLatch.countDown();
       startLatch.await();
       for (int i = 0; i < iterations; i++) {
@@ -664,10 +665,12 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
         });
       }
       return null;
-    };
+    });
+
+    assertEquals(numTasks, tasks.size());
 
     // run all of the above task concurrently
-    for (Future<Void> future : executor.invokeAll(List.of(task1, task2, task3, task4))) {
+    for (Future<Void> future : executor.invokeAll(tasks)) {
       // see if there were any exceptions in the background thread and wait for it to finish
       future.get();
     }

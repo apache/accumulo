@@ -1993,7 +1993,7 @@ public class ClientTabletCacheImplTest {
     final int numTasks = roundCount * lookupCount;
 
     List<Future<CachedTablet>> futures = new ArrayList<>(numTasks);
-    CountDownLatch startLatch = new CountDownLatch(numTasks);
+    CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at once
 
     // multiple rounds to increase the chance of contention
     for (int round = 0; round < roundCount; round++) {

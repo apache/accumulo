@@ -126,10 +126,10 @@ public class LargeReadIT extends AccumuloClusterHarness {
 
       final int numTasks = 64;
       var executor = Executors.newFixedThreadPool(numTasks);
-      CountDownLatch latch = new CountDownLatch(numTasks);
+      CountDownLatch startLatch = new CountDownLatch(numTasks);
       Callable<Long> scanTask = () -> {
-        latch.countDown();
-        latch.await();
+        startLatch.countDown();
+        startLatch.await();
         try (var scanner = client.createScanner(tableName)) {
           scannerConfigurer.accept(scanner);
           return scanner.stream().count();
