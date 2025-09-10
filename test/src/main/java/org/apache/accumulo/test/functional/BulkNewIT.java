@@ -940,7 +940,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       CountDownLatch startLatch;
       if (parallelBulkImports) {
         final int numTasks = 16;
-        executor = Executors.newCachedThreadPool();
+        executor = Executors.newFixedThreadPool(numTasks);
         startLatch = new CountDownLatch(numTasks); // wait for a portion of the tasks to be ready
       } else {
         startLatch = null;
@@ -1112,7 +1112,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
       c.tableOperations().addSplits(tableName, splits);
 
       final int numTasks = 16;
-      var executor = Executors.newCachedThreadPool();
+      var executor = Executors.newFixedThreadPool(numTasks);
       var futures = new ArrayList<Future<?>>(numTasks);
       // wait for a portion of the tasks to be ready
       CountDownLatch startLatch = new CountDownLatch(numTasks);

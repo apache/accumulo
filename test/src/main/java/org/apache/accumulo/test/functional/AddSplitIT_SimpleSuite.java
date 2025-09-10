@@ -288,7 +288,7 @@ public class AddSplitIT_SimpleSuite extends SharedMiniClusterBase {
   @Test
   public void concurrentAddSplitTest() throws Exception {
     var threads = 10;
-    var service = Executors.newCachedThreadPool();
+    var service = Executors.newFixedThreadPool(threads);
     var latch = new CountDownLatch(threads);
 
     String tableName = getUniqueNames(1)[0];

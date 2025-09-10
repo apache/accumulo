@@ -75,7 +75,7 @@ public class TableConfigurationUpdateIT extends AccumuloClusterHarness {
       AccumuloConfiguration tableConf = new TableConfiguration(context, tid, defaultConf);
 
       long start = System.currentTimeMillis();
-      ExecutorService svc = Executors.newCachedThreadPool();
+      ExecutorService svc = Executors.newFixedThreadPool(numThreads);
       CountDownLatch countDown = new CountDownLatch(numThreads);
       ArrayList<Future<Exception>> futures = new ArrayList<>(numThreads);
 

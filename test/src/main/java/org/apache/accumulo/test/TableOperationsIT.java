@@ -209,7 +209,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
       throws ExecutionException, InterruptedException {
     final int initialTableSize = accumuloClient.tableOperations().list().size();
     final int numTasks = 10;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
     for (String tablename : getUniqueNames(30)) {
       CountDownLatch startSignal = new CountDownLatch(numTasks);
@@ -893,7 +893,7 @@ public class TableOperationsIT extends AccumuloClusterHarness {
 
     Set<TableId> hash = new HashSet<>();
 
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(64);
 
     for (int i = 0; i < 1000; i++) {
       int finalI = i;

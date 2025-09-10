@@ -188,7 +188,7 @@ public class CompressionTest {
 
         assertNotNull(codec, al + " should not be null");
 
-        ExecutorService service = Executors.newCachedThreadPool();
+        ExecutorService service = Executors.newFixedThreadPool(10);
         final int numTasks = 30;
 
         ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
@@ -233,7 +233,7 @@ public class CompressionTest {
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        ExecutorService service = Executors.newCachedThreadPool();
+        ExecutorService service = Executors.newFixedThreadPool(10);
         final int numTasks = 30;
 
         ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
@@ -276,7 +276,7 @@ public class CompressionTest {
         // first call to isSupported should be true
         assertTrue(al.isSupported(), al + " is not supported, but should be");
 
-        ExecutorService service = Executors.newCachedThreadPool();
+        ExecutorService service = Executors.newFixedThreadPool(20);
 
         final int numTasks = 40;
         ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);

@@ -282,7 +282,7 @@ public class CompactionIT extends CompactionITBase {
       final AtomicBoolean fail = new AtomicBoolean(false);
       final int THREADS = 5;
       for (int count = 0; count < THREADS; count++) {
-        ExecutorService executor = Executors.newCachedThreadPool();
+        ExecutorService executor = Executors.newFixedThreadPool(THREADS);
         final int span = 500000 / 59;
         for (int i = 0; i < 500000; i += 500000 / 59) {
           final int finalI = i;

@@ -87,7 +87,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public void cloneTable() throws Exception {
     final int numTasks = 16;
     final int numIterations = 8;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
     for (String targetTableName : getUniqueNames(numIterations)) {
       List<String> sourceTableNames = new ArrayList<>();
@@ -122,7 +122,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public void renameTable() throws Exception {
     final int numTasks = 16;
     final int numIterations = 10;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
 
     for (String targetTableName : getUniqueNames(numIterations)) {
       List<String> sourceTableNames = new ArrayList<>();
@@ -156,7 +156,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public void importTable() throws Exception {
     final int numTasks = 16;
     final int numIterations = 4;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] targetTableNames = getUniqueNames(numIterations);
     var ntc = new NewTableConfiguration().createOffline();
 
@@ -198,7 +198,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
     final int operationsPerType = 10;
     final int numTasks = operationsPerType * 3;
     final int numIterations = 4;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] expectedTableNames = getUniqueNames(numIterations);
 
     for (String targetTableName : expectedTableNames) {
@@ -297,7 +297,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public void createNamespace() throws Exception {
     final int numTasks = 16;
     final int numIterations = 16;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] targetNamespaceNames = getUniqueNames(numIterations);
 
     for (String namespaceName : targetNamespaceNames) {
@@ -332,7 +332,7 @@ public class ConcurrentTableNameOperationsIT extends SharedMiniClusterBase {
   public void renameNamespace() throws Exception {
     final int numTasks = 16;
     final int numIterations = 8;
-    ExecutorService pool = Executors.newCachedThreadPool();
+    ExecutorService pool = Executors.newFixedThreadPool(numTasks);
     String[] targetNamespaceNames = getUniqueNames(numIterations);
 
     for (String targetNamespaceName : targetNamespaceNames) {
