@@ -1506,8 +1506,6 @@ public class Tablet extends TabletBase {
 
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
-      // Save initial count of files for logging
-      int initialFileCount = files.size();
       try {
         log.debug("Starting midpoint calculation for extent {}", extent);
         SortedMap<Double,Key> midpoint =
@@ -1526,22 +1524,23 @@ public class Tablet extends TabletBase {
         lastSplitComputation = new SoftReference<>(newComputation);
       } catch (FileNotFoundException e) {
         lastSplitComputation.clear();
-        Set<TabletFile> currentFiles = getDatafileManager().getFiles();
-        files.removeAll(currentFiles);
-        if (!files.isEmpty()) {
+        // Create a copy of the unmodifiable file set and remove the files that still exist
+        Set<TabletFile> missingOriginalFiles = new HashSet<>(files);
+        missingOriginalFiles.removeAll(getDatafileManager().getFiles());
+        if (!missingOriginalFiles.isEmpty()) {
           log.debug(
               "Failed to compute split information. The following files have most likely been garbage collected: {}",
-              files);
+              missingOriginalFiles);
         } else {
           // A file is missing in HDFS and should be reported as an error
-          log.error("Failed to compute split information from {} files in tablet {}",
-              initialFileCount, getExtent(), e);
+          log.error("Failed to compute split information from {} files in tablet {}", files.size(),
+              getExtent(), e);
         }
         return Optional.empty();
       } catch (IOException e) {
         lastSplitComputation.clear();
-        log.error("Failed to compute split information from {} files in tablet {}",
-            initialFileCount, getExtent(), e);
+        log.error("Failed to compute split information from {} files in tablet {}", files.size(),
+            getExtent(), e);
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
