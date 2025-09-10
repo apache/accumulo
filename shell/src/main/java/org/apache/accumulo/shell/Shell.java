@@ -313,7 +313,7 @@ public class Shell extends ShellOptions implements KeywordExecutable {
           TerminalBuilder.builder().jansi(false).systemOutput(SystemOutput.SysOut).build();
     }
     if (this.reader == null) {
-      this.reader = LineReaderBuilder.builder().terminal(this.terminal).build();
+      this.reader = newLineReaderBuilder().terminal(this.terminal).build();
     }
     this.writer = this.terminal.writer();
 
@@ -528,8 +528,17 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     }
   }
 
+  private static LineReaderBuilder newLineReaderBuilder() {
+    var builder = LineReaderBuilder.builder();
+    // workaround for https://github.com/jline/jline3/pull/1413
+    if ("on".equals(System.getProperty("org.jline.reader.props.disable-event-expansion"))) {
+      builder.option(LineReader.Option.DISABLE_EVENT_EXPANSION, true);
+    }
+    return builder;
+  }
+
   public static void main(String[] args) throws IOException {
-    LineReader reader = LineReaderBuilder.builder().build();
+    LineReader reader = newLineReaderBuilder().build();
     new Shell(reader).execute(args);
   }
 
