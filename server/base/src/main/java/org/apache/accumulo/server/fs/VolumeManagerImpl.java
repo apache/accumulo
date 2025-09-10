@@ -530,8 +530,7 @@ public class VolumeManagerImpl implements VolumeManager {
     // for HDFS erasure coding. not checking hdfs config options
     // since that's already checked in ensureSyncIsEnabled()
     FileSystem fs = getFileSystemByPath(path);
-    if (fs instanceof DistributedFileSystem) {
-      DistributedFileSystem dfs = (DistributedFileSystem) fs;
+    if (fs instanceof DistributedFileSystem dfs) {
       try {
         ErasureCodingPolicy currEC = dfs.getErasureCodingPolicy(path);
         if (currEC != null && !currEC.isReplicationPolicy()) {

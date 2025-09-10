@@ -141,10 +141,9 @@ public class FateLock implements QueueLock {
       if (this == o) {
         return true;
       }
-      if (!(o instanceof FateLockEntry)) {
+      if (!(o instanceof FateLockEntry that)) {
         return false;
       }
-      FateLockEntry that = (FateLockEntry) o;
       return lockType == that.lockType && Objects.equals(fateId, that.fateId)
           && Objects.equals(range, that.range);
     }

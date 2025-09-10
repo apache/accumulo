@@ -100,8 +100,7 @@ public final class MetadataTime implements Comparable<MetadataTime> {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof MetadataTime) {
-      MetadataTime t = (MetadataTime) o;
+    if (o instanceof MetadataTime t) {
       return time == t.getTime() && type == t.getType();
     }
     return false;

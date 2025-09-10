@@ -404,8 +404,7 @@ public abstract class GroupBalancer implements TabletBalancer {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof TserverGroupInfo) {
-        TserverGroupInfo otgi = (TserverGroupInfo) o;
+      if (o instanceof TserverGroupInfo otgi) {
         return tsi.equals(otgi.tsi);
       }
 
