@@ -70,7 +70,7 @@ public class GcWalsFilter extends TabletMetadataFilter {
       liveTservers = Set.of();
     } else {
       liveTservers = Arrays.stream(options.get(LIVE_TSERVER_OPT).split(","))
-          .map(TServerInstance::new).collect(Collectors.toUnmodifiableSet());
+          .map(TServerInstance::fromHostPortSessionString).collect(Collectors.toUnmodifiableSet());
     }
 
     filter = tm -> !tm.getLogs().isEmpty()

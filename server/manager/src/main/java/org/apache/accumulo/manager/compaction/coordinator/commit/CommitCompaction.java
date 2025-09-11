@@ -38,6 +38,7 @@ import org.apache.accumulo.core.logging.TabletLogger;
 import org.apache.accumulo.core.metadata.AbstractTabletFile;
 import org.apache.accumulo.core.metadata.ReferencedTabletFile;
 import org.apache.accumulo.core.metadata.StoredTabletFile;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.CompactionMetadata;
 import org.apache.accumulo.core.metadata.schema.DataFileValue;
@@ -81,9 +82,9 @@ public class CommitCompaction extends ManagerRepo {
     // fact that a commit may not have happened in the current call and continues for this reason.
     TabletMetadata tabletMetadata = commitCompaction(manager.getContext(), ecid, newFile);
 
-    String loc = null;
+    TServerInstance loc = null;
     if (tabletMetadata != null && tabletMetadata.getLocation() != null) {
-      loc = tabletMetadata.getLocation().getServerInstance().toHostPortSessionString();
+      loc = tabletMetadata.getLocation().getServerInstance();
     }
 
     // This will causes the tablet to be reexamined to see if it needs any more compactions.

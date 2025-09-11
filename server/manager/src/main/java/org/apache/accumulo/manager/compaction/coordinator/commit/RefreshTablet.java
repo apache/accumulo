@@ -38,10 +38,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 public class RefreshTablet extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private final TKeyExtent extent;
-  private final String tserverInstance;
+  private final TServerInstance tserverInstance;
   private final String compactionId;
 
-  public RefreshTablet(String ecid, TKeyExtent extent, String tserverInstance) {
+  public RefreshTablet(String ecid, TKeyExtent extent, TServerInstance tserverInstance) {
     this.compactionId = ecid;
     this.extent = extent;
     this.tserverInstance = tserverInstance;
@@ -50,15 +50,13 @@ public class RefreshTablet extends ManagerRepo {
   @Override
   public Repo<Manager> call(FateId fateId, Manager manager) throws Exception {
 
-    TServerInstance tsi = new TServerInstance(tserverInstance);
-
     // there is a single tserver and single tablet, do not need a thread pool. The direct executor
     // will run everything in the current thread
     ExecutorService executorService = MoreExecutors.newDirectExecutorService();
     try {
       TabletRefresher.refreshTablets(executorService, "compaction:" + KeyExtent.fromThrift(extent),
           manager.getContext(), manager::onlineTabletServers,
-          Map.of(TabletMetadata.Location.current(tsi), List.of(extent)));
+          Map.of(TabletMetadata.Location.current(tserverInstance), List.of(extent)));
     } finally {
       executorService.shutdownNow();
     }

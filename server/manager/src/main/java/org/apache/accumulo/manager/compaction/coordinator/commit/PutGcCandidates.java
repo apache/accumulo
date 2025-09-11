@@ -20,6 +20,7 @@ package org.apache.accumulo.manager.compaction.coordinator.commit;
 
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.ExternalCompactionId;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
@@ -27,9 +28,9 @@ import org.apache.accumulo.manager.tableOps.ManagerRepo;
 public class PutGcCandidates extends ManagerRepo {
   private static final long serialVersionUID = 1L;
   private final CompactionCommitData commitData;
-  private final String refreshLocation;
+  private final TServerInstance refreshLocation;
 
-  public PutGcCandidates(CompactionCommitData commitData, String refreshLocation) {
+  public PutGcCandidates(CompactionCommitData commitData, TServerInstance refreshLocation) {
     this.commitData = commitData;
     this.refreshLocation = refreshLocation;
   }

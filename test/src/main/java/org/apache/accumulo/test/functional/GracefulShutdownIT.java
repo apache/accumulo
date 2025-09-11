@@ -38,7 +38,6 @@ import org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
-import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
@@ -183,8 +182,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           .getTabletServer((rg) -> rg.equals(ResourceGroupId.DEFAULT), AddressSelector.all(), true);
       assertEquals(2, tservers.size());
       final ServiceLockPath tserverPath = tservers.iterator().next();
-      Admin.signalGracefulShutdown(ctx, ServerId.dynamic(Type.valueOf(tserverPath.getType()),
-          tserverPath.getResourceGroup(), HostAndPort.fromString(tserverPath.getServer())));
+      Admin.signalGracefulShutdown(ctx,
+          ServerId.tserver(HostAndPort.fromString(tserverPath.getServer())));
       Wait.waitFor(() -> {
         control.refreshProcesses(ServerType.TABLET_SERVER);
         return control.getProcesses(ServerType.TABLET_SERVER).size() == 1;
@@ -224,8 +223,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           .getCompactor(ResourceGroupPredicate.exact(ResourceGroupId.of(GROUP_NAME)),
               AddressSelector.all(), true);
       final ServiceLockPath compactorPath = compactors.iterator().next();
-      final ServerId compactorAddress = ServerId.dynamic(Type.valueOf(compactorPath.getType()),
-          compactorPath.getResourceGroup(), HostAndPort.fromString(compactorPath.getServer()));
+      final ServerId compactorAddress = ServerId.compactor(compactorPath.getResourceGroup(),
+          HostAndPort.fromString(compactorPath.getServer()));
 
       final CompactionConfig cc = new CompactionConfig();
       final IteratorSetting is = new IteratorSetting(100, SlowIterator.class);
@@ -278,8 +277,8 @@ public class GracefulShutdownIT extends SharedMiniClusterBase {
           assertNotNull(e);
           count++;
           if (count == 2) {
-            Admin.signalGracefulShutdown(ctx, ServerId.dynamic(Type.valueOf(sserverPath.getType()),
-                sserverPath.getResourceGroup(), HostAndPort.fromString(sserverPath.getServer())));
+            Admin.signalGracefulShutdown(ctx, ServerId.sserver(sserverPath.getResourceGroup(),
+                HostAndPort.fromString(sserverPath.getServer())));
           }
         }
         assertEquals(10, count);

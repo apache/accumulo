@@ -460,7 +460,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
     TableId tableIdToModify =
         TableId.of(client.tableOperations().tableIdMap().get(tableNameToModify));
     Mutation m = new Mutation(new KeyExtent(tableIdToModify, null, null).toMetaRow());
-    m.put(CurrentLocationColumnFamily.NAME, new Text("1234567"), new Value("fake:9005"));
+    m.put(CurrentLocationColumnFamily.NAME, new Text("1234567"),
+        new Value(new TServerInstance(ServerId.tserver("fake", 9005), "1234567").serialize()));
     try (BatchWriter bw = client.createBatchWriter(table)) {
       bw.addMutation(m);
     }
@@ -492,7 +493,8 @@ public class TabletManagementIteratorIT extends AccumuloClusterHarness {
       m.putDelete(entry.getKey().getColumnFamily(), entry.getKey().getColumnQualifier(),
           entry.getKey().getTimestamp());
       m.put(entry.getKey().getColumnFamily(), new Text("1234567"),
-          entry.getKey().getTimestamp() + 1, new Value("fake:9005"));
+          entry.getKey().getTimestamp() + 1,
+          new Value(new TServerInstance(ServerId.tserver("fake", 9005), "1234567").serialize()));
       try (BatchWriter bw = client.createBatchWriter(table)) {
         bw.addMutation(m);
       }

@@ -348,7 +348,7 @@ public class ManagerClientServiceHandler implements ManagerClientService.Iface {
           SecurityErrorCode.PERMISSION_DENIED);
     }
     log.info("Tablet Server {} has reported it's shutting down", tabletServer);
-    var tserver = new TServerInstance(tabletServer);
+    var tserver = TServerInstance.deserialize(tabletServer);
     if (manager.shutdownTServer(tserver)) {
       // If there is an exception seeding the fate tx this should cause the RPC to fail which should
       // cause the tserver to halt. Because of that not making an attempt to handle failure here.

@@ -33,10 +33,12 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.NewTableConfiguration;
 import org.apache.accumulo.core.client.admin.TabletAvailability;
+import org.apache.accumulo.core.client.admin.servers.ServerId;
 import org.apache.accumulo.core.client.admin.servers.ServerId.Type;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.metadata.SystemTables;
+import org.apache.accumulo.core.metadata.TServerInstance;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.CurrentLocationColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
@@ -90,9 +92,8 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
   }
 
   private boolean isBalanced(AccumuloClient c) throws Exception {
-    final Map<String,Integer> tserverCounts = new HashMap<>();
-    c.instanceOperations().getServers(Type.TABLET_SERVER)
-        .forEach(ts -> tserverCounts.put(ts.toHostPortString(), 0));
+    final Map<ServerId,Integer> tserverCounts = new HashMap<>();
+    c.instanceOperations().getServers(Type.TABLET_SERVER).forEach(ts -> tserverCounts.put(ts, 0));
     int offline = 0;
     for (String tableName : new String[] {SystemTables.METADATA.tableName(),
         SystemTables.ROOT.tableName()}) {
@@ -100,21 +101,21 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
         s.setRange(TabletsSection.getRange());
         s.fetchColumnFamily(CurrentLocationColumnFamily.NAME);
         TabletColumnFamily.PREV_ROW_COLUMN.fetch(s);
-        String location = null;
+        TServerInstance location = null;
         for (Entry<Key,Value> entry : s) {
           Key key = entry.getKey();
           if (key.getColumnFamily().equals(CurrentLocationColumnFamily.NAME)) {
-            location = entry.getValue().toString();
+            location = TServerInstance.deserialize(entry.getValue().toString());
           } else if (TabletColumnFamily.PREV_ROW_COLUMN.hasColumns(key)) {
             if (location == null) {
               offline++;
             } else {
-              Integer count = tserverCounts.get(location);
+              Integer count = tserverCounts.get(location.getServer());
               if (count == null) {
                 count = 0;
               }
               count = count + 1;
-              tserverCounts.put(location, count);
+              tserverCounts.put(location.getServer(), count);
             }
             location = null;
           }
@@ -132,7 +133,7 @@ public class WaitForBalanceIT extends ConfigurableMacBase {
     average /= tserverCounts.size();
     System.out.println(tserverCounts);
     int tablesCount = c.tableOperations().list().size();
-    for (Entry<String,Integer> hostCount : tserverCounts.entrySet()) {
+    for (Entry<ServerId,Integer> hostCount : tserverCounts.entrySet()) {
       if (Math.abs(average - hostCount.getValue()) > tablesCount) {
         System.out.println(
             "Average " + average + " count " + hostCount.getKey() + ": " + hostCount.getValue());
