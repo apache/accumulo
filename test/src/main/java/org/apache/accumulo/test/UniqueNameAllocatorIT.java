@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -68,14 +69,17 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
     Set<String> namesSeen = ConcurrentHashMap.newKeySet();
 
     var executorService = Executors.newCachedThreadPool();
-    List<Future<Integer>> futures = new ArrayList<>();
+    final int numLargeTasks = 64;
+    final int numSmallTasks = 10;
+    final int numTasks = numLargeTasks + numSmallTasks;
+    List<Future<Integer>> futures = new ArrayList<>(numTasks);
     // start a portion of threads at the same time
     CountDownLatch startLatch = new CountDownLatch(32);
-    assertTrue(64 >= startLatch.getCount(),
+    assertTrue(numTasks >= startLatch.getCount(),
         "Not enough tasks to satisfy latch count - deadlock risk");
 
     // create threads that are allocating large random chunks
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < numLargeTasks; i++) {
       var future = executorService.submit(() -> {
         startLatch.countDown();
         startLatch.await();
@@ -92,7 +96,7 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
     }
 
     // create threads that are always allocating a small amount
-    for (int i = 1; i <= 10; i++) {
+    for (int i = 1; i <= numSmallTasks; i++) {
       int needed = i;
       var future = executorService.submit(() -> {
         startLatch.countDown();
@@ -107,6 +111,7 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
       });
       futures.add(future);
     }
+    assertEquals(numTasks, futures.size());
 
     for (var future : futures) {
       // expect all threads to add some names

@@ -1070,6 +1070,8 @@ public class CompactionIT extends CompactionITBase {
       final int numTasks = 20;
       List<Future<?>> futures = new ArrayList<>(numTasks);
       CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
       // start user compactions on a subset of the tables tablets, system compactions should attempt
       // to run on all tablets. With concurrency should get a mix.
       for (int i = 1; i < numTasks + 1; i++) {

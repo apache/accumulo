@@ -105,7 +105,9 @@ public class LockMapTest {
       // start a portion of threads at the same time
       CountDownLatch startLatch = new CountDownLatch(numThreads);
       assertTrue(numTasks >= startLatch.getCount(),
-          "Not enough tasks/threads to satisfy latch count - deadlock risk");
+          "Not enough tasks to satisfy latch count - deadlock risk");
+      assertTrue(numThreads >= startLatch.getCount(),
+          "Not enough threads to satisfy latch count - deadlock risk");
 
       var maxLocked = new AtomicLong(0);
 

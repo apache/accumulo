@@ -939,9 +939,11 @@ public class BulkNewIT extends SharedMiniClusterBase {
       ExecutorService executor;
       CountDownLatch startLatch;
       if (parallelBulkImports) {
-        final int numTasks = 16;
-        executor = Executors.newFixedThreadPool(numTasks);
-        startLatch = new CountDownLatch(numTasks); // wait for a portion of the tasks to be ready
+        final int numThreads = 16;
+        executor = Executors.newFixedThreadPool(numThreads);
+        startLatch = new CountDownLatch(numThreads); // wait for a portion of the tasks to be ready
+        assertTrue(N >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
       } else {
         startLatch = null;
         // execute the bulk imports in the current thread which will cause them to run serially
@@ -966,6 +968,7 @@ public class BulkNewIT extends SharedMiniClusterBase {
           throw new IllegalStateException(e);
         }
       })).collect(Collectors.toList());
+      assertEquals(N, futures.size());
 
       // wait for all bulk imports and check for errors in background threads
       for (var future : futures) {
