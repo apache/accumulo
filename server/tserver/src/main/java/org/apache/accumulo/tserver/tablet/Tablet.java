@@ -1470,8 +1470,8 @@ public class Tablet extends TabletBase {
   }
 
   // The following caches keys from users files needed to compute a tablets split point. This cached
-  // data could potentially be large and is therefore stored using a soft refence so the Java GC can
-  // release it if needed. If the cached information is not there it can always be recomputed.
+  // data could potentially be large and is therefore stored using a soft reference so the Java GC
+  // can release it if needed. If the cached information is not there it can always be recomputed.
   private volatile SoftReference<SplitComputations> lastSplitComputation =
       new SoftReference<>(null);
   private final Lock splitComputationLock = new ReentrantLock();
@@ -1507,6 +1507,7 @@ public class Tablet extends TabletBase {
     // Only want one thread doing this computation at time for a tablet.
     if (splitComputationLock.tryLock()) {
       try {
+        log.debug("Starting midpoint calculation for extent {}", extent);
         SortedMap<Double,Key> midpoint =
             FileUtil.findMidPoint(context, tableConfiguration, chooseTabletDir(),
                 extent.prevEndRow(), extent.endRow(), FileUtil.toPathStrings(files), .25, true);
@@ -1521,14 +1522,29 @@ public class Tablet extends TabletBase {
         newComputation = new SplitComputations(files, midpoint, lastRow);
 
         lastSplitComputation = new SoftReference<>(newComputation);
+      } catch (FileNotFoundException e) {
+        lastSplitComputation.clear();
+        // Create a copy of the unmodifiable file set and remove the files that still exist
+        Set<TabletFile> missingOriginalFiles = new HashSet<>(files);
+        missingOriginalFiles.removeAll(getDatafileManager().getFiles());
+        if (!missingOriginalFiles.isEmpty()) {
+          log.debug(
+              "Failed to compute split information. The following files have most likely been garbage collected: {}",
+              missingOriginalFiles);
+        } else {
+          // A file is missing in HDFS and should be reported as an error
+          log.error("Failed to compute split information from {} files in tablet {}", files.size(),
+              getExtent(), e);
+        }
+        return Optional.empty();
       } catch (IOException e) {
         lastSplitComputation.clear();
-        log.error("Failed to compute split information from files " + e.getMessage());
+        log.error("Failed to compute split information from {} files in tablet {}", files.size(),
+            getExtent(), e);
         return Optional.empty();
       } finally {
         splitComputationLock.unlock();
       }
-
       return Optional.of(newComputation);
     } else {
       // some other thread seems to be working on split, let the other thread work on it
