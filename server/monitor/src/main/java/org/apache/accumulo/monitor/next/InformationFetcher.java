@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
 
+import jakarta.ws.rs.ServiceUnavailableException;
+import jakarta.ws.rs.core.Response;
+
 import org.apache.accumulo.core.client.TableNotFoundException;
 import org.apache.accumulo.core.client.admin.TabletInformation;
 import org.apache.accumulo.core.client.admin.servers.ServerId;
@@ -241,6 +244,20 @@ public class InformationFetcher implements RemovalListener<ServerId,MetricRespon
       Thread.sleep(100);
     }
     return summaryRef.get();
+  }
+
+  /**
+   * {@link #getSummary()} but throws a 503 (Service Unavailable) server error to the web client if
+   * an {@link InterruptedException} occurs.
+   */
+  public SystemInformation getSummaryForEndpoint() throws ServiceUnavailableException {
+    try {
+      return getSummary();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new ServiceUnavailableException(
+          Response.status(Response.Status.SERVICE_UNAVAILABLE).build(), e);
+    }
   }
 
   public Cache<ServerId,MetricResponse> getAllMetrics() {
