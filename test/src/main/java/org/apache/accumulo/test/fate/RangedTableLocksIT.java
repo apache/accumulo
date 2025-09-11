@@ -220,7 +220,8 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
     var names = getUniqueNames(2);
     var table1 = names[0];
     var table2 = names[1];
-    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
+    try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build();
+        ClientContext ctx = ((ClientContext) client)) {
       SortedMap<Text,TabletMergeability> splits = new TreeMap<>();
       for (char c = 'b'; c < 'y'; c++) {
         splits.put(new Text(c + ""), TabletMergeability.never());
@@ -228,7 +229,6 @@ public class RangedTableLocksIT extends AccumuloClusterHarness {
       client.tableOperations().create(table1, new NewTableConfiguration().withSplits(splits));
       client.tableOperations().create(table2);
 
-      ClientContext ctx = ((ClientContext) client);
       Ample ample = ctx.getAmple();
 
       TableId tableId1 = ctx.getTableId(table1);
