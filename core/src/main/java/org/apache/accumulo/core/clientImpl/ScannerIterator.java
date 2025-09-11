@@ -211,8 +211,7 @@ public class ScannerIterator implements Iterator<Entry<Key,Value>> {
     if (ee.getCause() instanceof IsolationException) {
       throw new IsolationException(ee);
     }
-    if (ee.getCause() instanceof TableDeletedException) {
-      TableDeletedException cause = (TableDeletedException) ee.getCause();
+    if (ee.getCause() instanceof TableDeletedException cause) {
       throw new TableDeletedException(cause.getTableId(), cause);
     }
     if (ee.getCause() instanceof TableOfflineException) {

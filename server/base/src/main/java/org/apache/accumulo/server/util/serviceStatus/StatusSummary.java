@@ -84,10 +84,9 @@ public class StatusSummary {
     if (this == o) {
       return true;
     }
-    if (!(o instanceof StatusSummary)) {
+    if (!(o instanceof StatusSummary that)) {
       return false;
     }
-    StatusSummary that = (StatusSummary) o;
     return serviceCount == that.serviceCount && errorCount == that.errorCount
         && serviceType == that.serviceType && Objects.equals(resourceGroups, that.resourceGroups)
         && Objects.equals(serviceByGroups, that.serviceByGroups);

@@ -122,8 +122,7 @@ public abstract class ByteSequence implements Comparable<ByteSequence>, Serializ
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof ByteSequence) {
-      ByteSequence obs = (ByteSequence) o;
+    if (o instanceof ByteSequence obs) {
 
       if (this == o) {
         return true;
