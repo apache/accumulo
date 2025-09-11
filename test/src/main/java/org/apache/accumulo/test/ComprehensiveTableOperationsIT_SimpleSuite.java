@@ -18,6 +18,7 @@
  */
 package org.apache.accumulo.test;
 
+import static org.apache.accumulo.test.functional.FunctionalTestUtils.getStoredTabletFiles;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -39,6 +40,7 @@ import java.util.SortedMap;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -58,6 +60,7 @@ import org.apache.accumulo.core.clientImpl.Namespace;
 import org.apache.accumulo.core.clientImpl.TabletMergeabilityUtil;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.data.Value;
@@ -70,7 +73,11 @@ import org.apache.accumulo.core.metadata.StoredTabletFile;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.TabletsMetadata;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.harness.MiniClusterConfigurationCallback;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
+import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.fate.SlowFateSplitManager;
 import org.apache.accumulo.test.functional.BasicSummarizer;
 import org.apache.accumulo.test.functional.BulkNewIT;
 import org.apache.accumulo.test.functional.CloneTestIT_SimpleSuite;
@@ -86,6 +93,7 @@ import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.accumulo.test.functional.SummaryIT;
 import org.apache.accumulo.test.functional.TabletAvailabilityIT;
 import org.apache.accumulo.test.util.Wait;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
@@ -373,7 +381,66 @@ public class ComprehensiveTableOperationsIT_SimpleSuite extends SharedMiniCluste
 
   @Test
   public void test_compact() throws Exception {
-    // TODO see issue#5679
+    // compact for user tables is tested in various ITs. One example is CompactionIT. Ensure
+    // test exists
+    assertDoesNotThrow(() -> Class.forName(CompactionIT.class.getName()));
+    // disable the GC to prevent removal of newly appeared compilations files due to compaction on
+    // METADATA nd ROOT tables
+    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    try {
+      // test basic functionality for system tables
+      userTable = getUniqueNames(1)[0];
+      ops.create(userTable);
+
+      // create some RFiles for the METADATA and ROOT tables by creating some data in the user
+      // table, flushing that table, then the METADATA table, then the ROOT table
+      for (int i = 0; i < 3; i++) {
+        try (var bw = client.createBatchWriter(userTable)) {
+          var mut = new Mutation("r" + i);
+          mut.put("cf", "cq", "v");
+          bw.addMutation(mut);
+        }
+        ops.flush(userTable, null, null, true);
+        ops.flush(SystemTables.METADATA.tableName(), null, null, true);
+        ops.flush(SystemTables.ROOT.tableName(), null, null, true);
+      }
+
+      for (var sysTable : SystemTables.tableNames()) {
+        // create some RFiles for FATE and SCAN_REF tables
+//        if (sysTable.equals(SystemTables.SCAN_REF.tableName())) {
+//          createScanRefTableRow();
+//          ops.flush(SystemTables.SCAN_REF.tableName(), null, null, true);
+//        } else if (sysTable.equals(SystemTables.FATE.tableName())) {
+//          // Force FAte table entieries by creating a long running Fate op on the userTable
+//          createFateTableRow(userTable);
+//          ops.flush(SystemTables.FATE.tableName(), null, null, true);
+//        }
+
+        List<StoredTabletFile> stfsBeforeCompact = getStoredTabletFiles(client, sysTable);
+        log.info("Before compacting {}: {}", sysTable, stfsBeforeCompact);
+
+        log.info("Compacting " + sysTable);
+        ops.compact(sysTable, null, null, true, true);
+        log.info("Finished compacting " + sysTable);
+
+        // RFiles resulting from a compaction begin with 'A'. Wait until we see an RFile beginning
+        // with 'A' that was not present before the compaction.
+        Wait.waitFor(() -> {
+          var stfsAfterCompact = getStoredTabletFiles(client, sysTable);
+          log.info("after compacting {} {}", sysTable ,stfsAfterCompact);
+          String regex = "^A.*\\.rf$";
+          var A_stfsBeforeCompaction = stfsBeforeCompact.stream()
+                  .filter(stf -> stf.getFileName().matches(regex)).collect(Collectors.toSet());
+          log.info("A files before compaction: " + A_stfsBeforeCompaction);
+          var A_stfsAfterCompaction = stfsAfterCompact.stream()
+                  .filter(stf -> stf.getFileName().matches(regex)).collect(Collectors.toSet());
+          log.info("A files after compaction: " + A_stfsAfterCompaction);
+          return !Sets.difference(A_stfsAfterCompaction, A_stfsBeforeCompaction).isEmpty();
+        }, TimeUnit.SECONDS.toMillis(15), TimeUnit.SECONDS.toMillis(1));
+      }
+    } finally {
+      getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+    }
   }
 
   @Test
