@@ -578,6 +578,8 @@ public class PropStoreConfigIT_SimpleSuite extends SharedMiniClusterBase {
     final int numTasks = 4;
     ExecutorService executor = Executors.newFixedThreadPool(numTasks);
     CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks/threads to satisfy latch count - deadlock risk");
     var tasks = new ArrayList<Callable<Void>>(numTasks);
 
     final int iterations = 151;

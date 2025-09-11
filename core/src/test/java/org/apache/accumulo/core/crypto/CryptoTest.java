@@ -543,6 +543,8 @@ public class CryptoTest {
     final int numTasks = 32;
     List<Future<Boolean>> verifyFutures = new ArrayList<>(numTasks);
     CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
 
     FileDecrypter decrypter = cs.getFileDecrypter(new CryptoEnvironmentImpl(scope, null, params));
 

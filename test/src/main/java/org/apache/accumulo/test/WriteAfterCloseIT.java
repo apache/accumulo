@@ -146,6 +146,8 @@ public class WriteAfterCloseIT extends AccumuloClusterHarness {
       List<Future<?>> futures = new ArrayList<>(numTasks);
       // synchronize start of a portion of the tasks
       CountDownLatch startLatch = new CountDownLatch(32);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       for (int i = 0; i < numTasks; i++) {
         final int row = i * 1000;

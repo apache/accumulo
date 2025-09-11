@@ -20,6 +20,7 @@ package org.apache.accumulo.test.functional;
 
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -90,6 +91,8 @@ public class FateStarvationIT extends AccumuloClusterHarness {
       var executor = Executors.newCachedThreadPool();
       // wait for a portion of the tasks to be ready
       CountDownLatch startLatch = new CountDownLatch(32);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       for (int i = 0; i < numTasks; i++) {
         int idx1 = RANDOM.get().nextInt(splits.size() - 1);

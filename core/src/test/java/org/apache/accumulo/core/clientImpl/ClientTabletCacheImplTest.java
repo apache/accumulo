@@ -1994,6 +1994,8 @@ public class ClientTabletCacheImplTest {
 
     List<Future<CachedTablet>> futures = new ArrayList<>(numTasks);
     CountDownLatch startLatch = new CountDownLatch(32); // start a portion of threads at once
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
 
     // multiple rounds to increase the chance of contention
     for (int round = 0; round < roundCount; round++) {

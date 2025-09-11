@@ -71,6 +71,8 @@ class UniqueNameAllocatorIT extends SharedMiniClusterBase {
     List<Future<Integer>> futures = new ArrayList<>();
     // start a portion of threads at the same time
     CountDownLatch startLatch = new CountDownLatch(32);
+    assertTrue(64 >= startLatch.getCount(),
+        "Not enough tasks to satisfy latch count - deadlock risk");
 
     // create threads that are allocating large random chunks
     for (int i = 0; i < 64; i++) {

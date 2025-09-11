@@ -19,6 +19,7 @@
 package org.apache.accumulo.test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.Duration;
 import java.util.Map;
@@ -127,6 +128,8 @@ public class LargeReadIT extends AccumuloClusterHarness {
       final int numTasks = 64;
       var executor = Executors.newFixedThreadPool(numTasks);
       CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
       Callable<Long> scanTask = () -> {
         startLatch.countDown();
         startLatch.await();

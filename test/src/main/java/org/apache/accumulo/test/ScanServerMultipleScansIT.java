@@ -21,6 +21,7 @@ package org.apache.accumulo.test;
 import static org.apache.accumulo.harness.AccumuloITBase.MINI_CLUSTER_ONLY;
 import static org.apache.accumulo.test.ScanServerIT.createTableAndIngest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.util.ArrayList;
@@ -118,6 +119,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
@@ -183,6 +186,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       log.debug("Splits found: {}", splitsFound);
 
       final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       final AtomicLong counter = new AtomicLong(0);
 
@@ -242,6 +247,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       final int ingestedEntryCount = createTableAndIngest(client, tableName, null, 10, 10, "colf");
 
       final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
 
       List<Future<?>> futures = new ArrayList<>(NUM_SCANS);
 
@@ -308,6 +315,8 @@ public class ScanServerMultipleScansIT extends SharedMiniClusterBase {
       log.debug("Splits found: {}", splitsFound);
 
       final CountDownLatch startLatch = new CountDownLatch(NUM_SCANS);
+      assertTrue(NUM_SCANS >= startLatch.getCount(),
+          "Not enough tasks to satisfy latch count - deadlock risk");
       List<Future<Long>> futures = new ArrayList<>(NUM_SCANS);
       for (int i = 0; i < NUM_SCANS; i++) {
         final int threadNum = i;

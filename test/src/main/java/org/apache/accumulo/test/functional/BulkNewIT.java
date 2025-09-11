@@ -1116,6 +1116,8 @@ public class BulkNewIT extends SharedMiniClusterBase {
       var futures = new ArrayList<Future<?>>(numTasks);
       // wait for a portion of the tasks to be ready
       CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
       var loadPlanBuilder = LoadPlan.builder();
       var rowsExpected = new HashSet<>();

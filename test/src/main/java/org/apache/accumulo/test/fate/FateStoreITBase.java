@@ -611,6 +611,8 @@ public abstract class FateStoreITBase extends SharedMiniClusterBase
     var executor = Executors.newFixedThreadPool(numTasks);
     List<Future<Optional<FateId>>> futures = new ArrayList<>(numTasks);
     CountDownLatch startLatch = new CountDownLatch(numTasks);
+    assertTrue(numTasks >= startLatch.getCount(),
+        "Not enough tasks/threads to satisfy latch count - deadlock risk");
     try {
       // have all threads try to seed the same fate key, only one should succeed.
       for (int i = 0; i < numTasks; i++) {

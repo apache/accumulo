@@ -192,12 +192,14 @@ public class CompressionTest {
         ExecutorService service = Executors.newFixedThreadPool(numTasks);
 
         ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
-        CountDownLatch startSignal = new CountDownLatch(numTasks);
+        CountDownLatch startLatch = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startLatch.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
         for (int i = 0; i < numTasks; i++) {
           results.add(service.submit(() -> {
-            startSignal.countDown();
-            startSignal.await();
+            startLatch.countDown();
+            startLatch.await();
             assertNotNull(al.getCodec(), al + " should not be null");
             return true;
           }));
@@ -238,6 +240,8 @@ public class CompressionTest {
 
         ArrayList<Future<Boolean>> results = new ArrayList<>(numTasks);
         CountDownLatch startSignal = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startSignal.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
         for (int i = 0; i < numTasks; i++) {
 
@@ -282,6 +286,8 @@ public class CompressionTest {
         ArrayList<Callable<Integer>> list = new ArrayList<>(numTasks);
 
         CountDownLatch startSignal = new CountDownLatch(numTasks);
+        assertTrue(numTasks >= startSignal.getCount(),
+            "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
         // keep track of the system's identity hashcodes.
 

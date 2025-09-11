@@ -96,6 +96,8 @@ public class ZooMutatorIT extends WithTestNames {
 
       List<Future<List<Integer>>> futures = new ArrayList<>(numTasks);
       CountDownLatch startLatch = new CountDownLatch(numTasks);
+      assertTrue(numTasks >= startLatch.getCount(),
+          "Not enough tasks/threads to satisfy latch count - deadlock risk");
 
       for (int i = 0; i < numTasks; i++) {
         futures.add(executor.submit(() -> {
