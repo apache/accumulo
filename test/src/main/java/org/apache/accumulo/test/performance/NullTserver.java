@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.cli.Help;
@@ -322,6 +323,7 @@ public class NullTserver {
         HostAndPort.fromParts(ConfigOpts.BIND_ALL_ADDRESSES, opts.port));
     sa.startThriftServer("null tserver");
 
+    AtomicBoolean acquiredLock = new AtomicBoolean(false);
     AccumuloLockWatcher miniLockWatcher = new AccumuloLockWatcher() {
 
       @Override
@@ -335,13 +337,20 @@ public class NullTserver {
       }
 
       @Override
+      public boolean isLocked() {
+        return acquiredLock.get();
+      }
+
+      @Override
       public void acquiredLock() {
         LOG.debug("Acquired ZooKeeper lock for NullTserver");
+        acquiredLock.getAndSet(true);
       }
 
       @Override
       public void failedToAcquireLock(Exception e) {
         LOG.warn("Failed to acquire ZK lock for NullTserver, msg: " + e.getMessage());
+        acquiredLock.getAndSet(false);
       }
     };
 

@@ -23,6 +23,7 @@ import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 
 import java.util.HashMap;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.clientImpl.thrift.ClientService;
@@ -33,8 +34,8 @@ import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.fate.zookeeper.ZooReaderWriter;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil.NodeExistsPolicy;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLock.AccumuloLockWatcher;
 import org.apache.accumulo.core.lock.ServiceLock.LockLossReason;
-import org.apache.accumulo.core.lock.ServiceLock.LockWatcher;
 import org.apache.accumulo.core.lock.ServiceLockData;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.manager.thrift.TabletServerStatus;
@@ -144,7 +145,24 @@ public class ZombieTServer {
     metricsInfo.init(MetricsInfo.serviceTags(context.getInstanceName(), "zombie.server",
         serverPort.address, ResourceGroupId.DEFAULT));
 
-    LockWatcher lw = new LockWatcher() {
+    final AtomicBoolean acquiredLock = new AtomicBoolean(false);
+
+    AccumuloLockWatcher lw = new AccumuloLockWatcher() {
+
+      @Override
+      public boolean isLocked() {
+        return acquiredLock.get();
+      }
+
+      @Override
+      public void acquiredLock() {
+
+      }
+
+      @Override
+      public void failedToAcquireLock(Exception e) {
+        log.warn("Failed to acquire lock", e);
+      }
 
       @SuppressFBWarnings(value = "DM_EXIT",
           justification = "System.exit() is a bad idea here, but okay for now, since it's a test")
