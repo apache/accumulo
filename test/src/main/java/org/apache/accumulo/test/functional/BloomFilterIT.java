@@ -206,20 +206,18 @@ public class BloomFilterIT extends AccumuloClusterHarness {
         expected.add(k);
       }
 
-      switch (depth) {
-        case 1:
-          range = new Range(new Text(key));
-          break;
-        case 2:
-          acuKey = new Key(row, key, cq);
-          range = new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM), false);
-          break;
-        case 3:
-          acuKey = new Key(row, cf, key);
-          range =
-              new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
-          break;
-      }
+        range = switch (depth) {
+            case 1 -> new Range(new Text(key));
+            case 2 -> {
+                acuKey = new Key(row, key, cq);
+                yield new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM), false);
+            }
+            case 3 -> {
+                acuKey = new Key(row, cf, key);
+                yield new Range(acuKey, true, acuKey.followingKey(PartialKey.ROW_COLFAM_COLQUAL), false);
+            }
+            default -> range;
+        };
 
       ranges.add(range);
     }

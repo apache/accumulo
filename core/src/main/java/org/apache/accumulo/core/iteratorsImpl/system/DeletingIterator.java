@@ -116,23 +116,20 @@ public class DeletingIterator extends ServerWrappingIterator {
 
   public static SortedKeyValueIterator<Key,Value> wrap(SortedKeyValueIterator<Key,Value> source,
       boolean propagateDeletes, Behavior behavior) {
-    switch (behavior) {
-      case PROCESS:
-        return new DeletingIterator(source, propagateDeletes);
-      case FAIL:
-        return new ServerWrappingIterator(source) {
-          @Override
-          public Key getTopKey() {
-            Key top = source.getTopKey();
-            if (top.isDeleted()) {
-              throw new IllegalStateException("Saw unexpected delete " + top);
-            }
-            return top;
-          }
-        };
-      default:
-        throw new IllegalArgumentException("Unknown behavior " + behavior);
-    }
+      return switch (behavior) {
+          case PROCESS -> new DeletingIterator(source, propagateDeletes);
+          case FAIL -> new ServerWrappingIterator(source) {
+              @Override
+              public Key getTopKey() {
+                  Key top = source.getTopKey();
+                  if (top.isDeleted()) {
+                      throw new IllegalStateException("Saw unexpected delete " + top);
+                  }
+                  return top;
+              }
+          };
+          default -> throw new IllegalArgumentException("Unknown behavior " + behavior);
+      };
   }
 
   public static Behavior getBehavior(AccumuloConfiguration conf) {

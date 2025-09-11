@@ -265,25 +265,13 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     Map<String,String> properties = new HashMap<>();
     properties.put(PROXY_METHOD_BEHAVIOR, behavior.name());
     getCluster().getConfig().setSystemProperties(properties);
-    Class<?> serverClass = null;
-    switch (server) {
-      case COMPACTOR:
-        serverClass = ExitCompactor.class;
-        break;
-      case SCAN_SERVER:
-        serverClass = ExitScanServer.class;
-        break;
-      case TABLET_SERVER:
-        serverClass = ExitTabletServer.class;
-        break;
-      case GARBAGE_COLLECTOR:
-      case MANAGER:
-      case MONITOR:
-      case ZOOKEEPER:
-      default:
-        throw new IllegalArgumentException("Unhandled type");
-    }
-    ProcessInfo pi = getCluster()._exec(serverClass, server, Map.of(), new String[] {});
+    Class<?> serverClass = switch (server) {
+        case COMPACTOR -> ExitCompactor.class;
+        case SCAN_SERVER -> ExitScanServer.class;
+        case TABLET_SERVER -> ExitTabletServer.class;
+        default -> throw new IllegalArgumentException("Unhandled type");
+    };
+      ProcessInfo pi = getCluster()._exec(serverClass, server, Map.of(), new String[] {});
     Wait.waitFor(() -> !pi.getProcess().isAlive(), 120_000);
     int exitValue = pi.getProcess().exitValue();
     assertEquals(behavior == TerminalBehavior.SHUTDOWN ? 0 : 1, exitValue);

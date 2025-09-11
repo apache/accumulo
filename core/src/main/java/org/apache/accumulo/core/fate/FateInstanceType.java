@@ -32,25 +32,19 @@ public enum FateInstanceType {
   }
 
   public TFateInstanceType toThrift() {
-    switch (this) {
-      case USER:
-        return TFateInstanceType.USER;
-      case META:
-        return TFateInstanceType.META;
-      default:
-        throw new IllegalStateException("Unknown FateInstance type " + this);
-    }
+      return switch (this) {
+          case USER -> TFateInstanceType.USER;
+          case META -> TFateInstanceType.META;
+          default -> throw new IllegalStateException("Unknown FateInstance type " + this);
+      };
   }
 
   public static FateInstanceType fromThrift(TFateInstanceType tfit) {
-    switch (tfit) {
-      case USER:
-        return FateInstanceType.USER;
-      case META:
-        return FateInstanceType.META;
-      default:
-        throw new IllegalStateException("Unknown type " + tfit);
-    }
+      return switch (tfit) {
+          case USER -> FateInstanceType.USER;
+          case META -> FateInstanceType.META;
+          default -> throw new IllegalStateException("Unknown type " + tfit);
+      };
   }
 
   public static FateInstanceType fromTableId(TableId tableId) {

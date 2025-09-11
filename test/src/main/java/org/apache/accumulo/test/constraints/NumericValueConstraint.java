@@ -65,12 +65,11 @@ public class NumericValueConstraint implements Constraint {
   @Override
   public String getViolationDescription(short violationCode) {
 
-    switch (violationCode) {
-      case NON_NUMERIC_VALUE:
-        return "Value is not numeric";
-    }
+      return switch (violationCode) {
+          case NON_NUMERIC_VALUE -> "Value is not numeric";
+          default -> null;
+      };
 
-    return null;
   }
 
 }

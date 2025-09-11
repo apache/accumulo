@@ -384,16 +384,12 @@ public class MultiThreadedRFileTest {
 
   private String pad(int val) {
     String valStr = String.valueOf(val);
-    switch (valStr.length()) {
-      case 1:
-        return "000" + valStr;
-      case 2:
-        return "00" + valStr;
-      case 3:
-        return "0" + valStr;
-      default:
-        return valStr;
-    }
+      return switch (valStr.length()) {
+          case 1 -> "000" + valStr;
+          case 2 -> "00" + valStr;
+          case 3 -> "0" + valStr;
+          default -> valStr;
+      };
   }
 
   private Value getValue(int index) {

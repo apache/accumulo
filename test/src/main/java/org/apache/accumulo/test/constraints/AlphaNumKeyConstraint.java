@@ -87,16 +87,13 @@ public class AlphaNumKeyConstraint implements Constraint {
   @Override
   public String getViolationDescription(short violationCode) {
 
-    switch (violationCode) {
-      case NON_ALPHA_NUM_ROW:
-        return ROW_VIOLATION_MESSAGE;
-      case NON_ALPHA_NUM_COLF:
-        return COLF_VIOLATION_MESSAGE;
-      case NON_ALPHA_NUM_COLQ:
-        return COLQ_VIOLATION_MESSAGE;
-    }
+      return switch (violationCode) {
+          case NON_ALPHA_NUM_ROW -> ROW_VIOLATION_MESSAGE;
+          case NON_ALPHA_NUM_COLF -> COLF_VIOLATION_MESSAGE;
+          case NON_ALPHA_NUM_COLQ -> COLQ_VIOLATION_MESSAGE;
+          default -> null;
+      };
 
-    return null;
   }
 
 }

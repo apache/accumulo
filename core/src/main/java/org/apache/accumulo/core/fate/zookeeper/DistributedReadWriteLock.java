@@ -231,15 +231,12 @@ public class DistributedReadWriteLock implements java.util.concurrent.locks.Read
       case 1:
         var entry = entries.entrySet().iterator().next();
         FateLockEntry lockEntry = entry.getValue().get();
-        switch (lockEntry.getLockType()) {
-          case READ:
-            return new ReadLock(qlock, lockEntry.getFateId(), lockEntry.getRange(), entry.getKey());
-          case WRITE:
-            return new WriteLock(qlock, lockEntry.getFateId(), lockEntry.getRange(),
-                entry.getKey());
-          default:
-            throw new IllegalStateException("Unknown lock type " + lockEntry.getLockType());
-        }
+          return switch (lockEntry.getLockType()) {
+              case READ -> new ReadLock(qlock, lockEntry.getFateId(), lockEntry.getRange(), entry.getKey());
+              case WRITE -> new WriteLock(qlock, lockEntry.getFateId(), lockEntry.getRange(),
+                      entry.getKey());
+              default -> throw new IllegalStateException("Unknown lock type " + lockEntry.getLockType());
+          };
       default:
         throw new IllegalStateException("Found more than one lock node " + entries);
     }

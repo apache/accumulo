@@ -60,16 +60,11 @@ public class FileOutputConfigurator extends ConfiguratorBase {
    * @since 1.6.0
    */
   protected static Boolean isSupportedAccumuloProperty(Property property) {
-    switch (property) {
-      case TABLE_FILE_COMPRESSION_TYPE:
-      case TABLE_FILE_COMPRESSED_BLOCK_SIZE:
-      case TABLE_FILE_BLOCK_SIZE:
-      case TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX:
-      case TABLE_FILE_REPLICATION:
-        return true;
-      default:
-        return false;
-    }
+      return switch (property) {
+          case TABLE_FILE_COMPRESSION_TYPE, TABLE_FILE_COMPRESSED_BLOCK_SIZE, TABLE_FILE_BLOCK_SIZE,
+               TABLE_FILE_COMPRESSED_BLOCK_SIZE_INDEX, TABLE_FILE_REPLICATION -> true;
+          default -> false;
+      };
   }
 
   /**
