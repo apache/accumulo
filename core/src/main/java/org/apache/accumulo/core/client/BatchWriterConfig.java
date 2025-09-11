@@ -291,8 +291,7 @@ public class BatchWriterConfig implements Writable {
 
   @Override
   public boolean equals(Object o) {
-    if (o instanceof BatchWriterConfig) {
-      BatchWriterConfig other = (BatchWriterConfig) o;
+    if (o instanceof BatchWriterConfig other) {
 
       if (maxMemory != null) {
         if (!maxMemory.equals(other.maxMemory)) {
