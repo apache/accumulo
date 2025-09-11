@@ -19,8 +19,9 @@
     under the License.
 
 -->
-<profiles version="22">
-    <profile kind="CodeFormatterProfile" name="Accumulo" version="22">
+<profiles version="23">
+    <profile kind="CodeFormatterProfile" name="Accumulo" version="23">
+        <setting id="org.eclipse.jdt.core.formatter.align_arrows_in_switch_on_columns" value="false"/>
         <setting id="org.eclipse.jdt.core.formatter.align_assignment_statements_on_columns" value="false"/>
         <setting id="org.eclipse.jdt.core.formatter.align_fields_grouping_blank_lines" value="2147483647"/>
         <setting id="org.eclipse.jdt.core.formatter.align_selector_in_method_invocation_on_expression_first_line" value="true"/>
@@ -61,6 +62,7 @@
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameterized_type_references" value="16"/>
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_constructor_declaration" value="16"/>
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_parameters_in_method_declaration" value="16"/>
+        <setting id="org.eclipse.jdt.core.formatter.alignment_for_permitted_types_in_type_declaration" value="16"/>
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_record_components" value="16"/>
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_relational_operator" value="16"/>
         <setting id="org.eclipse.jdt.core.formatter.alignment_for_resources_in_try" value="16"/>
@@ -97,6 +99,7 @@
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_array_initializer" value="end_of_line"/>
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block" value="end_of_line"/>
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block_in_case" value="end_of_line"/>
+        <setting id="org.eclipse.jdt.core.formatter.brace_position_for_block_in_case_after_arrow" value="end_of_line"/>
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_constructor_declaration" value="end_of_line"/>
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_constant" value="end_of_line"/>
         <setting id="org.eclipse.jdt.core.formatter.brace_position_for_enum_declaration" value="end_of_line"/>
@@ -123,6 +126,7 @@
         <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_before_root_tags" value="insert"/>
         <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_between_different_tags" value="do not insert"/>
         <setting id="org.eclipse.jdt.core.formatter.comment.insert_new_line_for_parameter" value="do not insert"/>
+        <setting id="org.eclipse.jdt.core.formatter.comment.javadoc_do_not_separate_block_tags" value="false"/>
         <setting id="org.eclipse.jdt.core.formatter.comment.line_length" value="100"/>
         <setting id="org.eclipse.jdt.core.formatter.comment.new_lines_at_block_boundaries" value="true"/>
         <setting id="org.eclipse.jdt.core.formatter.comment.new_lines_at_javadoc_boundaries" value="true"/>
@@ -351,6 +355,7 @@
         <setting id="org.eclipse.jdt.core.formatter.insert_space_between_empty_parens_in_enum_constant" value="do not insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_space_between_empty_parens_in_method_declaration" value="do not insert"/>
         <setting id="org.eclipse.jdt.core.formatter.insert_space_between_empty_parens_in_method_invocation" value="do not insert"/>
+        <setting id="org.eclipse.jdt.core.formatter.join_line_comments" value="false"/>
         <setting id="org.eclipse.jdt.core.formatter.join_lines_in_comments" value="true"/>
         <setting id="org.eclipse.jdt.core.formatter.join_wrapped_lines" value="true"/>
         <setting id="org.eclipse.jdt.core.formatter.keep_annotation_declaration_on_one_line" value="one_line_if_empty"/>
