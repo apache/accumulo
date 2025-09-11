@@ -25,9 +25,12 @@ import java.io.BufferedWriter;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -61,6 +64,7 @@ import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.Lo
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.ServerColumnFamily;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection.TabletColumnFamily;
 import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.core.volume.Volume;
 import org.apache.accumulo.manager.Manager;
 import org.apache.accumulo.manager.tableOps.ManagerRepo;
 import org.apache.accumulo.manager.tableOps.Utils;
@@ -69,6 +73,7 @@ import org.apache.accumulo.server.ServerContext;
 import org.apache.accumulo.server.conf.TableConfiguration;
 import org.apache.accumulo.server.fs.VolumeManager;
 import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 
 class WriteExportFiles extends ManagerRepo {
@@ -191,8 +196,33 @@ class WriteExportFiles extends ManagerRepo {
       dataOut.close();
       dataOut = null;
 
-      createDistcpFile(fs, exportDir, exportMetaFilePath, uniqueFiles);
+      // make map containing a volume and corresponding files
+      final Map<Volume,Set<String>> volumeFileMap = new HashMap<>();
+      final Collection<Volume> configuredVolumes = fs.getVolumes();
+      configuredVolumes.forEach(vol -> {
+        final FileSystem dfs = vol.getFileSystem();
+        uniqueFiles.values().forEach(file -> {
+          Path p = null;
+          try {
+            p = dfs.resolvePath(new Path(file));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+          if (vol.containsPath(p)) {
+            volumeFileMap.computeIfAbsent(vol, k -> new HashSet<>()).add(file);
+          }
+        });
+      });
 
+      // for each entry in volumeFileMap, get 'name' of volume to name distcp.txt file
+      // and call createDistcpFile
+      for (Map.Entry<Volume,Set<String>> entry : volumeFileMap.entrySet()) {
+        String keyValueString = entry.getKey().toString();
+        String[] keyValueArray = keyValueString.split("/");
+        String volumeName = keyValueArray[2];
+        createDistcpFile(fs, exportDir, exportMetaFilePath, volumeFileMap.get(entry.getKey()),
+            volumeName);
+      }
     } finally {
       if (dataOut != null) {
         dataOut.close();
@@ -201,12 +231,16 @@ class WriteExportFiles extends ManagerRepo {
   }
 
   private static void createDistcpFile(VolumeManager fs, String exportDir, Path exportMetaFilePath,
-      Map<String,String> uniqueFiles) throws IOException {
-    BufferedWriter distcpOut = new BufferedWriter(
-        new OutputStreamWriter(fs.create(new Path(exportDir, "distcp.txt")), UTF_8));
+      Set<String> uniqueFiles, String volumeName) throws IOException {
+    if (volumeName.contains(":")) {
+      volumeName = volumeName.replace(":", "-");
+    }
+
+    BufferedWriter distcpOut = new BufferedWriter(new OutputStreamWriter(
+        fs.create(new Path(exportDir, "distcp-" + volumeName + ".txt")), UTF_8));
 
     try {
-      for (String file : uniqueFiles.values()) {
+      for (String file : uniqueFiles) {
         distcpOut.append(file);
         distcpOut.newLine();
       }
