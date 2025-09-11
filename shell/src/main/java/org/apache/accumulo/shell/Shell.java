@@ -91,6 +91,7 @@ import org.apache.accumulo.shell.commands.CompactCommand;
 import org.apache.accumulo.shell.commands.ConfigCommand;
 import org.apache.accumulo.shell.commands.ConstraintCommand;
 import org.apache.accumulo.shell.commands.CreateNamespaceCommand;
+import org.apache.accumulo.shell.commands.CreateResourceGroupCommand;
 import org.apache.accumulo.shell.commands.CreateTableCommand;
 import org.apache.accumulo.shell.commands.CreateUserCommand;
 import org.apache.accumulo.shell.commands.DUCommand;
@@ -99,6 +100,7 @@ import org.apache.accumulo.shell.commands.DeleteCommand;
 import org.apache.accumulo.shell.commands.DeleteIterCommand;
 import org.apache.accumulo.shell.commands.DeleteManyCommand;
 import org.apache.accumulo.shell.commands.DeleteNamespaceCommand;
+import org.apache.accumulo.shell.commands.DeleteResourceGroupCommand;
 import org.apache.accumulo.shell.commands.DeleteRowsCommand;
 import org.apache.accumulo.shell.commands.DeleteShellIterCommand;
 import org.apache.accumulo.shell.commands.DeleteTableCommand;
@@ -128,6 +130,7 @@ import org.apache.accumulo.shell.commands.InsertCommand;
 import org.apache.accumulo.shell.commands.ListBulkCommand;
 import org.apache.accumulo.shell.commands.ListCompactionsCommand;
 import org.apache.accumulo.shell.commands.ListIterCommand;
+import org.apache.accumulo.shell.commands.ListResourceGroupsCommand;
 import org.apache.accumulo.shell.commands.ListScansCommand;
 import org.apache.accumulo.shell.commands.ListShellIterCommand;
 import org.apache.accumulo.shell.commands.ListTabletsCommand;
@@ -146,7 +149,6 @@ import org.apache.accumulo.shell.commands.QuitCommand;
 import org.apache.accumulo.shell.commands.QuotedStringTokenizer;
 import org.apache.accumulo.shell.commands.RenameNamespaceCommand;
 import org.apache.accumulo.shell.commands.RenameTableCommand;
-import org.apache.accumulo.shell.commands.ResourceGroupCommand;
 import org.apache.accumulo.shell.commands.RevokeCommand;
 import org.apache.accumulo.shell.commands.ScanCommand;
 import org.apache.accumulo.shell.commands.SetAuthsCommand;
@@ -422,7 +424,8 @@ public class Shell extends ShellOptions implements KeywordExecutable {
     Command[] permissionsCommands = {new GrantCommand(), new RevokeCommand(),
         new SystemPermissionsCommand(), new TablePermissionsCommand(), new UserPermissionsCommand(),
         new NamespacePermissionsCommand()};
-    Command[] resourceGroupCommands = {new ResourceGroupCommand()};
+    Command[] resourceGroupCommands = {new CreateResourceGroupCommand(),
+        new DeleteResourceGroupCommand(), new ListResourceGroupsCommand()};
     Command[] stateCommands =
         {new AuthenticateCommand(), new ClsCommand(), new ClearCommand(), new NoTableCommand(),
             new SleepCommand(), new TableCommand(), new UserCommand(), new WhoAmICommand()};

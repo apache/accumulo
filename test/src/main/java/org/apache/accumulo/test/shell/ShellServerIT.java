@@ -2462,24 +2462,40 @@ public class ShellServerIT extends SharedMiniClusterBase {
 
   @Test
   public void resourceGroups() throws AccumuloException, AccumuloSecurityException, IOException,
-      ResourceGroupNotFoundException {
+      ResourceGroupNotFoundException, InterruptedException {
 
     try (AccumuloClient client = Accumulo.newClient().from(getClientProps()).build()) {
       ResourceGroupOperations ops = client.resourceGroupOperations();
 
       String badRG = "test-RG";
       String goodRG = "testRG";
+      String goodFileRG = "testFileRG";
       ResourceGroupId goodRgid = ResourceGroupId.of(goodRG);
+      ResourceGroupId goodFileRgid = ResourceGroupId.of(goodFileRG);
+      String propsFile = System.getProperty("user.dir") + "/target/resourceGroupInitPropsFile";
+      java.nio.file.Path propsFilePath = java.nio.file.Path.of(propsFile);
+      try (BufferedWriter writer = Files.newBufferedWriter(propsFilePath, UTF_8)) {
+        writer.write(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey() + "=4\n");
+      }
 
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
 
-      ts.exec("resourcegroup -c " + badRG, false, "contains invalid characters");
-      ts.exec("resourcegroup -c " + goodRG, true);
+      ts.exec("createresourcegroup " + badRG, false, "contains invalid characters");
+      ts.exec("createresourcegroup " + goodRG, true);
+      ts.exec("createresourcegroup -f " + propsFilePath.toAbsolutePath() + " " + goodFileRG, true);
 
-      assertEquals(2, ops.list().size());
+      // createresourcegroup command above goes to the Manager
+      // ops.list() below uses the clients ZooCache
+      // Wait a bit so that ZooCache updates.
+      Thread.sleep(100);
+
+      assertEquals(3, ops.list().size());
       assertTrue(ops.list().contains(ResourceGroupId.DEFAULT));
       assertTrue(ops.list().contains(goodRgid));
+      assertTrue(ops.list().contains(goodFileRgid));
+
+      ts.exec("listresourcegroups", true, goodRG);
 
       ts.exec("config -rg " + badRG + " -s " + Property.COMPACTION_WARN_TIME.getKey() + "=3m",
           false, "contains invalid characters");
@@ -2487,6 +2503,8 @@ public class ShellServerIT extends SharedMiniClusterBase {
           true);
 
       getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(goodRG, 1);
+      getCluster().getConfig().getClusterServerConfiguration().addCompactorResourceGroup(goodFileRG,
+          1);
       getCluster().getClusterControl().start(ServerType.COMPACTOR);
       Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
           .getCompactor(ResourceGroupPredicate.exact(goodRgid), AddressSelector.all(), true).size()
@@ -2496,8 +2514,23 @@ public class ShellServerIT extends SharedMiniClusterBase {
       assertTrue(props.containsKey(Property.COMPACTION_WARN_TIME.getKey()));
       assertEquals("3m", props.get(Property.COMPACTION_WARN_TIME.getKey()));
 
-      ts.exec("resourcegroup -d " + badRG, false, "contains invalid characters");
-      ts.exec("resourcegroup -d " + goodRG, true);
+      Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
+          .getCompactor(ResourceGroupPredicate.exact(goodFileRgid), AddressSelector.all(), true)
+          .size() == 1);
+      Map<String,String> fileProps = ops.getProperties(goodFileRgid);
+      assertEquals(1, fileProps.size());
+      assertTrue(fileProps.containsKey(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
+      assertEquals("4", fileProps.get(Property.SSERV_WAL_SORT_MAX_CONCURRENT.getKey()));
+
+      ts.exec("deleteresourcegroup " + badRG, false, "contains invalid characters");
+      ts.exec("deleteresourcegroup " + goodRG, true);
+      ts.exec("deleteresourcegroup " + goodFileRG, true);
+
+      // deleteresourcegroup command above goes to the Manager
+      // ops.list() below uses the clients ZooCache
+      // Wait a bit so that ZooCache updates.
+      Thread.sleep(100);
+
       assertEquals(1, ops.list().size());
       assertEquals(ResourceGroupId.DEFAULT, ops.list().iterator().next());
 
