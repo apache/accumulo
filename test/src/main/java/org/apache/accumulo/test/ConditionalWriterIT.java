@@ -1245,11 +1245,11 @@ public class ConditionalWriterIT extends SharedMiniClusterBase {
 
       NewTableConfiguration ntc = new NewTableConfiguration();
 
-        ntc = switch (RANDOM.get().nextInt(3)) {
-            case 1 -> ntc.withSplits(nss("4"));
-            case 2 -> ntc.withSplits(nss("3", "5"));
-            default -> ntc;
-        };
+      ntc = switch (RANDOM.get().nextInt(3)) {
+        case 1 -> ntc.withSplits(nss("4"));
+        case 2 -> ntc.withSplits(nss("3", "5"));
+        default -> ntc;
+      };
 
       client.tableOperations().create(tableName, ntc);
 

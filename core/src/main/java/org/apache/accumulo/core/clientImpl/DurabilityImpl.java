@@ -24,13 +24,13 @@ import org.apache.accumulo.core.tabletingest.thrift.TDurability;
 public class DurabilityImpl {
 
   public static TDurability toThrift(Durability durability) {
-      return switch (durability) {
-          case DEFAULT -> TDurability.DEFAULT;
-          case SYNC -> TDurability.SYNC;
-          case FLUSH -> TDurability.FLUSH;
-          case LOG -> TDurability.LOG;
-          default -> TDurability.NONE;
-      };
+    return switch (durability) {
+      case DEFAULT -> TDurability.DEFAULT;
+      case SYNC -> TDurability.SYNC;
+      case FLUSH -> TDurability.FLUSH;
+      case LOG -> TDurability.LOG;
+      default -> TDurability.NONE;
+    };
   }
 
   public static Durability fromString(String value) {
@@ -41,13 +41,13 @@ public class DurabilityImpl {
     if (tdurabilty == null) {
       return Durability.DEFAULT;
     }
-      return switch (tdurabilty) {
-          case DEFAULT -> Durability.DEFAULT;
-          case SYNC -> Durability.SYNC;
-          case FLUSH -> Durability.FLUSH;
-          case LOG -> Durability.LOG;
-          default -> Durability.NONE;
-      };
+    return switch (tdurabilty) {
+      case DEFAULT -> Durability.DEFAULT;
+      case SYNC -> Durability.SYNC;
+      case FLUSH -> Durability.FLUSH;
+      case LOG -> Durability.LOG;
+      default -> Durability.NONE;
+    };
   }
 
   public static Durability resolveDurabilty(Durability durability, Durability tabletDurability) {

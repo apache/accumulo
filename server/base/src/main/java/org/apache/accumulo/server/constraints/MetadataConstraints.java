@@ -265,29 +265,29 @@ public class MetadataConstraints implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-      return switch (violationCode) {
-          case 1 -> "data file size must be a non-negative integer";
-          case 2 -> "Invalid column name given.";
-          case 3 -> "Prev end row is greater than or equal to end row.";
-          case 4 -> "Invalid metadata row format";
-          case 5 -> "Row can not be less than " + SystemTables.METADATA.tableId();
-          case 6 -> "Empty values are not allowed for any " + SystemTables.METADATA.tableName()
-                  + " column";
-          case 7 -> "Lock not held in zookeeper by writer";
-          case 8 -> "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
-          case 3100 -> "Invalid data file metadata format";
-          case 3101 -> "Suspended timestamp is not valid";
-          case 3102 -> "Invalid directory column value";
-          case 4000 -> "Malformed operation id";
-          case 4001 -> "Malformed file selection value";
-          case 4002 -> "Invalid compacted column";
-          case 4003 -> "Invalid user compaction requested column";
-          case 4004 -> "Invalid unsplittable column";
-          case 4005 -> "Malformed availability value";
-          case 4006 -> "Malformed mergeability value";
-          case 4007 -> "Malformed migration value";
-          default -> null;
-      };
+    return switch (violationCode) {
+      case 1 -> "data file size must be a non-negative integer";
+      case 2 -> "Invalid column name given.";
+      case 3 -> "Prev end row is greater than or equal to end row.";
+      case 4 -> "Invalid metadata row format";
+      case 5 -> "Row can not be less than " + SystemTables.METADATA.tableId();
+      case 6 ->
+        "Empty values are not allowed for any " + SystemTables.METADATA.tableName() + " column";
+      case 7 -> "Lock not held in zookeeper by writer";
+      case 8 -> "Bulk load mutation contains either inconsistent files or multiple fateTX ids";
+      case 3100 -> "Invalid data file metadata format";
+      case 3101 -> "Suspended timestamp is not valid";
+      case 3102 -> "Invalid directory column value";
+      case 4000 -> "Malformed operation id";
+      case 4001 -> "Malformed file selection value";
+      case 4002 -> "Invalid compacted column";
+      case 4003 -> "Invalid user compaction requested column";
+      case 4004 -> "Invalid unsplittable column";
+      case 4005 -> "Malformed availability value";
+      case 4006 -> "Malformed mergeability value";
+      case 4007 -> "Malformed migration value";
+      default -> null;
+    };
   }
 
   private void validateColValLen(ArrayList<Short> violations, ColumnUpdate columnUpdate) {

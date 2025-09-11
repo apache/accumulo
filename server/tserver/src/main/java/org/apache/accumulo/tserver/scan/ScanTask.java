@@ -149,13 +149,12 @@ public abstract class ScanTask<T> implements Runnable {
   }
 
   private String stateString(int state) {
-    String stateStr = switch (state) {
-        case ADDED -> "ADDED";
-        case CANCELED -> "CANCELED";
-        case INITIAL -> "INITIAL";
-        default -> "UNKNOWN";
+    return switch (state) {
+      case ADDED -> "ADDED";
+      case CANCELED -> "CANCELED";
+      case INITIAL -> "INITIAL";
+      default -> "UNKNOWN";
     };
-      return stateStr;
   }
 
   /**

@@ -1776,19 +1776,19 @@ public class RFileTest extends AbstractRFileTest {
 
   private Key newKey(int r, int c) {
     String row = String.format("r%06d", r);
-      return switch (c) {
-          case 0 -> new Key(row, "user", "addr");
-          case 1 -> new Key(row, "user", "name");
-          default -> throw new IllegalArgumentException();
-      };
+    return switch (c) {
+      case 0 -> new Key(row, "user", "addr");
+      case 1 -> new Key(row, "user", "name");
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   private Value newValue(int r, int c) {
-      return switch (c) {
-          case 0 -> new Value("123" + r + " west st");
-          case 1 -> new Value("bob" + r);
-          default -> throw new IllegalArgumentException();
-      };
+    return switch (c) {
+      case 0 -> new Value("123" + r + " west st");
+      case 1 -> new Value("bob" + r);
+      default -> throw new IllegalArgumentException();
+    };
   }
 
   private static void hash(Hasher hasher, Key key, Value val) {

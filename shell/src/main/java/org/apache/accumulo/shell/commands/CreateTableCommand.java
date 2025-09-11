@@ -125,11 +125,11 @@ public class CreateTableCommand extends Command {
       String tabletAvailability =
           cl.getOptionValue(createTableOptInitialTabletAvailability.getOpt()).toUpperCase();
       TabletAvailability initialTabletAvailability = switch (tabletAvailability) {
-          case "HOSTED" -> TabletAvailability.HOSTED;
-          case "UNHOSTED" -> TabletAvailability.UNHOSTED;
-          default -> TabletAvailability.ONDEMAND;
+        case "HOSTED" -> TabletAvailability.HOSTED;
+        case "UNHOSTED" -> TabletAvailability.UNHOSTED;
+        default -> TabletAvailability.ONDEMAND;
       };
-        ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
+      ntc = ntc.withInitialTabletAvailability(initialTabletAvailability);
     }
 
     TimeType timeType = TimeType.MILLIS;

@@ -510,19 +510,20 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    */
   protected boolean isSetAfterPart(Key key, PartialKey part) {
     if (key != null) {
-        return switch (part) {
-            case ROW -> key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0
-                    || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-                    || key.isDeleted();
-            case ROW_COLFAM -> key.getColumnQualifierData().length() > 0
-                    || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-                    || key.isDeleted();
-            case ROW_COLFAM_COLQUAL -> key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
-                    || key.isDeleted();
-            case ROW_COLFAM_COLQUAL_COLVIS -> key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
-            case ROW_COLFAM_COLQUAL_COLVIS_TIME -> key.isDeleted();
-            case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> false;
-        };
+      return switch (part) {
+        case ROW ->
+          key.getColumnFamilyData().length() > 0 || key.getColumnQualifierData().length() > 0
+              || key.getColumnVisibilityData().length() > 0 || key.getTimestamp() < Long.MAX_VALUE
+              || key.isDeleted();
+        case ROW_COLFAM ->
+          key.getColumnQualifierData().length() > 0 || key.getColumnVisibilityData().length() > 0
+              || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL -> key.getColumnVisibilityData().length() > 0
+            || key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS -> key.getTimestamp() < Long.MAX_VALUE || key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS_TIME -> key.isDeleted();
+        case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> false;
+      };
     }
     return false;
   }
@@ -538,16 +539,17 @@ public abstract class TransformingIterator extends WrappingIterator implements O
    */
   protected Key copyPartialKey(Key key, PartialKey part) {
     Key keyCopy = switch (part) {
-        case ROW -> new Key(key.getRow());
-        case ROW_COLFAM -> new Key(key.getRow(), key.getColumnFamily());
-        case ROW_COLFAM_COLQUAL -> new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier());
-        case ROW_COLFAM_COLQUAL_COLVIS -> new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-                key.getColumnVisibility());
-        case ROW_COLFAM_COLQUAL_COLVIS_TIME -> new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier(),
-                key.getColumnVisibility(), key.getTimestamp());
-        default -> throw new IllegalArgumentException("Unsupported key part: " + part);
+      case ROW -> new Key(key.getRow());
+      case ROW_COLFAM -> new Key(key.getRow(), key.getColumnFamily());
+      case ROW_COLFAM_COLQUAL ->
+        new Key(key.getRow(), key.getColumnFamily(), key.getColumnQualifier());
+      case ROW_COLFAM_COLQUAL_COLVIS -> new Key(key.getRow(), key.getColumnFamily(),
+          key.getColumnQualifier(), key.getColumnVisibility());
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME -> new Key(key.getRow(), key.getColumnFamily(),
+          key.getColumnQualifier(), key.getColumnVisibility(), key.getTimestamp());
+      default -> throw new IllegalArgumentException("Unsupported key part: " + part);
     };
-      return keyCopy;
+    return keyCopy;
   }
 
   /**

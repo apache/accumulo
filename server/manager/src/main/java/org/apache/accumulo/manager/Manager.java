@@ -649,11 +649,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
     private boolean goodStats() {
       int start = switch (getManagerState()) {
-          case UNLOAD_METADATA_TABLETS -> 1;
-          case UNLOAD_ROOT_TABLET -> 2;
-          default -> 0;
+        case UNLOAD_METADATA_TABLETS -> 1;
+        case UNLOAD_ROOT_TABLET -> 2;
+        default -> 0;
       };
-        for (int i = start; i < watchers.size(); i++) {
+      for (int i = start; i < watchers.size(); i++) {
         TabletGroupWatcher watcher = watchers.get(i);
         if (watcher.stats.getLastManagerState() != getManagerState()) {
           log.debug("{}: {} != {}", watcher.getName(), watcher.stats.getLastManagerState(),

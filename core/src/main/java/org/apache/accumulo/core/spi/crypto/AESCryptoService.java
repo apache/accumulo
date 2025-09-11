@@ -151,17 +151,17 @@ public class AESCryptoService implements CryptoService {
       return DISABLED;
     }
     CryptoModule cm;
-      return switch (environment.getScope()) {
-          case WAL -> {
-              cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-              yield cm.getEncrypter();
-          }
-          case TABLE -> {
-              cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-              yield cm.getEncrypter();
-          }
-          default -> throw new CryptoException("Unknown scope: " + environment.getScope());
-      };
+    return switch (environment.getScope()) {
+      case WAL -> {
+        cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
+        yield cm.getEncrypter();
+      }
+      case TABLE -> {
+        cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
+        yield cm.getEncrypter();
+      }
+      default -> throw new CryptoException("Unknown scope: " + environment.getScope());
+    };
   }
 
   @Override
@@ -176,18 +176,18 @@ public class AESCryptoService implements CryptoService {
     ParsedCryptoParameters parsed = parseCryptoParameters(decryptionParams.orElseThrow());
     Key kek = loadDecryptionKek(parsed);
     Key fek = unwrapKey(parsed.getEncFek(), kek);
-      return switch (parsed.getCryptoServiceVersion()) {
-          case AESCBCCryptoModule.VERSION -> {
-              cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-              yield cm.getDecrypter(fek);
-          }
-          case AESGCMCryptoModule.VERSION -> {
-              cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
-              yield cm.getDecrypter(fek);
-          }
-          default -> throw new CryptoException(
-                  "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
-      };
+    return switch (parsed.getCryptoServiceVersion()) {
+      case AESCBCCryptoModule.VERSION -> {
+        cm = new AESCBCCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
+        yield cm.getDecrypter(fek);
+      }
+      case AESGCMCryptoModule.VERSION -> {
+        cm = new AESGCMCryptoModule(this.encryptingKek, this.keyLocation, this.keyManager);
+        yield cm.getDecrypter(fek);
+      }
+      default -> throw new CryptoException(
+          "Unknown crypto module version: " + parsed.getCryptoServiceVersion());
+    };
   }
 
   private static boolean checkNoCrypto(byte[] params) {
@@ -288,10 +288,11 @@ public class AESCryptoService implements CryptoService {
       return this.decryptingKeys.get(keyTag);
     }
 
-      ret = switch (params.keyManagerVersion) {
-          case URI -> loadKekFromUri(params.kekId);
-          default -> throw new CryptoException("Unable to load kek: " + params.kekId);
-      };
+    if (params.keyManagerVersion.equals(URI)) {
+      ret = loadKekFromUri(params.kekId);
+    } else {
+      throw new CryptoException("Unable to load kek: " + params.kekId);
+    }
 
     this.decryptingKeys.put(keyTag, ret);
 

@@ -68,12 +68,11 @@ public class BlockCacheConfiguration implements Configuration {
 
   @Override
   public long getMaxSize(CacheType type) {
-      return switch (type) {
-          case INDEX -> indexMaxSize;
-          case DATA -> dataMaxSize;
-          case SUMMARY -> summaryMaxSize;
-          default -> throw new IllegalArgumentException("Unknown block cache type");
-      };
+    return switch (type) {
+      case INDEX -> indexMaxSize;
+      case DATA -> dataMaxSize;
+      case SUMMARY -> summaryMaxSize;
+    };
   }
 
   @Override

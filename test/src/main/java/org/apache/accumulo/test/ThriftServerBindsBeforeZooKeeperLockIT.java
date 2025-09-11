@@ -245,22 +245,22 @@ public class ThriftServerBindsBeforeZooKeeperLockIT extends AccumuloClusterHarne
       throws IOException {
     final Property property;
     final Class<?> service = switch (serverType) {
-        case MONITOR -> {
-            property = Property.MONITOR_PORT;
-            yield Monitor.class;
-        }
-        case MANAGER -> {
-            property = Property.MANAGER_CLIENTPORT;
-            yield Manager.class;
-        }
-        case GARBAGE_COLLECTOR -> {
-            property = Property.GC_PORT;
-            yield SimpleGarbageCollector.class;
-        }
-        default -> throw new IllegalArgumentException("Irrelevant server type for test");
+      case MONITOR -> {
+        property = Property.MONITOR_PORT;
+        yield Monitor.class;
+      }
+      case MANAGER -> {
+        property = Property.MANAGER_CLIENTPORT;
+        yield Manager.class;
+      }
+      case GARBAGE_COLLECTOR -> {
+        property = Property.GC_PORT;
+        yield SimpleGarbageCollector.class;
+      }
+      default -> throw new IllegalArgumentException("Irrelevant server type for test");
     };
 
-      return cluster._exec(service, serverType, Map.of(property.getKey(), Integer.toString(port)))
+    return cluster._exec(service, serverType, Map.of(property.getKey(), Integer.toString(port)))
         .getProcess();
   }
 }

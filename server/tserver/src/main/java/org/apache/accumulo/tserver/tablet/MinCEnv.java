@@ -66,10 +66,10 @@ public class MinCEnv implements FileCompactor.CompactionEnv {
 
   @Override
   public TCompactionReason getReason() {
-      return switch (reason) {
-          case USER -> TCompactionReason.USER;
-          case CLOSE -> TCompactionReason.CLOSE;
-          default -> TCompactionReason.SYSTEM;
-      };
+    return switch (reason) {
+      case USER -> TCompactionReason.USER;
+      case CLOSE -> TCompactionReason.CLOSE;
+      default -> TCompactionReason.SYSTEM;
+    };
   }
 }

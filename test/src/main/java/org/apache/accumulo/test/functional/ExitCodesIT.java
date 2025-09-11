@@ -266,12 +266,12 @@ public class ExitCodesIT extends SharedMiniClusterBase {
     properties.put(PROXY_METHOD_BEHAVIOR, behavior.name());
     getCluster().getConfig().setSystemProperties(properties);
     Class<?> serverClass = switch (server) {
-        case COMPACTOR -> ExitCompactor.class;
-        case SCAN_SERVER -> ExitScanServer.class;
-        case TABLET_SERVER -> ExitTabletServer.class;
-        default -> throw new IllegalArgumentException("Unhandled type");
+      case COMPACTOR -> ExitCompactor.class;
+      case SCAN_SERVER -> ExitScanServer.class;
+      case TABLET_SERVER -> ExitTabletServer.class;
+      default -> throw new IllegalArgumentException("Unhandled type");
     };
-      ProcessInfo pi = getCluster()._exec(serverClass, server, Map.of(), new String[] {});
+    ProcessInfo pi = getCluster()._exec(serverClass, server, Map.of(), new String[] {});
     Wait.waitFor(() -> !pi.getProcess().isAlive(), 120_000);
     int exitValue = pi.getProcess().exitValue();
     assertEquals(behavior == TerminalBehavior.SHUTDOWN ? 0 : 1, exitValue);

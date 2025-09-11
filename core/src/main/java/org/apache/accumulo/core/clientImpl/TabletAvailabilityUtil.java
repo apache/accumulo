@@ -25,39 +25,37 @@ import org.apache.accumulo.core.data.Value;
 public class TabletAvailabilityUtil {
 
   public static TabletAvailability fromThrift(TTabletAvailability tAvailability) {
-      return switch (tAvailability) {
-          case HOSTED -> TabletAvailability.HOSTED;
-          case UNHOSTED -> TabletAvailability.UNHOSTED;
-          case ONDEMAND -> TabletAvailability.ONDEMAND;
-          default -> throw new IllegalArgumentException("Unhandled value for TAvailability: " + tAvailability);
-      };
+    return switch (tAvailability) {
+      case HOSTED -> TabletAvailability.HOSTED;
+      case UNHOSTED -> TabletAvailability.UNHOSTED;
+      case ONDEMAND -> TabletAvailability.ONDEMAND;
+    };
   }
 
   public static TTabletAvailability toThrift(TabletAvailability tabletAvailability) {
-      return switch (tabletAvailability) {
-          case HOSTED -> TTabletAvailability.HOSTED;
-          case UNHOSTED -> TTabletAvailability.UNHOSTED;
-          case ONDEMAND -> TTabletAvailability.ONDEMAND;
-          default -> throw new IllegalArgumentException("Unhandled enum value");
-      };
+    return switch (tabletAvailability) {
+      case HOSTED -> TTabletAvailability.HOSTED;
+      case UNHOSTED -> TTabletAvailability.UNHOSTED;
+      case ONDEMAND -> TTabletAvailability.ONDEMAND;
+    };
   }
 
   public static TabletAvailability fromValue(Value value) {
-      return switch (value.toString()) {
-          case "HOSTED" -> TabletAvailability.HOSTED;
-          case "UNHOSTED" -> TabletAvailability.UNHOSTED;
-          case "ONDEMAND" -> TabletAvailability.ONDEMAND;
-          default -> throw new IllegalArgumentException("Invalid value for tablet availability: " + value);
-      };
+    return switch (value.toString()) {
+      case "HOSTED" -> TabletAvailability.HOSTED;
+      case "UNHOSTED" -> TabletAvailability.UNHOSTED;
+      case "ONDEMAND" -> TabletAvailability.ONDEMAND;
+      default ->
+        throw new IllegalArgumentException("Invalid value for tablet availability: " + value);
+    };
   }
 
   public static Value toValue(TabletAvailability tabletAvailability) {
-      return switch (tabletAvailability) {
-          case HOSTED -> new Value(TabletAvailability.HOSTED.name());
-          case UNHOSTED -> new Value(TabletAvailability.UNHOSTED.name());
-          case ONDEMAND -> new Value(TabletAvailability.ONDEMAND.name());
-          default -> throw new IllegalArgumentException("Unhandled enum value");
-      };
+    return switch (tabletAvailability) {
+      case HOSTED -> new Value(TabletAvailability.HOSTED.name());
+      case UNHOSTED -> new Value(TabletAvailability.UNHOSTED.name());
+      case ONDEMAND -> new Value(TabletAvailability.ONDEMAND.name());
+    };
   }
 
 }

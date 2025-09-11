@@ -58,23 +58,23 @@ public final class MetadataTime implements Comparable<MetadataTime> {
    * @return a TimeType {@link TimeType} represented by code.
    */
   public static TimeType getType(char code) {
-      return switch (code) {
-          case 'M' -> TimeType.MILLIS;
-          case 'L' -> TimeType.LOGICAL;
-          default -> throw new IllegalArgumentException("Unknown time type code : " + code);
-      };
+    return switch (code) {
+      case 'M' -> TimeType.MILLIS;
+      case 'L' -> TimeType.LOGICAL;
+      default -> throw new IllegalArgumentException("Unknown time type code : " + code);
+    };
   }
 
   /**
    * @return the single char code of this objects timeType
    */
   public static char getCode(TimeType type) {
-      // this should never happen
-      return switch (type) {
-          case MILLIS -> 'M';
-          case LOGICAL -> 'L';
-          default -> throw new IllegalArgumentException("Unknown time type: " + type);
-      };
+    // this should never happen
+    return switch (type) {
+      case MILLIS -> 'M';
+      case LOGICAL -> 'L';
+      default -> throw new IllegalArgumentException("Unknown time type: " + type);
+    };
   }
 
   public char getCode() {

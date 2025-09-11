@@ -309,13 +309,13 @@ public class StandaloneClusterControl implements ClusterControl {
   }
 
   protected String getProcessString(ServerType server) {
-      return switch (server) {
-          case TABLET_SERVER -> "tserver";
-          case GARBAGE_COLLECTOR -> "gc";
-          case MANAGER -> "manager";
-          case MONITOR -> "monitor";
-          default -> throw new UnsupportedOperationException("Unhandled ServerType " + server);
-      };
+    return switch (server) {
+      case TABLET_SERVER -> "tserver";
+      case GARBAGE_COLLECTOR -> "gc";
+      case MANAGER -> "manager";
+      case MONITOR -> "monitor";
+      default -> throw new UnsupportedOperationException("Unhandled ServerType " + server);
+    };
   }
 
   @SuppressFBWarnings(value = "PATH_TRAVERSAL_IN",

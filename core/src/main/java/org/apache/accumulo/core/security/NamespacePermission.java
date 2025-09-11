@@ -93,28 +93,28 @@ public enum NamespacePermission {
   }
 
   public static NamespacePermission getEquivalent(TablePermission permission) {
-      return switch (permission) {
-          case READ -> NamespacePermission.READ;
-          case WRITE -> NamespacePermission.WRITE;
-          case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
-          case GRANT -> NamespacePermission.GRANT;
-          case DROP_TABLE -> NamespacePermission.DROP_TABLE;
-          case BULK_IMPORT -> NamespacePermission.BULK_IMPORT;
-          default -> null;
-      };
+    return switch (permission) {
+      case READ -> NamespacePermission.READ;
+      case WRITE -> NamespacePermission.WRITE;
+      case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
+      case GRANT -> NamespacePermission.GRANT;
+      case DROP_TABLE -> NamespacePermission.DROP_TABLE;
+      case BULK_IMPORT -> NamespacePermission.BULK_IMPORT;
+      default -> null;
+    };
 
   }
 
   public static NamespacePermission getEquivalent(SystemPermission permission) {
-      return switch (permission) {
-          case CREATE_TABLE -> NamespacePermission.CREATE_TABLE;
-          case DROP_TABLE -> NamespacePermission.DROP_TABLE;
-          case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
-          case ALTER_NAMESPACE -> NamespacePermission.ALTER_NAMESPACE;
-          case DROP_NAMESPACE -> NamespacePermission.DROP_NAMESPACE;
-          case GRANT -> NamespacePermission.ALTER_NAMESPACE;
-          default -> null;
-      };
+    return switch (permission) {
+      case CREATE_TABLE -> NamespacePermission.CREATE_TABLE;
+      case DROP_TABLE -> NamespacePermission.DROP_TABLE;
+      case ALTER_TABLE -> NamespacePermission.ALTER_TABLE;
+      case ALTER_NAMESPACE -> NamespacePermission.ALTER_NAMESPACE;
+      case DROP_NAMESPACE -> NamespacePermission.DROP_NAMESPACE;
+      case GRANT -> NamespacePermission.ALTER_NAMESPACE;
+      default -> null;
+    };
   }
 
 }

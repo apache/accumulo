@@ -216,13 +216,15 @@ public class ServiceLockPaths {
             "Unhandled zookeeper service path : " + path);
         final String server = pathParts[pathParts.length - 1];
         final String resourceGroup = pathParts[pathParts.length - 2];
-          return switch (type) {
-              case Constants.ZMINI_LOCK -> new ServiceLockPath(type, server);
-              case Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS, Constants.ZDEADTSERVERS ->
-                      new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
-                              HostAndPort.fromString(server));
-              default -> throw new IllegalArgumentException("Unhandled zookeeper service path : " + path);
-          };
+        return switch (type) {
+          case Constants.ZMINI_LOCK -> new ServiceLockPath(type, server);
+          case Constants.ZCOMPACTORS, Constants.ZSSERVERS, Constants.ZTSERVERS,
+              Constants.ZDEADTSERVERS ->
+            new ServiceLockPath(type, ResourceGroupId.of(resourceGroup),
+                HostAndPort.fromString(server));
+          default ->
+            throw new IllegalArgumentException("Unhandled zookeeper service path : " + path);
+        };
       }
     }
 

@@ -81,11 +81,11 @@ public class CountFiles extends ManagerRepo {
     if (totalFiles >= maxFiles) {
       return new UnreserveAndError(data, totalFiles, maxFiles);
     } else {
-        return switch (data.op) {
-            case MERGE -> new MergeTablets(data);
-            case DELETE -> new DeleteRows(data);
-            default -> throw new IllegalStateException("Unknown op " + data.op);
-        };
+      return switch (data.op) {
+        case MERGE -> new MergeTablets(data);
+        case DELETE -> new DeleteRows(data);
+        default -> throw new IllegalStateException("Unknown op " + data.op);
+      };
     }
   }
 }

@@ -244,14 +244,14 @@ public class FateMutatorImpl<T> implements FateMutator<T> {
         try {
           ConditionalWriter.Result result = writer.get().write(mutation);
 
+          return switch (result.getStatus()) {
+            case ACCEPTED -> Status.ACCEPTED;
+            case REJECTED -> Status.REJECTED;
+            case UNKNOWN -> Status.UNKNOWN;
             // do not expect other statuses
-            return switch (result.getStatus()) {
-                case ACCEPTED -> Status.ACCEPTED;
-                case REJECTED -> Status.REJECTED;
-                case UNKNOWN -> Status.UNKNOWN;
-                default -> throw new IllegalStateException(
-                        "Unhandled status for mutation " + result.getStatus());
-            };
+            default -> throw new IllegalStateException(
+                "Unhandled status for mutation " + result.getStatus());
+          };
 
         } catch (AccumuloException | AccumuloSecurityException e) {
           throw new RuntimeException(e);

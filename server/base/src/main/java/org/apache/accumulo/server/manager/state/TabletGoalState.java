@@ -177,24 +177,22 @@ public enum TabletGoalState {
 
   private static TabletGoalState getSystemGoalState(TabletMetadata tm,
       TabletManagementParameters params) {
-      return switch (params.getManagerState()) {
-          case NORMAL -> HOSTED; // fall-through intended
-          // fall-through intended
-          case HAVE_LOCK, INITIAL, SAFE_MODE -> {
-              if (tm.getExtent().isMeta()) {
-                  yield HOSTED;
-              }
-              yield TabletGoalState.UNASSIGNED;
-          }
-          case UNLOAD_METADATA_TABLETS -> {
-              if (tm.getExtent().isRootTablet()) {
-                  yield HOSTED;
-              }
-              yield UNASSIGNED;
-          }
-          case UNLOAD_ROOT_TABLET, STOP -> UNASSIGNED;
-          default -> throw new IllegalStateException("Unknown Manager State");
-      };
+    return switch (params.getManagerState()) {
+      case NORMAL -> HOSTED;
+      case HAVE_LOCK, INITIAL, SAFE_MODE -> {
+        if (tm.getExtent().isMeta()) {
+          yield HOSTED;
+        }
+        yield TabletGoalState.UNASSIGNED;
+      }
+      case UNLOAD_METADATA_TABLETS -> {
+        if (tm.getExtent().isRootTablet()) {
+          yield HOSTED;
+        }
+        yield UNASSIGNED;
+      }
+      case UNLOAD_ROOT_TABLET, STOP -> UNASSIGNED;
+    };
   }
 
   private static TabletGoalState trace(TabletGoalState tabletGoalState, TabletMetadata tm,

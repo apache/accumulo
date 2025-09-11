@@ -87,12 +87,12 @@ class ActiveCompactionHelper {
     }
 
     String hostSuffix = switch (ac.getServerId().getType()) {
-        case TABLET_SERVER -> "";
-        case COMPACTOR -> " (ext)";
-        default -> ac.getServerId().getType().name();
+      case TABLET_SERVER -> "";
+      case COMPACTOR -> " (ext)";
+      default -> ac.getServerId().getType().name();
     };
 
-      String host = ac.getServerId().toHostPortString() + hostSuffix;
+    String host = ac.getServerId().toHostPortString() + hostSuffix;
 
     try {
       var dur = new DurationFormat(ac.getAge(), "");

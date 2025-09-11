@@ -40,10 +40,10 @@ public class DefaultKeySizeConstraint implements Constraint {
   @Override
   public String getViolationDescription(short violationCode) {
 
-      return switch (violationCode) {
-          case MAX__KEY_SIZE_EXCEEDED_VIOLATION -> "Key was larger than 1MB";
-          default -> null;
-      };
+    if (violationCode == MAX__KEY_SIZE_EXCEEDED_VIOLATION) {
+      return "Key was larger than 1MB";
+    }
+    return null;
 
   }
 

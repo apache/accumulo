@@ -103,11 +103,11 @@ public class AccumuloDataVersion {
   }
 
   private static String dataVersionToReleaseName(final int version) {
-      return switch (version) {
-          case ROOT_TABLET_META_CHANGES -> "2.1.0";
-          case REMOVE_DEPRECATIONS_FOR_VERSION_3 -> "3.0.0";
-          case FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 -> "4.0.0";
-          default -> throw new IllegalArgumentException("Unsupported data version " + version);
-      };
+    return switch (version) {
+      case ROOT_TABLET_META_CHANGES -> "2.1.0";
+      case REMOVE_DEPRECATIONS_FOR_VERSION_3 -> "3.0.0";
+      case FILE_JSON_ENCODING_ONDEMAND_TABLETSFOR_VERSION_4 -> "4.0.0";
+      default -> throw new IllegalArgumentException("Unsupported data version " + version);
+    };
   }
 }

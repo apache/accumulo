@@ -59,19 +59,20 @@ public class UnreserveSystemMerge extends ManagerRepo {
   }
 
   private String formatReason() {
-      return switch (reason) {
-          case MAX_FILE_COUNT ->
-                  "Aborted merge because it would produce a tablet with more files than the configured limit of "
-                          + maxFileCount;
-          case MAX_TOTAL_SIZE ->
-                  "Aborted merge because it would produce a tablet with a file size larger than the configured limit of "
-                          + maxTotalSize;
-          // This state should not happen as VerifyMergeability repo checks consistency but adding it
-          // just in case
-          case TABLET_MERGEABILITY -> "Aborted merge because one ore more tablets in the merge range are unmergeable.";
-          case NOT_CONTIGUOUS -> "Aborted merge because the tablets in a range do not form a linked list.";
-          default -> throw new IllegalArgumentException("Unknown Reason");
-      };
+    return switch (reason) {
+      case MAX_FILE_COUNT ->
+        "Aborted merge because it would produce a tablet with more files than the configured limit of "
+            + maxFileCount;
+      case MAX_TOTAL_SIZE ->
+        "Aborted merge because it would produce a tablet with a file size larger than the configured limit of "
+            + maxTotalSize;
+      // This state should not happen as VerifyMergeability repo checks consistency but adding it
+      // just in case
+      case TABLET_MERGEABILITY ->
+        "Aborted merge because one ore more tablets in the merge range are unmergeable.";
+      case NOT_CONTIGUOUS ->
+        "Aborted merge because the tablets in a range do not form a linked list.";
+    };
 
   }
 }

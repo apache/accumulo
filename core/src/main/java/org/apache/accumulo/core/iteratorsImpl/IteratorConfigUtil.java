@@ -62,12 +62,11 @@ public class IteratorConfigUtil {
    */
   public static Property getProperty(IteratorScope scope) {
     requireNonNull(scope);
-      return switch (scope) {
-          case scan -> Property.TABLE_ITERATOR_SCAN_PREFIX;
-          case minc -> Property.TABLE_ITERATOR_MINC_PREFIX;
-          case majc -> Property.TABLE_ITERATOR_MAJC_PREFIX;
-          default -> throw new IllegalStateException("Could not find configuration property for IteratorScope");
-      };
+    return switch (scope) {
+      case scan -> Property.TABLE_ITERATOR_SCAN_PREFIX;
+      case minc -> Property.TABLE_ITERATOR_MINC_PREFIX;
+      case majc -> Property.TABLE_ITERATOR_MAJC_PREFIX;
+    };
   }
 
   /**

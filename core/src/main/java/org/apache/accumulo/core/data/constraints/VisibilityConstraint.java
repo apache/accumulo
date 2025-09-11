@@ -47,11 +47,11 @@ public class VisibilityConstraint implements Constraint {
 
   @Override
   public String getViolationDescription(short violationCode) {
-      return switch (violationCode) {
-          case 1 -> "Malformed column visibility";
-          case 2 -> "User does not have authorization on column visibility";
-          default -> null;
-      };
+    return switch (violationCode) {
+      case 1 -> "Malformed column visibility";
+      case 2 -> "User does not have authorization on column visibility";
+      default -> null;
+    };
 
   }
 

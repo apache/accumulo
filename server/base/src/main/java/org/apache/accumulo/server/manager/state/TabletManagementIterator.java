@@ -145,12 +145,11 @@ public class TabletManagementIterator extends WholeRowIterator {
           tm.getOperationId());
     }
 
-      return switch (goalState) {
-          case HOSTED -> state != TabletState.HOSTED;
-          case SUSPENDED -> state != TabletState.SUSPENDED;
-          case UNASSIGNED -> state != TabletState.UNASSIGNED;
-          default -> throw new IllegalStateException("unknown goal state " + goalState);
-      };
+    return switch (goalState) {
+      case HOSTED -> state != TabletState.HOSTED;
+      case SUSPENDED -> state != TabletState.SUSPENDED;
+      case UNASSIGNED -> state != TabletState.UNASSIGNED;
+    };
   }
 
   public static void configureScanner(AccumuloConfiguration conf, final ScannerBase scanner,

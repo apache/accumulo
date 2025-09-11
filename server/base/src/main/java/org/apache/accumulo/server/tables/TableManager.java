@@ -111,17 +111,15 @@ public class TableManager {
         }
 
         boolean transition = switch (currState) {
-            case NEW -> (newState == TableState.OFFLINE || newState == TableState.ONLINE); // fall-through intended
-            // fall through intended
-            case ONLINE, UNKNOWN, OFFLINE -> (newState != TableState.NEW);
-            case DELETING ->
-                // Can't transition to any state from DELETING
-                    false;
+          // +--------+
+          // v |
+          // NEW -> (ONLINE|OFFLINE)+--- DELETING
+          case NEW -> (newState == TableState.OFFLINE || newState == TableState.ONLINE);
+          case ONLINE, UNKNOWN, OFFLINE -> (newState != TableState.NEW);
+          case DELETING -> false;// Can't transition to any state from DELETING
         };
-        // +--------+
-        // v |
-        // NEW -> (ONLINE|OFFLINE)+--- DELETING
-          if (!transition || !expectedCurrStates.contains(currState)) {
+
+        if (!transition || !expectedCurrStates.contains(currState)) {
           throw new IllegalTableTransitionException(currState, newState);
         }
         log.debug("Transitioning state for table {} from {} to {}", tableId, currState, newState);

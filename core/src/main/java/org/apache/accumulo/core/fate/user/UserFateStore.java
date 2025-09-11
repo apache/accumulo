@@ -569,14 +569,13 @@ public class UserFateStore<T> extends AbstractFateStore<T> {
         scanner.setRange(getRow(fateId));
 
         final ColumnFQ cq = switch (txInfo) {
-            case FATE_OP -> TxAdminColumnFamily.FATE_OP_COLUMN;
-            case AUTO_CLEAN -> TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
-            case EXCEPTION -> TxInfoColumnFamily.EXCEPTION_COLUMN;
-            case RETURN_VALUE -> TxInfoColumnFamily.RETURN_VALUE_COLUMN;
-            case TX_AGEOFF -> TxInfoColumnFamily.TX_AGEOFF_COLUMN;
-            default -> throw new IllegalArgumentException("Unexpected TxInfo type " + txInfo);
+          case FATE_OP -> TxAdminColumnFamily.FATE_OP_COLUMN;
+          case AUTO_CLEAN -> TxInfoColumnFamily.AUTO_CLEAN_COLUMN;
+          case EXCEPTION -> TxInfoColumnFamily.EXCEPTION_COLUMN;
+          case RETURN_VALUE -> TxInfoColumnFamily.RETURN_VALUE_COLUMN;
+          case TX_AGEOFF -> TxInfoColumnFamily.TX_AGEOFF_COLUMN;
         };
-          scanner.fetchColumn(cq.getColumnFamily(), cq.getColumnQualifier());
+        scanner.fetchColumn(cq.getColumnFamily(), cq.getColumnQualifier());
 
         return scanner.stream().map(e -> deserializeTxInfo(txInfo, e.getValue().get())).findFirst()
             .orElse(null);

@@ -1041,23 +1041,22 @@ public class Key implements WritableComparable<Key>, Cloneable {
    * @return true if specified parts of keys match, false otherwise
    */
   public boolean equals(Key other, PartialKey part) {
-      return switch (part) {
-          case ROW -> isEqual(row, other.row);
-          case ROW_COLFAM -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
-          case ROW_COLFAM_COLQUAL -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-                  && isEqual(colQualifier, other.colQualifier);
-          case ROW_COLFAM_COLQUAL_COLVIS -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-                  && isEqual(colQualifier, other.colQualifier)
-                  && isEqual(colVisibility, other.colVisibility);
-          case ROW_COLFAM_COLQUAL_COLVIS_TIME -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-                  && isEqual(colQualifier, other.colQualifier)
-                  && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
-          case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
-                  && isEqual(colQualifier, other.colQualifier)
-                  && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
-                  && deleted == other.deleted;
-          default -> throw new IllegalArgumentException("Unrecognized partial key specification " + part);
-      };
+    return switch (part) {
+      case ROW -> isEqual(row, other.row);
+      case ROW_COLFAM -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily);
+      case ROW_COLFAM_COLQUAL -> isEqual(row, other.row) && isEqual(colFamily, other.colFamily)
+          && isEqual(colQualifier, other.colQualifier);
+      case ROW_COLFAM_COLQUAL_COLVIS -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility);
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp;
+      case ROW_COLFAM_COLQUAL_COLVIS_TIME_DEL -> isEqual(row, other.row)
+          && isEqual(colFamily, other.colFamily) && isEqual(colQualifier, other.colQualifier)
+          && isEqual(colVisibility, other.colVisibility) && timestamp == other.timestamp
+          && deleted == other.deleted;
+    };
   }
 
   /**

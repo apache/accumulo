@@ -185,24 +185,25 @@ public final class Utils {
       return firstByte;
     }
 
-      return switch ((firstByte + 128) / 8) {
-          case 11, 10, 9, 8, 7 -> ((firstByte + 52L) << 8) | in.readUnsignedByte();
-          case 6, 5, 4, 3 -> ((firstByte + 88L) << 16) | in.readUnsignedShort();
-          case 2, 1 -> ((firstByte + 112L) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
-          case 0 -> {
-              int len = firstByte + 129;
-              yield switch (len) {
-                  case 4 -> in.readInt();
-                  case 5 -> ((long) in.readInt()) << 8 | in.readUnsignedByte();
-                  case 6 -> ((long) in.readInt()) << 16 | in.readUnsignedShort();
-                  case 7 -> ((long) in.readInt()) << 24 | (in.readUnsignedShort() << 8)
-                          | in.readUnsignedByte();
-                  case 8 -> in.readLong();
-                  default -> throw new IOException("Corrupted VLong encoding");
-              };
-          }
-          default -> throw new IllegalStateException("Internal error");
-      };
+    return switch ((firstByte + 128) / 8) {
+      case 11, 10, 9, 8, 7 -> ((firstByte + 52L) << 8) | in.readUnsignedByte();
+      case 6, 5, 4, 3 -> ((firstByte + 88L) << 16) | in.readUnsignedShort();
+      case 2, 1 ->
+        ((firstByte + 112L) << 24) | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+      case 0 -> {
+        int len = firstByte + 129;
+        yield switch (len) {
+          case 4 -> in.readInt();
+          case 5 -> ((long) in.readInt()) << 8 | in.readUnsignedByte();
+          case 6 -> ((long) in.readInt()) << 16 | in.readUnsignedShort();
+          case 7 ->
+            ((long) in.readInt()) << 24 | (in.readUnsignedShort() << 8) | in.readUnsignedByte();
+          case 8 -> in.readLong();
+          default -> throw new IOException("Corrupted VLong encoding");
+        };
+      }
+      default -> throw new IllegalStateException("Internal error");
+    };
   }
 
   /**

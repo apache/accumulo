@@ -153,21 +153,19 @@ public abstract class TabletMutatorBase<T extends Ample.TabletUpdates<T>>
   }
 
   protected String getLocationFamily(LocationType type) {
-      return switch (type) {
-          case CURRENT -> CurrentLocationColumnFamily.STR_NAME;
-          case FUTURE -> FutureLocationColumnFamily.STR_NAME;
-          case LAST -> LastLocationColumnFamily.STR_NAME;
-          default -> throw new IllegalArgumentException();
-      };
+    return switch (type) {
+      case CURRENT -> CurrentLocationColumnFamily.STR_NAME;
+      case FUTURE -> FutureLocationColumnFamily.STR_NAME;
+      case LAST -> LastLocationColumnFamily.STR_NAME;
+    };
   }
 
   protected Text getLocationFamilyText(LocationType type) {
-      return switch (type) {
-          case CURRENT -> CurrentLocationColumnFamily.NAME;
-          case FUTURE -> FutureLocationColumnFamily.NAME;
-          case LAST -> LastLocationColumnFamily.NAME;
-          default -> throw new IllegalArgumentException();
-      };
+    return switch (type) {
+      case CURRENT -> CurrentLocationColumnFamily.NAME;
+      case FUTURE -> FutureLocationColumnFamily.NAME;
+      case LAST -> LastLocationColumnFamily.NAME;
+    };
   }
 
   @Override

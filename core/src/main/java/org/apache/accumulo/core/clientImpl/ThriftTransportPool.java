@@ -153,22 +153,23 @@ public class ThriftTransportPool {
     final List<ThriftTransportKey> serversSet = new ArrayList<>();
 
     Function<AddressSelector,Set<ServiceLockPath>> paths = switch (service) {
-        case CLIENT -> (selector) -> new CompositeSet<ServiceLockPath>(
-                ctx.getServerPaths().getCompactor(rgp, selector, true),
-                ctx.getServerPaths().getScanServer(rgp, selector, true),
-                ctx.getServerPaths().getTabletServer(rgp, selector, true));
-        case COMPACTOR -> (selector) -> ctx.getServerPaths().getCompactor(rgp, selector, true);
-        case MANAGER, COORDINATOR, FATE -> (selector) -> Set.of(ctx.getServerPaths().getManager(true));
-        case GC -> (selector) -> Set.of(ctx.getServerPaths().getGarbageCollector(true));
-        case TABLET_SCAN -> (selector) -> new CompositeSet<ServiceLockPath>(
-                ctx.getServerPaths().getTabletServer(rgp, selector, true),
-                ctx.getServerPaths().getScanServer(rgp, selector, true));
-        case TABLET_INGEST, TABLET_MANAGEMENT, TSERV ->
-                (selector) -> ctx.getServerPaths().getTabletServer(rgp, selector, true);
-        default -> throw new IllegalArgumentException("Unhandled thrift service type: " + service);
+      case CLIENT -> (selector) -> new CompositeSet<ServiceLockPath>(
+          ctx.getServerPaths().getCompactor(rgp, selector, true),
+          ctx.getServerPaths().getScanServer(rgp, selector, true),
+          ctx.getServerPaths().getTabletServer(rgp, selector, true));
+      case COMPACTOR -> (selector) -> ctx.getServerPaths().getCompactor(rgp, selector, true);
+      case MANAGER, COORDINATOR, FATE ->
+        (selector) -> Set.of(ctx.getServerPaths().getManager(true));
+      case GC -> (selector) -> Set.of(ctx.getServerPaths().getGarbageCollector(true));
+      case TABLET_SCAN -> (selector) -> new CompositeSet<ServiceLockPath>(
+          ctx.getServerPaths().getTabletServer(rgp, selector, true),
+          ctx.getServerPaths().getScanServer(rgp, selector, true));
+      case TABLET_INGEST, TABLET_MANAGEMENT, TSERV ->
+        (selector) -> ctx.getServerPaths().getTabletServer(rgp, selector, true);
+      default -> throw new IllegalArgumentException("Unhandled thrift service type: " + service);
     };
 
-      for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
+    for (ThriftTransportKey ttk : connectionPool.getThriftTransportKeys()) {
       if (ttk.getType().equals(type)
           && !paths.apply(AddressSelector.exact(ttk.getServer())).isEmpty()) {
         serversSet.add(ttk);

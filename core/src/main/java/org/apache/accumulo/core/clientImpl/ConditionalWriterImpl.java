@@ -728,12 +728,12 @@ public class ConditionalWriterImpl implements ConditionalWriter {
   }
 
   public static Status fromThrift(TCMStatus status) {
-      return switch (status) {
-          case ACCEPTED -> Status.ACCEPTED;
-          case REJECTED -> Status.REJECTED;
-          case VIOLATED -> Status.VIOLATED;
-          default -> throw new IllegalArgumentException(status.toString());
-      };
+    return switch (status) {
+      case ACCEPTED -> Status.ACCEPTED;
+      case REJECTED -> Status.REJECTED;
+      case VIOLATED -> Status.VIOLATED;
+      default -> throw new IllegalArgumentException(status.toString());
+    };
   }
 
   private void convertMutations(TabletServerMutations<QCMutation> mutations, Map<Long,CMK> cmidToCm,

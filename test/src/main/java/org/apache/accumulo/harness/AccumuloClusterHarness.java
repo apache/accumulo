@@ -263,19 +263,18 @@ public abstract class AccumuloClusterHarness extends AccumuloITBase
 
   @Override
   public ClusterUser getAdminUser() {
-      return switch (type) {
-          case MINI -> {
-              if (krb == null) {
-                  PasswordToken passwordToken = (PasswordToken) getAdminToken();
-                  yield new ClusterUser(getAdminPrincipal(),
-                          new String(passwordToken.getPassword(), UTF_8));
-              }
-              yield krb.getRootUser();
-          }
-          case STANDALONE -> new ClusterUser(getAdminPrincipal(),
-                  ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
-          default -> throw new RuntimeException("Unknown cluster type");
-      };
+    return switch (type) {
+      case MINI -> {
+        if (krb == null) {
+          PasswordToken passwordToken = (PasswordToken) getAdminToken();
+          yield new ClusterUser(getAdminPrincipal(),
+              new String(passwordToken.getPassword(), UTF_8));
+        }
+        yield krb.getRootUser();
+      }
+      case STANDALONE -> new ClusterUser(getAdminPrincipal(),
+          ((StandaloneAccumuloClusterConfiguration) clusterConf).getAdminKeytab());
+    };
   }
 
   @Override

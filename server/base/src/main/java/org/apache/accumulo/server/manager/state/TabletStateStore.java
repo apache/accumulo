@@ -125,12 +125,11 @@ public interface TabletStateStore {
   public static TabletStateStore getStoreForLevel(DataLevel level, ServerContext context) {
 
     TabletStateStore tss = switch (level) {
-        case ROOT -> new ZooTabletStateStore(level, context);
-        case METADATA -> new RootTabletStateStore(level, context);
-        case USER -> new MetaDataStateStore(level, context);
-        default -> throw new IllegalArgumentException("Unknown level " + level);
+      case ROOT -> new ZooTabletStateStore(level, context);
+      case METADATA -> new RootTabletStateStore(level, context);
+      case USER -> new MetaDataStateStore(level, context);
     };
 
-      return new LoggingTabletStateStore(tss);
+    return new LoggingTabletStateStore(tss);
   }
 }

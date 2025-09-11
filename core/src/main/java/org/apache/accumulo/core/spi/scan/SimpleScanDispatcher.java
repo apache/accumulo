@@ -152,11 +152,10 @@ public class SimpleScanDispatcher implements ScanDispatcher {
       }
     }
 
-      return switch (scanInfo.getScanType()) {
-          case MULTI -> multiDispatch;
-          case SINGLE -> singleDispatch;
-          default -> throw new IllegalArgumentException("Unexpected scan type " + scanInfo.getScanType());
-      };
+    return switch (scanInfo.getScanType()) {
+      case MULTI -> multiDispatch;
+      case SINGLE -> singleDispatch;
+    };
 
   }
 }

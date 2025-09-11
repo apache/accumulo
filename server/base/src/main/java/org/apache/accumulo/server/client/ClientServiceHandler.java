@@ -333,15 +333,15 @@ public class ClientServiceHandler implements ClientService.Iface {
   public Map<String,String> getConfiguration(TInfo tinfo, TCredentials credentials,
       ConfigurationType type) throws TException {
     checkSystemPermission(credentials);
-      return switch (type) {
-          case PROCESS -> conf(credentials, context.getConfiguration());
-          case SYSTEM -> {
-              context.getPropStore().getCache().remove(SystemPropKey.of());
-              yield conf(credentials, context.getSystemConfiguration());
-          }
-          case SITE -> conf(credentials, context.getSiteConfiguration());
-          case DEFAULT -> conf(credentials, context.getDefaultConfiguration());
-      };
+    return switch (type) {
+      case PROCESS -> conf(credentials, context.getConfiguration());
+      case SYSTEM -> {
+        context.getPropStore().getCache().remove(SystemPropKey.of());
+        yield conf(credentials, context.getSystemConfiguration());
+      }
+      case SITE -> conf(credentials, context.getSiteConfiguration());
+      case DEFAULT -> conf(credentials, context.getDefaultConfiguration());
+    };
   }
 
   @Override
