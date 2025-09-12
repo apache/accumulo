@@ -20,6 +20,7 @@ package org.apache.accumulo.test;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.util.stream.Collectors.toMap;
+import static org.apache.accumulo.core.client.ScannerBase.ConsistencyLevel.EVENTUAL;
 import static org.apache.accumulo.core.util.LazySingletons.RANDOM;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -27,16 +28,16 @@ import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.SortedSet;
@@ -77,6 +78,7 @@ import org.apache.accumulo.core.client.security.SecurityErrorCode;
 import org.apache.accumulo.core.client.security.tokens.PasswordToken;
 import org.apache.accumulo.core.client.summary.CountingSummarizer;
 import org.apache.accumulo.core.client.summary.SummarizerConfiguration;
+import org.apache.accumulo.core.conf.ClientProperty;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.ColumnUpdate;
 import org.apache.accumulo.core.data.Condition;
@@ -97,9 +99,10 @@ import org.apache.accumulo.core.security.ColumnVisibility;
 import org.apache.accumulo.core.security.NamespacePermission;
 import org.apache.accumulo.core.security.SystemPermission;
 import org.apache.accumulo.core.security.TablePermission;
+import org.apache.accumulo.core.spi.scan.ConfigurableScanServerSelector;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.test.util.Wait;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.Test;
@@ -119,7 +122,67 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
   public static final String DOG_AND_CAT = "DOG&CAT";
   static final Authorizations AUTHORIZATIONS = new Authorizations("CAT", "DOG");
 
-  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT_SimpleSuite.class);
+  private static final Logger log = LoggerFactory.getLogger(ComprehensiveIT.class);
+
+  @Test
+  public void testEventualScan() throws Exception {
+    Properties props = new Properties();
+    props.putAll(getClientProps());
+    props.put(ClientProperty.SCAN_SERVER_SELECTOR.getKey(),
+        ConfigurableScanServerSelector.class.getName());
+    props.put(ClientProperty.SCAN_SERVER_SELECTOR_OPTS_PREFIX.getKey() + "profiles",
+        "[{'isDefault':true,'timeToWaitForScanServers' : '10d','maxBusyTimeout':'5m','busyTimeoutMultiplier':4,'attemptPlans':[{\"servers\":\"100%\", \"busyTimeout\":\"3ms\"}]}]");
+
+    try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+      String table = getUniqueNames(1)[0];
+      client.tableOperations().create(table);
+      getCluster().getClusterControl().start(ServerType.SCAN_SERVER);
+      Wait.waitFor(
+          () -> !client.instanceOperations().getServers(ServerId.Type.SCAN_SERVER).isEmpty());
+
+      write(client, table, generateMutations(0, 100, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100), scanner -> {});
+      verifyData(client, table, AUTHORIZATIONS, Collections.emptySortedMap(),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      client.tableOperations().flush(table, null, null, true);
+      Wait.waitFor(() -> {
+        try (var scanner = client.createScanner(table, AUTHORIZATIONS)) {
+          scanner.setConsistencyLevel(EVENTUAL);
+          return scan(scanner).size() >= 100;
+        }
+      });
+
+      // should see all data that was flushed in eventual scan
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+      // should not see data with col vis set
+      verifyData(client, table, Authorizations.EMPTY, generateKeys(0, 100, tr -> tr.vis.isEmpty()),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      // write some more rows after 100 and verify those are not seen by eventual scan until table
+      // is flushed.
+      write(client, table, generateMutations(100, 200, tr -> true));
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 100),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+      client.tableOperations().flush(table, null, null, true);
+      // wait for the eventual scan to see the new data
+      final int initialSize = generateKeys(0, 100).size();
+      Wait.waitFor(() -> {
+        try (var scanner = client.createScanner(table, AUTHORIZATIONS)) {
+          scanner.setConsistencyLevel(EVENTUAL);
+          return scan(scanner).size() > initialSize;
+        }
+      });
+
+      verifyData(client, table, AUTHORIZATIONS, generateKeys(0, 200),
+          scanner -> scanner.setConsistencyLevel(EVENTUAL));
+
+    } finally {
+      getCluster().getClusterControl().stop(ServerType.SCAN_SERVER);
+    }
+  }
 
   @Test
   public void testBulkImport() throws Exception {
@@ -1313,17 +1376,7 @@ public abstract class ComprehensiveITBase extends SharedMiniClusterBase {
 
     client.tableOperations().exportTable(srcTable, exportDir);
 
-    fs.mkdirs(new Path(importDir));
-    try (var inputStream = fs.open(new Path(exportDir + "/distcp.txt"));
-        var inputStreamReader = new InputStreamReader(inputStream);
-        var reader = new BufferedReader(inputStreamReader)) {
-      String line;
-      while ((line = reader.readLine()) != null) {
-        var srcPath = new Path(line);
-        Path destPath = new Path(importDir, srcPath.getName());
-        FileUtil.copy(fs, srcPath, fs, destPath, false, fs.getConf());
-      }
-    }
+    ImportExportIT.copyExportedFilesToImportDirs(fs, new Path(exportDir), new Path(importDir));
 
     client.tableOperations().importTable(importTable, importDir);
 

@@ -110,6 +110,7 @@
     <url>https://github.com/apache/accumulo/actions</url>
   </ciManagement>
   <properties>
+    <accumulo.javadoc.since.versions>4.0.0</accumulo.javadoc.since.versions>
     <!-- used for filtering the java source with the current version -->
     <accumulo.release.version>${project.version}</accumulo.release.version>
     <!-- avoid error shutting down built-in ForkJoinPool.commonPool() during exec:java tasks -->
@@ -122,10 +123,11 @@
     <failsafe.reuseForks>false</failsafe.reuseForks>
     <!-- prevent introduction of new compiler warnings -->
     <maven.compiler.failOnWarning>true</maven.compiler.failOnWarning>
-    <maven.compiler.release>11</maven.compiler.release>
-    <maven.compiler.source>11</maven.compiler.source>
-    <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <maven.javadoc.failOnWarnings>true</maven.javadoc.failOnWarnings>
+    <maven.javadoc.since.version>4.0.0</maven.javadoc.since.version>
     <maven.site.deploy.skip>true</maven.site.deploy.skip>
     <maven.site.skip>true</maven.site.skip>
     <!-- surefire/failsafe plugin option -->
@@ -135,7 +137,7 @@
     <minimalJavaBuildVersion>17</minimalJavaBuildVersion>
     <minimalMavenBuildVersion>3.9</minimalMavenBuildVersion>
     <!-- timestamp for reproducible outputs, updated on release by the release plugin -->
-    <project.build.outputTimestamp>2024-07-29T06:03:16Z</project.build.outputTimestamp>
+    <project.build.outputTimestamp>2025-08-13T01:30:03Z</project.build.outputTimestamp>
     <rat.consoleOutput>true</rat.consoleOutput>
     <sourceReleaseAssemblyDescriptor>source-release-tar</sourceReleaseAssemblyDescriptor>
     <surefire.excludedGroups />
@@ -794,6 +796,10 @@
           <configuration>
             <quiet>true</quiet>
             <additionalJOption>-J-Xmx512m</additionalJOption>
+            <additionalOptions>
+              <additionalOption>--since "${accumulo.javadoc.since.versions}"</additionalOption>
+              <additionalOption>--since-label "New API since ${accumulo.javadoc.since.versions.first}"</additionalOption>
+            </additionalOptions>
             <doclint>all,-missing</doclint>
             <legacyMode>true</legacyMode>
           </configuration>
@@ -985,6 +991,19 @@
               <regex>-</regex>
               <replacement>.</replacement>
               <value>org-apache-${project.artifactId}</value>
+            </configuration>
+          </execution>
+          <execution>
+            <id>find-first-javadoc-since-version</id>
+            <goals>
+              <goal>regex-property</goal>
+            </goals>
+            <configuration>
+              <name>accumulo.javadoc.since.versions.first</name>
+              <regex>,.*</regex>
+              <replacement />
+              <value>${accumulo.javadoc.since.versions}</value>
+              <failIfNoMatch>false</failIfNoMatch>
             </configuration>
           </execution>
         </executions>
@@ -1510,6 +1529,13 @@
       <id>sunny</id>
       <properties>
         <failsafe.groups>SunnyDay</failsafe.groups>
+        <!--
+          exclude junit-platform-suite engine from this list of engines to run,
+          so it skips the SimpleSuite tests, which contain no sunny tests, to
+          prevent the suite engine from running the BeforeSuite and AfterSuite
+          minicluster setup and teardown unnecessarily for zero tests
+        -->
+        <failsafe.includeJUnit5Engines>junit-jupiter</failsafe.includeJUnit5Engines>
       </properties>
     </profile>
     <profile>

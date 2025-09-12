@@ -99,7 +99,7 @@ public class MinorCompactor extends FileCompactor {
             if (tserverLock == null || !tserverLock.verifyLockAtSource()) {
               log.error("Minor compaction of {} has failed and TabletServer lock does not exist."
                   + " Halting...", getExtent(), e);
-              Halt.halt(-1, "TabletServer lock does not exist", e);
+              Halt.halt(1, "TabletServer lock does not exist", e);
             } else {
               throw e;
             }

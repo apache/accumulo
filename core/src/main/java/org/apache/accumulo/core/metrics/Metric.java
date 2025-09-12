@@ -21,6 +21,8 @@ package org.apache.accumulo.core.metrics;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.accumulo.core.fate.FateExecutorMetrics;
+
 public enum Metric {
   // General Server Metrics
   SERVER_IDLE("accumulo.server.idle", MetricType.GAUGE,
@@ -104,7 +106,20 @@ public enum Metric {
       "Count of errors that occurred when attempting to gather fate metrics.",
       MetricDocSection.FATE),
   FATE_TX("accumulo.fate.tx", MetricType.GAUGE,
-      "The state is now in a tag (e.g., state=new, state=in.progress, state=failed, etc.).",
+      "Count of FATE operations in a certain state. The state is now in a tag "
+          + "(e.g., state=new, state=in.progress, state=failed, etc.).",
+      MetricDocSection.FATE),
+  FATE_OPS_THREADS_INACTIVE("accumulo.fate.ops.threads.inactive", MetricType.GAUGE,
+      "Keeps track of the number of idle threads (not working on a fate operation) in the thread "
+          + "pool. The pool name can be found in the " + FateExecutorMetrics.POOL_NAME_TAG_KEY
+          + " tag. The fate instance type can be found in the "
+          + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
+      MetricDocSection.FATE),
+  FATE_OPS_THREADS_TOTAL("accumulo.fate.ops.threads.total", MetricType.GAUGE,
+      "Keeps track of the total number of threads in the thread pool. The pool name can be found in the "
+          + FateExecutorMetrics.POOL_NAME_TAG_KEY
+          + " tag. The fate instance type can be found in the "
+          + FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY + " tag.",
       MetricDocSection.FATE),
 
   // Garbage Collection Metrics

@@ -71,20 +71,12 @@ class ImportPopulateZookeeper extends ManagerRepo {
   public Repo<Manager> call(FateId fateId, Manager env) throws Exception {
 
     var context = env.getContext();
-    // reserve the table name in zookeeper or fail
-    Utils.getTableNameLock().lock();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
+        TableOperation.IMPORT);
+    env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
 
-    try {
-
-      // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      context.getTableMapping(tableInfo.namespaceId).put(tableInfo.tableId, tableInfo.tableName,
-          TableOperation.IMPORT);
-      env.getTableManager().addTable(tableInfo.tableId, tableInfo.namespaceId, tableInfo.tableName);
-
-      context.clearTableListCache();
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    context.clearTableListCache();
 
     VolumeManager volMan = env.getVolumeManager();
 

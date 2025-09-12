@@ -38,7 +38,10 @@ import org.apache.accumulo.core.data.Mutation;
  * <li>2 = insufficient authorization</li>
  * </ul>
  *
- * @since 2.1.0 moved from org.apache.accumulo.core.constraints package
+ * <p>
+ * This was moved from the org.apache.accumulo.core.constraints package since 2.1.0
+ *
+ * @since 2.1.0
  */
 public class VisibilityConstraint implements Constraint {
 

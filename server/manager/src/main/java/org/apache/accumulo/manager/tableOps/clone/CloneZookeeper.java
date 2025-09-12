@@ -53,21 +53,16 @@ class CloneZookeeper extends ManagerRepo {
 
   @Override
   public Repo<Manager> call(FateId fateId, Manager environment) throws Exception {
-    Utils.getTableNameLock().lock();
-    try {
-      var context = environment.getContext();
-      // write tableName & tableId, first to Table Mapping and then to Zookeeper
-      context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
-          cloneInfo.getTableName(), TableOperation.CLONE);
-      environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
-          cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
-          cloneInfo.getPropertiesToExclude());
-      context.clearTableListCache();
+    var context = environment.getContext();
+    // write tableName & tableId, first to Table Mapping and then to Zookeeper
+    context.getTableMapping(cloneInfo.getNamespaceId()).put(cloneInfo.getTableId(),
+        cloneInfo.getTableName(), TableOperation.CLONE);
+    environment.getTableManager().cloneTable(cloneInfo.getSrcTableId(), cloneInfo.getTableId(),
+        cloneInfo.getTableName(), cloneInfo.getNamespaceId(), cloneInfo.getPropertiesToSet(),
+        cloneInfo.getPropertiesToExclude());
+    context.clearTableListCache();
 
-      return new CloneMetadata(cloneInfo);
-    } finally {
-      Utils.getTableNameLock().unlock();
-    }
+    return new CloneMetadata(cloneInfo);
   }
 
   @Override

@@ -16,30 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.accumulo.manager.tableOps.split;
+package org.apache.accumulo.core.client;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+/**
+ * @since 4.0.0
+ */
+public class ResourceGroupNotFoundException extends Exception {
 
-import org.apache.accumulo.manager.split.Splitter.FileInfo;
-import org.apache.hadoop.io.Text;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+  private static final long serialVersionUID = 1L;
 
-public class FileInfoTest {
-  private Text row1;
-  private Text row2;
-  private FileInfo info;
-
-  @BeforeEach
-  public void setUp() {
-    row1 = new Text("row1");
-    row2 = new Text("row2");
-    info = new FileInfo(row1, row2);
+  public ResourceGroupNotFoundException(String group) {
+    super("Resource group " + group + " does not exist");
   }
 
-  @Test
-  public void testGetters() {
-    assertEquals("row1", info.getFirstRow().toString());
-    assertEquals("row2", info.getLastRow().toString());
-  }
 }

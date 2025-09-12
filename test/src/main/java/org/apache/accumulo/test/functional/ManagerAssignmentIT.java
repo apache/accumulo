@@ -65,6 +65,7 @@ import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.lock.ServiceLock;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metadata.schema.Ample;
 import org.apache.accumulo.core.metadata.schema.MetadataSchema.TabletsSection;
@@ -456,7 +457,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
   public static List<TabletStats> getTabletStats(AccumuloClient c, String tableId)
       throws AccumuloException, AccumuloSecurityException {
     return ThriftClientTypes.TABLET_SERVER.execute((ClientContext) c, client -> client
-        .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId));
+        .getTabletStats(TraceUtil.traceInfo(), ((ClientContext) c).rpcCreds(), tableId),
+        ResourceGroupPredicate.ANY);
   }
 
   @Test
@@ -534,7 +536,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       try {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
+                getCluster().getServerContext().rpcCreds(), finalAddress, false),
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }
@@ -585,7 +588,8 @@ public class ManagerAssignmentIT extends SharedMiniClusterBase {
       try {
         ThriftClientTypes.MANAGER.executeVoid((ClientContext) client,
             c -> c.shutdownTabletServer(TraceUtil.traceInfo(),
-                getCluster().getServerContext().rpcCreds(), finalAddress, false));
+                getCluster().getServerContext().rpcCreds(), finalAddress, false),
+            ResourceGroupPredicate.DEFAULT_RG_ONLY);
       } catch (AccumuloException | AccumuloSecurityException e) {
         fail("Error shutting down TabletServer", e);
       }

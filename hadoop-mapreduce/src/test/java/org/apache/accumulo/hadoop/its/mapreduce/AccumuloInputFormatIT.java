@@ -79,7 +79,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 /**
  * Tests the new MR API in the hadoop-mapreduce package.
  *
- * @since 2.0
+ * @since 2.0.0
  */
 public class AccumuloInputFormatIT extends SharedMiniClusterBase {
 

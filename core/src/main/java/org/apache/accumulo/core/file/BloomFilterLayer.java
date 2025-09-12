@@ -388,13 +388,8 @@ public class BloomFilterLayer {
     }
 
     @Override
-    public Text getFirstRow() throws IOException {
-      return reader.getFirstRow();
-    }
-
-    @Override
-    public Text getLastRow() throws IOException {
-      return reader.getLastRow();
+    public FileRange getFileRange() {
+      return reader.getFileRange();
     }
 
     @Override

@@ -242,8 +242,7 @@ public abstract class ClientTabletCache {
 
     @Override
     public boolean equals(Object o) {
-      if (o instanceof CachedTablet) {
-        CachedTablet otl = (CachedTablet) o;
+      if (o instanceof CachedTablet otl) {
         return getExtent().equals(otl.getExtent())
             && getTserverLocation().equals(otl.getTserverLocation())
             && getTserverSession().equals(otl.getTserverSession())

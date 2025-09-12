@@ -400,67 +400,51 @@ public class ScanServer extends AbstractServer
           "Log sorting for tablet recovery is disabled, SSERV_WAL_SORT_MAX_CONCURRENT is less than 1.");
     }
 
+    while (!isShutdownRequested()) {
+      if (Thread.currentThread().isInterrupted()) {
+        LOG.info("Server process thread has been interrupted, shutting down");
+        break;
+      }
+      try {
+        Thread.sleep(1000);
+        updateIdleStatus(
+            sessionManager.getActiveScans().isEmpty() && tabletMetadataCache.estimatedSize() == 0);
+      } catch (InterruptedException e) {
+        LOG.info("Interrupt Exception received, shutting down");
+        gracefulShutdown(getContext().rpcCreds());
+      }
+    }
+
+    // Wait for scans to get to zero
+    while (!sessionManager.getActiveScans().isEmpty()) {
+      LOG.debug("Waiting on {} active scans to complete.", sessionManager.getActiveScans().size());
+      UtilWaitThread.sleep(1000);
+    }
+
+    LOG.debug("Stopping Thrift Servers");
+    getThriftServer().stop();
+
     try {
-      while (!isShutdownRequested()) {
-        if (Thread.currentThread().isInterrupted()) {
-          LOG.info("Server process thread has been interrupted, shutting down");
-          break;
-        }
-        try {
-          Thread.sleep(1000);
-          updateIdleStatus(sessionManager.getActiveScans().isEmpty()
-              && tabletMetadataCache.estimatedSize() == 0);
-        } catch (InterruptedException e) {
-          LOG.info("Interrupt Exception received, shutting down");
-          gracefulShutdown(getContext().rpcCreds());
-        }
-      }
-    } finally {
-      // Wait for scans to got to zero
-      while (!sessionManager.getActiveScans().isEmpty()) {
-        LOG.debug("Waiting on {} active scans to complete.",
-            sessionManager.getActiveScans().size());
-        UtilWaitThread.sleep(1000);
-      }
+      LOG.info("Removing server scan references");
+      this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
+          serverLockUUID);
+    } catch (Exception e) {
+      LOG.warn("Failed to remove scan server refs from metadata location", e);
+    }
 
-      LOG.debug("Stopping Thrift Servers");
-      getThriftServer().stop();
-
-      try {
-        LOG.info("Removing server scan references");
-        this.getContext().getAmple().scanServerRefs().delete(getAdvertiseAddress().toString(),
-            serverLockUUID);
-      } catch (Exception e) {
-        LOG.warn("Failed to remove scan server refs from metadata location", e);
+    try {
+      LOG.debug("Closing filesystems");
+      VolumeManager mgr = getContext().getVolumeManager();
+      if (null != mgr) {
+        mgr.close();
       }
+    } catch (IOException e) {
+      LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
+    }
 
-      try {
-        LOG.debug("Closing filesystems");
-        VolumeManager mgr = getContext().getVolumeManager();
-        if (null != mgr) {
-          mgr.close();
-        }
-      } catch (IOException e) {
-        LOG.warn("Failed to close filesystem : {}", e.getMessage(), e);
-      }
-
-      if (tmCacheExecutor != null) {
-        LOG.debug("Shutting down TabletMetadataCache executor");
-        tmCacheExecutor.shutdownNow();
-      }
-
-      context.getLowMemoryDetector().logGCInfo(getConfiguration());
-      super.close();
-      getShutdownComplete().set(true);
-      LOG.info("stop requested. exiting ... ");
-      try {
-        if (null != lock) {
-          lock.unlock();
-        }
-      } catch (Exception e) {
-        LOG.warn("Failed to release scan server lock", e);
-      }
-
+    if (tmCacheExecutor != null) {
+      LOG.debug("Shutting down TabletMetadataCache executor");
+      tmCacheExecutor.shutdownNow();
     }
   }
 
@@ -795,11 +779,9 @@ public class ScanServer extends AbstractServer
   }
 
   private static Set<StoredTabletFile> getScanSessionFiles(ScanSession<?> session) {
-    if (session instanceof SingleScanSession) {
-      var sss = (SingleScanSession) session;
+    if (session instanceof SingleScanSession sss) {
       return Set.copyOf(session.getTabletResolver().getTablet(sss.extent).getDatafiles().keySet());
-    } else if (session instanceof MultiScanSession) {
-      var mss = (MultiScanSession) session;
+    } else if (session instanceof MultiScanSession mss) {
       return mss.exents.stream().flatMap(e -> {
         var tablet = mss.getTabletResolver().getTablet(e);
         if (tablet == null) {

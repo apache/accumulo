@@ -37,11 +37,14 @@ import java.util.concurrent.TimeoutException;
 import org.apache.accumulo.cluster.ClusterControl;
 import org.apache.accumulo.core.Constants;
 import org.apache.accumulo.core.conf.Property;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloClusterImpl.ProcessInfo;
+import org.apache.accumulo.server.conf.store.ResourceGroupPropKey;
 import org.apache.accumulo.server.util.Admin;
 import org.apache.accumulo.server.util.ZooZap;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.zookeeper.KeeperException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -145,19 +148,24 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           Map<String,Integer> tserverGroups =
               cluster.getConfig().getClusterServerConfiguration().getTabletServerConfiguration();
           for (Entry<String,Integer> e : tserverGroups.entrySet()) {
+            final String rg = e.getKey();
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
-                tabletServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                tabletServerProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
-                : cluster.getConfig().getServerClass(server, e.getKey());
+                : cluster.getConfig().getServerClass(server, rg);
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes
-                  .add(
-                      cluster
-                          ._exec(classToUse, server, configOverrides,
-                              ArrayUtils.addAll(args, "-o",
-                                  Property.TSERV_GROUP_NAME.getKey() + "=" + e.getKey()))
-                          .getProcess());
+              processes.add(cluster
+                  ._exec(classToUse, server, configOverrides,
+                      ArrayUtils.addAll(args, "-o", Property.TSERV_GROUP_NAME.getKey() + "=" + rg))
+                  .getProcess());
             }
           }
         }
@@ -197,19 +205,24 @@ public class MiniAccumuloClusterControl implements ClusterControl {
           Map<String,Integer> sserverGroups =
               cluster.getConfig().getClusterServerConfiguration().getScanServerConfiguration();
           for (Entry<String,Integer> e : sserverGroups.entrySet()) {
+            final String rg = e.getKey();
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
-                scanServerProcesses.computeIfAbsent(e.getKey(), k -> new ArrayList<>());
+                scanServerProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
-                : cluster.getConfig().getServerClass(server, e.getKey());
+                : cluster.getConfig().getServerClass(server, rg);
             int count = 0;
             for (int i = processes.size(); count < limit && i < e.getValue(); i++, ++count) {
-              processes
-                  .add(
-                      cluster
-                          ._exec(classToUse, server, configOverrides,
-                              ArrayUtils.addAll(args, "-o",
-                                  Property.SSERV_GROUP_NAME.getKey() + "=" + e.getKey()))
-                          .getProcess());
+              processes.add(cluster
+                  ._exec(classToUse, server, configOverrides,
+                      ArrayUtils.addAll(args, "-o", Property.SSERV_GROUP_NAME.getKey() + "=" + rg))
+                  .getProcess());
             }
           }
         }
@@ -220,10 +233,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
               cluster.getConfig().getClusterServerConfiguration().getCompactorConfiguration();
           for (Entry<String,Integer> e : compactorGroups.entrySet()) {
             final String rg = e.getKey();
+            try {
+              ResourceGroupPropKey.of(ResourceGroupId.of(rg))
+                  .createZNode(cluster.getServerContext().getZooSession().asReaderWriter());
+            } catch (KeeperException | InterruptedException e1) {
+              throw new IllegalStateException(
+                  "Unable to create resource group configuration node for " + rg);
+            }
             List<Process> processes =
                 compactorProcesses.computeIfAbsent(rg, k -> new ArrayList<>());
             Class<?> classToUse = classOverride != null ? classOverride
-                : cluster.getConfig().getServerClass(server, e.getKey());
+                : cluster.getConfig().getServerClass(server, rg);
             int count = 0;
             // Override the Compactor classToUse for the default resource group. In the cases
             // where the ExternalDoNothingCompactor and MemoryConsumingCompactor are used, they
@@ -259,6 +279,17 @@ public class MiniAccumuloClusterControl implements ClusterControl {
       }
       cluster.stopProcessesWithTimeout(ServerType.COMPACTOR, group, 30, TimeUnit.SECONDS);
       compactorProcesses.remove(compactorResourceGroup);
+    }
+  }
+
+  public void stopScanServerGroup(String sserverResourceGroup) {
+    synchronized (scanServerProcesses) {
+      var group = scanServerProcesses.get(sserverResourceGroup);
+      if (group == null) {
+        return;
+      }
+      cluster.stopProcessesWithTimeout(ServerType.SCAN_SERVER, group, 30, TimeUnit.SECONDS);
+      scanServerProcesses.remove(sserverResourceGroup);
     }
   }
 

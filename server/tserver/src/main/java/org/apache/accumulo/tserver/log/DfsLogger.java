@@ -90,7 +90,7 @@ public final class DfsLogger implements Comparable<DfsLogger> {
   /**
    * Simplified encryption technique supported in V4.
    *
-   * @since 2.0
+   * @since 2.0.0
    */
   public static final String LOG_FILE_HEADER_V4 = "--- Log File Header (v4) ---";
 

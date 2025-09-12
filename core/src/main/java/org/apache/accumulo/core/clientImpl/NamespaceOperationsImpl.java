@@ -53,6 +53,7 @@ import org.apache.accumulo.core.data.NamespaceId;
 import org.apache.accumulo.core.data.constraints.Constraint;
 import org.apache.accumulo.core.iterators.IteratorUtil.IteratorScope;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.manager.thrift.TFateOperation;
 import org.apache.accumulo.core.rpc.clients.ThriftClientTypes;
 import org.apache.accumulo.core.trace.TraceUtil;
@@ -206,9 +207,10 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
       final Consumer<Map<String,String>> mapMutator)
       throws AccumuloException, AccumuloSecurityException, NamespaceNotFoundException {
 
-    final TVersionedProperties vProperties =
-        ThriftClientTypes.CLIENT.execute(context, client -> client
-            .getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+    final TVersionedProperties vProperties = ThriftClientTypes.CLIENT.execute(context,
+        client -> client.getVersionedNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(),
+            namespace),
+        ResourceGroupPredicate.ANY);
     mapMutator.accept(vProperties.getProperties());
 
     // A reference to the map was passed to the user, maybe they still have the reference and are
@@ -293,15 +295,15 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+          .getNamespaceConfiguration(TraceUtil.traceInfo(), context.rpcCreds(), namespace),
+          ResourceGroupPredicate.ANY);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
         Throwable tnfeCause = eCause.getCause();
-        if (tnfeCause instanceof NamespaceNotFoundException) {
-          var nnfe = (NamespaceNotFoundException) tnfeCause;
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
           nnfe.addSuppressed(e);
           throw nnfe;
         }
@@ -319,13 +321,13 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
 
     try {
       return ThriftClientTypes.CLIENT.execute(context, client -> client
-          .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace));
+          .getNamespaceProperties(TraceUtil.traceInfo(), context.rpcCreds(), namespace),
+          ResourceGroupPredicate.ANY);
     } catch (AccumuloException e) {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
         Throwable tnfeCause = eCause.getCause();
-        if (tnfeCause instanceof NamespaceNotFoundException) {
-          var nnfe = (NamespaceNotFoundException) tnfeCause;
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
           nnfe.addSuppressed(e);
           throw nnfe;
         }
@@ -353,17 +355,18 @@ public class NamespaceOperationsImpl extends NamespaceOperationsHelper {
     checkArgument(asTypeName != null, "asTypeName is null");
 
     try {
-      return ThriftClientTypes.CLIENT.execute(context,
-          client -> client.checkNamespaceClass(TraceUtil.traceInfo(), context.rpcCreds(), namespace,
-              className, asTypeName));
+      return ThriftClientTypes.CLIENT
+          .execute(
+              context, client -> client.checkNamespaceClass(TraceUtil.traceInfo(),
+                  context.rpcCreds(), namespace, className, asTypeName),
+              ResourceGroupPredicate.ANY);
     } catch (AccumuloSecurityException e) {
       throw e;
     } catch (AccumuloException e) {
       Throwable eCause = e.getCause();
       if (eCause instanceof TableNotFoundException) {
         Throwable tnfeCause = eCause.getCause();
-        if (tnfeCause instanceof NamespaceNotFoundException) {
-          var nnfe = (NamespaceNotFoundException) tnfeCause;
+        if (tnfeCause instanceof NamespaceNotFoundException nnfe) {
           nnfe.addSuppressed(e);
           throw nnfe;
         }

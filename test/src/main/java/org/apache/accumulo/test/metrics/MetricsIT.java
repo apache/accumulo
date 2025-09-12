@@ -23,6 +23,8 @@ import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILED;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_CONSECUTIVE;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_FAILURES_TERMINATION;
 import static org.apache.accumulo.core.metrics.Metric.COMPACTOR_MAJC_STUCK;
+import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_THREADS_INACTIVE;
+import static org.apache.accumulo.core.metrics.Metric.FATE_OPS_THREADS_TOTAL;
 import static org.apache.accumulo.core.metrics.Metric.FATE_TYPE_IN_PROGRESS;
 import static org.apache.accumulo.core.metrics.Metric.MANAGER_BALANCER_MIGRATIONS_NEEDED;
 import static org.apache.accumulo.core.metrics.Metric.SCAN_BUSY_TIMEOUT_COUNT;
@@ -50,6 +52,7 @@ import java.util.Set;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.cli.ConfigOpts;
 import org.apache.accumulo.core.client.Accumulo;
@@ -59,16 +62,24 @@ import org.apache.accumulo.core.client.BatchWriterConfig;
 import org.apache.accumulo.core.client.IteratorSetting;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.client.admin.CompactionConfig;
+import org.apache.accumulo.core.conf.AccumuloConfiguration;
+import org.apache.accumulo.core.conf.ConfigurationCopy;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.data.Mutation;
 import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.fate.Fate;
+import org.apache.accumulo.core.fate.FateExecutorMetrics;
 import org.apache.accumulo.core.fate.FateInstanceType;
 import org.apache.accumulo.core.fate.ReadOnlyFateStore.TStatus;
+import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.metrics.Metric;
 import org.apache.accumulo.core.metrics.MetricsInfo;
 import org.apache.accumulo.core.metrics.MetricsProducer;
 import org.apache.accumulo.core.spi.metrics.LoggingMeterRegistryFactory;
+import org.apache.accumulo.minicluster.ServerType;
 import org.apache.accumulo.miniclusterImpl.MiniAccumuloConfigImpl;
+import org.apache.accumulo.test.fate.FateTestUtil;
+import org.apache.accumulo.test.fate.SlowFateSplitManager;
 import org.apache.accumulo.test.functional.ConfigurableMacBase;
 import org.apache.accumulo.test.functional.SlowIterator;
 import org.apache.hadoop.conf.Configuration;
@@ -76,12 +87,18 @@ import org.apache.hadoop.io.Text;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import io.micrometer.core.instrument.MeterRegistry;
 
 public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
-
+  private static final Logger log = LoggerFactory.getLogger(MetricsIT.class);
   private static TestStatsDSink sink;
+  private static final int numFateThreadsPool1 = 5;
+  private static final int numFateThreadsPool2 = 10;
+  private static final int numFateThreadsPool3 = 15;
+  private static final String allOpsFateExecutorName = "pool1";
 
   @Override
   protected Duration defaultTimeout() {
@@ -116,6 +133,15 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     Map<String,String> sysProps = Map.of(TestStatsDRegistryFactory.SERVER_HOST, "127.0.0.1",
         TestStatsDRegistryFactory.SERVER_PORT, Integer.toString(sink.getPort()));
     cfg.setSystemProperties(sysProps);
+    // custom config for the fate thread pools.
+    var fatePoolsConfig = FateTestUtil.updateFateConfig(new ConfigurationCopy(),
+        numFateThreadsPool1, allOpsFateExecutorName);
+    cfg.setProperty(Property.MANAGER_FATE_USER_CONFIG.getKey(),
+        fatePoolsConfig.get(Property.MANAGER_FATE_USER_CONFIG));
+    cfg.setProperty(Property.MANAGER_FATE_META_CONFIG.getKey(),
+        fatePoolsConfig.get(Property.MANAGER_FATE_META_CONFIG));
+    // Make splits run slowly, used for testing the fate metrics
+    cfg.setServerClass(ServerType.MANAGER, r -> SlowFateSplitManager.class);
   }
 
   @Test
@@ -232,12 +258,216 @@ public class MetricsIT extends ConfigurableMacBase implements MetricsProducer {
     cluster.stop();
   }
 
+  @Test
+  public void testFateExecutorMetrics() throws Exception {
+    // Tests metrics for Fate's thread pools. Tests that metrics are seen as expected, and config
+    // changes to the thread pools are accurately reflected in the metrics. This includes checking
+    // that old thread pool metrics are removed, new ones are created, size changes to thread
+    // pools are reflected, and the tags are seen as expected
+    final String table = getUniqueNames(1)[0];
+
+    // prevent any system initiated fate operations from running, which may interfere with our
+    // metrics gathering
+    getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
+    getCluster().getClusterControl().stopAllServers(ServerType.GARBAGE_COLLECTOR);
+    try {
+      try (AccumuloClient client = Accumulo.newClient().from(getClientProperties()).build()) {
+        client.tableOperations().create(table);
+
+        SortedSet<Text> splits = new TreeSet<>();
+        splits.add(new Text("foo"));
+        // initiate 1 USER fate op which will execute slowly
+        client.tableOperations().addSplits(table, splits);
+        // initiate 1 META fate op which will execute slowly
+        client.tableOperations().addSplits(SystemTables.METADATA.tableName(), splits);
+
+        // let metrics build up
+        Thread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis() * 3);
+
+        boolean sawExpectedTotalThreadsUserMetric = false;
+        boolean sawExpectedTotalThreadsMetaMetric = false;
+        boolean sawExpectedInactiveUserThreads = false;
+        boolean sawExpectedInactiveMetaThreads = false;
+        // For each FATE instance, should see at least one metric for the following:
+        // inactive = configured size - num fate ops initiated = configured size - 1
+        // total = configured size
+        for (var line : sink.getLines()) {
+          TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
+          // if the metric is not one of the fate executor metrics...
+          if (!metric.getName().equals(FATE_OPS_THREADS_INACTIVE.getName())
+              && !metric.getName().equals(FATE_OPS_THREADS_TOTAL.getName())) {
+            continue;
+          }
+          var tags = metric.getTags();
+          var instanceType = FateInstanceType
+              .valueOf(tags.get(FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY).toUpperCase());
+          var poolName = tags.get(FateExecutorMetrics.POOL_NAME_TAG_KEY);
+
+          // ensure that the pool name seen in the tag is in the fate configuration
+          getFateOpsFromConfig(getCluster().getServerContext().getConfiguration(), instanceType,
+              poolName);
+
+          if (metric.getName().equals(FATE_OPS_THREADS_TOTAL.getName())
+              && numFateThreadsPool1 == Integer.parseInt(metric.getValue())) {
+            if (instanceType == FateInstanceType.USER) {
+              sawExpectedTotalThreadsUserMetric = true;
+            } else if (instanceType == FateInstanceType.META) {
+              sawExpectedTotalThreadsMetaMetric = true;
+            }
+          } else if (metric.getName().equals(FATE_OPS_THREADS_INACTIVE.getName())
+              && (Integer.parseInt(metric.getValue()) == numFateThreadsPool1 - 1)) {
+            if (instanceType == FateInstanceType.USER) {
+              sawExpectedInactiveUserThreads = true;
+            } else if (instanceType == FateInstanceType.META) {
+              sawExpectedInactiveMetaThreads = true;
+            }
+          }
+        }
+        assertTrue(sawExpectedInactiveUserThreads);
+        assertTrue(sawExpectedInactiveMetaThreads);
+        assertTrue(sawExpectedTotalThreadsUserMetric);
+        assertTrue(sawExpectedTotalThreadsMetaMetric);
+
+        // change config such that existing fate executor (pool1) is shutdown, and two new fate
+        // executors (pool2 and pool3) are started
+        changeFateConfig(client, FateInstanceType.USER);
+        changeFateConfig(client, FateInstanceType.META);
+
+        // Allow FATE config changes to be picked up. Will take at most POOL_WATCHER_DELAY to
+        // commence, provide a buffer to allow to complete.
+        Thread.sleep(Fate.POOL_WATCHER_DELAY.toMillis() + 5_000);
+        // sink metrics, expect from this point onward that we will no longer see metrics for the
+        // old pool (pool1), only metrics for new pools (pool2 and pool3)
+        sink.getLines();
+
+        // let metrics build back up
+        Thread.sleep(TestStatsDRegistryFactory.pollingFrequency.toMillis() * 3);
+
+        boolean sawAnyMetricPool1 = false;
+
+        boolean sawExpectedTotalThreadsUserMetricPool2 = false;
+        boolean sawExpectedTotalThreadsMetaMetricPool2 = false;
+        boolean sawExpectedInactiveUserThreadsPool2 = false;
+        boolean sawExpectedInactiveMetaThreadsPool2 = false;
+
+        boolean sawExpectedTotalThreadsUserMetricPool3 = false;
+        boolean sawExpectedTotalThreadsMetaMetricPool3 = false;
+        boolean sawExpectedInactiveUserThreadsPool3 = false;
+        boolean sawExpectedInactiveMetaThreadsPool3 = false;
+        for (var line : sink.getLines()) {
+          TestStatsDSink.Metric metric = TestStatsDSink.parseStatsDMetric(line);
+          // if the metric is not one of the fate executor metrics...
+          if (!metric.getName().equals(FATE_OPS_THREADS_INACTIVE.getName())
+              && !metric.getName().equals(FATE_OPS_THREADS_TOTAL.getName())) {
+            continue;
+          }
+          var tags = metric.getTags();
+          var instanceType = FateInstanceType
+              .valueOf(tags.get(FateExecutorMetrics.INSTANCE_TYPE_TAG_KEY).toUpperCase());
+          var poolName = tags.get(FateExecutorMetrics.POOL_NAME_TAG_KEY);
+
+          // get the fate operations associated with the pool name seen in the metrics
+          Set<Fate.FateOperation> fateOps = getFateOpsFromConfig(
+              getCluster().getServerContext().getConfiguration(), instanceType, poolName);
+
+          if (fateOps.equals(Fate.FateOperation.getAllUserFateOps())
+              || fateOps.equals(Fate.FateOperation.getAllMetaFateOps())) {
+            sawAnyMetricPool1 = true;
+          } else if (fateOps.equals(Arrays.stream(Fate.FateOperation.values())
+              .filter(fo -> !fo.equals(SlowFateSplitManager.SLOW_OP)).collect(Collectors.toSet()))
+              && numFateThreadsPool2 == Integer.parseInt(metric.getValue())) {
+            // pool2
+            // total = inactive = size pool2
+            if (metric.getName().equals(FATE_OPS_THREADS_INACTIVE.getName())) {
+              if (instanceType == FateInstanceType.USER) {
+                sawExpectedInactiveUserThreadsPool2 = true;
+              } else if (instanceType == FateInstanceType.META) {
+                sawExpectedInactiveMetaThreadsPool2 = true;
+              }
+            } else if (metric.getName().equals(FATE_OPS_THREADS_TOTAL.getName())) {
+              if (instanceType == FateInstanceType.USER) {
+                sawExpectedTotalThreadsUserMetricPool2 = true;
+              } else if (instanceType == FateInstanceType.META) {
+                sawExpectedTotalThreadsMetaMetricPool2 = true;
+              }
+            }
+          } else if (fateOps.equals(Set.of(SlowFateSplitManager.SLOW_OP))
+              && numFateThreadsPool3 == Integer.parseInt(metric.getValue())) {
+            // pool3
+            // total = inactive = size pool3
+            if (metric.getName().equals(FATE_OPS_THREADS_INACTIVE.getName())) {
+              if (instanceType == FateInstanceType.USER) {
+                sawExpectedInactiveUserThreadsPool3 = true;
+              } else if (instanceType == FateInstanceType.META) {
+                sawExpectedInactiveMetaThreadsPool3 = true;
+              }
+            } else if (metric.getName().equals(FATE_OPS_THREADS_TOTAL.getName())) {
+              if (instanceType == FateInstanceType.USER) {
+                sawExpectedTotalThreadsUserMetricPool3 = true;
+              } else if (instanceType == FateInstanceType.META) {
+                sawExpectedTotalThreadsMetaMetricPool3 = true;
+              }
+            }
+          } else {
+            throw new IllegalStateException("Saw unexpected FATE executor metric: " + metric);
+          }
+        }
+
+        assertFalse(sawAnyMetricPool1);
+        assertTrue(sawExpectedTotalThreadsUserMetricPool2);
+        assertTrue(sawExpectedTotalThreadsMetaMetricPool2);
+        assertTrue(sawExpectedInactiveUserThreadsPool2);
+        assertTrue(sawExpectedInactiveMetaThreadsPool2);
+        assertTrue(sawExpectedTotalThreadsUserMetricPool3);
+        assertTrue(sawExpectedTotalThreadsMetaMetricPool3);
+        assertTrue(sawExpectedInactiveUserThreadsPool3);
+        assertTrue(sawExpectedInactiveMetaThreadsPool3);
+      }
+    } finally {
+      getCluster().getClusterControl().startAllServers(ServerType.COMPACTOR);
+      getCluster().getClusterControl().startAllServers(ServerType.GARBAGE_COLLECTOR);
+    }
+  }
+
+  /**
+   * gets the fate operations from the configuration associated with the given pool name, throwing a
+   * runtime exception if one does not exist.
+   */
+  private Set<Fate.FateOperation> getFateOpsFromConfig(AccumuloConfiguration config,
+      FateInstanceType type, String poolName) throws RuntimeException {
+    var configForPoolNameSet = Fate.getPoolConfigurations(config, type).entrySet().stream()
+        .filter(entry -> poolName.contains(entry.getValue().getKey())).collect(Collectors.toSet());
+    assertEquals(1, configForPoolNameSet.size());
+    return configForPoolNameSet.iterator().next().getKey();
+  }
+
+  private void changeFateConfig(AccumuloClient client, FateInstanceType type) throws Exception {
+    Set<Fate.FateOperation> allOpsMinusSlowOp = null;
+    if (type == FateInstanceType.USER) {
+      allOpsMinusSlowOp = new HashSet<>(Fate.FateOperation.getAllUserFateOps());
+    } else if (type == FateInstanceType.META) {
+      allOpsMinusSlowOp = new HashSet<>(Fate.FateOperation.getAllMetaFateOps());
+    }
+    assertNotNull(allOpsMinusSlowOp);
+    allOpsMinusSlowOp.remove(SlowFateSplitManager.SLOW_OP);
+    String newFateConfig = String
+        .format("{'pool2':{'%s': %d},'pool3':{'%s': %d}}",
+            allOpsMinusSlowOp.stream().map(Enum::name).collect(Collectors.joining(",")),
+            numFateThreadsPool2, SlowFateSplitManager.SLOW_OP.name(), numFateThreadsPool3)
+        .replace("'", "\"");
+
+    if (type == FateInstanceType.USER) {
+      client.instanceOperations().setProperty(Property.MANAGER_FATE_USER_CONFIG.getKey(),
+          newFateConfig);
+    } else if (type == FateInstanceType.META) {
+      client.instanceOperations().setProperty(Property.MANAGER_FATE_META_CONFIG.getKey(),
+          newFateConfig);
+    }
+  }
+
   static void doWorkToGenerateMetrics(AccumuloClient client, Class<?> testClass) throws Exception {
     String tableName = testClass.getSimpleName();
     client.tableOperations().create(tableName);
-    SortedSet<Text> splits = new TreeSet<>(List.of(new Text("5")));
-    client.tableOperations().addSplits(tableName, splits);
-    Thread.sleep(3_000);
     BatchWriterConfig config = new BatchWriterConfig().setMaxMemory(0);
     try (BatchWriter writer = client.createBatchWriter(tableName, config)) {
       Mutation m = new Mutation("row");

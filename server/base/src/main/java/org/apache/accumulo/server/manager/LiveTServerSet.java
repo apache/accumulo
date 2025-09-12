@@ -237,8 +237,8 @@ public class LiveTServerSet implements ZooCacheWatcher {
     try {
       final Set<TServerInstance> updates = new HashSet<>();
       final Set<TServerInstance> doomed = new HashSet<>();
-      final Set<ServiceLockPath> tservers =
-          context.getServerPaths().getTabletServer(rg -> true, AddressSelector.all(), false);
+      final Set<ServiceLockPath> tservers = context.getServerPaths()
+          .getTabletServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
 
       locklessServers.keySet().retainAll(tservers);
 
@@ -506,7 +506,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
     ResourceGroupPredicate rgPredicate = resourceGroup.map(rg -> {
       ResourceGroupPredicate rgp = rg2 -> rg.equals(rg2);
       return rgp;
-    }).orElse(rg -> true);
+    }).orElse(ResourceGroupPredicate.ANY);
     AddressSelector addrPredicate =
         address.map(AddressSelector::exact).orElse(AddressSelector.all());
     Set<ServiceLockPath> paths =
@@ -519,7 +519,7 @@ public class LiveTServerSet implements ZooCacheWatcher {
       try {
         context.getZooSession().asReaderWriter().recursiveDelete(slp.toString(), SKIP);
       } catch (Exception e) {
-        Halt.halt(-1, "error removing tablet server lock", e);
+        Halt.halt(1, "error removing tablet server lock", e);
       }
       context.getZooCache().clear(slp.toString());
     }

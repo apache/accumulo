@@ -26,6 +26,7 @@ import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.fate.FateId;
 import org.apache.accumulo.core.fate.Repo;
 import org.apache.accumulo.core.fate.zookeeper.DistributedReadWriteLock.LockType;
+import org.apache.accumulo.core.fate.zookeeper.LockRange;
 import org.apache.accumulo.core.manager.state.tables.TableState;
 import org.apache.accumulo.manager.Manager;
 import org.slf4j.LoggerFactory;
@@ -55,7 +56,7 @@ public class ChangeTableState extends ManagerRepo {
     // reserve the table so that this op does not run concurrently with create, clone, or delete
     // table
     return Utils.reserveNamespace(env, namespaceId, fateId, LockType.READ, true, top)
-        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, top);
+        + Utils.reserveTable(env, tableId, fateId, LockType.WRITE, true, top, LockRange.infinite());
   }
 
   @Override

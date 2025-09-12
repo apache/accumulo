@@ -32,23 +32,36 @@ import org.apache.accumulo.core.metadata.schema.DataFileValue;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata;
 import org.apache.accumulo.core.metadata.schema.TabletMetadata.Location;
 
+import com.google.common.base.Suppliers;
+
 public class TabletInformationImpl implements TabletInformation {
 
   private final TabletMetadata tabletMetadata;
-  private long estimatedSize;
-  private long estimatedEntries;
-  private final String tabletState;
-  private final Supplier<Duration> currentTime;
 
-  public TabletInformationImpl(TabletMetadata tabletMetadata, String tabletState,
+  private final Supplier<String> tabletState;
+  private final Supplier<Duration> currentTime;
+  private final Supplier<FileInfo> fileInfo;
+
+  private class FileInfo {
+    private final long estimatedSize;
+    private final long estimatedEntries;
+
+    FileInfo() {
+      long estimatedEntries = 0L;
+      long estimatedSize = 0L;
+      for (DataFileValue dfv : tabletMetadata.getFilesMap().values()) {
+        estimatedEntries += dfv.getNumEntries();
+        estimatedSize += dfv.getSize();
+      }
+      this.estimatedEntries = estimatedEntries;
+      this.estimatedSize = estimatedSize;
+    }
+  }
+
+  public TabletInformationImpl(TabletMetadata tabletMetadata, Supplier<String> tabletState,
       Supplier<Duration> currentTime) {
     this.tabletMetadata = tabletMetadata;
-    estimatedEntries = 0L;
-    estimatedSize = 0L;
-    for (DataFileValue dfv : tabletMetadata.getFilesMap().values()) {
-      estimatedEntries += dfv.getNumEntries();
-      estimatedSize += dfv.getSize();
-    }
+    this.fileInfo = Suppliers.memoize(FileInfo::new);
     this.tabletState = tabletState;
     this.currentTime = Objects.requireNonNull(currentTime);
   }
@@ -70,17 +83,17 @@ public class TabletInformationImpl implements TabletInformation {
 
   @Override
   public long getEstimatedEntries() {
-    return this.estimatedEntries;
+    return this.fileInfo.get().estimatedEntries;
   }
 
   @Override
   public long getEstimatedSize() {
-    return estimatedSize;
+    return fileInfo.get().estimatedSize;
   }
 
   @Override
   public String getTabletState() {
-    return tabletState;
+    return tabletState.get();
   }
 
   @Override
@@ -107,8 +120,6 @@ public class TabletInformationImpl implements TabletInformation {
 
   @Override
   public String toString() {
-    return "TabletInformationImpl{tabletMetadata=" + tabletMetadata + ", estimatedSize="
-        + estimatedSize + ", estimatedEntries=" + estimatedEntries + ", tabletState='" + tabletState
-        + '\'' + '}';
+    return "TabletInformationImpl{tabletMetadata=" + tabletMetadata + '}';
   }
 }

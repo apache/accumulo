@@ -53,7 +53,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.function.Predicate;
 
 import org.apache.accumulo.core.Constants;
@@ -67,6 +67,7 @@ import org.apache.accumulo.core.clientImpl.thrift.ThriftTableOperationException;
 import org.apache.accumulo.core.conf.AccumuloConfiguration;
 import org.apache.accumulo.core.conf.Property;
 import org.apache.accumulo.core.conf.SiteConfiguration;
+import org.apache.accumulo.core.data.ResourceGroupId;
 import org.apache.accumulo.core.data.TableId;
 import org.apache.accumulo.core.dataImpl.KeyExtent;
 import org.apache.accumulo.core.fate.Fate;
@@ -85,6 +86,7 @@ import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptor;
 import org.apache.accumulo.core.lock.ServiceLockData.ServiceDescriptors;
 import org.apache.accumulo.core.lock.ServiceLockData.ThriftService;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.lock.ServiceLockPaths.ServiceLockPath;
 import org.apache.accumulo.core.lock.ServiceLockSupport.HAServiceLockWatcher;
 import org.apache.accumulo.core.logging.ConditionalLogger.DeduplicatingLogger;
@@ -484,7 +486,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     AbstractServer.startServer(new Manager(new ConfigOpts(), ServerContext::new, args), log);
   }
 
-  protected Manager(ConfigOpts opts, Function<SiteConfiguration,ServerContext> serverContextFactory,
+  protected Manager(ConfigOpts opts,
+      BiFunction<SiteConfiguration,ResourceGroupId,ServerContext> serverContextFactory,
       String[] args) throws IOException {
     super(ServerId.Type.MANAGER, opts, serverContextFactory, args);
     int poolSize = this.getConfiguration().getCount(Property.MANAGER_RENAME_THREADS);
@@ -587,8 +590,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
 
       while (stillManager()) {
         try {
-          Set<ServiceLockPath> scanServerPaths =
-              getContext().getServerPaths().getScanServer(rg -> true, AddressSelector.all(), false);
+          Set<ServiceLockPath> scanServerPaths = getContext().getServerPaths()
+              .getScanServer(ResourceGroupPredicate.ANY, AddressSelector.all(), false);
           for (ServiceLockPath path : scanServerPaths) {
 
             ZcStat stat = new ZcStat();
@@ -995,8 +998,8 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
     }
 
     MetricsInfo metricsInfo = getContext().getMetricsInfo();
-    ManagerMetrics managerMetrics = new ManagerMetrics(getConfiguration(), this);
-    var producers = managerMetrics.getProducers(getConfiguration(), this);
+    ManagerMetrics managerMetrics = new ManagerMetrics();
+    List<MetricsProducer> producers = new ArrayList<>();
     producers.add(balanceManager.getMetrics());
 
     final TabletGroupWatcher userTableTGW =
@@ -1109,10 +1112,6 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
       throw new IllegalStateException("Upgrade coordinator is unexpectedly not complete");
     }
 
-    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
-    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
-        getAdvertiseAddress(), getResourceGroup()));
-
     balanceManager.startBackGroundTask();
     Threads.createCriticalThread("ScanServer Cleanup Thread", new ScanServerZKCleaner()).start();
 
@@ -1135,10 +1134,16 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException(
             "Unexpected previous fate reference map already initialized");
       }
+      managerMetrics.configureFateMetrics(getConfiguration(), this, fateRefs.get());
       fateReadyLatch.countDown();
     } catch (KeeperException | InterruptedException e) {
       throw new IllegalStateException("Exception setting up FaTE cleanup thread", e);
     }
+
+    producers.addAll(managerMetrics.getProducers(this));
+    metricsInfo.addMetricsProducers(producers.toArray(new MetricsProducer[0]));
+    metricsInfo.init(MetricsInfo.serviceTags(getContext().getInstanceName(), getApplicationName(),
+        getAdvertiseAddress(), getResourceGroup()));
 
     ThreadPools.watchCriticalScheduledTask(context.getScheduledExecutor()
         .scheduleWithFixedDelay(() -> ScanServerMetadataEntries.clean(context), 10, 10, MINUTES));
@@ -1206,7 +1211,7 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         break;
       }
       try {
-        Thread.sleep(500);
+        mainWait();
       } catch (InterruptedException e) {
         log.info("Interrupt Exception received, shutting down");
         gracefulShutdown(context.rpcCreds());
@@ -1257,14 +1262,11 @@ public class Manager extends AbstractServer implements LiveTServerSet.Listener {
         throw new IllegalStateException("Exception waiting on watcher", e);
       }
     }
-    super.close();
-    getShutdownComplete().set(true);
-    log.info("stop requested. exiting ... ");
-    try {
-      managerLock.unlock();
-    } catch (Exception e) {
-      log.warn("Failed to release Manager lock", e);
-    }
+  }
+
+  // method exists for ExitCodesIT
+  public void mainWait() throws InterruptedException {
+    Thread.sleep(500);
   }
 
   protected Fate<Manager> initializeFateInstance(ServerContext context, FateStore<Manager> store) {

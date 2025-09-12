@@ -192,10 +192,6 @@ public interface TableOperations {
    *
    * Ensures that tablets are split along a set of keys.
    *
-   * TODO: This method currently only adds new splits (existing are stripped). The intent in a
-   * future PR is so support updating existing splits and the TabletMergeabilty setting. See
-   * https://github.com/apache/accumulo/issues/5014
-   *
    * <p>
    * Note that while the documentation for Text specifies that its bytestream should be UTF-8, the
    * encoding is not enforced by operations that work with byte arrays.
@@ -420,7 +416,8 @@ public interface TableOperations {
    * @param srcTableName the table to clone
    * @param newTableName the name of the clone
    * @param config the clone command configuration
-   * @since 1.10 and 2.1
+   * @since 1.10.0
+   * @since 2.1.0
    */
   void clone(String srcTableName, String newTableName, CloneConfiguration config)
       throws AccumuloException, AccumuloSecurityException, TableNotFoundException,
@@ -1060,13 +1057,24 @@ public interface TableOperations {
   }
 
   /**
+   * @param fields can optionally narrow the data retrieved per tablet, which can speed up streaming
+   *        over tablets. If this list is empty then all fields are fetched.
    * @return a stream of tablet information for tablets that fall in the specified range. The stream
    *         may be backed by a scanner, so it's best to close the stream.
    * @since 4.0.0
    */
-  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range)
-      throws TableNotFoundException {
+  default Stream<TabletInformation> getTabletInformation(final String tableName, final Range range,
+      TabletInformation.Field... fields) throws TableNotFoundException {
     throw new UnsupportedOperationException();
   }
 
+  /**
+   * Returns the namespace for the given table name
+   *
+   * @param table fully qualified table name
+   * @return namespace name
+   * @throws IllegalArgumentException if table name is null, empty, or invalid format
+   * @since 4.0.0
+   */
+  String getNamespace(String table);
 }

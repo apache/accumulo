@@ -66,6 +66,7 @@ import org.apache.accumulo.core.fate.zookeeper.MetaFateStore;
 import org.apache.accumulo.core.fate.zookeeper.ZooUtil;
 import org.apache.accumulo.core.iterators.IteratorUtil;
 import org.apache.accumulo.core.lock.ServiceLockPaths.AddressSelector;
+import org.apache.accumulo.core.lock.ServiceLockPaths.ResourceGroupPredicate;
 import org.apache.accumulo.core.metadata.SystemTables;
 import org.apache.accumulo.core.zookeeper.ZooSession;
 import org.apache.accumulo.harness.SharedMiniClusterBase;
@@ -104,8 +105,10 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     // initiated on starting the manager, causing the test to fail. Stopping the compactor fixes
     // this issue.
     getCluster().getClusterControl().stopAllServers(ServerType.COMPACTOR);
-    Wait.waitFor(() -> getCluster().getServerContext().getServerPaths()
-        .getCompactor(rg -> true, AddressSelector.all(), true).isEmpty(), 60_000);
+    Wait.waitFor(
+        () -> getCluster().getServerContext().getServerPaths()
+            .getCompactor(ResourceGroupPredicate.ANY, AddressSelector.all(), true).isEmpty(),
+        60_000);
   }
 
   @AfterAll
@@ -785,7 +788,7 @@ public abstract class FateOpsCommandsITBase extends SharedMiniClusterBase
     AdminUtil.FateStatus status = null;
     try {
       status = AdminUtil.getTransactionStatus(Map.of(store.type(), mockedStore), null, null, null,
-          new HashMap<>(), new HashMap<>());
+          new HashMap<>(), new HashMap<>(), Map.of());
     } catch (Exception e) {
       fail("An unexpected error occurred in getTransactionStatus():\n" + e);
     }
