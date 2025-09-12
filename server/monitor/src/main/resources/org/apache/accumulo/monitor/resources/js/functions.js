@@ -638,14 +638,6 @@ function getSserversDetail(group) {
 }
 
 /**
- * REST GET call for /manager,
- * stores it on a sessionStorage variable
- */
-function getManager() {
-  return getJSONForTable(REST_V2_PREFIX + '/manager', 'manager');
-}
-
-/**
  * REST GET call for /compactors/summary,
  * stores it on a sessionStorage variable
  */
